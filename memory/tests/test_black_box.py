@@ -1,6 +1,4 @@
 """黑匣子日志单元测试"""
-import json
-import tempfile
 from pathlib import Path
 import pytest
 from memory.black_box import BlackBox

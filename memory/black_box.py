@@ -1,8 +1,6 @@
 """黑匣子日志 — JSONL 格式，按文件大小滚动，支持查询与分析"""
 
 import json
-import os
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
