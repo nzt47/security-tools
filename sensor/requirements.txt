@@ -1,0 +1,5 @@
+psutil>=5.9.0
+GPUtil>=1.4.0
+pynvml>=11.0.0
+watchdog>=3.0.0
+wmi>=1.5.0; platform_system == 'Windows'

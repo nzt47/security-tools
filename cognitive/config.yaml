@@ -1,0 +1,17 @@
+# cognitive/config.yaml
+# 可选配置文件——用户可以修改阈值和描述
+
+translations:
+  cpu_temperature:
+    thresholds:
+      - min: 85
+        max: 999
+        severity: critical
+        message: "我感觉发烧了，浑身发烫"
+      - min: 70
+        max: 85
+        severity: warning
+        message: "有点热，需要透透气"
+      - max: 70
+        severity: normal
+        message: "体温正常，感觉舒服"
