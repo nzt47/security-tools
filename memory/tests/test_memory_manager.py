@@ -1,8 +1,5 @@
 """MemoryManager 单元测试"""
-import json
-import tempfile
-from unittest.mock import MagicMock, patch
-from pathlib import Path
+from unittest.mock import MagicMock
 import pytest
 from memory.memory_manager import MemoryManager
 

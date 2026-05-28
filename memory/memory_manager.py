@@ -48,6 +48,10 @@ class AsyncCompressor:
         """标记需要压缩"""
         self._event.set()
 
+    def is_running(self) -> bool:
+        """后台线程是否正在运行"""
+        return self._thread is not None and self._thread.is_alive()
+
     def _run(self):
         while not self._stop_event.is_set():
             self._event.wait(timeout=self._interval)
@@ -178,7 +182,7 @@ class MemoryManager:
 
         return msg_id
 
-    def get_context(self, token_limit: int) -> list[dict] | None:
+    def get_context(self, token_limit: int) -> list[dict]:
         """获取压缩后的上下文
 
         如果标记了需要压缩，先尝试同步压缩（当没有后台线程时）。
@@ -188,10 +192,10 @@ class MemoryManager:
             token_limit: 上下文窗口 Token 上限
 
         Returns:
-            消息列表 [{"role": "...", "content": "..."}]，无内容时返回 None
+            消息列表 [{"role": "...", "content": "..."}]，无内容时返回空列表
         """
         # 如果有压缩需求且没有后台线程，同步执行
-        if self._need_compress and not self._async_compressor._thread:
+        if self._need_compress and not self._async_compressor.is_running():
             recent = self._storage.load_recent_messages(limit=100)
             if recent:
                 summary = self._summarizer.compress(recent)
@@ -222,13 +226,13 @@ class MemoryManager:
         context.extend(recent)
 
         # 如果仍然超限，丢弃最旧消息
+        has_summary = summary is not None
         while len(context) > 1:
             total = self._token_counter.count_messages(context)
             if total <= token_limit:
                 break
             # 丢弃最旧的非摘要消息
-            if len(context) > 1:
-                context.pop(1)  # 保留摘要，丢弃最旧的普通消息
+            context.pop(1 if has_summary else 0)
 
         return context
 
