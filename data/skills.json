@@ -1,0 +1,51 @@
+{
+  "skills": [
+    {
+      "id": "self_reflection",
+      "name": "自省反思",
+      "enabled": false,
+      "description": "每次交互后自动反思自身状态，不断成长",
+      "params": {
+        "frequency": "always",
+        "depth": "normal"
+      }
+    },
+    {
+      "id": "memory_summary",
+      "name": "记忆摘要",
+      "enabled": true,
+      "description": "定期压缩历史对话为结构化摘要",
+      "params": {
+        "interval": 10,
+        "max_tokens": 512
+      }
+    },
+    {
+      "id": "emotion_expression",
+      "name": "情感表达",
+      "enabled": true,
+      "description": "在对话中表达情感色彩，让回应更生动",
+      "params": {
+        "intensity": "normal"
+      }
+    },
+    {
+      "id": "proactive_suggestion",
+      "name": "主动建议",
+      "enabled": false,
+      "description": "在适当时机主动提出建议和想法",
+      "params": {
+        "threshold": 0.7
+      }
+    },
+    {
+      "id": "context_aware",
+      "name": "上下文感知",
+      "enabled": true,
+      "description": "感知对话上下文变化，自动调整回应策略",
+      "params": {
+        "window_size": 5
+      }
+    }
+  ]
+}

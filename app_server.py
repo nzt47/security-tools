@@ -89,6 +89,70 @@ class PersonalityManager:
 
 _personality_mgr = PersonalityManager()
 
+# ── 技能配置管理器 ──
+_SKILLS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'skills.json')
+
+class SkillsManager:
+    """管理灵犀的技能配置"""
+
+    def _load(self) -> dict:
+        try:
+            with open(_SKILLS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {"skills": []}
+
+    def _save(self, data: dict):
+        with open(_SKILLS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def get_all(self) -> list:
+        return self._load().get("skills", [])
+
+    def toggle(self, skill_id: str) -> dict:
+        data = self._load()
+        for s in data["skills"]:
+            if s["id"] == skill_id:
+                s["enabled"] = not s.get("enabled", True)
+                self._save(data)
+                return {"ok": True, "id": skill_id, "enabled": s["enabled"]}
+        return {"ok": False, "error": f"未知技能: {skill_id}"}
+
+    def update_params(self, skill_id: str, params: dict) -> dict:
+        data = self._load()
+        for s in data["skills"]:
+            if s["id"] == skill_id:
+                s["params"].update(params)
+                self._save(data)
+                return {"ok": True, "id": skill_id, "params": s["params"]}
+        return {"ok": False, "error": f"未知技能: {skill_id}"}
+
+    def add(self, skill: dict) -> dict:
+        data = self._load()
+        skill_id = skill.get("id", "")
+        if any(s["id"] == skill_id for s in data["skills"]):
+            return {"ok": False, "error": f"技能已存在: {skill_id}"}
+        data["skills"].append({
+            "id": skill_id,
+            "name": skill.get("name", skill_id),
+            "enabled": skill.get("enabled", True),
+            "description": skill.get("description", ""),
+            "params": skill.get("params", {}),
+        })
+        self._save(data)
+        return {"ok": True, "id": skill_id}
+
+    def delete(self, skill_id: str) -> dict:
+        data = self._load()
+        before = len(data["skills"])
+        data["skills"] = [s for s in data["skills"] if s["id"] != skill_id]
+        if len(data["skills"]) < before:
+            self._save(data)
+            return {"ok": True}
+        return {"ok": False, "error": f"未知技能: {skill_id}"}
+
+_skills_mgr = SkillsManager()
+
 # ── 聊天历史 ──
 _CHAT_HISTORY = []
 
@@ -474,6 +538,35 @@ def api_personality_profile():
 def api_personality_reset():
     result = _personality_mgr.reset()
     return jsonify(result)
+
+
+# ════════════════════════════════════════════════════════════
+#  技能配置 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/skills", methods=["GET"])
+def api_skills_get():
+    return jsonify(_skills_mgr.get_all())
+
+@app.route("/api/skills/toggle", methods=["POST"])
+def api_skills_toggle():
+    data = request.get_json() or {}
+    skill_id = data.get("id", "")
+    return jsonify(_skills_mgr.toggle(skill_id))
+
+@app.route("/api/skills/params", methods=["POST"])
+def api_skills_params():
+    data = request.get_json() or {}
+    return jsonify(_skills_mgr.update_params(data.get("id", ""), data.get("params", {})))
+
+@app.route("/api/skills/add", methods=["POST"])
+def api_skills_add():
+    return jsonify(_skills_mgr.add(request.get_json() or {}))
+
+@app.route("/api/skills/delete", methods=["POST"])
+def api_skills_delete():
+    data = request.get_json() or {}
+    return jsonify(_skills_mgr.delete(data.get("id", "")))
 
 
 # ════════════════════════════════════════════════════════════
