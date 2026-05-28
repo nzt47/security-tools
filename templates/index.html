@@ -85,7 +85,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 </head>
 <body>
-<div id="app">
+<div id="app" class="with-sidebar">
   <!-- 顶栏 -->
   <div id="topbar">
     <div>
@@ -103,6 +103,79 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
   <div id="tabs">
     <span class="tab active" data-tab="chat" onclick="switchTab('chat')">💬 对话</span>
     <span class="tab" data-tab="panorama" onclick="switchTab('panorama')">🗺 全景</span>
+  </div>
+
+  <!-- 侧边栏 -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
+      <span class="sidebar-title">Agent 管理</span>
+    </div>
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" data-panel="history" onclick="switchSidebarTab('history')">
+        <span class="tab-icon">🕐</span>
+        <span class="tab-label">历史会话</span>
+      </div>
+      <div class="sidebar-tab" data-panel="skills" onclick="switchSidebarTab('skills')">
+        <span class="tab-icon">🔧</span>
+        <span class="tab-label">技能管理</span>
+      </div>
+      <div class="sidebar-tab" data-panel="tools" onclick="switchSidebarTab('tools')">
+        <span class="tab-icon">🛠</span>
+        <span class="tab-label">工具集成</span>
+      </div>
+      <div class="sidebar-tab" data-panel="personality" onclick="switchSidebarTab('personality')">
+        <span class="tab-icon">🎭</span>
+        <span class="tab-label">人格配置</span>
+      </div>
+      <div class="sidebar-tab" data-panel="memory" onclick="switchSidebarTab('memory')">
+        <span class="tab-icon">🧠</span>
+        <span class="tab-label">记忆管理</span>
+      </div>
+    </div>
+    <div class="sidebar-panels">
+      <div class="sidebar-panel active" id="panel-history">
+        <h3>🕐 历史会话</h3>
+        <input class="sidebar-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
+        <div class="panel-actions">
+          <select id="history-sort" class="btn-sm" onchange="loadHistory()">
+            <option value="newest">最新优先</option>
+            <option value="oldest">最早优先</option>
+          </select>
+        </div>
+        <div id="history-list"></div>
+      </div>
+      <div class="sidebar-panel" id="panel-skills">
+        <h3>🔧 技能管理</h3>
+        <div class="panel-actions">
+          <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+        </div>
+        <div id="skills-list"></div>
+      </div>
+      <div class="sidebar-panel" id="panel-tools">
+        <h3>🛠 工具集成</h3>
+        <div id="tools-count" style="font-size:12px;color:var(--sidebar-text);margin-bottom:8px"></div>
+        <div id="tools-list"></div>
+      </div>
+      <div class="sidebar-panel" id="panel-personality">
+        <h3>🎭 人格配置</h3>
+        <div id="personality-presets"></div>
+        <div id="personality-sliders"></div>
+        <div class="panel-actions" style="margin-top:12px">
+          <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
+          <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+        </div>
+      </div>
+      <div class="sidebar-panel" id="panel-memory">
+        <h3>🧠 记忆管理</h3>
+        <div id="memory-overview"></div>
+        <div id="memory-content"></div>
+        <div class="panel-actions" style="margin-top:8px">
+          <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+          <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="main">
