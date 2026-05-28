@@ -1,8 +1,5 @@
 """MemoryManager 集成测试 — 使用临时目录，验证全流程"""
-import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 from memory import MemoryManager
 
