@@ -26,6 +26,7 @@ class AsyncCompressor:
         self._event = threading.Event()
         self._stop_event = threading.Event()
         self._thread = None
+        self._pending = False
 
     def start(self):
         """启动后台线程"""
@@ -46,7 +47,12 @@ class AsyncCompressor:
 
     def request(self):
         """标记需要压缩"""
+        self._pending = True
         self._event.set()
+
+    def has_pending(self) -> bool:
+        """是否有待处理的压缩请求"""
+        return self._pending
 
     def is_running(self) -> bool:
         """后台线程是否正在运行"""
@@ -54,11 +60,12 @@ class AsyncCompressor:
 
     def _run(self):
         while not self._stop_event.is_set():
-            self._event.wait(timeout=self._interval)
+            triggered = self._event.wait(timeout=self._interval)
             if self._stop_event.is_set():
                 break
             self._event.clear()
-            self._do_compress()
+            if triggered:
+                self._do_compress()
 
     def _do_compress(self):
         """执行压缩任务"""
@@ -84,6 +91,7 @@ class AsyncCompressor:
                 "version": new_version,
                 "messages_count": len(recent_messages)
             })
+            self._pending = False
             logger.info("后台压缩完成，版本 %d", new_version)
         except Exception as e:
             logger.error("后台压缩失败: %s", e)
@@ -195,17 +203,19 @@ class MemoryManager:
             消息列表 [{"role": "...", "content": "..."}]，无内容时返回空列表
         """
         # 如果有压缩需求且没有后台线程，同步执行
-        if self._need_compress and not self._async_compressor.is_running():
-            recent = self._storage.load_recent_messages(limit=100)
-            if recent:
-                summary = self._summarizer.compress(recent)
-                old = self._storage.load_summary()
-                if old:
-                    old_text, old_version = old
-                    summary = self._summarizer.merge_summaries(old_text, summary)
-                    self._storage.save_summary(summary, old_version + 1)
-                else:
-                    self._storage.save_summary(summary, 1)
+        if self._need_compress:
+            if not self._async_compressor.is_running():
+                recent = self._storage.load_recent_messages(limit=100)
+                if recent:
+                    summary = self._summarizer.compress(recent)
+                    old = self._storage.load_summary()
+                    if old:
+                        old_text, old_version = old
+                        summary = self._summarizer.merge_summaries(old_text, summary)
+                        self._storage.save_summary(summary, old_version + 1)
+                    else:
+                        self._storage.save_summary(summary, 1)
+            # 后台线程已处理或本次同步处理完成，清除标记
             self._need_compress = False
 
         # 加载摘要和最近消息

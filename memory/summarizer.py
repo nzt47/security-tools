@@ -43,7 +43,7 @@ class Summarizer:
         Returns:
             摘要文本
         """
-        if not messages:
+        if not messages or self._llm is None:
             return ""
 
         # 将策略指令作为首条消息注入
@@ -65,6 +65,8 @@ class Summarizer:
             return new_summary
         if not new_summary:
             return old_summary
+        if self._llm is None:
+            return new_summary
 
         merge_messages = [
             {"role": "user", "content": f"已有的摘要：\n{old_summary}\n\n新的信息摘要：\n{new_summary}\n\n请将两者合并为一份连贯的完整摘要，保留所有重要信息。"}
