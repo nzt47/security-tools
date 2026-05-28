@@ -72,7 +72,6 @@ class LLMService:
                 return response.choices[0].message.content.strip()
 
             elif self.provider == "anthropic":
-                import anthropic
                 response = client.messages.create(
                     model=self.model,
                     system=system_prompt,
