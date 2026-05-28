@@ -45,7 +45,11 @@ class Summarizer:
         """
         if not messages:
             return ""
-        return self._llm.summarize(messages, max_tokens=500)
+
+        # 将策略指令作为首条消息注入
+        instruction = self.STRATEGIES.get(strategy, self.STRATEGIES["default"])
+        augmented = [{"role": "system", "content": instruction}, *messages]
+        return self._llm.summarize(augmented, max_tokens=500)
 
     def merge_summaries(self, old_summary: str, new_summary: str) -> str:
         """合并新旧摘要
