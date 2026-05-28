@@ -30,6 +30,65 @@ _cfg = Config()
 _lingxi = DigitalLife(_cfg.merged)
 _lingxi.start()
 
+# ── 人格配置管理器 ──
+_PERSONALITY_FILE = os.path.join(os.path.dirname(__file__), 'data', 'personality.json')
+
+class PersonalityManager:
+    """管理灵犀的人格配置数据"""
+
+    def __init__(self):
+        self._cache = None
+
+    def _load(self) -> dict:
+        if self._cache is not None:
+            return self._cache
+        try:
+            with open(_PERSONALITY_FILE, 'r', encoding='utf-8') as f:
+                self._cache = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self._cache = self._default()
+        return self._cache
+
+    def _save(self, data: dict):
+        self._cache = data
+        with open(_PERSONALITY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def _default(self) -> dict:
+        with open(_PERSONALITY_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def get(self) -> dict:
+        data = self._load()
+        return {
+            "current_profile": data["current_profile"],
+            "custom_params": data["custom_params"],
+            "profiles": data["profiles"],
+            "dimensions": data["dimensions"],
+        }
+
+    def update_params(self, params: dict) -> dict:
+        data = self._load()
+        data["custom_params"].update(params)
+        data["current_profile"] = "custom"
+        self._save(data)
+        return {"ok": True, "params": data["custom_params"]}
+
+    def apply_profile(self, profile_key: str) -> dict:
+        data = self._load()
+        if profile_key not in data["profiles"]:
+            return {"ok": False, "error": f"未知人格方案: {profile_key}"}
+        profile = data["profiles"][profile_key]
+        data["current_profile"] = profile_key
+        data["custom_params"] = dict(profile["params"])
+        self._save(data)
+        return {"ok": True, "profile": profile_key, "params": data["custom_params"]}
+
+    def reset(self) -> dict:
+        return self.apply_profile("gentle_helper")
+
+_personality_mgr = PersonalityManager()
+
 # ── 聊天历史 ──
 _CHAT_HISTORY = []
 
@@ -387,6 +446,34 @@ def _get_permission_info():
         }
     except Exception:
         return {}
+
+
+# ════════════════════════════════════════════════════════════
+#  人格配置 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/personality", methods=["GET"])
+def api_personality_get():
+    return jsonify(_personality_mgr.get())
+
+@app.route("/api/personality/params", methods=["POST"])
+def api_personality_params():
+    data = request.get_json() or {}
+    params = data.get("params", {})
+    result = _personality_mgr.update_params(params)
+    return jsonify(result)
+
+@app.route("/api/personality/profile", methods=["POST"])
+def api_personality_profile():
+    data = request.get_json() or {}
+    profile = data.get("profile", "")
+    result = _personality_mgr.apply_profile(profile)
+    return jsonify(result)
+
+@app.route("/api/personality/reset", methods=["POST"])
+def api_personality_reset():
+    result = _personality_mgr.reset()
+    return jsonify(result)
 
 
 # ════════════════════════════════════════════════════════════
