@@ -569,6 +569,105 @@ def api_skills_delete():
     return jsonify(_skills_mgr.delete(data.get("id", "")))
 
 
+# ── 工具配置 API ──
+@app.route("/api/tools/config", methods=["GET"])
+def api_tools_config():
+    """获取工具列表及使用统计"""
+    from agent.tools import list_tools
+    tools = list_tools()
+    try:
+        perm_logs = _lingxi._permission.get_permission_log()
+    except Exception:
+        perm_logs = []
+    result = []
+    for t in tools:
+        tool_name = t["name"]
+        call_count = sum(1 for log in perm_logs if log.get("tool") == tool_name)
+        result.append({
+            "name": tool_name,
+            "description": t.get("description", ""),
+            "enabled": True,
+            "call_count": call_count,
+            "last_used": None,
+        })
+    return jsonify(result)
+
+# ── 历史记录 API ──
+@app.route("/api/history/search")
+def api_history_search():
+    """搜索历史记录"""
+    q = request.args.get("q", "").strip().lower()
+    if not q:
+        return jsonify(_CHAT_HISTORY[-50:])
+    results = [
+        {"index": i, **entry}
+        for i, entry in enumerate(_CHAT_HISTORY)
+        if q in entry.get("user", "").lower() or q in entry.get("lingxi", "").lower()
+    ]
+    return jsonify(results[-50:])
+
+@app.route("/api/history/<int:index>", methods=["DELETE"])
+def api_history_delete(index):
+    """删除指定索引的历史记录"""
+    global _CHAT_HISTORY
+    if 0 <= index < len(_CHAT_HISTORY):
+        deleted = _CHAT_HISTORY.pop(index)
+        return jsonify({"ok": True, "deleted": deleted})
+    return jsonify({"ok": False, "error": "索引超出范围"}), 404
+
+# ── 记忆操作 API ──
+@app.route("/api/memory/overview")
+def api_memory_overview():
+    """获取记忆概览"""
+    try:
+        summary = _lingxi._memory.load_summary()
+        recent = _lingxi._memory._storage.load_recent_messages(limit=20)
+        logs = _lingxi._memory._black_box.analyze()
+        log_stats = logs if isinstance(logs, dict) else {}
+        return jsonify({
+            "summary_version": summary[1] if summary else None,
+            "summary_text": summary[0][:300] if summary and summary[0] else None,
+            "recent_messages": [
+                {"index": i, "role": m.get("role", "?"), "content": m.get("content", "")[:100]}
+                for i, m in enumerate(recent)
+            ] if recent else [],
+            "message_count": len(recent) if recent else 0,
+            "log_stats": log_stats,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/memory/manual", methods=["POST"])
+def api_memory_manual():
+    """手动添加记忆"""
+    data = request.get_json() or {}
+    content = data.get("content", "").strip()
+    priority = data.get("priority", "normal")
+    if not content:
+        return jsonify({"ok": False, "error": "内容不能为空"}), 400
+    try:
+        _lingxi._memory.add_memory({
+            "role": "user",
+            "content": f"[手动记忆·优先级:{priority}] {content}"
+        })
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/memory/compress", methods=["POST"])
+def api_memory_compress():
+    """触发记忆压缩"""
+    try:
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_lingxi._memory.compress())
+        loop.close()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ════════════════════════════════════════════════════════════
 #  HTML 界面
 # ════════════════════════════════════════════════════════════
