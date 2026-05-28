@@ -23,13 +23,11 @@ function initSidebarState() {
 // ── 标签切换 ──
 function switchSidebarTab(panelName) {
   document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-  const tab = document.querySelector(`.sidebar-tab[data-panel="${panelName}"]`);
-  if (tab) tab.classList.add('active');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
-  const detailView = document.getElementById(`detail-${panelName}`);
-  if (detailView) {
-    detailView.classList.add('active');
+  document.querySelector(`.sidebar-tab[data-panel="${panelName}"]`).classList.add('active');
+  document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(`panel-${panelName}`);
+  if (panel) {
+    panel.classList.add('active');
     loadSidebarModule(panelName);
   }
   try { sessionStorage.setItem('sidebar_active_panel', panelName); } catch(e) {}
@@ -117,57 +115,8 @@ async function apiDelete(url) {
   return r.json();
 }
 
-// ── 拖拽调整侧边栏宽度 ──
-function initSidebarResizer() {
-  const resizer = document.getElementById('sidebar-resizer');
-  const sidebar = document.getElementById('sidebar');
-  if (!resizer || !sidebar) return;
-
-  let startX, startWidth;
-
-  resizer.addEventListener('mousedown', (e) => {
-    startX = e.clientX;
-    startWidth = sidebar.offsetWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    // 拖拽时禁用动画
-    document.getElementById('app').style.transition = 'none';
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  });
-
-  function onMouseMove(e) {
-    const newWidth = Math.max(160, Math.min(600, startWidth + (e.clientX - startX)));
-    sidebar.style.width = newWidth + 'px';
-    document.getElementById('app').style.setProperty('--sidebar-width', newWidth + 'px');
-  }
-
-  function onMouseUp() {
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    document.getElementById('app').style.transition = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-    // 持久化宽度
-    const w = sidebar.offsetWidth;
-    try { localStorage.setItem('sidebar_width', w.toString()); } catch(e) {}
-  }
-}
-
 // ── 初始化 ──
 document.addEventListener('DOMContentLoaded', () => {
-  // 恢复保存的宽度
-  try {
-    const saved = localStorage.getItem('sidebar_width');
-    if (saved) {
-      const w = parseInt(saved);
-      if (w >= 160 && w <= 600) {
-        document.getElementById('sidebar').style.width = w + 'px';
-        document.getElementById('app').style.setProperty('--sidebar-width', w + 'px');
-      }
-    }
-  } catch(e) {}
   initSidebarState();
   initSidebarTab();
-  initSidebarResizer();
 });

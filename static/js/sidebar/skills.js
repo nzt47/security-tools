@@ -3,61 +3,38 @@
 // ════════════════════════════════════════════════════════════
 
 async function loadSkills() {
-  const isDetail = document.getElementById('detail-skills')?.classList.contains('active');
-  const listId = isDetail ? 'detail-skills-list' : 'skills-list';
-  const list = document.getElementById(listId);
-  if (!list) return;
-
+  const list = document.getElementById('skills-list');
   list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;color:#8b949e">加载中...</div>';
   try {
     const skills = await apiGet('/api/skills');
-
-    const countEl = document.getElementById('detail-skills-count');
-    if (countEl) countEl.textContent = `${skills.length} 个技能`;
-
-    if (!skills || skills.length === 0) {
-      list.innerHTML = '<div class="sidebar-empty">暂无已配置的技能</div>';
-      return;
-    }
-
-    if (isDetail) {
-      list.innerHTML = skills.map(s => `
-        <div class="sidebar-card" style="padding:12px 16px">
-          <div class="sidebar-card-header">
-            <span class="sidebar-card-title" style="font-size:14px">${escapeHtml(s.name)}</span>
-            <label class="toggle-switch">
-              <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSkill('${s.id}')">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="sidebar-card-sub" style="font-size:13px">${escapeHtml(s.description)}</div>
-          <div class="sidebar-card-actions">
-            <button onclick="showSkillParams('${s.id}')">⚙ 参数</button>
-            <button onclick="deleteSkill('${s.id}')" style="color:var(--danger-color)">🗑 删除</button>
-          </div>
-        </div>
-      `).join('');
-    } else {
-      list.innerHTML = skills.map(s => `
-        <div class="sidebar-card">
-          <div class="sidebar-card-header">
-            <span class="sidebar-card-title">${escapeHtml(s.name)}</span>
-            <label class="toggle-switch">
-              <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSkill('${s.id}')">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="sidebar-card-sub">${escapeHtml(s.description)}</div>
-          <div class="sidebar-card-actions">
-            <button onclick="showSkillParams('${s.id}')">⚙ 参数</button>
-            <button onclick="deleteSkill('${s.id}')" style="color:var(--danger-color)">🗑 删除</button>
-          </div>
-        </div>
-      `).join('');
-    }
+    renderSkills(skills);
   } catch(e) {
     list.innerHTML = '<div class="sidebar-empty">加载技能失败</div>';
   }
+}
+
+function renderSkills(skills) {
+  const list = document.getElementById('skills-list');
+  if (!skills || skills.length === 0) {
+    list.innerHTML = '<div class="sidebar-empty">暂无已配置的技能</div>';
+    return;
+  }
+  list.innerHTML = skills.map(s => `
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">
+        <span class="sidebar-card-title">${escapeHtml(s.name)}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSkill('${s.id}')">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="sidebar-card-sub">${escapeHtml(s.description)}</div>
+      <div class="sidebar-card-actions">
+        <button onclick="showSkillParams('${s.id}')">⚙ 参数</button>
+        <button onclick="deleteSkill('${s.id}')" style="color:var(--danger-color)">🗑 删除</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function toggleSkill(id) {
