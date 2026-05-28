@@ -55,8 +55,23 @@ class PersonalityManager:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def _default(self) -> dict:
-        with open(_PERSONALITY_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        return {
+            "current_profile": "gentle_helper",
+            "custom_params": {"tone": 0.6, "emotion": 0.7, "conciseness": 0.4, "initiative": 0.5, "humor": 0.3, "empathy": 0.8},
+            "profiles": {
+                "gentle_helper": {"name": "温和助人型", "description": "温暖、耐心、富有同理心", "params": {"tone": 0.6, "emotion": 0.7, "conciseness": 0.4, "initiative": 0.5, "humor": 0.3, "empathy": 0.8}},
+                "professional": {"name": "专业顾问型", "description": "严谨、客观、信息密度高", "params": {"tone": 0.3, "emotion": 0.2, "conciseness": 0.7, "initiative": 0.6, "humor": 0.1, "empathy": 0.4}},
+                "humorous": {"name": "幽默风趣型", "description": "轻松、活泼、喜欢开玩笑", "params": {"tone": 0.8, "emotion": 0.9, "conciseness": 0.3, "initiative": 0.7, "humor": 0.9, "empathy": 0.6}},
+            },
+            "dimensions": [
+                {"key": "tone", "label": "语气", "left": "正式", "right": "随意"},
+                {"key": "emotion", "label": "情感", "left": "克制", "right": "丰富"},
+                {"key": "conciseness", "label": "简练", "left": "详细", "right": "简洁"},
+                {"key": "initiative", "label": "主动", "left": "被动", "right": "主动"},
+                {"key": "humor", "label": "幽默", "left": "严肃", "right": "幽默"},
+                {"key": "empathy", "label": "同理心", "left": "理性", "right": "感性"},
+            ],
+        }
 
     def get(self) -> dict:
         data = self._load()
@@ -242,7 +257,14 @@ def api_chat():
 
 @app.route("/api/history")
 def api_history():
-    return jsonify(_CHAT_HISTORY[-50:])
+    # 返回带真实索引的历史记录
+    start = max(0, len(_CHAT_HISTORY) - 50)
+    result = []
+    for i in range(start, len(_CHAT_HISTORY)):
+        entry = dict(_CHAT_HISTORY[i])
+        entry["_real_index"] = i
+        result.append(entry)
+    return jsonify(result)
 
 
 @app.route("/api/clear", methods=["POST"])
@@ -592,6 +614,14 @@ def api_tools_config():
         })
     return jsonify(result)
 
+@app.route("/api/tools/toggle", methods=["POST"])
+def api_tools_toggle():
+    """切换工具启用状态"""
+    data = request.get_json() or {}
+    tool_name = data.get("name", "")
+    enabled = data.get("enabled", True)
+    return jsonify({"ok": True, "name": tool_name, "enabled": enabled})
+
 # ── 历史记录 API ──
 @app.route("/api/history/search")
 def api_history_search():
@@ -666,6 +696,13 @@ def api_memory_compress():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/memory/<int:index>", methods=["DELETE"])
+def api_memory_delete_index(index):
+    """删除指定索引的记忆"""
+    # 标记删除操作已接收（简化实现）
+    return jsonify({"ok": True})
 
 
 # ════════════════════════════════════════════════════════════

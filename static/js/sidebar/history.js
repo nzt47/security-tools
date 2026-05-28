@@ -11,7 +11,7 @@ async function loadHistory() {
     const sort = document.getElementById('history-sort').value;
     const searchQ = document.getElementById('history-search').value.trim().toLowerCase();
     let data = await apiGet('/api/history');
-    _historyData = data.map((entry, idx) => ({ ...entry, index: idx }));
+    _historyData = data.map((entry) => ({ ...entry, index: entry._real_index }));
     if (sort === 'oldest') _historyData.reverse();
     if (searchQ) {
       _historyData = _historyData.filter(e =>

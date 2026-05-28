@@ -81,7 +81,9 @@ async function saveSkillParams(id) {
   const params = {};
   document.querySelectorAll('#skill-params-form input').forEach(inp => {
     const key = inp.id.replace('sp-', '');
-    params[key] = inp.value;
+    const val = inp.value;
+    // 尝试将数值字符串转换为数字
+    params[key] = isNaN(val) || val === '' ? val : Number(val);
   });
   try {
     const r = await apiPost('/api/skills/params', { id, params });

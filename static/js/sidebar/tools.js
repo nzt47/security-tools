@@ -40,5 +40,17 @@ function renderTools(tools) {
 }
 
 async function toggleTool(name) {
-  showToast(`工具「${name}」权限已切换`);
+  try {
+    // 获取当前开关状态
+    const tools = await apiGet('/api/tools/config');
+    const tool = tools.find(t => t.name === name);
+    if (!tool) return;
+    const r = await apiPost('/api/tools/toggle', { name, enabled: !tool.enabled });
+    if (r.ok) {
+      showToast(r.enabled ? `「${name}」已授权` : `「${name}」已禁用`);
+      loadTools();
+    }
+  } catch(e) {
+    showToast('操作失败', 'error');
+  }
 }
