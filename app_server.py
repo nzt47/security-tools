@@ -273,6 +273,13 @@ def api_clear():
     return jsonify({"ok": True})
 
 
+@app.route("/api/history/clear", methods=["POST"])
+def api_history_clear():
+    """清空所有历史记录"""
+    _CHAT_HISTORY.clear()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
     """获取或设置 LLM 配置"""
@@ -725,4 +732,4 @@ if __name__ == "__main__":
     print("  下方: 与灵犀对话")
     print("=" * 56)
     webbrowser.open("http://127.0.0.1:5678")
-    app.run(host="127.0.0.1", port=5678, debug=False, threaded=False)
+    app.run(host="127.0.0.1", port=5678, debug=False, threaded=True)

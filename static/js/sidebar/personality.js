@@ -3,38 +3,46 @@
 // ════════════════════════════════════════════════════════════
 
 async function loadPersonality() {
+  const isDetail = document.getElementById('detail-personality')?.classList.contains('active');
+  const presetsId = isDetail ? 'detail-personality-presets' : 'personality-presets';
+  const slidersId = isDetail ? 'detail-personality-sliders' : 'personality-sliders';
+
   try {
     const data = await apiGet('/api/personality');
-    renderPresets(data);
-    renderSliders(data);
+    renderPersonalityPresets(data, presetsId, isDetail);
+    renderPersonalitySliders(data, slidersId, isDetail);
   } catch(e) {
-    document.getElementById('personality-sliders').innerHTML = '<div class="sidebar-empty">加载人格配置失败</div>';
+    const el = document.getElementById(slidersId);
+    if (el) el.innerHTML = '<div class="sidebar-empty">加载人格配置失败</div>';
   }
 }
 
-function renderPresets(data) {
-  const el = document.getElementById('personality-presets');
+function renderPersonalityPresets(data, containerId, isDetail) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
   const profiles = data.profiles || {};
   const current = data.current_profile;
-  let html = '<div style="font-size:12px;color:#8b949e;margin-bottom:6px">★ 预设人格</div>';
+  let html = '';
   for (const [key, profile] of Object.entries(profiles)) {
     const active = key === current;
-    html += `<div class="sidebar-card" style="cursor:pointer;${active ? 'border-color:#58a6ff' : ''}" onclick="applyProfile('${key}')">
+    const border = active ? 'border-color:#58a6ff' : '';
+    html += `<div class="sidebar-card" style="cursor:pointer;${border}${isDetail ? ';padding:14px 18px' : ''}" onclick="applyProfile('${key}')">
       <div class="sidebar-card-header">
-        <span class="sidebar-card-title">${active ? '▸ ' : ''}${escapeHtml(profile.name)}</span>
+        <span class="sidebar-card-title${isDetail ? ';font-size:15px' : ''}">${active ? '▸ ' : ''}${escapeHtml(profile.name)}</span>
         ${active ? '<span class="badge info">当前</span>' : ''}
       </div>
-      <div class="sidebar-card-sub">${escapeHtml(profile.description)}</div>
+      <div class="sidebar-card-sub${isDetail ? ';font-size:13px' : ''}">${escapeHtml(profile.description)}</div>
     </div>`;
   }
   el.innerHTML = html;
 }
 
-function renderSliders(data) {
-  const el = document.getElementById('personality-sliders');
+function renderPersonalitySliders(data, containerId, isDetail) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
   const params = data.custom_params || {};
   const dimensions = data.dimensions || [];
-  let html = '<div style="font-size:12px;color:#8b949e;margin:10px 0 6px">── 详细参数 ──</div>';
+  let html = '';
   for (const dim of dimensions) {
     const val = Math.round((params[dim.key] || 0.5) * 100);
     html += `<div class="slider-group">
@@ -43,7 +51,7 @@ function renderSliders(data) {
         <span>${dim.label}: ${val}%</span>
         <span>${dim.right}</span>
       </label>
-      <input type="range" min="0" max="100" value="${val}" data-key="${dim.key}" oninput="updateSliderLabel(this)">
+      <input type="range" min="0" max="100" value="${val}" data-key="${dim.key}" oninput="updateSliderLabel(this)" style="width:100%">
     </div>`;
   }
   el.innerHTML = html;
@@ -71,7 +79,7 @@ async function applyProfile(profileKey) {
 
 async function savePersonality() {
   const params = {};
-  document.querySelectorAll('#personality-sliders input[type="range"]').forEach(sl => {
+  document.querySelectorAll('#personality-sliders input[type="range"], #detail-personality-sliders input[type="range"]').forEach(sl => {
     const key = sl.dataset.key;
     params[key] = parseInt(sl.value) / 100;
   });

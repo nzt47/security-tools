@@ -107,7 +107,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
   </div>
 
   <!-- 侧边栏 -->
-  <div id="sidebar">
+  <div id="sidebar" style="width:var(--sidebar-width,280px)">
     <div class="sidebar-header">
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
       <span class="sidebar-title">Agent 管理</span>
@@ -134,50 +134,8 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
         <span class="tab-label">记忆管理</span>
       </div>
     </div>
-    <div class="sidebar-panels">
-      <div class="sidebar-panel active" id="panel-history">
-        <h3>🕐 历史会话</h3>
-        <input class="sidebar-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
-        <div class="panel-actions">
-          <select id="history-sort" class="btn-sm" onchange="loadHistory()">
-            <option value="newest">最新优先</option>
-            <option value="oldest">最早优先</option>
-          </select>
-        </div>
-        <div id="history-list"></div>
-      </div>
-      <div class="sidebar-panel" id="panel-skills">
-        <h3>🔧 技能管理</h3>
-        <div class="panel-actions">
-          <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
-        </div>
-        <div id="skills-list"></div>
-      </div>
-      <div class="sidebar-panel" id="panel-tools">
-        <h3>🛠 工具集成</h3>
-        <div id="tools-count" style="font-size:12px;color:var(--sidebar-text);margin-bottom:8px"></div>
-        <div id="tools-list"></div>
-      </div>
-      <div class="sidebar-panel" id="panel-personality">
-        <h3>🎭 人格配置</h3>
-        <div id="personality-presets"></div>
-        <div id="personality-sliders"></div>
-        <div class="panel-actions" style="margin-top:12px">
-          <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
-          <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
-        </div>
-      </div>
-      <div class="sidebar-panel" id="panel-memory">
-        <h3>🧠 记忆管理</h3>
-        <div id="memory-overview"></div>
-        <div id="memory-content"></div>
-        <div class="panel-actions" style="margin-top:8px">
-          <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
-          <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
-        </div>
-      </div>
-    </div>
   </div>
+  <div class="sidebar-resizer" id="sidebar-resizer"></div>
 
   <div id="main">
     <!-- 对话视图 -->
@@ -204,8 +162,6 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
       </div>
     </div>
     <!-- /对话视图 -->
-  </div>
-  <!-- /对话视图 -->
 
   <!-- 全景视图 -->
   <div id="panorama-view" class="tab-view">
@@ -429,7 +385,85 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
   </div>
   <!-- /全景视图 -->
 
-</div>
+  <!-- 历史会话详情 -->
+  <div id="detail-history" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        🕐 历史会话
+        <span style="font-size:12px;color:#8b949e;font-weight:400" id="detail-history-count">0 条记录</span>
+      </h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input class="sidebar-search" id="detail-history-search" placeholder="搜索历史记录..." oninput="loadHistory()" style="max-width:300px;margin-bottom:0">
+        <select id="detail-history-sort" class="btn-sm" onchange="loadHistory()">
+          <option value="newest">最新优先</option>
+          <option value="oldest">最早优先</option>
+        </select>
+        <button class="btn-sm danger" onclick="clearAllHistory()" style="margin-left:auto">清空全部</button>
+      </div>
+      <div id="detail-history-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 技能管理详情 -->
+  <div id="detail-skills" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        🔧 技能管理
+        <span style="font-size:12px;color:#8b949e;font-weight:400" id="detail-skills-count">0 个技能</span>
+      </h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+      </div>
+      <div id="detail-skills-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 工具集成详情 -->
+  <div id="detail-tools" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🛠 工具集成</h3>
+      <div style="font-size:13px;color:#8b949e;margin-bottom:12px" id="detail-tools-count">0 个工具</div>
+      <div id="detail-tools-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 人格配置详情 -->
+  <div id="detail-personality" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🎭 人格配置</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;overflow-y:auto">
+        <div>
+          <h4 style="font-size:14px;color:#8b949e;margin-bottom:8px">★ 预设人格</h4>
+          <div id="detail-personality-presets"></div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;color:#8b949e;margin-bottom:8px">详细参数</h4>
+          <div id="detail-personality-sliders"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
+            <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 记忆管理详情 -->
+  <div id="detail-memory" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🧠 记忆管理</h3>
+      <div id="detail-memory-overview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+        <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+      </div>
+      <div id="detail-memory-content" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+</div><!-- /#main -->
+
+</div><!-- /#app -->
 
 <div id="settings-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSettings()">
   <div class="modal">
@@ -486,7 +520,8 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 .btn-secondary{padding:7px 18px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:13px;cursor:pointer}
 .btn-secondary:hover{background:#21262d}
 
-</style>
+/* 详情视图通用 */
+.tab-view.detail-view .detail-scroll{overflow-y:auto;flex:1;min-height:0}
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -679,7 +714,6 @@ async function clearChat() {
   if (!confirm('确定清空对话记录？')) return;
   await fetch('/api/clear', {method: 'POST'});
   document.getElementById('chat-messages').innerHTML = '';
-  document.getElementById('chat-count').textContent = '0';
 }
 
 // ════════════════════════════════════════════════════════════
@@ -690,6 +724,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
   document.getElementById(name + '-view').classList.add('active');
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
   if (name === 'panorama') loadPanorama();
 }
 

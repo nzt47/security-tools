@@ -3,71 +3,65 @@
 // ════════════════════════════════════════════════════════════
 
 async function loadMemory() {
+  const isDetail = document.getElementById('detail-memory')?.classList.contains('active');
+  const overviewId = isDetail ? 'detail-memory-overview' : 'memory-overview';
+  const contentId = isDetail ? 'detail-memory-content' : 'memory-content';
+
   try {
     const data = await apiGet('/api/memory/overview');
-    renderMemoryOverview(data);
-    renderMemoryContent(data);
-  } catch(e) {
-    document.getElementById('memory-overview').innerHTML = '<div class="sidebar-empty">加载记忆失败</div>';
-  }
-}
+    const recent = data.recent_messages || [];
 
-function renderMemoryOverview(data) {
-  const el = document.getElementById('memory-overview');
-  const recent = data.recent_messages || [];
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-      <div class="sidebar-card" style="text-align:center">
-        <div style="font-size:20px;font-weight:700;color:#58a6ff">${recent.length}</div>
-        <div style="font-size:10px;color:#8b949e">短期消息</div>
-      </div>
-      <div class="sidebar-card" style="text-align:center">
-        <div style="font-size:20px;font-weight:700;color:#3fb950">${data.summary_version || '无'}</div>
-        <div style="font-size:10px;color:#8b949e">摘要版本</div>
-      </div>
-    </div>
-  `;
-}
-
-function renderMemoryContent(data) {
-  const el = document.getElementById('memory-content');
-  const recent = data.recent_messages || [];
-  const logs = data.log_stats || {};
-
-  let html = '<div style="font-size:12px;color:#8b949e;margin-bottom:6px">📌 短期记忆</div>';
-
-  if (recent.length === 0) {
-    html += '<div class="sidebar-empty">暂无短期记忆</div>';
-  } else {
-    for (const msg of recent) {
-      const role = msg.role === 'user' ? '👤' : '🤖';
-      html += `<div class="sidebar-card">
-        <div class="sidebar-card-header">
-          <span class="sidebar-card-title">${role} ${escapeHtml(msg.content || '').substring(0, 40)}</span>
+    const overviewEl = document.getElementById(overviewId);
+    if (overviewEl) {
+      overviewEl.innerHTML = `
+        <div class="sidebar-card" style="text-align:center;padding:14px">
+          <div style="font-size:${isDetail ? '28px' : '20px'};font-weight:700;color:#58a6ff">${recent.length}</div>
+          <div style="font-size:${isDetail ? '12px' : '10px'};color:#8b949e">短期消息</div>
         </div>
-        <div class="sidebar-card-sub">${escapeHtml(msg.content || '').substring(0, 60)}</div>
-        <div class="sidebar-card-actions">
-          <button onclick="deleteMemory(${msg.index})" style="color:var(--danger-color)">🗑 删除</button>
+        <div class="sidebar-card" style="text-align:center;padding:14px">
+          <div style="font-size:${isDetail ? '28px' : '20px'};font-weight:700;color:#3fb950">${data.summary_version || '无'}</div>
+          <div style="font-size:${isDetail ? '12px' : '10px'};color:#8b949e">摘要版本</div>
         </div>
-      </div>`;
+        <div class="sidebar-card" style="text-align:center;padding:14px">
+          <div style="font-size:${isDetail ? '28px' : '20px'};font-weight:700;color:#d29922">${data.message_count || 0}</div>
+          <div style="font-size:${isDetail ? '12px' : '10px'};color:#8b949e">总消息</div>
+        </div>
+        <div class="sidebar-card" style="text-align:center;padding:14px">
+          <div style="font-size:${isDetail ? '28px' : '20px'};font-weight:700;color:#bc8cff">${Object.keys(data.log_stats || {}).length || 0}</div>
+          <div style="font-size:${isDetail ? '12px' : '10px'};color:#8b949e">日志类型</div>
+        </div>
+      `;
     }
-  }
 
-  if (data.summary_text) {
-    html += '<div style="font-size:12px;color:#8b949e;margin:10px 0 6px">📦 长期摘要</div>';
-    html += `<div class="sidebar-card">
-      <div class="sidebar-card-sub" style="font-size:11px">${escapeHtml(data.summary_text)}</div>
-    </div>`;
-  }
+    const contentEl = document.getElementById(contentId);
+    if (!contentEl) return;
 
-  if (Object.keys(logs).length > 0) {
-    html += '<div style="font-size:12px;color:#8b949e;margin:10px 0 6px">📊 日志统计</div>';
-    html += '<div class="sidebar-card" style="font-size:11px;color:#8b949e">';
-    html += Object.entries(logs).map(([k, v]) => `${k}: ${v} 次`).join(' | ');
-    html += '</div>';
+    let html = '<div style="font-size:12px;color:#8b949e;margin-bottom:6px">📌 短期记忆</div>';
+    if (recent.length === 0) {
+      html += '<div class="sidebar-empty">暂无短期记忆</div>';
+    } else {
+      for (const msg of recent) {
+        const role = msg.role === 'user' ? '👤' : '🤖';
+        html += `<div class="sidebar-card"${isDetail ? ' style="padding:12px 16px"' : ''}>
+          <div class="sidebar-card-header">
+            <span class="sidebar-card-title${isDetail ? ';font-size:14px' : ''}">${role} ${escapeHtml(msg.content || '').substring(0, isDetail ? 80 : 40)}</span>
+          </div>
+          <div class="sidebar-card-sub${isDetail ? ';font-size:13px' : ''}">${escapeHtml(msg.content || '').substring(0, isDetail ? 120 : 60)}</div>
+          <div class="sidebar-card-actions">
+            <button onclick="deleteMemory(${msg.index})" style="color:var(--danger-color)">🗑 删除</button>
+          </div>
+        </div>`;
+      }
+    }
+    if (data.summary_text) {
+      html += '<div style="font-size:12px;color:#8b949e;margin:10px 0 6px">📦 长期摘要</div>';
+      html += `<div class="sidebar-card"><div class="sidebar-card-sub${isDetail ? ';font-size:13px' : ''}">${escapeHtml(data.summary_text)}</div></div>`;
+    }
+    contentEl.innerHTML = html;
+  } catch(e) {
+    const el = document.getElementById(contentId);
+    if (el) el.innerHTML = '<div class="sidebar-empty">加载记忆失败</div>';
   }
-
-  el.innerHTML = html;
 }
 
 function showAddMemory() {
