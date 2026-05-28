@@ -19,7 +19,6 @@ from flask import Flask, jsonify, render_template, request
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
-import os
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
