@@ -1,0 +1,306 @@
+/* ════════════════════════════════════════
+   灵犀 · 系统全景仪表盘
+   ════════════════════════════════════════ */
+
+/* ── 全局健康条 ── */
+.pano-healthbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.health-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border-radius: 8px;
+  border-left: 3px solid #30363d;
+}
+
+.health-item .hi-icon { font-size: 18px; }
+.health-item .hi-label { font-size: 10px; color: #8b949e; }
+.health-item .hi-value { font-size: 18px; font-weight: 700; }
+.health-item .hi-unit { font-size: 11px; color: #8b949e; }
+
+.health-item.status-normal { border-left-color: #3fb950; }
+.health-item.status-normal .hi-value { color: #3fb950; }
+.health-item.status-warning { border-left-color: #d29922; }
+.health-item.status-warning .hi-value { color: #d29922; }
+.health-item.status-critical { border-left-color: #f85149; }
+.health-item.status-critical .hi-value { color: #f85149; }
+
+/* ── 全景主布局 ── */
+.pano-layout {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 左侧导航 ── */
+.pano-nav {
+  width: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pano-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 13px;
+  transition: all 0.15s;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.pano-nav-item:hover {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.pano-nav-item.active {
+  background: #1c2333;
+  color: #58a6ff;
+}
+
+.pano-nav-item .nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── 右侧主内容 ── */
+.pano-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── 流水线 ── */
+.pano-pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.pipe-node {
+  text-align: center;
+  min-width: 70px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.pipe-node:hover { transform: scale(1.08); }
+
+.pipe-node .pn-icon { font-size: 22px; margin-bottom: 4px; }
+.pipe-node .pn-label { font-size: 12px; font-weight: 600; color: #c9d1d9; }
+.pipe-node .pn-sub { font-size: 10px; color: #8b949e; }
+.pipe-node .pn-status { font-size: 16px; margin-top: 2px; }
+
+.pipe-arrow { font-size: 20px; color: #30363d; margin: 0 8px; }
+
+/* 流水线节点颜色根据阶段 */
+.pipe-node.phase-1 .pn-status { color: #58a6ff; }
+.pipe-node.phase-2 .pn-status { color: #bc8cff; }
+.pipe-node.phase-3 .pn-status { color: #3fb950; }
+.pipe-node.phase-4 .pn-status { color: #d29922; }
+.pipe-output .pn-icon { color: #f85149; }
+
+/* ── 阶段卡片网格 ── */
+.pano-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pano-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pano-card.phase-1 { border-left: 3px solid #58a6ff; }
+.pano-card.phase-2 { border-left: 3px solid #bc8cff; }
+.pano-card.phase-3 { border-left: 3px solid #3fb950; }
+.pano-card.phase-4 { border-left: 3px solid #d29922; }
+
+.pano-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #21262d;
+  cursor: pointer;
+}
+
+.phase-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.phase-1 .phase-badge { background: #58a6ff20; color: #58a6ff; }
+.phase-2 .phase-badge { background: #bc8cff20; color: #bc8cff; }
+.phase-3 .phase-badge { background: #3fb95020; color: #3fb950; }
+.phase-4 .phase-badge { background: #d2992220; color: #d29922; }
+
+.pano-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.pano-card-body { padding: 12px 14px; }
+
+/* 卡片指标网格 */
+.card-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.card-metric {
+  text-align: center;
+  padding: 8px 6px;
+  background: #0d1117;
+  border-radius: 6px;
+}
+
+.card-metric .cm-val { font-size: 18px; font-weight: 700; color: #c9d1d9; }
+.card-metric .cm-label { font-size: 10px; color: #8b949e; margin-top: 2px; }
+
+/* ── 事件流 ── */
+.pano-events {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.pano-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #21262d;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.pano-events-body {
+  padding: 8px 14px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+  color: #8b949e;
+  border-bottom: 1px solid #21262d40;
+}
+
+.event-item:last-child { border-bottom: none; }
+
+.event-item .ei-time { color: #484f58; white-space: nowrap; font-size: 10px; min-width: 42px; }
+.event-item .ei-icon { font-size: 12px; }
+.event-item .ei-text { color: #c9d1d9; flex: 1; }
+.event-item .ei-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+
+.ei-tag.ok { background: #3fb95020; color: #3fb950; }
+.ei-tag.warn { background: #d2992220; color: #d29922; }
+.ei-tag.err { background: #f8514920; color: #f85149; }
+
+/* ── 系统总览条 ── */
+.pano-sysbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #8b949e;
+  flex-wrap: wrap;
+}
+
+.pano-sysbar .sys-item { display: flex; align-items: center; gap: 4px; }
+.pano-sysbar .sys-item span { color: #c9d1d9; font-weight: 500; }
+
+/* ── 详细展开面板 ── */
+.pano-detail-overlay {
+  margin-top: 8px;
+  padding: 12px;
+  background: #0d1117;
+  border-radius: 6px;
+  border: 1px solid #21262d;
+}
+
+.pano-detail-overlay .detail-section { margin-bottom: 8px; }
+.pano-detail-overlay .detail-section:last-child { margin-bottom: 0; }
+.detail-section-title { font-size: 11px; font-weight: 600; color: #8b949e; margin-bottom: 4px; }
+.detail-text { font-size: 11px; color: #8b949e; line-height: 1.5; white-space: pre-wrap; }
+
+/* ── 展开按钮 ── */
+.expand-btn {
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #8b949e;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.expand-btn:hover { background: #21262d; color: #c9d1d9; }
+
+/* ── 滚动条 ── */
+.pano-content::-webkit-scrollbar { width: 4px; }
+.pano-content::-webkit-scrollbar-track { background: transparent; }
+.pano-content::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+.pano-events-body::-webkit-scrollbar { width: 3px; }
+.pano-events-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+/* ── 空状态 ── */
+.pano-empty { text-align: center; padding: 20px; color: #484f58; font-size: 12px; }
+
+/* ── 标签式导航指示器 ── */
+.pano-nav-indicator {
+  height: 2px;
+  background: linear-gradient(90deg, #58a6ff, #bc8cff, #3fb950, #d29922);
+  border-radius: 1px;
+  margin: 8px 0;
+}
