@@ -1,0 +1,413 @@
+"""灵犀 Web 应用 — 感知底座 + 数字生命对话
+
+整合 BodySensor 仪表盘和 DigitalLife 聊天界面，
+提供完整的可视化交互体验。
+
+启动:
+    python app_server.py
+    访问 http://127.0.0.1:5678
+"""
+
+import os
+import json
+import logging
+import platform
+import webbrowser
+import concurrent.futures
+from flask import Flask, jsonify, render_template, request
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+app = Flask(__name__)
+import os
+app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
+app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
+
+# ── 初始化 DigitalLife ──
+from config import Config
+from agent import DigitalLife
+
+_cfg = Config()
+_lingxi = DigitalLife(_cfg.merged)
+_lingxi.start()
+
+# ── 聊天历史 ──
+_CHAT_HISTORY = []
+
+
+# ════════════════════════════════════════════════════════════
+#  API 路由
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/health")
+def api_health():
+    readings = _lingxi.body.collect_quick()
+    return jsonify([r.to_dict() for r in readings])
+
+
+@app.route("/api/sensors")
+def api_sensors():
+    return jsonify(_lingxi.body.get_sensor_info())
+
+
+@app.route("/api/status")
+def api_status():
+    status = _lingxi.get_status()
+    return jsonify(status)
+
+
+@app.route("/api/mode")
+def api_mode():
+    mode = _lingxi.get_behavior_mode()
+    profile = _lingxi._behavior.profile
+    return jsonify({
+        "mode": mode.value,
+        "label": profile.label,
+        "description": profile.description,
+        "can_accept_tasks": profile.can_accept_tasks,
+        "enable_reflection": profile.enable_reflection,
+        "reasons": _lingxi._behavior._reasons,
+    })
+
+
+@app.route("/api/cognitive/status")
+def api_cognitive_status():
+    readings = _lingxi.body.collect_quick()
+    reading_dicts = [r.to_dict() for r in readings]
+    text = _lingxi._injector.get_summary(reading_dicts)
+    body_status = _lingxi._build_body_status(readings)
+    return jsonify({
+        "summary": text,
+        "full": body_status,
+        "mode": _lingxi._behavior.profile.label,
+        "mode_description": _lingxi._behavior.profile.description,
+    })
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    data = request.get_json()
+    user_input = (data or {}).get("message", "").strip()
+    if not user_input:
+        return jsonify({"error": "消息不能为空"}), 400
+
+    # 记录 LLM 状态便于诊断
+    llm_state = _lingxi.get_config()
+    logger.info(f"Chat request - LLM configured: {llm_state['configured']}, "
+                f"provider: {llm_state['provider']}, key_set: {llm_state['api_key_set']}")
+
+    try:
+        response = _lingxi.chat(user_input)
+    except Exception as e:
+        logger.error(f"Chat error: {e}", exc_info=True)
+        response = f"（处理出错: {e}）"
+
+    entry = {
+        "user": user_input,
+        "lingxi": response,
+        "mode": _lingxi.get_behavior_mode().value,
+    }
+    _CHAT_HISTORY.append(entry)
+
+    return jsonify({
+        "response": response,
+        "mode": _lingxi.get_behavior_mode().value,
+        "mode_label": _lingxi._behavior.profile.label,
+        "health": _lingxi.body.get_health_report(),
+        "llm_state": llm_state,
+    })
+
+
+@app.route("/api/history")
+def api_history():
+    return jsonify(_CHAT_HISTORY[-50:])
+
+
+@app.route("/api/clear", methods=["POST"])
+def api_clear():
+    _CHAT_HISTORY.clear()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/config", methods=["GET", "POST"])
+def api_config():
+    """获取或设置 LLM 配置"""
+    if request.method == "GET":
+        return jsonify(_lingxi.get_config())
+
+    data = request.get_json() or {}
+    provider = data.get("provider", "")
+
+    # 检查依赖库
+    if provider == "anthropic":
+        try:
+            import anthropic  # noqa
+        except ImportError:
+            return jsonify({"ok": False, "error": "缺少依赖库: anthropic。请执行: pip install anthropic"})
+    elif provider in ("openai", "deepseek"):
+        try:
+            import openai  # noqa
+        except ImportError:
+            return jsonify({"ok": False, "error": "缺少依赖库: openai。请执行: pip install openai"})
+
+    result = _lingxi.configure_llm(
+        provider=data.get("provider", ""),
+        api_key=data.get("api_key", ""),
+        model=data.get("model", ""),
+    )
+    if result.get("ok"):
+        _CHAT_HISTORY.clear()
+    return jsonify(result)
+
+
+# ════════════════════════════════════════════════════════════
+#  全景 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/panorama")
+def api_panorama():
+    """获取全景页面所需的所有数据（单次调用）"""
+    readings = _lingxi.body.collect_quick()
+    reading_dicts = [r.to_dict() for r in readings]
+    mode = _lingxi.get_behavior_mode()
+    profile = _lingxi._behavior.profile
+    sensor_info = _lingxi.body.get_sensor_info()
+    summary = _lingxi._memory.load_summary()
+    config = _lingxi.get_config()
+    started_at = getattr(_lingxi, '_started_at', None)
+
+    # 认知状态
+    cognitive_summary = _lingxi._injector.get_summary(reading_dicts)
+
+    # 记忆统计
+    try:
+        logs = _lingxi._memory._black_box.analyze()
+        log_count = sum(logs.values()) if isinstance(logs, dict) else 0
+    except Exception:
+        log_count = 0
+
+    # 最近消息数（从 storage 加载）
+    try:
+        recent = _lingxi._memory._storage.load_recent_messages(limit=1)
+        total_msgs = len(recent) if recent else 0
+        # 尝试获取实际总数
+        try:
+            with open(_lingxi._memory._storage.messages_file, 'r', encoding='utf-8') as f:
+                total_msgs = sum(1 for _ in f)
+        except Exception:
+            pass
+    except Exception:
+        total_msgs = 0
+
+    # 构建交互追踪
+    last_trace = []
+    if _CHAT_HISTORY:
+        last = _CHAT_HISTORY[-1]
+        mode_label = last.get('mode', 'normal')
+        last_trace = [
+            {"phase": 1, "phase_label": "感知", "icon": "👁", "text": f"CPU {readings[0].value if readings else '?'}%, 内存 {readings[1].value if len(readings)>1 else '?'}%"},
+            {"phase": 2, "phase_label": "认知", "icon": "🧠", "text": cognitive_summary[:60]},
+            {"phase": 3, "phase_label": "记忆", "icon": "💾", "text": f"加载摘要·{total_msgs} 条历史"},
+            {"phase": 4, "phase_label": "行动", "icon": "🤖", "text": f"模式: {mode_label} → 调用 LLM → 生成响应"},
+        ]
+
+    return jsonify({
+        # 阶段一
+        "health": [r.to_dict() for r in readings],
+        "sensor_on": sum(1 for s in sensor_info if s.get("enabled")),
+        "sensor_total": len(sensor_info),
+        "sensor_categories": _get_sensor_categories(),
+        "tag_dimensions": _get_tag_dimensions(),
+        "sensor_list": sensor_info,
+        # 阶段二
+        "cognitive_summary": cognitive_summary,
+        "can_accept": not _lingxi._injector.should_reject_task(reading_dicts)[0],
+        "translate_rules": _get_translate_rules(),
+        "prompt_template": _get_prompt_template(),
+        # 阶段三
+        "summary_version": summary[1] if summary else None,
+        "summary_text": summary[0][:500] if summary and summary[0] else None,
+        "message_count": total_msgs,
+        "log_count": log_count,
+        "log_stats": logs if isinstance(logs, dict) else {},
+        "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
+        "token_limit": _cfg.get("memory", "token_limit", default=4096),
+        # 阶段四
+        "mode": mode.value,
+        "mode_label": profile.label,
+        "tool_count": len(_lingxi._list_tools()),
+        "tool_list": _lingxi._list_tools(),
+        "reflection_count": len(_lingxi._reflection_history),
+        "llm_configured": config.get("configured", False),
+        "behavior_modes": _get_behavior_modes(),
+        "permission_info": _get_permission_info(),
+        # 系统
+        "session_id": _lingxi._session_id,
+        "interaction_count": _lingxi._interaction_count,
+        "started_at": started_at,
+        # 追踪
+        "last_trace": last_trace,
+    })
+
+
+def _get_sensor_categories():
+    """获取传感器五大分类（含数据来源）"""
+    # 五大分类映射 + 数据来源
+    CAT_CONFIG = {
+        "硬件感知": {
+            "icon": "💻", "sensors": ["cpu","gpu","memory","disk","battery","board","chassis","port","peripheral"],
+            "source": "🔬 从硬件直接读取 （WMI/寄存器/传感器）",
+        },
+        "网络感知": {
+            "icon": "🌐", "sensors": ["network"],
+            "source": "🔬 从硬件直接读取 （网卡/协议栈）",
+        },
+        "进程与行为": {
+            "icon": "⚙️", "sensors": ["process","activity","behavior"],
+            "source": "⚡ 推测得来 （系统调用/性能计数器）",
+        },
+        "文件感知": {
+            "icon": "📁", "sensors": ["file","change","hwfile"],
+            "source": "🖥️ 从软件获得 （文件系统 API/快照对比）",
+        },
+        "系统与环境": {
+            "icon": "🌿", "sensors": ["environment","system"],
+            "source": "🖥️ 从软件获得 （OS 环境变量/系统 API）",
+        },
+    }
+    # 反向映射: category → 分类名
+    cat_reverse = {}
+    for group_name, cfg in CAT_CONFIG.items():
+        for sc in cfg["sensors"]:
+            cat_reverse[sc] = group_name
+
+    sensor_info = _lingxi.body.get_sensor_info()
+    grouped = {}
+    for group_name in CAT_CONFIG:
+        grouped[group_name] = {
+            "name": f"{CAT_CONFIG[group_name]['icon']} {group_name}",
+            "source": CAT_CONFIG[group_name]["source"],
+            "count": 0,
+            "sensors": [],
+        }
+
+    for s in sensor_info:
+        cat = s.get("category", "")
+        group = cat_reverse.get(cat, "📡 其他")
+        if group not in grouped:
+            continue
+        grouped[group]["count"] += 1
+        grouped[group]["sensors"].append({
+            "name": s.get("label", s.get("name", "")),
+            "key": s.get("name", ""),
+            "enabled": s.get("enabled", True),
+        })
+
+    return list(grouped.values())
+
+
+def _get_tag_dimensions():
+    """获取八大维度（硬编码，与 tags.py 同步）"""
+    return [
+        {"label": "目标域", "values": ["硬件感知", "软件感知", "行为感知", "环境感知"]},
+        {"label": "内外方位", "values": ["内部感知", "外部感知", "边界感知"]},
+        {"label": "动静属性", "values": ["静态配置", "动态运行", "增量变化"]},
+        {"label": "采集方式", "values": ["主动探测", "被动监听", "系统查询", "对比检测"]},
+        {"label": "感知层次", "values": ["物理层", "系统层", "应用层"]},
+        {"label": "功能角色", "values": ["基础生存", "性能监控", "安全防护", "社交通信", "环境适应"]},
+        {"label": "数据特征", "values": ["数值量", "状态量", "事件量", "配置量"]},
+        {"label": "可干预性", "values": ["仅可观测", "可配置"]},
+    ]
+
+
+def _get_translate_rules():
+    """获取翻译规则摘要"""
+    try:
+        rules = _lingxi._injector.config.get_all_rules()
+        result = []
+        for name, rule in rules.items():
+            thresholds = rule.get("thresholds", [])
+            first = thresholds[0] if thresholds else {}
+            result.append({
+                "name": name,
+                "message": first.get("message", rule.get("description", name)),
+                "unit": rule.get("unit", ""),
+            })
+        return result[:8]
+    except Exception:
+        return []
+
+
+def _get_prompt_template():
+    """获取提示词模板"""
+    try:
+        from cognitive.templates import DEFAULT_TEMPLATE
+        return DEFAULT_TEMPLATE[:500]
+    except Exception:
+        return ""
+
+
+def _get_behavior_modes():
+    """获取六种行为模式"""
+    current_mode = _lingxi.get_behavior_mode().value
+    mode_info = {
+        "normal": {"label": "正常模式", "desc": "全能力运行", "color": "#3fb950"},
+        "safe": {"label": "安全模式", "desc": "CPU过热·拒绝高耗能", "color": "#f85149"},
+        "power_save": {"label": "省电模式", "desc": "电量不足·降推理", "color": "#d29922"},
+        "memory_compact": {"label": "整理模式", "desc": "内存紧张·触发压缩", "color": "#bc8cff"},
+        "offline": {"label": "离线模式", "desc": "网络中断·本地逻辑", "color": "#8b949e"},
+        "warning": {"label": "预警模式", "desc": "磁盘不足·提示清理", "color": "#db6d28"},
+    }
+    result = []
+    for key, info in mode_info.items():
+        active = key == current_mode
+        result.append({
+            "key": key,
+            "label": info["label"],
+            "desc": info["desc"],
+            "color": info["color"] if active else "#30363d",
+            "active": active,
+        })
+    return result
+
+
+def _get_permission_info():
+    """获取权限系统统计"""
+    try:
+        perm = _lingxi._permission
+        logs = perm.get_permission_log()
+        import os
+        backup_dir = getattr(perm, '_backup_dir', None)
+        backup_count = 0
+        if backup_dir and os.path.isdir(backup_dir):
+            backup_count = len(os.listdir(backup_dir))
+        return {
+            "check_count": len(logs),
+            "backup_count": backup_count,
+            "backup_dir": str(backup_dir) if backup_dir else "-",
+        }
+    except Exception:
+        return {}
+
+
+# ════════════════════════════════════════════════════════════
+#  HTML 界面
+# ════════════════════════════════════════════════════════════
+
+# HTML 模板已提取到 templates/index.html
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+if __name__ == "__main__":
+    print("=" * 56)
+    print("  灵犀 · 数字生命体 Web 界面")
+    print("  http://127.0.0.1:5678")
+    print("=" * 56)
+    print("  顶部: 实时健康指标 + 状态栏")
+    print("  下方: 与灵犀对话")
+    print("=" * 56)
+    webbrowser.open("http://127.0.0.1:5678")
+    app.run(host="127.0.0.1", port=5678, debug=False, threaded=False)
