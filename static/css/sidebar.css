@@ -453,3 +453,203 @@
     width: 100%;
   }
 }
+
+/* ── 记忆面板子页标签 ── */
+.memory-subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin-bottom: 10px;
+}
+
+.memory-subtab {
+  flex: 1;
+  text-align: center;
+  padding: 7px 0;
+  font-size: 11px;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.memory-subtab:hover {
+  color: #c9d1d9;
+}
+
+.memory-subtab.active {
+  color: var(--sidebar-text-active);
+  border-bottom-color: var(--sidebar-text-active);
+}
+
+/* ── 窗口活动面板 ── */
+.window-panel {
+  display: none;
+}
+
+.window-panel.active {
+  display: block;
+}
+
+.memory-panel {
+  display: none;
+}
+
+.memory-panel.active {
+  display: block;
+}
+
+/* ── 监控状态行 ── */
+.window-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.window-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #c9d1d9;
+}
+
+.window-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3fb950;
+  display: inline-block;
+}
+
+.window-status-dot.stopped {
+  background: #f85149;
+}
+
+/* ── 当前窗口卡片 ── */
+.window-current-card {
+  background: #0d1117;
+  border-left: 3px solid #58a6ff;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.window-current-card .wc-label {
+  font-size: 8px;
+  color: #8b949e;
+}
+
+.window-current-card .wc-title {
+  font-size: 11px;
+  color: #c9d1d9;
+  font-weight: bold;
+  margin: 2px 0;
+}
+
+.window-current-card .wc-process {
+  font-size: 9px;
+  color: #8b949e;
+}
+
+/* ── 事件流 ── */
+.window-events {
+  background: #0d1117;
+  border-radius: 4px;
+  padding: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.window-event-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border-bottom: 1px solid #21262d40;
+  font-size: 9px;
+}
+
+.window-event-item:last-child {
+  border-bottom: none;
+}
+
+.window-event-item .we-time {
+  color: #484f58;
+  font-size: 8px;
+  min-width: 28px;
+}
+
+.window-event-item .we-arrow {
+  color: #30363d;
+}
+
+.window-event-item .we-to {
+  color: #58a6ff;
+}
+
+.window-event-item .we-duration {
+  color: #484f58;
+  font-size: 7px;
+  margin-left: auto;
+}
+
+.window-event-item.we-idle .we-to {
+  color: #d29922;
+}
+
+/* ── 使用时长排行 ── */
+.window-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.window-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.window-stat-item .ws-name {
+  font-size: 9px;
+  color: #c9d1d9;
+  min-width: 55px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-stat-item .ws-bar-bg {
+  flex: 1;
+  height: 5px;
+  background: #0d1117;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.window-stat-item .ws-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.window-stat-item .ws-pct {
+  font-size: 8px;
+  color: #8b949e;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ── 窗口面板操作按钮 ── */
+.window-panel-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
