@@ -49,20 +49,6 @@
   <!-- 通知条 -->
   <div id="notice-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;font-size:12px;border-bottom:1px solid #30363d"></div>
 
-  <!-- 顶栏 -->
-  <header id="topbar" style="display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg-secondary);border-bottom:1px solid var(--border-color)">
-    <span style="font-size:20px">🤖</span>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:15px;font-weight:700">灵犀</div>
-      <div style="font-size:10px;color:var(--text-secondary)">数字生命体 · 感知-认知-行动闭环</div>
-    </div>
-    <div style="display:flex;gap:4px">
-      <button class="btn-sm" onclick="showSettings()" title="设置">⚙</button>
-      <button class="btn-sm" onclick="refreshAll()" title="刷新">⟳</button>
-      <button class="btn-sm danger" onclick="clearChat()" title="清空对话">✕</button>
-    </div>
-  </header>
-
   <!-- 导航栏 -->
   <nav id="nav">
     <div class="nav-brand">
@@ -82,6 +68,7 @@
       <div class="nav-divider"></div>
       <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
       <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
+      <button class="nav-btn" onclick="clearChat()"><span class="nav-icon">✕</span><span class="nav-label">清空对话</span></button>
     </div>
     <button class="nav-collapse-btn" id="nav-toggle-btn">◀</button>
   </nav>

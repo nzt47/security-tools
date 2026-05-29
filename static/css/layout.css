@@ -5,7 +5,7 @@
 #app {
   display: grid;
   grid-template-columns: var(--nav-w) 1fr var(--panel-w);
-  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-rows: 1fr;
   height: 100vh;
   overflow: hidden;
 }
@@ -24,21 +24,16 @@
   grid-template-columns: var(--nav-collapsed-w) 1fr 0px;
 }
 
-/* 四个 grid 区域 */
-#topbar {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
+/* 三个 grid 区域 */
 #nav {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1;
   overflow: hidden;
 }
 
 #content {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -47,7 +42,7 @@
 
 #status-panel {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
