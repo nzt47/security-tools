@@ -8,12 +8,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;height:100vh;overflow:hidden}
 
-/* ── 标签栏 ── */
-.tab{padding:8px 18px;font-size:13px;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;user-select:none}
-.tab:hover{color:#c9d1d9}
-.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
-.tab-view{display:none;flex:1;min-height:0}
-.tab-view.active{display:flex}
+/* ── View 切换动画 ── */
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.active{display:flex}
+.view.panel-view{overflow:hidden}
+.view.panel-view>.view-body{overflow-x:hidden;overflow-y:auto;flex:1;min-height:0}
+.view.incoming{display:flex;animation:fadeSlideIn .28s ease forwards}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeSlideOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8px)}}
 
 /* ── 状态标签 ── */
 .status-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
@@ -24,9 +26,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 .status-badge.offline{background:#8b949e20;color:#8b949e;border:1px solid #8b949e80}
 .status-badge.warning{background:#db6d2820;color:#db6d28;border:1px solid #db6d2880}
 
-/* ── 聊天面板 ── */
-#chat-panel{flex:1;display:flex;flex-direction:column;min-height:0}
-
+/* ── 聊天消息 ── */
 #chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 
 .msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
@@ -55,339 +55,411 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260529">
 </head>
 <body>
-<div id="app" class="no-right-panel">
+<div id="app">
+  <!-- 通知条 -->
+  <div id="notice-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;font-size:12px;border-bottom:1px solid #30363d"></div>
+
   <!-- 顶栏 -->
-  <div id="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0">
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="mobile-menu-btn" onclick="toggleSidebar()" title="菜单"
-              style="display:none;width:28px;height:28px;border:none;background:transparent;color:#8b949e;font-size:18px;cursor:pointer;border-radius:4px">☰</button>
-      <h1 style="font-size:18px;color:#58a6ff;margin:0">灵犀 · 数字生命体</h1>
-      <span class="sub" style="font-size:12px;color:#8b949e" id="status-sub">感知-认知-行动闭环</span>
+  <header id="topbar" style="display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg-secondary);border-bottom:1px solid var(--border-color)">
+    <span style="font-size:20px">🤖</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:700">灵犀</div>
+      <div style="font-size:10px;color:var(--text-secondary)">数字生命体 · 感知-认知-行动闭环</div>
     </div>
-    <div class="actions" style="display:flex;gap:8px">
-      <button onclick="showSettings()" style="padding:5px 14px;border-radius:12px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:12px;cursor:pointer">⚙ 设置</button>
-      <button onclick="refreshAll()" style="padding:5px 14px;border-radius:12px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:12px;cursor:pointer">⟳ 刷新</button>
-      <button onclick="clearChat()" style="padding:5px 14px;border-radius:12px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:12px;cursor:pointer">清空对话</button>
+    <div style="display:flex;gap:4px">
+      <button class="btn-sm" onclick="showSettings()" title="设置">⚙</button>
+      <button class="btn-sm" onclick="refreshAll()" title="刷新">⟳</button>
+      <button class="btn-sm danger" onclick="clearChat()" title="清空对话">✕</button>
     </div>
-  </div>
+  </header>
 
-  <!-- 标签栏（含健康指标） -->
-  <div id="tabs" style="display:flex;align-items:center;background:#0d1117;border-bottom:1px solid #30363d;padding:0 12px">
-    <div style="display:flex">
-      <span class="tab active" data-tab="chat" onclick="switchTab('chat')" style="padding:8px 18px;font-size:13px;color:#58a6ff;cursor:pointer;border-bottom:2px solid #58a6ff;user-select:none">💬 对话</span>
-      <span class="tab" data-tab="panorama" onclick="switchTab('panorama')" style="padding:8px 18px;font-size:13px;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;user-select:none">🗺 全景</span>
+  <!-- 导航栏 -->
+  <nav id="nav">
+    <div class="nav-brand">
+      <span style="font-size:20px">🤖</span>
+      <div class="nav-title">灵犀</div>
     </div>
-    <div id="tab-metrics">
-      <!-- JS 动态填充 -->
+    <div class="nav-items">
+      <button class="nav-btn active" data-view="chat"><span class="nav-icon">💬</span><span class="nav-label">对话</span></button>
+      <button class="nav-btn" data-view="panorama"><span class="nav-icon">🗺</span><span class="nav-label">全景</span></button>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">管理</div>
+      <button class="nav-btn" data-view="history"><span class="nav-icon">🕐</span><span class="nav-label">历史会话</span></button>
+      <button class="nav-btn" data-view="skills"><span class="nav-icon">🔧</span><span class="nav-label">技能管理</span></button>
+      <button class="nav-btn" data-view="tools"><span class="nav-icon">🛠</span><span class="nav-label">工具集成</span></button>
+      <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
+      <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
+      <div class="nav-divider"></div>
+      <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
+      <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
     </div>
-  </div>
-
-  <!-- 图标栏 -->
-  <div id="icon-bar">
-    <button class="icon-btn" data-panel="history" data-tooltip="历史会话" onclick="toggleFloatingPanel('history')">🕐</button>
-    <button class="icon-btn" data-panel="skills" data-tooltip="技能管理" onclick="toggleFloatingPanel('skills')">🔧</button>
-    <button class="icon-btn" data-panel="tools" data-tooltip="工具集成" onclick="toggleFloatingPanel('tools')">🛠</button>
-    <button class="icon-btn" data-panel="personality" data-tooltip="人格配置" onclick="toggleFloatingPanel('personality')">🎭</button>
-    <button class="icon-btn" data-panel="memory" data-tooltip="记忆管理" onclick="toggleFloatingPanel('memory')">🧠</button>
-    <div class="icon-spacer"></div>
-    <button class="icon-btn" data-tooltip="展开侧边栏" onclick="toggleSidebar()" style="font-size:16px">☰</button>
-  </div>
-
-  <!-- 完整侧边栏（展开态，默认隐藏） -->
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <button class="sidebar-toggle" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
-      <span class="sidebar-title">Agent 管理</span>
-    </div>
-    <div class="sidebar-tabs">
-      <div class="sidebar-tab active" data-panel="history" onclick="switchSidebarTab('history')">
-        <span class="tab-icon">🕐</span><span class="tab-label">历史会话</span>
-      </div>
-      <div class="sidebar-tab" data-panel="skills" onclick="switchSidebarTab('skills')">
-        <span class="tab-icon">🔧</span><span class="tab-label">技能管理</span>
-      </div>
-      <div class="sidebar-tab" data-panel="tools" onclick="switchSidebarTab('tools')">
-        <span class="tab-icon">🛠</span><span class="tab-label">工具集成</span>
-      </div>
-      <div class="sidebar-tab" data-panel="personality" onclick="switchSidebarTab('personality')">
-        <span class="tab-icon">🎭</span><span class="tab-label">人格配置</span>
-      </div>
-      <div class="sidebar-tab" data-panel="memory" onclick="switchSidebarTab('memory')">
-        <span class="tab-icon">🧠</span><span class="tab-label">记忆管理</span>
-      </div>
-    </div>
-    <div class="sidebar-panels" id="sidebar-panels-container">
-      <!-- 面板内容由 JS 动态生成 -->
-    </div>
-  </div>
-
-  <!-- 浮层面板容器 -->
-  <div class="floating-panel-overlay" id="floating-overlay" onclick="closeFloatingPanel()"></div>
-  <div class="floating-panel" id="floating-panel">
-    <div class="floating-panel-header">
-      <span class="floating-panel-title" id="floating-panel-title">面板</span>
-      <button class="floating-panel-close" onclick="closeFloatingPanel()">&times;</button>
-    </div>
-    <div class="floating-panel-body" id="floating-panel-body">
-      <!-- 面板内容由 JS 动态填充 -->
-    </div>
-  </div>
+    <button class="nav-collapse-btn" id="nav-toggle-btn">◀</button>
+  </nav>
 
   <!-- 主内容区 -->
-  <div id="main">
+  <main id="content">
     <!-- 对话视图 -->
-    <div id="chat-view" class="tab-view active" style="flex-direction:column;flex:1;display:flex;min-height:0">
-      <div id="chat-panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div id="view-chat" class="view active" style="flex-direction:column">
+      <div style="flex:1;display:flex;flex-direction:column;min-height:0">
         <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
-        <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:#161b22;border-top:1px solid #30363d;flex-shrink:0">
-          <textarea id="chat-input" rows="1" placeholder="和灵犀说话..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
-                    style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
+        <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);flex-shrink:0">
+          <textarea id="chat-input" rows="1" placeholder="和灵犀说话..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+            style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
           <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap">发送</button>
         </div>
       </div>
     </div>
 
     <!-- 全景视图 -->
-    <div id="panorama-view" class="tab-view" style="flex:1;min-height:0">
-      <div class="pano-layout" style="display:flex;height:100%">
-        <div class="pano-nav">
-          <div class="pano-nav-item active" data-pano-section="dashboard" onclick="switchPanoSection('dashboard')">
-            <span class="nav-dot" style="background:#58a6ff"></span> 仪表盘总览
+    <div id="view-panorama" class="view">
+      <div class="pano-nav">
+        <div class="pano-nav-item active" data-pano-section="dashboard" onclick="switchPanoSection('dashboard')">
+          <span class="nav-dot" style="background:#58a6ff"></span> 仪表盘总览
+        </div>
+        <div class="pano-nav-item" data-pano-section="phase1" onclick="switchPanoSection('phase1')">
+          <span class="nav-dot" style="background:#58a6ff"></span> 感知层
+        </div>
+        <div class="pano-nav-item" data-pano-section="phase2" onclick="switchPanoSection('phase2')">
+          <span class="nav-dot" style="background:#bc8cff"></span> 认知层
+        </div>
+        <div class="pano-nav-item" data-pano-section="phase3" onclick="switchPanoSection('phase3')">
+          <span class="nav-dot" style="background:#3fb950"></span> 记忆层
+        </div>
+        <div class="pano-nav-item" data-pano-section="phase4" onclick="switchPanoSection('phase4')">
+          <span class="nav-dot" style="background:#d29922"></span> 行动层
+        </div>
+        <div class="pano-nav-indicator"></div>
+        <div class="pano-nav-item" data-pano-section="trace" onclick="switchPanoSection('trace')">
+          <span class="nav-dot" style="background:#8b949e"></span> 交互追踪
+        </div>
+        <div class="pano-nav-item" data-pano-section="system" onclick="switchPanoSection('system')">
+          <span class="nav-dot" style="background:#8b949e"></span> 系统总览
+        </div>
+      </div>
+      <div class="pano-content" id="pano-content">
+        <!-- 仪表盘总览（默认） -->
+        <div id="pano-section-dashboard">
+          <div class="pano-pipeline">
+            <div class="pipe-node phase-1" onclick="switchPanoSection('phase1')">
+              <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div><div class="pn-status">●</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-2" onclick="switchPanoSection('phase2')">
+              <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div><div class="pn-status">●</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-3" onclick="switchPanoSection('phase3')">
+              <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div><div class="pn-status">●</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-4" onclick="switchPanoSection('phase4')">
+              <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div><div class="pn-status">●</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node pipe-output">
+              <div class="pn-icon">💬</div><div class="pn-label">响应</div><div class="pn-sub">输出</div>
+            </div>
           </div>
-          <div class="pano-nav-item" data-pano-section="phase1" onclick="switchPanoSection('phase1')">
-            <span class="nav-dot" style="background:#58a6ff"></span> 感知层
+          <div class="pano-dashboard-grid">
+            <div class="pano-card phase-1">
+              <div class="pano-card-header" onclick="switchPanoSection('phase1')">
+                <span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span><span class="expand-btn">详情 ▸</span>
+              </div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-2">
+              <div class="pano-card-header" onclick="switchPanoSection('phase2')">
+                <span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span><span class="expand-btn">详情 ▸</span>
+              </div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-3">
+              <div class="pano-card-header" onclick="switchPanoSection('phase3')">
+                <span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span><span class="expand-btn">详情 ▸</span>
+              </div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-4">
+              <div class="pano-card-header" onclick="switchPanoSection('phase4')">
+                <span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span><span class="expand-btn">详情 ▸</span>
+              </div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="pano-nav-item" data-pano-section="phase2" onclick="switchPanoSection('phase2')">
-            <span class="nav-dot" style="background:#bc8cff"></span> 认知层
-          </div>
-          <div class="pano-nav-item" data-pano-section="phase3" onclick="switchPanoSection('phase3')">
-            <span class="nav-dot" style="background:#3fb950"></span> 记忆层
-          </div>
-          <div class="pano-nav-item" data-pano-section="phase4" onclick="switchPanoSection('phase4')">
-            <span class="nav-dot" style="background:#d29922"></span> 行动层
-          </div>
-          <div class="pano-nav-indicator"></div>
-          <div class="pano-nav-item" data-pano-section="trace" onclick="switchPanoSection('trace')">
-            <span class="nav-dot" style="background:#8b949e"></span> 交互追踪
-          </div>
-          <div class="pano-nav-item" data-pano-section="system" onclick="switchPanoSection('system')">
-            <span class="nav-dot" style="background:#8b949e"></span> 系统总览
+          <div class="pano-dashboard-bottom">
+            <div class="pano-events">
+              <div class="pano-events-header">📋 实时事件流</div>
+              <div class="pano-events-body" id="pano-events-body">
+                <div class="pano-empty">暂无事件</div>
+              </div>
+            </div>
+            <div class="pano-sysbar" id="pano-sysbar">
+              <div class="sys-item">会话: <span id="pano-session">-</span></div>
+              <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
+              <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
+              <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
+              <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
+            </div>
           </div>
         </div>
-        <div class="pano-content" id="pano-content">
-          <!-- 仪表盘总览（默认） -->
-          <div id="pano-section-dashboard">
-            <div class="pano-pipeline">
-              <div class="pipe-node phase-1" onclick="switchPanoSection('phase1')">
-                <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div><div class="pn-status">●</div>
-              </div>
-              <div class="pipe-arrow">→</div>
-              <div class="pipe-node phase-2" onclick="switchPanoSection('phase2')">
-                <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div><div class="pn-status">●</div>
-              </div>
-              <div class="pipe-arrow">→</div>
-              <div class="pipe-node phase-3" onclick="switchPanoSection('phase3')">
-                <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div><div class="pn-status">●</div>
-              </div>
-              <div class="pipe-arrow">→</div>
-              <div class="pipe-node phase-4" onclick="switchPanoSection('phase4')">
-                <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div><div class="pn-status">●</div>
-              </div>
-              <div class="pipe-arrow">→</div>
-              <div class="pipe-node pipe-output">
-                <div class="pn-icon">💬</div><div class="pn-label">响应</div><div class="pn-sub">输出</div>
-              </div>
-            </div>
-            <div class="pano-dashboard-grid">
-              <div class="pano-card phase-1">
-                <div class="pano-card-header" onclick="switchPanoSection('phase1')">
-                  <span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span><span class="expand-btn">详情 ▸</span>
-                </div>
-                <div class="pano-card-body">
-                  <div class="card-metrics">
-                    <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="pano-card phase-2">
-                <div class="pano-card-header" onclick="switchPanoSection('phase2')">
-                  <span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span><span class="expand-btn">详情 ▸</span>
-                </div>
-                <div class="pano-card-body">
-                  <div class="card-metrics">
-                    <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="pano-card phase-3">
-                <div class="pano-card-header" onclick="switchPanoSection('phase3')">
-                  <span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span><span class="expand-btn">详情 ▸</span>
-                </div>
-                <div class="pano-card-body">
-                  <div class="card-metrics">
-                    <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="pano-card phase-4">
-                <div class="pano-card-header" onclick="switchPanoSection('phase4')">
-                  <span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span><span class="expand-btn">详情 ▸</span>
-                </div>
-                <div class="pano-card-body">
-                  <div class="card-metrics">
-                    <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
-                    <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="pano-dashboard-bottom">
-              <div class="pano-events">
-                <div class="pano-events-header">📋 实时事件流</div>
-                <div class="pano-events-body" id="pano-events-body">
-                  <div class="pano-empty">暂无事件</div>
-                </div>
-              </div>
-              <div class="pano-sysbar" id="pano-sysbar">
-                <div class="sys-item">会话: <span id="pano-session">-</span></div>
-                <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
-                <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
-                <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
-                <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
-              </div>
+
+        <!-- 各层详情视图 -->
+        <div id="pano-section-phase1" class="pano-detail-view">
+          <div class="pano-card phase-1">
+            <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
+            <div class="pano-card-body">
+              <div class="pano-metrics" id="pano-health"></div>
+              <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📂 传感器四大分类</div>
+              <div class="pano-cat-grid" id="pano-sensor-categories"></div>
+              <div class="detail-section-title">🏷 八维标签体系</div>
+              <div class="pano-tag-grid" id="pano-tag-grid"></div>
+              <div class="detail-section-title">📡 全部传感器清单</div>
+              <div class="pano-sensor-list" id="pano-sensor-list"></div>
             </div>
           </div>
+        </div>
 
-          <!-- 各层详情视图 -->
-          <div id="pano-section-phase1" class="pano-detail-view">
-            <div class="pano-card phase-1">
-              <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
-              <div class="pano-card-body">
-                <div class="pano-metrics" id="pano-health"></div>
-                <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
-                <div class="pano-divider"></div>
-                <div class="detail-section-title">📂 传感器四大分类</div>
-                <div class="pano-cat-grid" id="pano-sensor-categories"></div>
-                <div class="detail-section-title">🏷 八维标签体系</div>
-                <div class="pano-tag-grid" id="pano-tag-grid"></div>
-                <div class="detail-section-title">📡 全部传感器清单</div>
-                <div class="pano-sensor-list" id="pano-sensor-list"></div>
-              </div>
+        <div id="pano-section-phase2" class="pano-detail-view">
+          <div class="pano-card phase-2">
+            <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
+            <div class="pano-card-body">
+              <div id="pano-cognitive" class="pano-text">加载中...</div>
+              <div id="pano-reject-status-detail" style="margin-top:6px"></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📜 翻译规则配置</div>
+              <div id="pano-translate-rules" class="pano-text"></div>
+              <div class="detail-section-title">📝 提示词模板</div>
+              <pre id="pano-prompt-preview" class="pano-pre"></pre>
             </div>
           </div>
+        </div>
 
-          <div id="pano-section-phase2" class="pano-detail-view">
-            <div class="pano-card phase-2">
-              <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
-              <div class="pano-card-body">
-                <div id="pano-cognitive" class="pano-text">加载中...</div>
-                <div id="pano-reject-status-detail" style="margin-top:6px"></div>
-                <div class="pano-divider"></div>
-                <div class="detail-section-title">📜 翻译规则配置</div>
-                <div id="pano-translate-rules" class="pano-text"></div>
-                <div class="detail-section-title">📝 提示词模板</div>
-                <pre id="pano-prompt-preview" class="pano-pre"></pre>
-              </div>
+        <div id="pano-section-phase3" class="pano-detail-view">
+          <div class="pano-card phase-3">
+            <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
+            <div class="pano-card-body">
+              <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
+              <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
+              <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📄 当前摘要</div>
+              <pre id="pano-summary-text" class="pano-pre"></pre>
+              <div class="detail-section-title">📊 日志统计</div>
+              <div id="pano-log-stats" class="pano-text"></div>
+              <div class="detail-section-title">⚙ 压缩策略</div>
+              <div id="pano-compress-info-detail" class="pano-text"></div>
             </div>
           </div>
+        </div>
 
-          <div id="pano-section-phase3" class="pano-detail-view">
-            <div class="pano-card phase-3">
-              <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
-              <div class="pano-card-body">
-                <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
-                <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
-                <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
-                <div class="pano-divider"></div>
-                <div class="detail-section-title">📄 当前摘要</div>
-                <pre id="pano-summary-text" class="pano-pre"></pre>
-                <div class="detail-section-title">📊 日志统计</div>
-                <div id="pano-log-stats" class="pano-text"></div>
-                <div class="detail-section-title">⚙ 压缩策略</div>
-                <div id="pano-compress-info-detail" class="pano-text"></div>
-              </div>
+        <div id="pano-section-phase4" class="pano-detail-view">
+          <div class="pano-card phase-4">
+            <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
+            <div class="pano-card-body">
+              <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
+              <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
+              <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
+              <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">🔄 六种行为模式</div>
+              <div id="pano-mode-list" class="pano-mode-grid"></div>
+              <div class="detail-section-title">🔧 注册工具</div>
+              <div id="pano-tool-list" class="pano-text"></div>
+              <div class="detail-section-title">🛡 权限检查记录</div>
+              <div id="pano-perm-info" class="pano-text"></div>
             </div>
           </div>
+        </div>
 
-          <div id="pano-section-phase4" class="pano-detail-view">
-            <div class="pano-card phase-4">
-              <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
-              <div class="pano-card-body">
-                <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
-                <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
-                <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
-                <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
-                <div class="pano-divider"></div>
-                <div class="detail-section-title">🔄 六种行为模式</div>
-                <div id="pano-mode-list" class="pano-mode-grid"></div>
-                <div class="detail-section-title">🔧 注册工具</div>
-                <div id="pano-tool-list" class="pano-text"></div>
-                <div class="detail-section-title">🛡 权限检查记录</div>
-                <div id="pano-perm-info" class="pano-text"></div>
-              </div>
+        <div id="pano-section-trace" class="pano-detail-view">
+          <div class="pano-card pano-full-width">
+            <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">上次交互 · 数据流追踪</span></div>
+            <div class="pano-card-body" id="pano-trace-body">
+              <div class="pano-text sub">暂无交互记录</div>
             </div>
           </div>
+        </div>
 
-          <div id="pano-section-trace" class="pano-detail-view">
-            <div class="pano-card pano-full-width">
-              <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">上次交互 · 数据流追踪</span></div>
-              <div class="pano-card-body" id="pano-trace-body">
-                <div class="pano-text sub">暂无交互记录</div>
-              </div>
-            </div>
-          </div>
-
-          <div id="pano-section-system" class="pano-detail-view">
-            <div class="pano-sysbar" id="pano-sysbar-detail">
-              <div class="sys-item">会话: <span id="pano-session-detail">-</span></div>
-              <div class="sys-item">交互: <span id="pano-interactions-detail">-</span></div>
-              <div class="sys-item">运行: <span id="pano-uptime-detail">-</span></div>
-              <div class="sys-item">传感器: <span id="pano-sensor-total-detail">-</span></div>
-              <div class="sys-item">模式: <span id="pano-mode-badge-detail" class="status-badge normal">正常</span></div>
-            </div>
+        <div id="pano-section-system" class="pano-detail-view">
+          <div class="pano-sysbar" id="pano-sysbar-detail">
+            <div class="sys-item">会话: <span id="pano-session-detail">-</span></div>
+            <div class="sys-item">交互: <span id="pano-interactions-detail">-</span></div>
+            <div class="sys-item">运行: <span id="pano-uptime-detail">-</span></div>
+            <div class="sys-item">传感器: <span id="pano-sensor-total-detail">-</span></div>
+            <div class="sys-item">模式: <span id="pano-mode-badge-detail" class="status-badge normal">正常</span></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- 历史会话视图 -->
+    <div id="view-history" class="view">
+      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🕐 历史会话</h3>
+        <input class="view-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
+        <div class="panel-actions">
+          <select id="history-sort" class="btn-sm" onchange="loadHistory()">
+            <option value="newest">最新优先</option>
+            <option value="oldest">最早优先</option>
+          </select>
+        </div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- 技能管理视图 -->
+    <div id="view-skills" class="view">
+      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
+        <div class="panel-actions">
+          <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+        </div>
+        <div id="skills-list"></div>
+      </div>
+    </div>
+
+    <!-- 工具集成视图 -->
+    <div id="view-tools" class="view">
+      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🛠 工具集成</h3>
+        <div id="tools-count" style="font-size:12px;color:#8b949e;margin-bottom:8px"></div>
+        <div id="tools-list"></div>
+      </div>
+    </div>
+
+    <!-- 人格配置视图 -->
+    <div id="view-personality" class="view">
+      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🎭 人格配置</h3>
+        <div id="personality-presets"></div>
+        <div id="personality-sliders"></div>
+        <div class="panel-actions" style="margin-top:12px">
+          <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
+          <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 记忆管理视图 -->
+    <div id="view-memory" class="view">
+      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <div class="memory-subtabs">
+          <div class="memory-subtab active" data-memory-tab="memory" onclick="switchMemoryTab('memory')">📋 记忆</div>
+          <div class="memory-subtab" data-memory-tab="window" onclick="switchMemoryTab('window')">🪟 窗口活动</div>
+        </div>
+        <div class="memory-panel active" id="memory-panel-content">
+          <div id="memory-overview"></div>
+          <div id="memory-content"></div>
+        </div>
+        <div class="window-panel" id="window-panel-content">
+          <div class="window-status-bar" id="window-status"></div>
+          <div class="window-current-card" id="window-current">
+            <div class="wc-label">🪟 当前活跃窗口</div>
+            <div class="wc-title" style="color:#8b949e">加载中...</div>
+          </div>
+          <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📡 最近切换事件</div>
+          <div class="window-events" id="window-events">
+            <div class="sidebar-empty">加载中...</div>
+          </div>
+          <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📊 今日使用时长</div>
+          <div class="window-stats" id="window-stats">
+            <div class="sidebar-empty">加载中...</div>
+          </div>
+          <div class="window-panel-actions">
+            <button class="btn-sm" onclick="showWindowConfig()">⚙ 监控参数</button>
+            <button class="btn-sm danger" onclick="clearWindowEvents()">清空记录</button>
+          </div>
+        </div>
+        <div class="panel-actions" style="margin-top:8px">
+          <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+          <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+        </div>
+      </div>
+    </div>
+  </main>
 
   <!-- 右侧状态面板 -->
-  <div id="status-panel">
-    <div class="sp-section-title">📊 系统状态</div>
-    <div class="sp-metric"><span class="sp-label">CPU</span><span class="sp-value" id="sp-cpu">-</span></div>
-    <div class="sp-metric"><span class="sp-label">内存</span><span class="sp-value" id="sp-memory">-</span></div>
-    <div class="sp-metric"><span class="sp-label">磁盘</span><span class="sp-value" id="sp-disk">-</span></div>
-    <div class="sp-metric"><span class="sp-label">电池</span><span class="sp-value" id="sp-battery">-</span></div>
-    <div class="sp-metric"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
-    <div class="sp-metric"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
-    <div class="sp-metric"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
-    <div class="sp-section-title" style="margin-top:8px">⚠ 安全告警</div>
-    <div class="sp-events" id="sp-alerts" style="margin-bottom:6px">
-      <div class="sidebar-empty">无告警</div>
+  <aside id="status-panel">
+    <button class="panel-toggle" id="panel-toggle-btn" title="切换状态面板">◀</button>
+    <div class="sp-section">
+      <div class="sp-section-title">系统状态</div>
+      <div class="sp-metric-row">
+        <span class="sp-label">CPU</span>
+        <div class="sp-bar"><div class="sp-bar-fill" id="sp-cpu-bar" style="width:0%"></div></div>
+        <span class="sp-value" id="sp-cpu">-</span>
+      </div>
+      <div class="sp-metric-row">
+        <span class="sp-label">内存</span>
+        <div class="sp-bar"><div class="sp-bar-fill" id="sp-mem-bar" style="width:0%"></div></div>
+        <span class="sp-value" id="sp-memory">-</span>
+      </div>
+      <div class="sp-metric-row">
+        <span class="sp-label">磁盘</span>
+        <div class="sp-bar"><div class="sp-bar-fill" id="sp-disk-bar" style="width:0%"></div></div>
+        <span class="sp-value" id="sp-disk">-</span>
+      </div>
+      <div class="sp-metric-row">
+        <span class="sp-label">电池</span>
+        <div class="sp-bar"><div class="sp-bar-fill" id="sp-batt-bar" style="width:0%"></div></div>
+        <span class="sp-value" id="sp-battery">-</span>
+      </div>
+      <div class="sp-text-row"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
+      <div class="sp-text-row"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
+      <div class="sp-text-row"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
     </div>
-    <div class="sp-section-title" style="margin-top:8px">📋 事件流</div>
-    <div class="sp-events" id="sp-events">
-      <div class="sidebar-empty">系统正常</div>
+    <div class="sp-section">
+      <div class="sp-section-title">运行信息</div>
+      <div class="sp-text-row"><span class="sp-label">会话</span><span class="sp-value" id="sp-session">-</span></div>
+      <div class="sp-text-row"><span class="sp-label">交互</span><span class="sp-value" id="sp-interactions">-</span></div>
+      <div class="sp-text-row"><span class="sp-label">运行</span><span class="sp-value" id="sp-uptime">-</span></div>
     </div>
-  </div>
-
+    <div class="sp-section sp-events-section">
+      <div class="sp-section-title">实时事件流</div>
+      <div class="sp-events" id="sp-events"><div style="text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px">系统正常</div></div>
+    </div>
+  </aside>
 </div>
 
+<!-- 设置弹窗 -->
 <div id="settings-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSettings()">
   <div class="modal">
     <div class="modal-header">
@@ -411,6 +483,12 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
         <label>模型名称</label>
         <div class="model-hint" id="cfg-model-hint">提示: gpt-4 / deepseek-chat / claude-sonnet-4-20250514</div>
         <input type="text" id="cfg-model" placeholder="deepseek-chat">
+      </div>
+      <div class="form-group" id="api-token-group" style="border-top:1px solid #30363d;padding-top:14px">
+        <label>API 令牌 <span style="color:#8b949e;font-weight:400">（可选，用于保护危险操作）</span></label>
+        <div class="model-hint">设置环境变量 <code>FLASK_API_TOKEN</code> 启用。启用后所有修改操作需携带此令牌。</div>
+        <input type="text" id="cfg-token" placeholder="自动检测中..." readonly style="background:#161b22;color:#8b949e">
+        <div id="cfg-token-status" style="font-size:11px;margin-top:4px;color:#8b949e">检测中...</div>
       </div>
       <div id="cfg-status" class="cfg-status"></div>
     </div>
@@ -554,13 +632,63 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 </style>
 
 <script>
+let __apiToken = '';
+
+// ── API 令牌管理 ──
+async function checkApiToken() {
+  try {
+    const r = await fetch('/api/auth/token-check');
+    const data = await r.json();
+    const el = document.getElementById('cfg-token');
+    const statusEl = document.getElementById('cfg-token-status');
+    if (data.enabled) {
+      el.value = '已启用（查看环境变量 FLASK_API_TOKEN）';
+      el.style.color = '#3fb950';
+      statusEl.textContent = '✅ API 令牌认证已启用，危险操作需携带令牌';
+      statusEl.style.color = '#3fb950';
+      showNotice('🔑 API 令牌认证已启用，操作敏感功能需提供令牌', 'info');
+    } else {
+      el.value = '未启用';
+      el.style.color = '#8b949e';
+      statusEl.textContent = 'ℹ️ 未设置 FLASK_API_TOKEN，所有 API 无需认证即可访问';
+      statusEl.style.color = '#d29922';
+    }
+  } catch(e) {
+    document.getElementById('cfg-token-status').textContent = '⚠️ 检测失败';
+  }
+}
+
+function _apiHeaders(extra) {
+  const h = {'Content-Type': 'application/json', ...(extra || {})};
+  if (__apiToken) h['Authorization'] = 'Bearer ' + __apiToken;
+  return h;
+}
+
+function apiFetch(url, options) {
+  const opts = options || {};
+  opts.headers = _apiHeaders(opts.headers || {});
+  return fetch(url, opts);
+}
+
+// ── 通知条 ──
+function showNotice(msg, type) {
+  const bar = document.getElementById('notice-bar');
+  if (!bar) return;
+  bar.textContent = msg;
+  bar.style.display = 'flex';
+  bar.style.background = type === 'info' ? '#1f6feb20' : type === 'warn' ? '#d2992220' : '#f8514920';
+  bar.style.color = type === 'info' ? '#58a6ff' : type === 'warn' ? '#d29922' : '#f85149';
+  bar.style.borderBottom = '1px solid ' + (type === 'info' ? '#1f6feb80' : type === 'warn' ? '#d2992280' : '#f8514980');
+  clearTimeout(bar._hideTimer);
+  bar._hideTimer = setTimeout(() => { bar.style.display = 'none'; }, 15000);
+}
+
 // ════════════════════════════════════════════════════════════
 //  设置面板
 // ════════════════════════════════════════════════════════════
 async function showSettings() {
   document.getElementById('settings-modal').style.display = 'flex';
   document.getElementById('cfg-status').style.display = 'none';
-  // 加载当前配置
   try {
     const r = await fetch('/api/config');
     const cfg = await r.json();
@@ -599,9 +727,8 @@ async function saveConfig() {
   status.style.display = 'none';
 
   try {
-    const r = await fetch('/api/config', {
+    const r = await apiFetch('/api/config', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         provider: document.getElementById('cfg-provider').value,
         api_key: document.getElementById('cfg-apikey').value,
@@ -621,9 +748,6 @@ async function saveConfig() {
     btn.textContent = '保存并连接';
   }
 }
-updateTabMetrics();
-updateStatusPanel();
-document.getElementById('chat-input').focus();
 
 // ════════════════════════════════════════════════════════════
 //  聊天
@@ -637,7 +761,6 @@ async function sendMessage() {
   input.style.height = 'auto';
   addMessage(text, 'user');
 
-  // 显示等待状态
   const btn = document.getElementById('send-btn');
   btn.disabled = true;
   btn.textContent = '思考中...';
@@ -682,36 +805,10 @@ function addMessage(text, role, modeLabel) {
 
 async function clearChat() {
   if (!confirm('确定清空对话记录？')) return;
-  await fetch('/api/clear', {method: 'POST'});
+  await apiFetch('/api/clear', {method: 'POST'});
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('chat-count').textContent = '0';
 }
-
-// ════════════════════════════════════════════════════════════
-//  标签切换
-// ════════════════════════════════════════════════════════════
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
-  document.getElementById(name + '-view').classList.add('active');
-
-  const app = document.getElementById('app');
-  if (name === 'panorama') {
-    app.classList.add('no-right-panel');
-    document.getElementById('status-panel').classList.add('hidden');
-    loadPanorama();
-  } else {
-    app.classList.remove('no-right-panel');
-    document.getElementById('status-panel').classList.remove('hidden');
-  }
-}
-
-// 自动调整输入框高度
-document.getElementById('chat-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
-});
 
 // 安全告警轮询
 async function checkSafetyAlerts() {
@@ -738,22 +835,39 @@ async function checkSafetyAlerts() {
   } catch(e) {}
 }
 
-// 定时刷新
-setInterval(function() {
-  updateTabMetrics();
-  updateStatusPanel();
+// 自动调整输入框高度
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// 注册视图
+app.registerView('chat', { keepAlive: true });
+app.registerView('panorama', { keepAlive: true });
+app.registerView('history', { load: loadHistory, keepAlive: true });
+app.registerView('skills', { load: loadSkills, keepAlive: true });
+app.registerView('tools', { load: loadTools, keepAlive: true });
+app.registerView('personality', { load: loadPersonality, keepAlive: true });
+app.registerView('memory', { load: loadMemory, keepAlive: true });
+
+app.init();
+initNav();
+
+document.getElementById('chat-input').focus();
+
+// 定时刷新（使用事件总线）
+setInterval(() => {
+  app.emit('tick');
   checkSafetyAlerts();
-  if (document.getElementById('panorama-view').classList.contains('active')) {
-    loadPanorama();
-  }
 }, 10000);
 </script>
-<script src="{{ url_for('static', filename='js/sidebar/sidebar.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sidebar/history.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}"></script>
-<script src="{{ url_for('static', filename='js/panorama.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260529"></script>
 </body>
 </html>
