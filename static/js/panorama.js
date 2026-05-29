@@ -325,3 +325,11 @@ function loadEvents(d) {
     '<div class="event-item"><span class="ei-time">' + e.time + '</span><span class="ei-icon">' + e.icon + '</span><span class="ei-text">' + e.text + '</span><span class="ei-tag ' + e.tagClass + '">' + e.tag + '</span></div>'
   ).join('');
 }
+
+// 通过事件总线实现全景自动刷新
+app.on('tick', () => {
+  const panoView = document.getElementById('view-panorama');
+  if (panoView && panoView.classList.contains('active')) {
+    loadPanorama();
+  }
+});
