@@ -82,6 +82,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
 </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 </head>
 <body>
@@ -177,6 +178,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
       </div>
     </div>
   </div>
+  <div class="sidebar-resizer" id="sidebar-resizer"></div>
 
   <div id="main">
     <!-- 对话视图 -->

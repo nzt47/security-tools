@@ -1,0 +1,197 @@
+/* ════════════════════════════════════════
+   灵犀 · 全局布局 — CSS Grid 三列结构
+   ════════════════════════════════════════ */
+
+/* 根变量 */
+:root {
+  --icon-bar-width: 48px;
+  --status-panel-width: 170px;
+  --topbar-height: 42px;
+  --tabbar-height: 34px;
+}
+
+/* 全局 Grid 容器 */
+#app {
+  display: grid;
+  grid-template-columns: var(--icon-bar-width) 1fr var(--status-panel-width);
+  grid-template-rows: auto auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 无状态面板时（全景视图） */
+#app.no-right-panel {
+  grid-template-columns: var(--icon-bar-width) 1fr;
+}
+
+/* 顶栏横跨全部列 */
+#topbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+/* 标签栏横跨全部列 */
+#tabs {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* 图标栏 */
+#icon-bar {
+  grid-column: 1;
+  grid-row: 3;
+  background: #161b22;
+  border-right: 1px solid #30363d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  gap: 12px;
+  overflow: hidden;
+  z-index: 20;
+}
+
+#icon-bar .icon-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  position: relative;
+}
+
+#icon-bar .icon-btn:hover,
+#icon-bar .icon-btn.active {
+  background: #21262d;
+  color: #58a6ff;
+}
+
+/* tooltip */
+#icon-bar .icon-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 44px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #21262d;
+  color: #c9d1d9;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 30;
+  border: 1px solid #30363d;
+}
+
+#icon-bar .icon-btn:hover::after {
+  opacity: 1;
+}
+
+#icon-bar .icon-spacer {
+  flex: 1;
+}
+
+/* 主内容区 */
+#main {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 右侧状态面板 */
+#status-panel {
+  grid-column: 3;
+  grid-row: 3;
+  background: #161b22;
+  border-left: 1px solid #30363d;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  font-size: 11px;
+}
+
+#status-panel.hidden {
+  display: none;
+}
+
+#status-panel .sp-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b949e;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#status-panel .sp-metric {
+  background: #0d1117;
+  border-radius: 4px;
+  padding: 5px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#status-panel .sp-metric .sp-label {
+  color: #8b949e;
+  font-size: 10px;
+}
+
+#status-panel .sp-metric .sp-value {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+#status-panel .sp-metric .sp-value.normal { color: #3fb950; }
+#status-panel .sp-metric .sp-value.warning { color: #d29922; }
+#status-panel .sp-metric .sp-value.critical { color: #f85149; }
+
+#status-panel .sp-events {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 9px;
+  color: #8b949e;
+  line-height: 1.6;
+  min-height: 0;
+}
+
+#status-panel .sp-events .sp-event {
+  padding: 2px 0;
+  border-bottom: 1px solid #21262d40;
+}
+
+/* 标签栏内指标 */
+#tab-metrics {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #8b949e;
+  align-items: center;
+}
+
+#tab-metrics .tm-sep {
+  color: #30363d;
+}
+
+#tab-metrics .tm-value {
+  font-weight: 600;
+}
+
+#tab-metrics .tm-value.normal { color: #3fb950; }
+#tab-metrics .tm-value.warning { color: #d29922; }
+#tab-metrics .tm-value.critical { color: #f85149; }
