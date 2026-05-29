@@ -210,8 +210,19 @@ function highlightSensorDimensions(sensorKey) {
   var chip = document.querySelector('.pano-sensor-chip[data-sensor-key="' + sensorKey + '"]');
   if (chip) chip.classList.add('selected');
 
-  // 获取该传感器的标签
-  var sensorTags = (window._sensorTagMap || {})[sensorKey] || [];
+  // 获取该传感器的标签（支持精确匹配和前缀匹配）
+  var sensorTagMap = window._sensorTagMap || {};
+  var sensorTags = sensorTagMap[sensorKey] || [];
+
+  // 前缀匹配：health 中的 sensor_name 如 "cpu_usage"，key 如 "cpu"
+  if (sensorTags.length === 0) {
+    Object.keys(sensorTagMap).forEach(function(name) {
+      if (name.indexOf(sensorKey + '_') === 0 || name === sensorKey) {
+        sensorTags = sensorTagMap[name];
+      }
+    });
+  }
+
   if (sensorTags.length === 0) return;
 
   // 在高亮区域显示提示
