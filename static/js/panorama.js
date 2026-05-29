@@ -116,6 +116,20 @@ function loadPhaseDetail(phase, d) {
   if (!d) return;
 
   if (phase === 1) {
+    // 构建 sensor_name → tags 映射
+    var sensorTagMap = {};
+    (d.health || []).forEach(function(m) {
+      if (m.sensor_name && m.tags) sensorTagMap[m.sensor_name] = m.tags;
+    });
+    // 也收集 sensor_list 中可能的标签
+    (d.sensor_list || []).forEach(function(s) {
+      if (s.tags && s.name && !sensorTagMap[s.name]) sensorTagMap[s.name] = s.tags;
+    });
+
+    // 存储到全局变量供 onclick 使用
+    window._sensorTagMap = sensorTagMap;
+    window._tagDimensions = d.tag_dimensions || [];
+
     const healthEl = document.getElementById('pano-health');
     if (healthEl) {
       healthEl.innerHTML = (d.health || []).map(m => {
@@ -127,19 +141,21 @@ function loadPhaseDetail(phase, d) {
     }
     setText('pano-sensor-count', (d.sensor_on||0) + '/' + (d.sensor_total||0));
 
-    const catsEl = document.getElementById('pano-sensor-categories');
+    var catsEl = document.getElementById('pano-sensor-categories');
     if (catsEl) {
-      catsEl.innerHTML = (d.sensor_categories || []).map(c => {
-        const sensorsHtml = (c.sensors || []).map(s =>
-          `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#0d1117;border-radius:3px;font-size:10px;margin:2px"><span style="width:5px;height:5px;border-radius:50%;background:${s.enabled?'#3fb950':'#30363d'}"></span>${s.name}</span>`
-        ).join('');
-        return `<div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><strong style="font-size:13px;color:#c9d1d9">${c.name}</strong><span style="font-size:11px;color:#8b949e">${c.count} 个</span></div><div style="font-size:10px;color:#8b949e;margin-bottom:4px">📌 ${c.source}</div><div style="display:flex;flex-wrap:wrap;gap:2px">${sensorsHtml}</div></div>`;
+      catsEl.innerHTML = (d.sensor_categories || []).map(function(c) {
+        var sensorsHtml = (c.sensors || []).map(function(s) {
+          return '<span class="pano-sensor-chip' + (s.enabled ? '' : ' disabled') + '" data-sensor-key="' + (s.key||'') + '" onclick="highlightSensorDimensions(\'' + (s.key||'') + '\')" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#0d1117;border-radius:3px;font-size:10px;margin:2px;cursor:pointer" title="点击查看所属维度"><span style="width:5px;height:5px;border-radius:50%;background:' + (s.enabled?'#3fb950':'#30363d') + '"></span>' + (s.name||'') + '</span>';
+        }).join('');
+        return '<div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><strong style="font-size:13px;color:#c9d1d9">' + c.name + '</strong><span style="font-size:11px;color:#8b949e">' + c.count + ' 个</span></div><div style="font-size:10px;color:#8b949e;margin-bottom:4px">📌 ' + c.source + '</div><div style="display:flex;flex-wrap:wrap;gap:2px">' + sensorsHtml + '</div></div>';
       }).join('') || '<div class="pano-text">暂无数据</div>';
     }
 
-    const tagsEl = document.getElementById('pano-tag-grid');
+    var tagsEl = document.getElementById('pano-tag-grid');
     if (tagsEl) {
-      tagsEl.innerHTML = (d.tag_dimensions || []).map(t => `<div class="pano-tag-item"><span class="tag-dim">${t.label}</span><span class="tag-vals">${t.values.join('、')}</span></div>`).join('');
+      tagsEl.innerHTML = (d.tag_dimensions || []).map(function(t, idx) {
+        return '<div class="pano-tag-item" data-dim-idx="' + idx + '"><span class="tag-dim">' + t.label + '</span><span class="tag-vals">' + t.values.join('、') + '</span></div>';
+      }).join('');
     }
   }
   else if (phase === 2) {
@@ -172,6 +188,47 @@ function loadPhaseDetail(phase, d) {
       permEl.innerHTML = `检查次数: ${perm.check_count||0} | 已备份: ${perm.backup_count||0} 个文件 | 备份目录: ${perm.backup_dir||'-'}`;
     }
   }
+}
+
+// ── 传感器维度高亮 ──
+var _selectedSensor = null;
+
+function highlightSensorDimensions(sensorKey) {
+  // 切换选中状态
+  if (_selectedSensor === sensorKey) {
+    _selectedSensor = null;
+    clearDimensionHighlight();
+    return;
+  }
+  _selectedSensor = sensorKey;
+
+  // 清除旧的选中/高亮
+  document.querySelectorAll('.pano-sensor-chip.selected').forEach(function(el) { el.classList.remove('selected'); });
+  document.querySelectorAll('.pano-tag-item.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
+
+  // 标记当前选中的传感器
+  var chip = document.querySelector('.pano-sensor-chip[data-sensor-key="' + sensorKey + '"]');
+  if (chip) chip.classList.add('selected');
+
+  // 获取该传感器的标签
+  var sensorTags = (window._sensorTagMap || {})[sensorKey] || [];
+  if (sensorTags.length === 0) return;
+
+  // 在高亮区域显示提示
+  var dims = window._tagDimensions || [];
+  dims.forEach(function(dim, idx) {
+    var matched = dim.values.some(function(v) { return sensorTags.indexOf(v) !== -1; });
+    if (matched) {
+      var item = document.querySelector('.pano-tag-item[data-dim-idx="' + idx + '"]');
+      if (item) item.classList.add('highlighted');
+    }
+  });
+}
+
+function clearDimensionHighlight() {
+  _selectedSensor = null;
+  document.querySelectorAll('.pano-sensor-chip.selected').forEach(function(el) { el.classList.remove('selected'); });
+  document.querySelectorAll('.pano-tag-item.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
 }
 
 function loadTraceDetail(d) {
