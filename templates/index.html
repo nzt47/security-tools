@@ -452,6 +452,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
       <div class="sp-text-row"><span class="sp-label">交互</span><span class="sp-value" id="sp-interactions">-</span></div>
       <div class="sp-text-row"><span class="sp-label">运行</span><span class="sp-value" id="sp-uptime">-</span></div>
     </div>
+    <div class="sp-section" id="sp-alerts-section">
+      <div class="sp-section-title">安全告警</div>
+      <div class="sp-events" id="sp-alerts"><div style="text-align:center;padding:10px;color:var(--text-muted);font-size:11px">无告警</div></div>
+    </div>
     <div class="sp-section sp-events-section">
       <div class="sp-section-title">实时事件流</div>
       <div class="sp-events" id="sp-events"><div style="text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px">系统正常</div></div>
@@ -840,8 +844,18 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
-
-// 注册视图
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260529"></script>
+<script>
+// 注册视图（此时所有外部 JS 已加载完毕）
 app.registerView('chat', { keepAlive: true });
 app.registerView('panorama', { keepAlive: true });
 app.registerView('history', { load: loadHistory, keepAlive: true });
@@ -862,14 +876,5 @@ setInterval(() => {
   checkSafetyAlerts();
 }, 10000);
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260529"></script>
 </body>
 </html>
