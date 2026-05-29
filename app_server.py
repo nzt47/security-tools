@@ -30,6 +30,19 @@ _cfg = Config()
 _lingxi = DigitalLife(_cfg.merged)
 _lingxi.start()
 
+# 初始化窗口传感器
+_window_sensor = None
+try:
+    from sensor.window_sensor import WindowSensor
+    _window_sensor = WindowSensor(
+        config_path="data/window_config.json",
+        save_callback=lambda event_type, data: _lingxi._memory.save_log(event_type, data)
+    )
+    _window_sensor.start()
+    logger.info("窗口监控传感器已启动")
+except Exception as e:
+    logger.warning(f"窗口监控传感器启动失败: {e}")
+
 # ── 人格配置管理器 ──
 _PERSONALITY_FILE = os.path.join(os.path.dirname(__file__), 'data', 'personality.json')
 
@@ -719,6 +732,96 @@ def api_memory_delete_index(index):
 
 
 # ════════════════════════════════════════════════════════════
+#  窗口监控 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/memory/windows/events")
+def api_window_events():
+    """获取窗口切换事件"""
+    limit = request.args.get("limit", 50, type=int)
+    limit = min(limit, 500)
+    try:
+        events = _lingxi._memory._black_box.query(
+            event_type="window_event", limit=limit
+        )
+        return jsonify({"events": events})
+    except Exception as e:
+        return jsonify({"events": [], "error": str(e)})
+
+
+@app.route("/api/memory/windows/stats")
+def api_window_stats():
+    """获取窗口使用统计"""
+    try:
+        events = _lingxi._memory._black_box.query(
+            event_type="window_event", limit=2000
+        )
+        # 按 to_process 聚合
+        app_stats = {}
+        total_duration = 0
+        total_switches = 0
+        for ev in events:
+            data = ev.get("data", {})
+            if data.get("action") != "switch":
+                continue
+            proc = data.get("to_process") or "unknown"
+            title = data.get("to_title") or proc
+            dur = data.get("duration_sec", 0)
+            if proc not in app_stats:
+                app_stats[proc] = {"process": proc, "title": title,
+                                   "duration_sec": 0, "switch_count": 0}
+            app_stats[proc]["duration_sec"] += dur
+            app_stats[proc]["switch_count"] += 1
+            total_duration += dur
+            total_switches += 1
+
+        apps = sorted(app_stats.values(), key=lambda a: a["duration_sec"], reverse=True)
+        for a in apps:
+            a["duration_sec"] = round(a["duration_sec"], 1)
+            a["percentage"] = round(a["duration_sec"] / total_duration * 100, 1) if total_duration > 0 else 0
+
+        return jsonify({
+            "total_duration_sec": round(total_duration, 1),
+            "total_switches": total_switches,
+            "apps": apps[:20],
+        })
+    except Exception as e:
+        return jsonify({"total_duration_sec": 0, "total_switches": 0, "apps": [], "error": str(e)})
+
+
+@app.route("/api/memory/windows/current")
+def api_window_current():
+    """获取当前活跃窗口"""
+    if _window_sensor:
+        return jsonify(_window_sensor.get_current())
+    return jsonify({"process": None, "title": None, "elapsed_sec": 0, "is_idle": False})
+
+
+@app.route("/api/memory/windows/config", methods=["GET", "POST"])
+def api_window_config():
+    """获取或更新窗口监控配置"""
+    if not _window_sensor:
+        return jsonify({"enabled": False, "error": "WindowSensor 未初始化"})
+    if request.method == "POST":
+        try:
+            new_config = request.get_json()
+            _window_sensor.save_config(new_config)
+            return jsonify({"ok": True, "config": _window_sensor.get_config()})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(_window_sensor.get_config())
+
+
+@app.route("/api/memory/windows/clear", methods=["POST"])
+def api_window_clear():
+    """清空窗口事件记录"""
+    try:
+        return jsonify({"ok": True, "message": "窗口事件将在滚动日志中自然过期"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
 #  HTML 界面
 # ════════════════════════════════════════════════════════════
 
@@ -728,6 +831,15 @@ def api_memory_delete_index(index):
 def index():
     return render_template("index.html")
 
+
+# 程序退出时停止窗口传感器
+import atexit
+
+@atexit.register
+def _cleanup_window_sensor():
+    global _window_sensor
+    if _window_sensor:
+        _window_sensor.stop()
 
 if __name__ == "__main__":
     print("=" * 56)
