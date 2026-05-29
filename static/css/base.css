@@ -1,0 +1,48 @@
+/* ════════════════════════════════════════
+   灵犀 · 基础变量与全局样式
+   ════════════════════════════════════════ */
+
+:root {
+  /* 布局尺寸 */
+  --nav-w: 200px;
+  --nav-collapsed-w: 48px;
+  --panel-w: 220px;
+  --topbar-h: 44px;
+
+  /* 颜色 */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2333;
+  --bg-hover: #21262d;
+  --border-color: #30363d;
+  --text-primary: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --purple: #bc8cff;
+
+  /* 字体 */
+  --font-sans: -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+/* 通用工具类 */
+.hidden { display: none !important; }
