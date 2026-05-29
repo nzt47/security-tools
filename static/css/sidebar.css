@@ -1,10 +1,9 @@
 /* ════════════════════════════════════════
-   灵犀 · Agent 管理侧边栏
+   灵犀 · Agent 管理 — 图标栏 + 浮层面板 + 扩展侧边栏
    ════════════════════════════════════════ */
 
 :root {
   --sidebar-width: 280px;
-  --sidebar-collapsed: 52px;
   --sidebar-bg: #161b22;
   --sidebar-border: #30363d;
   --sidebar-hover: #21262d;
@@ -17,34 +16,33 @@
   --warning-color: #d29922;
 }
 
-/* 全局布局 - 覆盖原有的 #app{display:flex} */
-#app.with-sidebar {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: auto auto 1fr;
-  height: 100vh;
-  transition: grid-template-columns 0.2s ease;
-}
-
-#app.with-sidebar.collapsed {
-  grid-template-columns: var(--sidebar-collapsed) 1fr;
-}
-
-#app.with-sidebar #topbar,
-#app.with-sidebar #tabs {
-  grid-column: 1 / -1;
-}
-
-/* ── 侧边栏容器 ── */
+/* ── 完整侧边栏（展开态，替代图标栏） ── */
 #sidebar {
-  grid-row: 3;
   grid-column: 1;
+  grid-row: 3;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
-  display: flex;
+  display: none;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
+  z-index: 25;
+  width: var(--sidebar-width);
+}
+
+#sidebar.expanded {
+  display: flex;
+}
+
+#app.sidebar-expanded #icon-bar {
+  display: none;
+}
+
+#app.sidebar-expanded {
+  grid-template-columns: var(--sidebar-width) 1fr var(--status-panel-width);
+}
+
+#app.sidebar-expanded.no-right-panel {
+  grid-template-columns: var(--sidebar-width) 1fr;
 }
 
 .sidebar-header {
@@ -84,10 +82,6 @@
   overflow: hidden;
 }
 
-.collapsed .sidebar-title {
-  display: none;
-}
-
 /* ── 标签导航 ── */
 .sidebar-tabs {
   display: flex;
@@ -124,21 +118,7 @@
   color: var(--sidebar-text-active);
 }
 
-.sidebar-tab .tab-icon {
-  font-size: 16px;
-  width: 24px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.collapsed .sidebar-tab {
-  justify-content: center;
-  padding: 8px;
-}
-
-.collapsed .sidebar-tab .tab-label {
-  display: none;
-}
+.sidebar-tab .tab-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
 
 /* ── 面板内容区域 ── */
 .sidebar-panels {
@@ -158,8 +138,80 @@
   display: block;
 }
 
+/* ── 浮层面板 ── */
+.floating-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+}
+
+.floating-panel-overlay.show {
+  display: block;
+}
+
+.floating-panel {
+  position: fixed;
+  left: 56px;
+  top: 80px;
+  width: 280px;
+  max-height: calc(100vh - 100px);
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 51;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floating-panel.show {
+  display: flex;
+}
+
+.floating-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.floating-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.floating-panel-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-panel-close:hover {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.floating-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
 /* ── 面板通用组件 ── */
-.sidebar-panel h3 {
+.sidebar-panel h3, .floating-panel-body h3 {
   font-size: 13px;
   font-weight: 600;
   color: #c9d1d9;
@@ -169,7 +221,7 @@
   gap: 6px;
 }
 
-.sidebar-panel .panel-actions {
+.sidebar-panel .panel-actions, .floating-panel-body .panel-actions {
   display: flex;
   gap: 6px;
   margin-bottom: 12px;
@@ -185,9 +237,7 @@
   cursor: pointer;
 }
 
-.btn-sm:hover {
-  background: var(--sidebar-hover);
-}
+.btn-sm:hover { background: var(--sidebar-hover); }
 
 .btn-sm.primary {
   background: #238636;
@@ -195,9 +245,7 @@
   color: #fff;
 }
 
-.btn-sm.primary:hover {
-  background: #2ea043;
-}
+.btn-sm.primary:hover { background: #2ea043; }
 
 .btn-sm.danger {
   color: var(--danger-color);
@@ -225,17 +273,8 @@
   margin-bottom: 4px;
 }
 
-.sidebar-card-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #c9d1d9;
-}
-
-.sidebar-card-sub {
-  font-size: 11px;
-  color: var(--sidebar-text);
-  line-height: 1.4;
-}
+.sidebar-card-title { font-size: 12px; font-weight: 600; color: #c9d1d9; }
+.sidebar-card-sub { font-size: 11px; color: var(--sidebar-text); line-height: 1.4; }
 
 .sidebar-card-actions {
   display: flex;
@@ -253,10 +292,7 @@
   cursor: pointer;
 }
 
-.sidebar-card-actions button:hover {
-  background: var(--sidebar-hover);
-  color: #c9d1d9;
-}
+.sidebar-card-actions button:hover { background: var(--sidebar-hover); color: #c9d1d9; }
 
 /* ── 开关 ── */
 .toggle-switch {
@@ -266,11 +302,7 @@
   flex-shrink: 0;
 }
 
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
 
 .toggle-switch .slider {
   position: absolute;
@@ -293,14 +325,8 @@
   transition: 0.2s;
 }
 
-.toggle-switch input:checked + .slider {
-  background: #238636;
-}
-
-.toggle-switch input:checked + .slider::before {
-  transform: translateX(14px);
-  background: #fff;
-}
+.toggle-switch input:checked + .slider { background: #238636; }
+.toggle-switch input:checked + .slider::before { transform: translateX(14px); background: #fff; }
 
 /* ── 搜索框 ── */
 .sidebar-search {
@@ -316,18 +342,11 @@
   margin-bottom: 8px;
 }
 
-.sidebar-search:focus {
-  border-color: var(--sidebar-accent);
-}
-
-.sidebar-search::placeholder {
-  color: #484f58;
-}
+.sidebar-search:focus { border-color: var(--sidebar-accent); }
+.sidebar-search::placeholder { color: #484f58; }
 
 /* ── 滑动条 ── */
-.slider-group {
-  margin-bottom: 10px;
-}
+.slider-group { margin-bottom: 10px; }
 
 .slider-group label {
   display: flex;
@@ -381,15 +400,8 @@
   animation: toast-in 0.3s ease;
 }
 
-.sidebar-toast.success {
-  background: #3fb950;
-  color: #fff;
-}
-
-.sidebar-toast.error {
-  background: var(--danger-color);
-  color: #fff;
-}
+.sidebar-toast.success { background: #3fb950; color: #fff; }
+.sidebar-toast.error { background: var(--danger-color); color: #fff; }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(-50%) translateY(20px); }
@@ -416,49 +428,25 @@
   width: 90%;
 }
 
-.sidebar-confirm-box p {
-  font-size: 14px;
-  color: #c9d1d9;
-  margin: 0 0 16px;
-  line-height: 1.5;
-}
-
-.sidebar-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
+.sidebar-confirm-box p { font-size: 14px; color: #c9d1d9; margin: 0 0 16px; line-height: 1.5; }
+.sidebar-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ── 空状态 ── */
-.sidebar-empty {
-  text-align: center;
-  padding: 30px 10px;
-  color: #484f58;
-  font-size: 13px;
-}
+.sidebar-empty { text-align: center; padding: 30px 10px; color: #484f58; font-size: 13px; }
 
 /* ── 滚动条 ── */
-.sidebar-panel::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sidebar-panel::-webkit-scrollbar-thumb {
-  background: var(--sidebar-border);
-  border-radius: 2px;
+.sidebar-panel::-webkit-scrollbar, .floating-panel-body::-webkit-scrollbar { width: 4px; }
+.sidebar-panel::-webkit-scrollbar-track, .floating-panel-body::-webkit-scrollbar-track { background: transparent; }
+.sidebar-panel::-webkit-scrollbar-thumb, .floating-panel-body::-webkit-scrollbar-thumb { background: var(--sidebar-border); border-radius: 2px; }
+
+/* ── 拖拽调整宽度（不再需要） ── */
+.sidebar-resizer {
+  display: none;
 }
 
 /* ── 响应式 ── */
 @media (max-width: 768px) {
-  #app.with-sidebar {
-    grid-template-columns: 1fr !important;
-  }
-  #sidebar {
-    display: none;
-  }
-  #sidebar.mobile-show {
-    display: flex;
+  #sidebar.expanded {
     position: fixed;
     inset: 0;
     z-index: 100;
