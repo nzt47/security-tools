@@ -286,14 +286,6 @@
 
 .expand-btn:hover { background: #21262d; color: #c9d1d9; }
 
-/* ── 滚动条 ── */
-.pano-content::-webkit-scrollbar { width: 4px; }
-.pano-content::-webkit-scrollbar-track { background: transparent; }
-.pano-content::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
-
-.pano-events-body::-webkit-scrollbar { width: 3px; }
-.pano-events-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
-
 /* ── 空状态 ── */
 .pano-empty { text-align: center; padding: 20px; color: #484f58; font-size: 12px; }
 
