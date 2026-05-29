@@ -1,53 +1,51 @@
 /* ════════════════════════════════════════
-   灵犀 · 响应式布局
+   灵犀 · 响应式布局断点
    ════════════════════════════════════════ */
 
-/* 768-900px: 隐藏右侧状态面板 */
-@media (max-width: 900px) {
-  #app {
-    grid-template-columns: var(--icon-bar-width) 1fr;
-  }
-  #status-panel {
-    display: none;
-  }
-  #status-panel.show-mobile {
+/* 1000-1200px: 状态面板变窄 */
+@media (max-width: 1200px) {
+  :root { --panel-w: 180px; }
+}
+
+/* 768-1000px: 状态面板隐藏，可浮动显示 */
+@media (max-width: 1000px) {
+  #app { grid-template-columns: var(--nav-w) 1fr; }
+  #status-panel { display: none; }
+  #status-panel.show-floating {
     display: flex;
     position: fixed;
     right: 0;
     top: 0;
     bottom: 0;
-    width: 200px;
+    width: 220px;
     z-index: 60;
     box-shadow: -4px 0 16px rgba(0,0,0,0.3);
   }
 }
 
-/* 600-768px: 图标栏隐藏，汉堡菜单移到顶栏 */
+/* < 768px: 导航栏自动折叠 */
 @media (max-width: 768px) {
-  #app {
-    grid-template-columns: 1fr;
-  }
-  #icon-bar {
-    display: none;
-  }
-  #topbar .mobile-menu-btn {
-    display: inline-flex;
-  }
-  .floating-panel {
-    left: 8px;
-    right: 8px;
-    width: auto;
-  }
+  :root { --nav-w: var(--nav-collapsed-w); }
+  #nav { width: var(--nav-collapsed-w); }
+  #nav .nav-title,
+  #nav .nav-sub,
+  #nav .nav-section-label,
+  #nav .nav-btn .nav-label { display: none; }
+  #nav .nav-brand { justify-content: center; padding: 10px 4px; }
+  #nav .nav-btn { justify-content: center; padding: 8px 0; border-left: none; border-radius: 6px; width: 40px; margin: 0 auto; }
+  #nav .nav-btn .nav-icon { width: auto; font-size: 18px; }
+  #nav .nav-btn.active { border-left: none; outline: 2px solid var(--accent); }
+  #nav .nav-items { align-items: center; padding: 4px; }
+  #nav .nav-divider { margin: 6px 8px; }
+  #nav .nav-collapse-btn { display: none; }
+
+  #app { grid-template-columns: var(--nav-collapsed-w) 1fr; }
 }
 
 /* < 600px: 全景导航折叠为顶部横排 */
 @media (max-width: 600px) {
-  .pano-layout {
-    flex-direction: column;
-  }
   .pano-nav {
     flex-direction: row;
-    width: 100%;
     overflow-x: auto;
     padding: 6px 8px;
     gap: 4px;
@@ -58,9 +56,7 @@
     font-size: 11px;
     padding: 6px 10px;
   }
-  .pano-content {
-    padding: 8px;
-  }
+  .pano-content { padding: 8px; }
   .pano-dashboard-grid,
   .pano-dashboard-bottom {
     grid-template-columns: 1fr;
