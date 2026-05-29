@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "poll_interval_sec": 1,
+  "max_events": 500,
+  "idle_timeout_sec": 300,
+  "ignore_processes": []
+}
