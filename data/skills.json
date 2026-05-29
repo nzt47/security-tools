@@ -3,7 +3,7 @@
     {
       "id": "self_reflection",
       "name": "自省反思",
-      "enabled": false,
+      "enabled": true,
       "description": "每次交互后自动反思自身状态，不断成长",
       "params": {
         "frequency": "always",
@@ -32,7 +32,7 @@
     {
       "id": "proactive_suggestion",
       "name": "主动建议",
-      "enabled": false,
+      "enabled": true,
       "description": "在适当时机主动提出建议和想法",
       "params": {
         "threshold": 0.7
