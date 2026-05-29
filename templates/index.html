@@ -646,7 +646,6 @@ async function sendMessage() {
     });
     const data = await r.json();
     addMessage(data.response, 'lingxi', data.mode_label);
-    document.getElementById('chat-mode-badge').textContent = data.mode_label;
   } catch(e) {
     addMessage('（连接失败，请确认服务器正在运行）', 'lingxi');
   } finally {
