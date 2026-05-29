@@ -63,7 +63,7 @@ function renderMemoryContent(d) {
         return '<div class="view-card" style="padding:6px 8px">' +
           '<div style="display:flex;justify-content:space-between;align-items:center">' +
             '<span class="badge ' + (m.role==='user'?'info':'on') + '" style="font-size:8px">' + (m.role||'?') + '</span>' +
-            '<button class="btn-sm" style="font-size:9px;padding:1px 6px" onclick="delet eMemory(' + i + ')">✕</button>' +
+            '<button class="btn-sm" style="font-size:9px;padding:1px 6px" onclick="deleteMemory(' + i + ')">✕</button>' +
           '</div>' +
           '<div style="font-size:10px;color:#c9d1d9;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (m.content||'').substring(0, 80) + '</div>' +
         '</div>';
@@ -349,7 +349,7 @@ async function confirmAddMemory() {
   } catch(e) { app.showToast('添加失败', 'error'); }
 }
 
-async function delet eMemory(index) {
+async function deleteMemory(index) {
   let confirmed = await app.showConfirm('确定删除此记忆？');
   if (!confirmed) return;
   try {
