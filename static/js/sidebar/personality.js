@@ -4,11 +4,11 @@
 
 async function loadPersonality() {
   try {
-    const data = await apiGet('/api/personality');
+    const data = await app.get('/api/personality');
     renderPresets(data);
     renderSliders(data);
   } catch(e) {
-    document.getElementById('personality-sliders').innerHTML = '<div class="sidebar-empty">加载人格配置失败</div>';
+    document.getElementById('personality-sliders').innerHTML = '<div class="view-empty">加载人格配置失败</div>';
   }
 }
 
@@ -19,12 +19,12 @@ function renderPresets(data) {
   let html = '<div style="font-size:12px;color:#8b949e;margin-bottom:6px">★ 预设人格</div>';
   for (const [key, profile] of Object.entries(profiles)) {
     const active = key === current;
-    html += `<div class="sidebar-card" style="cursor:pointer;${active ? 'border-color:#58a6ff' : ''}" onclick="applyProfile('${key}')">
-      <div class="sidebar-card-header">
-        <span class="sidebar-card-title">${active ? '▸ ' : ''}${escapeHtml(profile.name)}</span>
+    html += `<div class="view-card" style="cursor:pointer;${active ? 'border-color:#58a6ff' : ''}" onclick="applyProfile('${key}')">
+      <div class="view-card-header">
+        <span class="view-card-title">${active ? '▸ ' : ''}${app.escapeHtml(profile.name)}</span>
         ${active ? '<span class="badge info">当前</span>' : ''}
       </div>
-      <div class="sidebar-card-sub">${escapeHtml(profile.description)}</div>
+      <div class="view-card-sub">${app.escapeHtml(profile.description)}</div>
     </div>`;
   }
   el.innerHTML = html;
@@ -57,15 +57,15 @@ function updateSliderLabel(slider) {
 
 async function applyProfile(profileKey) {
   try {
-    const r = await apiPost('/api/personality/profile', { profile: profileKey });
+    const r = await app.post('/api/personality/profile', { profile: profileKey });
     if (r.ok) {
-      showToast(`已切换预设`);
+      app.showToast(`已切换预设`);
       loadPersonality();
     } else {
-      showToast(r.error || '切换失败', 'error');
+      app.showToast(r.error || '切换失败', 'error');
     }
   } catch(e) {
-    showToast('切换失败', 'error');
+    app.showToast('切换失败', 'error');
   }
 }
 
@@ -76,26 +76,26 @@ async function savePersonality() {
     params[key] = parseInt(sl.value) / 100;
   });
   try {
-    const r = await apiPost('/api/personality/params', { params });
+    const r = await app.post('/api/personality/params', { params });
     if (r.ok) {
-      showToast('人格配置已保存');
+      app.showToast('人格配置已保存');
       loadPersonality();
     }
   } catch(e) {
-    showToast('保存失败', 'error');
+    app.showToast('保存失败', 'error');
   }
 }
 
 async function resetPersonality() {
-  const confirmed = await showConfirm('确定恢复默认人格配置吗？');
+  const confirmed = await app.showConfirm('确定恢复默认人格配置吗？');
   if (!confirmed) return;
   try {
-    const r = await apiPost('/api/personality/reset');
+    const r = await app.post('/api/personality/reset');
     if (r.ok) {
-      showToast('已恢复默认配置');
+      app.showToast('已恢复默认配置');
       loadPersonality();
     }
   } catch(e) {
-    showToast('重置失败', 'error');
+    app.showToast('重置失败', 'error');
   }
 }

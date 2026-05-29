@@ -5,18 +5,18 @@
 // ── 子页切换 ──
 function switchMemoryTab(tabName) {
   document.querySelectorAll('.memory-subtab').forEach(function(t) { t.classList.remove('active'); });
-  var tab = document.querySelector('.memory-subtab[data-memory-tab="' + tabName + '"]');
+  let tab = document.querySelector('.memory-subtab[data-memory-tab="' + tabName + '"]');
   if (tab) tab.classList.add('active');
 
   document.querySelectorAll('.memory-panel').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.window-panel').forEach(function(p) { p.classList.remove('active'); });
 
   if (tabName === 'memory') {
-    var panel = document.getElementById('memory-panel-content');
+    let panel = document.getElementById('memory-panel-content');
     if (panel) panel.classList.add('active');
     loadMemoryData();
   } else if (tabName === 'window') {
-    var panel = document.getElementById('window-panel-content');
+    let panel = document.getElementById('window-panel-content');
     if (panel) panel.classList.add('active');
     loadWindowActivity();
   }
@@ -29,23 +29,23 @@ async function loadMemory() {
 
 async function loadMemoryData() {
   try {
-    var r = await fetch('/api/memory/overview');
-    var d = await r.json();
+    let r = await fetch('/api/memory/overview');
+    let d = await r.json();
     renderMemoryOverview(d);
     renderMemoryContent(d);
   } catch(e) { console.error('Memory load error:', e); }
 }
 
 function renderMemoryOverview(d) {
-  var el = document.getElementById('memory-overview');
+  let el = document.getElementById('memory-overview');
   if (!el) return;
   el.innerHTML =
     '<div style="display:flex;gap:6px;margin-bottom:10px">' +
-      '<div class="sidebar-card" style="flex:1;text-align:center">' +
+      '<div class="view-card" style="flex:1;text-align:center">' +
         '<div style="font-size:18px;font-weight:700;color:#c9d1d9">' + (d.message_count||0) + '</div>' +
         '<div style="font-size:9px;color:#8b949e">短期记忆</div>' +
       '</div>' +
-      '<div class="sidebar-card" style="flex:1;text-align:center">' +
+      '<div class="view-card" style="flex:1;text-align:center">' +
         '<div style="font-size:18px;font-weight:700;color:#3fb950">v' + (d.summary_version||0) + '</div>' +
         '<div style="font-size:9px;color:#8b949e">摘要版本</div>' +
       '</div>' +
@@ -53,31 +53,31 @@ function renderMemoryOverview(d) {
 }
 
 function renderMemoryContent(d) {
-  var el = document.getElementById('memory-content');
+  let el = document.getElementById('memory-content');
   if (!el) return;
 
-  var msgs = d.recent_messages || [];
-  var msgHtml = msgs.length > 0
+  let msgs = d.recent_messages || [];
+  let msgHtml = msgs.length > 0
     ? '<div style="font-size:9px;color:#8b949e;margin-bottom:4px">📋 最近消息</div>' +
       msgs.slice(0, 10).map(function(m, i) {
-        return '<div class="sidebar-card" style="padding:6px 8px">' +
+        return '<div class="view-card" style="padding:6px 8px">' +
           '<div style="display:flex;justify-content:space-between;align-items:center">' +
             '<span class="badge ' + (m.role==='user'?'info':'on') + '" style="font-size:8px">' + (m.role||'?') + '</span>' +
-            '<button class="btn-sm" style="font-size:9px;padding:1px 6px" onclick="deleteMemory(' + i + ')">✕</button>' +
+            '<button class="btn-sm" style="font-size:9px;padding:1px 6px" onclick="delet eMemory(' + i + ')">✕</button>' +
           '</div>' +
           '<div style="font-size:10px;color:#c9d1d9;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (m.content||'').substring(0, 80) + '</div>' +
         '</div>';
       }).join('')
-    : '<div class="sidebar-empty">暂无消息</div>';
+    : '<div class="view-empty">暂无消息</div>';
 
-  var summaryText = d.summary_text || '';
-  var summaryHtml = summaryText
+  let summaryText = d.summary_text || '';
+  let summaryHtml = summaryText
     ? '<div style="font-size:9px;color:#8b949e;margin:8px 0 4px">📄 长期摘要</div>' +
-      '<div class="sidebar-card" style="font-size:10px;color:#c9d1d9;line-height:1.4;max-height:80px;overflow-y:auto">' + summaryText.substring(0, 300) + '</div>'
+      '<div class="view-card" style="font-size:10px;color:#c9d1d9;line-height:1.4;max-height:80px;overflow-y:auto">' + summaryText.substring(0, 300) + '</div>'
     : '';
 
-  var logs = d.log_stats || {};
-  var logHtml = Object.keys(logs).length > 0
+  let logs = d.log_stats || {};
+  let logHtml = Object.keys(logs).length > 0
     ? '<div style="font-size:9px;color:#8b949e;margin:8px 0 4px">📊 日志统计</div>' +
       Object.entries(logs).map(function(e) {
         return '<div style="font-size:10px;color:#8b949e;display:flex;justify-content:space-between;padding:2px 0"><span>' + e[0] + '</span><span style="color:#c9d1d9">' + e[1] + ' 次</span></div>';
@@ -88,30 +88,30 @@ function renderMemoryContent(d) {
 }
 
 // ── 窗口活动 ──
-var _windowRefreshTimer = null;
+let _windowRefreshTimer = null;
 
 async function loadWindowActivity() {
   try {
-    var r = await fetch('/api/memory/windows/current');
-    var current = await r.json();
+    let r = await fetch('/api/memory/windows/current');
+    let current = await r.json();
     renderCurrentWindow(current);
 
-    var r2 = await fetch('/api/memory/windows/events?limit=50');
-    var events = await r2.json();
+    let r2 = await fetch('/api/memory/windows/events?limit=50');
+    let events = await r2.json();
     renderWindowEvents(events.events || []);
 
-    var r3 = await fetch('/api/memory/windows/stats');
-    var stats = await r3.json();
+    let r3 = await fetch('/api/memory/windows/stats');
+    let stats = await r3.json();
     renderWindowStats(stats.apps || []);
 
-    var r4 = await fetch('/api/memory/windows/config');
-    var config = await r4.json();
+    let r4 = await fetch('/api/memory/windows/config');
+    let config = await r4.json();
     renderWindowStatus(config.enabled !== false);
   } catch(e) { console.error('Window activity load error:', e); }
 
   if (_windowRefreshTimer) clearInterval(_windowRefreshTimer);
   _windowRefreshTimer = setInterval(function() {
-    var panel = document.getElementById('window-panel-content');
+    let panel = document.getElementById('window-panel-content');
     if (panel && panel.classList.contains('active')) {
       refreshWindowData();
     } else {
@@ -123,17 +123,17 @@ async function loadWindowActivity() {
 
 async function refreshWindowData() {
   try {
-    var r = await fetch('/api/memory/windows/current');
-    var current = await r.json();
+    let r = await fetch('/api/memory/windows/current');
+    let current = await r.json();
     renderCurrentWindow(current);
-    var r2 = await fetch('/api/memory/windows/events?limit=50');
-    var events = await r2.json();
+    let r2 = await fetch('/api/memory/windows/events?limit=50');
+    let events = await r2.json();
     renderWindowEvents(events.events || []);
   } catch(e) {}
 }
 
 function renderCurrentWindow(current) {
-  var el = document.getElementById('window-current');
+  let el = document.getElementById('window-current');
   if (!el) return;
   if (current && current.process) {
     el.innerHTML =
@@ -149,15 +149,15 @@ function renderCurrentWindow(current) {
 }
 
 function renderWindowEvents(events) {
-  var el = document.getElementById('window-events');
+  let el = document.getElementById('window-events');
   if (!el) return;
   if (!events || events.length === 0) {
-    el.innerHTML = '<div class="sidebar-empty">暂无切换事件</div>';
+    el.innerHTML = '<div class="view-empty">暂无切换事件</div>';
     return;
   }
-  var colors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f85149', '#8b949e'];
-  var colorIdx = 0;
-  var procColors = {};
+  let colors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f85149', '#8b949e'];
+  let colorIdx = 0;
+  let procColors = {};
   function getColor(proc) {
     if (!proc) return colors[5];
     if (!procColors[proc]) { procColors[proc] = colors[(colorIdx++) % colors.length]; }
@@ -165,11 +165,11 @@ function renderWindowEvents(events) {
   }
 
   el.innerHTML = events.slice(0, 50).map(function(ev) {
-    var d = ev.data || {};
-    var time = (ev.timestamp || '').substring(11, 16) || '--:--';
-    var isIdle = d.action === 'idle_start' || d.action === 'idle_end';
-    var fromName = (d.from_process || '?').replace('.exe','');
-    var toName = (d.to_process || '?').replace('.exe','');
+    let d = ev.data || {};
+    let time = (ev.timestamp || '').substring(11, 16) || '--:--';
+    let isIdle = d.action === 'idle_start' || d.action === 'idle_end';
+    let fromName = (d.from_process || '?').replace('.exe','');
+    let toName = (d.to_process || '?').replace('.exe','');
     return '<div class="window-event-item' + (isIdle ? ' we-idle' : '') + '">' +
       '<span class="we-time">' + time + '</span>' +
       '<span style="color:#8b949e">' + fromName + '</span>' +
@@ -181,15 +181,15 @@ function renderWindowEvents(events) {
 }
 
 function renderWindowStats(apps) {
-  var el = document.getElementById('window-stats');
+  let el = document.getElementById('window-stats');
   if (!el) return;
   if (!apps || apps.length === 0) {
-    el.innerHTML = '<div class="sidebar-empty">暂无统计数据</div>';
+    el.innerHTML = '<div class="view-empty">暂无统计数据</div>';
     return;
   }
-  var barColors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f85149', '#8b949e'];
+  let barColors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f85149', '#8b949e'];
   el.innerHTML = apps.slice(0, 10).map(function(a, i) {
-    var pct = a.percentage || 0;
+    let pct = a.percentage || 0;
     return '<div class="window-stat-item">' +
       '<span class="ws-name" title="' + (a.process||'') + '">' + (a.title || a.process || '?') + '</span>' +
       '<span class="ws-bar-bg"><span class="ws-bar-fill" style="width:' + pct + '%;background:' + barColors[i % barColors.length] + '"></span></span>' +
@@ -199,7 +199,7 @@ function renderWindowStats(apps) {
 }
 
 function renderWindowStatus(running) {
-  var el = document.getElementById('window-status');
+  let el = document.getElementById('window-status');
   if (!el) return;
   el.innerHTML =
     '<div class="window-status-indicator">' +
@@ -221,14 +221,14 @@ async function toggleWindowMonitor(enabled) {
       body: JSON.stringify({enabled: enabled}),
     });
     renderWindowStatus(enabled);
-    showToast(enabled ? '窗口监控已开启' : '窗口监控已停止', 'success');
+    app.showToast(enabled ? '窗口监控已开启' : '窗口监控已停止', 'success');
   } catch(e) {
-    showToast('操作失败', 'error');
+    app.showToast('操作失败', 'error');
   }
 }
 
 function showWindowConfig() {
-  var html =
+  let html =
     '<p>配置窗口监控参数</p>' +
     '<div class="form-group" style="margin-bottom:10px">' +
       '<label style="display:block;font-size:11px;color:#8b949e;margin-bottom:4px">轮询间隔</label>' +
@@ -252,12 +252,12 @@ function showWindowConfig() {
       '</select>' +
     '</div>';
 
-  var overlay = document.createElement('div');
-  overlay.className = 'sidebar-confirm-overlay';
+  let overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
   overlay.innerHTML =
-    '<div class="sidebar-confirm-box">' + html +
+    '<div class="confirm-box">' + html +
       '<div class="sidebar-confirm-actions">' +
-        '<button class="btn-sm" onclick="this.closest(\'.sidebar-confirm-overlay\').remove()">取消</button>' +
+        '<button class="btn-sm" onclick="this.closest(\'.confirm-overlay\').remove()">取消</button>' +
         '<button class="btn-sm primary" id="cfg-save-btn" onclick="saveWindowConfig()">保存</button>' +
       '</div>' +
     '</div>';
@@ -265,39 +265,39 @@ function showWindowConfig() {
 }
 
 async function saveWindowConfig() {
-  var config = {
+  let config = {
     poll_interval_sec: parseFloat(document.getElementById('cfg-interval').value),
     max_events: parseInt(document.getElementById('cfg-maxevents').value),
     idle_timeout_sec: parseInt(document.getElementById('cfg-idle').value),
   };
   try {
-    var r = await fetch('/api/memory/windows/config', {
+    let r = await fetch('/api/memory/windows/config', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(config),
     });
-    var result = await r.json();
+    let result = await r.json();
     if (result.ok) {
-      document.querySelector('.sidebar-confirm-overlay').remove();
-      showToast('配置已保存', 'success');
+      document.querySelector('.confirm-overlay').remove();
+      app.showToast('配置已保存', 'success');
     } else {
-      showToast('保存失败: ' + (result.error || ''), 'error');
+      app.showToast('保存失败: ' + (result.error || ''), 'error');
     }
   } catch(e) {
-    showToast('保存失败', 'error');
+    app.showToast('保存失败', 'error');
   }
 }
 
 async function clearWindowEvents() {
-  var confirmed = await showConfirm('确定清空所有窗口事件记录？');
+  let confirmed = await app.showConfirm('确定清空所有窗口事件记录？');
   if (!confirmed) return;
   try {
     await fetch('/api/memory/windows/clear', {method: 'POST'});
     renderWindowEvents([]);
     renderWindowStats([]);
-    showToast('窗口事件已清空', 'success');
+    app.showToast('窗口事件已清空', 'success');
   } catch(e) {
-    showToast('操作失败', 'error');
+    app.showToast('操作失败', 'error');
   }
 }
 
@@ -310,10 +310,10 @@ function formatDuration(sec) {
 
 // ── 记忆管理功能 ──
 function showAddMemory() {
-  var overlay = document.createElement('div');
-  overlay.className = 'sidebar-confirm-overlay';
+  let overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
   overlay.innerHTML =
-    '<div class="sidebar-confirm-box">' +
+    '<div class="confirm-box">' +
       '<p>添加记忆条目</p>' +
       '<div class="form-group" style="margin-bottom:10px">' +
         '<label style="display:block;font-size:11px;color:#8b949e;margin-bottom:4px">内容</label>' +
@@ -326,7 +326,7 @@ function showAddMemory() {
         '</select>' +
       '</div>' +
       '<div class="sidebar-confirm-actions">' +
-        '<button class="btn-sm" onclick="this.closest(\'.sidebar-confirm-overlay\').remove()">取消</button>' +
+        '<button class="btn-sm" onclick="this.closest(\'.confirm-overlay\').remove()">取消</button>' +
         '<button class="btn-sm primary" onclick="confirmAddMemory()">添加</button>' +
       '</div>' +
     '</div>';
@@ -334,36 +334,36 @@ function showAddMemory() {
 }
 
 async function confirmAddMemory() {
-  var content = document.getElementById('new-memory-content').value.trim();
-  if (!content) { showToast('请输入内容', 'error'); return; }
-  var priority = document.getElementById('new-memory-priority').value;
+  let content = document.getElementById('new-memory-content').value.trim();
+  if (!content) { app.showToast('请输入内容', 'error'); return; }
+  let priority = document.getElementById('new-memory-priority').value;
   try {
     await fetch('/api/memory/manual', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({content: content, priority: priority}),
     });
-    document.querySelector('.sidebar-confirm-overlay').remove();
-    showToast('记忆已添加', 'success');
+    document.querySelector('.confirm-overlay').remove();
+    app.showToast('记忆已添加', 'success');
     loadMemoryData();
-  } catch(e) { showToast('添加失败', 'error'); }
+  } catch(e) { app.showToast('添加失败', 'error'); }
 }
 
-async function deleteMemory(index) {
-  var confirmed = await showConfirm('确定删除此记忆？');
+async function delet eMemory(index) {
+  let confirmed = await app.showConfirm('确定删除此记忆？');
   if (!confirmed) return;
   try {
     await fetch('/api/memory/' + index, {method: 'DELETE'});
-    showToast('记忆已删除', 'success');
+    app.showToast('记忆已删除', 'success');
     loadMemoryData();
-  } catch(e) { showToast('删除失败', 'error'); }
+  } catch(e) { app.showToast('删除失败', 'error'); }
 }
 
 async function triggerCompression() {
   try {
-    var r = await fetch('/api/memory/compress', {method: 'POST'});
-    var result = await r.json();
-    showToast(result.ok ? '压缩完成' : '压缩失败', result.ok ? 'success' : 'error');
+    let r = await fetch('/api/memory/compress', {method: 'POST'});
+    let result = await r.json();
+    app.showToast(result.ok ? '压缩完成' : '压缩失败', result.ok ? 'success' : 'error');
     loadMemoryData();
-  } catch(e) { showToast('压缩失败', 'error'); }
+  } catch(e) { app.showToast('压缩失败', 'error'); }
 }
