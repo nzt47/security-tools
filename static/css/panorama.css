@@ -350,11 +350,18 @@
   box-shadow: 0 0 0 1px #58a6ff;
 }
 
-.pano-tag-item.highlighted {
-  background: #1c2333;
-  border-color: #58a6ff80;
-  box-shadow: 0 0 8px #58a6ff20;
+/* 每个维度内的标签值 */
+.tag-val {
+  transition: all 0.2s;
 }
-.pano-tag-item.highlighted .tag-dim {
+
+/* 有匹配的维度 — 标签值高亮 */
+.tag-val.highlighted {
   color: #58a6ff;
+  font-weight: 600;
+}
+
+/* 有匹配的维度内的非匹配值 — 弱化 */
+.pano-tag-item.has-match .tag-val:not(.highlighted) {
+  color: #484f58;
 }

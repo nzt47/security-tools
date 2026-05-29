@@ -156,7 +156,10 @@ function loadPhaseDetail(phase, d) {
     var tagsEl = document.getElementById('pano-tag-grid');
     if (tagsEl) {
       tagsEl.innerHTML = (d.tag_dimensions || []).map(function(t, idx) {
-        return '<div class="pano-tag-item" data-dim-idx="' + idx + '"><span class="tag-dim">' + t.label + '</span><span class="tag-vals">' + t.values.join('、') + '</span></div>';
+        var valsHtml = t.values.map(function(v) {
+          return '<span class="tag-val" data-dim-idx="' + idx + '" data-tag-val="' + v + '">' + v + '</span>';
+        }).join('');
+        return '<div class="pano-tag-item" data-dim-idx="' + idx + '"><span class="tag-dim">' + t.label + '</span><span class="tag-vals">' + valsHtml + '</span></div>';
       }).join('');
     }
   }
@@ -206,17 +209,18 @@ function highlightSensorDimensions(sensorKey) {
 
   // 清除旧的选中/高亮
   document.querySelectorAll('.pano-sensor-chip.selected').forEach(function(el) { el.classList.remove('selected'); });
-  document.querySelectorAll('.pano-tag-item.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
+  document.querySelectorAll('.tag-val.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
+  document.querySelectorAll('.pano-tag-item.has-match').forEach(function(el) { el.classList.remove('has-match'); });
 
   // 标记当前选中的传感器
   var chip = document.querySelector('.pano-sensor-chip[data-sensor-key="' + sensorKey + '"]');
   if (chip) chip.classList.add('selected');
 
-  // 获取该传感器的标签（支持精确匹配和前缀匹配）
+  // 获取该传感器的标签
   var sensorTagMap = window._sensorTagMap || {};
   var sensorTags = sensorTagMap[sensorKey] || [];
 
-  // 前缀匹配：health 中的 sensor_name 如 "cpu_usage"，key 如 "cpu"
+  // 前缀匹配（health sensor_name 可能不同）
   if (sensorTags.length === 0) {
     Object.keys(sensorTagMap).forEach(function(name) {
       if (name.indexOf(sensorKey + '_') === 0 || name === sensorKey) {
@@ -227,21 +231,23 @@ function highlightSensorDimensions(sensorKey) {
 
   if (sensorTags.length === 0) return;
 
-  // 在高亮区域显示提示
-  var dims = window._tagDimensions || [];
-  dims.forEach(function(dim, idx) {
-    var matched = dim.values.some(function(v) { return sensorTags.indexOf(v) !== -1; });
-    if (matched) {
-      var item = document.querySelector('.pano-tag-item[data-dim-idx="' + idx + '"]');
-      if (item) item.classList.add('highlighted');
-    }
+  // 高亮每个维度中匹配的具体值
+  sensorTags.forEach(function(tagVal) {
+    var matches = document.querySelectorAll('.tag-val[data-tag-val="' + tagVal + '"]');
+    matches.forEach(function(el) {
+      el.classList.add('highlighted');
+      // 同时标记父级维度
+      var dimItem = el.closest('.pano-tag-item');
+      if (dimItem) dimItem.classList.add('has-match');
+    });
   });
 }
 
 function clearDimensionHighlight() {
   _selectedSensor = null;
   document.querySelectorAll('.pano-sensor-chip.selected').forEach(function(el) { el.classList.remove('selected'); });
-  document.querySelectorAll('.pano-tag-item.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
+  document.querySelectorAll('.tag-val.highlighted').forEach(function(el) { el.classList.remove('highlighted'); });
+  document.querySelectorAll('.pano-tag-item.has-match').forEach(function(el) { el.classList.remove('has-match'); });
 }
 
 function loadTraceDetail(d) {
