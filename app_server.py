@@ -435,16 +435,29 @@ def _get_sensor_categories():
             "sensors": [],
         }
 
+    # 导入标签计算函数
+    try:
+        from sensor.tags import get_tags
+    except Exception:
+        get_tags = None
+
     for s in sensor_info:
         cat = s.get("category", "")
         group = cat_reverse.get(cat, "📡 其他")
         if group not in grouped:
             continue
         grouped[group]["count"] += 1
+        sensor_tags = []
+        if get_tags:
+            try:
+                sensor_tags = get_tags(cat, s.get("name", ""))
+            except Exception:
+                pass
         grouped[group]["sensors"].append({
             "name": s.get("label", s.get("name", "")),
             "key": s.get("name", ""),
             "enabled": s.get("enabled", True),
+            "tags": sensor_tags,
         })
 
     return list(grouped.values())

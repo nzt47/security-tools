@@ -116,14 +116,16 @@ function loadPhaseDetail(phase, d) {
   if (!d) return;
 
   if (phase === 1) {
-    // 构建 sensor_name → tags 映射
+    // 构建 sensor_name → tags 映射（优先从 sensor_categories，其次从 health 读数）
     var sensorTagMap = {};
-    (d.health || []).forEach(function(m) {
-      if (m.sensor_name && m.tags) sensorTagMap[m.sensor_name] = m.tags;
+    (d.sensor_categories || []).forEach(function(c) {
+      (c.sensors || []).forEach(function(s) {
+        if (s.key && s.tags && s.tags.length > 0) sensorTagMap[s.key] = s.tags;
+      });
     });
-    // 也收集 sensor_list 中可能的标签
-    (d.sensor_list || []).forEach(function(s) {
-      if (s.tags && s.name && !sensorTagMap[s.name]) sensorTagMap[s.name] = s.tags;
+    // health 数据中的标签作为补充
+    (d.health || []).forEach(function(m) {
+      if (m.sensor_name && m.tags && !sensorTagMap[m.sensor_name]) sensorTagMap[m.sensor_name] = m.tags;
     });
 
     // 存储到全局变量供 onclick 使用
