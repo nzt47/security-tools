@@ -616,75 +616,9 @@ async function saveConfig() {
     btn.textContent = '保存并连接';
   }
 }
-refreshLeft();
-loadChatStatus();
+updateTabMetrics();
+updateStatusPanel();
 document.getElementById('chat-input').focus();
-
-// ════════════════════════════════════════════════════════════
-//  左侧面板
-// ════════════════════════════════════════════════════════════
-async function refreshLeft() {
-  await Promise.allSettled([
-    loadChatHealth(),
-    loadChatStatus(),
-  ]);
-}
-
-async function loadChatHealth() {
-  try {
-    const r = await fetch('/api/health');
-    const data = await r.json();
-    const el = document.getElementById('quick-metrics');
-    if (!data || data.length === 0) {
-      el.innerHTML = '<div style="font-size:12px;color:#8b949e">暂无数据</div>';
-      return;
-    }
-    el.innerHTML = data.map(m => {
-      let cls = 'normal';
-      if (m.severity === 'warning') cls = 'warning';
-      else if (m.severity === 'critical') cls = 'critical';
-      return `<div class="metric ${cls}">
-        <div class="value">${m.value}${m.unit||''}</div>
-        <div class="label">${m.description||m.sensor_name}</div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('quick-metrics').innerHTML =
-      '<div style="font-size:12px;color:#8b949e">加载失败</div>';
-  }
-}
-
-async function loadChatStatus() {
-  try {
-    const [modeR, cogR, sensR] = await Promise.allSettled([
-      fetch('/api/mode'),
-      fetch('/api/cognitive/status'),
-      fetch('/api/sensors'),
-    ]);
-
-    // 模式
-    if (modeR.status === 'fulfilled') {
-      const m = await modeR.value.json();
-      const badge = document.getElementById('chat-mode-badge');
-      badge.textContent = m.label;
-      badge.className = 'status-badge ' + m.mode;
-    }
-
-    // 认知
-    if (cogR.status === 'fulfilled') {
-      const data = await cogR.value.json();
-      document.getElementById('chat-cognitive-text').textContent =
-        data.summary || data.full || '';
-    }
-
-    // 传感器
-    if (sensR.status === 'fulfilled') {
-      const data = await sensR.value.json();
-      const on = data.filter(s => s.enabled).length;
-      document.getElementById('chat-sensor-count').textContent = `${on}/${data.length}`;
-    }
-  } catch(e) {}
-}
 
 // ════════════════════════════════════════════════════════════
 //  聊天
@@ -750,199 +684,15 @@ function switchTab(name) {
   document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
   document.getElementById(name + '-view').classList.add('active');
-  if (name === 'panorama') loadPanorama();
-}
 
-// ════════════════════════════════════════════════════════════
-//  全景 - 展开/折叠
-// ════════════════════════════════════════════════════════════
-let _activePhase = 0;
-
-function togglePhase(phase) {
-  if (phase === 0 || phase === _activePhase) {
-    // 收起全部
-    document.querySelectorAll('.pano-detail-content').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.phase-1 .pano-card-header span:last-child, .phase-2 .pano-card-header span:last-child, .phase-3 .pano-card-header span:last-child, .phase-4 .pano-card-header span:last-child').forEach(el => {
-      if (el.textContent.includes('展开') || el.textContent.includes('收起')) el.textContent = '点击展开 ▼';
-    });
-    document.getElementById('pano-phase-detail').style.display = 'none';
-    _activePhase = 0;
-    return;
-  }
-
-  // 收起之前的
-  if (_activePhase > 0) {
-    const prevDetail = document.getElementById(`phase-${_activePhase}-detail`);
-    if (prevDetail) prevDetail.style.display = 'none';
-  }
-
-  _activePhase = phase;
-  const detail = document.getElementById(`phase-${phase}-detail`);
-  if (!detail) return;
-  detail.style.display = 'block';
-
-  // 加载详细数据
-  loadPhaseDetail(phase);
-}
-
-async function loadPhaseDetail(phase) {
-  try {
-    const r = await fetch('/api/panorama');
-    const d = await r.json();
-
-    if (phase === 1) {
-      // 五大分类（含数据来源 + 传感器清单）
-      const cats = d.sensor_categories || [];
-      document.getElementById('pano-sensor-categories').innerHTML =
-        cats.map(c => {
-          const sensorsHtml = (c.sensors || []).map(s =>
-            `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#0d1117;border-radius:3px;font-size:10px;margin:2px">
-              <span style="width:5px;height:5px;border-radius:50%;background:${s.enabled?'#3fb950':'#30363d'};flex-shrink:0"></span>
-              ${s.name}
-            </span>`
-          ).join('');
-          return `<div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:6px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <strong style="font-size:13px;color:#c9d1d9">${c.name}</strong>
-              <span style="font-size:11px;color:#8b949e">${c.count} 个</span>
-            </div>
-            <div style="font-size:10px;color:#8b949e;margin-bottom:4px">📌 ${c.source}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:2px">${sensorsHtml}</div>
-          </div>`;
-        }).join('') || '<div class="pano-text">暂无数据</div>';
-
-      // 八大维度
-      const tags = d.tag_dimensions || [];
-      document.getElementById('pano-tag-grid').innerHTML =
-        tags.map(t => `<div class="pano-tag-item"><span class="tag-dim">${t.label}</span><span class="tag-vals">${t.values.join('、')}</span></div>`).join('');
-    }
-    else if (phase === 2) {
-      // 翻译规则
-      document.getElementById('pano-translate-rules').innerHTML =
-        (d.translate_rules || []).map(r => `<div style="margin-bottom:4px"><strong>${r.name}</strong>: ${r.message}</div>`).join('') ||
-        '暂无翻译规则';
-
-      // 提示词模板
-      document.getElementById('pano-prompt-preview').textContent = d.prompt_template || '暂无模板';
-    }
-    else if (phase === 3) {
-      // 摘要文本
-      document.getElementById('pano-summary-text').textContent = d.summary_text || '（无摘要）';
-      // 日志统计
-      const logs = d.log_stats || {};
-      const logHtml = Object.entries(logs).map(([k,v]) => `${k}: ${v} 次`).join(' | ');
-      document.getElementById('pano-log-stats').innerHTML = logHtml || '暂无日志';
-
-      // 压缩信息
-      document.getElementById('pano-compress-info').innerHTML =
-        `压缩触发阈值: ${d.compress_threshold || '-'} | Token 限制: ${d.token_limit || '-'}`;
-    }
-    else if (phase === 4) {
-      // 六种行为模式
-      const modes = d.behavior_modes || [];
-      document.getElementById('pano-mode-list').innerHTML =
-        modes.map(m => `<div class="pano-mode-item"><span class="mm-name" style="color:${m.color}">${m.label}</span><span class="mm-desc">${m.desc}</span></div>`).join('');
-
-      // 工具列表
-      document.getElementById('pano-tool-list').innerHTML =
-        (d.tool_list || []).map(t => `<div style="font-size:11px;color:#8b949e">🔧 ${t.name}: ${t.desc}</div>`).join('') || '无工具';
-
-      // 权限
-      const perm = d.permission_info || {};
-      document.getElementById('pano-perm-info').innerHTML =
-        `检查次数: ${perm.check_count||0} | 已备份: ${perm.backup_count||0} 个文件 | 备份目录: ${perm.backup_dir||'-'}`;
-    }
-  } catch(e) {
-    console.error('Phase detail load error:', e);
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-//  全景数据
-// ════════════════════════════════════════════════════════════
-async function loadPanorama() {
-  try {
-    const r = await fetch('/api/panorama');
-    const d = await r.json();
-
-    // 阶段一：健康
-    const healthEl = document.getElementById('pano-health');
-    healthEl.innerHTML = (d.health || []).map(m => {
-      let cls = 'pm-norm';
-      if (m.severity === 'warning') cls = 'pm-warn';
-      else if (m.severity === 'critical') cls = 'pm-crit';
-      return `<div class="pano-metric ${cls}">
-        <div class="pm-val">${m.value}${m.unit||''}</div>
-        <div class="pm-label">${m.description||m.sensor_name}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('pano-sensor-count').textContent =
-      `${d.sensor_on||0}/${d.sensor_total||0}`;
-    document.getElementById('pipe-status-1').textContent = '●';
-
-    // 阶段二：认知
-    document.getElementById('pano-cognitive').textContent =
-      d.cognitive_summary || '无感知数据';
-    const rejectEl = document.getElementById('pano-reject-status');
-    if (d.can_accept) {
-      rejectEl.innerHTML = '<span style="font-size:11px;color:#3fb950">✓ 可执行任务</span>';
-    }
-    document.getElementById('pipe-status-2').textContent = '●';
-
-    // 阶段三：记忆
-    document.getElementById('pano-summary-ver').textContent =
-      d.summary_version || '无';
-    document.getElementById('pano-msg-count').textContent =
-      d.message_count != null ? d.message_count + ' 条' : '-';
-    document.getElementById('pano-log-count').textContent =
-      d.log_count != null ? d.log_count + ' 条' : '-';
-    document.getElementById('pipe-status-3').textContent = '●';
-
-    // 阶段四：行动
-    document.getElementById('pano-mode').textContent = d.mode_label || '-';
-    document.getElementById('pano-tools').textContent = d.tool_count + ' 个';
-    document.getElementById('pano-reflections').textContent =
-      d.reflection_count + ' 条';
-    const llmEl = document.getElementById('pano-llm');
-    if (d.llm_configured) {
-      llmEl.innerHTML = '<span style="color:#3fb950">已连接</span>';
-    } else {
-      llmEl.innerHTML = '<span style="color:#8b949e">未配置</span>';
-    }
-    document.getElementById('pipe-status-4').textContent = '●';
-
-    // 系统总览
-    document.getElementById('pano-session').textContent = d.session_id || '-';
-    document.getElementById('pano-interactions').textContent =
-      d.interaction_count + ' 次';
-    if (d.started_at) {
-      const secs = Math.floor((Date.now() - new Date(d.started_at)) / 1000);
-      const m = Math.floor(secs / 60);
-      const s = secs % 60;
-      document.getElementById('pano-uptime').textContent = m + ' 分 ' + s + ' 秒';
-    }
-    const badge = document.getElementById('pano-mode-badge-2');
-    badge.textContent = d.mode_label || '正常';
-    badge.className = 'status-badge ' + (d.mode || 'normal');
-
-    // 交互追踪
-    const traceBody = document.getElementById('pano-trace-body');
-    if (d.last_trace && d.last_trace.length) {
-      traceBody.innerHTML = d.last_trace.map(t =>
-        `<div class="trace-step">
-          <span class="ts-phase ts-p${t.phase}">${t.phase_label}</span>
-          <span class="ts-icon">${t.icon}</span>
-          <span class="ts-text">${t.text}</span>
-        </div>`
-      ).join('');
-    } else {
-      traceBody.innerHTML = '<div class="pano-text sub">暂无交互记录</div>';
-    }
-
-    // 如果当前有展开的阶段，刷新详情
-    if (_activePhase > 0) loadPhaseDetail(_activePhase);
-  } catch(e) {
-    console.error('Panorama load error:', e);
+  const app = document.getElementById('app');
+  if (name === 'panorama') {
+    app.classList.add('no-right-panel');
+    document.getElementById('status-panel').classList.add('hidden');
+    loadPanorama();
+  } else {
+    app.classList.remove('no-right-panel');
+    document.getElementById('status-panel').classList.remove('hidden');
   }
 }
 
@@ -954,8 +704,8 @@ document.getElementById('chat-input').addEventListener('input', function() {
 
 // 定时刷新
 setInterval(function() {
-  refreshLeft();
-  loadChatStatus();
+  updateTabMetrics();
+  updateStatusPanel();
   if (document.getElementById('panorama-view').classList.contains('active')) {
     loadPanorama();
   }
