@@ -1,0 +1,68 @@
+/* ════════════════════════════════════════
+   灵犀 · 响应式布局
+   ════════════════════════════════════════ */
+
+/* 768-900px: 隐藏右侧状态面板 */
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: var(--icon-bar-width) 1fr;
+  }
+  #status-panel {
+    display: none;
+  }
+  #status-panel.show-mobile {
+    display: flex;
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 200px;
+    z-index: 60;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.3);
+  }
+}
+
+/* 600-768px: 图标栏隐藏，汉堡菜单移到顶栏 */
+@media (max-width: 768px) {
+  #app {
+    grid-template-columns: 1fr;
+  }
+  #icon-bar {
+    display: none;
+  }
+  #topbar .mobile-menu-btn {
+    display: inline-flex;
+  }
+  .floating-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}
+
+/* < 600px: 全景导航折叠为顶部横排 */
+@media (max-width: 600px) {
+  .pano-layout {
+    flex-direction: column;
+  }
+  .pano-nav {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .pano-nav .pano-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  .pano-content {
+    padding: 8px;
+  }
+  .pano-dashboard-grid,
+  .pano-dashboard-bottom {
+    grid-template-columns: 1fr;
+  }
+}
