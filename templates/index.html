@@ -90,209 +90,163 @@
 
     <!-- 全景视图 -->
     <div id="view-panorama" class="view">
-      <div class="pano-nav">
-        <div class="pano-nav-item active" data-pano-section="dashboard" onclick="switchPanoSection('dashboard')">
-          <span class="nav-dot" style="background:#58a6ff"></span> 仪表盘总览
-        </div>
-        <div class="pano-nav-item" data-pano-section="phase1" onclick="switchPanoSection('phase1')">
-          <span class="nav-dot" style="background:#58a6ff"></span> 感知层
-        </div>
-        <div class="pano-nav-item" data-pano-section="phase2" onclick="switchPanoSection('phase2')">
-          <span class="nav-dot" style="background:#bc8cff"></span> 认知层
-        </div>
-        <div class="pano-nav-item" data-pano-section="phase3" onclick="switchPanoSection('phase3')">
-          <span class="nav-dot" style="background:#3fb950"></span> 记忆层
-        </div>
-        <div class="pano-nav-item" data-pano-section="phase4" onclick="switchPanoSection('phase4')">
-          <span class="nav-dot" style="background:#d29922"></span> 行动层
-        </div>
-        <div class="pano-nav-indicator"></div>
-        <div class="pano-nav-item" data-pano-section="trace" onclick="switchPanoSection('trace')">
-          <span class="nav-dot" style="background:#8b949e"></span> 交互追踪
-        </div>
-        <div class="pano-nav-item" data-pano-section="system" onclick="switchPanoSection('system')">
-          <span class="nav-dot" style="background:#8b949e"></span> 系统总览
-        </div>
-      </div>
-      <div class="pano-content" id="pano-content">
-        <!-- 仪表盘总览（默认） -->
-        <div id="pano-section-dashboard">
-          <div class="pano-pipeline">
-            <div class="pipe-node phase-1" onclick="switchPanoSection('phase1')">
-              <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div><div class="pn-status">●</div>
-            </div>
-            <div class="pipe-arrow">→</div>
-            <div class="pipe-node phase-2" onclick="switchPanoSection('phase2')">
-              <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div><div class="pn-status">●</div>
-            </div>
-            <div class="pipe-arrow">→</div>
-            <div class="pipe-node phase-3" onclick="switchPanoSection('phase3')">
-              <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div><div class="pn-status">●</div>
-            </div>
-            <div class="pipe-arrow">→</div>
-            <div class="pipe-node phase-4" onclick="switchPanoSection('phase4')">
-              <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div><div class="pn-status">●</div>
-            </div>
-            <div class="pipe-arrow">→</div>
-            <div class="pipe-node pipe-output">
-              <div class="pn-icon">💬</div><div class="pn-label">响应</div><div class="pn-sub">输出</div>
-            </div>
+      <div class="pano-content" id="pano-content" style="overflow-y:auto;flex:1;padding:12px 16px">
+        <!-- 流水线 -->
+        <div class="pano-pipeline" style="margin-bottom:12px">
+          <div class="pipe-node phase-1">
+            <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div>
           </div>
-          <div class="pano-dashboard-grid">
-            <div class="pano-card phase-1">
-              <div class="pano-card-header" onclick="switchPanoSection('phase1')">
-                <span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span><span class="expand-btn">详情 ▸</span>
-              </div>
-              <div class="pano-card-body">
-                <div class="card-metrics">
-                  <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
-                </div>
-              </div>
-            </div>
-            <div class="pano-card phase-2">
-              <div class="pano-card-header" onclick="switchPanoSection('phase2')">
-                <span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span><span class="expand-btn">详情 ▸</span>
-              </div>
-              <div class="pano-card-body">
-                <div class="card-metrics">
-                  <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
-                </div>
-              </div>
-            </div>
-            <div class="pano-card phase-3">
-              <div class="pano-card-header" onclick="switchPanoSection('phase3')">
-                <span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span><span class="expand-btn">详情 ▸</span>
-              </div>
-              <div class="pano-card-body">
-                <div class="card-metrics">
-                  <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
-                </div>
-              </div>
-            </div>
-            <div class="pano-card phase-4">
-              <div class="pano-card-header" onclick="switchPanoSection('phase4')">
-                <span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span><span class="expand-btn">详情 ▸</span>
-              </div>
-              <div class="pano-card-body">
-                <div class="card-metrics">
-                  <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
-                  <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
-                </div>
-              </div>
-            </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node phase-2">
+            <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div>
           </div>
-          <div class="pano-dashboard-bottom">
-            <div class="pano-events">
-              <div class="pano-events-header">📋 实时事件流</div>
-              <div class="pano-events-body" id="pano-events-body">
-                <div class="pano-empty">暂无事件</div>
-              </div>
-            </div>
-            <div class="pano-sysbar" id="pano-sysbar">
-              <div class="sys-item">会话: <span id="pano-session">-</span></div>
-              <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
-              <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
-              <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
-              <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
-            </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node phase-3">
+            <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node phase-4">
+            <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node pipe-output">
+            <div class="pn-icon">💬</div><div class="pn-label">响应</div>
           </div>
         </div>
 
-        <!-- 各层详情视图 -->
-        <div id="pano-section-phase1" class="pano-detail-view">
+        <!-- 四层指标卡片 -->
+        <div class="pano-dashboard-grid" style="margin-bottom:12px">
           <div class="pano-card phase-1">
-            <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
+            <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span></div>
             <div class="pano-card-body">
-              <div class="pano-metrics" id="pano-health"></div>
-              <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
-              <div class="pano-divider"></div>
-              <div class="detail-section-title">📂 传感器四大分类</div>
-              <div class="pano-cat-grid" id="pano-sensor-categories"></div>
-              <div class="detail-section-title">🏷 八维标签体系</div>
-              <div class="pano-tag-grid" id="pano-tag-grid"></div>
-              <div class="detail-section-title">📡 全部传感器清单</div>
-              <div class="pano-sensor-list" id="pano-sensor-list"></div>
+              <div class="card-metrics">
+                <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div id="pano-section-phase2" class="pano-detail-view">
           <div class="pano-card phase-2">
-            <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
+            <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span></div>
             <div class="pano-card-body">
-              <div id="pano-cognitive" class="pano-text">加载中...</div>
-              <div id="pano-reject-status-detail" style="margin-top:6px"></div>
-              <div class="pano-divider"></div>
-              <div class="detail-section-title">📜 翻译规则配置</div>
-              <div id="pano-translate-rules" class="pano-text"></div>
-              <div class="detail-section-title">📝 提示词模板</div>
-              <pre id="pano-prompt-preview" class="pano-pre"></pre>
+              <div class="card-metrics">
+                <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div id="pano-section-phase3" class="pano-detail-view">
           <div class="pano-card phase-3">
-            <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
+            <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span></div>
             <div class="pano-card-body">
-              <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
-              <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
-              <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
-              <div class="pano-divider"></div>
-              <div class="detail-section-title">📄 当前摘要</div>
-              <pre id="pano-summary-text" class="pano-pre"></pre>
-              <div class="detail-section-title">📊 日志统计</div>
-              <div id="pano-log-stats" class="pano-text"></div>
-              <div class="detail-section-title">⚙ 压缩策略</div>
-              <div id="pano-compress-info-detail" class="pano-text"></div>
+              <div class="card-metrics">
+                <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div id="pano-section-phase4" class="pano-detail-view">
           <div class="pano-card phase-4">
-            <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
+            <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span></div>
             <div class="pano-card-body">
-              <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
-              <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
-              <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
-              <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
-              <div class="pano-divider"></div>
-              <div class="detail-section-title">🔄 六种行为模式</div>
-              <div id="pano-mode-list" class="pano-mode-grid"></div>
-              <div class="detail-section-title">🔧 注册工具</div>
-              <div id="pano-tool-list" class="pano-text"></div>
-              <div class="detail-section-title">🛡 权限检查记录</div>
-              <div id="pano-perm-info" class="pano-text"></div>
+              <div class="card-metrics">
+                <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="pano-section-trace" class="pano-detail-view">
-          <div class="pano-card pano-full-width">
-            <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">上次交互 · 数据流追踪</span></div>
-            <div class="pano-card-body" id="pano-trace-body">
-              <div class="pano-text sub">暂无交互记录</div>
-            </div>
+        <!-- 感知层详情 -->
+        <div class="pano-card phase-1" style="margin-bottom:10px">
+          <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
+          <div class="pano-card-body">
+            <div class="pano-metrics" id="pano-health"></div>
+            <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
+            <div class="pano-divider"></div>
+            <div class="detail-section-title">📂 传感器四大分类</div>
+            <div class="pano-cat-grid" id="pano-sensor-categories"></div>
+            <div class="detail-section-title">🏷 八维标签体系</div>
+            <div class="pano-tag-grid" id="pano-tag-grid"></div>
+            <div class="detail-section-title">📡 全部传感器清单</div>
+            <div class="pano-sensor-list" id="pano-sensor-list"></div>
           </div>
         </div>
 
-        <div id="pano-section-system" class="pano-detail-view">
-          <div class="pano-sysbar" id="pano-sysbar-detail">
-            <div class="sys-item">会话: <span id="pano-session-detail">-</span></div>
-            <div class="sys-item">交互: <span id="pano-interactions-detail">-</span></div>
-            <div class="sys-item">运行: <span id="pano-uptime-detail">-</span></div>
-            <div class="sys-item">传感器: <span id="pano-sensor-total-detail">-</span></div>
-            <div class="sys-item">模式: <span id="pano-mode-badge-detail" class="status-badge normal">正常</span></div>
+        <!-- 认知层详情 -->
+        <div class="pano-card phase-2" style="margin-bottom:10px">
+          <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
+          <div class="pano-card-body">
+            <div id="pano-cognitive" class="pano-text">加载中...</div>
+            <div id="pano-reject-status-detail" style="margin-top:6px"></div>
+            <div class="pano-divider"></div>
+            <div class="detail-section-title">📜 翻译规则配置</div>
+            <div id="pano-translate-rules" class="pano-text"></div>
+            <div class="detail-section-title">📝 提示词模板</div>
+            <pre id="pano-prompt-preview" class="pano-pre"></pre>
+          </div>
+        </div>
+
+        <!-- 记忆层详情 -->
+        <div class="pano-card phase-3" style="margin-bottom:10px">
+          <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
+          <div class="pano-card-body">
+            <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
+            <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
+            <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
+            <div class="pano-divider"></div>
+            <div class="detail-section-title">📄 当前摘要</div>
+            <pre id="pano-summary-text" class="pano-pre"></pre>
+            <div class="detail-section-title">📊 日志统计</div>
+            <div id="pano-log-stats" class="pano-text"></div>
+            <div class="detail-section-title">⚙ 压缩策略</div>
+            <div id="pano-compress-info-detail" class="pano-text"></div>
+          </div>
+        </div>
+
+        <!-- 行动层详情 -->
+        <div class="pano-card phase-4" style="margin-bottom:10px">
+          <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
+          <div class="pano-card-body">
+            <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
+            <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
+            <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
+            <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
+            <div class="pano-divider"></div>
+            <div class="detail-section-title">🔄 六种行为模式</div>
+            <div id="pano-mode-list" class="pano-mode-grid"></div>
+            <div class="detail-section-title">🔧 注册工具</div>
+            <div id="pano-tool-list" class="pano-text"></div>
+            <div class="detail-section-title">🛡 权限检查记录</div>
+            <div id="pano-perm-info" class="pano-text"></div>
+          </div>
+        </div>
+
+        <!-- 底部：事件流 + 系统总览 -->
+        <div class="pano-dashboard-bottom">
+          <div class="pano-events">
+            <div class="pano-events-header">📋 实时事件流</div>
+            <div class="pano-events-body" id="pano-events-body">
+              <div class="pano-empty">暂无事件</div>
+            </div>
+          </div>
+          <div class="pano-sysbar" id="pano-sysbar">
+            <div class="sys-item">会话: <span id="pano-session">-</span></div>
+            <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
+            <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
+            <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
+            <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
+          </div>
+        </div>
+
+        <!-- 交互追踪 -->
+        <div class="pano-card phase-1" style="margin-top:10px">
+          <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">交互追踪</span></div>
+          <div class="pano-card-body" id="pano-trace-body">
+            <div class="pano-text sub">暂无交互记录</div>
           </div>
         </div>
       </div>

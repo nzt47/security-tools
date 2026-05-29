@@ -44,47 +44,6 @@
   min-height: 0;
 }
 
-/* ── 左侧导航 ── */
-.pano-nav {
-  width: 160px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pano-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #8b949e;
-  font-size: 13px;
-  transition: all 0.15s;
-  border: none;
-  background: transparent;
-  text-align: left;
-}
-
-.pano-nav-item:hover {
-  background: #21262d;
-  color: #c9d1d9;
-}
-
-.pano-nav-item.active {
-  background: #1c2333;
-  color: #58a6ff;
-}
-
-.pano-nav-item .nav-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 /* ── 右侧主内容 ── */
 .pano-content {
   flex: 1;

@@ -2,33 +2,6 @@
 // 灵犀 · 系统全景仪表盘
 // ════════════════════════════════════════════════════════════
 
-// ── 左侧导航切换 ──
-function switchPanoSection(section) {
-  document.querySelectorAll('.pano-nav-item').forEach(el => el.classList.remove('active'));
-  const navItem = document.querySelector(`.pano-nav-item[data-pano-section="${section}"]`);
-  if (navItem) navItem.classList.add('active');
-
-  // 隐藏仪表盘
-  const dashboard = document.getElementById('pano-section-dashboard');
-  if (dashboard) dashboard.style.display = 'none';
-
-  // 隐藏所有详情视图
-  document.querySelectorAll('.pano-detail-view').forEach(el => el.style.display = 'none');
-
-  // 显示目标面板
-  if (section === 'dashboard') {
-    if (dashboard) dashboard.style.display = 'block';
-  } else {
-    const target = document.getElementById('pano-section-' + section);
-    if (target) {
-      target.style.display = 'block';
-      target.classList.add('active');
-    }
-  }
-
-  loadPanorama();
-}
-
 // ── 加载全景数据 ──
 async function loadPanorama() {
   try {
@@ -38,7 +11,7 @@ async function loadPanorama() {
     const healthMap = {};
     (d.health || []).forEach(m => { healthMap[m.sensor_name || ''] = m; });
 
-    // ── 仪表盘总览：4 阶段卡片指标 ──
+    // ── 4 阶段卡片指标 ──
     setText('pano-cpu-val', healthMap['cpu_usage'] ? healthMap['cpu_usage'].value + '%' : '-');
     setText('pano-mem-val', healthMap['memory_usage'] ? healthMap['memory_usage'].value + '%' : '-');
     setText('pano-sensor-val', '📡 ' + (d.sensor_on||0) + '/' + (d.sensor_total||0));
@@ -89,19 +62,15 @@ async function loadPanorama() {
     // ── 事件流 ──
     loadEvents(d);
 
-    // ── 加载单层详情（如果当前在某详情视图） ──
-    const activeDetail = document.querySelector('.pano-detail-view.active');
-    if (activeDetail) {
-      const sectionId = activeDetail.id;
-      if (sectionId.includes('phase')) {
-        const phase = parseInt(sectionId.replace('pano-section-phase', ''));
-        if (phase >= 1 && phase <= 4) loadPhaseDetail(phase, d);
-      } else if (sectionId === 'pano-section-trace') {
-        loadTraceDetail(d);
-      } else if (sectionId === 'pano-section-system') {
-        loadSystemDetail(d);
-      }
-    }
+    // ── 加载全部四层详情（所有卡片同时展示）──
+    loadPhaseDetail(1, d);
+    loadPhaseDetail(2, d);
+    loadPhaseDetail(3, d);
+    loadPhaseDetail(4, d);
+
+    // ── 交互追踪 + 系统详情 ──
+    loadTraceDetail(d);
+    loadSystemDetail(d);
 
   } catch(e) { console.error('Panorama load error:', e); }
 }
