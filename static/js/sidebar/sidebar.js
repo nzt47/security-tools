@@ -4,7 +4,7 @@
 
 // ── 全局刷新 ──
 function refreshAll() {
-  updateStatusPanel();
+  app.emit('refresh');
 }
 
 // ── Toast ──
@@ -35,19 +35,3 @@ async function apiDelete(url) {
   return app.del(url);
 }
 
-// ── 初始化 ──
-document.addEventListener('DOMContentLoaded', () => {
-  // 初始化对话视图
-  var cv = document.getElementById('chat-view');
-  if (cv) {
-    cv.style.display = 'flex';
-    cv.classList.add('active');
-  }
-
-  updateStatusPanel();
-});
-
-// 定时刷新（10秒）
-setInterval(() => {
-  updateStatusPanel();
-}, 10000);
