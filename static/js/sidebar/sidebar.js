@@ -86,13 +86,37 @@ function renderPanelContent(panelName, containerId) {
         </div>`;
       break;
     case 'memory':
-      html = `<h3>🧠 记忆管理</h3>
-        <div id="memory-overview"></div>
-        <div id="memory-content"></div>
-        <div class="panel-actions" style="margin-top:8px">
-          <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
-          <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
-        </div>`;
+      html = `<div class="memory-subtabs">
+            <div class="memory-subtab active" data-memory-tab="memory" onclick="switchMemoryTab('memory')">📋 记忆</div>
+            <div class="memory-subtab" data-memory-tab="window" onclick="switchMemoryTab('window')">🪟 窗口活动</div>
+          </div>
+          <div class="memory-panel active" id="memory-panel-content">
+            <div id="memory-overview"></div>
+            <div id="memory-content"></div>
+          </div>
+          <div class="window-panel" id="window-panel-content">
+            <div class="window-status-bar" id="window-status"></div>
+            <div class="window-current-card" id="window-current">
+              <div class="wc-label">🪟 当前活跃窗口</div>
+              <div class="wc-title" style="color:#8b949e">加载中...</div>
+            </div>
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📡 最近切换事件</div>
+            <div class="window-events" id="window-events">
+              <div class="sidebar-empty">加载中...</div>
+            </div>
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📊 今日使用时长</div>
+            <div class="window-stats" id="window-stats">
+              <div class="sidebar-empty">加载中...</div>
+            </div>
+            <div class="window-panel-actions">
+              <button class="btn-sm" onclick="showWindowConfig()">⚙ 监控参数</button>
+              <button class="btn-sm danger" onclick="clearWindowEvents()">清空记录</button>
+            </div>
+          </div>
+          <div class="panel-actions" style="margin-top:8px">
+            <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+            <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+          </div>`;
       break;
   }
   container.innerHTML = html;
