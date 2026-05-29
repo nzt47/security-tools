@@ -852,6 +852,7 @@ app.registerView('memory', { load: loadMemory, keepAlive: true });
 
 app.init();
 initNav();
+initStatusPanel();
 
 document.getElementById('chat-input').focus();
 
@@ -863,6 +864,7 @@ setInterval(() => {
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v=20260529"></script>
 <script src="{{ url_for('static', filename='js/nav.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260529"></script>
 <script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260529"></script>
 <script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260529"></script>
 <script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260529"></script>
