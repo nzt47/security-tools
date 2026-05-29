@@ -13,8 +13,19 @@ import json
 import logging
 import platform
 import webbrowser
+import datetime
 import concurrent.futures
 from flask import Flask, jsonify, render_template, request
+
+# 安全守护 + 系统工具
+from agent.safety_guard import SafetyGuard, register_alert_callback
+from agent.system_tools import (
+    init_workspace, list_workspace, write_workspace, delete_workspace,
+    run_sandbox, list_scheduled_tasks, create_scheduled_task, delete_scheduled_task,
+    toggle_scheduled_task, browser_navigate, browser_screenshot, browser_close,
+    start_process, list_processes, stop_process, get_clipboard, set_clipboard,
+    WORKSPACE_DIR,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +53,25 @@ try:
     logger.info("窗口监控传感器已启动")
 except Exception as e:
     logger.warning(f"窗口监控传感器启动失败: {e}")
+
+# 初始化安全守护
+_safety_guard = SafetyGuard()
+logger.info("安全守护模块已加载")
+
+# 告警通知回调：将告警存入内存队列供前端轮询
+_alert_queue = []  # 最多保留 100 条
+_MAX_ALERT_QUEUE = 100
+
+def _on_safety_alert(alert):
+    _alert_queue.append(alert)
+    if len(_alert_queue) > _MAX_ALERT_QUEUE:
+        _alert_queue.pop(0)
+
+register_alert_callback(_on_safety_alert)
+
+# 初始化工作区
+_workspace_path = init_workspace()
+logger.info(f"受保护工作区: {_workspace_path}")
 
 # ── 人格配置管理器 ──
 _PERSONALITY_FILE = os.path.join(os.path.dirname(__file__), 'data', 'personality.json')
@@ -240,6 +270,25 @@ def api_chat():
     user_input = (data or {}).get("message", "").strip()
     if not user_input:
         return jsonify({"error": "消息不能为空"}), 400
+
+    # 安全检查
+    safety_result = _safety_guard.check(user_input)
+    if safety_result["level"] == "critical":
+        match_lines = chr(10).join(
+            f"• {m['description']} [{m['category']}]"
+            for m in safety_result["matches"][:5]
+        )
+        blocked_msg = (
+            f"⚠️ 安全警告：检测到危险操作！\n\n{match_lines}"
+            f"\n\n此操作已被拦截。如需执行，请确认您了解相关风险。"
+        )
+        return jsonify({
+            "response": blocked_msg,
+            "mode": _lingxi.get_behavior_mode().value,
+            "mode_label": _lingxi._behavior.profile.label,
+            "blocked": True,
+            "safety": safety_result,
+        }), 403
 
     # 记录 LLM 状态便于诊断
     llm_state = _lingxi.get_config()
@@ -819,6 +868,291 @@ def api_window_clear():
         return jsonify({"ok": True, "message": "窗口事件将在滚动日志中自然过期"})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  心跳接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/heartbeat")
+def api_heartbeat():
+    """心跳检测接口 — CPU/电池/温度"""
+    try:
+        readings = _lingxi.body.collect_quick()
+        result = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "status": "ok",
+        }
+        for r in readings:
+            d = r.to_dict()
+            name = d.get("sensor_name", "")
+            if name == "cpu_usage":
+                result["cpu_percent"] = d.get("value")
+                result["cpu_severity"] = d.get("severity", "normal")
+            elif name == "battery":
+                result["battery_percent"] = d.get("value")
+                result["battery_severity"] = d.get("severity", "normal")
+            elif "temp" in name:
+                result["temperature"] = d.get("value")
+                result["temperature_unit"] = d.get("unit", "°C")
+                result["temp_severity"] = d.get("severity", "normal")
+            elif name == "memory_usage":
+                result["memory_percent"] = d.get("value")
+                result["memory_severity"] = d.get("severity", "normal")
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  安全守护接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/safety/check", methods=["POST"])
+def api_safety_check():
+    """检查文本是否包含危险操作"""
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    result = _safety_guard.check(text)
+    return jsonify(result)
+
+
+@app.route("/api/safety/alerts")
+def api_safety_alerts():
+    """获取最近的告警通知"""
+    limit = request.args.get("limit", 20, type=int)
+    alerts = _alert_queue[-limit:]
+    return jsonify({"alerts": alerts, "stats": _safety_guard.get_stats()})
+
+
+@app.route("/api/safety/keywords", methods=["GET", "POST"])
+def api_safety_keywords():
+    """获取或添加危险关键词"""
+    if request.method == "POST":
+        data = request.get_json() or {}
+        pattern = data.get("pattern", "")
+        description = data.get("description", "")
+        level = data.get("level", "warning")
+        category = data.get("category", "")
+        if not pattern:
+            return jsonify({"ok": False, "error": "缺少 pattern"}), 400
+        _safety_guard.add_keyword(pattern, description, level, category)
+        _safety_guard.reload()
+        return jsonify({"ok": True})
+    return jsonify({"keywords": _safety_guard._keywords, "stats": _safety_guard.get_stats()})
+
+
+# ════════════════════════════════════════════════════════════
+#  工作区接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/workspace")
+def api_workspace_list():
+    """列出工作区内容"""
+    path = request.args.get("path", "")
+    try:
+        result = list_workspace(path)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/workspace/write", methods=["POST"])
+def api_workspace_write():
+    """写入工作区文件"""
+    data = request.get_json() or {}
+    path = data.get("path", "")
+    content = data.get("content", "")
+    if not path:
+        return jsonify({"ok": False, "error": "缺少 path"}), 400
+    # 安全检查
+    safety = _safety_guard.check(content)
+    if safety["level"] == "critical":
+        return jsonify({"ok": False, "blocked": True, "safety": safety}), 403
+    try:
+        result = write_workspace(path, content)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 403
+
+
+@app.route("/api/workspace/delete", methods=["POST"])
+def api_workspace_delete():
+    """删除工作区文件"""
+    data = request.get_json() or {}
+    path = data.get("path", "")
+    if not path:
+        return jsonify({"ok": False, "error": "缺少 path"}), 400
+    try:
+        result = delete_workspace(path)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 403
+
+
+@app.route("/api/workspace/info")
+def api_workspace_info():
+    """工作区信息"""
+    import os
+    total_size = 0
+    file_count = 0
+    for root, dirs, files in os.walk(WORKSPACE_DIR):
+        for f in files:
+            fp = os.path.join(root, f)
+            try:
+                total_size += os.path.getsize(fp)
+                file_count += 1
+            except OSError:
+                pass
+    return jsonify({
+        "path": WORKSPACE_DIR,
+        "file_count": file_count,
+        "total_size_bytes": total_size,
+    })
+
+
+# ════════════════════════════════════════════════════════════
+#  Python 沙盒接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/sandbox/run", methods=["POST"])
+def api_sandbox_run():
+    """在受限沙盒中执行 Python 代码"""
+    data = request.get_json() or {}
+    code = data.get("code", "")
+    timeout = min(data.get("timeout", 5), 30)  # 最大 30 秒
+
+    # 安全检查
+    safety = _safety_guard.check(code)
+    if safety["level"] == "critical":
+        return jsonify({"blocked": True, "safety": safety}), 403
+
+    result = run_sandbox(code, timeout)
+    result["safety"] = safety
+    return jsonify(result)
+
+
+# ════════════════════════════════════════════════════════════
+#  定时任务接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/scheduler/tasks")
+def api_scheduler_list():
+    """列出所有定时任务"""
+    return jsonify(list_scheduled_tasks())
+
+
+@app.route("/api/scheduler/create", methods=["POST"])
+def api_scheduler_create():
+    """创建定时任务"""
+    data = request.get_json() or {}
+    name = data.get("name", "")
+    command = data.get("command", "")
+    interval_sec = data.get("interval_sec", 60)
+    if not name or not command:
+        return jsonify({"ok": False, "error": "缺少 name 或 command"}), 400
+    # 安全检查
+    safety = _safety_guard.check(command)
+    if safety["level"] == "critical":
+        return jsonify({"ok": False, "blocked": True, "safety": safety}), 403
+    result = create_scheduled_task(name, command, interval_sec)
+    return jsonify(result)
+
+
+@app.route("/api/scheduler/delete", methods=["POST"])
+def api_scheduler_delete():
+    """删除定时任务"""
+    data = request.get_json() or {}
+    task_id = data.get("id", "")
+    return jsonify(delete_scheduled_task(task_id))
+
+
+@app.route("/api/scheduler/toggle", methods=["POST"])
+def api_scheduler_toggle():
+    """启用/禁用定时任务"""
+    data = request.get_json() or {}
+    task_id = data.get("id", "")
+    enabled = data.get("enabled", True)
+    return jsonify(toggle_scheduled_task(task_id, enabled))
+
+
+# ════════════════════════════════════════════════════════════
+#  无头浏览器接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/browser/navigate", methods=["POST"])
+def api_browser_navigate():
+    """浏览器导航到 URL"""
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"ok": False, "error": "缺少 url"}), 400
+    return jsonify(browser_navigate(url))
+
+
+@app.route("/api/browser/screenshot")
+def api_browser_screenshot():
+    """浏览器截图"""
+    result = browser_screenshot()
+    return jsonify(result)
+
+
+@app.route("/api/browser/close", methods=["POST"])
+def api_browser_close():
+    """关闭浏览器"""
+    browser_close()
+    return jsonify({"ok": True})
+
+
+# ════════════════════════════════════════════════════════════
+#  进程管理接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/process/list")
+def api_process_list():
+    """列出白名单进程"""
+    return jsonify({"processes": list_processes()})
+
+
+@app.route("/api/process/start", methods=["POST"])
+def api_process_start():
+    """启动白名单程序"""
+    data = request.get_json() or {}
+    program = data.get("program", "")
+    args = data.get("args")
+    if not program:
+        return jsonify({"ok": False, "error": "缺少 program"}), 400
+    return jsonify(start_process(program, args))
+
+
+@app.route("/api/process/stop", methods=["POST"])
+def api_process_stop():
+    """终止进程（仅限白名单）"""
+    data = request.get_json() or {}
+    pid = data.get("pid")
+    if not pid:
+        return jsonify({"ok": False, "error": "缺少 pid"}), 400
+    return jsonify(stop_process(pid))
+
+
+# ════════════════════════════════════════════════════════════
+#  剪贴板接口
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/clipboard")
+def api_clipboard_get():
+    """读取剪贴板"""
+    return jsonify(get_clipboard())
+
+
+@app.route("/api/clipboard", methods=["POST"])
+def api_clipboard_set():
+    """写入剪贴板"""
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    return jsonify(set_clipboard(text))
 
 
 # ════════════════════════════════════════════════════════════

@@ -376,6 +376,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c
     <div class="sp-metric"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
     <div class="sp-metric"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
     <div class="sp-metric"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
+    <div class="sp-section-title" style="margin-top:8px">⚠ 安全告警</div>
+    <div class="sp-events" id="sp-alerts" style="margin-bottom:6px">
+      <div class="sidebar-empty">无告警</div>
+    </div>
     <div class="sp-section-title" style="margin-top:8px">📋 事件流</div>
     <div class="sp-events" id="sp-events">
       <div class="sidebar-empty">系统正常</div>
@@ -645,6 +649,13 @@ async function sendMessage() {
       body: JSON.stringify({message: text}),
     });
     const data = await r.json();
+    if (data.blocked) {
+      addMessage('🚫 ' + data.response, 'lingxi');
+      btn.disabled = false;
+      btn.textContent = '发送';
+      input.focus();
+      return;
+    }
     addMessage(data.response, 'lingxi', data.mode_label);
   } catch(e) {
     addMessage('（连接失败，请确认服务器正在运行）', 'lingxi');
@@ -702,10 +713,36 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
 
+// 安全告警轮询
+async function checkSafetyAlerts() {
+  try {
+    const r = await fetch('/api/safety/alerts?limit=5');
+    const data = await r.json();
+    const alerts = data.alerts || [];
+    const el = document.getElementById('sp-alerts');
+    if (!el) return;
+    if (alerts.length === 0) {
+      el.innerHTML = '<div class="sidebar-empty">无告警</div>';
+      return;
+    }
+    el.innerHTML = alerts.reverse().map(a => {
+      const color = a.level === 'critical' ? '#f85149' : '#d29922';
+      const icon = a.level === 'critical' ? '🔴' : '⚠️';
+      const time = (a.timestamp || '').substring(11, 16);
+      return `<div class="sp-event">
+        <span style="color:${color}">${icon}</span>
+        <span style="font-size:8px;color:#484f58">${time}</span>
+        <span style="font-size:9px;color:#c9d1d9">${a.text.substring(0,60)}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
 // 定时刷新
 setInterval(function() {
   updateTabMetrics();
   updateStatusPanel();
+  checkSafetyAlerts();
   if (document.getElementById('panorama-view').classList.contains('active')) {
     loadPanorama();
   }
