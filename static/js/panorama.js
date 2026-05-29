@@ -164,12 +164,21 @@ function loadPhaseDetail(phase, d) {
     }
   }
   else if (phase === 2) {
+    var cogEl2 = document.getElementById('pano-cognitive');
+    if (cogEl2) cogEl2.textContent = d.cognitive_summary || '暂无感知数据';
+    var rejectEl2 = document.getElementById('pano-reject-status-detail');
+    if (rejectEl2) {
+      rejectEl2.innerHTML = d.can_accept ? '<span style="font-size:11px;color:#3fb950">✓ 可执行任务</span>' : '<span style="font-size:11px;color:#f85149">✗ 拒绝中</span>';
+    }
     const trEl = document.getElementById('pano-translate-rules');
     if (trEl) trEl.innerHTML = (d.translate_rules || []).map(r => `<div style="margin-bottom:4px"><strong>${r.name}</strong>: ${r.message}</div>`).join('') || '暂无翻译规则';
     const ppEl = document.getElementById('pano-prompt-preview');
     if (ppEl) ppEl.textContent = d.prompt_template || '暂无模板';
   }
   else if (phase === 3) {
+    setText('pano-summary-ver-detail', d.summary_version || '无');
+    setText('pano-msg-count-detail', d.message_count != null ? d.message_count + ' 条' : '-');
+    setText('pano-log-count-detail', d.log_count != null ? d.log_count + ' 条' : '-');
     const stEl = document.getElementById('pano-summary-text');
     if (stEl) stEl.textContent = d.summary_text || '（无摘要）';
     const lsEl = document.getElementById('pano-log-stats');
@@ -181,6 +190,14 @@ function loadPhaseDetail(phase, d) {
     if (cidEl) cidEl.innerHTML = `压缩触发阈值: ${d.compress_threshold || '-'} | Token 限制: ${d.token_limit || '-'}`;
   }
   else if (phase === 4) {
+    setText('pano-mode-detail', d.mode_label || '-');
+    setText('pano-tools-detail', (d.tool_count || 0) + ' 个');
+    setText('pano-reflections-detail', (d.reflection_count || 0) + ' 条');
+    const llmEl2 = document.getElementById('pano-llm-detail');
+    if (llmEl2) {
+      llmEl2.textContent = d.llm_configured ? '已连接' : '未配置';
+      llmEl2.style.color = d.llm_configured ? '#3fb950' : '#8b949e';
+    }
     const mlEl = document.getElementById('pano-mode-list');
     if (mlEl) {
       mlEl.innerHTML = (d.behavior_modes || []).map(m => `<div class="pano-mode-item"><span class="mm-name" style="color:${m.color}">${m.label}</span><span class="mm-desc">${m.desc}</span></div>`).join('');
