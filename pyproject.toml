@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Yunshu"
+version = "2.0.0"
+description = "云枢 - 一个拥有完整感知-认知-行动闭环的数字生命体"
+readme = "README.md"
+license = "MIT"
+authors = [
+  { name = "Yunshu Team", email = "team@Yunshu.ai" }
+]
+maintainers = [
+  { name = "Yunshu Team", email = "team@Yunshu.ai" }
+]
+requires-python = ">=3.8,<3.13"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+keywords = ["AI", "digital-life", "agent", "cognitive"]
+
+[project.scripts]
+Yunshu = "agent.digital_life:main"
+
+[project.dependencies]
+psutil = ">=5.9.0,<6.0.0"
+openai = ">=1.0.0,<2.0.0"
+anthropic = ">=0.30.0,<0.40.0"
+tiktoken = ">=0.5.0,<0.7.0"
+pyyaml = ">=6.0,<7.0"
+torch = ">=2.0.0,<2.5.0"
+torchvision = ">=0.15.0,<0.20.0"
+torchaudio = ">=2.0.0,<2.5.0"
+opencv-python-headless = ">=4.8.0,<5.0.0"
+chromadb = ">=0.4.0,<0.5.0"
+sentence-transformers = ">=2.2.0,<3.0.0"
+numpy = ">=1.24.0,<2.0.0"
+pyttsx3 = ">=2.90,<2.92"
+SpeechRecognition = ">=3.10.0,<3.11.0"
+pyautogui = ">=0.9.53,<0.9.60"
+pygetwindow = ">=0.0.9,<0.0.10"
+pyperclip = ">=1.8.2,<1.9.0"
+selenium = ">=4.15.0,<4.20.0"
+keyboard = ">=0.13.5,<0.14.0"
+mouse = ">=0.7.1,<0.8.0"
+pydub = ">=0.25.1,<0.26.0"
+watchdog = ">=3.0.0,<4.0.0"
+GPUtil = ">=1.4.0,<1.5.0"
+pynvml = ">=11.0.0,<12.0.0"
+
+[project.optional-dependencies]
+windows = [
+  "wmi>=1.5.0,<1.6.0",
+  "pythoncom>=0.0.1"
+]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "pytest-mock>=3.10.0",
+  "pytest-xdist>=3.0.0",
+  "pytest-asyncio>=0.21.0",
+  "flake8>=6.0.0",
+  "black>=23.0.0",
+  "isort>=5.12.0",
+  "mypy>=1.0.0",
+  "bandit>=1.7.0",
+  "safety>=2.3.0",
+  "pip-audit>=2.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace"]
+include = ["*"]
+
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+py_version = 38
+include_trailing_comma = true
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+ignore_missing_imports = true
+show_error_codes = true
+strict = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-v", "--tb=short"]
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::PendingDeprecationWarning"
+]
+
+[tool.coverage.run]
+source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 40
