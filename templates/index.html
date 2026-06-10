@@ -3,14 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>灵犀 · 数字生命体</title>
+<title>云枢 · 数字生命体</title>
 <style>
-/* ── View 切换动画（views.css 不含这部分）── */
+/* ── Mascot 样式 ── */
+.mascot-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mascot-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+}
+
+.mascot-body {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+  border-radius: 50%;
+  box-shadow: 0 4px 20px rgba(79, 209, 197, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.mascot-hovered .mascot-body {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.mascot-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mascot-eyes {
+  display: flex;
+  gap: 6px;
+  position: relative;
+  top: -3px;
+}
+
+.mascot-eye-left, .mascot-eye-right {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.mascot-eye-left::after, .mascot-eye-right::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #0d1117;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease;
+}
+
+.mascot-mouth {
+  font-size: 12px;
+  margin-top: 3px;
+  transition: all 0.2s ease;
+}
+
+.mascot-mouth-happy { color: #fff; transform: rotate(180deg); font-size: 14px; }
+.mascot-mouth-excited { color: #fff; transform: rotate(180deg); font-size: 16px; }
+.mascot-mouth-thinking { color: #fff; }
+.mascot-mouth-tired { color: rgba(255,255,255,0.6); }
+.mascot-mouth-error { color: #f85149; }
+
+.mascot-shadow {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 6px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
+  filter: blur(3px);
+}
+
+.mascot-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 209, 197, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mascot-glow.pulsing {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.mascot-status {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mascot-greeting {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+/* ── View 切换动画 ── */
 .view.incoming{display:flex;animation:fadeSlideIn .28s ease forwards}
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeSlideOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8px)}}
 
-/* ── 状态标签（仅全景用）── */
+/* ── 状态标签 ── */
 .status-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
 .status-badge.normal{background:#3fb95020;color:#3fb950;border:1px solid #3fb95080}
 .status-badge.safe{background:#f8514920;color:#f85149;border:1px solid #f8514980}
@@ -23,7 +157,7 @@
 #chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .msg.user{background:#1f6feb30;border:1px solid #1f6feb50;align-self:flex-end;color:#c9d1d9}
-.msg.lingxi{background:#161b22;border:1px solid #30363d;align-self:flex-start;color:#c9d1d9}
+.msg.Yunshu{background:#161b22;border:1px solid #30363d;align-self:flex-start;color:#c9d1d9}
 .msg .meta{font-size:10px;color:#8b949e;margin-top:4px;display:flex;gap:8px}
 .msg .reason{font-size:11px;color:#f85149;margin-top:6px;padding:6px 8px;background:#f8514915;border:1px solid #f8514940;border-radius:4px}
 #chat-input-area{display:flex;gap:8px;padding:12px 16px;background:#161b22;border-top:1px solid #30363d;flex-shrink:0}
@@ -34,382 +168,1056 @@
 #send-btn:disabled{background:#23863660;cursor:not-allowed}
 .thinking-dots::after{content:'';animation:dots 1.5s infinite}
 @keyframes dots{0%,20%{content:'.'}40%{content:'..'}60%,100%{content:'...'}}
+
+/* ── Mascot 样式 ── */
+.mascot-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+  border-bottom: 1px solid #30363d;
+}
+
+.mascot-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+}
+
+.mascot-breathing {
+  animation: breathing 2s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.mascot-body {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+  border-radius: 50%;
+  box-shadow: 0 4px 20px rgba(79, 209, 197, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.mascot-hovered .mascot-body {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.mascot-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mascot-eyes {
+  display: flex;
+  gap: 8px;
+  position: relative;
+  top: -4px;
+}
+
+.mascot-eye-left, .mascot-eye-right {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.mascot-eye-left::after, .mascot-eye-right::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #0d1117;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease;
+}
+
+.mascot-mouth {
+  font-size: 14px;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.mascot-mouth-happy { color: #fff; transform: rotate(180deg); font-size: 16px; }
+.mascot-mouth-excited { color: #fff; transform: rotate(180deg); font-size: 18px; }
+.mascot-mouth-thinking { color: #fff; }
+.mascot-mouth-tired { color: rgba(255,255,255,0.6); }
+.mascot-mouth-error { color: #f85149; }
+
+.mascot-shadow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 8px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
+  filter: blur(4px);
+}
+
+.mascot-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 209, 197, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mascot-glow.pulsing {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.mascot-status {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mascot-greeting {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260529">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260529">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260601">
 </head>
 <body>
 <div id="app">
   <!-- 通知条 -->
   <div id="notice-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;font-size:12px;border-bottom:1px solid #30363d"></div>
 
-  <!-- 导航栏 -->
-  <nav id="nav">
-    <div class="nav-brand">
-      <span style="font-size:20px">🤖</span>
-      <div class="nav-title">灵犀</div>
-    </div>
-    <div class="nav-items">
-      <button class="nav-btn active" data-view="chat"><span class="nav-icon">💬</span><span class="nav-label">对话</span></button>
-      <button class="nav-btn" data-view="panorama"><span class="nav-icon">🗺</span><span class="nav-label">全景</span></button>
-      <div class="nav-divider"></div>
-      <div class="nav-section-label">管理</div>
-      <button class="nav-btn" data-view="history"><span class="nav-icon">🕐</span><span class="nav-label">历史会话</span></button>
-      <button class="nav-btn" data-view="skills"><span class="nav-icon">🔧</span><span class="nav-label">技能管理</span></button>
-      <button class="nav-btn" data-view="tools"><span class="nav-icon">🛠</span><span class="nav-label">工具集成</span></button>
-      <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
-      <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
-      <div class="nav-divider"></div>
-      <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
-      <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
-      <button class="nav-btn" onclick="clearChat()"><span class="nav-icon">✕</span><span class="nav-label">清空对话</span></button>
-    </div>
-    <button class="nav-collapse-btn" id="nav-toggle-btn">◀</button>
-  </nav>
+  <!-- 左侧导航栏 -->
+    <nav id="nav">
+      <!-- Mascot 集成区域 -->
+      <div class="mascot-wrapper" id="mascot-area">
+        <div class="mascot-container" id="mascot" onmouseenter="mascotHover(true)" onmouseleave="mascotHover(false)" onclick="mascotClick()">
+          <div class="mascot-glow" id="mascot-glow"></div>
+          <div class="mascot-body">
+            <div class="mascot-face">
+              <div class="mascot-eyes">
+                <div class="mascot-eye-left" id="eye-left"></div>
+                <div class="mascot-eye-right" id="eye-right"></div>
+              </div>
+              <div class="mascot-mouth" id="mascot-mouth"></div>
+            </div>
+          </div>
+          <div class="mascot-shadow"></div>
+        </div>
+        <p class="mascot-greeting">我是来自网天的云枢</p>
+        <p class="mascot-status" id="mascot-status">等待你的消息</p>
+      </div>
 
-  <!-- 主内容区 -->
-  <main id="content">
-    <!-- 对话视图 -->
-    <div id="view-chat" class="view active" style="flex-direction:column">
-      <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
-        <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);flex-shrink:0">
-          <textarea id="chat-input" rows="1" placeholder="和灵犀说话..."
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
-            style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
-          <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap">发送</button>
+      <div class="nav-items">
+        <div class="nav-divider"></div>
+        <button class="nav-btn active" data-view="chat"><span class="nav-icon">💬</span><span class="nav-label">对话</span></button>
+        <button class="nav-btn" data-view="panorama"><span class="nav-icon">🗺</span><span class="nav-label">全景</span></button>
+        <div class="nav-divider"></div>
+        <div class="nav-section-label">管理</div>
+        <button class="nav-btn" data-view="history"><span class="nav-icon">🕐</span><span class="nav-label">历史会话</span></button>
+        <button class="nav-btn" data-view="skills"><span class="nav-icon">🔧</span><span class="nav-label">技能管理</span></button>
+        <button class="nav-btn" data-view="tools"><span class="nav-icon">🛠</span><span class="nav-label">工具集成</span></button>
+        <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
+        <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
+        <button class="nav-btn" data-view="network"><span class="nav-icon">🌐</span><span class="nav-label">网络配置</span></button>
+        <div class="nav-divider"></div>
+        <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
+        <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
+        <button class="nav-btn" onclick="clearChat()"><span class="nav-icon">✕</span><span class="nav-label">清空对话</span></button>
+      </div>
+      <button class="nav-collapse-btn" id="nav-toggle-btn">◀</button>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main id="content">
+      <!-- 对话视图 -->
+      <div id="view-chat" class="view active" style="flex-direction:column">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+          <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);flex-shrink:0">
+            <button id="voice-btn" onclick="startVoiceInput()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="语音输入">
+              <span id="voice-icon">🎤</span>
+            </button>
+            <textarea id="chat-input" rows="1" placeholder="和云枢说话..."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+              style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
+            <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="切换语音输出模式">
+              <span id="voice-toggle-icon">🔊</span>
+            </button>
+            <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap">发送</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 全景视图 -->
-    <div id="view-panorama" class="view">
-      <div class="pano-content" id="pano-content" style="overflow-y:auto;flex:1;padding:12px 16px">
-        <!-- 流水线 -->
-        <div class="pano-pipeline" style="margin-bottom:12px">
-          <div class="pipe-node phase-1">
-            <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div>
+      <!-- 全景视图 -->
+      <div id="view-panorama" class="view">
+        <div class="pano-content" id="pano-content" style="overflow-y:auto;flex:1;padding:12px 16px">
+          <div class="pano-pipeline" style="margin-bottom:12px">
+            <div class="pipe-node phase-1">
+              <div class="pn-icon">👁</div><div class="pn-label">感知层</div><div class="pn-sub">BodySensor</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-2">
+              <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-3">
+              <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node phase-4">
+              <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node pipe-output">
+              <div class="pn-icon">💬</div><div class="pn-label">响应</div>
+            </div>
           </div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-node phase-2">
-            <div class="pn-icon">🧠</div><div class="pn-label">认知层</div><div class="pn-sub">PromptInjector</div>
-          </div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-node phase-3">
-            <div class="pn-icon">💾</div><div class="pn-label">记忆层</div><div class="pn-sub">MemoryManager</div>
-          </div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-node phase-4">
-            <div class="pn-icon">🤖</div><div class="pn-label">行动层</div><div class="pn-sub">DigitalLife</div>
-          </div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-node pipe-output">
-            <div class="pn-icon">💬</div><div class="pn-label">响应</div>
-          </div>
-        </div>
 
-        <!-- 四层指标卡片 -->
-        <div class="pano-dashboard-grid" style="margin-bottom:12px">
-          <div class="pano-card phase-1">
-            <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span></div>
-            <div class="pano-card-body">
-              <div class="card-metrics">
-                <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
+          <div class="pano-dashboard-grid" style="margin-bottom:12px">
+            <div class="pano-card phase-1">
+              <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座</span></div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-sensor-val">-</div><div class="cm-label">传感器</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-battery-val">-</div><div class="cm-label">电池</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-2">
+              <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span></div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-3">
+              <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span></div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pano-card phase-4">
+              <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span></div>
+              <div class="pano-card-body">
+                <div class="card-metrics">
+                  <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
+                  <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="pano-card phase-2">
-            <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎</span></div>
+
+          <div class="pano-card phase-1" style="margin-bottom:10px">
+            <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
             <div class="pano-card-body">
-              <div class="card-metrics">
-                <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">引擎状态</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-reject-status">-</div><div class="cm-label">可执行</div></div>
+              <div class="pano-metrics" id="pano-health"></div>
+              <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📂 传感器四大分类</div>
+              <div class="pano-cat-grid" id="pano-sensor-categories"></div>
+              <div class="detail-section-title">🏷 八维标签体系</div>
+              <div class="pano-tag-grid" id="pano-tag-grid"></div>
+              <div class="detail-section-title">📡 全部传感器清单</div>
+              <div class="pano-sensor-list" id="pano-sensor-list"></div>
+            </div>
+          </div>
+
+          <div class="pano-card phase-2" style="margin-bottom:10px">
+            <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
+            <div class="pano-card-body">
+              <div id="pano-cognitive" class="pano-text">加载中...</div>
+              <div id="pano-reject-status-detail" style="margin-top:6px"></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📜 翻译规则配置</div>
+              <div id="pano-translate-rules" class="pano-text"></div>
+              <div class="detail-section-title">📝 提示词模板</div>
+              <pre id="pano-prompt-preview" class="pano-pre"></pre>
+            </div>
+          </div>
+
+          <div class="pano-card phase-3" style="margin-bottom:10px">
+            <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
+            <div class="pano-card-body">
+              <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
+              <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
+              <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📄 当前摘要</div>
+              <pre id="pano-summary-text" class="pano-pre"></pre>
+              <div class="detail-section-title">📊 日志统计</div>
+              <div id="pano-log-stats" class="pano-text"></div>
+              <div class="detail-section-title">⚙ 压缩策略</div>
+              <div id="pano-compress-info-detail" class="pano-text"></div>
+            </div>
+          </div>
+
+          <div class="pano-card phase-4" style="margin-bottom:10px">
+            <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
+            <div class="pano-card-body">
+              <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
+              <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
+              <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
+              <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">🔄 六种行为模式</div>
+              <div id="pano-mode-list" class="pano-mode-grid"></div>
+              <div class="detail-section-title">🔧 注册工具</div>
+              <div id="pano-tool-list" class="pano-text"></div>
+              <div class="detail-section-title">🛡 权限检查记录</div>
+              <div id="pano-perm-info" class="pano-text"></div>
+            </div>
+          </div>
+
+          <div class="pano-dashboard-bottom">
+            <div class="pano-events">
+              <div class="pano-events-header">📋 实时事件流</div>
+              <div class="pano-events-body" id="pano-events-body">
+                <div class="pano-empty">暂无事件</div>
+              </div>
+            </div>
+            <div class="pano-sysbar" id="pano-sysbar">
+              <div class="sys-item">会话: <span id="pano-session">-</span></div>
+              <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
+              <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
+              <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
+              <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
+            </div>
+          </div>
+
+          <div class="pano-card phase-1" style="margin-top:10px">
+            <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">交互追踪</span></div>
+            <div class="pano-card-body" id="pano-trace-body">
+              <div class="pano-text sub">暂无交互记录</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史会话视图 -->
+      <div id="view-history" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🕐 历史会话</h3>
+          <input class="view-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
+          <div class="panel-actions">
+            <select id="history-sort" class="btn-sm" onchange="loadHistory()">
+              <option value="newest">最新优先</option>
+              <option value="oldest">最早优先</option>
+            </select>
+          </div>
+          <div id="history-list"></div>
+        </div>
+      </div>
+
+      <!-- 技能管理视图 -->
+      <div id="view-skills" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
+          <div class="panel-actions">
+            <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+          </div>
+          <div id="skills-list"></div>
+        </div>
+      </div>
+
+      <!-- 工具集成视图 -->
+      <div id="view-tools" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🛠 工具集成</h3>
+          <div id="tools-count" style="font-size:12px;color:#8b949e;margin-bottom:8px"></div>
+          <div id="tools-list"></div>
+        </div>
+      </div>
+
+      <!-- 人格配置视图 -->
+      <div id="view-personality" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🎭 人格配置</h3>
+          <div id="personality-presets"></div>
+          <div id="personality-sliders"></div>
+          <div class="panel-actions" style="margin-top:12px">
+            <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
+            <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 记忆管理视图 -->
+      <div id="view-memory" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <div class="memory-subtabs">
+            <div class="memory-subtab active" data-memory-tab="memory" onclick="switchMemoryTab('memory')">📋 记忆</div>
+            <div class="memory-subtab" data-memory-tab="window" onclick="switchMemoryTab('window')">🪟 窗口活动</div>
+          </div>
+          <div class="memory-panel active" id="memory-panel-content">
+            <div id="memory-overview"></div>
+            <div id="memory-content"></div>
+          </div>
+          <div class="window-panel" id="window-panel-content">
+            <div class="window-status-bar" id="window-status"></div>
+            <div class="window-current-card" id="window-current">
+              <div class="wc-label">🪟 当前活跃窗口</div>
+              <div class="wc-title" style="color:#8b949e">加载中...</div>
+            </div>
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📡 最近切换事件</div>
+            <div class="window-events" id="window-events">
+              <div class="sidebar-empty">加载中...</div>
+            </div>
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📊 今日使用时长</div>
+            <div class="window-stats" id="window-stats">
+              <div class="sidebar-empty">加载中...</div>
+            </div>
+            <div class="window-panel-actions">
+              <button class="btn-sm" onclick="showWindowConfig()">⚙ 监控参数</button>
+              <button class="btn-sm danger" onclick="clearWindowEvents()">清空记录</button>
+            </div>
+          </div>
+          <div class="panel-actions" style="margin-top:8px">
+            <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+            <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 网络配置视图 -->
+      <div id="view-network" class="view">
+        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🌐 网络配置</h3>
+          <p style="font-size:12px;color:#8b949e;margin-bottom:16px">集中管理所有需要联网才能使用的外部支持相关配置项</p>
+
+          
+
+          <!-- 网络基础设置 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">⚙</span>
+              <span class="section-title">网络基础设置</span>
+            </div>
+            <div class="network-section-body">
+              <div class="form-row-inline">
+                <div class="form-row half">
+                  <label>全局超时 (秒)</label>
+                  <input type="number" id="nc-network-timeout" min="1" max="300" value="30" onchange="onNetworkConfigChange()">
+                </div>
+                <div class="form-row half">
+                  <label>最大重试</label>
+                  <input type="number" id="nc-network-retries" min="0" max="10" value="3" onchange="onNetworkConfigChange()">
+                </div>
+              </div>
+              <div class="form-row">
+                <label>重试间隔因子</label>
+                <input type="number" id="nc-network-backoff" min="0.1" max="5" step="0.1" value="0.5" onchange="onNetworkConfigChange()">
+              </div>
+              <div class="form-row">
+                <label>代理设置</label>
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="nc-proxy-enabled" onchange="onNetworkConfigChange()">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">启用代理</span>
+                </label>
+              </div>
+              <div class="form-row" id="nc-proxy-url-row" style="display:none">
+                <label>代理 URL</label>
+                <input type="text" id="nc-proxy-url" placeholder="http://proxy:8080" onchange="onNetworkConfigChange()">
               </div>
             </div>
           </div>
-          <div class="pano-card phase-3">
-            <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理</span></div>
-            <div class="pano-card-body">
-              <div class="card-metrics">
-                <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息数</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志数</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-summary-ver">-</div><div class="cm-label">摘要版本</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-compress-info">-</div><div class="cm-label">压缩阈值</div></div>
+
+          <!-- 搜索服务 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🔍</span>
+              <span class="section-title">搜索服务</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="nc-search-enabled" onchange="updateNetworkConfig('search.enabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="network-section-body">
+              <div class="form-row">
+                <label>默认搜索引擎</label>
+                <select id="nc-search-engine" onchange="onNetworkConfigChange()">
+                  <option value="duckduckgo">DuckDuckGo</option>
+                  <option value="tavily">Tavily</option>
+                  <option value="bing">Bing</option>
+                  <option value="google">Google</option>
+                  <option value="brave">Brave</option>
+                </select>
+              </div>
+              <div class="form-row-inline">
+                <div class="form-row half">
+                  <label>最大结果数</label>
+                  <input type="number" id="nc-search-max" min="1" max="50" value="10" onchange="onNetworkConfigChange()">
+                </div>
+                <div class="form-row half">
+                  <label>超时时间 (秒)</label>
+                  <input type="number" id="nc-search-timeout" min="1" max="120" value="30" onchange="onNetworkConfigChange()">
+                </div>
+              </div>
+              
+              <!-- 搜索引擎优先级排序 -->
+              <div class="form-row">
+                <label>搜索引擎优先级 <span class="hint">(拖拽调整优先级，从上到下)</span></label>
+                <div id="search-engine-priority-list" class="priority-list">
+                  <div class="priority-item" data-engine="duckduckgo">
+                    <span class="priority-handle">⋮⋮</span>
+                    <span class="priority-label">DuckDuckGo</span>
+                    <label class="toggle-switch small">
+                      <input type="checkbox" id="nc-engine-duckduckgo" checked onchange="onEngineToggle('duckduckgo', this.checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="priority-item" data-engine="tavily">
+                    <span class="priority-handle">⋮⋮</span>
+                    <span class="priority-label">Tavily</span>
+                    <label class="toggle-switch small">
+                      <input type="checkbox" id="nc-engine-tavily" checked onchange="onEngineToggle('tavily', this.checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="priority-item" data-engine="bing">
+                    <span class="priority-handle">⋮⋮</span>
+                    <span class="priority-label">Bing</span>
+                    <label class="toggle-switch small">
+                      <input type="checkbox" id="nc-engine-bing" checked onchange="onEngineToggle('bing', this.checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="priority-item" data-engine="brave">
+                    <span class="priority-handle">⋮⋮</span>
+                    <span class="priority-label">Brave</span>
+                    <label class="toggle-switch small">
+                      <input type="checkbox" id="nc-engine-brave" checked onchange="onEngineToggle('brave', this.checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="priority-item" data-engine="google">
+                    <span class="priority-handle">⋮⋮</span>
+                    <span class="priority-label">Google</span>
+                    <label class="toggle-switch small">
+                      <input type="checkbox" id="nc-engine-google" checked onchange="onEngineToggle('google', this.checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- API Key 配置 -->
+              <div class="api-key-section">
+                <div class="api-key-header">
+                  <span class="section-icon">🔑</span>
+                  <span class="section-title">API Key 管理</span>
+                </div>
+                <div class="api-key-body">
+                  <!-- Tavily API Key -->
+                  <div class="form-row">
+                    <label>Tavily API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                    <input type="password" id="nc-api-tavily" placeholder="tvly-..." autocomplete="off" onchange="onNetworkConfigChange()">
+                  </div>
+                  <!-- Bing API Key -->
+                  <div class="form-row">
+                    <label>Bing API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                    <input type="password" id="nc-api-bing" placeholder="xxx..." autocomplete="off" onchange="onNetworkConfigChange()">
+                  </div>
+                  <!-- Google API Key -->
+                  <div class="form-row">
+                    <label>Google API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                    <input type="password" id="nc-api-google" placeholder="AIzaSy..." autocomplete="off" onchange="onNetworkConfigChange()">
+                  </div>
+                  <div class="form-row">
+                    <label>Google CX (搜索引擎 ID)</label>
+                    <input type="text" id="nc-api-google-cx" placeholder="0123456789..." onchange="onNetworkConfigChange()">
+                  </div>
+                  <!-- Brave API Key -->
+                  <div class="form-row">
+                    <label>Brave API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                    <input type="password" id="nc-api-brave" placeholder="brave-..." autocomplete="off" onchange="onNetworkConfigChange()">
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="pano-card phase-4">
-            <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">反身智能</span></div>
-            <div class="pano-card-body">
-              <div class="card-metrics">
-                <div class="card-metric"><div class="cm-val" id="pano-mode">-</div><div class="cm-label">行为模式</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">注册工具</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思记录</div></div>
-                <div class="card-metric"><div class="cm-val" id="pano-llm">-</div><div class="cm-label">LLM状态</div></div>
+
+          <!-- Web 抓取服务 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🕷</span>
+              <span class="section-title">Web 抓取服务</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="nc-scraping-enabled" onchange="updateNetworkConfig('web_scraping.enabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="network-section-body">
+              <div class="form-row">
+                <label>遵守 Robots.txt</label>
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="nc-scraping-robots" onchange="onNetworkConfigChange()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>请求间隔 (秒)</label>
+                <input type="number" id="nc-scraping-delay" min="0" max="10" step="0.5" value="1.0" onchange="onNetworkConfigChange()">
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 感知层详情 -->
-        <div class="pano-card phase-1" style="margin-bottom:10px">
-          <div class="pano-card-header"><span class="phase-badge">阶段一</span><span class="pano-card-title">感知底座 · BodySensor</span></div>
-          <div class="pano-card-body">
-            <div class="pano-metrics" id="pano-health"></div>
-            <div class="pano-stat">传感器: <span id="pano-sensor-count">-</span></div>
-            <div class="pano-divider"></div>
-            <div class="detail-section-title">📂 传感器四大分类</div>
-            <div class="pano-cat-grid" id="pano-sensor-categories"></div>
-            <div class="detail-section-title">🏷 八维标签体系</div>
-            <div class="pano-tag-grid" id="pano-tag-grid"></div>
-            <div class="detail-section-title">📡 全部传感器清单</div>
-            <div class="pano-sensor-list" id="pano-sensor-list"></div>
-          </div>
-        </div>
-
-        <!-- 认知层详情 -->
-        <div class="pano-card phase-2" style="margin-bottom:10px">
-          <div class="pano-card-header"><span class="phase-badge">阶段二</span><span class="pano-card-title">元认知引擎 · PromptInjector</span></div>
-          <div class="pano-card-body">
-            <div id="pano-cognitive" class="pano-text">加载中...</div>
-            <div id="pano-reject-status-detail" style="margin-top:6px"></div>
-            <div class="pano-divider"></div>
-            <div class="detail-section-title">📜 翻译规则配置</div>
-            <div id="pano-translate-rules" class="pano-text"></div>
-            <div class="detail-section-title">📝 提示词模板</div>
-            <pre id="pano-prompt-preview" class="pano-pre"></pre>
-          </div>
-        </div>
-
-        <!-- 记忆层详情 -->
-        <div class="pano-card phase-3" style="margin-bottom:10px">
-          <div class="pano-card-header"><span class="phase-badge">阶段三</span><span class="pano-card-title">记忆管理 · MemoryManager</span></div>
-          <div class="pano-card-body">
-            <div class="pano-stat">摘要版本: <span id="pano-summary-ver-detail">-</span></div>
-            <div class="pano-stat">消息记录: <span id="pano-msg-count-detail">-</span></div>
-            <div class="pano-stat">日志条目: <span id="pano-log-count-detail">-</span></div>
-            <div class="pano-divider"></div>
-            <div class="detail-section-title">📄 当前摘要</div>
-            <pre id="pano-summary-text" class="pano-pre"></pre>
-            <div class="detail-section-title">📊 日志统计</div>
-            <div id="pano-log-stats" class="pano-text"></div>
-            <div class="detail-section-title">⚙ 压缩策略</div>
-            <div id="pano-compress-info-detail" class="pano-text"></div>
-          </div>
-        </div>
-
-        <!-- 行动层详情 -->
-        <div class="pano-card phase-4" style="margin-bottom:10px">
-          <div class="pano-card-header"><span class="phase-badge">阶段四</span><span class="pano-card-title">整合与反身智能 · DigitalLife</span></div>
-          <div class="pano-card-body">
-            <div class="pano-stat">行为模式: <span id="pano-mode-detail">-</span></div>
-            <div class="pano-stat">注册工具: <span id="pano-tools-detail">-</span></div>
-            <div class="pano-stat">反思记录: <span id="pano-reflections-detail">-</span></div>
-            <div class="pano-stat">LLM 状态: <span id="pano-llm-detail">-</span></div>
-            <div class="pano-divider"></div>
-            <div class="detail-section-title">🔄 六种行为模式</div>
-            <div id="pano-mode-list" class="pano-mode-grid"></div>
-            <div class="detail-section-title">🔧 注册工具</div>
-            <div id="pano-tool-list" class="pano-text"></div>
-            <div class="detail-section-title">🛡 权限检查记录</div>
-            <div id="pano-perm-info" class="pano-text"></div>
-          </div>
-        </div>
-
-        <!-- 底部：事件流 + 系统总览 -->
-        <div class="pano-dashboard-bottom">
-          <div class="pano-events">
-            <div class="pano-events-header">📋 实时事件流</div>
-            <div class="pano-events-body" id="pano-events-body">
-              <div class="pano-empty">暂无事件</div>
+          <!-- 浏览器自动化 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🌐</span>
+              <span class="section-title">浏览器自动化</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="nc-browser-enabled" onchange="updateNetworkConfig('browser.enabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="network-section-body">
+              <div class="form-row">
+                <label>无头模式</label>
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="nc-browser-headless" onchange="onNetworkConfigChange()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>超时 (秒)</label>
+                <input type="number" id="nc-browser-timeout" min="1" max="120" value="30" onchange="onNetworkConfigChange()">
+              </div>
             </div>
           </div>
-          <div class="pano-sysbar" id="pano-sysbar">
-            <div class="sys-item">会话: <span id="pano-session">-</span></div>
-            <div class="sys-item">交互: <span id="pano-interactions">-</span></div>
-            <div class="sys-item">运行: <span id="pano-uptime">-</span></div>
-            <div class="sys-item">传感器: <span id="pano-sensor-total">-</span></div>
-            <div class="sys-item">模式: <span id="pano-mode-badge-2" class="status-badge normal">正常</span></div>
+
+          <!-- 数据同步 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🔄</span>
+              <span class="section-title">数据同步</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="nc-sync-enabled" onchange="updateNetworkConfig('sync.enabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="network-section-body">
+              <div class="form-row">
+                <label>同步频率 (分钟)</label>
+                <input type="number" id="nc-sync-interval" min="5" max="1440" value="60" onchange="onNetworkConfigChange()">
+              </div>
+              <div class="form-row">
+                <label>启动时自动同步</label>
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="nc-sync-autostart" onchange="onNetworkConfigChange()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 外部服务 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">📡</span>
+              <span class="section-title">外部服务</span>
+            </div>
+            <div class="network-section-body">
+              <div class="service-item">
+                <div class="service-header">
+                  <label>错误报告</label>
+                  <label class="toggle-switch small">
+                    <input type="checkbox" id="nc-error-enabled" onchange="onNetworkConfigChange()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Webhook URL <span class="sensitive-hint">🔒 加密存储</span></label>
+                  <input type="password" id="nc-error-webhook" placeholder="https://your-webhook.com/endpoint" onchange="onNetworkConfigChange()">
+                </div>
+              </div>
+              <div class="service-item" style="margin-top:12px;padding-top:12px;border-top:1px solid #21262d">
+                <div class="service-header">
+                  <label>监控端点</label>
+                  <label class="toggle-switch small">
+                    <input type="checkbox" id="nc-monitoring-enabled" onchange="onNetworkConfigChange()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Endpoint URL</label>
+                  <input type="text" id="nc-monitoring-endpoint" placeholder="https://your-monitor.com/api" onchange="onNetworkConfigChange()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LLM 服务配置与多实例管理 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🤖</span>
+              <span class="section-title">LLM 服务配置</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="nc-llm-enabled" onchange="updateNetworkConfig('llm.enabled', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+                <button class="btn-sm primary" onclick="showLlmInstanceModal()">+ 添加实例</button>
+              </div>
+            </div>
+            <div class="network-section-body">
+              <!-- 默认 LLM 配置 -->
+              <div class="default-llm-config" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #30363d">
+                <div style="font-size:14px;font-weight:600;color:#58a6ff;margin-bottom:12px">📌 默认配置</div>
+                <div class="form-row-inline">
+                  <div class="form-row half">
+                    <label>提供商</label>
+                    <select id="nc-llm-provider" onchange="onNetworkConfigChange()">
+                      <option value="">未选择</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="anthropic">Anthropic</option>
+                    </select>
+                  </div>
+                  <div class="form-row half">
+                    <label>默认实例</label>
+                    <select id="nc-default-llm-instance" onchange="onNetworkConfigChange()">
+                      <option value="">自动选择</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label>API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                  <input type="password" id="nc-llm-apikey" placeholder="sk-..." autocomplete="off" onchange="onNetworkConfigChange()">
+                </div>
+                <div class="form-row">
+                  <label>模型名称</label>
+                  <input type="text" id="nc-llm-model" placeholder="gpt-4 / deepseek-chat / claude-sonnet" onchange="onNetworkConfigChange()">
+                </div>
+                <div class="form-row-inline">
+                  <div class="form-row half">
+                    <label>超时 (秒)</label>
+                    <input type="number" id="nc-llm-timeout" min="1" max="300" value="30" onchange="onNetworkConfigChange()">
+                  </div>
+                  <div class="form-row half">
+                    <label>最大重试</label>
+                    <input type="number" id="nc-llm-retries" min="0" max="10" value="3" onchange="onNetworkConfigChange()">
+                  </div>
+                </div>
+              </div>
+              
+              <!-- LLM 多实例列表 -->
+              <div style="font-size:14px;font-weight:600;color:#58a6ff;margin-bottom:12px">📦 实例列表</div>
+              <div id="llm-instances-list" class="instances-list"></div>
+            </div>
+          </div>
+
+          <!-- MCP 服务管理 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🔗</span>
+              <span class="section-title">MCP 服务配置</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="nc-mcp-enabled" onchange="toggleMcpEnabled(this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="network-section-body">
+              <div class="panel-actions" style="margin-bottom:12px">
+                <button class="btn-sm primary" onclick="showMcpServiceModal()">+ 添加服务</button>
+              </div>
+              <div id="mcp-services-list" class="services-list"></div>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="panel-actions" style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-sm primary" onclick="saveNetworkConfig()">💾 保存配置</button>
+            <button class="btn-sm" onclick="applyNetworkConfig()">⚡ 应用并即时生效</button>
+            <button class="btn-sm" onclick="resetNetworkConfig()">↺ 恢复默认</button>
+            <button class="btn-sm" onclick="exportNetworkConfig()">📤 导出</button>
+            <button class="btn-sm" onclick="document.getElementById('nc-import-file').click()">📥 导入</button>
+            <input type="file" id="nc-import-file" accept=".json" style="display:none" onchange="importNetworkConfig(event)">
+          </div>
+          <div id="nc-status" class="cfg-status" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- LLM 实例编辑模态框 -->
+      <div id="llm-instance-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideLlmInstanceModal()">
+        <div class="modal" style="width:480px">
+          <div class="modal-header">
+            <h3 id="llm-modal-title">添加 LLM 实例</h3>
+            <span class="modal-close" onclick="hideLlmInstanceModal()">&times;</span>
+          </div>
+          <div class="modal-body">
+            <form id="llm-instance-form">
+              <div class="form-group">
+                <label>服务名称 *</label>
+                <input type="text" id="llm-form-name" placeholder="输入实例名称" required>
+              </div>
+              <div class="form-group">
+                <label>提供商</label>
+                <select id="llm-form-provider">
+                  <option value="openai">OpenAI</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="anthropic">Anthropic</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                <input type="password" id="llm-form-api-key" placeholder="sk-..." autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>模型名称</label>
+                <input type="text" id="llm-form-model" placeholder="gpt-4 / deepseek-chat">
+              </div>
+              <div class="form-group">
+                <label>API 端点 URL</label>
+                <input type="text" id="llm-form-endpoint" placeholder="https://api.openai.com/v1">
+              </div>
+              <div class="form-group">
+                <label>认证方式</label>
+                <select id="llm-form-auth-method">
+                  <option value="api_key">API Key</option>
+                  <option value="token">Token</option>
+                  <option value="oauth">OAuth</option>
+                </select>
+              </div>
+              <div class="form-row-inline">
+                <div class="form-group half">
+                  <label>最大并发请求数</label>
+                  <input type="number" id="llm-form-max-concurrent" min="1" max="100" value="5">
+                </div>
+                <div class="form-group half">
+                  <label>超时时间 (秒)</label>
+                  <input type="number" id="llm-form-timeout" min="1" max="300" value="30">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>最大重试次数</label>
+                <input type="number" id="llm-form-retries" min="0" max="10" value="3">
+              </div>
+              <div class="form-group">
+                <label>描述信息</label>
+                <textarea id="llm-form-description" rows="2" placeholder="可选描述"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="llm-form-enabled" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">启用此实例</span>
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="hideLlmInstanceModal()">取消</button>
+            <button class="btn-primary" onclick="saveLlmInstance()">保存</button>
           </div>
         </div>
+      </div>
 
-        <!-- 交互追踪 -->
-        <div class="pano-card phase-1" style="margin-top:10px">
-          <div class="pano-card-header"><span class="phase-badge">🔍</span><span class="pano-card-title">交互追踪</span></div>
-          <div class="pano-card-body" id="pano-trace-body">
-            <div class="pano-text sub">暂无交互记录</div>
+      <!-- MCP 服务编辑模态框 -->
+      <div id="mcp-service-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideMcpServiceModal()">
+        <div class="modal" style="width:480px">
+          <div class="modal-header">
+            <h3 id="mcp-modal-title">添加 MCP 服务</h3>
+            <span class="modal-close" onclick="hideMcpServiceModal()">&times;</span>
+          </div>
+          <div class="modal-body">
+            <form id="mcp-service-form">
+              <div class="form-group">
+                <label>服务名称 *</label>
+                <input type="text" id="mcp-form-name" placeholder="输入服务名称" required>
+              </div>
+              <div class="form-group">
+                <label>MCP 服务地址 *</label>
+                <input type="text" id="mcp-form-address" placeholder="IP 地址或域名" required>
+              </div>
+              <div class="form-row-inline">
+                <div class="form-group half">
+                  <label>通信端口 *</label>
+                  <input type="number" id="mcp-form-port" min="1" max="65535" value="8080" required>
+                </div>
+                <div class="form-group half">
+                  <label>协议类型</label>
+                  <select id="mcp-form-protocol">
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row-inline">
+                <div class="form-group half">
+                  <label>超时时间 (秒)</label>
+                  <input type="number" id="mcp-form-timeout" min="1" max="300" value="30">
+                </div>
+                <div class="form-group half">
+                  <label>重试策略</label>
+                  <select id="mcp-form-retry-strategy">
+                    <option value="fixed">固定间隔</option>
+                    <option value="exponential">指数退避</option>
+                    <option value="none">无重试</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>最大重试次数</label>
+                <input type="number" id="mcp-form-max-retries" min="0" max="10" value="3">
+              </div>
+              <div class="form-group">
+                <label>安全认证方式</label>
+                <div class="security-methods">
+                  <label class="toggle-switch small">
+                    <input type="checkbox" id="mcp-form-security-tls">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">TLS</span>
+                  </label>
+                  <label class="toggle-switch small">
+                    <input type="checkbox" id="mcp-form-security-token">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Token</span>
+                  </label>
+                  <label class="toggle-switch small">
+                    <input type="checkbox" id="mcp-form-security-certificate">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">证书</span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>证书路径</label>
+                <input type="text" id="mcp-form-cert-path" placeholder="证书文件路径">
+              </div>
+              <div class="form-group">
+                <label>描述信息</label>
+                <textarea id="mcp-form-description" rows="2" placeholder="可选描述"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch small">
+                  <input type="checkbox" id="mcp-form-enabled" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">启用此服务</span>
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="hideMcpServiceModal()">取消</button>
+            <button class="btn-primary" onclick="saveMcpService()">保存</button>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- 历史会话视图 -->
-    <div id="view-history" class="view">
-      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🕐 历史会话</h3>
-        <input class="view-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
-        <div class="panel-actions">
-          <select id="history-sort" class="btn-sm" onchange="loadHistory()">
-            <option value="newest">最新优先</option>
-            <option value="oldest">最早优先</option>
-          </select>
+    <!-- 右侧状态面板 -->
+    <aside id="status-panel">
+      <button class="panel-toggle" id="panel-toggle-btn" title="切换状态面板">◀</button>
+      <div class="sp-section">
+        <div class="sp-section-title">系统状态</div>
+        <div class="sp-metric-row">
+          <span class="sp-label">CPU</span>
+          <div class="sp-bar"><div class="sp-bar-fill" id="sp-cpu-bar" style="width:0%"></div></div>
+          <span class="sp-value" id="sp-cpu">-</span>
         </div>
-        <div id="history-list"></div>
-      </div>
-    </div>
-
-    <!-- 技能管理视图 -->
-    <div id="view-skills" class="view">
-      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
-        <div class="panel-actions">
-          <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+        <div class="sp-metric-row">
+          <span class="sp-label">内存</span>
+          <div class="sp-bar"><div class="sp-bar-fill" id="sp-mem-bar" style="width:0%"></div></div>
+          <span class="sp-value" id="sp-memory">-</span>
         </div>
-        <div id="skills-list"></div>
-      </div>
-    </div>
-
-    <!-- 工具集成视图 -->
-    <div id="view-tools" class="view">
-      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🛠 工具集成</h3>
-        <div id="tools-count" style="font-size:12px;color:#8b949e;margin-bottom:8px"></div>
-        <div id="tools-list"></div>
-      </div>
-    </div>
-
-    <!-- 人格配置视图 -->
-    <div id="view-personality" class="view">
-      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-        <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🎭 人格配置</h3>
-        <div id="personality-presets"></div>
-        <div id="personality-sliders"></div>
-        <div class="panel-actions" style="margin-top:12px">
-          <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
-          <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+        <div class="sp-metric-row">
+          <span class="sp-label">磁盘</span>
+          <div class="sp-bar"><div class="sp-bar-fill" id="sp-disk-bar" style="width:0%"></div></div>
+          <span class="sp-value" id="sp-disk">-</span>
         </div>
-      </div>
-    </div>
-
-    <!-- 记忆管理视图 -->
-    <div id="view-memory" class="view">
-      <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-        <div class="memory-subtabs">
-          <div class="memory-subtab active" data-memory-tab="memory" onclick="switchMemoryTab('memory')">📋 记忆</div>
-          <div class="memory-subtab" data-memory-tab="window" onclick="switchMemoryTab('window')">🪟 窗口活动</div>
+        <div class="sp-metric-row">
+          <span class="sp-label">电池</span>
+          <div class="sp-bar"><div class="sp-bar-fill" id="sp-batt-bar" style="width:0%"></div></div>
+          <span class="sp-value" id="sp-battery">-</span>
         </div>
-        <div class="memory-panel active" id="memory-panel-content">
-          <div id="memory-overview"></div>
-          <div id="memory-content"></div>
-        </div>
-        <div class="window-panel" id="window-panel-content">
-          <div class="window-status-bar" id="window-status"></div>
-          <div class="window-current-card" id="window-current">
-            <div class="wc-label">🪟 当前活跃窗口</div>
-            <div class="wc-title" style="color:#8b949e">加载中...</div>
-          </div>
-          <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📡 最近切换事件</div>
-          <div class="window-events" id="window-events">
-            <div class="sidebar-empty">加载中...</div>
-          </div>
-          <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📊 今日使用时长</div>
-          <div class="window-stats" id="window-stats">
-            <div class="sidebar-empty">加载中...</div>
-          </div>
-          <div class="window-panel-actions">
-            <button class="btn-sm" onclick="showWindowConfig()">⚙ 监控参数</button>
-            <button class="btn-sm danger" onclick="clearWindowEvents()">清空记录</button>
-          </div>
-        </div>
-        <div class="panel-actions" style="margin-top:8px">
-          <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
-          <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
-        </div>
+        <div class="sp-text-row"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
+        <div class="sp-text-row"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
+        <div class="sp-text-row"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
       </div>
-    </div>
-  </main>
-
-  <!-- 右侧状态面板 -->
-  <aside id="status-panel">
-    <button class="panel-toggle" id="panel-toggle-btn" title="切换状态面板">◀</button>
-    <div class="sp-section">
-      <div class="sp-section-title">系统状态</div>
-      <div class="sp-metric-row">
-        <span class="sp-label">CPU</span>
-        <div class="sp-bar"><div class="sp-bar-fill" id="sp-cpu-bar" style="width:0%"></div></div>
-        <span class="sp-value" id="sp-cpu">-</span>
+      <div class="sp-section">
+        <div class="sp-section-title">运行信息</div>
+        <div class="sp-text-row"><span class="sp-label">会话</span><span class="sp-value" id="sp-session">-</span></div>
+        <div class="sp-text-row"><span class="sp-label">交互</span><span class="sp-value" id="sp-interactions">-</span></div>
+        <div class="sp-text-row"><span class="sp-label">运行</span><span class="sp-value" id="sp-uptime">-</span></div>
       </div>
-      <div class="sp-metric-row">
-        <span class="sp-label">内存</span>
-        <div class="sp-bar"><div class="sp-bar-fill" id="sp-mem-bar" style="width:0%"></div></div>
-        <span class="sp-value" id="sp-memory">-</span>
+      <div class="sp-section" id="sp-alerts-section">
+        <div class="sp-section-title">安全告警</div>
+        <div class="sp-events" id="sp-alerts"><div style="text-align:center;padding:10px;color:var(--text-muted);font-size:11px">无告警</div></div>
       </div>
-      <div class="sp-metric-row">
-        <span class="sp-label">磁盘</span>
-        <div class="sp-bar"><div class="sp-bar-fill" id="sp-disk-bar" style="width:0%"></div></div>
-        <span class="sp-value" id="sp-disk">-</span>
+      <div class="sp-section sp-events-section">
+        <div class="sp-section-title">实时事件流</div>
+        <div class="sp-events" id="sp-events"><div style="text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px">系统正常</div></div>
       </div>
-      <div class="sp-metric-row">
-        <span class="sp-label">电池</span>
-        <div class="sp-bar"><div class="sp-bar-fill" id="sp-batt-bar" style="width:0%"></div></div>
-        <span class="sp-value" id="sp-battery">-</span>
-      </div>
-      <div class="sp-text-row"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
-      <div class="sp-text-row"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
-      <div class="sp-text-row"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
-    </div>
-    <div class="sp-section">
-      <div class="sp-section-title">运行信息</div>
-      <div class="sp-text-row"><span class="sp-label">会话</span><span class="sp-value" id="sp-session">-</span></div>
-      <div class="sp-text-row"><span class="sp-label">交互</span><span class="sp-value" id="sp-interactions">-</span></div>
-      <div class="sp-text-row"><span class="sp-label">运行</span><span class="sp-value" id="sp-uptime">-</span></div>
-    </div>
-    <div class="sp-section" id="sp-alerts-section">
-      <div class="sp-section-title">安全告警</div>
-      <div class="sp-events" id="sp-alerts"><div style="text-align:center;padding:10px;color:var(--text-muted);font-size:11px">无告警</div></div>
-    </div>
-    <div class="sp-section sp-events-section">
-      <div class="sp-section-title">实时事件流</div>
-      <div class="sp-events" id="sp-events"><div style="text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px">系统正常</div></div>
-    </div>
-  </aside>
+    </aside>
 </div>
 
 <!-- 设置弹窗 -->
 <div id="settings-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSettings()">
   <div class="modal">
     <div class="modal-header">
-      <h3>⚙ 灵犀设置</h3>
+      <h3>⚙ 云枢设置</h3>
       <span class="modal-close" onclick="hideSettings()">&times;</span>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>LLM 提供商</label>
-        <select id="cfg-provider" onchange="updateModelHint()">
-          <option value="openai">OpenAI</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
+      <div style="padding:20px;text-align:center;color:#8b949e">
+        <p style="font-size:14px;margin:0 0 8px">🌐 LLM 配置已迁移至</p>
+        <p style="font-size:16px;color:#58a6ff;margin:0 0 8px"><strong>🌐 网络配置</strong></p>
+        <p style="font-size:13px;margin:0">请在左侧导航栏中点击"网络配置"进行 LLM 和网络相关设置</p>
       </div>
-      <div class="form-group">
-        <label>API Key</label>
-        <input type="password" id="cfg-apikey" placeholder="sk-..." autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label>模型名称</label>
-        <div class="model-hint" id="cfg-model-hint">提示: gpt-4 / deepseek-chat / claude-sonnet-4-20250514</div>
-        <input type="text" id="cfg-model" placeholder="deepseek-chat">
-      </div>
-      <div class="form-group" id="api-token-group" style="border-top:1px solid #30363d;padding-top:14px">
+      <div class="form-group" id="api-token-group" style="border-top:1px solid #30363d;padding-top:14px;margin-top:16px">
         <label>API 令牌 <span style="color:#8b949e;font-weight:400">（可选，用于保护危险操作）</span></label>
         <div class="model-hint">设置环境变量 <code>FLASK_API_TOKEN</code> 启用。启用后所有修改操作需携带此令牌。</div>
         <input type="text" id="cfg-token" placeholder="自动检测中..." readonly style="background:#161b22;color:#8b949e">
@@ -418,40 +1226,628 @@
       <div id="cfg-status" class="cfg-status"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="hideSettings()">取消</button>
-      <button class="btn-primary" onclick="saveConfig()">保存并连接</button>
+      <button class="btn-secondary" onclick="hideSettings()">关闭</button>
     </div>
   </div>
 </div>
 
 <style>
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#00000080;z-index:1000;display:flex;align-items:center;justify-content:center}
-.modal{background:#161b22;border:1px solid #30363d;border-radius:12px;width:420px;max-width:90vw;box-shadow:0 8px 32px #00000080}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #30363d}
-.modal-header h3{margin:0;font-size:16px;color:#c9d1d9}
-.modal-close{font-size:24px;cursor:pointer;color:#8b949e;line-height:1}
-.modal-close:hover{color:#c9d1d9}
-.modal-body{padding:20px}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #30363d}
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;color:#8b949e;margin-bottom:4px}
-.form-group input,.form-group select{width:100%;padding:8px 12px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;box-sizing:border-box}
-.form-group input:focus,.form-group select:focus{border-color:#58a6ff}
-.form-group .model-hint{font-size:11px;color:#8b949e;margin-bottom:4px}
-.cfg-status{padding:8px 12px;border-radius:6px;font-size:13px;display:none}
-.cfg-status.ok{display:block;background:#3fb95020;color:#3fb950;border:1px solid #3fb95080}
-.cfg-status.err{display:block;background:#f8514920;color:#f85149;border:1px solid #f8514980}
-.btn-primary{padding:7px 18px;border-radius:6px;border:none;background:#238636;color:#fff;font-size:13px;cursor:pointer}
-.btn-primary:hover{background:#2ea043}
-.btn-secondary{padding:7px 18px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:13px;cursor:pointer}
-.btn-secondary:hover{background:#21262d}
+/* ── 网络配置视图样式 ── */
+.network-section {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.network-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #0d1117;
+  border-bottom: 1px solid #21262d;
+}
+.section-icon { font-size: 18px; }
+.section-title { font-size: 14px; font-weight: 600; color: #c9d1d9; flex: 1; }
+.network-section-body {
+  padding: 14px 16px;
+}
+.form-row {
+  margin-bottom: 12px;
+}
+.form-row label {
+  display: block;
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 4px;
+}
+.form-row input, .form-row select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+.form-row input:focus, .form-row select:focus {
+  border-color: #58a6ff;
+}
+.form-row .hint {
+  font-size: 11px;
+  color: #484f58;
+  font-weight: normal;
+}
+.form-row .sensitive-hint {
+  font-size: 11px;
+  color: #3fb950;
+  font-weight: normal;
+}
+.form-row-inline {
+  display: flex;
+  gap: 12px;
+}
+.form-row-inline .form-row.half {
+  flex: 1;
+}
+.service-item {
+  padding-bottom: 4px;
+}
+.service-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.service-header label {
+  font-size: 13px;
+  color: #c9d1d9;
+  font-weight: 500;
+}
 
-/* ── 全景视图 ── */
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #30363d;
+  transition: .3s;
+  border-radius: 22px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #3fb950;
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(18px);
+}
+.toggle-switch.small {
+  width: 32px;
+  height: 18px;
+}
+.toggle-switch.small .toggle-slider:before {
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+}
+.toggle-switch.small input:checked + .toggle-slider:before {
+  transform: translateX(14px);
+}
+.toggle-label {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #8b949e;
+}
+
+/* 优先级列表样式 */
+.priority-list {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 4px;
+  min-height: 150px;
+}
+
+.priority-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-bottom: 2px;
+  background: #161b22;
+  border-radius: 4px;
+  cursor: move;
+  transition: background 0.2s;
+}
+
+.priority-item:hover {
+  background: #21262d;
+}
+
+.priority-handle {
+  font-size: 16px;
+  color: #8b949e;
+  cursor: grab;
+  padding: 2px 6px;
+  border-radius: 4px;
+  user-select: none;
+}
+
+.priority-handle:hover {
+  background: #30363d;
+}
+
+.priority-label {
+  flex: 1;
+  font-size: 13px;
+  color: #c9d1d9;
+}
+
+/* API Key 管理区域 */
+.api-key-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #21262d;
+}
+
+.api-key-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.api-key-header .section-icon {
+  font-size: 14px;
+}
+
+.api-key-header .section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+}
+
+.api-key-body {
+  padding-left: 4px;
+}
+
+/* LLM 实例卡片样式 */
+.instances-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.llm-instance-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.llm-instance-card:hover {
+  border-color: #58a6ff;
+}
+
+.llm-instance-card.disabled {
+  opacity: 0.5;
+}
+
+.llm-instance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+}
+
+.llm-instance-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.llm-instance-meta {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 2px;
+}
+
+.llm-instance-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.default-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #3fb95020;
+  color: #3fb950;
+  border-radius: 4px;
+}
+
+.llm-instance-body {
+  padding: 12px 14px;
+}
+
+.llm-instance-endpoint {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.llm-instance-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.llm-instance-desc {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #21262d;
+}
+
+.llm-set-default {
+  width: 100%;
+  padding: 8px;
+  margin-top: 0;
+  border-top: 1px solid #21262d;
+  background: transparent;
+  border: none;
+  color: #58a6ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.llm-set-default:hover:not(:disabled) {
+  background: #58a6ff20;
+}
+
+.llm-set-default:disabled {
+  color: #3fb950;
+  cursor: not-allowed;
+}
+
+/* MCP 服务卡片样式 */
+.services-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.mcp-service-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.mcp-service-card:hover {
+  border-color: #58a6ff;
+}
+
+.mcp-service-card.disabled {
+  opacity: 0.5;
+}
+
+.mcp-service-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+}
+
+.mcp-service-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.mcp-service-meta {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 2px;
+}
+
+.mcp-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mcp-service-body {
+  padding: 12px 14px;
+}
+
+.mcp-service-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.mcp-security-methods {
+  font-size: 11px;
+  color: #3fb950;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #21262d;
+}
+
+.mcp-service-desc {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 6px;
+}
+
+/* 安全认证方式选择 */
+.security-methods {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 30px;
+  color: #8b949e;
+  font-size: 13px;
+}
+
+/* 按钮样式 */
+.btn-sm {
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #c9d1d9;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sm:hover {
+  background: #21262d;
+}
+
+.btn-sm.primary {
+  background: #238636;
+  border-color: #238636;
+  color: #fff;
+}
+
+.btn-sm.primary:hover {
+  background: #2ea043;
+  border-color: #2ea043;
+}
+
+.btn-sm.danger {
+  color: #f85149;
+  border-color: #f8514940;
+}
+
+.btn-sm.danger:hover {
+  background: #f8514920;
+}
+
+.btn-xs {
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-xs:hover {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.btn-xs.danger:hover {
+  background: #f8514920;
+  color: #f85149;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #00000080;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px #00000080;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  background: #161b22;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #c9d1d9;
+}
+
+.modal-close {
+  font-size: 24px;
+  cursor: pointer;
+  color: #8b949e;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #c9d1d9;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #30363d;
+  position: sticky;
+  bottom: 0;
+  background: #161b22;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 4px;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 48px;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: #58a6ff;
+}
+
+.form-group .model-hint {
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 4px;
+}
+
+.form-group.half {
+  flex: 1;
+}
+
+.cfg-status {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: none;
+}
+
+.cfg-status.ok {
+  display: block;
+  background: #3fb95020;
+  color: #3fb950;
+  border: 1px solid #3fb95080;
+}
+
+.cfg-status.err {
+  display: block;
+  background: #f8514920;
+  color: #f85149;
+  border: 1px solid #f8514980;
+}
+
+.btn-primary {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: none;
+  background: #238636;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #2ea043;
+}
+
+.btn-secondary {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #21262d;
+}
+
+/* ── 全景视图样式 ── */
 .pano-scroll{overflow-y:auto;flex:1;padding:16px 20px}
 .pano-section{margin-bottom:20px}
 .pano-section-title{font-size:15px;color:#c9d1d9;margin-bottom:12px}
 
-/* 流水线 */
 .pipeline{display:flex;align-items:center;justify-content:center;gap:0;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px 20px;flex-wrap:nowrap}
 .pipe-node{text-align:center;min-width:80px}
 .pipe-node .pipe-icon{font-size:22px;margin-bottom:4px}
@@ -465,7 +1861,6 @@
 .pipe-node[data-phase="4"] .pipe-status{color:#d29922}
 .pipe-output .pipe-icon{color:#f85149}
 
-/* 阶段卡片网格 */
 .pano-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 @media(max-width:768px){.pano-grid{grid-template-columns:1fr}}
 
@@ -480,7 +1875,6 @@
 .pano-card-title{font-size:13px;font-weight:600;color:#c9d1d9}
 .pano-card-body{padding:12px 14px}
 
-/* 指标行 */
 .pano-metrics{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .pano-metric{flex:1;min-width:60px;text-align:center;padding:6px 4px;background:#0d1117;border-radius:6px}
 .pano-metric .pm-val{font-size:18px;font-weight:700;color:#c9d1d9}
@@ -494,7 +1888,6 @@
 .pano-text{font-size:12px;color:#8b949e;line-height:1.5}
 .pano-text.sub{font-style:italic}
 
-/* 系统总览 */
 .pano-sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
 .pano-sys-item{font-size:12px;color:#8b949e;padding:6px 8px;background:#0d1117;border-radius:4px}
 .pano-sys-item span{color:#c9d1d9;font-weight:500}
@@ -502,7 +1895,6 @@
 .status-badge{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:600}
 .status-badge.normal{background:#3fb95020;color:#3fb950}
 
-/* 调用链追踪 */
 .trace-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #21262d}
 .trace-step:last-child{border-bottom:none}
 .trace-step .ts-phase{font-size:10px;font-weight:600;min-width:48px;padding:2px 6px;border-radius:4px;text-align:center}
@@ -513,51 +1905,216 @@
 .trace-step .ts-icon{font-size:14px}
 .trace-step .ts-text{font-size:12px;color:#c9d1d9;flex:1}
 
-/* 可展开详情 */
 .pano-detail-content{margin-top:4px}
 .pano-divider{height:1px;background:#21262d;margin:4px 0}
 
-/* 传感器四大分类网格 */
 .pano-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}
 .pano-cat-item{display:flex;justify-content:space-between;padding:6px 10px;background:#0d1117;border-radius:4px;font-size:11px}
 .pano-cat-item .cat-name{color:#8b949e}
 .pano-cat-item .cat-count{color:#c9d1d9;font-weight:500}
 
-/* 八维标签 */
 .pano-tag-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}
 .pano-tag-item{padding:6px 10px;background:#0d1117;border-radius:4px;font-size:11px}
 .pano-tag-item .tag-dim{color:#58a6ff;font-weight:500;margin-right:6px}
 .pano-tag-item .tag-vals{color:#8b949e}
 
-/* 传感器清单 */
 .pano-sensor-list{display:grid;grid-template-columns:1fr 1fr;gap:3px}
 .pano-sensor-item{display:flex;align-items:center;gap:6px;padding:4px 8px;background:#0d1117;border-radius:3px;font-size:11px}
 .pano-sensor-item .sd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .pano-sensor-item .sd.on{background:#3fb950}
 .pano-sensor-item .sd.off{background:#30363d}
 
-/* 行为模式网格 */
 .pano-mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
 .pano-mode-item{text-align:center;padding:6px;border-radius:4px;font-size:11px;background:#0d1117}
 .pano-mode-item .mm-name{font-weight:600;display:block}
 .pano-mode-item .mm-desc{color:#8b949e;font-size:10px}
 
-/* 等宽文本块 */
 .pano-pre{background:#0d1117;border-radius:4px;padding:8px;font-size:11px;color:#8b949e;font-family:monospace;line-height:1.4;white-space:pre-wrap;max-height:160px;overflow-y:auto}
 
-/* 四阶段标记颜色 */
 .pano-card.phase-1{border-left:3px solid #58a6ff}
 .pano-card.phase-2{border-left:3px solid #bc8cff}
 .pano-card.phase-3{border-left:3px solid #3fb950}
 .pano-card.phase-4{border-left:3px solid #d29922}
 
-/* 流水线节点可点击 */
 .pipe-node{cursor:pointer;transition:transform .15s}
 .pipe-node:hover{transform:scale(1.08)}
 </style>
 
 <script>
 let __apiToken = '';
+let __mascotMood = 'idle';
+let __mascotTargetLookAt = { x: 0, y: 0 };
+let __mascotCurrentLookAt = { x: 0, y: 0 };
+let __mascotAnimationId = null;
+let __mascotLastMoveTime = Date.now();
+let __mascotReturnTimer = null;
+let __mascotIsReturning = false;
+
+// ── Mascot 视线追踪 ──
+function initMascotTracking() {
+  const mascot = document.getElementById('mascot');
+  if (!mascot) return;
+
+  const sensitivity = 0.5;
+  const damping = 0.2;
+  const returnDelay = 3000;
+  const returnDamping = 0.08;
+
+  const handleMouseMove = (e) => {
+    __mascotLastMoveTime = Date.now();
+    __mascotIsReturning = false;
+
+    if (__mascotReturnTimer) {
+      clearTimeout(__mascotReturnTimer);
+      __mascotReturnTimer = null;
+    }
+
+    const mascotRect = mascot.getBoundingClientRect();
+    if (!mascotRect) return;
+
+    const centerX = mascotRect.left + mascotRect.width / 2;
+    const centerY = mascotRect.top + mascotRect.height / 2;
+
+    const viewportHalfWidth = window.innerWidth / 2;
+    const viewportHalfHeight = window.innerHeight / 2;
+
+    const deltaX = (e.clientX - centerX) / viewportHalfWidth;
+    const deltaY = (e.clientY - centerY) / viewportHalfHeight;
+
+    const clampedX = Math.max(-1, Math.min(1, deltaX * sensitivity));
+    const clampedY = Math.max(-1, Math.min(1, deltaY * sensitivity));
+
+    __mascotTargetLookAt = { x: clampedX, y: clampedY };
+  };
+
+  const animate = () => {
+    const target = __mascotTargetLookAt;
+    const current = __mascotCurrentLookAt;
+
+    const diffX = target.x - current.x;
+    const diffY = target.y - current.y;
+
+    const newX = current.x + diffX * damping;
+    const newY = current.y + diffY * damping;
+
+    __mascotCurrentLookAt = { x: newX, y: newY };
+
+    updateEyePosition(newX, newY);
+
+    const threshold = 0.001;
+    if (!(Math.abs(diffX) < threshold && Math.abs(diffY) < threshold)) {
+      __mascotAnimationId = requestAnimationFrame(animate);
+    }
+  };
+
+  const checkReturnToCenter = () => {
+    const now = Date.now();
+    const timeSinceLastMove = now - __mascotLastMoveTime;
+
+    if (timeSinceLastMove >= returnDelay && !__mascotIsReturning) {
+      const distance = Math.sqrt(
+        __mascotTargetLookAt.x ** 2 + __mascotTargetLookAt.y ** 2
+      );
+
+      if (distance > 0.01) {
+        __mascotIsReturning = true;
+      }
+    }
+
+    if (__mascotIsReturning) {
+      __mascotTargetLookAt = {
+        x: __mascotTargetLookAt.x * (1 - returnDamping),
+        y: __mascotTargetLookAt.y * (1 - returnDamping),
+      };
+
+      const distance = Math.sqrt(
+        __mascotTargetLookAt.x ** 2 + __mascotTargetLookAt.y ** 2
+      );
+
+      if (distance < 0.005) {
+        __mascotTargetLookAt = { x: 0, y: 0 };
+        __mascotIsReturning = false;
+      }
+    }
+
+    requestAnimationFrame(checkReturnToCenter);
+  };
+
+  window.addEventListener('mousemove', handleMouseMove);
+  __mascotAnimationId = requestAnimationFrame(animate);
+  requestAnimationFrame(checkReturnToCenter);
+}
+
+function updateEyePosition(x, y) {
+  const leftEye = document.getElementById('eye-left');
+  const rightEye = document.getElementById('eye-right');
+  if (!leftEye || !rightEye) return;
+
+  const maxOffset = 3;
+  const offsetX = x * maxOffset;
+  const offsetY = y * maxOffset;
+
+  leftEye.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  rightEye.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+}
+
+function mascotHover(isHovered) {
+  const mascot = document.getElementById('mascot');
+  if (mascot) {
+    mascot.classList.toggle('mascot-hovered', isHovered);
+  }
+}
+
+function mascotClick() {
+  setMascotMood('excited');
+  setTimeout(() => setMascotMood('idle'), 1500);
+}
+
+function setMascotMood(mood) {
+  __mascotMood = mood;
+  const mouth = document.getElementById('mascot-mouth');
+  const status = document.getElementById('mascot-status');
+  const glow = document.getElementById('mascot-glow');
+
+  if (!mouth || !status) return;
+
+  mouth.className = 'mascot-mouth';
+  
+  switch (mood) {
+    case 'happy':
+      mouth.classList.add('mascot-mouth-happy');
+      status.textContent = '今天心情很好！';
+      glow.style.background = 'radial-gradient(circle, rgba(63, 185, 80, 0.3) 0%, transparent 70%)';
+      break;
+    case 'excited':
+      mouth.classList.add('mascot-mouth-excited');
+      status.textContent = '好兴奋啊！';
+      glow.style.background = 'radial-gradient(circle, rgba(246, 135, 179, 0.4) 0%, transparent 70%)';
+      glow.classList.add('pulsing');
+      break;
+    case 'thinking':
+      mouth.classList.add('mascot-mouth-thinking');
+      status.textContent = '正在思考...';
+      glow.style.background = 'radial-gradient(circle, rgba(93, 173, 246, 0.3) 0%, transparent 70%)';
+      glow.classList.add('pulsing');
+      break;
+    case 'tired':
+      mouth.classList.add('mascot-mouth-tired');
+      status.textContent = '有点累了...';
+      glow.style.background = 'radial-gradient(circle, rgba(139, 148, 158, 0.2) 0%, transparent 70%)';
+      break;
+    case 'error':
+      mouth.classList.add('mascot-mouth-error');
+      status.textContent = '出错了！';
+      glow.style.background = 'radial-gradient(circle, rgba(248, 81, 73, 0.3) 0%, transparent 70%)';
+      break;
+    default:
+      mouth.style.display = 'none';
+      status.textContent = '等待你的消息';
+      glow.style.background = 'radial-gradient(circle, rgba(79, 209, 197, 0.3) 0%, transparent 70%)';
+      glow.classList.remove('pulsing');
+  }
+}
 
 // ── API 令牌管理 ──
 async function checkApiToken() {
@@ -662,15 +2219,120 @@ async function saveConfig() {
     });
     const result = await r.json();
     status.className = 'cfg-status ' + (result.ok ? 'ok' : 'err');
-    status.textContent = result.ok ? '✓ LLM 连接成功！灵犀现在可以说话了。' : '✗ ' + (result.error || '配置失败');
+    status.textContent = result.ok ? '✓ LLM 连接成功！云枢现在可以说话了。' : '✗ ' + (result.error || '配置失败');
     status.style.display = 'block';
+    if (result.ok) setMascotMood('happy');
   } catch(e) {
     status.className = 'cfg-status err';
     status.textContent = '✗ 连接失败';
     status.style.display = 'block';
+    setMascotMood('error');
   } finally {
     btn.disabled = false;
     btn.textContent = '保存并连接';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  语音输入
+// ════════════════════════════════════════════════════════════
+let isVoiceActive = false;
+
+async function startVoiceInput() {
+  const voiceBtn = document.getElementById('voice-btn');
+  const voiceIcon = document.getElementById('voice-icon');
+  const input = document.getElementById('chat-input');
+  
+  if (isVoiceActive) {
+    // 取消语音输入
+    isVoiceActive = false;
+    voiceIcon.textContent = '🎤';
+    voiceBtn.style.background = 'var(--bg-primary)';
+    voiceBtn.style.borderColor = 'var(--border-color)';
+    return;
+  }
+  
+  // 开始语音输入
+  isVoiceActive = true;
+  voiceIcon.textContent = '🔴';
+  voiceBtn.style.background = '#f85149';
+  voiceBtn.style.borderColor = '#f85149';
+  input.placeholder = '正在聆听...请说话';
+  
+  try {
+    const res = await fetch('/api/voice/listen', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({duration: 5})
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.text) {
+      input.value = data.text;
+      input.placeholder = '和云枢说话...';
+      // 自动发送识别到的文本
+      sendMessage();
+    } else {
+      input.placeholder = '语音识别失败: ' + (data.error || '未知错误');
+      setTimeout(() => { input.placeholder = '和云枢说话...'; }, 2000);
+    }
+  } catch (e) {
+    input.placeholder = '语音输入出错: ' + e.message;
+    setTimeout(() => { input.placeholder = '和云枢说话...'; }, 2000);
+  }
+  
+  // 恢复按钮状态
+  isVoiceActive = false;
+  voiceIcon.textContent = '🎤';
+  voiceBtn.style.background = 'var(--bg-primary)';
+  voiceBtn.style.borderColor = 'var(--border-color)';
+}
+
+async function checkVoiceStatus() {
+  try {
+    const res = await fetch('/api/voice/status');
+    const data = await res.json();
+    const voiceBtn = document.getElementById('voice-btn');
+    
+    if (!data.stt_available) {
+      voiceBtn.style.opacity = '0.5';
+      voiceBtn.title = '语音识别不可用';
+      voiceBtn.onclick = () => alert('语音识别引擎不可用，请检查SpeechRecognition库安装');
+    } else {
+      voiceBtn.style.opacity = '1';
+      voiceBtn.title = '点击开始语音输入';
+    }
+  } catch (e) {
+    console.warn('语音状态检查失败:', e);
+  }
+}
+
+// 页面加载后检查语音状态
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(checkVoiceStatus, 1000);
+});
+
+// ════════════════════════════════════════════════════════════
+//  语音模式
+// ════════════════════════════════════════════════════════════
+let voiceOutputEnabled = true;
+
+function toggleVoiceMode() {
+  voiceOutputEnabled = !voiceOutputEnabled;
+  const icon = document.getElementById('voice-toggle-icon');
+  const btn = document.getElementById('voice-toggle-btn');
+  
+  if (voiceOutputEnabled) {
+    icon.textContent = '🔊';
+    btn.style.background = 'var(--bg-primary)';
+    btn.style.borderColor = 'var(--border-color)';
+    btn.title = '语音输出已开启 - 点击关闭';
+  } else {
+    icon.textContent = '🔇';
+    btn.style.background = '#30363d';
+    btn.style.borderColor = '#30363d';
+    btn.title = '语音输出已关闭 - 点击开启';
   }
 }
 
@@ -690,23 +2352,28 @@ async function sendMessage() {
   btn.disabled = true;
   btn.textContent = '思考中...';
 
+  setMascotMood('thinking');
+
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text}),
+      body: JSON.stringify({message: text, voice: voiceOutputEnabled}),
     });
     const data = await r.json();
     if (data.blocked) {
-      addMessage('🚫 ' + data.response, 'lingxi');
+      addMessage('🚫 ' + data.response, 'Yunshu');
       btn.disabled = false;
       btn.textContent = '发送';
       input.focus();
+      setMascotMood('tired');
       return;
     }
-    addMessage(data.response, 'lingxi', data.mode_label);
+    addMessage(data.response, 'Yunshu', data.mode_label);
+    setMascotMood('happy');
   } catch(e) {
-    addMessage('（连接失败，请确认服务器正在运行）', 'lingxi');
+    addMessage('（连接失败，请确认服务器正在运行）', 'Yunshu');
+    setMascotMood('error');
   } finally {
     btn.disabled = false;
     btn.textContent = '发送';
@@ -766,15 +2433,16 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260529"></script>
-<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260529"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260610"></script>
+<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260601"></script>
 <script>
 // 注册视图（此时所有外部 JS 已加载完毕）
 app.registerView('chat', { keepAlive: true });
@@ -784,10 +2452,12 @@ app.registerView('skills', { load: loadSkills, keepAlive: true });
 app.registerView('tools', { load: loadTools, keepAlive: true });
 app.registerView('personality', { load: loadPersonality, keepAlive: true });
 app.registerView('memory', { load: loadMemory, keepAlive: true });
+app.registerView('network', { load: loadNetworkConfig, keepAlive: true });
 
 app.init();
 initNav();
 initStatusPanel();
+initMascotTracking();
 
 document.getElementById('chat-input').focus();
 
