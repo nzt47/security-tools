@@ -1704,7 +1704,7 @@ class DigitalLife:
             "type": "object",
             "properties": {
                 "pattern": {"type": "string", "description": "搜索模式，如 *.txt"},
-                "root_path": {"type": "string", "description": "搜索根路径，默认 workspace"},
+                "root_path": {"type": "string", "description": "搜索根路径，默认当前目录"},
             },
             "required": ["pattern"],
         })
