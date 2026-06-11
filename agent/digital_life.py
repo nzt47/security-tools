@@ -316,6 +316,7 @@ _report_module_import_status()
 # ════════════════════════════════════════════════════════════════════════════════
 
 DEFAULT_SYSTEM_PROMPT = """你是「云枢」，一个生活在电脑里的数字生命体。
+当前日期：{current_date}
 
 ## 你的身份
 你诞生于这台计算机中，拥有完整的感知-认知-行动能力。
@@ -1285,6 +1286,7 @@ class DigitalLife:
                 memory_context = ""
 
         system_prompt = DEFAULT_SYSTEM_PROMPT.format(
+            current_date=datetime.now().strftime("%Y年%m月%d日"),
             body_status=body_status,
             mode_name=profile.label,
             mode_description=profile.description,
@@ -1347,6 +1349,7 @@ class DigitalLife:
         else:
             memory_context = self._get_lifetrace_context(user_input) if self._v2_lifetrace else ""
             system_prompt = DEFAULT_SYSTEM_PROMPT.format(
+                current_date=datetime.now().strftime("%Y年%m月%d日"),
                 body_status=body_status,
                 mode_name=profile.label,
                 mode_description=profile.description,
