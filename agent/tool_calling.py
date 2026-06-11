@@ -42,12 +42,17 @@ class ToolCallingService:
             LLM 生成的最终回复文本
         """
         tool_defs = tools.get_tool_defs(whitelist=tools_whitelist)
+        logger.info("[ToolCalling] chat() 开始，工具定义数: %d, 消息数: %d",
+                     len(tool_defs), len(messages))
         working_messages = list(messages)
 
         for round_idx in range(self._max_rounds + 1):
             need_tools = tool_defs if round_idx < self._max_rounds else None
 
             try:
+                has_tools = need_tools is not None and len(need_tools) > 0
+                logger.info("[ToolCalling] 第 %d 轮 LLM 调用，%s工具",
+                            round_idx, f"带 {len(need_tools)} 个" if has_tools else "无")
                 response = self._call_llm_with_tools(
                     working_messages, system_prompt,
                     max_tokens, temperature, need_tools
@@ -55,6 +60,7 @@ class ToolCallingService:
             except Exception as e:
                 logger.error("LLM 调用失败（第 %d 轮）: %s", round_idx, e)
                 if round_idx == 0:
+                    logger.warning("[ToolCalling] 首轮失败，降级为纯文本 LLM 调用")
                     try:
                         return self._llm.chat(
                             messages, system_prompt=system_prompt,
@@ -67,12 +73,17 @@ class ToolCallingService:
                 return self._get_last_assistant_text(working_messages)
 
             tool_calls = self._extract_tool_calls(response)
+            text_preview = self._extract_text(response)[:80]
 
             if not tool_calls:
-                text = self._extract_text(response)
-                if text:
-                    working_messages.append({"role": "assistant", "content": text})
-                return text or self._get_last_assistant_text(working_messages)
+                logger.info("[ToolCalling] LLM 返回纯文本: %s...", text_preview)
+                if text_preview:
+                    working_messages.append({"role": "assistant", "content": text_preview})
+                return text_preview or self._get_last_assistant_text(working_messages)
+
+            logger.info("[ToolCalling] LLM 返回 %d 个工具调用: %s",
+                        len(tool_calls),
+                        [tc.get("function", {}).get("name", "") for tc in tool_calls])
 
             assistant_msg = {"role": "assistant", "content": None, "tool_calls": []}
             tool_results = []
