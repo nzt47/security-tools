@@ -324,14 +324,14 @@ def _save_conversation_record(user_input, response, mode="normal", health_data=N
             health_lines.append(f"🔹 {name}：{icon} {value}")
 
     record = (
-        "=" * 45 + "\n"
-        f"  会话记录 #{seq}\n"
-        "=" * 45 + "\n\n"
-        f"🕒 时间：{now.strftime('%Y年%m月%d日 %H:%M')}\n"
-        f"📋 模式：{mode}\n\n"
-        "---\n\n"
-        "💬 【对话内容】\n\n"
-        f"👤 用户：\n{user_input.strip()}\n\n"
+        "=" * 45 + "\n" +
+        f"  会话记录 #{seq}\n" +
+        "=" * 45 + "\n\n" +
+        f"🕒 时间：{now.strftime('%Y年%m月%d日 %H:%M')}\n" +
+        f"📋 模式：{mode}\n\n" +
+        "---\n\n" +
+        "💬 【对话内容】\n\n" +
+        f"👤 用户：\n{user_input.strip()}\n\n" +
         f"🤖 云枢：\n{response.strip()}\n\n"
     )
     if health_lines:
@@ -1319,6 +1319,201 @@ try:
     _network_config_mgr = NetworkConfigManager(secure_manager=_get_secure_manager())
 except Exception:
     _network_config_mgr = NetworkConfigManager()
+
+
+# ════════════════════════════════════════════════════════════
+#  扩展系统管理器（Skills / MCP / Channels / Plugins）
+# ════════════════════════════════════════════════════════════
+
+from agent.extensions.manager import ExtensionManager
+from agent.extensions.market import ExtensionMarket
+
+_extension_mgr = ExtensionManager(network_config_mgr=_network_config_mgr)
+_extension_market = ExtensionMarket()
+
+
+# ════════════════════════════════════════════════════════════
+#  扩展系统 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/extensions/list", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_extensions_list():
+    """列出所有已安装扩展"""
+    try:
+        ext_type = request.args.get("type")
+        result = _extension_mgr.list_all(ext_type)
+        return jsonify({"ok": True, "extensions": result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/installed", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_extensions_installed():
+    """按类型分组获取已安装扩展"""
+    try:
+        result = _extension_mgr.get_installed_by_type()
+        return jsonify({"ok": True, **result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/install", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_install():
+    """安装扩展"""
+    try:
+        data = request.get_json() or {}
+        ext_type = data.get("type", "")
+        source = data.get("source", data.get("id", ""))
+        kwargs = data.get("params", {})
+
+        if not ext_type or not source:
+            return jsonify({"ok": False, "error": "缺少 type 或 source/id"}), 400
+
+        result = _extension_mgr.install(ext_type, source, **kwargs)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/uninstall", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_uninstall():
+    """卸载扩展"""
+    try:
+        data = request.get_json() or {}
+        ext_type = data.get("type", "")
+        ext_id = data.get("id", "")
+
+        if not ext_type or not ext_id:
+            return jsonify({"ok": False, "error": "缺少 type 或 id"}), 400
+
+        result = _extension_mgr.uninstall(ext_type, ext_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/toggle", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_toggle():
+    """启用/禁用扩展"""
+    try:
+        data = request.get_json() or {}
+        ext_type = data.get("type", "")
+        ext_id = data.get("id", "")
+        enabled = data.get("enabled")  # None 表示切换
+
+        if not ext_type or not ext_id:
+            return jsonify({"ok": False, "error": "缺少 type 或 id"}), 400
+
+        result = _extension_mgr.toggle(ext_type, ext_id, enabled)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/configure", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_configure():
+    """配置扩展参数"""
+    try:
+        data = request.get_json() or {}
+        ext_type = data.get("type", "")
+        ext_id = data.get("id", "")
+        config = data.get("config", {})
+
+        if not ext_type or not ext_id:
+            return jsonify({"ok": False, "error": "缺少 type 或 id"}), 400
+
+        result = _extension_mgr.configure(ext_type, ext_id, config)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/discover", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_extensions_discover():
+    """发现所有可用扩展"""
+    try:
+        result = _extension_mgr.discover_all()
+        return jsonify({"ok": True, **result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/market/search", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_extensions_market_search():
+    """搜索扩展市场"""
+    try:
+        query = request.args.get("q", "")
+        ext_type = request.args.get("type")
+        include_github = request.args.get("github", "true").lower() == "true"
+
+        result = _extension_market.search_all(query, ext_type, include_github)
+        return jsonify({"ok": True, **result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/market/recommend", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_extensions_market_recommend():
+    """获取推荐扩展"""
+    try:
+        ext_type = request.args.get("type")
+        limit = request.args.get("limit", 5, type=int)
+        result = _extension_market.get_recommendations(ext_type, limit)
+        return jsonify({"ok": True, "recommendations": result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/market/refresh", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_market_refresh():
+    """刷新社区扩展索引"""
+    try:
+        result = _extension_market.fetch_community_index()
+        if result:
+            return jsonify({"ok": True, "count": len(result)})
+        return jsonify({"ok": False, "error": "获取索引失败"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extensions/channels/send", methods=["POST"])
+@require_token
+@log_request()
+def api_extensions_channel_send():
+    """通过通道发送消息"""
+    try:
+        data = request.get_json() or {}
+        channel_id = data.get("channel_id", "")
+        message = data.get("message", "")
+        kwargs = data.get("params", {})
+
+        if not channel_id or not message:
+            return jsonify({"ok": False, "error": "缺少 channel_id 或 message"}), 400
+
+        result = _extension_mgr.send_channel_message(channel_id, message, **kwargs)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
