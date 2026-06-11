@@ -140,8 +140,8 @@ class SessionManager:
                                 json.dumps(meta, ensure_ascii=False, indent=2),
                                 encoding="utf-8"
                             )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning("更新 meta.json 失败: %s", e)
                     logger.info("会话已重命名: %s → %s", session_id, title)
                     return True
         return False
@@ -178,10 +178,9 @@ class SessionManager:
             msg["tool_calls"] = tool_calls
 
         msg_file = session_dir / "messages.jsonl"
-        with open(msg_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(msg, ensure_ascii=False) + "\n")
-
         with self._lock:
+            with open(msg_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(msg, ensure_ascii=False) + "\n")
             index = self._read_index()
             for s in index:
                 if s["id"] == session_id:
@@ -224,7 +223,11 @@ class SessionManager:
 
     def clear_messages(self, session_id: str) -> bool:
         """清空会话消息"""
-        msg_file = self._sessions_dir / session_id / "messages.jsonl"
+        session_dir = self._sessions_dir / session_id
+        if not session_dir.exists():
+            return False
+
+        msg_file = session_dir / "messages.jsonl"
         if msg_file.exists():
             msg_file.write_text("", encoding="utf-8")
 
@@ -235,5 +238,5 @@ class SessionManager:
                     s["message_count"] = 0
                     s["updated_at"] = datetime.now(timezone.utc).isoformat()
                     self._write_index(index)
-                    break
-        return True
+                    return True
+        return False
