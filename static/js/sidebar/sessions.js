@@ -172,13 +172,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// 切换会话后关闭下拉菜单
-const origSwitchSession = switchSession;
-async function switchSession(sessionId) {
-    await origSwitchSession(sessionId);
-    closeSessionsDropdown();
-}
-
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     loadSessions();
