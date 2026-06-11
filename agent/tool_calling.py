@@ -75,6 +75,7 @@ class ToolCallingService:
                 return text or self._get_last_assistant_text(working_messages)
 
             assistant_msg = {"role": "assistant", "content": None, "tool_calls": []}
+            tool_results = []
             for tc in tool_calls:
                 tc_id = tc.get("id", "")
                 func_name = tc.get("function", {}).get("name", "")
@@ -93,13 +94,15 @@ class ToolCallingService:
                 assistant_msg["tool_calls"].append(tc_entry)
 
                 result = self._execute_safe(func_name, raw_args)
-                working_messages.append({
+                tool_results.append({
                     "role": "tool",
                     "tool_call_id": tc_id,
                     "content": json.dumps(result, ensure_ascii=False),
                 })
 
+            # 先添加 assistant 消息（含 tool_calls），再添加工具结果（OpenAI API 要求顺序）
             working_messages.append(assistant_msg)
+            working_messages.extend(tool_results)
 
         return self._get_last_assistant_text(working_messages)
 
@@ -126,23 +129,9 @@ class ToolCallingService:
             response = client.chat.completions.create(**kwargs)
             return response.choices[0].message
         else:
-            # Anthropic
-            api_messages = list(messages)
-            kwargs = {
-                "model": self._llm.model,
-                "messages": api_messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-            if system_prompt:
-                kwargs["system"] = system_prompt
-
-            response = client.messages.create(**kwargs)
-            # For Anthropic, return a dict-like object
-            return {
-                "content": response.content[0].text if response.content else "",
-                "tool_calls": None,  # Anthropic tool handling simplified
-            }
+            raise NotImplementedError(
+                "Anthropic tool calling 尚未实现。请使用 OpenAI 兼容的提供商。"
+            )
 
     def _extract_tool_calls(self, response) -> list[dict]:
         """从 LLM 响应中提取 tool_calls"""
