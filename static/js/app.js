@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-// 灵犀 · 全局应用对象 — 事件总线 + 状态管理 + 视图管理
+// 云枢 · 全局应用对象 — 事件总线 + 状态管理 + 视图管理
 // ════════════════════════════════════════════════════════════
 
 const app = {
@@ -79,6 +79,16 @@ const app = {
       body: JSON.stringify(data),
     });
     if (!r.ok) throw new Error('POST ' + url + ' failed: ' + r.status);
+    return r.json();
+  },
+
+  async put(url, data) {
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) throw new Error('PUT ' + url + ' failed: ' + r.status);
     return r.json();
   },
 
