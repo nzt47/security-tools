@@ -444,6 +444,7 @@ class DigitalLife:
         memory_cfg = self._config.get("memory", {})
         self._memory: MemoryManager = MemoryManager(memory_cfg)
         self._llm: Optional[LLMService] = self._memory._llm_service
+        self._tool_calling_service = None
         logger.info("[ok] 记忆（MemoryManager）已激活")
 
         # P5 懒加载：V2 功能现在会在首次访问时才初始化
@@ -473,7 +474,22 @@ class DigitalLife:
         self._register_builtin_tools()
         logger.info("[ok] 工具（Tool System）已激活")
 
-        # ── 7. 我的大脑：规划引擎 ──
+        # ── 7. 联网能力：工具调用引擎 ──
+        tc_cfg = self._config.get("tool_calling", {})
+        if tc_cfg.get("enabled", True) and self._llm:
+            from agent.tool_calling import ToolCallingService
+            self._tool_calling_service = ToolCallingService(
+                llm_service=self._llm,
+                max_rounds=tc_cfg.get("max_rounds", 5),
+                tool_timeout=tc_cfg.get("tool_timeout", 60),
+            )
+            logger.info("[ok] 联网引擎（ToolCallingService）已激活，最大工具轮次: %d",
+                        self._tool_calling_service._max_rounds)
+        else:
+            self._tool_calling_service = None
+            logger.info("[skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）")
+
+        # ── 8. 我的大脑：规划引擎 ──
         self._initialize_planning_engine()
 
         # ── 运行状态 ──
@@ -486,7 +502,7 @@ class DigitalLife:
         self._reflection_history: list[dict] = []
         self._started_at = None
 
-        # ── 8. 安全监控器 ──
+        # ── 9. 安全监控器 ──
         self._safety_monitor: AgentSafetyMonitor = get_safety_monitor()
         logger.info("[ok] 安全监控器已激活")
 
@@ -1285,12 +1301,20 @@ class DigitalLife:
 
         if self._llm:
             try:
-                response = self._llm.chat(
-                    messages=messages,
-                    system_prompt=system_prompt,
-                    max_tokens=1024,
-                    temperature=0.7,
-                )
+                if self._tool_calling_service:
+                    response = self._tool_calling_service.chat(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        max_tokens=2048,
+                        temperature=0.7,
+                    )
+                else:
+                    response = self._llm.chat(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        max_tokens=1024,
+                        temperature=0.7,
+                    )
                 if profile.response_prefix:
                     response = "%s\n%s" % (profile.response_prefix, response)
                 return response
@@ -1336,12 +1360,20 @@ class DigitalLife:
 
         if self._llm:
             try:
-                response = self._llm.chat(
-                    messages=messages,
-                    system_prompt=system_prompt,
-                    max_tokens=1024,
-                    temperature=0.7,
-                )
+                if self._tool_calling_service:
+                    response = self._tool_calling_service.chat(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        max_tokens=2048,
+                        temperature=0.7,
+                    )
+                else:
+                    response = self._llm.chat(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        max_tokens=1024,
+                        temperature=0.7,
+                    )
                 if profile.response_prefix:
                     response = "%s\n%s" % (profile.response_prefix, response)
                 return response
