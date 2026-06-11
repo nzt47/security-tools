@@ -211,6 +211,13 @@ class ToolCallingService:
             logger.error("工具 %s 执行异常: %s", func_name, e)
             return {"ok": False, "error": f"工具执行异常: {e}"}
 
+    def _get_last_assistant_text(self, messages: list) -> str:
+        """从消息列表中获取最后一条助手文本"""
+        for msg in reversed(messages):
+            if msg.get("role") == "assistant" and msg.get("content"):
+                return msg["content"]
+        return "（无法生成回复）"
+
 
 def _summarize_tool_result(tool_name: str, result: dict) -> str:
     """生成工具执行结果的简短摘要"""
@@ -233,10 +240,3 @@ def _summarize_tool_result(tool_name: str, result: dict) -> str:
     if result.get("result"):
         return str(result["result"])[:60]
     return f"执行成功"
-
-    def _get_last_assistant_text(self, messages: list) -> str:
-        """从消息列表中获取最后一条助手文本"""
-        for msg in reversed(messages):
-            if msg.get("role") == "assistant" and msg.get("content"):
-                return msg["content"]
-        return "（无法生成回复）"
