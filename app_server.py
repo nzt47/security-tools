@@ -854,7 +854,7 @@ def api_history():
     session_id = request.args.get("session") or _get_current_session_id()
     messages = _session_mgr.get_messages(session_id, limit=50)
     result = []
-    for i in range(0, len(messages) - 1, 2):
+    for i in range(0, len(messages), 2):
         user_msg = messages[i]
         assistant_msg = messages[i + 1] if i + 1 < len(messages) else {}
         if user_msg.get("role") == "user":
