@@ -113,3 +113,16 @@
 .session-item-actions .btn-delete:hover {
     color: var(--danger-color, #f85149);
 }
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .sessions-panel {
+        width: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sessions-panel {
+        display: none;
+    }
+}

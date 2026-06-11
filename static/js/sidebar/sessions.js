@@ -3,10 +3,13 @@
 // ════════════════════════════════════════════════════════════
 
 let _sessionsData = { sessions: [], current_id: null };
+let _requestSeq = 0;
 
 async function loadSessions() {
+    const seq = ++_requestSeq;
     try {
         const data = await app.get('/api/sessions');
+        if (seq !== _requestSeq) return; // 丢弃过期请求
         _sessionsData = data;
         renderSessions();
         updateChatHeader();
