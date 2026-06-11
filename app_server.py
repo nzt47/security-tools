@@ -291,6 +291,63 @@ def _get_current_session_id():
     return session_id
 
 
+MEMORY_DIR = os.path.join(WORKSPACE_DIR, "云枢记忆")
+os.makedirs(MEMORY_DIR, exist_ok=True)
+
+
+def _save_conversation_record(user_input, response, mode="normal", health_data=None):
+    """自动保存对话记录到云枢记忆目录"""
+    import datetime as dt
+    now = dt.datetime.now()
+    date_str = now.strftime("%Y%m%d")
+
+    # 查找当日已有记录数
+    prefix = os.path.join(MEMORY_DIR, f"会话记录_{date_str}")
+    seq = 0
+    try:
+        for f in os.listdir(MEMORY_DIR):
+            if f.startswith(f"会话记录_{date_str}") and f.endswith(".txt"):
+                seq += 1
+    except OSError:
+        pass
+    seq += 1
+
+    filename = f"会话记录_{date_str}_{seq:03d}.txt"
+    filepath = os.path.join(MEMORY_DIR, filename)
+
+    health_lines = []
+    if health_data:
+        for h in health_data[:6]:
+            name = h.get("description", h.get("sensor_name", "?"))
+            value = h.get("severity", "normal")
+            icon = "🟢" if value == "normal" else "🟡" if value == "warning" else "🔴"
+            health_lines.append(f"🔹 {name}：{icon} {value}")
+
+    record = (
+        "=" * 45 + "\n"
+        f"  会话记录 #{seq}\n"
+        "=" * 45 + "\n\n"
+        f"🕒 时间：{now.strftime('%Y年%m月%d日 %H:%M')}\n"
+        f"📋 模式：{mode}\n\n"
+        "---\n\n"
+        "💬 【对话内容】\n\n"
+        f"👤 用户：\n{user_input.strip()}\n\n"
+        f"🤖 云枢：\n{response.strip()}\n\n"
+    )
+    if health_lines:
+        record += "---\n\n📊 【身体状态】\n\n" + "\n".join(health_lines) + "\n\n"
+
+    record += "— 云枢 🤖 于 " + now.strftime("%Y.%m.%d %H:%M") + "\n"
+    record += "=" * 45 + "\n\n"
+
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(record)
+        logger.info("📝 对话记录已保存: %s", filename)
+    except OSError as e:
+        logger.error("❌ 保存对话记录失败: %s", e)
+
+
 # ── 初始化 DigitalLife ──
 from config import Config
 from agent import DigitalLife
@@ -737,6 +794,14 @@ def api_chat():
     _session_mgr.add_message(session_id, "user", user_input)
     _session_mgr.add_message(session_id, "assistant", response)
     _CHAT_HISTORY.append(entry)
+
+    # 自动保存到云枢记忆
+    _save_conversation_record(
+        user_input=user_input,
+        response=response,
+        mode=_Yunshu.get_behavior_mode().value,
+        health_data=[r.to_dict() for r in _Yunshu.check_health()],
+    )
 
     total_time = (time.time() - start_time) * 1000
     logs.append(f"[END] 请求处理完成 - 总耗时: {total_time:.2f}ms")
