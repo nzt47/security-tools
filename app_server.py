@@ -631,6 +631,7 @@ def api_cognitive_status():
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
+    global _CHAT_HISTORY
     import time
     start_time = time.time()
     
@@ -825,7 +826,7 @@ def api_sessions_set_current():
         global _CHAT_HISTORY
         messages = _session_mgr.get_messages(session_id, limit=50)
         _CHAT_HISTORY = []
-        for i in range(0, len(messages) - 1, 2):
+        for i in range(0, len(messages), 2):
             user_msg = messages[i]
             assistant_msg = messages[i + 1] if i + 1 < len(messages) else {}
             if user_msg.get("role") == "user":
@@ -1644,20 +1645,21 @@ def api_history_delete(index):
     messages = _session_mgr.get_messages(session_id, limit=1000)
     if 0 <= index < len(messages):
         messages.pop(index)
-        # 清空并重写
+        # 通过 SessionManager 的清空 + 逐条添加（线程安全）
         _session_mgr.clear_messages(session_id)
-        from pathlib import Path
-        session_dir = Path(_session_mgr._sessions_dir) / session_id
-        msg_file = session_dir / "messages.jsonl"
         for msg in messages:
-            with open(msg_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+            _session_mgr.add_message(
+                session_id,
+                msg.get("role", "user"),
+                msg.get("content", ""),
+                tool_calls=msg.get("tool_calls"),
+            )
         # 同步更新 _CHAT_HISTORY 缓存
         global _CHAT_HISTORY
         if session_id == _session_mgr.get_current_id():
             new_messages = _session_mgr.get_messages(session_id, limit=50)
             _CHAT_HISTORY = []
-            for i in range(0, len(new_messages) - 1, 2):
+            for i in range(0, len(new_messages), 2):
                 user_msg = new_messages[i]
                 assistant_msg = new_messages[i + 1] if i + 1 < len(new_messages) else {}
                 if user_msg.get("role") == "user":
