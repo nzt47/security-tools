@@ -69,12 +69,12 @@ function updateChatHeader() {
 
 async function switchSession(sessionId) {
     if (sessionId === _sessionsData.current_id) return;
+    closeSessionsDropdown();
     try {
         await app.post('/api/sessions/current', { session_id: sessionId });
         _sessionsData.current_id = sessionId;
         renderSessions();
         updateChatHeader();
-        // 重新加载聊天消息
         loadSessionMessages(sessionId);
     } catch(e) {
         app.showToast('切换会话失败', 'error');
@@ -147,6 +147,36 @@ async function renameSession(sessionId) {
     } catch(e) {
         app.showToast('重命名失败', 'error');
     }
+}
+
+// ── 下拉菜单开关 ──
+function toggleSessionsDropdown() {
+    const dropdown = document.getElementById('sessions-dropdown');
+    if (!dropdown) return;
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'flex';
+}
+
+function closeSessionsDropdown() {
+    const dropdown = document.getElementById('sessions-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+}
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', function(e) {
+    const header = document.getElementById('chat-header');
+    const dropdown = document.getElementById('sessions-dropdown');
+    if (!header || !dropdown) return;
+    if (!header.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// 切换会话后关闭下拉菜单
+const origSwitchSession = switchSession;
+async function switchSession(sessionId) {
+    await origSwitchSession(sessionId);
+    closeSessionsDropdown();
 }
 
 // 初始化
