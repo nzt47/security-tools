@@ -2421,6 +2421,10 @@ async function sendMessage() {
       setMascotMood('tired');
       return;
     }
+    // 显示工具调用步骤
+    if (data.tool_steps && data.tool_steps.length > 0) {
+      addToolSteps(data.tool_steps);
+    }
     addMessage(data.response, 'Yunshu', data.mode_label);
     setMascotMood('happy');
   } catch(e) {
@@ -2445,6 +2449,30 @@ function addMessage(text, role, modeLabel) {
   div.innerHTML = text;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
+}
+
+function addToolSteps(steps) {
+  const el = document.getElementById('chat-messages');
+  for (const step of steps) {
+    const div = document.createElement('div');
+    div.className = 'msg tool-step';
+    if (step.type === 'tool_call') {
+      const args = step.args || {};
+      const query = args.query || args.url || JSON.stringify(args);
+      div.innerHTML = '<span class="tool-step-icon">🔧</span> ' +
+        app.escapeHtml(step.tool) +
+        ' <span class="tool-step-status running">⋯ 进行中</span>' +
+        '<div class="tool-step-args">' + app.escapeHtml(String(query).substring(0, 100)) + '</div>';
+    } else if (step.type === 'tool_result') {
+      div.innerHTML = '<span class="tool-step-icon">✅</span> ' +
+        app.escapeHtml(step.tool) +
+        ' <span class="tool-step-status ' + step.status + '">' +
+        (step.status === 'success' ? '✓ 完成' : '✗ 失败') + '</span>' +
+        '<div class="tool-step-summary">' + app.escapeHtml(step.summary || '') + '</div>';
+    }
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
 }
 
 async function clearChat() {

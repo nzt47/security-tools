@@ -756,6 +756,7 @@ def api_chat():
         "health": [r.to_dict() for r in _Yunshu.check_health()],
         "llm_state": llm_state,
         "logs": logs,
+        "tool_steps": getattr(_Yunshu, '_last_tool_steps', []),
         "timing": {
             "total": total_time,
             "safety_check": safety_time,

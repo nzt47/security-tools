@@ -501,6 +501,7 @@ class DigitalLife:
         self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._interaction_count = 0
         self._reflection_history: list[dict] = []
+        self._last_tool_steps: list[dict] = []
         self._started_at = None
 
         # ── 9. 安全监控器 ──
@@ -1302,13 +1303,16 @@ class DigitalLife:
 
         if self._llm:
             try:
+                self._last_tool_steps = []
                 if self._tool_calling_service:
-                    response = self._tool_calling_service.chat(
+                    dl_result = self._tool_calling_service.chat_with_steps(
                         messages=messages,
                         system_prompt=system_prompt,
                         max_tokens=2048,
                         temperature=0.7,
                     )
+                    response = dl_result["text"]
+                    self._last_tool_steps = dl_result.get("steps", [])
                 else:
                     response = self._llm.chat(
                         messages=messages,

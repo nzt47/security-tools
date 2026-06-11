@@ -25,23 +25,28 @@ class ToolCallingService:
         self._llm = llm_service
         self._max_rounds = max_rounds
         self._tool_timeout = tool_timeout
+        self.last_steps: list[dict] = []
 
     def chat(self, messages: list[dict], system_prompt: str = "",
              max_tokens: int = 1024, temperature: float = 0.7,
              tools_whitelist: list[str] | None = None) -> str:
-        """带工具调用的对话
+        """带工具调用的对话（返回纯文本，向后兼容）"""
+        result = self.chat_with_steps(
+            messages, system_prompt, max_tokens, temperature, tools_whitelist
+        )
+        return result["text"]
 
-        Args:
-            messages: 对话消息列表
-            system_prompt: 系统提示词
-            max_tokens: 最大生成 Token 数
-            temperature: 生成温度
-            tools_whitelist: 允许调用的工具名称列表（None 表示全部）
+    def chat_with_steps(self, messages: list[dict], system_prompt: str = "",
+                        max_tokens: int = 1024, temperature: float = 0.7,
+                        tools_whitelist: list[str] | None = None) -> dict:
+        """带工具调用的对话，返回文本和步骤
 
         Returns:
-            LLM 生成的最终回复文本
+            {"text": str, "steps": [{"type": str, ...}]}
         """
         tool_defs = tools.get_tool_defs(whitelist=tools_whitelist)
+        steps = []
+        self.last_steps = steps
         logger.info("[ToolCalling] chat() 开始，工具定义数: %d, 消息数: %d",
                      len(tool_defs), len(messages))
         working_messages = list(messages)
@@ -62,24 +67,26 @@ class ToolCallingService:
                 if round_idx == 0:
                     logger.warning("[ToolCalling] 首轮失败，降级为纯文本 LLM 调用")
                     try:
-                        return self._llm.chat(
+                        text = self._llm.chat(
                             messages, system_prompt=system_prompt,
                             max_tokens=max_tokens, temperature=temperature
                         )
+                        steps.append({"type": "text", "content": "（使用基础对话模式）"})
+                        return {"text": text, "steps": steps}
                     except Exception as fallback_e:
                         raise ToolCallError(
                             f"LLM 调用失败（已降级）: {fallback_e}"
                         ) from fallback_e
-                return self._get_last_assistant_text(working_messages)
+                return {"text": self._get_last_assistant_text(working_messages), "steps": steps}
 
             tool_calls = self._extract_tool_calls(response)
-            text_preview = self._extract_text(response)[:80]
+            text_preview = self._extract_text(response)
 
             if not tool_calls:
-                logger.info("[ToolCalling] LLM 返回纯文本: %s...", text_preview)
+                logger.info("[ToolCalling] LLM 返回纯文本")
                 if text_preview:
                     working_messages.append({"role": "assistant", "content": text_preview})
-                return text_preview or self._get_last_assistant_text(working_messages)
+                return {"text": text_preview or self._get_last_assistant_text(working_messages), "steps": steps}
 
             logger.info("[ToolCalling] LLM 返回 %d 个工具调用: %s",
                         len(tool_calls),
@@ -104,7 +111,26 @@ class ToolCallingService:
                 }
                 assistant_msg["tool_calls"].append(tc_entry)
 
+                # 记录步骤：开始调用工具
+                steps.append({
+                    "type": "tool_call",
+                    "tool": func_name,
+                    "args": raw_args,
+                    "status": "running",
+                })
+
                 result = self._execute_safe(func_name, raw_args)
+
+                # 记录步骤：工具返回结果
+                result_ok = result.get("ok", False)
+                result_summary = _summarize_tool_result(func_name, result)
+                steps.append({
+                    "type": "tool_result",
+                    "tool": func_name,
+                    "status": "success" if result_ok else "error",
+                    "summary": result_summary,
+                })
+
                 tool_results.append({
                     "role": "tool",
                     "tool_call_id": tc_id,
@@ -115,7 +141,8 @@ class ToolCallingService:
             working_messages.append(assistant_msg)
             working_messages.extend(tool_results)
 
-        return self._get_last_assistant_text(working_messages)
+        steps.append({"type": "text", "content": "（达到最大工具调用轮次）"})
+        return {"text": self._get_last_assistant_text(working_messages), "steps": steps}
 
     def _call_llm_with_tools(self, messages, system_prompt,
                               max_tokens, temperature, tool_defs):
@@ -183,6 +210,29 @@ class ToolCallingService:
         except Exception as e:
             logger.error("工具 %s 执行异常: %s", func_name, e)
             return {"ok": False, "error": f"工具执行异常: {e}"}
+
+
+def _summarize_tool_result(tool_name: str, result: dict) -> str:
+    """生成工具执行结果的简短摘要"""
+    if not result.get("ok", False):
+        return f"执行失败: {result.get('error', '未知错误')}"
+    if tool_name == "web_search":
+        results_list = result.get("results", [])
+        if results_list:
+            return f"找到 {len(results_list)} 条结果"
+        return "未找到相关结果"
+    if tool_name == "web_get":
+        text = result.get("text", "")
+        title = result.get("title") or result.get("parsed", {}).get("title", "")
+        if title:
+            return f"已获取页面: {title[:60]}"
+        return f"已获取页面 ({len(text)} 字符)"
+    if tool_name == "read_file":
+        content = result.get("content", "") or result.get("result", "")
+        return f"已读取文件 ({len(str(content))} 字符)"
+    if result.get("result"):
+        return str(result["result"])[:60]
+    return f"执行成功"
 
     def _get_last_assistant_text(self, messages: list) -> str:
         """从消息列表中获取最后一条助手文本"""
