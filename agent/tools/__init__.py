@@ -116,6 +116,7 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
         schema = tool.get("schema", {
             "type": "object",
             "properties": {},
+            "additionalProperties": True,
         })
         defs.append({
             "type": "function",
@@ -126,6 +127,25 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
             }
         })
     return defs
+
+
+def get_tool_schema(name: str) -> dict | None:
+    """获取指定工具的 JSON Schema
+
+    Args:
+        name: 工具名称
+
+    Returns:
+        工具参数的 JSON Schema，如果工具不存在则返回 None
+    """
+    tool = _registry.get(name)
+    if not tool:
+        return None
+    return tool.get("schema", {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": True,
+    })
 
 
 def clear():
