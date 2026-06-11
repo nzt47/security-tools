@@ -320,6 +320,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260601">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260601">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260601">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260611">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260611">
 </head>
 <body>
 <div id="app">
@@ -367,11 +369,26 @@
       <button class="nav-collapse-btn" id="nav-toggle-btn">◀</button>
     </nav>
 
+      <!-- 会话侧边栏 -->
+      <div class="sessions-panel" id="sessions-panel">
+        <div class="sessions-header">
+          <h3>📋 会话</h3>
+          <button class="btn-new-session" onclick="createNewSession()">+ 新建</button>
+        </div>
+        <div class="sessions-list" id="sessions-list">
+          <div style="padding:16px;text-align:center;color:#8b949e;font-size:12px">加载中...</div>
+        </div>
+      </div>
+
     <!-- 主内容区 -->
     <main id="content">
       <!-- 对话视图 -->
       <div id="view-chat" class="view active" style="flex-direction:column">
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="padding:8px 16px;border-bottom:1px solid var(--border-color,#30363d);flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
+            <span id="chat-header-title" style="font-size:14px;font-weight:600;color:var(--text-primary,#c9d1d9)">💬 对话</span>
+            <span style="font-size:12px;color:var(--text-secondary,#8b949e)" id="chat-header-count"></span>
+          </div>
           <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
           <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);flex-shrink:0">
             <button id="voice-btn" onclick="startVoiceInput()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="语音输入">
@@ -913,48 +930,7 @@
               </div>
             </div>
             <div class="network-section-body">
-              <!-- 默认 LLM 配置 -->
-              <div class="default-llm-config" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #30363d">
-                <div style="font-size:14px;font-weight:600;color:#58a6ff;margin-bottom:12px">📌 默认配置</div>
-                <div class="form-row-inline">
-                  <div class="form-row half">
-                    <label>提供商</label>
-                    <select id="nc-llm-provider" onchange="onNetworkConfigChange()">
-                      <option value="">未选择</option>
-                      <option value="openai">OpenAI</option>
-                      <option value="deepseek">DeepSeek</option>
-                      <option value="anthropic">Anthropic</option>
-                    </select>
-                  </div>
-                  <div class="form-row half">
-                    <label>默认实例</label>
-                    <select id="nc-default-llm-instance" onchange="onNetworkConfigChange()">
-                      <option value="">自动选择</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <label>API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                  <input type="password" id="nc-llm-apikey" placeholder="sk-..." autocomplete="off" onchange="onNetworkConfigChange()">
-                </div>
-                <div class="form-row">
-                  <label>模型名称</label>
-                  <input type="text" id="nc-llm-model" placeholder="gpt-4 / deepseek-chat / claude-sonnet" onchange="onNetworkConfigChange()">
-                </div>
-                <div class="form-row-inline">
-                  <div class="form-row half">
-                    <label>超时 (秒)</label>
-                    <input type="number" id="nc-llm-timeout" min="1" max="300" value="30" onchange="onNetworkConfigChange()">
-                  </div>
-                  <div class="form-row half">
-                    <label>最大重试</label>
-                    <input type="number" id="nc-llm-retries" min="0" max="10" value="3" onchange="onNetworkConfigChange()">
-                  </div>
-                </div>
-              </div>
-              
               <!-- LLM 多实例列表 -->
-              <div style="font-size:14px;font-weight:600;color:#58a6ff;margin-bottom:12px">📦 实例列表</div>
               <div id="llm-instances-list" class="instances-list"></div>
             </div>
           </div>
@@ -1197,6 +1173,81 @@
         <div class="sp-section-title">安全告警</div>
         <div class="sp-events" id="sp-alerts"><div style="text-align:center;padding:10px;color:var(--text-muted);font-size:11px">无告警</div></div>
       </div>
+
+      <!-- ═══ 权限控制面板 ═══ -->
+      <div class="sp-section pc-section">
+        <div class="sp-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>🛡️ 权限控制</span>
+          <span id="pc-emergency-banner" class="pc-emergency-banner"></span>
+        </div>
+
+        <!-- 实时操作跟踪 -->
+        <div id="pc-current-action" class="pc-current-action idle">
+          <div class="pc-ca-header">
+            <span class="pc-ca-tool"><span class="pc-icon">⏹</span> 加载中...</span>
+            <span class="pc-ca-status-badge idle">...</span>
+          </div>
+        </div>
+
+        <!-- 紧急刹车按钮 -->
+        <div class="pc-emergency-row">
+          <button class="pc-emergency-btn primary" onclick="emergencyAction('cancel')" title="终止当前操作">⏹ 终止</button>
+          <button class="pc-emergency-btn" onclick="emergencyAction('pause')" title="暂停/恢复智能体" id="pc-btn-pause">⏸ 暂停</button>
+          <button class="pc-emergency-btn danger" onclick="emergencyAction('stop')" title="紧急停止">🔴 急停</button>
+        </div>
+        <div class="pc-emergency-row">
+          <button class="pc-emergency-btn" onclick="emergencyAction('network_block')" title="切换网络封锁" id="pc-btn-network">🔌 断网</button>
+          <button class="pc-emergency-btn" onclick="emergencyAction('reset')" title="重置追踪器">🔄 重置</button>
+        </div>
+
+        <div class="pc-divider"></div>
+
+        <!-- 安全统计 -->
+        <div class="pc-stats-row" id="pc-stats">
+          <span class="pc-stat-chip">📊 加载中...</span>
+        </div>
+
+        <!-- 权限开关 -->
+        <div class="pc-divider"></div>
+        <div style="font-size:8px;color:#484f58;margin-bottom:2px">权限开关</div>
+        <div id="pc-toggles" class="pc-toggle-list">
+          <div class="pc-empty">加载中...</div>
+        </div>
+
+        <div class="pc-divider"></div>
+
+        <!-- 最近数据访问 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+          <span style="font-size:8px;color:#484f58">最近数据访问</span>
+        </div>
+        <div class="pc-filter-row">
+          <button class="pc-filter-tab active" data-filter="all" onclick="setAccessFilter('all')">全部</button>
+          <button class="pc-filter-tab" data-filter="file" onclick="setAccessFilter('file')">📁文件</button>
+          <button class="pc-filter-tab" data-filter="window" onclick="setAccessFilter('window')">🪟窗口</button>
+          <button class="pc-filter-tab" data-filter="sensor" onclick="setAccessFilter('sensor')">📊传感器</button>
+          <button class="pc-filter-tab" data-filter="network" onclick="setAccessFilter('network')">🌐网络</button>
+        </div>
+        <div id="pc-access-list" class="pc-access-list">
+          <div class="pc-empty">加载中...</div>
+        </div>
+
+        <div class="pc-divider"></div>
+
+        <!-- 工具能力列表 (折叠) -->
+        <div style="font-size:8px;color:#484f58;margin-bottom:2px;cursor:pointer" onclick="expandPermissionStats()">
+          🔧 能力清单 <span style="color:#30363d">[展开 ▼]</span>
+        </div>
+        <div id="pc-tools-section" style="display:none">
+          <div id="pc-tool-list" class="pc-tool-grid">
+            <div class="pc-empty">点击展开...</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:3px;font-size:7px;color:#484f58">
+            <span id="pc-guard-stats">-</span>
+            <span id="pc-perm-stats">-</span>
+          </div>
+        </div>
+      </div>
+
       <div class="sp-section sp-events-section">
         <div class="sp-section-title">实时事件流</div>
         <div class="sp-events" id="sp-events"><div style="text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px">系统正常</div></div>
@@ -2441,6 +2492,8 @@ document.getElementById('chat-input').addEventListener('input', function() {
 <script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260601"></script>
 <script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260601"></script>
 <script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260611"></script>
+<script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260611"></script>
 <script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260610"></script>
 <script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260601"></script>
 <script>
@@ -2457,6 +2510,7 @@ app.registerView('network', { load: loadNetworkConfig, keepAlive: true });
 app.init();
 initNav();
 initStatusPanel();
+initPermissionControl();
 initMascotTracking();
 
 document.getElementById('chat-input').focus();
