@@ -669,7 +669,7 @@
             <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="切换语音输出模式">
               <span id="voice-toggle-icon">🔊</span>
             </button>
-            <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.2s">发送</button>
+            <button id="send-btn" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.2s">发送</button>
           </div>
         </div>
       </div>
@@ -2903,6 +2903,11 @@ async function stopChat() {
     console.log('[stopChat] 中止请求完成（可能已中止）');
   }
 }
+
+// 绑定发送按钮点击事件（不用 HTML onclick 属性，避免缓存旧函数）
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('send-btn').onclick = sendMessage;
+});
 
 function addMessage(text, role, modeLabel) {
   const el = document.getElementById('chat-messages');
