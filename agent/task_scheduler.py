@@ -58,7 +58,7 @@ class TaskScheduler:
             "cron": {"day_of_week": day_of_week, "hour": hour, "minute": minute},
             "last_run": None,
             "enabled": True,
-            "task_id": f"py_{int(time.time() * 1000)}_{len(self.tasks)}",
+            "task_id": self._generate_task_id("py"),
         }
         self.tasks.append(task)
         logger.info(f"[TaskScheduler] 添加任务: {name} (cron)")
@@ -72,7 +72,7 @@ class TaskScheduler:
             "interval": interval_seconds,
             "last_run": None,
             "enabled": True,
-            "task_id": f"py_{int(time.time() * 1000)}_{len(self.tasks)}",
+            "task_id": self._generate_task_id("py"),
         }
         self.tasks.append(task)
         logger.info(f"[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)")
@@ -87,10 +87,14 @@ class TaskScheduler:
             "interval": interval_sec,
             "last_run": None,
             "enabled": enabled,
-            "task_id": task_id or f"cmd_{int(time.time() * 1000)}_{len(self.tasks)}",
+            "task_id": task_id or self._generate_task_id("cmd"),
         }
         self.tasks.append(task)
         logger.info(f"[TaskScheduler] 添加命令任务: {name} (每{interval_sec}秒)")
+
+    def _generate_task_id(self, prefix: str = "task") -> str:
+        """生成唯一任务 ID"""
+        return f"{prefix}_{int(time.time() * 1000)}_{len(self.tasks)}"
 
     def remove_task(self, task_id: str) -> bool:
         """按 task_id 删除任务"""
@@ -163,6 +167,9 @@ class TaskScheduler:
             "duration_ms": 0,
         }
 
+        # 无论成功/失败都更新 last_run，避免失败任务每 tick 重试
+        task["last_run"] = datetime.now()
+
         try:
             if task["type"] == "python_func":
                 if "func" in task:
@@ -199,7 +206,6 @@ class TaskScheduler:
                     result["output"] = json.dumps(hb_result, ensure_ascii=False)
                     self._save_heartbeat(hb_result)
 
-            task["last_run"] = datetime.now()
         except Exception as e:
             result["status"] = "failed"
             result["error"] = str(e)[:500]
@@ -417,7 +423,7 @@ def generate_weekly_report():
     try:
         from agent.weekly_report_generator import run_weekly_report
         report, files = run_weekly_report(
-            output_dir="./data/reports",
+            output_dir=str(DATA_DIR / "reports"),
             save_formats=["json", "html", "text"],
         )
         logger.info(f"[TaskScheduler] 周报生成完成: {len(files)} 个文件")
@@ -430,7 +436,7 @@ def cleanup_old_logs():
     logger.info("[TaskScheduler] 清理旧日志任务")
     try:
         import shutil
-        log_dir = Path("./data/blackbox")
+        log_dir = DATA_DIR / "blackbox"
         if log_dir.exists():
             cutoff_date = datetime.now().timestamp() - (30 * 24 * 60 * 60)
             for file in log_dir.glob("blackbox_*.jsonl"):
