@@ -3597,6 +3597,18 @@ initToggleUI();
 
 document.getElementById('chat-input').focus();
 
+// 缓存破坏：检测页面版本，不匹配则强制刷新
+(function() {
+  var curVer = 'v' + Date.now();
+  var oldVer = sessionStorage.getItem('_yunshu_ver');
+  if (oldVer && oldVer.indexOf('v') === 0 && oldVer !== curVer) {
+    sessionStorage.removeItem('_yunshu_ver');
+    location.reload(true);
+    return;
+  }
+  sessionStorage.setItem('_yunshu_ver', curVer);
+})();
+
 // 定时刷新（使用事件总线）
 setInterval(() => {
   app.emit('tick');
