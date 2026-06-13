@@ -2970,6 +2970,18 @@ function copyText(el, text) {
   }
 }
 
+// 历史面板复制按钮
+function copyMsgText(el, text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = '✅';
+      setTimeout(() => { el.textContent = '📋'; }, 1500);
+    }).catch(() => fallbackCopy(text, el));
+  } else {
+    fallbackCopy(text, el);
+  }
+}
+
 function fallbackCopy(text, el) {
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -3509,9 +3521,11 @@ function renderHistItems() {
   list.innerHTML = items.map(item => {
     const preview = item.text.length > 60 ? item.text.substring(0, 60) + '...' : item.text;
     const timeStr = formatHistTime(item.time);
+    const fullText = item.text || '';
     return `<div class="hist-item" data-idx="${item.msgIndex}" onclick="navigateToHistItem(${item.msgIndex})">
       <div class="hist-item-row">
         <div class="hist-item-text">${app.escapeHtml(preview)}</div>
+        <span class="hist-item-copy" onclick="event.stopPropagation(); copyMsgText(this, '${app.escapeHtml(fullText.replace(/'/g, "\\'"))}')" title="复制">📋</span>
         <button class="hist-item-del" onclick="event.stopPropagation(); deleteHistItem(${item.index})" title="删除此条">🗑</button>
       </div>
       <div class="hist-item-time">${timeStr}</div>
