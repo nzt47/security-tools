@@ -61,7 +61,7 @@ class TestFlaskAdapter:
         client = app.test_client()
         resp = client.get("/api/cognitive/prompt")
         assert resp.status_code == 200
-        assert "灵犀" in resp.get_data(as_text=True)
+        assert "云枢" in resp.get_data(as_text=True)
 
     def test_translate_endpoint_known_sensor(self, app, injector, sensor_cache):
         """GET /api/cognitive/translate/cpu_temperature 应返回描述"""

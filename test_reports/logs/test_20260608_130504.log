@@ -1,0 +1,118 @@
+2026-06-08 13:05:05,295 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 13:05:05,325 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 13:05:05,332 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 13:05:05,341 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 13:05:05,385 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 13:05:05,391 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 13:05:05,393 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 13:05:05,394 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 13:05:05,400 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 13:05:05,439 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 13:05:05,440 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 13:05:05,442 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 13:05:05,445 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 13:05:05,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 13:05:05,861 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 13:05:05,861 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:05,875 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:05,875 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 13:05:05,875 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 13:05:05,876 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 13:05:05,877 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 13:05:05,956 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-08 13:05:05,984 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:05,984 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:05,990 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:05,990 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:05,995 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:05,995 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:05,995 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,001 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,001 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,002 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,007 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-08 13:05:06,013 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,013 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,013 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 3 天
+2026-06-08 13:05:06,014 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-08 13:05:06,019 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,019 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,019 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,025 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,025 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,025 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,031 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,032 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,032 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 1.0x
+2026-06-08 13:05:06,033 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-08 13:05:06,039 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,040 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,040 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,041 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-08 13:05:06,047 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,047 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,047 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,054 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,054 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,054 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,054 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,060 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,060 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,061 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,061 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,069 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,070 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,070 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,070 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,075 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,076 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,081 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,081 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,086 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,086 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,091 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,091 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,092 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: json
+2026-06-08 13:05:06,093 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,093 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:06,093 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,094 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,094 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,101 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,101 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,102 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: html
+2026-06-08 13:05:06,102 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,102 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:06,103 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,103 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,103 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,187 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,187 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,188 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-08 13:05:06,188 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,189 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:06,189 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,189 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,190 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,195 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,196 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,196 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-08 13:05:06,197 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:06,197 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:06,197 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:06,197 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:06,198 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:06,203 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,203 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:06,208 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:06,208 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成

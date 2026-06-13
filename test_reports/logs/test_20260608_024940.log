@@ -1,0 +1,119 @@
+2026-06-08 02:49:40,798 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:49:40,802 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:49:40,806 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:49:40,811 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:49:40,832 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:49:40,833 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:49:40,837 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:49:40,837 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:49:40,842 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:49:40,856 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:40,856 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:49:40,857 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:49:40,858 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:49:40,878 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-08 02:49:40,885 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:49:40,885 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:40,886 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:40,891 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-08 02:49:40,891 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-08 02:49:40,892 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 02:49:41,067 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:49:41,080 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:49:41,087 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:49:41,093 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:49:41,126 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:49:41,132 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:49:41,134 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:49:41,136 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:49:41,141 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:49:41,163 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,163 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:49:41,165 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:49:41,167 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:49:41,192 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-08 02:49:41,206 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:49:41,206 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:49:41,207 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-08 02:49:41,211 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-08 02:49:41,211 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 02:49:41,454 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-08 02:49:41,461 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-08 02:49:41,472 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-08 02:49:41,472 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 3 failures
+2026-06-08 02:49:41,481 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-08 02:49:41,489 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=2
+2026-06-08 02:49:41,491 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 2 failures
+2026-06-08 02:49:41,500 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-08 02:49:41,506 [    INFO] agent.error_handler: Circuit breaker 'test' initialized: max_failures=5
+2026-06-08 02:49:41,516 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-08 02:49:41,517 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-08 02:49:41,538 [    INFO] agent.error_handler: Circuit breaker 'default': transitioning to HALF_OPEN
+2026-06-08 02:49:41,538 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-08 02:49:41,545 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-08 02:49:41,546 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-08 02:49:41,567 [    INFO] agent.error_handler: Circuit breaker 'default': transitioning to HALF_OPEN
+2026-06-08 02:49:41,567 [ WARNING] agent.error_handler: Circuit breaker 'default': reopened after failure in half-open state
+2026-06-08 02:49:41,618 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,625 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,626 [ WARNING] agent.error_handler: [warning] unknown: 测试错误
+2026-06-08 02:49:41,632 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,632 [   ERROR] agent.error_handler: [error] unknown: 测试错误
+2026-06-08 02:49:41,637 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,642 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,642 [   ERROR] agent.error_handler: [error] unknown: 标准异常
+ValueError: 标准异常
+2026-06-08 02:49:41,649 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,650 [    INFO] agent.error_handler: [info] unknown: 测试 info
+2026-06-08 02:49:41,650 [ WARNING] agent.error_handler: [warning] unknown: 测试 warning
+2026-06-08 02:49:41,650 [   ERROR] agent.error_handler: [error] unknown: 测试 error
+2026-06-08 02:49:41,651 [CRITICAL] agent.error_handler: [critical] unknown: 测试 critical
+2026-06-08 02:49:41,655 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,655 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=5
+2026-06-08 02:49:41,660 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,666 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,667 [    INFO] agent.error_handler: Circuit breaker 'cb1' initialized: max_failures=5
+2026-06-08 02:49:41,668 [    INFO] agent.error_handler: Circuit breaker 'cb2' initialized: max_failures=5
+2026-06-08 02:49:41,671 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,677 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,678 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=5
+2026-06-08 02:49:41,683 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,688 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,689 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 暂时失败
+2026-06-08 02:49:41,700 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.02s: 暂时失败
+2026-06-08 02:49:41,725 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,726 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 472, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 595, in failing_func
+    raise ValueError("不可重试")
+ValueError: 不可重试
+2026-06-08 02:49:41,732 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,734 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-08 02:49:41,753 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:49:41,753 [   ERROR] agent.error_handler: [error] unknown: 测试

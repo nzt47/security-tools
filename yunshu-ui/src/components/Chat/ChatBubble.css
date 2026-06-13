@@ -1,0 +1,161 @@
+/* 聊天气泡样式 */
+
+.chat-bubble-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 80%;
+  animation: fade-in 0.3s ease-out;
+}
+
+.chat-bubble-container.user {
+  flex-direction: row-reverse;
+  align-self: flex-end;
+}
+
+.chat-bubble-container.assistant {
+  flex-direction: row;
+  align-self: flex-start;
+}
+
+.chat-bubble-container.system {
+  flex-direction: row;
+  align-self: center;
+  max-width: 100%;
+}
+
+/* 头像 */
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.assistant-avatar {
+  background: linear-gradient(135deg, var(--mascot-primary, #4fd1c5), var(--mascot-secondary, #81e6d9));
+  color: var(--bg-deep, #0a0a0f);
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+/* 气泡内容 */
+.chat-bubble-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  position: relative;
+  word-wrap: break-word;
+  transition: all var(--duration-fast, 150ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* 用户气泡 */
+.chat-bubble.user {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* 助手气泡 */
+.chat-bubble.assistant {
+  background: var(--bg-elevated, #1a1a2e);
+  color: var(--text-primary, #e2e8f0);
+  border-bottom-left-radius: 4px;
+}
+
+/* 系统气泡 */
+.chat-bubble.system {
+  background: transparent;
+  color: var(--text-secondary, #a0aec0);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  padding: 8px 16px;
+}
+
+/* 消息文字 */
+.chat-text {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* 时间戳 */
+.chat-timestamp {
+  font-size: 10px;
+  color: var(--text-secondary, #a0aec0);
+  padding: 0 4px;
+}
+
+.chat-bubble-container.user .chat-timestamp {
+  text-align: right;
+}
+
+/* 打字指示器 */
+.chat-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--mascot-primary, #4fd1c5);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .chat-bubble-container {
+    max-width: 90%;
+  }
+
+  .chat-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .chat-bubble {
+    padding: 10px 14px;
+  }
+
+  .chat-text {
+    font-size: 13px;
+  }
+}

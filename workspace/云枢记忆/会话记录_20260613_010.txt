@@ -1,0 +1,169 @@
+=============================================
+  会话记录 #10
+=============================================
+
+🕒 时间：2026年06月13日 14:00
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+是，这样都能看清，顺眼多了，能不能将各大模块的信息说明做得更详细一些？
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="write_file">
+  <｜｜DSML｜｜parameter name="path" string="true">C:\Users\Administrator\Desktop\云枢系统架构图_详细版.html</｜｜DSML｜｜parameter>
+  <｜｜DSML｜｜parameter name="content" string="true"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>☁️ 云枢 v6 ┃ 详细架构图</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0b1120;color:#e2e8f0;
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  padding:24px 20px;display:flex;justify-content:center;
+  font-size:13px
+}
+.container{max-width:1024px;width:100%}
+h1{text-align:center;font-size:24px;color:#fff;margin-bottom:2px}
+h1 span{color:#22d3ee}
+.sub{text-align:center;color:#64748b;font-size:12px;margin-bottom:18px}
+
+/* 层标签 */
+.lt{font-size:12px;font-weight:600;color:#22d3ee;margin-bottom:4px;padding-left:4px;letter-spacing:.5px;margin-top:14px}
+
+/* 行和卡片 */
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.card{
+  flex:1;min-width:175px;background:rgba(15,23,42,0.6);
+  border:1px solid #1e293b;border-radius:8px;padding:8px 12px;
+  transition:border-color .2s
+}
+.card:hover{border-color:#22d3ee}
+.card .n{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+.card .d{font-size:11px;color:#94a3b8;line-height:1.5}
+.card .dd{font-size:10.5px;color:#64748b;line-height:1.5;margin-top:2px;padding-left:6px;border-left:1px solid #1e293b}
+
+/* 颜色条 */
+.c-cy{border-left:3px solid #22d3ee}
+.c-em{border-left:3px solid #34d399}
+.c-vi{border-left:3px solid #a78bfa}
+.c-ro{border-left:3px solid #fb7185}
+.c-am{border-left:3px solid #fbbf24}
+.c-sk{border-left:3px solid #38bdf8}
+.c-ne{border-left:3px solid #f472b6}
+.c-sl{border-left:3px solid #818cf8}
+.c-gy{border-left:3px solid #6b7280}
+.c-cy2{border-left:3px solid #2dd4bf}
+
+.footer{text-align:center;margin-top:16px;color:#334155;font-size:11px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>☁️ 云枢 <span>v6</span></h1>
+<div class="sub">详细系统架构图 · 模块功能全解析</div>
+
+<!-- ===== 层1：认知层 ===== -->
+<div class="lt">🧠 A. 认知层 — 大脑与行为决策</div>
+<div class="row">
+  <div class="card c-cy">
+    <div class="n">🖥️ UI界面层</div>
+    <div class="d">用户交互入口，支持三种形态：</div>
+    <div class="dd">Flask Web 控制台 / 命令行终端 / 语音对话</div>
+  </div>
+  <div class="card c-cy">
+    <div class="n">🧩 LLM大脑引擎</div>
+    <div class="d">多模型驱动核心：</div>
+    <div class="dd">OpenAI / Claude / 本地大模型 / Ollama<br>负责语义理解、知识推理、文本生成</div>
+  </div>
+  <div class="card c-cy">
+    <div class="n">🎮 行为控制器</div>
+    <div class="d">实时切换6种行为模式，根据传感器数据自动触发：</div>
+    <div class="dd">✨正常(CPU<85°/电池>15%/内存<90%) → 🛡️安全(高温) → 🔋省电(低电量) → 🧹内存整理(高内存) → ✈️离线(断网) → ⚠️警告(磁盘满)</div>
+  </div>
+</div>
+
+<!-- ===== 层2：工具层 (MCP) ===== -->
+<div class="lt">🔧 B. MCP 工具系统 — 共36个已注册工具</div>
+<div class="row">
+  <div class="card c-sk">
+    <div class="n">📁 文件工具(5个)</div>
+    <div class="d">read_file · write_file · list_directory · get_file_info · search_files</div>
+    <div class="dd">支持文本/二进制读写，递归路径搜索，文件元数据查询</div>
+  </div>
+  <div class="card c-sk">
+    <div class="n">🌐 网络工具(8个)</div>
+    <div class="d">web_get · web_post · web_search · web_xpath · web_css</div>
+    <div class="dd">支持HTTP请求、网页解析(xpath/css)、搜索引擎调用、批量下载、数据清洗</div>
+  </div>
+  <div class="card c-sk">
+    <div class="n">🖥️ 进程工具(3个)</div>
+    <div class="d">run_program · list_processes · stop_process</div>
+    <div class="dd">本地程序启动/监控/终止，进程列表实时查询</div>
+  </div>
+  <div class="card c-sk">
+    <div class="n">🧩 扩展工具(7个)</div>
+    <div class="d">ext_install · ext_uninstall · ext_list · ext_toggle · ext_discover · ext_configure · ext_send_channel</div>
+    <div class="dd">动态加载/卸载技能、热切换、通道通信、配置持久化</div>
+  </div>
+</div>
+
+<!-- ===== 层3：核心子系统 — 7大模块 ===== -->
+<div class="lt">⚙️ C. 七大核心子系统 — 精密运转引擎</div>
+
+<!-- 第一行：感知 + 记忆 + 认知 + 人格 -->
+<div class="row">
+  <div class="card c-ro">
+    <div class="n">👁️ ① 感知系统</div>
+    <div class="d">数字生命的"五感"，34个传感器文件</div>
+    <div class="dd">
+    ▸ CPU传感器 — 使用率/温度/频率（大脑负荷）<br>
+    ▸ 内存传感器 — RAM使用量/占比（短期记忆容量）<br>
+    ▸ 磁盘传感器 — 剩余空间/读写速率（长期记忆存量）<br>
+    ▸ 电池传感器 — 电量百分比/充放电状态（饥饿感）<br>
+    ▸ 网络传感器 — 连通性/带宽/延迟（感官对外连接）<br>
+    ▸ 扩展传感 — GPU/进程/端口/窗口/语音/OCR/文件事件
+    </div>
+  </div>
+  <div class="card c-am">
+    <div class="n">🧠 ② 记忆系统</div>
+    <div class="d">三层记忆分级，高效存取</div>
+    <div class="dd">
+    ▸ 短期记忆 — 对话上下文窗口(RAM)，快速读写<br>
+    ▸ 中期记忆 — 自动压缩摘要，溢出时存盘<br>
+    ▸ 长期记忆 — BlackBox加密存储+向量数据库<br>
+    核心机制：memory_manager (调度) → summarizer (压缩) → black_box (持久化) → llm_service (检索)
+    </div>
+  </div>
+  <div class="card c-ne">
+    <div class="n">🔮 ③ 认知系统</div>
+    <div class="d">思维加工与提示工程核心</div>
+    <div class="dd">
+    ▸ prompt_injector — 将传感器状态动态注入LLM提示<br>
+    ▸ templates — 多场景提示模板(寒暄/任务/反思/规划)<br>
+    ▸ config — 认知参数配置(温度/TopP/最大Token)<br>
+    ▸ translator — 多语言翻译支持<br>
+    ▸ flask_adapter — HTTP服务适配
+    </div>
+  </div>
+  <div class="card c-sl">
+    <div class="n">🎭 ④ 人格系统</div>
+    <div class
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.13 14:00
+=============================================
+

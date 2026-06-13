@@ -2,7 +2,7 @@
 窗口活动传感器 — 监控前台窗口切换
 
 通过 Win32 API 轮询当前前台窗口，检测切换事件并记录使用时长。
-我是灵犀的"注意力追踪器"——我知道用户在看什么、用什么。
+我是云枢的"注意力追踪器"——我知道用户在看什么、用什么。
 """
 import time
 import json
@@ -39,7 +39,7 @@ class WindowSensor:
 
     def _load_config(self):
         defaults = {
-            "enabled": True,
+            "enabled": False,  # 默认禁用，需要用户明确同意
             "poll_interval_sec": 1,
             "max_events": 500,
             "idle_timeout_sec": 300,

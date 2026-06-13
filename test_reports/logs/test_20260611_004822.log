@@ -1,0 +1,38 @@
+2026-06-11 00:48:22,699 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:48:22,724 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:48:22,730 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:48:22,736 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:48:22,768 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:48:22,774 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:48:22,775 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:48:22,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:48:22,782 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:48:22,810 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:48:22,811 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:48:22,813 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:48:22,815 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:48:23,091 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-11 00:48:23,099 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:48:23,099 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:48:23,108 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:48:23,109 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-11 00:48:23,109 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-11 00:48:23,109 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:48:23,183 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:48:23,184 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:48:23,184 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:48:23,184 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpp82gaeza.json
+2026-06-11 00:48:23,187 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpp82gaeza.json
+2026-06-11 00:48:23,189 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:48:23,191 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpp82gaeza.json

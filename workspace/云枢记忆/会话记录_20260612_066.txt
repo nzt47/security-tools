@@ -1,0 +1,32 @@
+=============================================
+  会话记录 #66
+=============================================
+
+🕒 时间：2026年06月12日 22:34
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+打开chrome.exe
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="run_program">
+<｜｜DSML｜｜parameter name="program" string="true">cmd.exe</｜｜DSML｜｜parameter>
+<｜｜DSML｜｜parameter name="arguments" string="true">/c where chrome.exe</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.12 22:34
+=============================================
+

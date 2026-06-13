@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_1186_20260605183943",
+  "content": "Message 2",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 3,
+    "timestamp": "2026-06-05T10:39:43.097857+00:00"
+  },
+  "created_at": "2026-06-05T18:39:43.097857",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

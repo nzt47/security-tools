@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "week_offset": 0,
+    "start_date": "2026-06-03",
+    "end_date": "2026-06-10",
+    "generated_at": "2026-06-10T14:58:04.122507",
+    "period_days": 7
+  },
+  "content": {
+    "event_trends": {
+      "error": "black_box not available"
+    },
+    "anomalies": [],
+    "user_behavior": {
+      "recent_memory_count": 100,
+      "categories": {},
+      "sources": {},
+      "tags": {},
+      "insights": []
+    }
+  },
+  "statistics": {
+    "total_events": 0,
+    "total_memories": 100,
+    "event_types": 0,
+    "anomaly_count": 0
+  },
+  "insights": [
+    "本周系统运行平稳，未检测到明显异常",
+    "知识积累良好，新增 100 条记忆"
+  ],
+  "recommendations": [
+    {
+      "priority": "low",
+      "category": "活动度",
+      "suggestion": "本周活动较少，考虑增加系统使用频率",
+      "action": "increase_usage"
+    },
+    {
+      "priority": "info",
+      "category": "持续改进",
+      "suggestion": "定期查看周报，持续优化系统使用效率",
+      "action": "regular_review"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+/**
+ * auto_save_service.txt - 云枢自动保存服务
+ * 请重命名为 auto_save_service.js 后运行
+ * 命令: node auto_save_service.js
+ * 监听端口：8124
+ */
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+// ===== 配置 =====
+const MEMORY_DIR = 'C:\\Users\\Administrator\\agent\\workspace\\云枢记忆';
+const PORT = 8124;
+const LOG_FILE = path.join(__dirname, 'logs', 'auto_save.log');
+
+// ===== 初始化 =====
+fs.mkdirSync(MEMORY_DIR, { recursive: true });
+try { fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true }); } catch(e) {}
+
+function log(msg) {
+    const time = new Date().toISOString();
+    const line = `[${time}] ${msg}`;
+    console.log(line);
+    try { fs.appendFileSync(LOG_FILE, line + '\n', 'utf-8'); } catch(e) {}
+}
+
+log('📂 云枢记忆目录: ' + MEMORY_DIR);
+
+function getTimestamp() {
+    const now = new Date();
+    return now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + '_' +
+        String(now.getHours()).padStart(2, '0') + '-' +
+        String(now.getMinutes()).padStart(2, '0') + '-' +
+        String(now.getSeconds()).padStart(2, '0');
+}
+
+function getDateStr() {
+    const now = new Date();
+    return now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
+}
+
+function getTodayIndex() {
+    const dateStr = getDateStr();
+    let files = [];
+    try { files = fs.readdirSync(MEMORY_DIR); } catch(e) { return 1; }
+    let count = 0;
+    for (const f of files) {
+        if (f.startsWith(dateStr)) count++;
+    }
+    return count + 1;
+}
+
+const server = http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') { res.statusCode = 200; res.end(); return; }
+
+    const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
+    const pathname = url.pathname;
+
+    if (pathname === '/health' && req.method === 'GET') {
+        res.end(JSON.stringify({
+            status: 'ok',
+            service: '云枢自动保存服务',
+            version: '1.0.0',
+            memory_dir: MEMORY_DIR
+        }));
+        return;
+    }
+
+    if (pathname === '/save' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                const dateStr = getDateStr();
+                const idx = getTodayIndex();
+                const filename = data.filename || dateStr + '_第' + idx + '次对话.txt';
+                const filepath = path.join(MEMORY_DIR, filename);
+
+                let content = '';
+                content += '# ' + (data.title || '云枢对话记录') + '\n\n';
+                content += '📅 保存时间：' + new Date().toLocaleString('zh-CN') + '\n';
+                content += '📂 文件序号：第 ' + idx + ' 条\n';
+                content += '──────────────────────────────────────────────────\n\n';
+
+                if (data.content) {
+                    content += data.content;
+                    if (!data.content.endsWith('\n')) content += '\n';
+                }
+
+                content += '\n' + '══════════════════════════════════════════════════\n';
+                content += '🏁 对话结束时间：' + new Date().toLocaleString('zh-CN') + '\n\n';
+
+                fs.appendFileSync(filepath, content, 'utf-8');
+                const stats = fs.statSync(filepath);
+                log('✅ 已保存对话: ' + filename + ' (' + stats.size + ' 字节)');
+
+                res.end(JSON.stringify({
+                    status: 'ok',
+                    message: '✅ 对话已自动保存',
+                    filename: filename,
+                    filepath: filepath,
+                    size: stats.size,
+                    index: idx
+                }));
+            } catch (e) {
+                log('❌ 保存失败: ' + e.message);
+                res.statusCode = 500;
+                res.end(JSON.stringify({ status: 'error', message: e.message }));
+            }
+        });
+        return;
+    }
+
+    if (pathname === '/list' && req.method === 'GET') {
+        try {
+            const files = fs.readdirSync(MEMORY_DIR)
+                .filter(f => f.endsWith('.txt'))
+                .sort().reverse().slice(0, 50)
+                .map(f => {
+                    const fp = path.join(MEMORY_DIR, f);
+                    const st = fs.statSync(fp);
+                    return { filename: f, size: st.size, modified: st.mtime };
+                });
+            res.end(JSON.stringify({ status: 'ok', count: files.length, files }));
+        } catch (e) {
+            res.end(JSON.stringify({ status: 'error', message: e.message }));
+        }
+        return;
+    }
+
+    res.statusCode = 404;
+    res.end(JSON.stringify({ status: 'error', message: '未知端点。可用: POST /save, GET /list, GET /health' }));
+});
+
+server.listen(PORT, '127.0.0.1', () => {
+    log('🚀 云枢自动保存服务已启动');
+    log('🚀 端口: ' + PORT);
+    log('🚀 目录: ' + MEMORY_DIR);
+    log('🚀 端点: POST /save, GET /list, GET /health');
+});
+
+process.on('SIGINT', () => { log('👋 正在关闭...'); server.close(() => process.exit(0)); });
+process.on('SIGTERM', () => { log('👋 收到终止信号...'); server.close(() => process.exit(0)); });

@@ -1,0 +1,103 @@
+2026-06-07 00:19:27,993 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 00:19:28,000 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 00:19:28,004 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 00:19:28,007 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 00:19:28,027 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 00:19:28,030 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 00:19:28,031 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 00:19:28,032 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 00:19:28,035 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 00:19:28,048 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 00:19:28,048 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 00:19:28,048 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 00:19:28,048 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 00:19:28,070 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-07 00:19:28,077 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 00:19:28,077 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-07 00:19:28,083 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 00:19:28,084 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,084 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-07 00:19:28,084 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-07 00:19:28,085 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 00:19:28,232 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 00:19:28,247 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 00:19:28,252 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 00:19:28,260 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 00:19:28,295 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 00:19:28,299 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 00:19:28,301 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 00:19:28,302 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 00:19:28,306 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 00:19:28,324 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 00:19:28,327 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 00:19:28,328 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 00:19:28,330 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 00:19:28,355 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-07 00:19:28,365 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 00:19:28,365 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,368 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,368 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 00:19:28,368 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:19:28,369 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-07 00:19:28,369 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-07 00:19:28,370 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 00:19:28,420 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,476 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,482 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,487 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,492 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,508 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,533 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,550 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,554 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:19:28,560 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,563 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,563 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=aFpWNWlDLUY0blRtWkpaTVAtZzFQaGhzVmZWemJFT0tBejd2WDZHSmg0dz0=
+2026-06-07 00:19:28,563 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,563 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,570 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,573 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,573 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=UDVydGpnT3pIWnNsckE3dWdEYUNmUndJS3dGYUpYcmhiUnQtaTFqOHc1RT0=
+2026-06-07 00:19:28,573 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,573 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,579 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,582 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,582 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=WUZuOWstb05RQ3VYZVh4NDZrZmI5NlQ2UVQ1TWFpY2ljOWNpVjI4MEhkYz0=
+2026-06-07 00:19:28,582 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,582 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,588 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,590 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,590 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=dVhCOFFtd0ZoX2VOUnR0dnpjZVdGWGRWZTFvMmJOVkVKSFNZWDJUMUNYWT0=
+2026-06-07 00:19:28,590 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,590 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,596 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,599 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,599 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=dXlneTJwMXhkNGhpZEQtRk9SSVVRaVhnZ1NUcXRyaUlCbkY1QllCMVhETT0=
+2026-06-07 00:19:28,599 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,599 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,608 [ WARNING] agent.security_utils: cryptography库未安装，加密功能不可用
+2026-06-07 00:19:28,613 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,615 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:19:28,615 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=LU1GbHoyX3p2cTNBU2YtQ0x5N2I0YWNielE5QWxZNnZjRVNzbDJzNEpxMD0=
+2026-06-07 00:19:28,615 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:19:28,615 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:19:28,622 [    INFO] agent.security_utils: 日志加密器已初始化

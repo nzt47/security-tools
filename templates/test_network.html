@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>网络配置测试页面</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; max-width: 800px; margin: 0 auto; }
+  .test { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .test h3 { margin: 0 0 8px; font-size: 14px; }
+  button { background: #238636; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+  button:hover { background: #2ea043; }
+  button.secondary { background: #21262d; }
+  button.secondary:hover { background: #30363d; }
+  button.danger { background: #da3633; }
+  button.danger:hover { background: #f85149; }
+  .log { background: #0d1117; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; margin-top: 8px; white-space: pre-wrap; }
+  .ok { color: #3fb950; }
+  .err { color: #f85149; }
+  .info { color: #58a6ff; }
+  .form-row { margin: 8px 0; }
+  .form-row label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+  .form-row input, .form-row select { width: 100%; padding: 6px 10px; border: 1px solid #30363d; border-radius: 4px; background: #0d1117; color: #c9d1d9; }
+</style>
+</head>
+<body>
+
+<h2>网络配置测试</h2>
+
+<!-- 测试 1: 加载配置 -->
+<div class="test">
+  <h3>测试 1: 加载当前配置</h3>
+  <button onclick="testLoad()">加载配置</button>
+  <div class="log" id="log-load"></div>
+</div>
+
+<!-- 测试 2: 保存配置 -->
+<div class="test">
+  <h3>测试 2: 保存并验证即时生效</h3>
+  <div class="form-row">
+    <label>LLM 超时 (秒)</label>
+    <input type="number" id="test-llm-timeout" value="60">
+  </div>
+  <div class="form-row">
+    <label>网络超时 (秒)</label>
+    <input type="number" id="test-network-timeout" value="45">
+  </div>
+  <button onclick="testSave()">保存配置</button>
+  <button class="secondary" onclick="testVerify()">验证已保存</button>
+  <div class="log" id="log-save"></div>
+</div>
+
+<!-- 测试 3: 前端输入验证 -->
+<div class="test">
+  <h3>测试 3: 前端输入验证（错误 URL 格式）</h3>
+  <div class="form-row">
+    <label>代理 URL</label>
+    <input type="text" id="test-proxy-url" value="not-a-valid-url">
+  </div>
+  <div class="form-row">
+    <label>Webhook URL</label>
+    <input type="text" id="test-webhook-url" value="also-invalid-url">
+  </div>
+  <button onclick="testValidation()">运行前端验证</button>
+  <div class="log" id="log-validate"></div>
+</div>
+
+<!-- 测试 4: 导入错误配置 -->
+<div class="test">
+  <h3>测试 4: 导入包含错误 URL 的配置</h3>
+  <button onclick="testImportInvalid()">导入无效配置</button>
+  <button class="secondary" onclick="testImportValid()">导入有效配置</button>
+  <div class="log" id="log-import"></div>
+</div>
+
+<!-- 测试 5: 重置配置 -->
+<div class="test">
+  <h3>测试 5: 重置为默认</h3>
+  <button class="danger" onclick="testReset()">重置配置</button>
+  <div class="log" id="log-reset"></div>
+</div>
+
+<script>
+const BASE = '';
+let currentConfig = null;
+
+function log(id, msg, cls) {
+  const el = document.getElementById('log-' + id);
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<div class="${cls || ''}">[${time}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog(id) {
+  document.getElementById('log-' + id).innerHTML = '';
+}
+
+// 测试 1: 加载配置
+async function testLoad() {
+  clearLog('load');
+  try {
+    log('load', '正在获取配置...', 'info');
+    const res = await fetch(BASE + '/api/network-config');
+    const data = await res.json();
+    currentConfig = data;
+    log('load', `✓ 获取成功 (HTTP ${res.status})`, 'ok');
+    log('load', `  LLM 超时: ${data.llm.timeout}s`, '');
+    log('load', `  网络超时: ${data.network.timeout}s`, '');
+    log('load', `  代理启用: ${data.network.proxy_enabled}`, '');
+    log('load', `  API Key: ${data.llm.api_key}`, '');
+  } catch (e) {
+    log('load', `✗ 失败: ${e.message}`, 'err');
+  }
+}
+
+// 测试 2: 保存配置
+async function testSave() {
+  clearLog('save');
+  const updates = {
+    llm: {
+      enabled: true,
+      provider: 'openai',
+      api_key: 'sk-test-' + Date.now(),
+      model: 'gpt-4',
+      timeout: parseInt(document.getElementById('test-llm-timeout').value),
+      max_retries: 3,
+    },
+    network: {
+      timeout: parseInt(document.getElementById('test-network-timeout').value),
+      max_retries: 3,
+      backoff_factor: 0.5,
+      proxy_enabled: false,
+      proxy_url: '',
+    }
+  };
+
+  log('save', '正在保存配置...', 'info');
+  try {
+    const res = await fetch(BASE + '/api/network-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('save', '✓ 保存成功', 'ok');
+      log('save', `  返回的 LLM 超时: ${data.config.llm.timeout}s`, '');
+      log('save', `  返回的网络超时: ${data.config.network.timeout}s`, '');
+      log('save', '  提示: 检查服务器日志中的 [网络配置] 标记', 'info');
+    } else {
+      log('save', `✗ 保存失败: ${data.error}`, 'err');
+    }
+  } catch (e) {
+    log('save', `✗ 请求失败: ${e.message}`, 'err');
+  }
+}
+
+// 测试 2: 验证保存
+async function testVerify() {
+  clearLog('save');
+  log('save', '正在验证配置已持久化...', 'info');
+  try {
+    const res = await fetch(BASE + '/api/network-config');
+    const data = await res.json();
+    const expectedLlm = parseInt(document.getElementById('test-llm-timeout').value);
+    const expectedNet = parseInt(document.getElementById('test-network-timeout').value);
+
+    if (data.llm.timeout === expectedLlm && data.network.timeout === expectedNet) {
+      log('save', '✓ 配置已正确持久化', 'ok');
+      log('save', `  LLM 超时: ${data.llm.timeout}s (期望 ${expectedLlm})`, '');
+      log('save', `  网络超时: ${data.network.timeout}s (期望 ${expectedNet})`, '');
+    } else {
+      log('save', '✗ 配置未正确持久化', 'err');
+      log('save', `  LLM: ${data.llm.timeout} (期望 ${expectedLlm})`, 'err');
+      log('save', `  网络: ${data.network.timeout} (期望 ${expectedNet})`, 'err');
+    }
+  } catch (e) {
+    log('save', `✗ 验证失败: ${e.message}`, 'err');
+  }
+}
+
+// 测试 3: 前端验证
+function testValidation() {
+  clearLog('validate');
+  const proxyUrl = document.getElementById('test-proxy-url').value;
+  const webhookUrl = document.getElementById('test-webhook-url').value;
+
+  log('validate', '正在验证 URL 格式...', 'info');
+  log('validate', `  代理 URL: "${proxyUrl}"`, '');
+  log('validate', `  Webhook URL: "${webhookUrl}"`, '');
+
+  const errors = [];
+
+  // 代理 URL 验证
+  if (proxyUrl) {
+    try {
+      new URL(proxyUrl);
+    } catch {
+      errors.push('代理 URL 格式无效');
+    }
+  }
+
+  // Webhook URL 验证
+  if (webhookUrl) {
+    try {
+      new URL(webhookUrl);
+    } catch {
+      errors.push('Webhook URL 格式无效');
+    }
+  }
+
+  if (errors.length > 0) {
+    log('validate', `✓ 前端验证捕获到 ${errors.length} 个错误`, 'ok');
+    errors.forEach(e => log('validate', `  - ${e}`, 'err'));
+  } else {
+    log('validate', '✗ 前端验证未捕获到错误（应捕获 2 个）', 'err');
+  }
+}
+
+// 测试 4: 导入错误配置
+async function testImportInvalid() {
+  clearLog('import');
+  log('import', '正在导入包含无效 URL 的配置...', 'info');
+
+  const config = {
+    llm: { enabled: true, provider: 'openai', api_key: 'sk-test', model: 'gpt-4', timeout: 30, max_retries: 3 },
+    network: { timeout: 30, max_retries: 3, backoff_factor: 0.5, proxy_enabled: true, proxy_url: 'invalid-proxy' },
+    search: { enabled: true, default_engine: 'google', max_results: 10 },
+    web_scraping: { enabled: true, respect_robots_txt: true, delay_between_requests: 1 },
+    browser: { enabled: false, headless: true, timeout: 30 },
+    sync: { enabled: true, interval_minutes: 60, auto_sync_on_start: true },
+    external_services: {
+      error_reporting: { enabled: true, webhook_url: 'invalid-webhook' },
+      monitoring: { enabled: false, endpoint: '' },
+    },
+  };
+
+  try {
+    const res = await fetch(BASE + '/api/network-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('import', '⚠ 后端接受了无效 URL 配置（前端应拦截）', 'info');
+      log('import', '  这说明前端验证是必要的！', 'info');
+    } else {
+      log('import', `✓ 后端拒绝了配置: ${data.error}`, 'ok');
+    }
+  } catch (e) {
+    log('import', `✗ 请求失败: ${e.message}`, 'err');
+  }
+}
+
+// 测试 4: 导入有效配置
+async function testImportValid() {
+  clearLog('import');
+  log('import', '正在导入有效配置...', 'info');
+
+  const config = {
+    llm: { enabled: true, provider: 'openai', api_key: 'sk-valid', model: 'gpt-4', timeout: 30, max_retries: 3 },
+    network: { timeout: 30, max_retries: 3, backoff_factor: 0.5, proxy_enabled: true, proxy_url: 'http://proxy.example.com:8080' },
+    search: { enabled: true, default_engine: 'google', max_results: 10 },
+    web_scraping: { enabled: true, respect_robots_txt: true, delay_between_requests: 1 },
+    browser: { enabled: false, headless: true, timeout: 30 },
+    sync: { enabled: true, interval_minutes: 60, auto_sync_on_start: true },
+    external_services: {
+      error_reporting: { enabled: true, webhook_url: 'https://hooks.example.com/error' },
+      monitoring: { enabled: false, endpoint: '' },
+    },
+  };
+
+  try {
+    const res = await fetch(BASE + '/api/network-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('import', '✓ 有效配置导入成功', 'ok');
+    } else {
+      log('import', `✗ 导入失败: ${data.error}`, 'err');
+    }
+  } catch (e) {
+    log('import', `✗ 请求失败: ${e.message}`, 'err');
+  }
+}
+
+// 测试 5: 重置
+async function testReset() {
+  clearLog('reset');
+  log('reset', '正在重置配置...', 'info');
+  try {
+    const res = await fetch(BASE + '/api/network-config/reset', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('reset', '✓ 配置已重置为默认值', 'ok');
+      log('reset', `  LLM 超时: ${data.config.llm.timeout}s`, '');
+      log('reset', `  网络超时: ${data.config.network.timeout}s`, '');
+    } else {
+      log('reset', `✗ 重置失败: ${data.error}`, 'err');
+    }
+  } catch (e) {
+    log('reset', `✗ 请求失败: ${e.message}`, 'err');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_1990_20260610133737",
+  "content": "测试响应",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "assistant",
+    "interaction_id": 1
+  },
+  "created_at": "2026-06-10T13:37:37.112310",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "assistant"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

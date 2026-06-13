@@ -1,0 +1,327 @@
+"""计划执行器
+
+执行分解后的任务计划
+重构版本 - 使用 Phase 3 的 core/registry.py
+保持 100% API 向后兼容
+"""
+
+import asyncio
+import logging
+from typing import Dict, Any, Optional, List, Callable
+from datetime import datetime
+
+from .models import Task, TaskStatus, Plan, PlanState
+from .models.action import Action, ActionResult, ActionType
+from .models.record import ExecutionRecord
+
+# 使用 Phase 3 的统一注册表抽象
+from core.registry import SimpleRegistry
+
+logger = logging.getLogger(__name__)
+
+
+class ToolRegistry:
+    """工具注册表
+    
+    重构版本 - 使用 Phase 3 的 core/registry.SimpleRegistry
+    保持 100% API 向后兼容
+    """
+
+    def __init__(self):
+        logger.info("[ToolRegistry] __init__ 开始初始化")
+        
+        # 使用 Phase 3 的统一注册表
+        self._tool_registry = SimpleRegistry("ToolRegistry")
+        self._tool_schemas: Dict[str, Dict] = {}
+        
+        logger.info("[ToolRegistry] __init__ 初始化完成")
+
+    def register(self, name: str, func: Callable, schema: Dict = None):
+        """注册工具（保持原有 API）"""
+        logger.info(f"[ToolRegistry.register] 注册工具: {name}")
+        
+        self._tool_registry.register(name, func)
+        if schema:
+            self._tool_schemas[name] = schema
+        
+        logger.info(f"工具已注册: {name}")
+
+    def get(self, name: str) -> Optional[Callable]:
+        """获取工具（保持原有 API）"""
+        logger.debug(f"[ToolRegistry.get] 获取工具: {name}")
+        return self._tool_registry.get(name)
+
+    def has(self, name: str) -> bool:
+        """检查工具是否存在（保持原有 API）"""
+        logger.debug(f"[ToolRegistry.has] 检查工具: {name}")
+        return self._tool_registry.has(name)
+
+    def list_tools(self) -> List[str]:
+        """列出所有工具（保持原有 API）"""
+        logger.debug("[ToolRegistry.list_tools] 列出所有工具")
+        return self._tool_registry.list()
+
+    def get_schema(self, name: str) -> Optional[Dict]:
+        """获取工具schema（保持原有 API）"""
+        logger.debug(f"[ToolRegistry.get_schema] 获取schema: {name}")
+        return self._tool_schemas.get(name)
+
+    def find_tool(self, description: str) -> Optional[str]:
+        """根据描述查找匹配的工具（保持原有 API）"""
+        logger.debug(f"[ToolRegistry.find_tool] 查找工具: {description}")
+        
+        desc_lower = description.lower()
+        for tool_name in self._tool_registry.list():
+            if tool_name in desc_lower:
+                return tool_name
+        return None
+
+
+class PlanExecutor:
+    """计划执行引擎
+    
+    负责执行分解后的任务计划
+    (无改动，保持原样)
+    """
+
+    def __init__(self, tool_registry: ToolRegistry, llm_service=None, max_retries: int = 3, config: Dict = None):
+        """
+        初始化执行器
+
+        Args:
+            tool_registry: 工具注册表
+            llm_service: LLM服务
+            max_retries: 最大重试次数
+            config: 配置
+        """
+        self.tool_registry = tool_registry
+        self.llm = llm_service
+        self.max_retries = max_retries
+        self.config = config or {}
+
+        self.execution_history: List[ExecutionRecord] = []
+        self._callbacks: Dict[str, List[Callable]] = {
+            "on_task_start": [],
+            "on_task_complete": [],
+            "on_task_fail": [],
+            "on_plan_complete": [],
+        }
+        
+        # 延迟导入避免循环依赖
+        from agent.error_handler import (
+            async_with_retry,
+            RecoverableError
+        )
+        self._execute_task_with_retry_internal = async_with_retry(
+            max_retries=self.max_retries,
+            initial_delay=1.0,
+            backoff_factor=2.0,
+            strategy="exponential",
+            retryable_exceptions=(RecoverableError,),
+            error_counter="executor.task"
+        )(self._do_execute_task)
+
+    def register_callback(self, event: str, callback: Callable):
+        """注册事件回调"""
+        if event in self._callbacks:
+            self._callbacks[event].append(callback)
+
+    async def execute_plan(self, plan: Plan) -> Plan:
+        """
+        执行完整计划
+
+        Args:
+            plan: 执行计划
+
+        Returns:
+            执行完成的计划
+        """
+        if plan.state != PlanState.READY:
+            raise ValueError(f"计划状态不正确: {plan.state}")
+
+        plan.state = PlanState.EXECUTING
+        plan.updated_at = datetime.now()
+        logger.info(f"开始执行计划: {plan.id}")
+
+        step_count = 0
+        try:
+            while not plan.is_complete():
+                if step_count >= plan.max_steps:
+                    logger.warning(f"达到最大步骤数: {plan.max_steps}")
+                    break
+
+                next_tasks = plan.get_next_executable_tasks()
+                if not next_tasks:
+                    logger.warning("无可执行任务,但计划未完成")
+                    break
+
+                task = next_tasks[0]
+                result = await self._execute_task_with_retry(task)
+
+                self._record_execution(plan, task, result)
+
+                if result.success:
+                    task.mark_completed(result.output)
+                    await self._trigger_callbacks("on_task_complete", task, result)
+                else:
+                    task.mark_failed(result.error or "未知错误")
+                    await self._trigger_callbacks("on_task_fail", task, result)
+
+                    if task.priority >= 4:
+                        logger.error(f"高优先级任务失败: {task.id}")
+                        break
+
+                plan.current_step += 1
+                step_count += 1
+                plan.updated_at = datetime.now()
+
+            if plan.is_success():
+                plan.state = PlanState.COMPLETED
+                plan.result = "所有任务执行成功"
+            elif plan.is_complete():
+                plan.state = PlanState.COMPLETED
+                plan.result = "计划执行完成,但部分任务失败"
+            else:
+                plan.state = PlanState.FAILED
+                plan.error = "计划执行超时或异常终止"
+
+            await self._trigger_callbacks("on_plan_complete", plan)
+
+        except Exception as e:
+            plan.state = PlanState.FAILED
+            plan.error = str(e)
+            logger.error(f"计划执行异常: {e}")
+
+        plan.updated_at = datetime.now()
+        logger.info(f"计划执行{plan.state.value}: {plan.progress():.1%}")
+        return plan
+
+    async def _do_execute_task(self, task: Task) -> ActionResult:
+        """实际的任务执行逻辑（不含重试，失败抛出异常）"""
+        action = self._determine_action(task)
+        result = await self._execute_action(action)
+        result.duration_ms = 0
+
+        if result.success:
+            return result
+        else:
+            raise RecoverableError(f"任务执行失败: {result.error}")
+    
+    async def _execute_task_with_retry(self, task: Task) -> ActionResult:
+        """带重试的任务执行"""
+        task.mark_running()
+        try:
+            return await self._execute_task_with_retry_internal(task)
+        except Exception as e:
+            last_error = str(e)
+            logger.error(f"任务执行失败: {e}")
+            return ActionResult.failure_result(last_error or "重试次数耗尽")
+
+    def _determine_action(self, task: Task) -> Action:
+        """根据任务确定执行动作"""
+        tool_name = self.tool_registry.find_tool(task.description)
+
+        if tool_name and self.tool_registry.has(tool_name):
+            return Action.tool_action(
+                tool_name=tool_name,
+                params=self._extract_params(task),
+                description=task.description
+            )
+        elif self.llm:
+            return Action.llm_action(
+                prompt=f"执行任务: {task.description}",
+                description=task.description
+            )
+        else:
+            return Action.response_action(f"任务无法执行: {task.description}")
+
+    async def _execute_action(self, action: Action) -> ActionResult:
+        """执行动作"""
+        if action.action_type == ActionType.TOOL_CALL:
+            return await self._execute_tool_call(action)
+        elif action.action_type == ActionType.LLM_REASONING:
+            return await self._execute_llm_reasoning(action)
+        elif action.action_type == ActionType.RESPONSE:
+            return ActionResult.success_result(
+                output=action.tool_params.get("response", ""),
+                observation="直接返回响应"
+            )
+        else:
+            return ActionResult.failure_result(f"未知动作类型: {action.action_type}")
+
+    async def _execute_tool_call(self, action: Action) -> ActionResult:
+        """执行工具调用"""
+        tool = self.tool_registry.get(action.tool_name)
+        if not tool:
+            return ActionResult.failure_result(f"工具不存在: {action.tool_name}")
+
+        try:
+            if asyncio.iscoroutinefunction(tool):
+                output = await tool(**action.tool_params)
+            else:
+                output = tool(**action.tool_params)
+
+            return ActionResult.success_result(
+                output=output,
+                observation=f"工具{action.tool_name}执行成功",
+                state_changes=[f"{action.tool_name}已执行"]
+            )
+        except Exception as e:
+            return ActionResult.failure_result(f"工具执行失败: {e}")
+
+    async def _execute_llm_reasoning(self, action: Action) -> ActionResult:
+        """执行LLM推理"""
+        if not self.llm:
+            return ActionResult.failure_result("LLM服务不可用")
+
+        try:
+            prompt = action.tool_params.get("prompt", "")
+            response = await self.llm.chat([{"role": "user", "content": prompt}])
+
+            return ActionResult.success_result(
+                output=response,
+                observation=f"LLM推理完成: {response[:100]}..."
+            )
+        except Exception as e:
+            return ActionResult.failure_result(f"LLM推理失败: {e}")
+
+    def _extract_params(self, task: Task) -> Dict[str, Any]:
+        """从任务描述中提取参数"""
+        return {}
+
+    def _record_execution(self, plan: Plan, task: Task, result: ActionResult):
+        """记录执行历史"""
+        record = ExecutionRecord(
+            step=plan.current_step,
+            task_id=task.id,
+            action=Action(
+                id=f"action_{task.id}",
+                description=task.description
+            ),
+            result=result,
+            reasoning=f"执行任务: {task.description}"
+        )
+        self.execution_history.append(record)
+
+    async def _trigger_callbacks(self, event: str, *args):
+        """触发事件回调"""
+        for callback in self._callbacks.get(event, []):
+            try:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(*args)
+                else:
+                    callback(*args)
+            except Exception as e:
+                logger.error(f"回调执行失败: {e}")
+
+    async def cancel_plan(self, plan: Plan) -> Plan:
+        """取消计划"""
+        plan.state = PlanState.CANCELLED
+        plan.updated_at = datetime.now()
+        logger.info(f"计划已取消: {plan.id}")
+        return plan
+
+    def get_history(self, limit: int = 50) -> List[Dict]:
+        """获取执行历史"""
+        records = self.execution_history[-limit:]
+        return [r.to_dict() for r in records]

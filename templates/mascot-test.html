@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mascot 功能测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .test-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .test-section h2 {
+      color: #333;
+      margin-bottom: 16px;
+      font-size: 1.3em;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+
+    .mascot-preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .mascot-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .mascot-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .mascot-container:hover {
+      transform: scale(1.1);
+    }
+
+    .mascot-body {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+      border-radius: 50%;
+      box-shadow: 0 4px 20px rgba(79, 209, 197, 0.4);
+    }
+
+    .mascot-face {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mascot-eyes {
+      display: flex;
+      gap: 16px;
+      position: relative;
+      top: -8px;
+    }
+
+    .mascot-eye-left, .mascot-eye-right {
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.1s ease;
+    }
+
+    .mascot-eye-left::after, .mascot-eye-right::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #0d1117;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.15s ease;
+    }
+
+    .mascot-mouth {
+      font-size: 24px;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+      color: white;
+    }
+
+    .mascot-mouth-happy { transform: rotate(180deg) scale(1.2); }
+    .mascot-mouth-excited { transform: rotate(180deg) scale(1.4); }
+    .mascot-mouth-thinking { }
+    .mascot-mouth-tired { opacity: 0.6; }
+    .mascot-mouth-error { color: #f85149; }
+
+    .mascot-shadow {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 50%;
+      filter: blur(6px);
+    }
+
+    .mascot-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79, 209, 197, 0.3) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .mascot-glow.pulsing {
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .mascot-greeting {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-top: 12px;
+    }
+
+    .mascot-status {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .test-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .test-btn {
+      padding: 16px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .test-btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .test-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .test-btn-success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+    }
+
+    .test-btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 239, 125, 0.4);
+    }
+
+    .test-btn-warning {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .test-btn-warning:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    }
+
+    .test-btn-info {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    .test-btn-info:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+    }
+
+    .test-btn:active {
+      transform: translateY(0);
+    }
+
+    .test-results {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .test-result-item {
+      padding: 8px 12px;
+      margin: 4px 0;
+      border-radius: 4px;
+    }
+
+    .test-result-pass {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .test-result-fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .test-result-info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .status-card {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .status-card-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .status-card-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .instructions {
+      background: #fff3cd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-left: 4px solid #ffc107;
+    }
+
+    .instructions h3 {
+      color: #856404;
+      margin-bottom: 8px;
+    }
+
+    .instructions p {
+      color: #856404;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎭 Mascot 数字生命功能测试</h1>
+
+    <div class="instructions">
+      <h3>📋 测试说明</h3>
+      <p>
+        点击下方按钮可以测试 Mascot 的各项交互功能。
+        移动鼠标到 Mascot 上可以测试视线追踪效果。
+        测试结果将显示在下方。
+      </p>
+    </div>
+
+    <!-- Mascot 预览区 -->
+    <div class="test-section">
+      <h2>👀 Mascot 预览</h2>
+      <div class="mascot-preview">
+        <div class="mascot-wrapper">
+          <div class="mascot-container" id="mascot" onmouseenter="handleMouseEnter()" onmouseleave="handleMouseLeave()" onclick="handleClick()">
+            <div class="mascot-glow pulsing" id="mascot-glow"></div>
+            <div class="mascot-body">
+              <div class="mascot-face">
+                <div class="mascot-eyes">
+                  <div class="mascot-eye-left" id="eye-left"></div>
+                  <div class="mascot-eye-right" id="eye-right"></div>
+                </div>
+                <div class="mascot-mouth" id="mascot-mouth">◡</div>
+              </div>
+            </div>
+            <div class="mascot-shadow"></div>
+          </div>
+          <p class="mascot-greeting">我是来自网天的云枢</p>
+          <p class="mascot-status" id="mascot-status">等待你的消息</p>
+        </div>
+      </div>
+
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="status-card-label">当前情绪</div>
+          <div class="status-card-value" id="mood-display">idle</div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-label">视线位置 X</div>
+          <div class="status-card-value" id="look-x-display">0.00</div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-label">视线位置 Y</div>
+          <div class="status-card-value" id="look-y-display">0.00</div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-label">Hover 状态</div>
+          <div class="status-card-value" id="hover-display">否</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 点击交互测试 -->
+    <div class="test-section">
+      <h2>🔘 点击交互测试</h2>
+      <div class="test-buttons">
+        <button class="test-btn test-btn-primary" onclick="testClick()">
+          测试点击<br><small>点击查看情绪变化</small>
+        </button>
+        <button class="test-btn test-btn-success" onclick="testMoodChange('happy')">
+          设置开心<br><small>切换到 happy 情绪</small>
+        </button>
+        <button class="test-btn test-btn-warning" onclick="testMoodChange('excited')">
+          设置兴奋<br><small>切换到 excited 情绪</small>
+        </button>
+        <button class="test-btn test-btn-info" onclick="testMoodChange('thinking')">
+          设置思考<br><small>切换到 thinking 情绪</small>
+        </button>
+        <button class="test-btn test-btn-warning" onclick="testMoodChange('tired')">
+          设置疲惫<br><small>切换到 tired 情绪</small>
+        </button>
+        <button class="test-btn test-btn-primary" onclick="testMoodChange('error')">
+          设置错误<br><small>切换到 error 情绪</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- 视线追踪测试 -->
+    <div class="test-section">
+      <h2>👀 视线追踪测试</h2>
+      <p style="margin-bottom: 16px; color: #666;">
+        移动鼠标到 Mascot 上，观察眼睛的视线追踪效果。
+        鼠标停止移动 3 秒后，Mascot 会自动回弹到中心位置。
+      </p>
+      <div class="test-buttons">
+        <button class="test-btn test-btn-primary" onclick="testEyeMovement()">
+          测试视线移动<br><small>模拟眼球移动</small>
+        </button>
+        <button class="test-btn test-btn-success" onclick="testEyeReset()">
+          重置视线<br><small>将视线恢复到中心</small>
+        </button>
+        <button class="test-btn test-btn-info" onclick="testSmoothMovement()">
+          测试平滑移动<br><small>视线平滑过渡动画</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hover 测试 -->
+    <div class="test-section">
+      <h2>🖱️ Hover 测试</h2>
+      <div class="test-buttons">
+        <button class="test-btn test-btn-primary" onclick="testHoverEnter()">
+          模拟 Hover 进入<br><small>触发 onmouseenter</small>
+        </button>
+        <button class="test-btn test-btn-warning" onclick="testHoverLeave()">
+          模拟 Hover 离开<br><small>触发 onmouseleave</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- 自动化测试 -->
+    <div class="test-section">
+      <h2>⚙️ 自动化测试</h2>
+      <div class="test-buttons">
+        <button class="test-btn test-btn-success" onclick="runAutoTest()">
+          运行完整测试<br><small>执行所有功能测试</small>
+        </button>
+        <button class="test-btn test-btn-warning" onclick="clearTestResults()">
+          清除结果<br><small>清空测试日志</small>
+        </button>
+      </div>
+
+      <div class="test-results" id="test-results">
+        <div class="test-result-item test-result-info">
+          点击上方按钮开始测试...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局状态
+    let currentMood = 'idle';
+    let currentLookAt = { x: 0, y: 0 };
+    let targetLookAt = { x: 0, y: 0 };
+    let isHovered = false;
+    let animationId = null;
+    let lastMoveTime = Date.now();
+    let isReturning = false;
+    const returnDelay = 3000;
+    const returnDamping = 0.08;
+    const sensitivity = 0.5;
+    const damping = 0.2;
+
+    // DOM 元素
+    const mascot = document.getElementById('mascot');
+    const leftEye = document.getElementById('eye-left');
+    const rightEye = document.getElementById('eye-right');
+    const mouth = document.getElementById('mascot-mouth');
+    const status = document.getElementById('mascot-status');
+    const moodDisplay = document.getElementById('mood-display');
+    const lookXDisplay = document.getElementById('look-x-display');
+    const lookYDisplay = document.getElementById('look-y-display');
+    const hoverDisplay = document.getElementById('hover-display');
+    const testResults = document.getElementById('test-results');
+
+    // 添加测试结果
+    function addTestResult(message, type = 'info') {
+      const item = document.createElement('div');
+      item.className = `test-result-item test-result-${type}`;
+      item.textContent = message;
+      testResults.appendChild(item);
+      testResults.scrollTop = testResults.scrollHeight;
+    }
+
+    // 清除测试结果
+    function clearTestResults() {
+      testResults.innerHTML = '<div class="test-result-item test-result-info">结果已清除...</div>';
+    }
+
+    // 更新眼睛位置
+    function updateEyePosition(x, y) {
+      const maxOffset = 5;
+      const offsetX = x * maxOffset;
+      const offsetY = y * maxOffset;
+
+      if (leftEye && rightEye) {
+        leftEye.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        rightEye.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      }
+
+      currentLookAt = { x, y };
+      lookXDisplay.textContent = x.toFixed(2);
+      lookYDisplay.textContent = y.toFixed(2);
+    }
+
+    // 设置情绪
+    function setMood(mood) {
+      currentMood = mood;
+      moodDisplay.textContent = mood;
+
+      if (!mouth) return;
+
+      // 移除所有情绪类
+      mouth.classList.remove('mascot-mouth-happy', 'mascot-mouth-excited',
+                            'mascot-mouth-thinking', 'mascot-mouth-tired',
+                            'mascot-mouth-error');
+
+      // 添加当前情绪类
+      switch (mood) {
+        case 'happy':
+          mouth.classList.add('mascot-mouth-happy');
+          mouth.textContent = '◡';
+          status.textContent = '今天心情很好！';
+          break;
+        case 'excited':
+          mouth.classList.add('mascot-mouth-excited');
+          mouth.textContent = '◡';
+          status.textContent = '太兴奋了！';
+          break;
+        case 'thinking':
+          mouth.classList.add('mascot-mouth-thinking');
+          mouth.textContent = '•';
+          status.textContent = '正在思考...';
+          break;
+        case 'tired':
+          mouth.classList.add('mascot-mouth-tired');
+          mouth.textContent = '—';
+          status.textContent = '有点累了...';
+          break;
+        case 'error':
+          mouth.classList.add('mascot-mouth-error');
+          mouth.textContent = '✕';
+          status.textContent = '遇到了一些问题';
+          break;
+        default:
+          mouth.textContent = '◡';
+          status.textContent = '等待你的消息';
+      }
+
+      addTestResult(`情绪设置为: ${mood}`, 'pass');
+    }
+
+    // 动画循环
+    function animate() {
+      const diffX = targetLookAt.x - currentLookAt.x;
+      const diffY = targetLookAt.y - currentLookAt.y;
+
+      const newX = currentLookAt.x + diffX * damping;
+      const newY = currentLookAt.y + diffY * damping;
+
+      updateEyePosition(newX, newY);
+
+      const threshold = 0.001;
+      if (!(Math.abs(diffX) < threshold && Math.abs(diffY) < threshold)) {
+        animationId = requestAnimationFrame(animate);
+      }
+    }
+
+    // 检查回弹
+    function checkReturnToCenter() {
+      const now = Date.now();
+      const timeSinceLastMove = now - lastMoveTime;
+
+      if (timeSinceLastMove >= returnDelay && !isReturning) {
+        const distance = Math.sqrt(targetLookAt.x ** 2 + targetLookAt.y ** 2);
+        if (distance > 0.01) {
+          isReturning = true;
+          addTestResult('鼠标停止 3 秒，开始回弹到中心...', 'info');
+        }
+      }
+
+      if (isReturning) {
+        targetLookAt = {
+          x: targetLookAt.x * (1 - returnDamping),
+          y: targetLookAt.y * (1 - returnDamping)
+        };
+
+        const distance = Math.sqrt(targetLookAt.x ** 2 + targetLookAt.y ** 2);
+        if (distance < 0.005) {
+          targetLookAt = { x: 0, y: 0 };
+          isReturning = false;
+          addTestResult('已回到中心位置', 'pass');
+        }
+
+        // 重新启动动画
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+        animationId = requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(checkReturnToCenter);
+    }
+
+    // 鼠标移动处理
+    function handleMouseMove(e) {
+      lastMoveTime = Date.now();
+      isReturning = false;
+
+      const rect = mascot.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const viewportHalfWidth = window.innerWidth / 2;
+      const viewportHalfHeight = window.innerHeight / 2;
+
+      const deltaX = (e.clientX - centerX) / viewportHalfWidth;
+      const deltaY = (e.clientY - centerY) / viewportHalfHeight;
+
+      const clampedX = Math.max(-1, Math.min(1, deltaX * sensitivity));
+      const clampedY = Math.max(-1, Math.min(1, deltaY * sensitivity));
+
+      targetLookAt = { x: clampedX, y: clampedY };
+
+      // 重新启动动画
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // 鼠标进入
+    function handleMouseEnter() {
+      isHovered = true;
+      hoverDisplay.textContent = '是';
+      mascot.classList.add('mascot-hovered');
+      addTestResult('Mouse Enter - Hover 状态开启', 'pass');
+    }
+
+    // 鼠标离开
+    function handleMouseLeave() {
+      isHovered = false;
+      hoverDisplay.textContent = '否';
+      mascot.classList.remove('mascot-hovered');
+      addTestResult('Mouse Leave - Hover 状态关闭', 'pass');
+    }
+
+    // 点击处理
+    function handleClick() {
+      setMood('excited');
+      setTimeout(() => setMood('idle'), 1500);
+      addTestResult('Click - 触发兴奋情绪', 'pass');
+    }
+
+    // 测试函数
+    function testClick() {
+      addTestResult('测试点击交互...', 'info');
+      handleClick();
+    }
+
+    function testMoodChange(mood) {
+      addTestResult(`测试情绪切换到: ${mood}`, 'info');
+      setMood(mood);
+    }
+
+    function testEyeMovement() {
+      addTestResult('测试视线移动到 (0.8, 0.3)...', 'info');
+      targetLookAt = { x: 0.8, y: 0.3 };
+      if (animationId) cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function testEyeReset() {
+      addTestResult('重置视线到中心 (0, 0)...', 'info');
+      targetLookAt = { x: 0, y: 0 };
+      if (animationId) cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function testSmoothMovement() {
+      addTestResult('测试平滑移动动画...', 'info');
+      const positions = [
+        { x: 0.5, y: 0.5 },
+        { x: -0.5, y: 0.5 },
+        { x: -0.5, y: -0.5 },
+        { x: 0.5, y: -0.5 },
+        { x: 0, y: 0 }
+      ];
+
+      let index = 0;
+      const moveInterval = setInterval(() => {
+        if (index < positions.length) {
+          targetLookAt = positions[index];
+          if (animationId) cancelAnimationFrame(animationId);
+          animationId = requestAnimationFrame(animate);
+          index++;
+        } else {
+          clearInterval(moveInterval);
+          addTestResult('平滑移动测试完成', 'pass');
+        }
+      }, 800);
+    }
+
+    function testHoverEnter() {
+      addTestResult('模拟 Hover Enter...', 'info');
+      handleMouseEnter();
+    }
+
+    function testHoverLeave() {
+      addTestResult('模拟 Hover Leave...', 'info');
+      handleMouseLeave();
+    }
+
+    // 自动化测试
+    function runAutoTest() {
+      clearTestResults();
+      addTestResult('=== 开始自动化测试 ===', 'info');
+
+      setTimeout(() => {
+        // 测试点击
+        addTestResult('1. 测试点击功能', 'info');
+        handleClick();
+
+        // 测试情绪切换
+        setTimeout(() => {
+          addTestResult('2. 测试情绪切换', 'info');
+          const moods = ['happy', 'excited', 'thinking', 'tired', 'error', 'idle'];
+          let moodIndex = 0;
+
+          const moodInterval = setInterval(() => {
+            if (moodIndex < moods.length) {
+              setMood(moods[moodIndex]);
+              moodIndex++;
+            } else {
+              clearInterval(moodInterval);
+            }
+          }, 500);
+
+          // 测试视线追踪
+          setTimeout(() => {
+            addTestResult('3. 测试视线追踪', 'info');
+            testSmoothMovement();
+
+            // 测试 Hover
+            setTimeout(() => {
+              addTestResult('4. 测试 Hover 功能', 'info');
+              handleMouseEnter();
+              setTimeout(() => {
+                handleMouseLeave();
+                addTestResult('=== 测试完成 ===', 'pass');
+              }, 1000);
+            }, 4500);
+          }, 3500);
+        }, 2000);
+      }, 500);
+    }
+
+    // 初始化
+    mascot.addEventListener('mousemove', handleMouseMove);
+    animationId = requestAnimationFrame(animate);
+    requestAnimationFrame(checkReturnToCenter);
+
+    addTestResult('Mascot 测试页面已加载', 'pass');
+    addTestResult('移动鼠标到 Mascot 上测试视线追踪', 'info');
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+2026-06-08 00:42:04,634 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 00:42:04,639 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 00:42:04,664 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 00:42:04,668 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 00:42:04,678 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 00:42:04,712 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 00:42:04,718 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 00:42:04,720 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 00:42:04,721 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 00:42:04,725 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 00:42:04,756 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 00:42:04,758 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 00:42:04,758 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 00:42:05,016 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 00:42:05,025 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 00:42:05,025 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:42:05,035 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:42:05,035 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 00:42:05,036 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 00:42:05,036 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 00:42:05,036 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 00:42:05,036 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 00:42:05,037 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 00:42:05,037 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 00:42:05,037 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 00:42:05,038 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:42:05,038 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 00:42:05,038 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 00:42:05,039 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 00:42:05,345 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,350 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,355 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,361 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,366 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,386 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,392 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,400 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,408 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,415 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,420 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,425 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:42:05,430 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,435 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,440 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,450 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,458 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,476 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,482 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,487 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,492 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,497 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,585 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,606 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,625 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-08 00:42:05,645 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,652 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-08 00:42:05,656 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,661 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,666 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,671 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,676 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,695 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,713 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,718 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,722 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,728 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,733 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,753 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,758 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-08 00:42:05,758 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)

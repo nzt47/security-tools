@@ -1,0 +1,219 @@
+2026-06-05 13:30:30,739 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 13:30:30,750 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 13:30:30,756 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 13:30:30,761 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 13:30:30,795 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 13:30:30,799 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 13:30:30,800 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 13:30:30,826 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 13:30:30,830 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 13:30:30,849 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 13:30:30,850 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 13:30:30,851 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 13:30:30,854 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 13:30:31,011 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 13:30:31,017 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 13:30:31,017 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:30:31,032 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:30:31,032 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 13:30:31,033 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 13:30:31,034 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 13:30:31,035 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 13:30:31,035 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 13:30:31,036 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 13:30:31,036 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 13:30:31,036 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 13:30:31,037 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:30:31,037 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 13:30:31,037 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 13:30:31,038 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 13:30:31,104 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-05 13:30:31,247 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-05 13:30:31,272 [    INFO] agent.digital_life_lazy: [PerfTimer] test: 10.57ms
+2026-06-05 13:30:31,293 [    INFO] agent.digital_life_lazy: [Profile] test_func: 10.20ms
+2026-06-05 13:30:31,300 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,303 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,304 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,305 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,306 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,307 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.39ms
+2026-06-05 13:30:31,307 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,307 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,308 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,308 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,308 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,309 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,316 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,320 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,320 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,322 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,322 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,323 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.43ms
+2026-06-05 13:30:31,324 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,324 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,325 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,325 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,325 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,327 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,334 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,338 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,338 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,339 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,339 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,340 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.17ms
+2026-06-05 13:30:31,340 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,341 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,341 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,341 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,341 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,342 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,350 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,353 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,353 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,354 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,354 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,355 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.13ms
+2026-06-05 13:30:31,355 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,355 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,355 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,355 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,356 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,356 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,362 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,365 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,365 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,366 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,366 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,367 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.19ms
+2026-06-05 13:30:31,367 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,367 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,367 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,368 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,368 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,368 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,369 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 首次交互，触发 Important 模块后台加载...
+2026-06-05 13:30:31,369 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Important 模块加载完成: 0.03ms
+2026-06-05 13:30:31,475 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,478 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,478 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,479 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,479 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,479 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.13ms
+2026-06-05 13:30:31,480 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,480 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,480 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,480 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,480 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,481 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,481 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 按需加载 Optional 模块: lifetrace
+2026-06-05 13:30:31,486 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,489 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,489 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,490 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,491 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,492 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.27ms
+2026-06-05 13:30:31,492 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,492 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,492 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,493 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,493 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,494 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,499 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,502 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,502 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,503 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,503 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,503 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.14ms
+2026-06-05 13:30:31,504 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,504 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,504 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,504 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,505 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,505 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,511 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,515 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,515 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,516 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,516 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,517 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.16ms
+2026-06-05 13:30:31,517 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,517 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,517 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,518 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,518 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,519 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,521 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 停止...
+2026-06-05 13:30:31,528 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,531 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,531 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,532 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,532 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,533 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.19ms
+2026-06-05 13:30:31,533 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,533 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,533 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,534 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,534 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,535 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,535 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 启动...
+2026-06-05 13:30:31,536 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 首次交互，触发 Important 模块后台加载...
+2026-06-05 13:30:31,537 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Important 模块加载完成: 0.03ms
+2026-06-05 13:30:31,545 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,547 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,548 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,549 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,549 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,549 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.13ms
+2026-06-05 13:30:31,550 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,550 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,550 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,550 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,550 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,552 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,552 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 停止...
+2026-06-05 13:30:31,557 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,560 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,560 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,561 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,562 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,562 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.20ms
+2026-06-05 13:30:31,562 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,563 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,563 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,563 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,563 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,564 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:31,564 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 启动...
+2026-06-05 13:30:31,565 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 首次交互，触发 Important 模块后台加载...
+2026-06-05 13:30:31,566 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Important 模块加载完成: 0.04ms
+2026-06-05 13:30:31,573 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,575 [    INFO] agent.digital_life_lazy: ======================================================================
+2026-06-05 13:30:31,576 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 注册模块...
+2026-06-05 13:30:31,577 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 模块注册完成: 0 个模块
+2026-06-05 13:30:31,577 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:31,578 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.36ms
+2026-06-05 13:30:31,579 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:31,579 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:31,580 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:31,580 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:31,580 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 初始化传感器健康监控器...
+2026-06-05 13:30:31,581 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 传感器健康监控器初始化完成
+2026-06-05 13:30:33,524 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] 加载 Critical 模块...
+2026-06-05 13:30:33,524 [    INFO] agent.digital_life_lazy: [PerfTimer] load_critical_modules: 0.04ms
+2026-06-05 13:30:33,525 [    INFO] agent.digital_life_lazy: [LazyDigitalLife] Critical 模块加载统计:
+2026-06-05 13:30:33,525 [    INFO] agent.digital_life_lazy:   成功: 5
+2026-06-05 13:30:33,525 [    INFO] agent.digital_life_lazy:   失败: 0
+2026-06-05 13:30:33,525 [    INFO] agent.digital_life_lazy:   平均耗时: 10.0
+2026-06-05 13:30:33,900 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmp8mzci60l, max=100MB)
+2026-06-05 13:30:33,906 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmp0v27t_a0, max=100MB)
+2026-06-05 13:30:33,914 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmpocc1ia7s, max=100MB)
+2026-06-05 13:30:33,922 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=2, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmpitc4ih0m, max=100MB)
+2026-06-05 13:30:33,930 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-05 13:30:34,232 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmp4ygzv3fg, max=100MB)
+2026-06-05 13:30:34,239 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmp2b8e3icy, max=100MB)
+2026-06-05 13:30:34,243 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-05 13:30:34,249 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmp5osu3npu, max=100MB)
+2026-06-05 13:30:34,267 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmpsm1lg3p2, max=100MB)
+2026-06-05 13:30:34,332 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\TEMP\tmpzsgq_y9m, max=100MB)

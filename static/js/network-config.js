@@ -71,14 +71,8 @@ async function loadMcpServices() {
  * 渲染网络配置到表单
  */
 function renderNetworkConfig(config) {
-  // LLM 服务
+  // LLM 服务（仅保留启用开关）
   set('nc-llm-enabled', config.llm.enabled);
-  set('nc-llm-provider', config.llm.provider);
-  set('nc-llm-apikey', config.llm.api_key);
-  set('nc-llm-model', config.llm.model);
-  set('nc-llm-endpoint', config.llm.api_endpoint || '');
-  set('nc-llm-timeout', config.llm.timeout);
-  set('nc-llm-retries', config.llm.max_retries);
 
   // 网络基础设置
   set('nc-network-timeout', config.network.timeout);
@@ -267,15 +261,26 @@ function collectNetworkConfig() {
     });
   }
 
+  // 获取 LLM 配置（从缓存中获取，因为已删除默认配置表单）
+  const llmConfig = __networkConfigCache?.llm || {
+    enabled: true,
+    provider: '',
+    api_key: '',
+    model: '',
+    api_endpoint: '',
+    timeout: 30,
+    max_retries: 3,
+  };
+
   const config = {
     llm: {
       enabled: get('nc-llm-enabled'),
-      provider: get('nc-llm-provider'),
-      api_key: get('nc-llm-apikey'),
-      model: get('nc-llm-model'),
-      api_endpoint: get('nc-llm-endpoint'),
-      timeout: num('nc-llm-timeout'),
-      max_retries: num('nc-llm-retries'),
+      provider: llmConfig.provider,
+      api_key: llmConfig.api_key,
+      model: llmConfig.model,
+      api_endpoint: llmConfig.api_endpoint,
+      timeout: llmConfig.timeout,
+      max_retries: llmConfig.max_retries,
     },
     network: {
       timeout: num('nc-network-timeout'),
@@ -754,17 +759,25 @@ let __editingLlmInstanceId = null;
  */
 function renderLlmInstances(instances) {
   const container = document.getElementById('llm-instances-list');
-  if (!container) return;
-
-  // 更新默认实例选择下拉框
-  updateDefaultLlmInstanceSelect(instances);
+  if (!container) {
+    console.error('[网络配置] llm-instances-list 容器不存在');
+    return;
+  }
 
   if (instances.length === 0) {
     container.innerHTML = '<div class="empty-state">暂无 LLM 实例，点击上方按钮添加</div>';
     return;
   }
 
-  container.innerHTML = instances.map(instance => `
+  // 获取当前默认实例 ID
+  const defaultInstanceId = __networkConfigCache?.default_llm_instance || '';
+
+  container.innerHTML = instances.map(instance => {
+    // 确保 instance.id 存在
+    const id = instance.id || instance.name;
+    const isDefault = instance.is_default || (id === defaultInstanceId);
+    
+    return `
     <div class="llm-instance-card ${instance.enabled ? '' : 'disabled'}">
       <div class="llm-instance-header">
         <div style="flex:1">
@@ -772,13 +785,13 @@ function renderLlmInstances(instances) {
           <div class="llm-instance-meta">${escapeHtml(instance.provider)} · ${escapeHtml(instance.model)}</div>
         </div>
         <div class="llm-instance-actions">
-          ${instance.is_default ? '<span class="default-badge">默认</span>' : ''}
+          ${isDefault ? '<span class="default-badge">默认</span>' : ''}
           <label class="toggle-switch small" title="${instance.enabled ? '禁用' : '启用'}">
-            <input type="checkbox" ${instance.enabled ? 'checked' : ''} onchange="toggleLlmInstance('${instance.id}', this.checked)">
+            <input type="checkbox" ${instance.enabled ? 'checked' : ''} onchange="toggleLlmInstance('${id}', this.checked)">
             <span class="toggle-slider"></span>
           </label>
-          <button class="btn-xs" onclick="editLlmInstance('${instance.id}')" title="编辑">✏️</button>
-          <button class="btn-xs danger" onclick="deleteLlmInstance('${instance.id}', '${escapeHtml(instance.name)}')" title="删除">🗑</button>
+          <button class="btn-xs" onclick="editLlmInstance('${id}')" title="编辑">✏️</button>
+          <button class="btn-xs danger" onclick="deleteLlmInstance('${id}', '${escapeHtml(instance.name)}')" title="删除">🗑</button>
         </div>
       </div>
       <div class="llm-instance-body">
@@ -790,35 +803,30 @@ function renderLlmInstances(instances) {
         </div>
         ${instance.description ? `<div class="llm-instance-desc">📝 ${escapeHtml(instance.description)}</div>` : ''}
       </div>
-      <button class="llm-set-default" onclick="setDefaultLlmInstance('${instance.id}')" ${instance.is_default ? 'disabled' : ''}>
-        ${instance.is_default ? '✓ 已设为默认' : '设为默认'}
+      <button class="llm-set-default" onclick="setDefaultLlmInstance('${id}')" ${isDefault ? 'disabled' : ''}>
+        ${isDefault ? '✓ 已设为默认' : '设为默认'}
       </button>
     </div>
-  `).join('');
+  `;
+  }).join('');
+  
+  console.log('[网络配置] LLM 实例列表已渲染，共 ' + instances.length + ' 个实例');
 }
 
+
+
 /**
- * 更新默认实例选择下拉框
+ * 编辑 LLM 实例
  */
-function updateDefaultLlmInstanceSelect(instances) {
-  const select = document.getElementById('nc-default-llm-instance');
-  if (!select) return;
-
-  // 获取当前选中的默认实例
-  const currentDefault = __networkConfigCache?.default_llm_instance;
-
-  // 清空并重新填充选项
-  select.innerHTML = '<option value="">自动选择</option>';
-  
-  instances.forEach(instance => {
-    const option = document.createElement('option');
-    option.value = instance.id || instance.name;
-    option.textContent = instance.name;
-    if ((instance.id || instance.name) === currentDefault) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
+function editLlmInstance(instanceId) {
+  // 支持 UUID 和名称匹配
+  const instance = __llmInstances.find(i => (i.id || i.name) === instanceId);
+  if (instance) {
+    showLlmInstanceModal(instance.id || instance.name);
+  } else {
+    console.error('[网络配置] 未找到 LLM 实例:', instanceId);
+    alert('未找到该实例');
+  }
 }
 
 /**
@@ -832,7 +840,8 @@ function showLlmInstanceModal(instanceId = null) {
   if (instanceId) {
     title.textContent = '编辑 LLM 实例';
     __editingLlmInstanceId = instanceId;
-    const instance = __llmInstances.find(i => i.id === instanceId);
+    // 支持 UUID 和名称匹配
+    const instance = __llmInstances.find(i => (i.id || i.name) === instanceId);
     if (instance) {
       set('llm-form-name', instance.name);
       set('llm-form-provider', instance.provider);
@@ -992,14 +1001,23 @@ async function deleteLlmInstance(instanceId, name) {
  * 切换 LLM 实例启用状态
  */
 async function toggleLlmInstance(instanceId, enabled) {
+  console.log('[网络配置] 切换 LLM 实例状态:', instanceId, enabled);
   try {
-    await apiFetch(`/api/llm/instances/${instanceId}`, {
+    const result = await apiFetch(`/api/llm/instances/${instanceId}`, {
       method: 'PUT',
       body: JSON.stringify({ updates: { enabled } }),
     });
-    await loadLlmInstances();
+    const data = await result.json();
+    if (data.ok) {
+      await loadLlmInstances();
+      showNetworkStatus(`✓ LLM 实例已${enabled ? '启用' : '禁用'}`, 'ok');
+    } else {
+      console.error('[网络配置] 切换状态失败:', data.error);
+      showNetworkStatus('✗ 切换失败: ' + (data.error || '未知错误'), 'err');
+    }
   } catch (e) {
-    console.error('切换 LLM 实例状态失败:', e);
+    console.error('[网络配置] 切换 LLM 实例状态失败:', e);
+    showNetworkStatus('✗ 切换失败: ' + e.message, 'err');
   }
 }
 
@@ -1069,6 +1087,19 @@ function renderMcpServices(services) {
       </div>
     </div>
   `).join('');
+}
+
+/**
+ * 编辑 MCP 服务（入口，调用模态框）
+ */
+function editMcpService(serviceId) {
+  const service = __mcpServices.find(s => s.id === serviceId);
+  if (service) {
+    showMcpServiceModal(serviceId);
+  } else {
+    console.error('[网络配置] 未找到 MCP 服务:', serviceId);
+    alert('未找到该 MCP 服务');
+  }
 }
 
 /**

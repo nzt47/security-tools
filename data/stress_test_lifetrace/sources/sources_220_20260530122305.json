@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_220_20260530122305",
+  "content": "你好。我现在处于正常模式状态。\n（提示：当前未配置 LLM API，我的对话能力受限。请设置 LLM_API_KEY 环境变量让我变得更强。）",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "assistant",
+    "interaction_id": 55
+  },
+  "created_at": "2026-05-30T12:23:05.255848",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "assistant"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

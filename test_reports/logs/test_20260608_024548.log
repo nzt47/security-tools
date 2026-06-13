@@ -1,0 +1,59 @@
+2026-06-08 02:45:48,849 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:45:48,877 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:45:48,884 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:45:48,893 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:45:48,932 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:45:48,938 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:45:48,940 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:45:48,941 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:45:48,946 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:45:48,977 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:45:48,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:45:48,979 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:45:48,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:45:49,224 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 02:45:49,234 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:45:49,234 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:45:49,245 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:45:49,245 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:45:49,245 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 02:45:49,247 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 02:45:49,248 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 02:45:49,373 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 可重试
+2026-06-08 02:45:49,395 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 总是失败
+2026-06-08 02:45:49,421 [   ERROR] agent.error_handler: All 1 retry attempts exhausted
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 659, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3172, in always_fail
+    raise RecoverableError("总是失败")
+agent.error_handler.RecoverableError: 总是失败
+2026-06-08 02:45:49,422 [ WARNING] agent.error_handler: [warning] unknown: 总是失败
+2026-06-08 02:45:49,430 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=5
+2026-06-08 02:45:49,441 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-08 02:45:49,466 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 不可重试
+2026-06-08 02:45:49,485 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.02s: 不可重试
+2026-06-08 02:45:49,509 [   ERROR] agent.error_handler: All 2 retry attempts exhausted
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 659, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3230, in always_fail
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+2026-06-08 02:45:49,510 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+2026-06-08 02:45:49,684 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-08 02:45:49,706 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=5
+2026-06-08 02:45:49,708 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 重试错误
+2026-06-08 02:45:49,723 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.01s: 重试错误

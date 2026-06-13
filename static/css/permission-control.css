@@ -1,0 +1,399 @@
+/* ════════════════════════════════════════
+   云枢 · 权限控制面板样式
+   ════════════════════════════════════════ */
+
+/* ── 面板分隔线 ── */
+.pc-divider {
+  height: 1px;
+  background: var(--border-color, #30363d);
+  margin: 6px 0;
+}
+
+/* ── 实时操作跟踪区 ── */
+.pc-current-action {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.pc-current-action.running {
+  border-color: #58a6ff;
+  box-shadow: 0 0 6px rgba(88, 166, 255, 0.15);
+}
+.pc-current-action.dangerous {
+  border-color: #f85149;
+  box-shadow: 0 0 8px rgba(248, 81, 73, 0.25);
+  animation: pc-pulse-danger 1.5s ease-in-out infinite;
+}
+.pc-current-action.paused {
+  border-color: #d29922;
+  box-shadow: 0 0 6px rgba(210, 153, 34, 0.15);
+}
+.pc-current-action.idle {
+  border-color: #21262d;
+}
+
+@keyframes pc-pulse-danger {
+  0%, 100% { box-shadow: 0 0 6px rgba(248, 81, 73, 0.2); }
+  50% { box-shadow: 0 0 12px rgba(248, 81, 73, 0.4); }
+}
+
+.pc-ca-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+.pc-ca-tool {
+  font-size: 10px;
+  font-weight: 600;
+  color: #c9d1d9;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pc-ca-tool .pc-icon {
+  width: 14px;
+  text-align: center;
+}
+.pc-ca-status-badge {
+  font-size: 8px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.pc-ca-status-badge.running { background: #1f6feb33; color: #58a6ff; }
+.pc-ca-status-badge.idle { background: #30363d; color: #8b949e; }
+.pc-ca-status-badge.paused { background: #d2992233; color: #d29922; }
+.pc-ca-status-badge.dangerous { background: #f8514933; color: #f85149; }
+
+.pc-ca-target {
+  font-size: 9px;
+  color: #8b949e;
+  margin: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-ca-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  color: #484f58;
+  margin-top: 2px;
+}
+.pc-ca-auth {
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.pc-ca-auth.allowed { color: #3fb950; }
+.pc-ca-auth.pending { color: #d29922; background: #d2992211; }
+.pc-ca-auth.blocked { color: #f85149; background: #f8514911; }
+
+/* ── 紧急刹车按钮 ── */
+.pc-emergency-row {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0;
+}
+.pc-emergency-btn {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.pc-emergency-btn:hover {
+  background: #21262d;
+  border-color: #484f58;
+}
+.pc-emergency-btn.danger {
+  border-color: #f8514944;
+  color: #f85149;
+}
+.pc-emergency-btn.danger:hover {
+  background: #f8514911;
+  border-color: #f85149;
+}
+.pc-emergency-btn.primary {
+  border-color: #58a6ff44;
+  color: #58a6ff;
+}
+.pc-emergency-btn.primary:hover {
+  background: #58a6ff11;
+  border-color: #58a6ff;
+}
+.pc-emergency-btn:active {
+  transform: scale(0.96);
+}
+.pc-emergency-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 权限开关列表 ── */
+.pc-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pc-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  color: #c9d1d9;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.pc-toggle-item:hover {
+  background: #21262d;
+}
+.pc-toggle-item .pc-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pc-toggle-item .pc-toggle-switch {
+  width: 24px;
+  height: 12px;
+  border-radius: 6px;
+  position: relative;
+  transition: background 0.2s;
+  cursor: pointer;
+  background: #30363d;
+}
+.pc-toggle-item .pc-toggle-switch.on {
+  background: #238636;
+}
+.pc-toggle-item .pc-toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8b949e;
+  top: 1px;
+  left: 1px;
+  transition: transform 0.2s, background 0.2s;
+}
+.pc-toggle-item .pc-toggle-switch.on::after {
+  transform: translateX(12px);
+  background: #fff;
+}
+
+/* ── 最近访问日志 ── */
+.pc-access-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.pc-access-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 8px;
+  color: #8b949e;
+  transition: background 0.1s;
+}
+.pc-access-item:hover {
+  background: #161b22;
+}
+.pc-access-item .pc-ai-time {
+  color: #484f58;
+  min-width: 26px;
+  font-size: 7px;
+}
+.pc-access-item .pc-ai-type {
+  min-width: 12px;
+  text-align: center;
+}
+.pc-access-item .pc-ai-target {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c9d1d9;
+}
+.pc-access-item .pc-ai-perm {
+  font-size: 7px;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.pc-access-item .pc-ai-perm.allowed { color: #3fb950; }
+.pc-access-item .pc-ai-perm.blocked { color: #f85149; }
+.pc-access-item .pc-ai-perm.pending { color: #d29922; }
+
+/* ── 工具能力列表 ── */
+.pc-tool-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 3px 0;
+}
+.pc-tool-tag {
+  font-size: 7px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #21262d;
+  background: #0d1117;
+  color: #8b949e;
+  cursor: default;
+  transition: all 0.1s;
+}
+.pc-tool-tag.allowed { border-color: #23863633; color: #3fb950; }
+.pc-tool-tag.requires_confirm { border-color: #d2992233; color: #d29922; }
+.pc-tool-tag.dangerous { border-color: #f8514933; color: #f85149; }
+
+.pc-tool-tag:hover {
+  background: #161b22;
+  border-color: #484f58;
+}
+.pc-tool-tag.allowed:hover { border-color: #3fb950; }
+.pc-tool-tag.requires_confirm:hover { border-color: #d29922; }
+.pc-tool-tag.dangerous:hover { border-color: #f85149; }
+
+/* ── 安全统计条 ── */
+.pc-stats-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 3px 0;
+}
+.pc-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  padding: 2px 6px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 4px;
+  color: #8b949e;
+}
+.pc-stat-chip .pc-stat-val {
+  font-weight: 700;
+  color: #c9d1d9;
+}
+.pc-stat-chip.blocked .pc-stat-val { color: #f85149; }
+.pc-stat-chip.warned .pc-stat-val { color: #d29922; }
+.pc-stat-chip.checks .pc-stat-val { color: #58a6ff; }
+.pc-stat-chip.tools .pc-stat-val { color: #3fb950; }
+
+/* ── 访问筛选标签 ── */
+.pc-filter-row {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+.pc-filter-tab {
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #21262d;
+  color: #8b949e;
+  cursor: pointer;
+  transition: all 0.1s;
+  background: transparent;
+}
+.pc-filter-tab:hover {
+  background: #21262d;
+}
+.pc-filter-tab.active {
+  background: #1f6feb33;
+  border-color: #58a6ff44;
+  color: #58a6ff;
+}
+
+/* ── 空状态 ── */
+.pc-empty {
+  text-align: center;
+  padding: 8px;
+  color: #484f58;
+  font-size: 9px;
+}
+
+/* ── 统计字符图 ── */
+.pc-sparkline {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 14px;
+  margin: 0 4px;
+}
+.pc-sparkline .pc-spark-bar {
+  width: 3px;
+  border-radius: 1px;
+  background: #58a6ff;
+  min-height: 2px;
+  transition: height 0.3s;
+}
+
+/* ── 最近操作列表 ── */
+.pc-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+.pc-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  font-size: 8px;
+  color: #484f58;
+}
+.pc-recent-item .pc-ri-tool {
+  color: #8b949e;
+  min-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-recent-item .pc-ri-status {
+  margin-left: auto;
+  font-size: 7px;
+}
+.pc-recent-item .pc-ri-status.ok { color: #3fb950; }
+.pc-recent-item .pc-ri-status.fail { color: #f85149; }
+.pc-recent-item .pc-ri-status.cancelled { color: #d29922; }
+
+/* ── 紧急状态横幅 ── */
+.pc-emergency-banner {
+  display: none;
+  background: #f8514911;
+  border: 1px solid #f8514944;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 9px;
+  color: #f85149;
+  text-align: center;
+  margin-bottom: 4px;
+  animation: pc-pulse-danger 1.5s ease-in-out infinite;
+}
+.pc-emergency-banner.active {
+  display: block;
+}

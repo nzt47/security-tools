@@ -1,5 +1,5 @@
 """
-灵犀感知底座 单元测试与示例代码
+云枢感知底座 单元测试与示例代码
 
 测试覆盖:
 - 所有传感器模块的基础采集
@@ -191,7 +191,7 @@ class TestBodySensor(unittest.TestCase):
     def test_health_report(self):
         report = self.sensor.get_health_report()
         self.assertIsInstance(report, str)
-        self.assertIn("灵犀", report)
+        self.assertIn("云枢", report)
 
     def test_to_json_static(self):
         j = BodySensor.to_json("test", 100, "%", "测试")

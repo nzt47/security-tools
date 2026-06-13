@@ -1,0 +1,119 @@
+2026-06-05 18:29:07,065 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 18:29:07,073 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 18:29:07,076 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 18:29:07,080 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 18:29:07,104 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 18:29:07,108 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 18:29:07,110 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 18:29:07,112 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 18:29:07,115 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 18:29:07,130 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 18:29:07,130 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 18:29:07,131 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 18:29:07,133 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 18:29:07,152 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 18:29:07,159 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 18:29:07,159 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,165 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,165 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 18:29:07,165 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 18:29:07,165 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 18:29:07,166 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 18:29:07,166 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 18:29:07,166 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 18:29:07,166 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 18:29:07,167 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 18:29:07,167 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,167 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 18:29:07,167 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 18:29:07,167 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 18:29:07,342 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 18:29:07,356 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 18:29:07,364 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 18:29:07,369 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 18:29:07,403 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 18:29:07,409 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 18:29:07,411 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 18:29:07,412 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 18:29:07,417 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 18:29:07,443 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 18:29:07,443 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 18:29:07,445 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 18:29:07,447 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 18:29:07,476 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 18:29:07,487 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 18:29:07,488 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,492 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,492 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 18:29:07,493 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 18:29:07,493 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 18:29:07,493 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 18:29:07,493 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 18:29:07,494 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 18:29:07,494 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 18:29:07,494 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 18:29:07,494 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 18:29:07,495 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 18:29:07,495 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 18:29:07,495 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 18:29:07,594 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:07,600 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=2, UA=2)
+2026-06-05 18:29:07,606 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:07,612 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=0.5s, 代理=0, UA=9)
+2026-06-05 18:29:08,100 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,207 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,212 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,218 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,222 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,230 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-05 18:29:08,234 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,239 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-05 18:29:08,246 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,251 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,258 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,258 [ WARNING] agent.web.crawler_control: 域名 example.com 被限速(429)，延迟调整为 2.0s
+2026-06-05 18:29:08,263 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,269 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,276 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,281 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,286 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,292 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,297 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 18:29:08,302 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=1)
+2026-06-05 18:29:08,308 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=3)
+2026-06-05 18:29:08,313 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,313 [    INFO] agent.web.crawler_control: 已加载 2 个代理
+2026-06-05 18:29:08,319 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,325 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 18:29:08,329 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 18:29:08,334 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 18:29:08,341 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 18:29:08,346 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 18:29:08,350 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,356 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,360 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,365 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,371 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,376 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,381 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,386 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 18:29:08,392 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,397 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 18:29:08,402 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 18:29:08,407 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 18:29:08,412 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,417 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,423 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,428 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=3.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,433 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,438 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:08,443 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:09,211 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:09,212 [   ERROR] agent.web.crawler_control: 加载代理文件失败: [Errno 2] No such file or directory: 'nonexistent_file.txt'
+2026-06-05 18:29:09,222 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 18:29:09,224 [    INFO] agent.web.crawler_control: 已加载 3 个代理
+2026-06-05 18:29:09,230 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)

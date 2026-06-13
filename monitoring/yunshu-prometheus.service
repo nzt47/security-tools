@@ -1,0 +1,16 @@
+[Unit]
+Description=Yunshu V2 Prometheus Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Yunshu
+ExecStart=/usr/bin/python3 /opt/Yunshu/prometheus_example.py --quiet
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/Yunshu/prometheus_autostart.log
+StandardError=append:/opt/Yunshu/prometheus_autostart.log
+
+[Install]
+WantedBy=multi-user.target

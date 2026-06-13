@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>存储测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    h1 { color: #4fd1c5; }
+    .test-section {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    button {
+      background: #4fd1c5;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+    }
+    button:hover { background: #38b2ac; }
+    pre {
+      background: #0a0a0f;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      color: #4fd1c5;
+    }
+    .warning { color: #f6ad55; }
+    .success { color: #68d391; }
+  </style>
+</head>
+<body>
+  <h1>🧪 存储验证测试页面</h1>
+  
+  <div class="test-section">
+    <h2>测试说明</h2>
+    <p class="warning">⚠️ 请先打开浏览器开发者工具 (F12) 查看控制台输出</p>
+    <p>1. 点击下方按钮切换存储模式</p>
+    <p>2. 观察控制台输出</p>
+    <p>3. 测试完成后可关闭此标签页验证 sessionStorage 清除</p>
+  </div>
+
+  <div class="test-section">
+    <h2>操作按钮</h2>
+    <button onclick="switchToLocal()">切换到 localStorage</button>
+    <button onclick="switchToSession()">切换到 sessionStorage</button>
+    <button onclick="runTests()">运行所有测试</button>
+    <button onclick="clearData()">清除所有数据</button>
+  </div>
+
+  <div class="test-section">
+    <h2>测试步骤</h2>
+    <pre>
+【sessionStorage 清除验证步骤】
+
+1. 点击 "切换到 sessionStorage" 按钮
+2. 点击 "运行所有测试" 按钮
+3. 观察控制台输出，确认数据已保存
+4. 按 F5 刷新页面 → 数据应该保留 ✓
+5. 关闭此标签页
+6. 重新打开此 URL → 数据应该清除 ✓
+
+【localStorage 清除验证步骤】
+
+1. 点击 "切换到 localStorage" 按钮
+2. 点击 "运行所有测试" 按钮
+3. 关闭此标签页
+4. 重新打开此 URL → 数据应该保留 ✓
+    </pre>
+  </div>
+
+  <div class="test-section">
+    <h2>路由参数测试</h2>
+    <pre>
+【URL 参数格式】
+?storage=localStorage
+?storage=sessionStorage
+
+【示例】
+http://localhost:5173/?storage=localStorage
+http://localhost:5173/?storage=sessionStorage
+    </pre>
+    <button onclick="openWithLocalParam()">打开 localStorage 版本</button>
+    <button onclick="openWithSessionParam()">打开 sessionStorage 版本</button>
+  </div>
+
+  <script>
+    // 模拟 STORAGE_CONFIG
+    let STORAGE_CONFIG = { type: 'localStorage' };
+    
+    function getStorage() {
+      return STORAGE_CONFIG.type === 'localStorage' ? localStorage : sessionStorage;
+    }
+
+    function switchToLocal() {
+      STORAGE_CONFIG.type = 'localStorage';
+      console.log('✅ 已切换到 localStorage');
+      runTests();
+    }
+
+    function switchToSession() {
+      STORAGE_CONFIG.type = 'sessionStorage';
+      console.log('✅ 已切换到 sessionStorage');
+      runTests();
+    }
+
+    function clearData() {
+      const storage = getStorage();
+      storage.removeItem('Yunshu_mood');
+      storage.removeItem('Yunshu_messages');
+      storage.removeItem('Yunshu_test');
+      console.log('🗑️ 已清除所有数据');
+      runTests();
+    }
+
+    function runTests() {
+      const storage = getStorage();
+      
+      console.log('='.repeat(60));
+      console.log('【存储测试结果】');
+      console.log('='.repeat(60));
+      console.log('当前存储模式:', STORAGE_CONFIG.type);
+      console.log('Yunshu_mood:', storage.getItem('Yunshu_mood') || '(未设置)');
+      console.log('Yunshu_messages:', storage.getItem('Yunshu_messages') ? '(已设置)' : '(未设置)');
+      console.log('Yunshu_test:', storage.getItem('Yunshu_test') || '(未设置)');
+      console.log('='.repeat(60));
+      
+      // 保存测试数据
+      storage.setItem('Yunshu_test', JSON.stringify({
+        mode: STORAGE_CONFIG.type,
+        timestamp: new Date().toISOString()
+      }));
+      console.log('✅ 测试数据已保存');
+    }
+
+    function openWithLocalParam() {
+      window.open('?storage=localStorage', '_blank');
+    }
+
+    function openWithSessionParam() {
+      window.open('?storage=sessionStorage', '_blank');
+    }
+
+    // 自动运行测试
+    window.onload = function() {
+      // 检查 URL 参数
+      const params = new URLSearchParams(window.location.search);
+      const storageParam = params.get('storage');
+      
+      if (storageParam === 'localStorage' || storageParam === 'sessionStorage') {
+        STORAGE_CONFIG.type = storageParam;
+        console.log('🌐 URL 参数指定存储模式:', storageParam);
+      }
+      
+      console.log('📋 页面已加载，点击按钮开始测试');
+      runTests();
+    };
+  </script>
+</body>
+</html>

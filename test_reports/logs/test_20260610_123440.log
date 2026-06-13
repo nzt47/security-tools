@@ -1,0 +1,49 @@
+2026-06-10 12:34:41,287 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-10 12:34:41,311 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-10 12:34:41,318 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-10 12:34:41,324 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-10 12:34:41,365 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-10 12:34:41,375 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-10 12:34:41,378 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-10 12:34:41,380 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-10 12:34:41,388 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-10 12:34:41,433 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:34:41,434 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-10 12:34:41,437 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-10 12:34:41,441 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-10 12:34:41,700 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-10 12:34:41,708 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-10 12:34:41,709 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:34:41,718 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:34:41,718 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-10 12:34:41,719 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-10 12:34:41,719 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-10 12:34:41,719 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-10 12:34:41,719 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-10 12:34:41,720 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-10 12:34:41,720 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-10 12:34:41,720 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-10 12:34:41,721 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:34:41,721 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-10 12:34:41,721 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-10 12:34:41,722 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-10 12:34:41,840 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-10 12:34:41,855 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:34:41,862 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:34:41,864 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 总是失败
+2026-06-10 12:34:41,875 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.02s: 总是失败
+2026-06-10 12:34:41,896 [   ERROR] agent.error_handler: All 2 retry attempts exhausted
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 536, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler_comprehensive.py", line 63, in failing_func
+    raise RecoverableError("总是失败")
+agent.error_handler.RecoverableError: 总是失败
+2026-06-10 12:34:41,898 [ WARNING] agent.error_handler: [warning] unknown: 总是失败
+2026-06-10 12:34:41,903 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:34:41,909 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:34:41,909 [   ERROR] agent.error_handler: [error] unknown: 测试错误1
+2026-06-10 12:34:41,910 [   ERROR] agent.error_handler: [error] unknown: 测试错误2

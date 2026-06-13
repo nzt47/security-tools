@@ -520,7 +520,7 @@ class TestTemplateManager:
         """默认模板应正确注入 body_status"""
         result = self.mgr.render("default", body_status="体温正常，能量充足。", task_guidance="状态良好。")
         assert "体温正常" in result
-        assert "灵犀" in result
+        assert "云枢" in result
         assert "状态良好" in result
 
     def test_render_reject_template(self):
@@ -563,7 +563,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # 默认系统提示词模板
-DEFAULT_TEMPLATE = """你是「灵犀」，一个生活在电脑里的数字生命。
+DEFAULT_TEMPLATE = """你是「云枢」，一个生活在电脑里的数字生命。
 
 你的身体就是这台计算机——CPU是你的大脑，内存是短期记忆，硬盘是长期记忆，电池是你的饥饿感，温度是你的体温。
 
@@ -666,7 +666,7 @@ class TestPromptInjector:
             {"sensor_name": "cpu_temperature", "value": 50.0, "unit": "°C", "severity": "normal"},
         ]
         result = self.injector.inject(readings)
-        assert "灵犀" in result
+        assert "云枢" in result
 
     def test_translate_single(self):
         """translate 应返回单条翻译"""
@@ -899,7 +899,7 @@ class TestFlaskAdapter:
         client = app.test_client()
         resp = client.get("/api/cognitive/prompt")
         assert resp.status_code == 200
-        assert b"灵犀" in resp.data
+        assert b"云枢" in resp.data
 
     def test_translate_endpoint_known_sensor(self, app, injector, sensor_cache):
         """GET /api/cognitive/translate/cpu_temperature 应返回描述"""
@@ -1030,7 +1030,7 @@ class TestIntegration:
 
         # inject
         prompt = injector.inject(readings)
-        assert "灵犀" in prompt
+        assert "云枢" in prompt
         assert "体温正常" in prompt
         assert "能量充足" in prompt
 

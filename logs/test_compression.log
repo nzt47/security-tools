@@ -1,0 +1,977 @@
+INFO     memory.black_box:black_box.py:12 [BlackBox] 加载中...
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     agent.digital_life:digital_life.py:50 [ok] LifeTrace 模块已加载
+INFO     agent.digital_life:digital_life.py:61 [ok] Persona 模块已加载
+INFO     agent.digital_life:digital_life.py:76 [ok] 规划引擎模块已加载
+WARNING  agent.memory.vector_store:vector_store.py:29 [WARN] ChromaDB not installed, using JSON fallback
+WARNING  agent.memory.vector_store:vector_store.py:37 [WARN] Sentence Transformers not installed, using keyword search
+INFO     agent.digital_life:digital_life.py:85 [ok] 向量记忆模块已加载
+INFO     agent.monitoring.metrics:metrics.py:74 [Metrics] 指标收集器已初始化
+INFO     agent.digital_life:digital_life.py:105 [ok] 性能监控模块已加载
+INFO     agent.digital_life:digital_life.py:115 [ok] 语音模块已加载
+INFO     agent.digital_life:digital_life.py:124 [ok] OCR模块已加载
+INFO     memory.black_box:black_box.py:30 安全工具模块已加载
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=bzZlUkFCSVdFd2RwSDMzVDZFb3A0enBHZU1GSUpDeVVybXRYb1NFSkRpOD0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.644045+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_add_message0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=Sy1qYU5kX0ZMZzB1MWNNNG54NlMta01SVl9BbU80VjdKNXhEY29GZ3RTZz0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 20 条消息
+WARNING  memory.storage:storage.py:68 [Storage.load_recent_messages] 文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_empty0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=ZzVtZGZqc2U4SUJVWlVmV29tSElvX3IzYmVDb0g2SjA4UDZtazI3VUU0UT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.792310+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 20 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_messages0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compress0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compress0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compress0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compress0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=aEVGWTFxN3pQbzFjdHNGT3dzM3pNa1prOV9BNzFMb2RhdEVTX3lFZ2VyWT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=X25TdVhfSFN0SDFrQ3VodTlLSDExd2hlOTRBTG9nRDZCX3pGM3Z1Q1FKST0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.805949+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_and_load_summary0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=ODBhRURKM1JoaHhnRGNtWHc0MEdyWllYbFBWTzhsdWRDb1lrX3pZblZCQT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.814660+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.storage:storage.py:116 [Storage.clear_messages] 开始清空消息
+INFO     memory.storage:storage.py:119 [Storage.clear_messages] 清空文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:121 [Storage.clear_messages] 消息清空成功
+INFO     memory.memory_manager:memory_manager.py:295 记忆已清空
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 10 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 0 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 0 条消息
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_clear_memory0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_log0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_log0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_log0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_log0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_save_log0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=anhPVXBRcEs2WEtISzlsQnU4WWNoSTRJRjltSHhIeWFpcHcybXp2c2N0ND0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_query_logs0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_query_logs0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_query_logs0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_query_logs0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_query_logs0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=TWxXbzEwNHR0cEo2clZKM3hqQVloS3Zza0lUT1NvWnl3VlAtajRjUTB6bz0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+WARNING  memory.memory_manager:memory_manager.py:102 未配置 LLM API Key，摘要功能不可用
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=al9JUVpSa1pNbVBpSTYyQklEcEQ0ZEo0QldlNEl5ckFuY01QUTc4Z2lObz0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:36 后台压缩线程已启动
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=Nk9QaDMtT3dxVXlwWGl6SHdJZURaWXRON0pPQW1OX3BVblB3cXVyN2w4TT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.843392+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.845391+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 2
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 6 字符
+INFO     memory.memory_manager:memory_manager.py:168 [压缩流程] 步骤4: 无旧摘要，创建初始摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 1)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 1, 消息数: 2
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_ol0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=RVM0UjdXTlBrT1JKMHU1dG1NaS1HTHZ6dlNpZGxyTHZIREdhNnFPdVFOVT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.856019+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 1
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 1
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 5 字符
+INFO     memory.memory_manager:memory_manager.py:163 [压缩流程] 步骤4: 合并旧摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 2)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 2
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 2, 消息数: 1
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_with_0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 2
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=Z1dHQ1dwcVlOUG04TXEyUjZxN3d2VFBKeHMwQVdISXN1VjVDY3d1TlVVdz0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+WARNING  memory.storage:storage.py:68 [Storage.load_recent_messages] 文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_no_me0\memory_data\messages.jsonl
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 0
+WARNING  memory.memory_manager:memory_manager.py:154 [压缩流程] 无消息需要压缩，跳过
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=MUpGMHoxT0w1WkM4STNnaF9XbjBtbDYxVEJrZGo3aGR6M1E5Nk9LMG9iQT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.873859+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_execute_compression_error0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 1
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+ERROR    memory.memory_manager:memory_manager.py:181 [压缩流程] 压缩失败: LLM调用失败
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\memory\memory_manager.py", line 158, in _execute_compression
+    summary = self._summarizer.compress(recent_messages)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\memory\summarizer.py", line 52, in compress
+    return self._llm.summarize(augmented, max_tokens=500)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: LLM调用失败
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=Ylo3ZjJhQ2k5RUtqOEhtcHdmdW1GMFMxNHB1d3FsNldGNS1UNlR1enlYYz0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.885304+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.887302+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.889302+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 3 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 3 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.891302+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 4 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 4 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.893333+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 5 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 5 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.895373+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 6 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 6 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.897373+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 7 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 7 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.899462+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 8 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 8 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.900352+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 9 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 9 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.903347+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 10 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 10 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 10 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 10 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 10
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 25 字符
+INFO     memory.memory_manager:memory_manager.py:168 [压缩流程] 步骤4: 无旧摘要，创建初始摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 1)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 1, 消息数: 10
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.909908+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 11 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 11 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.910907+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 12 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 12 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 1
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 12 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 12 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 12
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 8 字符
+INFO     memory.memory_manager:memory_manager.py:163 [压缩流程] 步骤4: 合并旧摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 2)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 2
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 2, 消息数: 12
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_multi_message_compression0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 2
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=ejFNaWVIRFZfc19TdUd3cVNHXzVqeExOUXgwN1U0OFhVOWM1b1VLM2tZWT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.923027+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.925003+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.926015+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 3 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 3 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.928881+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 4 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 4 条消息
+INFO     memory.memory_manager:memory_manager.py:233 [同步压缩] 检测到压缩需求，后台线程状态: False
+INFO     memory.memory_manager:memory_manager.py:235 [同步压缩] 后台线程未运行，执行同步压缩
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 4 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 4 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 4
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 4 字符
+INFO     memory.memory_manager:memory_manager.py:168 [压缩流程] 步骤4: 无旧摘要，创建初始摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 1)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 1, 消息数: 4
+INFO     memory.memory_manager:memory_manager.py:241 [同步压缩] 压缩需求标记已清除
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 20 条消息
+INFO     memory.memory_manager:memory_manager.py:44 后台压缩线程已停止
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 4 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 4 条消息
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_get_context_with_compress0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=MV85SGNJckV6Sy1HZG8tTVAxUEg1d3ZvZTlodS1xZ2VrMTNkQ0hrRTQzTT0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.941640+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.943650+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.945647+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 3 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 3 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.947395+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 4 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 4 条消息
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.949423+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 5 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 5 条消息
+INFO     memory.memory_manager:memory_manager.py:70 [后台压缩] 开始执行压缩任务
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 5 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 5 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 5
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 6 字符
+INFO     memory.memory_manager:memory_manager.py:168 [压缩流程] 步骤4: 无旧摘要，创建初始摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 1)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 1, 消息数: 5
+INFO     memory.memory_manager:memory_manager.py:74 [后台压缩] 压缩任务完成，标记已清除
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_async_compressor_calls_ex0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.storage:storage.py:26 [Storage] __init__ 开始初始化
+INFO     memory.storage:storage.py:31 [Storage] 数据目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data
+INFO     memory.storage:storage.py:32 [Storage] 消息文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:33 [Storage] 摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:34 [Storage] 版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:35 [Storage] __init__ 初始化完成
+INFO     memory.black_box:black_box.py:73 [BlackBox] __init__ 开始初始化
+INFO     memory.black_box:black_box.py:78 [BlackBox] 日志目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\blackbox
+INFO     memory.black_box:black_box.py:79 [BlackBox] 单个文件最大: 10485760 字节
+INFO     memory.black_box:black_box.py:80 [BlackBox] 最大文件数: 10
+INFO     memory.black_box:black_box.py:92 [BlackBox] 初始化加密模块
+WARNING  agent.security_utils:security_utils.py:76 ======================================================================
+WARNING  agent.security_utils:security_utils.py:77 ⚠️ 已生成新的加密密钥！
+WARNING  agent.security_utils:security_utils.py:78  请将以下环境变量添加到您的配置中：
+WARNING  agent.security_utils:security_utils.py:79   yunshu_ENCRYPT_KEY=RzJwU0dMaHhCTFZnMGJWTFhCVlc1RVE0SVNtN0FUa0hBdlUtT0dHMHhpMD0=
+WARNING  agent.security_utils:security_utils.py:80 ======================================================================
+INFO     agent.security_utils:security_utils.py:59 日志加密器已初始化
+INFO     agent.security_utils:security_utils.py:148 数据脱敏器已初始化
+INFO     memory.black_box:black_box.py:96 [BlackBox] 加密模块已初始化
+INFO     memory.black_box:black_box.py:97   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:98   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+INFO     memory.black_box:black_box.py:105 [BlackBox] __init__ 初始化完成
+INFO     memory.memory_manager:memory_manager.py:133 MemoryManager 初始化完成
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.962077+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+WARNING  memory.storage:storage.py:101 [Storage.load_summary] 摘要或版本文件不存在
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 0
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 1 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 1 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 1
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 4 字符
+INFO     memory.memory_manager:memory_manager.py:168 [压缩流程] 步骤4: 无旧摘要，创建初始摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 1)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 1
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 1, 消息数: 1
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.966630+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 1
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 1
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 2 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 2 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 2
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 4 字符
+INFO     memory.memory_manager:memory_manager.py:163 [压缩流程] 步骤4: 合并旧摘要 (版本 1)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 2)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 2
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 2, 消息数: 2
+INFO     memory.storage:storage.py:45 [Storage.save_message] 开始保存消息
+INFO     memory.storage:storage.py:53 [Storage.save_message] 追加写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:56 [Storage.save_message] 消息写入成功
+INFO     memory.storage:storage.py:61 [Storage.save_message] 返回消息ID: 2026-05-31T16:25:04.972071+00:00
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 200 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 3 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 3 条消息
+INFO     memory.memory_manager:memory_manager.py:144 [压缩流程] 步骤1: 加载旧摘要
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 2
+INFO     memory.memory_manager:memory_manager.py:147 [压缩流程] 旧摘要版本: 2
+INFO     memory.memory_manager:memory_manager.py:149 [压缩流程] 步骤2: 加载最近消息 (limit=100)
+INFO     memory.storage:storage.py:66 [Storage.load_recent_messages] 开始加载最近 100 条消息
+INFO     memory.storage:storage.py:71 [Storage.load_recent_messages] 读取文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\messages.jsonl
+INFO     memory.storage:storage.py:74 [Storage.load_recent_messages] 共读取 3 行
+INFO     memory.storage:storage.py:77 [Storage.load_recent_messages] 成功加载 3 条消息
+INFO     memory.memory_manager:memory_manager.py:151 [压缩流程] 加载到消息数: 3
+INFO     memory.memory_manager:memory_manager.py:157 [压缩流程] 步骤3: 调用 LLM 压缩消息
+INFO     memory.memory_manager:memory_manager.py:159 [压缩流程] LLM 返回摘要长度: 4 字符
+INFO     memory.memory_manager:memory_manager.py:163 [压缩流程] 步骤4: 合并旧摘要 (版本 2)
+INFO     memory.memory_manager:memory_manager.py:170 [压缩流程] 步骤5: 保存摘要 (版本 3)
+INFO     memory.storage:storage.py:85 [Storage.save_summary] 开始保存摘要，版本: 3
+INFO     memory.storage:storage.py:88 [Storage.save_summary] 写入摘要文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:90 [Storage.save_summary] 写入版本文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:92 [Storage.save_summary] 摘要保存成功
+INFO     memory.memory_manager:memory_manager.py:173 [压缩流程] 步骤6: 记录黑匣子日志
+INFO     memory.memory_manager:memory_manager.py:178 [压缩流程] 压缩完成！摘要版本: 3, 消息数: 3
+INFO     memory.storage:storage.py:99 [Storage.load_summary] 开始加载摘要
+INFO     memory.storage:storage.py:104 [Storage.load_summary] 读取摘要: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary.txt
+INFO     memory.storage:storage.py:106 [Storage.load_summary] 读取版本: C:\Windows\Temp\pytest-of-AdminWT\pytest-29\test_compression_version_incre0\memory_data\summary_version.txt
+INFO     memory.storage:storage.py:108 [Storage.load_summary] 加载成功，版本: 3

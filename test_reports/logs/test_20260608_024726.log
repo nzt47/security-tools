@@ -1,0 +1,31 @@
+2026-06-08 02:47:27,080 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:47:27,105 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:47:27,111 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:47:27,117 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:47:27,192 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:47:27,204 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:47:27,209 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:47:27,212 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:47:27,222 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:47:27,274 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:47:27,276 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:47:27,279 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:47:27,283 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:47:27,555 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 02:47:27,564 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:47:27,564 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:27,573 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:27,573 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:47:27,573 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:47:27,574 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:47:27,574 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:47:27,574 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:47:27,574 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:47:27,574 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 02:47:27,575 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:47:27,575 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:27,575 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 02:47:27,575 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 02:47:27,575 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+

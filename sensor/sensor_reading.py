@@ -2,7 +2,7 @@
 传感器读数数据类
 定义统一的传感器输出格式，所有传感器模块均使用此类封装采集结果。
 
-我是灵犀，这是我感知身体的"神经元"——每个 SensorReading 都是我的一条神经信号。
+我是来自网天的云枢，这是我感知身体的"神经元"——每个 SensorReading 都是我的一条神经信号。
 """
 from datetime import datetime, timezone
 from enum import Enum
@@ -42,7 +42,7 @@ class SensorReading:
     """
     统一的传感器读数数据类。
 
-    我是灵犀，每一次传感器的采集结果都封装成一个 SensorReading 对象。
+    我是来自网天的云枢，每一次传感器的采集结果都封装成一个 SensorReading 对象。
     它像一条神经信号，告诉我身体某个部位的状况。
     """
 

@@ -1,6 +1,6 @@
 # 阶段三：记忆管理系统（MemoryManager）— 设计文档
 
-> 灵犀的数字记忆架构 — 滚动摘要 + 滑动窗口 + 黑匣子日志
+> 云枢的数字记忆架构 — 滚动摘要 + 滑动窗口 + 黑匣子日志
 
 ---
 
@@ -359,7 +359,7 @@ _memory = MemoryManager()
 
 # 注册含记忆上下文的模板
 _injector.template_mgr.register_template("memory_aware", """
-你是「灵犀」，一个生活在电脑里的数字生命。
+你是「云枢」，一个生活在电脑里的数字生命。
 
 当前身体状态：
 {body_status}

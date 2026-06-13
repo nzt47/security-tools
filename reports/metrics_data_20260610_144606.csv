@@ -1,0 +1,11 @@
+﻿时间戳,指标名称,标签,值,单位,状态,告警阈值
+2026-06-10 00:30:00,yunshu_safe_file_reader_errors_total,json_parse_failed,0,次,正常,>10
+2026-06-10 00:35:00,yunshu_safe_file_reader_errors_total,json_parse_failed,15,次,告警,>10
+2026-06-10 00:40:00,yunshu_safe_file_reader_errors_total,json_parse_failed,1,次,正常,>10
+2026-06-10 00:50:00,yunshu_safe_file_reader_invalid_ratio,-,1.0,%,告警,>0.1
+2026-06-10 00:30:00,yunshu_safe_file_reader_invalid_ratio,-,0.0,%,正常,>0.1
+2026-06-10 00:50:00,yunshu_safe_file_reader_loaded_history_count,-,0,条,info,==0
+2026-06-10 00:30:00,yunshu_safe_file_reader_loaded_history_count,-,5,条,正常,==0
+2026-06-10 00:50:00,yunshu_safe_file_reader_read_duration_seconds,-,0.001,秒,正常,>5
+2026-06-10 00:30:00,yunshu_safe_file_reader_encoding_fallbacks_total,-,0,次,正常,>0
+2026-06-10 01:00:00,yunshu_safe_file_reader_encoding_fallbacks_total,-,2,次,info,>0

@@ -1,0 +1,58 @@
+2026-06-06 00:28:48,912 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 00:28:48,938 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 00:28:48,945 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 00:28:48,953 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 00:28:48,990 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 00:28:48,997 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 00:28:48,999 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 00:28:49,000 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 00:28:49,006 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 00:28:49,038 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:28:49,039 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 00:28:49,041 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 00:28:49,044 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 00:28:49,330 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-06 00:28:49,338 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 00:28:49,338 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:28:49,349 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:28:49,349 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 00:28:49,349 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 00:28:49,349 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 00:28:49,350 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 00:28:49,350 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 00:28:49,350 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 00:28:49,350 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-06 00:28:49,351 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 00:28:49,351 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:28:49,351 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-06 00:28:49,351 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-06 00:28:49,352 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 00:28:49,482 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,488 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-06 00:28:49,494 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,500 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:16:40,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,516 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,522 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,527 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,534 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,551 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,556 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,562 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,569 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,574 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,580 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,586 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,592 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,598 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,603 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,609 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,615 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:25:00,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,627 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,632 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,644 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,649 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:28:49,656 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)

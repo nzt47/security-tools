@@ -1,0 +1,100 @@
+2026-06-11 00:41:16,095 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:41:16,119 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:41:16,126 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:41:16,132 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:41:16,167 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:41:16,172 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:41:16,173 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:41:16,175 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:41:16,181 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:41:16,212 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:41:16,213 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:41:16,214 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:41:16,216 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:41:16,636 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-11 00:41:16,645 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:41:16,646 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:41:16,656 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-11 00:41:16,657 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:41:16,836 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,837 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,838 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 00:41:16,838 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_api_key
+2026-06-11 00:41:16,838 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 00:41:16,839 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,839 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp6mh48c9v.json
+2026-06-11 00:41:16,843 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp6mh48c9v.json
+2026-06-11 00:41:16,844 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,857 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,858 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,859 [    INFO] agent.network_config: [网络配置] LLM API Key 未变更（脱敏值），跳过更新
+2026-06-11 00:41:16,859 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,860 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpbmwxzsg4.json
+2026-06-11 00:41:16,862 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpbmwxzsg4.json
+2026-06-11 00:41:16,862 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,868 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,869 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,869 [    INFO] agent.network_config: [网络配置] 检测到新的 tavily API Key，准备加密保存...
+2026-06-11 00:41:16,869 [    INFO] agent.network_config: [网络配置] 已加密保存: search_tavily_key
+2026-06-11 00:41:16,869 [    INFO] agent.network_config: [网络配置] tavily API Key 已加密保存
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] 检测到新的 bing API Key，准备加密保存...
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] 已加密保存: search_bing_key
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] bing API Key 已加密保存
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] 检测到新的 google API Key，准备加密保存...
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] 已加密保存: search_google_key
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] google API Key 已加密保存
+2026-06-11 00:41:16,870 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,871 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp02dc4df9.json
+2026-06-11 00:41:16,872 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp02dc4df9.json
+2026-06-11 00:41:16,872 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,882 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,884 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,884 [    INFO] agent.network_config: [网络配置] 检测到新的 Webhook URL，准备加密保存...
+2026-06-11 00:41:16,885 [    INFO] agent.network_config: [网络配置] 已加密保存: error_reporting_webhook
+2026-06-11 00:41:16,885 [    INFO] agent.network_config: [网络配置] Webhook URL 已加密保存
+2026-06-11 00:41:16,885 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,886 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpiwpayj5k.json
+2026-06-11 00:41:16,887 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpiwpayj5k.json
+2026-06-11 00:41:16,887 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,896 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,903 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,911 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,911 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,912 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 00:41:16,912 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-11 00:41:16,912 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 00:41:16,912 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,912 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppghxduvo.json
+2026-06-11 00:41:16,914 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppghxduvo.json
+2026-06-11 00:41:16,914 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,922 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,930 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,937 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 00:41:16,938 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,939 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_e25ed1f5-b3b8-496e-b551-4fdc98848f16_api_key
+2026-06-11 00:41:16,941 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpuk25znbt.json
+2026-06-11 00:41:16,941 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=e25ed1f5-b3b8-496e-b551-4fdc98848f16, name=TestInstance, provider=openai
+2026-06-11 00:41:16,941 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=e25ed1f5-b3b8-496e-b551-4fdc98848f16
+2026-06-11 00:41:16,941 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:41:16,942 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 00:41:16,942 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 00:41:16,949 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 00:41:16,949 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:41:16,949 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 00:41:16,949 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpf93du6ps.json
+2026-06-11 00:41:16,950 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpf93du6ps.json
+2026-06-11 00:41:16,950 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 00:41:16,980 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)

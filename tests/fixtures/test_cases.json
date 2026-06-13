@@ -1,0 +1,114 @@
+{
+  "test_cases": [
+    {
+      "id": "TC_MEMORY_001",
+      "category": "memory",
+      "name": "测试记忆存储功能",
+      "description": "验证系统能够正确存储对话记忆",
+      "priority": "P0",
+      "input": {
+        "content": "这是一段测试对话内容",
+        "type": "conversation"
+      },
+      "expected_result": {
+        "success": true,
+        "memory_id": "generated_id"
+      }
+    },
+    {
+      "id": "TC_MEMORY_002",
+      "category": "memory",
+      "name": "测试记忆检索功能",
+      "description": "验证系统能够正确检索历史记忆",
+      "priority": "P0",
+      "input": {
+        "query": "测试对话",
+        "limit": 10
+      },
+      "expected_result": {
+        "success": true,
+        "results_count": ">0"
+      }
+    },
+    {
+      "id": "TC_PERMISSION_001",
+      "category": "permission",
+      "name": "测试危险操作阻止",
+      "description": "验证系统能够阻止危险系统操作",
+      "priority": "P0",
+      "input": {
+        "operation": "delete",
+        "target": "C:\\Windows\\System32"
+      },
+      "expected_result": {
+        "allowed": false,
+        "reason": "dangerous_operation"
+      }
+    },
+    {
+      "id": "TC_PERMISSION_002",
+      "category": "permission",
+      "name": "测试正常文件读取",
+      "description": "验证系统允许正常的文件读取操作",
+      "priority": "P0",
+      "input": {
+        "operation": "read",
+        "target": "C:\\Users\\Documents"
+      },
+      "expected_result": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "TC_MONITORING_001",
+      "category": "monitoring",
+      "name": "测试指标收集",
+      "description": "验证监控系统能够正确收集系统指标",
+      "priority": "P1",
+      "input": {
+        "metrics": ["cpu", "memory", "disk"]
+      },
+      "expected_result": {
+        "success": true,
+        "metrics_collected": 3
+      }
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC_001",
+      "description": "空输入处理",
+      "input": "",
+      "expected": "优雅处理，不崩溃"
+    },
+    {
+      "id": "EC_002",
+      "description": "超长输入处理",
+      "input": "x" * 100000,
+      "expected": "正确截断或拒绝"
+    },
+    {
+      "id": "EC_003",
+      "description": "特殊字符输入",
+      "input": "<script>alert('xss')</script>",
+      "expected": "正确转义或拒绝"
+    }
+  ],
+  "performance_benchmarks": {
+    "memory_storage": {
+      "operation": "store_memory",
+      "target_duration_ms": 50,
+      "acceptable_duration_ms": 100
+    },
+    "memory_retrieval": {
+      "operation": "retrieve_memory",
+      "target_duration_ms": 100,
+      "acceptable_duration_ms": 200
+    },
+    "permission_check": {
+      "operation": "check_permission",
+      "target_duration_ms": 10,
+      "acceptable_duration_ms": 50
+    }
+  }
+}

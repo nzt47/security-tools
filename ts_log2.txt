@@ -1,0 +1,133 @@
+============================= test session starts =============================
+collecting ... collected 12 items
+
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerStartMainLoop::test_start_stops_immediately PASSED [  8%]
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerStartMainLoop::test_start_handles_tick_exception PASSED [ 16%]
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerStartMainLoop::test_start_keyboard_interrupt FAILED [ 25%]
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerStartSchedulerFunction::test_start_scheduler PASSED [ 33%]
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerHourMinuteMismatch::test_should_run_cron_wrong_minute PASSED [ 41%]
+tests/unit/test_task_scheduler_final.py::TestTaskSchedulerHourMinuteMismatch::test_should_run_cron_wrong_minute_only PASSED [ 50%]
+tests/unit/test_task_scheduler_final.py::TestCleanupOldLogsDelete::test_cleanup_old_logs_deletes_old_file FAILED [ 58%]
+tests/unit/test_task_scheduler_final.py::TestCleanupOldLogsDelete::test_cleanup_old_logs_exception FAILED [ 66%]
+tests/unit/test_task_scheduler_final.py::TestMainBlock::test_main_block_execution FAILED [ 75%]
+tests/unit/test_task_scheduler_final.py::TestGetSchedulerWithDefaultTasks::test_get_scheduler_default_tasks_configured PASSED [ 83%]
+tests/unit/test_task_scheduler_final.py::TestGetSchedulerWithDefaultTasks::test_get_scheduler_singleton PASSED [ 91%]
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\coverage\report_core.py:107: CoverageWarning: Couldn't parse Python file 'C:\Users\Administrator\agent\agent\utils\cache.py' (couldnt-parse); see https://coverage.readthedocs.io/en/7.14.1/messages.html#warning-couldnt-parse
+  coverage._warn(msg, slug="couldnt-parse")
+tests/unit/test_task_scheduler_final.py::TestGetSchedulerWithDefaultTasks::test_get_scheduler_return_existing PASSED [100%]
+ERROR: Coverage failure: total of 9 is less than fail-under=80
+
+
+================================== FAILURES ===================================
+________ TestTaskSchedulerStartMainLoop.test_start_keyboard_interrupt _________
+tests\unit\test_task_scheduler_final.py:82: in test_start_keyboard_interrupt
+    assert call_count[0] >= 2
+E   assert 1 >= 2
+---------------------------- Captured stderr call -----------------------------
+2026-06-09 14:14:00,356 [    INFO] agent.task_scheduler: [TaskScheduler] \ufffd\ufffd\u02bc\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\r\n2026-06-09 14:14:00,356 [    INFO] agent.task_scheduler: [TaskScheduler] \ufffd\ufffd\u02bc\ufffd\ufffd\ufffd\ufffd\ufffd\r\n2026-06-09 14:14:00,357 [    INFO] agent.task_scheduler: [TaskScheduler] \ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd (\ufffd\ufffd\ufffd\ufffd\ufffd: 1\ufffd\ufffd)\r\n2026-06-09 14:14:00,357 [    INFO] agent.task_scheduler: [TaskScheduler] \ufffd\u0575\ufffd\u0363\u05b9\ufffd\u017a\ufffd\r\n2026-06-09 14:14:00,357 [    INFO] agent.task_scheduler: [TaskScheduler] \u0363\u05b9\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\r
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:31 [TaskScheduler] 初始化调度器
+INFO     agent.task_scheduler:task_scheduler.py:34 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:133 [TaskScheduler] 启动调度器 (检查间隔: 1秒)
+INFO     agent.task_scheduler:task_scheduler.py:141 [TaskScheduler] 收到停止信号
+INFO     agent.task_scheduler:task_scheduler.py:149 [TaskScheduler] 停止调度器
+_______ TestCleanupOldLogsDelete.test_cleanup_old_logs_deletes_old_file _______
+tests\unit\test_task_scheduler_final.py:197: in test_cleanup_old_logs_deletes_old_file
+    mock_file.unlink.assert_called_once()
+..\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:923: in assert_called_once
+    raise AssertionError(msg)
+E   AssertionError: Expected 'unlink' to have been called once. Called 0 times.
+__________ TestCleanupOldLogsDelete.test_cleanup_old_logs_exception ___________
+tests\unit\test_task_scheduler_final.py:214: in test_cleanup_old_logs_exception
+    mock_logger.error.assert_called()
+..\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:913: in assert_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'error' to have been called.
+___________________ TestMainBlock.test_main_block_execution ___________________
+tests\unit\test_task_scheduler_final.py:236: in test_main_block_execution
+    assert "已配置的任务" in result.stdout or "演示生成周报" in result.stdout or result.returncode == 0
+E   assert ('\u5df2\u914d\u7f6e\u7684\u4efb\u52a1' in '================================================================================\n' or '\u6f14\u793a\u751f\u6210\u5468\u62a5' in '================================================================================\n' or 1 == 0)
+E    +  where '================================================================================\n' = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').stdout
+E    +  and   '================================================================================\n' = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').stdout
+E    +  and   1 = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').returncode
+================================ \u6d4b\u8bd5\u5931\u8d25 - \u9700\u8981\u4fee\u590d\uff01\u2717 ================================
+
+测试统计:
+  通过: 8
+  失败: 4
+  跳过: 0
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.0-final-0 _______________
+
+Name                                        Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------
+agent\behavior_controller.py                   89     54    39%   126-128, 133, 138, 152-203, 214-233, 237, 241-244
+agent\caching\__init__.py                       2      2     0%   12-21
+agent\caching\multi_level_cache.py            311    311     0%   39-624
+agent\data_analytics.py                       115    115     0%   7-274
+agent\detailed_profiler.py                    178    178     0%   29-402
+agent\digital_life.py                        1308   1129    14%   40-42, 80-83, 127-130, 135, 139-147, 170-172, 245-248, 308, 364-372, 376-378, 382-395, 399-420, 424-491, 495-520, 525-597, 601-663, 671-705, 709-739, 743-773, 781-792, 796-805, 810, 828-831, 835-904, 908-975, 979-999, 1003-1047, 1051-1089, 1093-1109, 1113, 1117-1168, 1172, 1180-1215, 1219-1230, 1234-1306, 1310-1357, 1361-1391, 1395-1420, 1424-1426, 1430-1432, 1436-1470, 1478-1496, 1504-1816, 1824-1880, 1884-1891, 1909-1942, 1946-1953, 1962-1969, 1978, 1990-1991, 2006-2015, 2019-2028, 2032-2052, 2060-2076, 2080-2093, 2097, 2107-2110, 2119-2126, 2130-2131, 2152-2173, 2184-2199, 2207-2210, 2218-2221, 2225-2229, 2237, 2254-2283, 2294-2319, 2330-2369, 2373-2394, 2410-2425, 2436-2446, 2450-2465, 2469-2477
+agent\digital_life_lazy.py                    330    330     0%   30-696
+agent\digital_life_v2.py                      530    530     0%   13-1170
+agent\digital_life_v2_p3.py                   547    547     0%   12-1201
+agent\digital_life_v2_p5.py                   164    164     0%   12-369
+agent\error_handler.py                        409    287    30%   92-97, 122-138, 142-143, 147, 219-232, 236-239, 243, 247-258, 262-276, 282-300, 304, 308, 334-342, 346-368, 372-411, 429-430, 434, 442-483, 509-605, 609-627, 633-634, 646, 669-702, 725-826, 841-846
+agent\lazy_loader.py                          219    219     0%   37-505
+agent\lazy_loader_async.py                    299    299     0%   38-653
+agent\llm_response_cache.py                   178    178     0%   24-428
+agent\logging_utils.py                        320    271    15%   46-52, 56, 86-116, 143-238, 255-284, 305-306, 315-353, 365-379, 391-447, 459-469, 487-501, 511, 521, 532-533, 543-544, 555, 566-568, 579-585, 595-597, 638-647, 659-688, 701-728, 732-740, 744-745, 759-761, 793-824, 852-886
+agent\memory\vector_store.py                  192    144    25%   25-27, 34-35, 49, 53, 82-100, 104-118, 122-133, 137-143, 148-150, 155-169, 182-206, 210-218, 231-256, 260-285, 289-297, 301-313, 317, 339, 350-358, 371-380
+agent\memory\vector_store_backup.py           192    192     0%   13-384
+agent\memory\vector_store_optimized.py        187    187     0%   7-346
+agent\memory\vector_store_optimized_v2.py     284    284     0%   12-510
+agent\memory_optimized.py                     269    269     0%   35-593
+agent\monitoring\decorators.py                204    185     9%   44-64, 83-99, 119-138, 157-168, 201-232, 283-364, 388-417, 441-465, 483-531
+agent\monitoring\error_reporter.py            299    224    25%   72, 86, 93-95, 99-104, 108, 115, 119-143, 150-162, 172-189, 193-213, 220-224, 228-290, 297-304, 308-381, 388-392, 396-421, 425-439, 474-480, 485-512, 540-568, 579-590, 594-601, 605-608, 612-620, 624-626, 630, 645-649, 659
+agent\monitoring\metrics.py                    76     44    42%   83-86, 98-101, 123-141, 169-176, 184-187, 195-196, 204-205, 213-232, 243, 247, 251, 255
+agent\monitoring\tracing.py                    52     32    38%   47-50, 55-71, 75-107, 115, 124-126, 135, 143, 153, 172-177, 191-194
+agent\p6_config_loader.py                      94     94     0%   8-214
+agent\p6_snapshot.py                          635    528    17%   90-98, 132-135, 139-152, 156-157, 167-169, 173-179, 186-189, 193-194, 198, 202, 223-247, 262-278, 282, 286-287, 291-295, 299, 303-327, 331-357, 362-380, 384-401, 405-414, 418-433, 453-571, 587-711, 715-716, 723-743, 750-773, 780-803, 810-831, 838-863, 870-900, 907-923, 930-945, 957-1020, 1036-1134, 1138-1177, 1188-1205, 1209
+agent\performance_integration_guide.py          1      1     0%   56
+agent\performance_logging.py                  169    169     0%   9-385
+agent\performance_monitor.py                   89     57    36%   26-27, 30-31, 38-39, 43-47, 51-58, 62-63, 67-99, 103, 107, 114-123, 130-133, 137-139, 143, 147-149, 154, 159
+agent\permission_system.py                    131     99    24%   107-119, 138-180, 193-199, 212-227, 231, 235-239, 243-254, 265-276, 294-339, 343-352, 356, 360
+agent\prometheus_exporter.py                  177    177     0%   14-492
+agent\safety_guard.py                          81     81     0%   12-189
+agent\security_utils.py                       157    131    17%   21-22, 51-61, 66-84, 88-95, 99-107, 119-124, 128-140, 152-153, 157-167, 171-199, 204-252, 256-266
+agent\sensor_health_monitor.py                 98     70    29%   36-52, 56-64, 68-72, 80-106, 110-116, 120-121, 130-131, 135, 139-140, 144-145, 149-151, 168-175, 180-183, 189, 204-211
+agent\state_manager.py                        310    240    23%   90-105, 109, 113, 117-119, 123, 127, 131-139, 143-162, 166-178, 197-275, 293-384, 394-409, 413-453, 457-466, 470-471, 475-476, 480-481, 485, 502-526, 538-539, 548-558, 566-583, 587-591, 595-599, 609-611, 617, 622, 627, 632
+agent\system_tools.py                         474    474     0%   6-983
+agent\task_scheduler.py                       124     55    56%   69-78, 87-88, 94-108, 112-118, 123-124, 154, 167-176, 193-194, 197-198, 240-263
+agent\test_memory_module.py                   186    186     0%   7-340
+agent\test_permission_system.py               148    148     0%   7-253
+agent\tools\__init__.py                        38     27    29%   37-55, 60-62, 78-88, 93, 101
+agent\utils\__init__.py                         3      3     0%   6-22
+agent\utils\compatibility.py                   66     66     0%   1-157
+agent\utils\index_manager.py                  107    107     0%   7-266
+agent\utils\serialization.py                  148    148     0%   7-303
+agent\v2_performance_patch.py                 118    118     0%   6-251
+agent\web\__init__.py                           7      7     0%   14-21
+agent\web\browser_agent.py                    234    234     0%   7-469
+agent\web\crawler_control.py                  173    173     0%   7-328
+agent\web\http_client.py                      182    182     0%   8-402
+agent\web\processor.py                        190    190     0%   7-365
+agent\web\scraper.py                          192    192     0%   7-363
+agent\web\search.py                           153    153     0%   7-375
+agent\weekly_report_generator.py              170    170     0%   7-400
+-------------------------------------------------------------------------
+TOTAL                                       11433  10455     9%
+
+4 files skipped due to complete coverage.
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+FAIL Required test coverage of 80% not reached. Total coverage: 8.55%
+=========================== short test summary info ===========================
+FAILED tests/unit/test_task_scheduler_final.py::TestTaskSchedulerStartMainLoop::test_start_keyboard_interrupt - assert 1 >= 2
+FAILED tests/unit/test_task_scheduler_final.py::TestCleanupOldLogsDelete::test_cleanup_old_logs_deletes_old_file - AssertionError: Expected 'unlink' to have been called once. Called 0 times.
+FAILED tests/unit/test_task_scheduler_final.py::TestCleanupOldLogsDelete::test_cleanup_old_logs_exception - AssertionError: Expected 'error' to have been called.
+FAILED tests/unit/test_task_scheduler_final.py::TestMainBlock::test_main_block_execution - assert ('\u5df2\u914d\u7f6e\u7684\u4efb\u52a1' in '================================================================================\n' or '\u6f14\u793a\u751f\u6210\u5468\u62a5' in '================================================================================\n' or 1 == 0)
+ +  where '================================================================================\n' = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').stdout
+ +  and   '================================================================================\n' = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').stdout
+ +  and   1 = CompletedProcess(args=['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-c', "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"], returncode=1, stdout='================================================================================\n', stderr='[WARN] ChromaDB not installed, using JSON fallback\n[WARN] Sentence Transformers not installed, using keyword search\nTraceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen runpy>", line 229, in run_module\n  File "<frozen runpy>", line 88, in _run_code\n  File "C:\\Users\\Administrator\\agent\\agent\\task_scheduler.py", line 241, in <module>\n    print("  \\U0001f680 \u5b9a\u65f6\u4efb\u52a1\u8c03\u5ea6\u5668\u6d4b\u8bd5")\nUnicodeEncodeError: \'gbk\' codec can\'t encode character \'\\U0001f680\' in position 2: illegal multibyte sequence\n').returncode
+========================= 4 failed, 8 passed in 9.02s =========================
+

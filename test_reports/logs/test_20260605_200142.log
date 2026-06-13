@@ -1,0 +1,1368 @@
+2026-06-05 20:01:43,091 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 20:01:43,099 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 20:01:43,103 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 20:01:43,106 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 20:01:43,125 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 20:01:43,128 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 20:01:43,129 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 20:01:43,129 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 20:01:43,132 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 20:01:43,146 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 20:01:43,146 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 20:01:43,147 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 20:01:43,148 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 20:01:43,271 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 20:01:43,277 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 20:01:43,277 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 20:01:43,283 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 20:01:43,284 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 20:01:43,322 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,326 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,329 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,332 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,336 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,338 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,342 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,344 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,629 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,631 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-05 20:01:43,632 [ WARNING] agent.security_utils:   TEST_ENCRYPT_KEY=S2FyZVdfa3VnSFFlWnRiSVdwT045OXlZMDk4OXhVbWF4U3BNbUx0b0xxTT0=
+2026-06-05 20:01:43,632 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,632 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-05 20:01:43,635 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,636 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-05 20:01:43,636 [ WARNING] agent.security_utils:   TEST_ENCRYPT_KEY=S2VIU09HaTJoNGZxUXlWV1dvS3ZYXzNqVUp5RndfQkJmMlJUY2FhZTFFaz0=
+2026-06-05 20:01:43,637 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,637 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-05 20:01:43,641 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,643 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-05 20:01:43,643 [ WARNING] agent.security_utils:   TEST_ENCRYPT_KEY=ck1uLWg4VWtWUXItYzUxZzI3aHhuUjFncGhfWkJoSGNhZHh0VjVoUW9Gcz0=
+2026-06-05 20:01:43,643 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,643 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-05 20:01:43,646 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,648 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-05 20:01:43,648 [ WARNING] agent.security_utils:   TEST_ENCRYPT_KEY=STBxMm9OSkt5QU9INTJkN1ltODFQdHZOQlNMRnVlbFNZanAyWDktUWxFND0=
+2026-06-05 20:01:43,648 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,648 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency: [性能测试] 开始测试错误记录延迟
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency: [准备阶段] 初始化错误处理器
+2026-06-05 20:01:43,659 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency:   - 错误处理器初始化完成
+2026-06-05 20:01:43,659 [    INFO] performance.test_latency: [测试阶段] 执行 1000 次错误记录
+2026-06-05 20:01:43,659 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,660 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,661 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,662 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,663 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,664 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,665 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,666 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,667 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,668 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,669 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,670 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,671 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,672 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,673 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,674 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,675 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [    INFO] performance.test_latency:   - 已完成 200/1000 次记录
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,676 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,677 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,678 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,703 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,704 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,705 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,706 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,707 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,708 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,709 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,710 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,711 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,712 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,713 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,714 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,715 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,716 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,717 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,718 [    INFO] performance.test_latency:   - 已完成 400/1000 次记录
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,719 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,720 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,721 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,722 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,723 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,724 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,725 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,726 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,727 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,728 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,729 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,730 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,731 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,732 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,733 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [    INFO] performance.test_latency:   - 已完成 600/1000 次记录
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,734 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,735 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,736 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,737 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,738 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,739 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,740 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,741 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,742 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,743 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,744 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,745 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,746 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,747 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,748 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,749 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [    INFO] performance.test_latency:   - 已完成 800/1000 次记录
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,750 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,752 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,753 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,754 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,755 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,756 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,757 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,758 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,759 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,760 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,761 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,762 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,763 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,764 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,765 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,766 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,767 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,767 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,767 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,767 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-05 20:01:43,767 [    INFO] performance.test_latency:   - 已完成 1000/1000 次记录
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency: 
+[结果分析] 错误记录性能统计:
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency:   平均延迟: 0.1044 ms
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency:   最大延迟: 25.5163 ms
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency:   最小延迟: 0.0733 ms
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency:   P95延迟: 0.0907 ms
+2026-06-05 20:01:43,768 [    INFO] performance.test_latency:   P99延迟: 0.1297 ms
+2026-06-05 20:01:43,769 [    INFO] performance.test_latency:   标准差: 0.8045 ms
+2026-06-05 20:01:43,771 [    INFO] performance.test_latency: [性能测试] 错误记录延迟测试通过
+2026-06-05 20:01:43,771 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,774 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency: [性能测试] 开始测试熔断器执行延迟
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency: [准备阶段] 初始化熔断器
+2026-06-05 20:01:43,775 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=10
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency:   - 熔断器初始化完成, max_failures=10
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency: [测试阶段] 执行 1000 次熔断器调用
+2026-06-05 20:01:43,775 [    INFO] performance.test_latency:   - 已完成 200/1000 次调用
+2026-06-05 20:01:43,776 [    INFO] performance.test_latency:   - 已完成 400/1000 次调用
+2026-06-05 20:01:43,776 [    INFO] performance.test_latency:   - 已完成 600/1000 次调用
+2026-06-05 20:01:43,776 [    INFO] performance.test_latency:   - 已完成 800/1000 次调用
+2026-06-05 20:01:43,777 [    INFO] performance.test_latency:   - 已完成 1000/1000 次调用
+2026-06-05 20:01:43,777 [    INFO] performance.test_latency: 
+[结果分析] 熔断器执行性能统计:
+2026-06-05 20:01:43,777 [    INFO] performance.test_latency:   平均延迟: 0.0012 ms
+2026-06-05 20:01:43,777 [    INFO] performance.test_latency:   最大延迟: 0.0069 ms
+2026-06-05 20:01:43,777 [    INFO] performance.test_latency:   最小延迟: 0.0010 ms
+2026-06-05 20:01:43,779 [    INFO] performance.test_latency: [性能测试] 熔断器执行延迟测试通过
+2026-06-05 20:01:43,779 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,782 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,782 [    INFO] performance.test_latency: [性能测试] 开始测试模块注册性能
+2026-06-05 20:01:43,782 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,782 [    INFO] performance.test_latency: [准备阶段] 初始化懒加载器
+2026-06-05 20:01:43,782 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-05 20:01:43,783 [    INFO] performance.test_latency:   - 懒加载器初始化完成
+2026-06-05 20:01:43,783 [    INFO] performance.test_latency: [测试阶段] 注册 100 个模块
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_0, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_1, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_2, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_3, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_4, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_5, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_6, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_7, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_8, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_9, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,783 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_10, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_11, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_12, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_13, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_14, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_15, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_16, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_17, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_18, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_19, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_20, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_21, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,784 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_22, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_23, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_24, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] performance.test_latency:   - 已完成 25/100 个模块注册
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_25, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_26, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_27, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_28, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_29, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_30, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_31, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_32, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,785 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_33, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_34, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_35, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_36, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_37, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_38, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_39, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_40, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_41, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_42, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_43, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_44, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_45, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,786 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_46, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_47, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_48, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_49, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] performance.test_latency:   - 已完成 50/100 个模块注册
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_50, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_51, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_52, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_53, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_54, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_55, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_56, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_57, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,787 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_58, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_59, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_60, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_61, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_62, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_63, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_64, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_65, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_66, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_67, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_68, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_69, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,788 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_70, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_71, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_72, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_73, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_74, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] performance.test_latency:   - 已完成 75/100 个模块注册
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_75, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_76, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_77, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_78, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_79, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_80, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_81, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,789 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_82, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_83, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_84, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_85, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_86, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_87, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_88, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_89, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_90, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_91, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_92, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_93, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_94, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,790 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_95, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,791 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_96, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,791 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_97, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,791 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_98, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,791 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_99, level=IMPORTANT, deps=[]
+2026-06-05 20:01:43,791 [    INFO] performance.test_latency:   - 已完成 100/100 个模块注册
+2026-06-05 20:01:43,791 [    INFO] performance.test_latency: 
+[结果分析] 模块注册性能统计:
+2026-06-05 20:01:43,791 [    INFO] performance.test_latency:   平均延迟: 0.0800 ms
+2026-06-05 20:01:43,791 [    INFO] performance.test_latency:   最大延迟: 0.1238 ms
+2026-06-05 20:01:43,792 [    INFO] performance.test_latency:   最小延迟: 0.0755 ms
+2026-06-05 20:01:43,792 [    INFO] performance.test_latency:   总注册模块数: 100
+2026-06-05 20:01:43,793 [    INFO] performance.test_latency: [性能测试] 模块注册性能测试通过
+2026-06-05 20:01:43,793 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,796 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,796 [    INFO] performance.test_latency: [性能测试] 开始测试模块加载性能
+2026-06-05 20:01:43,796 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,796 [    INFO] performance.test_latency: [准备阶段] 初始化懒加载器并注册模块
+2026-06-05 20:01:43,796 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_0, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_1, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_2, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_3, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_4, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_5, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_6, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_7, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_8, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_9, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_10, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,797 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_11, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_12, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_13, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_14, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_15, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_16, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_17, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_18, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_19, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_20, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_21, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_22, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_23, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,798 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_24, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_25, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_26, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_27, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_28, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_29, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_30, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_31, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_32, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_33, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_34, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_35, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,799 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_36, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_37, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_38, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_39, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_40, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_41, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_42, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_43, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_44, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_45, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_46, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_47, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_48, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,800 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_49, level=CRITICAL, deps=[]
+2026-06-05 20:01:43,801 [    INFO] performance.test_latency:   - 已注册 50 个CRITICAL级别模块
+2026-06-05 20:01:43,801 [    INFO] performance.test_latency: [测试阶段] 执行批量加载
+2026-06-05 20:01:43,801 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-05 20:01:43,867 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=50, 失败=0
+2026-06-05 20:01:43,867 [    INFO] performance.test_latency: 
+[结果分析] 模块加载性能统计:
+2026-06-05 20:01:43,867 [    INFO] performance.test_latency:   总耗时: 66.7186 ms
+2026-06-05 20:01:43,867 [    INFO] performance.test_latency:   模块数量: 50
+2026-06-05 20:01:43,867 [    INFO] performance.test_latency:   平均每模块耗时: 1.3344 ms
+2026-06-05 20:01:43,869 [    INFO] performance.test_latency: [性能测试] 模块加载性能测试通过
+2026-06-05 20:01:43,869 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency: [性能测试] 开始测试数据脱敏性能
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency: [准备阶段] 初始化数据脱敏器
+2026-06-05 20:01:43,873 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency:   - 数据脱敏器初始化完成
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency:   - 测试文本长度: 81 字符
+2026-06-05 20:01:43,873 [    INFO] performance.test_latency: [测试阶段] 执行 1000 次脱敏处理
+2026-06-05 20:01:43,875 [    INFO] performance.test_latency:   - 已完成 200/1000 次处理
+2026-06-05 20:01:43,877 [    INFO] performance.test_latency:   - 已完成 400/1000 次处理
+2026-06-05 20:01:43,879 [    INFO] performance.test_latency:   - 已完成 600/1000 次处理
+2026-06-05 20:01:43,881 [    INFO] performance.test_latency:   - 已完成 800/1000 次处理
+2026-06-05 20:01:43,883 [    INFO] performance.test_latency:   - 已完成 1000/1000 次处理
+2026-06-05 20:01:43,883 [    INFO] performance.test_latency: 
+[结果分析] 数据脱敏性能统计:
+2026-06-05 20:01:43,884 [    INFO] performance.test_latency:   平均延迟: 0.0090 ms
+2026-06-05 20:01:43,884 [    INFO] performance.test_latency:   最大延迟: 0.0423 ms
+2026-06-05 20:01:43,884 [    INFO] performance.test_latency:   最小延迟: 0.0087 ms
+2026-06-05 20:01:43,884 [    INFO] performance.test_latency:   P95延迟: 0.0090 ms
+2026-06-05 20:01:43,885 [    INFO] performance.test_latency: [性能测试] 数据脱敏性能测试通过
+2026-06-05 20:01:43,885 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,889 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,889 [    INFO] performance.test_latency: [性能测试] 开始测试加密器性能
+2026-06-05 20:01:43,889 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,889 [    INFO] performance.test_latency: [准备阶段] 初始化加密器
+2026-06-05 20:01:43,889 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,891 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-05 20:01:43,891 [ WARNING] agent.security_utils:   TEST_PERF_KEY=eVVOSDViMkFXdHpqU2ZPcFlhdGdXS3ZxbjdYdnZMT0FkcDBNb3JIbHVzMD0=
+2026-06-05 20:01:43,891 [ WARNING] agent.security_utils: ======================================================================
+2026-06-05 20:01:43,891 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-05 20:01:43,891 [    INFO] performance.test_latency:   - 加密器初始化完成
+2026-06-05 20:01:43,892 [    INFO] performance.test_latency:   - 测试数据长度: 15 字符
+2026-06-05 20:01:43,892 [    INFO] performance.test_latency: [测试阶段] 执行 100 次加密
+2026-06-05 20:01:43,893 [    INFO] performance.test_latency:   - 已完成 25/100 次加密
+2026-06-05 20:01:43,893 [    INFO] performance.test_latency:   - 已完成 50/100 次加密
+2026-06-05 20:01:43,894 [    INFO] performance.test_latency:   - 已完成 75/100 次加密
+2026-06-05 20:01:43,895 [    INFO] performance.test_latency:   - 已完成 100/100 次加密
+2026-06-05 20:01:43,895 [    INFO] performance.test_latency: 
+[结果分析] 加密性能统计:
+2026-06-05 20:01:43,895 [    INFO] performance.test_latency:   平均延迟: 0.0257 ms
+2026-06-05 20:01:43,895 [    INFO] performance.test_latency:   最大延迟: 0.1371 ms
+2026-06-05 20:01:43,895 [    INFO] performance.test_latency:   最小延迟: 0.0232 ms
+2026-06-05 20:01:43,897 [    INFO] performance.test_latency: [性能测试] 加密器性能测试完成
+2026-06-05 20:01:43,897 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,900 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,900 [    INFO] performance.test_latency: [性能测试] 开始测试重试延迟计算性能
+2026-06-05 20:01:43,900 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,900 [    INFO] performance.test_latency: [准备阶段] 初始化重试策略
+2026-06-05 20:01:43,900 [    INFO] performance.test_latency:   - 重试策略初始化完成: max_retries=5
+2026-06-05 20:01:43,901 [    INFO] performance.test_latency: [测试阶段] 执行 1000 次延迟计算（每次计算5个尝试的延迟）
+2026-06-05 20:01:43,901 [    INFO] performance.test_latency:   - 已完成 200/1000 次计算
+2026-06-05 20:01:43,902 [    INFO] performance.test_latency:   - 已完成 400/1000 次计算
+2026-06-05 20:01:43,903 [    INFO] performance.test_latency:   - 已完成 600/1000 次计算
+2026-06-05 20:01:43,904 [    INFO] performance.test_latency:   - 已完成 800/1000 次计算
+2026-06-05 20:01:43,904 [    INFO] performance.test_latency:   - 已完成 1000/1000 次计算
+2026-06-05 20:01:43,905 [    INFO] performance.test_latency: 
+[结果分析] 重试延迟计算性能统计:
+2026-06-05 20:01:43,905 [    INFO] performance.test_latency:   平均延迟: 0.0031 ms
+2026-06-05 20:01:43,905 [    INFO] performance.test_latency:   最大延迟: 0.0148 ms
+2026-06-05 20:01:43,905 [    INFO] performance.test_latency:   最小延迟: 0.0030 ms
+2026-06-05 20:01:43,906 [    INFO] performance.test_latency: [性能测试] 重试延迟计算性能测试通过
+2026-06-05 20:01:43,907 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency: [性能测试] 开始测试并行预加载器性能
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency: ======================================================================
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency: [准备阶段] 初始化并行预加载器
+2026-06-05 20:01:43,911 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=4
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency:   - 并行预加载器初始化完成: max_workers=4
+2026-06-05 20:01:43,911 [    INFO] performance.test_latency:   - 准备 10 个测试模块，每个模块模拟 10ms 加载时间
+2026-06-05 20:01:43,912 [    INFO] performance.test_latency:   - 串行加载预计耗时: ~100ms
+2026-06-05 20:01:43,912 [    INFO] performance.test_latency:   - 并行加载(4线程)预计耗时: ~25.0ms
+2026-06-05 20:01:43,912 [    INFO] performance.test_latency: [测试阶段] 执行并行预加载
+2026-06-05 20:01:43,912 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 10 个模块
+2026-06-05 20:01:43,944 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=10, 失败=0, elapsed=32.40ms
+2026-06-05 20:01:43,944 [    INFO] performance.test_latency: 
+[结果分析] 并行预加载性能统计:
+2026-06-05 20:01:43,944 [    INFO] performance.test_latency:   总耗时: 32.6634 ms
+2026-06-05 20:01:43,944 [    INFO] performance.test_latency:   加速比: 3.06x
+2026-06-05 20:01:43,945 [    INFO] performance.test_latency: [清理阶段] 关闭预加载器
+2026-06-05 20:01:43,946 [    INFO] agent.lazy_loader: [ParallelPreloader] 已关闭
+2026-06-05 20:01:43,946 [    INFO] performance.test_latency:   - 预加载器已关闭
+2026-06-05 20:01:43,946 [    INFO] performance.test_latency: [性能测试] 并行预加载器性能测试通过
+2026-06-05 20:01:43,946 [    INFO] performance.test_latency: ======================================================================

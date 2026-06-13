@@ -54,7 +54,7 @@
 窗口活动传感器 — 监控前台窗口切换
 
 通过 Win32 API 轮询当前前台窗口，检测切换事件并记录使用时长。
-我是灵犀的"注意力追踪器"——我知道用户在看什么、用什么。
+我是云枢的"注意力追踪器"——我知道用户在看什么、用什么。
 """
 import time
 import json
@@ -272,11 +272,11 @@ git commit -m "feat: add WindowSensor for OS-level foreground window monitoring"
 
 - [ ] **Step 1: 在 app_server.py 顶部导入区添加 WindowSensor 引用**
 
-找到 `from agent import DigitalLife` 附近，添加导入。在 `app_server.py` 中找到创建 `_lingxi` 的位置（在 `main()` 或模块级别），在初始化后创建 WindowSensor。
+找到 `from agent import DigitalLife` 附近，添加导入。在 `app_server.py` 中找到创建 `_Yunshu` 的位置（在 `main()` 或模块级别），在初始化后创建 WindowSensor。
 
-首先读取 `app_server.py` 找到 `_lingxi = DigitalLife(...)` 创建位置和 `if __name__ == "__main__"` 位置。
+首先读取 `app_server.py` 找到 `_Yunshu = DigitalLife(...)` 创建位置和 `if __name__ == "__main__"` 位置。
 
-然后在 `_lingxi` 创建后（大约第 235 行附近），添加：
+然后在 `_Yunshu` 创建后（大约第 235 行附近），添加：
 
 ```python
 # 初始化窗口传感器
@@ -285,7 +285,7 @@ try:
     from sensor.window_sensor import WindowSensor
     _window_sensor = WindowSensor(
         config_path="data/window_config.json",
-        save_callback=lambda event_type, data: _lingxi._memory.save_log(event_type, data)
+        save_callback=lambda event_type, data: _Yunshu._memory.save_log(event_type, data)
     )
     _window_sensor.start()
     logger.info("窗口监控传感器已启动")
@@ -304,7 +304,7 @@ def api_window_events():
     limit = request.args.get("limit", 50, type=int)
     limit = min(limit, 500)
     try:
-        events = _lingxi._memory._black_box.query(
+        events = _Yunshu._memory._black_box.query(
             event_type="window_event", limit=limit
         )
         return jsonify({"events": events})
@@ -316,7 +316,7 @@ def api_window_events():
 def api_window_stats():
     """获取窗口使用统计"""
     try:
-        events = _lingxi._memory._black_box.query(
+        events = _Yunshu._memory._black_box.query(
             event_type="window_event", limit=2000
         )
         # 按 to_process 聚合
@@ -636,7 +636,7 @@ git commit -m "feat: add window panel styles - subtabs, event stream, stats bars
 
 ```javascript
 // ════════════════════════════════════════════════════════════
-// 灵犀 · 记忆管理 — 记忆 + 窗口活动
+// 云枢 · 记忆管理 — 记忆 + 窗口活动
 // ════════════════════════════════════════════════════════════
 
 // ── 子页切换 ──

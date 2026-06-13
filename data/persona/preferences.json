@@ -1,0 +1,28 @@
+{
+  "expression_style": {
+    "formal": 0.6,
+    "casual": 0.4,
+    "concise": 1.0,
+    "verbose": 0.0,
+    "humorous": 1.0,
+    "serious": 0.0,
+    "emotional": 0.4,
+    "rational": 0.6
+  },
+  "topic_interest": {
+    "编程": 1.0,
+    "学习": 0.08695652173913043
+  },
+  "interaction_pattern": {
+    "morning": 0.0,
+    "afternoon": 0.5,
+    "evening": 0.0,
+    "night": 0.5
+  },
+  "tool_preference": {
+    "search": 0.5,
+    "creative": 1.0
+  },
+  "response_length": 0.5,
+  "last_updated": "2026-06-11T00:37:25.624221"
+}

@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_1064_20260605152055",
+  "content": "不适合的请求",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 1,
+    "timestamp": "2026-06-05T07:20:55.262952+00:00"
+  },
+  "created_at": "2026-06-05T15:20:55.262952",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

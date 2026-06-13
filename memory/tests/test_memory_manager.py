@@ -23,7 +23,7 @@ def manager(tmp_path):
 
 def test_add_message(manager):
     """添加消息应成功"""
-    msg_id = manager.add_message("user", "你好灵犀")
+    msg_id = manager.add_message("user", "你好云枢")
     assert msg_id is not None
 
 

@@ -1,0 +1,105 @@
+2026-05-31 02:03:41,161 - __main__ - INFO - ================================================================================
+2026-05-31 02:03:41,161 - __main__ - INFO -   开始端到端集成测试
+2026-05-31 02:03:41,162 - __main__ - INFO - ================================================================================
+2026-05-31 02:03:41,426 - agent.digital_life - INFO - [ok] 规划引擎模块已加载
+2026-05-31 02:03:41,429 - agent.digital_life - INFO - [ok] 向量记忆模块已加载
+2026-05-31 02:03:41,431 - agent.monitoring.metrics - INFO - [Metrics] 指标收集器已初始化
+2026-05-31 02:03:41,456 - agent.digital_life - INFO - [ok] 性能监控模块已加载
+2026-05-31 02:03:41,457 - agent.digital_life - INFO - [ok] 语音模块已加载
+2026-05-31 02:03:41,578 - agent.digital_life - INFO - [ok] OCR模块已加载
+2026-05-31 02:03:41,601 - __main__ - INFO - 使用临时目录: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,601 - agent.memory.vector_store - INFO - [VectorStore] __init__ 开始初始化
+2026-05-31 02:03:41,601 - agent.memory.vector_store - INFO - [VectorStore] 创建底层存储: type=json, base_dir=C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,601 - core.storage - INFO - [create_storage] 开始创建存储: type=json, kwargs={'base_dir': 'C:\\Windows\\TEMP\\tmpc1ev6nzx'}
+2026-05-31 02:03:41,601 - core.storage - INFO - [create_storage] 创建 JSONFileStorage
+2026-05-31 02:03:41,602 - core.storage - INFO - [JSONFileStorage] __init__ 开始初始化
+2026-05-31 02:03:41,602 - core.storage - INFO - [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,602 - core.storage - INFO - [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,602 - core.storage - INFO - [JSONFileStorage] 目录创建/检查完成
+2026-05-31 02:03:41,602 - core.storage - INFO - 📦 JSONFileStorage initialized: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,602 - core.storage - INFO - [JSONFileStorage] __init__ 初始化完成
+2026-05-31 02:03:41,603 - core.storage - INFO - [create_storage] JSONFileStorage 创建完成
+2026-05-31 02:03:41,603 - agent.memory.vector_store - INFO - [VectorStore._load] 开始加载: key=e2e_test
+2026-05-31 02:03:41,603 - agent.memory.vector_store - INFO - 📂 加载记忆文件
+2026-05-31 02:03:41,603 - core.storage - INFO - [JSONFileStorage.load] 开始加载: key=e2e_test, default=[]
+2026-05-31 02:03:41,603 - core.storage - WARNING - [JSONFileStorage.load] 文件不存在: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json, 返回默认值
+2026-05-31 02:03:41,603 - agent.memory.vector_store - INFO -    ├─ 文件存在: False
+2026-05-31 02:03:41,603 - agent.memory.vector_store - INFO -    └─ ✅ 新建空记忆库
+2026-05-31 02:03:41,603 - agent.memory.vector_store - INFO - 向量存储初始化完成: e2e_test
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO -    ├─ 集合名称: e2e_test
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO -    ├─ 持久化目录: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO -    ├─ 存储键: e2e_test
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO -    └─ 当前记忆数: 0
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO - [VectorStore] __init__ 初始化完成
+2026-05-31 02:03:41,604 - __main__ - INFO - 添加示例记忆
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO - [VectorStore.add] 开始添加记忆
+2026-05-31 02:03:41,604 - agent.memory.vector_store - INFO - [VectorStore._save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,604 - core.storage - INFO - [JSONFileStorage.save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,605 - core.storage - INFO - [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,605 - core.storage - INFO - [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,606 - core.storage - INFO - 📤 Saved: e2e_test
+2026-05-31 02:03:41,606 - agent.memory.vector_store - INFO - ✅ 添加记忆: mem_20260531_020341_604139
+2026-05-31 02:03:41,606 - agent.memory.vector_store - INFO -    ├─ 内容: 这是关于 Python 的基础知识...
+2026-05-31 02:03:41,606 - agent.memory.vector_store - INFO -    ├─ 元数据: {'type': 'knowledge', 'created_at': '2026-05-31T02:03:41.604139'}
+2026-05-31 02:03:41,606 - agent.memory.vector_store - INFO -    └─ 当前总数: 1
+2026-05-31 02:03:41,606 - agent.memory.vector_store - INFO - [VectorStore.add] 开始添加记忆
+2026-05-31 02:03:41,607 - agent.memory.vector_store - INFO - [VectorStore._save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,607 - core.storage - INFO - [JSONFileStorage.save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,607 - core.storage - INFO - [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,607 - core.storage - INFO - [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,608 - core.storage - INFO - 📤 Saved: e2e_test
+2026-05-31 02:03:41,608 - agent.memory.vector_store - INFO - ✅ 添加记忆: mem_20260531_020341_607100
+2026-05-31 02:03:41,608 - agent.memory.vector_store - INFO -    ├─ 内容: 我今天学习了向量数据库...
+2026-05-31 02:03:41,608 - agent.memory.vector_store - INFO -    ├─ 元数据: {'type': 'learning', 'created_at': '2026-05-31T02:03:41.607100'}
+2026-05-31 02:03:41,609 - agent.memory.vector_store - INFO -    └─ 当前总数: 2
+2026-05-31 02:03:41,609 - agent.memory.vector_store - INFO - [VectorStore.add] 开始添加记忆
+2026-05-31 02:03:41,609 - agent.memory.vector_store - INFO - [VectorStore._save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,609 - core.storage - INFO - [JSONFileStorage.save] 开始保存: key=e2e_test
+2026-05-31 02:03:41,610 - core.storage - INFO - [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,610 - core.storage - INFO - [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpc1ev6nzx\e2e_test.json
+2026-05-31 02:03:41,610 - core.storage - INFO - 📤 Saved: e2e_test
+2026-05-31 02:03:41,611 - agent.memory.vector_store - INFO - ✅ 添加记忆: mem_20260531_020341_609102
+2026-05-31 02:03:41,611 - agent.memory.vector_store - INFO -    ├─ 内容: 项目需要完成 Phase 3 重构...
+2026-05-31 02:03:41,611 - agent.memory.vector_store - INFO -    ├─ 元数据: {'type': 'task', 'created_at': '2026-05-31T02:03:41.609102'}
+2026-05-31 02:03:41,611 - agent.memory.vector_store - INFO -    └─ 当前总数: 3
+2026-05-31 02:03:41,611 - __main__ - INFO - 测试记忆搜索
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO - [VectorStore.search] 开始搜索
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO - 🔍 搜索记忆: query='Python...', top_k=2
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO -    └─ 当前记忆总数: 3
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO -    ├─ 匹配结果数: 2
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO -    │  1. [分数: 2026-05-31T02:03:41.604139] 这是关于 Python 的基础知识...
+2026-05-31 02:03:41,612 - agent.memory.vector_store - INFO -    │  2. [分数: 2026-05-31T02:03:41.609102] 项目需要完成 Phase 3 重构...
+2026-05-31 02:03:41,613 - agent.memory.vector_store - INFO -    └─ 返回: 2 条
+2026-05-31 02:03:41,613 - __main__ - INFO - 初始化工具注册表
+2026-05-31 02:03:41,613 - planning.executor - INFO - [ToolRegistry] __init__ 开始初始化
+2026-05-31 02:03:41,613 - core.registry - INFO - 📋 ToolRegistry initialized
+2026-05-31 02:03:41,614 - planning.executor - INFO - [ToolRegistry] __init__ 初始化完成
+2026-05-31 02:03:41,614 - planning.executor - INFO - [ToolRegistry.register] 注册工具: sample_tool
+2026-05-31 02:03:41,614 - planning.executor - INFO - 工具已注册: sample_tool
+2026-05-31 02:03:41,614 - __main__ - INFO - 初始化规划执行器
+2026-05-31 02:03:41,614 - __main__ - INFO - 测试工具调用
+2026-05-31 02:03:41,614 - __main__ - INFO - [sample_tool] 执行: Hello E2E Test
+2026-05-31 02:03:41,615 - __main__ - INFO - 创建示例任务计划
+2026-05-31 02:03:41,615 - memory.storage - INFO - [Storage] __init__ 开始初始化
+2026-05-31 02:03:41,615 - memory.storage - INFO - [Storage] 数据目录: C:\Windows\TEMP\tmpc1ev6nzx
+2026-05-31 02:03:41,615 - memory.storage - INFO - [Storage] 消息文件: C:\Windows\TEMP\tmpc1ev6nzx\messages.jsonl
+2026-05-31 02:03:41,615 - memory.storage - INFO - [Storage] 摘要文件: C:\Windows\TEMP\tmpc1ev6nzx\summary.txt
+2026-05-31 02:03:41,615 - memory.storage - INFO - [Storage] 版本文件: C:\Windows\TEMP\tmpc1ev6nzx\summary_version.txt
+2026-05-31 02:03:41,616 - memory.storage - INFO - [Storage] __init__ 初始化完成
+2026-05-31 02:03:41,616 - memory.storage - INFO - [Storage.save_summary] 开始保存摘要，版本: 1
+2026-05-31 02:03:41,616 - memory.storage - INFO - [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpc1ev6nzx\summary.txt
+2026-05-31 02:03:41,617 - memory.storage - INFO - [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpc1ev6nzx\summary_version.txt
+2026-05-31 02:03:41,617 - memory.storage - INFO - [Storage.save_summary] 摘要保存成功
+2026-05-31 02:03:41,617 - memory.storage - INFO - [Storage.save_message] 开始保存消息
+2026-05-31 02:03:41,618 - memory.storage - INFO - [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpc1ev6nzx\messages.jsonl
+2026-05-31 02:03:41,618 - memory.storage - INFO - [Storage.save_message] 消息写入成功
+2026-05-31 02:03:41,618 - memory.storage - INFO - [Storage.save_message] 返回消息ID: 2026-05-30T18:03:41.618202+00:00
+2026-05-31 02:03:41,619 - memory.storage - INFO - [Storage.load_summary] 开始加载摘要
+2026-05-31 02:03:41,619 - memory.storage - INFO - [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpc1ev6nzx\summary.txt
+2026-05-31 02:03:41,619 - memory.storage - INFO - [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpc1ev6nzx\summary_version.txt
+2026-05-31 02:03:41,619 - memory.storage - INFO - [Storage.load_summary] 加载成功，版本: 1
+2026-05-31 02:03:41,620 - memory.storage - INFO - [Storage.load_recent_messages] 开始加载最近 5 条消息
+2026-05-31 02:03:41,620 - memory.storage - INFO - [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpc1ev6nzx\messages.jsonl
+2026-05-31 02:03:41,620 - memory.storage - INFO - [Storage.load_recent_messages] 共读取 1 行
+2026-05-31 02:03:41,620 - memory.storage - INFO - [Storage.load_recent_messages] 成功加载 1 条消息
+2026-05-31 02:03:41,620 - __main__ - INFO - 测试完整工作流: 存储 + 规划

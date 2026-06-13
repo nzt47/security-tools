@@ -1,7 +1,9 @@
 """MemoryManager — 记忆管理系统的核心编排层"""
 
+import asyncio
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 from .token_counter import TokenCounter
 from .llm_service import LLMService
@@ -11,94 +13,207 @@ from .black_box import BlackBox
 
 logger = logging.getLogger(__name__)
 
+def log_event_loop_status() -> str:
+    """检查并记录事件循环状态"""
+    try:
+        loop = asyncio.get_running_loop()
+        return f"事件循环: {type(loop).__name__}, 运行中: {loop.is_running()}, 关闭: {loop.is_closed()}"
+    except RuntimeError:
+        return "事件循环: 未找到运行中的事件循环"
+    except Exception as e:
+        return f"事件循环检查异常: {e}"
+
 
 class AsyncCompressor:
-    """后台压缩线程
+    """后台压缩任务（asyncio实现）
 
-    定时检查是否需要压缩，异步执行摘要生成。
+    使用asyncio协程替代threading，避免阻塞主线程，提高并发性能。
     """
 
-    def __init__(self, summarizer, storage, black_box, interval: int = 60):
-        self._summarizer = summarizer
-        self._storage = storage
-        self._black_box = black_box
+    def __init__(self, memory_manager, interval: int = 60):
+        self._memory_manager = memory_manager
         self._interval = interval
-        self._event = threading.Event()
-        self._stop_event = threading.Event()
-        self._thread = None
         self._pending = False
+        self._running = False
+        self._task = None
+        self._lock = threading.Lock()
 
-    def start(self):
-        """启动后台线程"""
-        if self._thread is not None:
-            return
-        self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-        logger.info("后台压缩线程已启动")
+    async def start(self):
+        """启动后台压缩任务（异步版本）"""
+        with self._lock:
+            if self._running:
+                return
+            self._running = True
 
-    def stop(self):
-        """优雅停止后台线程"""
-        self._stop_event.set()
-        self._event.set()  # 唤醒线程
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=5)
-        logger.info("后台压缩线程已停止")
+        self._task = asyncio.create_task(self._run())
+        logger.warning("后台压缩任务已启动")
+
+    def start_sync(self):
+        """启动后台压缩任务（同步版本，保持向后兼容）"""
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.start())
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.create_task(self.start())
+            threading.Thread(target=loop.run_forever, daemon=True).start()
+
+    async def stop(self):
+        """优雅停止后台压缩任务（异步版本）"""
+        with self._lock:
+            self._running = False
+
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+
+        logger.warning("后台压缩任务已停止")
+
+    def stop_sync(self):
+        """优雅停止后台压缩任务（同步版本，保持向后兼容）"""
+        if self._task:
+            self._task.cancel()
+            self._task = None
+        with self._lock:
+            self._running = False
+        logger.warning("后台压缩任务已停止")
 
     def request(self):
         """标记需要压缩"""
-        self._pending = True
-        self._event.set()
+        with self._lock:
+            self._pending = True
 
     def has_pending(self) -> bool:
         """是否有待处理的压缩请求"""
-        return self._pending
+        with self._lock:
+            return self._pending
 
     def is_running(self) -> bool:
-        """后台线程是否正在运行"""
-        return self._thread is not None and self._thread.is_alive()
+        """后台任务是否正在运行"""
+        with self._lock:
+            return self._running
 
-    def _run(self):
-        while not self._stop_event.is_set():
-            triggered = self._event.wait(timeout=self._interval)
-            if self._stop_event.is_set():
+    async def _run(self):
+        """后台任务主循环"""
+        loop_start_time = time.time()
+        iteration_count = 0
+        logger.warning("┌═══════════════════════════════════════════════")
+        logger.warning("│ 🔄 [后台压缩循环] 主循环启动")
+        logger.warning(f"│    ├─ {log_event_loop_status()}")
+        logger.warning(f"│    ├─ 检查间隔: {self._interval}s")
+        logger.warning(f"│    └─ 启动时间: {datetime.now(timezone.utc).isoformat()}")
+        logger.warning("└═══════════════════════════════════════════════")
+
+        while self._running:
+            iteration_count += 1
+            iter_start = time.time()
+            try:
+                with self._lock:
+                    pending = self._pending
+
+                if pending:
+                    logger.debug(f"[后台压缩循环] 第 {iteration_count} 轮 - 有待处理请求，执行压缩")
+                    await self._do_compress()
+                else:
+                    logger.debug(f"[后台压缩循环] 第 {iteration_count} 轮 - 无待处理请求，等待 {self._interval}s")
+                    await asyncio.sleep(self._interval)
+
+                iter_elapsed = (time.time() - iter_start) * 1000
+                logger.debug(f"[后台压缩循环] 第 {iteration_count} 轮完成，耗时: {iter_elapsed:.2f}ms")
+
+            except asyncio.CancelledError:
+                logger.warning("┌═══════════════════════════════════════════════")
+                logger.warning("│ ⏹️ [后台压缩循环] 收到取消信号，退出循环")
+                logger.warning("└═══════════════════════════════════════════════")
                 break
-            self._event.clear()
-            if triggered:
-                self._do_compress()
+            except Exception as e:
+                logger.error("┌═══════════════════════════════════════════════")
+                logger.error(f"│ ❌ [后台压缩循环] 第 {iteration_count} 轮异常: {e}")
+                logger.error(f"│    └─ {log_event_loop_status()}")
+                logger.error("└═══════════════════════════════════════════════")
+                logger.error("堆栈跟踪:", exc_info=True)
+                await asyncio.sleep(self._interval)
 
-    def _do_compress(self):
-        """执行压缩任务"""
+        total_elapsed = (time.time() - loop_start_time) * 1000
+        logger.warning("┌═══════════════════════════════════════════════")
+        logger.warning(f"│ 🛑 [后台压缩循环] 主循环结束")
+        logger.warning(f"│    ├─ 总迭代次数: {iteration_count}")
+        logger.warning(f"│    ├─ 总运行时间: {total_elapsed:.2f}ms")
+        logger.warning(f"│    └─ {log_event_loop_status()}")
+        logger.warning("└═══════════════════════════════════════════════")
+
+    def _is_skill_enabled_static(self, skill_id: str) -> bool:
+        """静态检查技能是否启用（供后台线程使用）"""
         try:
-            old_summary = self._storage.load_summary()
-            recent_messages = self._storage.load_recent_messages(limit=100)
+            import json, os
+            result = True
+            for sf in [
+                os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json'),
+                os.path.join(os.path.dirname(__file__), '..', 'agent', 'data', 'skills.json'),
+            ]:
+                if os.path.exists(sf):
+                    with open(sf, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    for s in data.get("skills", []):
+                        if s["id"] == skill_id:
+                            result = s.get("enabled", True)
+            return result
+        except Exception:
+            pass
+        return True
 
-            if not recent_messages:
-                return
+    async def _do_compress(self):
+        """异步执行压缩任务"""
+        if not self._is_skill_enabled_static("memory_summary"):
+            logger.debug("[Memory] memory_summary 技能已禁用，跳过压缩")
+            return
+        start_time = time.time()
+        logger.warning("┌═══════════════════════════════════════════════")
+        logger.warning("│ 🚀 [后台压缩] 开始执行压缩任务")
+        logger.warning(f"│    ├─ 线程ID: {threading.current_thread().ident}")
+        logger.warning(f"│    ├─ 线程名称: {threading.current_thread().name}")
+        logger.warning(f"│    └─ {log_event_loop_status()}")
+        logger.warning("└═══════════════════════════════════════════════")
 
-            # 使用 LLM 压缩
-            summary = self._summarizer.compress(recent_messages)
+        # 使用线程池执行阻塞操作，避免阻塞事件循环
+        loop = asyncio.get_event_loop()
+        logger.warning("│ 🔄 [后台压缩] 将压缩任务提交到线程池执行")
+        submit_time = time.time()
 
-            if old_summary:
-                old_text, old_version = old_summary
-                summary = self._summarizer.merge_summaries(old_text, summary)
-                new_version = old_version + 1
-            else:
-                new_version = 1
+        success = await loop.run_in_executor(
+            None,
+            self._memory_manager._execute_compression
+        )
 
-            self._storage.save_summary(summary, new_version)
-            self._black_box.log("memory_compress", {
-                "version": new_version,
-                "messages_count": len(recent_messages)
-            })
-            self._pending = False
-            logger.info("后台压缩完成，版本 %d", new_version)
-        except Exception as e:
-            logger.error("后台压缩失败: %s", e)
+        exec_elapsed = (time.time() - submit_time) * 1000
+        total_elapsed = (time.time() - start_time) * 1000
+
+        if success:
+            with self._lock:
+                self._pending = False
+            logger.warning("┌═══════════════════════════════════════════════")
+            logger.warning("│ ✅ [后台压缩] 压缩任务完成")
+            logger.warning(f"│    ├─ 线程池执行耗时: {exec_elapsed:.2f}ms")
+            logger.warning(f"│    ├─ 总耗时: {total_elapsed:.2f}ms")
+            logger.warning(f"│    ├─ 待处理标记已清除")
+            logger.warning(f"│    └─ {log_event_loop_status()}")
+            logger.warning("└═══════════════════════════════════════════════")
+        else:
+            logger.warning("┌═══════════════════════════════════════════════")
+            logger.warning("│ ⚠️  [后台压缩] 压缩任务失败或无消息")
+            logger.warning(f"│    ├─ 线程池执行耗时: {exec_elapsed:.2f}ms")
+            logger.warning(f"│    ├─ 总耗时: {total_elapsed:.2f}ms")
+            logger.warning(f"│    └─ {log_event_loop_status()}")
+            logger.warning("└═══════════════════════════════════════════════")
 
 
 class MemoryManager:
-    """记忆管理器 — 灵犀的记忆系统入口
+    """记忆管理器 — 云枢的记忆系统入口
 
     管理对话历史、滚动摘要、黑匣子日志的完整生命周期。
     """
@@ -140,13 +255,11 @@ class MemoryManager:
         # 后台压缩
         ac_cfg = config.get("async_compress", {})
         self._async_compressor = AsyncCompressor(
-            summarizer=self._summarizer,
-            storage=self._storage,
-            black_box=self._black_box,
+            memory_manager=self,
             interval=ac_cfg.get("interval_seconds", 60)
         )
         if ac_cfg.get("enabled", True):
-            self._async_compressor.start()
+            self._async_compressor.start_sync()
 
         # 压缩阈值
         self._token_limit = config.get("token_limit", 4096)
@@ -154,6 +267,89 @@ class MemoryManager:
 
         self._need_compress = False
         logger.info("MemoryManager 初始化完成")
+
+    def _execute_compression(self) -> bool:
+        """执行压缩任务的公共方法
+
+        统一的压缩逻辑：加载旧摘要、压缩新消息、合并摘要、保存结果。
+
+        Returns:
+            bool: 压缩是否成功执行
+        """
+        total_start = time.time()
+        try:
+            logger.warning("┌─────────────────────────────────────────────")
+            logger.warning("│ [压缩] 开始执行压缩任务")
+            logger.warning(f"│   ├─ 线程ID: {threading.current_thread().ident}")
+            logger.warning(f"│   ├─ 线程名称: {threading.current_thread().name}")
+            logger.warning(f"│   └─ 是否主线程: {threading.current_thread().name == 'MainThread'}")
+            logger.warning("└─────────────────────────────────────────────")
+
+            step_start = time.time()
+            logger.warning("├─ [步骤1] 加载旧摘要")
+            old_summary = self._storage.load_summary()
+            old_version = old_summary[1] if old_summary else 0
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ 旧摘要版本: %d, 耗时: %.2fms", old_version, step_elapsed)
+
+            step_start = time.time()
+            logger.warning("├─ [步骤2] 加载最近消息 (limit=100)")
+            recent_messages = self._storage.load_recent_messages(limit=100)
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ 加载到消息数: %d, 耗时: %.2fms", len(recent_messages), step_elapsed)
+
+            if not recent_messages:
+                logger.warning("│   └─ ⚠️ 无消息需要压缩，跳过")
+                return False
+
+            step_start = time.time()
+            logger.warning("├─ [步骤3] 调用 LLM 压缩消息")
+            summary = self._summarizer.compress(recent_messages)
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ ✓ LLM 返回摘要长度: %d 字符, 耗时: %.2fms", len(summary) if summary else 0, step_elapsed)
+
+            step_start = time.time()
+            if old_summary:
+                old_text, old_version = old_summary
+                logger.warning("├─ [步骤4] 合并旧摘要 (版本 %d)", old_version)
+                summary = self._summarizer.merge_summaries(old_text, summary)
+                new_version = old_version + 1
+            else:
+                new_version = 1
+                logger.warning("├─ [步骤4] 无旧摘要，创建初始摘要 (版本 1)")
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ 合并/创建完成, 耗时: %.2fms", step_elapsed)
+
+            step_start = time.time()
+            logger.warning("├─ [步骤5] 保存摘要 (版本 %d)", new_version)
+            self._storage.save_summary(summary, new_version)
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ ✓ 摘要保存成功, 耗时: %.2fms", step_elapsed)
+
+            step_start = time.time()
+            logger.warning("├─ [步骤6] 记录黑匣子日志")
+            self._black_box.log("memory_compress", {
+                "version": new_version,
+                "messages_count": len(recent_messages),
+                "execution_time_ms": (time.time() - total_start) * 1000
+            })
+            step_elapsed = (time.time() - step_start) * 1000
+            logger.warning("│   └─ ✓ 日志记录完成, 耗时: %.2fms", step_elapsed)
+
+            total_elapsed = (time.time() - total_start) * 1000
+            logger.warning("└─────────────────────────────────────────────")
+            logger.warning("│ ✓ 压缩完成！版本: %d | 消息数: %d | 总耗时: %.2fms", 
+                       new_version, len(recent_messages), total_elapsed)
+            logger.warning("└─────────────────────────────────────────────")
+            return True
+        except Exception as e:
+            total_elapsed = (time.time() - total_start) * 1000
+            logger.error("└─────────────────────────────────────────────")
+            logger.error("│ ✗ 压缩失败: %s", e)
+            logger.error(f"│   └─ 失败前耗时: {total_elapsed:.2f}ms")
+            logger.error("└─────────────────────────────────────────────")
+            logger.error("堆栈跟踪:", exc_info=True)
+            return False
 
     def add_message(self, role: str, content: str) -> str:
         """添加新消息
@@ -204,19 +400,18 @@ class MemoryManager:
         """
         # 如果有压缩需求且没有后台线程，同步执行
         if self._need_compress:
+            logger.warning("┌═══════════════════════════════════════════════")
+            logger.warning("│ 🔄 [同步压缩] 检测到压缩需求")
+            logger.warning("│    └─ 后台线程状态: %s", "运行中 ✓" if self._async_compressor.is_running() else "未运行 ✗")
             if not self._async_compressor.is_running():
-                recent = self._storage.load_recent_messages(limit=100)
-                if recent:
-                    summary = self._summarizer.compress(recent)
-                    old = self._storage.load_summary()
-                    if old:
-                        old_text, old_version = old
-                        summary = self._summarizer.merge_summaries(old_text, summary)
-                        self._storage.save_summary(summary, old_version + 1)
-                    else:
-                        self._storage.save_summary(summary, 1)
+                logger.warning("│    └─ 执行同步压缩...")
+                self._execute_compression()
+            else:
+                logger.warning("│    └─ 等待后台处理")
             # 后台线程已处理或本次同步处理完成，清除标记
             self._need_compress = False
+            logger.warning("│ ✅ [同步压缩] 压缩需求标记已清除")
+            logger.warning("└═══════════════════════════════════════════════")
 
         # 加载摘要和最近消息
         summary = self._storage.load_summary()
@@ -277,6 +472,6 @@ class MemoryManager:
         return self._black_box.query(**filters)
 
     def __del__(self):
-        """析构时停止后台线程"""
+        """析构时停止后台任务"""
         if hasattr(self, '_async_compressor'):
-            self._async_compressor.stop()
+            self._async_compressor.stop_sync()

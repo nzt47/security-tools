@@ -1,0 +1,30 @@
+# Prometheus 配置文件
+# 用于采集云枢 V2 功能的性能指标
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'Yunshu-monitor'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  - 'alert_rules.yml'
+
+scrape_configs:
+  # 云枢 V2 应用指标
+  - job_name: 'Yunshu-v2'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Prometheus 自身指标（可选）
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

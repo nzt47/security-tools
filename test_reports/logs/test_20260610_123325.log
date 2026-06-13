@@ -1,0 +1,32 @@
+2026-06-10 12:33:26,653 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-10 12:33:26,682 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-10 12:33:26,689 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-10 12:33:26,696 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-10 12:33:26,737 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-10 12:33:26,743 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-10 12:33:26,745 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-10 12:33:26,746 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-10 12:33:26,754 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-10 12:33:26,791 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 12:33:26,791 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-10 12:33:26,793 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-10 12:33:26,797 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-10 12:33:27,114 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-10 12:33:27,124 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-10 12:33:27,124 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:33:27,139 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:33:27,139 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-10 12:33:27,140 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-10 12:33:27,140 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-10 12:33:27,140 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-10 12:33:27,141 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-10 12:33:27,141 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-10 12:33:27,141 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-10 12:33:27,141 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-10 12:33:27,142 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 12:33:27,142 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-10 12:33:27,142 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-10 12:33:27,142 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-10 12:33:27,326 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp5z9wv8_1\workspace
