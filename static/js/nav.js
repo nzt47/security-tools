@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-// 灵犀 · 左侧导航栏交互
+// 云枢 · 左侧导航栏交互
 // ════════════════════════════════════════════════════════════
 
 function initNav() {
@@ -22,6 +22,10 @@ function initNav() {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
       if (!view) return;
+      if (view === 'health') {
+        window.location.href = '/health';
+        return;
+      }
       if (view === 'settings') {
         showSettings();
         return;
