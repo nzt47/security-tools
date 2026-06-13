@@ -1387,3 +1387,65 @@ def set_clipboard(text):
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": f"剪贴板写入失败: {e}"}
+
+
+# ════════════════════════════════════════════════════════════
+#  天气查询 — 使用 wttr.in 服务，无需 API Key
+# ════════════════════════════════════════════════════════════
+
+def get_weather(city: str = "", format: str = "text") -> dict:
+    """查询天气信息
+
+    使用 wttr.in 服务，无需 API Key。
+
+    Args:
+        city: 城市名称，如 "Beijing"、"Shanghai"、"Tokyo"，留空则自动查询当前 IP 所在地天气
+        format: 返回格式
+            - "text": 简洁文本格式（如 "Beijing: ☀️ +25°C"）
+            - "json": 完整 JSON 数据格式
+            - "full": 完整文本预报格式
+
+    Returns:
+        dict: {ok, data, format, city, error}
+    """
+    import urllib.request
+    import urllib.error
+    import urllib.parse
+
+    if not city:
+        city = ""
+
+    # 根据 format 选择 URL
+    if format == "json":
+        url = f"https://wttr.in/{urllib.parse.quote(city)}?format=j1" if city else "https://wttr.in?format=j1"
+    elif format == "full":
+        url = f"https://wttr.in/{urllib.parse.quote(city)}?lang=zh" if city else "https://wttr.in?lang=zh"
+    else:
+        url = f"https://wttr.in/{urllib.parse.quote(city)}?format=3&lang=zh" if city else "https://wttr.in?format=3&lang=zh"
+
+    try:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "curl/7.68.0",
+        })
+        with urllib.request.urlopen(req, timeout=15) as response:
+            raw = response.read()
+
+        if format == "json":
+            data = json.loads(raw.decode("utf-8"))
+        else:
+            data = raw.decode("utf-8").strip()
+
+        return {
+            "ok": True,
+            "data": data,
+            "format": format,
+            "city": city or "auto",
+        }
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "error": f"HTTP 错误: {e.code} {e.reason}", "city": city}
+    except urllib.error.URLError as e:
+        return {"ok": False, "error": f"网络连接失败: {e.reason}", "city": city}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "error": f"JSON 解析失败: {e}", "city": city}
+    except Exception as e:
+        return {"ok": False, "error": f"查询失败: {e}", "city": city}

@@ -2115,12 +2115,12 @@ class DigitalLife:
             results = self._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
-        @tools.register("web_search", "搜索互联网信息（默认使用 DuckDuckGo，无需 API Key）。返回标题、链接、摘要", schema={
+        @tools.register("web_search", "搜索互联网信息（默认使用 DuckDuckGo，无需 API Key）。返回标题、链接、摘要。可选引擎：duckduckgo(免Key), baidu(百度/免Key/中文), sogou(搜狗/免Key/中文), so360(360搜索/免Key/中文), tavily(需Key), bing(需Key), google(需Key), brave(需Key)", schema={
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "搜索关键词"},
                 "num_results": {"type": "integer", "description": "返回结果数，默认 10"},
-                "engine": {"type": "string", "description": "搜索引擎，可选 duckduckgo/tavily/bing/google"},
+                "engine": {"type": "string", "description": "搜索引擎，可选 duckduckgo/baidu/sogou/so360/tavily/bing/google/brave"},
                 "page": {"type": "integer", "description": "页码，默认 1"},
             },
             "required": ["query"],
@@ -2189,6 +2189,24 @@ class DigitalLife:
                 return {"ok": False, "error": "请提供 URL 列表 (urls)"}
             results = self._web_http.batch_request(urls, max_concurrency=max_concurrency)
             return {"ok": True, "total": len(results), "results": results}
+
+        # ════════════════════════════════════════════════════════════
+        #  天气查询工具 — 云枢查询天气的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.system_tools import get_weather
+
+        @tools.register("get_weather", "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）", schema={
+            "type": "object",
+            "properties": {
+                "city": {"type": "string", "description": "城市名称，如 Beijing、Shanghai、Tokyo，留空自动查询当前IP所在地天气"},
+                "format": {"type": "string", "enum": ["text", "json", "full"], "description": "返回格式：text=简洁文本, json=完整JSON数据, full=完整文本预报"},
+            },
+        })
+        def _get_weather(**kwargs):
+            city = kwargs.get("city", "")
+            fmt = kwargs.get("format", "text")
+            return get_weather(city=city, format=fmt)
 
         # ════════════════════════════════════════════════════════════
         #  进程管理工具 — 云枢运行/管理程序的能力
@@ -2297,6 +2315,29 @@ class DigitalLife:
 
             # 执行命令（timeout=None 时使用默认 30 秒）
             return execute_shell(command, shell=shell, cwd=cwd, timeout=timeout or 30)
+
+        # ════════════════════════════════════════════════════════════════════════════════
+        #  代码审查工具 — 云枢审查代码的能力
+        # ════════════════════════════════════════════════════════════════════════════════
+
+        @tools.register("code_review", "执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单", schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "要审查的文件路径（绝对路径），可选"},
+                "diff": {"type": "string", "description": "git diff 文本内容，可选。如果未提供 path 则使用此内容"},
+                "dimensions": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["安全", "性能", "可维护性", "API兼容性", "测试"]},
+                    "description": "审查维度列表，默认全部。安全(SQL注入/XSS/密钥泄露)、性能(N+1查询/算法复杂度)、可维护性(死代码/魔法数字)、API兼容性(破坏性变更)、测试(边界值/负路径)",
+                },
+            },
+        })
+        def _code_review(**kwargs):
+            path = kwargs.get("path", "")
+            diff = kwargs.get("diff", "")
+            dimensions = kwargs.get("dimensions")
+            from agent.code_review import code_review as _code_review
+            return _code_review(path=path, diff=diff, dimensions=dimensions)
 
         # ════════════════════════════════════════════════════════════════════════════════
         #  扩展管理工具（让云枢能自主安装 Skills / MCP / Channels / Plugins）
@@ -2585,7 +2626,162 @@ class DigitalLife:
             except Exception as e:
                 return {"ok": False, "error": str(e)}
 
-        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理）", len(tools.list_tools()))
+        # ════════════════════════════════════════════════════════════
+        #  PDF 工具 — 云枢处理 PDF 文件的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.pdf_tools import (
+            read_pdf_text, merge_pdfs, split_pdf, get_pdf_info,
+        )
+
+        # ════════════════════════════════════════════════════════════
+        #  架构图工具 — 云枢生成系统架构图的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.diagram_tools import generate_architecture_diagram
+
+        @tools.register("read_pdf", "读取 PDF 文件中的文本内容（支持指定页码范围）", schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "PDF 文件路径"},
+                "pages": {
+                    "type": "array", "items": {"type": "integer"},
+                    "description": "要读取的页码列表（1-based），如 [1, 3, 5]，不传则读取全部页面",
+                },
+            },
+            "required": ["path"],
+        })
+        def _read_pdf(**kwargs):
+            path = kwargs.get("path", "")
+            pages = kwargs.get("pages")
+            if not path:
+                return {"ok": False, "error": "请提供 PDF 文件路径（path）"}
+            return read_pdf_text(path, pages=pages)
+
+        @tools.register("merge_pdf", "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径", schema={
+            "type": "object",
+            "properties": {
+                "paths": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "要合并的 PDF 文件路径列表",
+                },
+                "output_path": {"type": "string", "description": "合并后的输出文件路径"},
+            },
+            "required": ["paths", "output_path"],
+        })
+        def _merge_pdf(**kwargs):
+            paths = kwargs.get("paths", [])
+            output_path = kwargs.get("output_path", "")
+            if not paths:
+                return {"ok": False, "error": "请提供要合并的文件列表（paths）"}
+            if not output_path:
+                return {"ok": False, "error": "请提供输出文件路径（output_path）"}
+            # PermissionSystem 安全检查
+            perm = self._permission.check_action(f"write_file:{output_path}", f"合并 PDF 到 {output_path}")
+            if not perm.allowed:
+                return {"ok": False, "error": f"权限系统拒绝: {perm.reason}", "blocked": True}
+            return merge_pdfs(paths, output_path)
+
+        @tools.register("split_pdf", "拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件", schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "源 PDF 文件路径"},
+                "output_dir": {"type": "string", "description": "输出目录"},
+                "ranges": {
+                    "type": "array", "items": {
+                        "type": "array", "items": {"type": "integer"},
+                        "minItems": 2, "maxItems": 2,
+                    },
+                    "description": "页范围列表（1-based），如 [[1,3], [5,7]] 表示拆分为第1-3页和第5-7页两个文件，不传则每页拆为一个文件",
+                },
+            },
+            "required": ["path", "output_dir"],
+        })
+        def _split_pdf(**kwargs):
+            path = kwargs.get("path", "")
+            output_dir = kwargs.get("output_dir", "")
+            ranges = kwargs.get("ranges")
+            if not path:
+                return {"ok": False, "error": "请提供源 PDF 文件路径（path）"}
+            if not output_dir:
+                return {"ok": False, "error": "请提供输出目录（output_dir）"}
+            # PermissionSystem 安全检查
+            perm = self._permission.check_action(f"write_dir:{output_dir}", f"拆分 PDF 到目录 {output_dir}")
+            if not perm.allowed:
+                return {"ok": False, "error": f"权限系统拒绝: {perm.reason}", "blocked": True}
+            return split_pdf(path, output_dir, ranges=ranges)
+
+        # ════════════════════════════════════════════════════════════
+        #  架构图工具 — 云枢生成系统架构图的能力
+        # ════════════════════════════════════════════════════════════
+
+        @tools.register("arch_diagram", "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）", schema={
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "架构图标题"},
+                "components": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "组件名称"},
+                            "type": {"type": "string", "description": "组件类型: frontend/backend/database/cloud/security/external"},
+                            "description": {"type": "string", "description": "组件描述（可选）"},
+                        },
+                        "required": ["name", "type"],
+                    },
+                    "description": "组件列表",
+                },
+                "output_path": {"type": "string", "description": "输出 HTML 文件路径"},
+            },
+            "required": ["title", "components", "output_path"],
+        })
+        def _arch_diagram(**kwargs):
+            title = kwargs.get("title", "")
+            components = kwargs.get("components", [])
+            output_path = kwargs.get("output_path", "")
+            # 权限检查
+            perm = self._permission.check_action(f"write_file:{output_path}", f"生成架构图到 {output_path}")
+            if not perm.allowed:
+                return {"ok": False, "error": f"权限系统拒绝: {perm.reason}", "blocked": True}
+            return generate_architecture_diagram(title, components, output_path)
+
+        @tools.register("get_pdf_info", "获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）", schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "PDF 文件路径"},
+            },
+            "required": ["path"],
+        })
+        def _get_pdf_info(**kwargs):
+            path = kwargs.get("path", "")
+            if not path:
+                return {"ok": False, "error": "请提供 PDF 文件路径（path）"}
+            return get_pdf_info(path)
+
+        # ════════════════════════════════════════════════════════════
+        #  中文文本优化工具 — 检测并去除 AI 写作痕迹
+        # ════════════════════════════════════════════════════════════
+
+        from agent.text_tools import humanize_zh
+
+        @tools.register("humanize_zh", "检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式", schema={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "待检测的中文文本"},
+                "aggressive": {"type": "boolean", "description": "是否启用严格检测模式（检测更多边缘情况，如同长度连续句子等），默认 false"},
+            },
+            "required": ["text"],
+        })
+        def _humanize_zh(**kwargs):
+            text = kwargs.get("text", "")
+            aggressive = kwargs.get("aggressive", False)
+            if not text:
+                return {"ok": False, "error": "请提供待检测的文本（text）"}
+            result = humanize_zh(text, aggressive=aggressive)
+            return {"ok": True, **result}
+
+        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化）", len(tools.list_tools()))
 
     # ════════════════════════════════════════════════════════════════════════════════
     #  状态查询
