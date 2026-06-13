@@ -66,6 +66,9 @@ class ToolCallingService:
                      len(tool_defs), len(messages))
         working_messages = list(messages)
 
+        # 连续失败检测：记录每个工具连续返回错误的次数
+        _consecutive_failures: dict[str, int] = {}
+
         for round_idx in range(self._max_rounds + 1):
             need_tools = tool_defs if round_idx < self._max_rounds else None
 
@@ -142,6 +145,17 @@ class ToolCallingService:
 
                 result = self._execute_safe(func_name, raw_args)
 
+                # 连续失败检测：同一工具连续出错则递增计数
+                result_ok = result.get("ok", False)
+                if result_ok or result.get("blocked"):
+                    _consecutive_failures[func_name] = 0
+                elif not raw_args or not any(raw_args.values()):
+                    # 工具被调用但参数为空或全空 → 可能是 LLM 工具调用缺陷
+                    _consecutive_failures[func_name] = _consecutive_failures.get(func_name, 0) + 1
+                    if _consecutive_failures[func_name] >= 2:
+                        logger.warning("[ToolCalling] %s 连续 %d 次空参数调用失败，终止工具循环",
+                                       func_name, _consecutive_failures[func_name])
+
                 # 记录步骤：工具返回结果
                 result_ok = result.get("ok", False)
                 result_summary = _summarize_tool_result(func_name, result)
@@ -161,6 +175,18 @@ class ToolCallingService:
             # 先添加 assistant 消息（含 tool_calls），再添加工具结果（OpenAI API 要求顺序）
             working_messages.append(assistant_msg)
             working_messages.extend(tool_results)
+
+            # 检测连续空参数失败：某个工具连续 2+ 次被 LLM 以空参数调用
+            # 说明当前 LLM 模型存在工具调用缺陷，应终止循环避免无限重试
+            stuck_tools = [name for name, count in _consecutive_failures.items() if count >= 2]
+            if stuck_tools:
+                logger.warning("[ToolCalling] 以下工具连续空参数调用失败: %s，终止工具循环", stuck_tools)
+                steps.append({
+                    "type": "tool_stuck",
+                    "tools": stuck_tools,
+                    "summary": f"工具 {stuck_tools} 连续空参数调用失败，已终止自动重试",
+                })
+                break
 
         steps.append({"type": "text", "content": "（达到最大工具调用轮次）"})
         result = {"text": self._get_last_assistant_text(working_messages), "steps": steps}
