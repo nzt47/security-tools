@@ -165,7 +165,8 @@ def is_executable_extension(path: str) -> bool:
 #  通用文件操作 — 云枢读取/写入本地文件的能力
 # ════════════════════════════════════════════════════════════
 
-def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10) -> dict:
+def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
+              range: str = "") -> dict:
     """读取本地文件内容（安全受限）
 
     安全措施：
@@ -178,6 +179,7 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10) -> dict
         path: 文件路径（绝对或相对当前工作目录）
         encoding: 文件编码，默认 utf-8，设置 None 以二进制模式读取
         max_size_mb: 最大读取大小（MB），默认 10MB
+        range: 可选，行范围，如 "1-50" 读取第1到50行
 
     Returns:
         dict: {ok, content, path, size, encoding, binary, error}
@@ -194,6 +196,9 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10) -> dict
         logger.warning(f"[read_file] 文件不存在: safe_path={safe_path}")
         return {"ok": False, "error": f"文件不存在: {path}"}
     if not os.path.isfile(safe_path):
+        if os.path.isdir(safe_path):
+            logger.warning(f"[read_file] 路径是目录而非文件: safe_path={safe_path}")
+            return {"ok": False, "error": f"路径是目录而非文件: {path}，请使用 list_directory 工具列出目录内容"}
         logger.warning(f"[read_file] 路径不是文件: safe_path={safe_path}")
         return {"ok": False, "error": f"路径不是文件: {path}"}
 
@@ -254,6 +259,21 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10) -> dict
             encoding = "latin-1"
 
     logger.info(f"[read_file] 文件读取完成: ok=True, encoding={encoding}, binary=False")
+
+    # 如果指定了行范围，截取对应行
+    if range:
+        try:
+            parts = range.split("-")
+            if len(parts) == 2:
+                start = max(0, int(parts[0]) - 1)  # 转为 0-based
+                end = int(parts[1])
+                lines = content.splitlines(keepends=True)
+                if start < len(lines):
+                    selected = lines[start:end]
+                    content = "".join(selected)
+        except (ValueError, IndexError):
+            pass
+
     return {
         "ok": True,
         "path": path,
@@ -1008,28 +1028,271 @@ def browser_close():
 
 
 # ════════════════════════════════════════════════════════════
+#  Shell 执行 — 云枢执行 shell 命令的能力
+# ════════════════════════════════════════════════════════════
+
+# Shell 类型与执行命令的映射
+_SHELL_COMMANDS = {
+    "bash": ["bash", "-c"],
+    "cmd": ["cmd", "/c"],
+    "powershell": ["powershell", "-Command"],
+}
+
+# Unix 风格特征（检测到这些则倾向使用 bash）
+_UNIX_SHELL_PATTERNS = [
+    r"\$\(.*\)",      # $() 命令替换
+    r"grep\s+",       # grep
+    r"ls\s+-[lahr]",  # ls -l/a/h/r
+    r"ps\s+(aux|ef)", # ps aux/ef
+    r"chmod\s+",      # chmod
+    r"chown\s+",      # chown
+    r"rm\s+-[rf]",    # rm -r/-f
+    r"mv\s+",         # mv
+    r"cp\s+",         # cp
+    r"cat\s+",        # cat
+    r"less\s+",       # less
+    r"tail\s+",       # tail
+    r"head\s+",       # head
+    r"which\s+",      # which
+    r"whoami",        # whoami
+    r"pwd",           # pwd
+]
+
+# PowerShell cmdlet 特征（检测到这些则使用 powershell）
+_PS_CMDLET_PATTERNS = [
+    r"(Get|Set|Write|Read|Invoke|Remove|New|Add|Select|Where|ForEach)-",
+    r"\$Env:",         # PowerShell 环境变量
+    r"\$_\s*\.",      # PowerShell 管道变量
+    r"\$\w+\s*=",     # PowerShell 变量赋值
+    r"\bWrite-(Host|Output|Error|Warning)",
+    r"\bGet-(Process|Service|ChildItem|Content|Date|Item)",
+    r"\bSet-(ExecutionPolicy|Location|Content)",
+    r"\bRemove-Item",
+]
+
+
+def _detect_shell(command: str) -> str:
+    """根据命令内容智能检测适合的 shell 类型
+
+    Args:
+        command: 要执行的命令字符串
+
+    Returns:
+        str: "bash", "cmd" 或 "powershell"
+    """
+    # 先检测 PowerShell cmdlet（特征最明显）
+    for pattern in _PS_CMDLET_PATTERNS:
+        if re.search(pattern, command, re.IGNORECASE):
+            return "powershell"
+
+    # 再检测 Unix 风格特征
+    for pattern in _UNIX_SHELL_PATTERNS:
+        if re.search(pattern, command, re.IGNORECASE):
+            return "bash"
+
+    # Windows 环境下的 cmd 常见命令
+    if os.name == "nt":
+        cmd_only_patterns = [
+            r"\bdir\s+",
+            r"\btype\s+",
+            r"\bfind\s+",
+        ]
+        for pattern in cmd_only_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                return "cmd"
+
+    # 默认使用 bash（云枢运行在 Git Bash 环境）
+    return "bash"
+
+
+def _truncate_output(text: str, max_bytes: int = 102400) -> str:
+    """截断过长输出，防止爆内存
+
+    Args:
+        text: 原始输出文本
+        max_bytes: 最大字节数，默认 100KB
+
+    Returns:
+        str: 截断后的文本（可能附加 truncated 标注）
+    """
+    if not text:
+        return text
+    encoded = text.encode("utf-8", errors="replace")
+    if len(encoded) <= max_bytes:
+        return text
+    truncated = encoded[:max_bytes].decode("utf-8", errors="replace")
+    return truncated + "\n...（输出已截断，共 %d 字节）" % len(encoded)
+
+
+def execute_shell(command: str, shell: str = "auto", cwd: str = None, timeout: int = 30) -> dict:
+    """在 shell 中执行命令并返回结果
+
+    Args:
+        command: 要执行的命令字符串
+        shell: "auto" / "bash" / "cmd" / "powershell"
+        cwd: 工作目录，默认使用当前目录
+        timeout: 超时秒数（1-120），默认 30
+
+    Returns:
+        dict: {ok: bool, stdout: str, stderr: str, exit_code: int, shell: str, cwd: str}
+    """
+    if not command or not command.strip():
+        return {"ok": False, "error": "命令不能为空", "exit_code": -1}
+
+    # 1. 确定 shell 类型
+    shell = _detect_shell(command) if shell == "auto" else shell.lower()
+    if shell not in _SHELL_COMMANDS:
+        return {"ok": False, "error": f"不支持的 shell 类型: {shell}，可选: auto/bash/cmd/powershell", "exit_code": -1}
+
+    # 2. 构建执行命令
+    shell_cmd = _SHELL_COMMANDS[shell]
+    cmd = shell_cmd + [command]
+
+    # 3. 确定工作目录
+    work_dir = cwd or os.getcwd()
+
+    # 4. 限制超时
+    timeout = max(1, min(timeout, 120))
+
+    # 5. 执行
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=work_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+
+        stdout = _truncate_output(proc.stdout.decode("utf-8", errors="replace"))
+        stderr = _truncate_output(proc.stderr.decode("utf-8", errors="replace"))
+
+        return {
+            "ok": proc.returncode == 0,
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_code": proc.returncode,
+            "shell": shell,
+            "cwd": work_dir,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "ok": False,
+            "error": f"命令执行超时（{timeout}秒）",
+            "exit_code": -1,
+            "shell": shell,
+            "cwd": work_dir,
+        }
+    except FileNotFoundError as e:
+        return {
+            "ok": False,
+            "error": f"找不到 shell 程序: {e}",
+            "exit_code": -1,
+            "shell": shell,
+            "cwd": work_dir,
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"执行失败: {e}",
+            "exit_code": -1,
+            "shell": shell,
+            "cwd": work_dir,
+        }
+
+
+# ════════════════════════════════════════════════════════════
 #  进程管理（白名单制）
 # ════════════════════════════════════════════════════════════
 
-PROCESS_WHITELIST = [
+# 内置默认白名单（不可删除）
+_DEFAULT_WHITELIST = [
     "notepad.exe", "calc.exe", "mspaint.exe", "write.exe",
     "python.exe", "python3.exe", "pip.exe",
     "node.exe", "npm.cmd", "npx.cmd",
     "git.exe", "curl.exe", "wget.exe",
     "explorer.exe", "cmd.exe",
 ]
+PROCESS_WHITELIST = _DEFAULT_WHITELIST  # 向后兼容
+
+_WHITELIST_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'process_whitelist_custom.json')
+
+
+def _load_custom_whitelist() -> list[str]:
+    """加载用户自定义白名单条目"""
+    try:
+        with open(_WHITELIST_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get("custom", [])
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _save_custom_whitelist(entries: list[str]):
+    """保存用户自定义白名单条目"""
+    os.makedirs(os.path.dirname(_WHITELIST_CONFIG_FILE), exist_ok=True)
+    with open(_WHITELIST_CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump({"custom": entries}, f, ensure_ascii=False, indent=2)
+
+
+def get_process_whitelist() -> list[str]:
+    """获取完整白名单（默认 + 自定义）"""
+    return _DEFAULT_WHITELIST + _load_custom_whitelist()
+
+
+def add_whitelist_entry(program: str) -> dict:
+    """添加自定义白名单条目"""
+    program = program.strip().lower()
+    if not program:
+        return {"ok": False, "error": "程序名不能为空"}
+    if program in _DEFAULT_WHITELIST:
+        return {"ok": False, "error": f"「{program}」已在默认白名单中"}
+    custom = _load_custom_whitelist()
+    if program in custom:
+        return {"ok": False, "error": f"「{program}」已存在"}
+    custom.append(program)
+    _save_custom_whitelist(custom)
+    logger.info(f"白名单新增: {program}")
+    return {"ok": True, "program": program}
+
+
+def remove_whitelist_entry(program: str) -> dict:
+    """移除自定义白名单条目"""
+    program = program.strip().lower()
+    if not program:
+        return {"ok": False, "error": "程序名不能为空"}
+    if program in _DEFAULT_WHITELIST:
+        return {"ok": False, "error": f"「{program}」是默认条目，不能删除"}
+    custom = _load_custom_whitelist()
+    if program not in custom:
+        return {"ok": False, "error": f"「{program}」不在自定义白名单中"}
+    custom.remove(program)
+    _save_custom_whitelist(custom)
+    logger.info(f"白名单移除: {program}")
+    return {"ok": True, "program": program}
+
+
+def get_whitelist_detail() -> dict:
+    """获取白名单详情（区分默认和自定义）"""
+    return {
+        "default": _DEFAULT_WHITELIST,
+        "custom": _load_custom_whitelist(),
+        "all": get_process_whitelist(),
+    }
 
 
 def start_process(program, args=None, cwd=None):
     """启动白名单程序"""
     prog_lower = program.lower()
     allowed = False
-    for w in PROCESS_WHITELIST:
+    wl = get_process_whitelist()
+    for w in wl:
         if prog_lower == w or prog_lower.endswith("\\" + w):
             allowed = True
             break
     if not allowed:
-        return {"ok": False, "error": f"程序不在白名单中。允许: {', '.join(PROCESS_WHITELIST)}"}
+        return {"ok": False, "error": f"程序不在白名单中。允许: {', '.join(wl)}"}
 
     try:
         cmd = [program] + (args if args else [])
@@ -1047,11 +1310,12 @@ def list_processes():
     """列出运行中的白名单进程"""
     import psutil
     result = []
+    wl = get_process_whitelist()
     for proc in psutil.process_iter(["pid", "name", "create_time", "status"]):
         try:
             info = proc.info
             name = (info["name"] or "").lower()
-            if any(name == w.lower() for w in PROCESS_WHITELIST):
+            if any(name == w.lower() for w in wl):
                 result.append({
                     "pid": info["pid"],
                     "name": info["name"],
@@ -1068,7 +1332,8 @@ def stop_process(pid):
     try:
         proc = psutil.Process(pid)
         name = (proc.name() or "").lower()
-        if not any(name == w.lower() for w in PROCESS_WHITELIST):
+        wl = get_process_whitelist()
+        if not any(name == w.lower() for w in wl):
             return {"ok": False, "error": f"进程 {name} 不在白名单中，拒绝终止"}
         proc.terminate()
         return {"ok": True, "pid": pid, "name": proc.name()}
