@@ -857,6 +857,14 @@ def create_scheduled_task(name, command, interval_sec=60, enabled=True):
     }
     data["tasks"].append(task)
     _save_tasks(data)
+    # 同步注册到运行中的调度器
+    try:
+        from agent.task_scheduler import get_scheduler
+        scheduler = get_scheduler()
+        if scheduler.running:
+            scheduler.add_command_task(name, command, interval_sec, task_id, enabled)
+    except Exception:
+        pass
     return {"ok": True, "task": task}
 
 
@@ -866,6 +874,14 @@ def delete_scheduled_task(task_id):
     before = len(data["tasks"])
     data["tasks"] = [t for t in data["tasks"] if t["id"] != task_id]
     _save_tasks(data)
+    # 同步移除
+    try:
+        from agent.task_scheduler import get_scheduler
+        scheduler = get_scheduler()
+        if scheduler.running:
+            scheduler.remove_task(task_id)
+    except Exception:
+        pass
     return {"ok": True, "deleted": before > len(data["tasks"])}
 
 
@@ -876,6 +892,14 @@ def toggle_scheduled_task(task_id, enabled):
         if t["id"] == task_id:
             t["enabled"] = enabled
             _save_tasks(data)
+            # 同步状态
+            try:
+                from agent.task_scheduler import get_scheduler
+                scheduler = get_scheduler()
+                if scheduler.running:
+                    scheduler.set_task_enabled(task_id, enabled)
+            except Exception:
+                pass
             return {"ok": True}
     return {"ok": False, "error": "任务不存在"}
 
