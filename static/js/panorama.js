@@ -295,10 +295,169 @@ function loadEvents(d) {
   ).join('');
 }
 
-// 通过事件总线实现全景自动刷新
+// ── 加载健康看板数据 ──
+async function loadHealthData() {
+  try {
+    const [heartbeat, status] = await Promise.all([
+      fetch('/api/heartbeat').then(r => r.json()),
+      fetch('/api/heartbeat/status').then(r => r.json()),
+    ]);
+
+    // 状态概览
+    const overall = status.status || 'unknown';
+    const statusEl = document.getElementById('pano-hb-status');
+    if (statusEl) {
+      const colors = {healthy:'#3fb950', degraded:'#d29922', unhealthy:'#f85149'};
+      const labels = {healthy:'健康', degraded:'亚健康', unhealthy:'异常'};
+      statusEl.textContent = labels[overall] || overall;
+      statusEl.style.color = colors[overall] || '#8b949e';
+    }
+    setText('pano-hb-total', (status.total_checks ?? 0) + ' 次');
+
+    const sys = heartbeat.checks?.system || {};
+    setText('pano-hb-cpu', sys.cpu != null ? sys.cpu + '%' : '-');
+    setText('pano-hb-mem', sys.memory != null ? sys.memory + '%' : '-');
+
+    const llm = heartbeat.checks?.llm || {};
+    setText('pano-hb-llm', llm.status === 'ok' ? (llm.model || '已连') : '未配置');
+
+    const sched = heartbeat.checks?.scheduler || {};
+    setText('pano-hb-scheduler', sched.running ? '运行中' : '已停止');
+
+    // 加载趋势图
+    loadHeartbeatChart();
+    // 加载任务列表
+    loadPanoTasks();
+    // 加载执行历史
+    loadPanoHistory();
+  } catch(e) { console.error('Health data load error:', e); }
+}
+
+let panoHbHistoryData = [];
+
+async function loadHeartbeatChart() {
+  try {
+    const resp = await fetch('/api/heartbeat/history?limit=60');
+    const data = await resp.json();
+    panoHbHistoryData = (data.history || []).reverse();
+    renderPanoChart();
+  } catch(e) { /* ignore */ }
+}
+
+function renderPanoChart() {
+  const canvas = document.getElementById('pano-hb-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = container.getBoundingClientRect();
+  const w = (rect.width - 16) * dpr;
+  const h = 120 * dpr;
+  canvas.width = w;
+  canvas.height = h;
+  canvas.style.width = (rect.width - 16) + 'px';
+  canvas.style.height = '120px';
+  ctx.scale(dpr, dpr);
+  const cw = w / dpr, ch = h / dpr;
+
+  ctx.clearRect(0, 0, cw, ch);
+
+  if (panoHbHistoryData.length < 2) {
+    ctx.fillStyle = '#484f58';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('等待数据...', cw/2, ch/2);
+    return;
+  }
+
+  const pad = {top:8, bottom:18, left:30, right:8};
+  const cw2 = cw - pad.left - pad.right;
+  const ch2 = ch - pad.top - pad.bottom;
+
+  const toX = i => pad.left + (i / (panoHbHistoryData.length-1)) * cw2;
+  const toY = v => pad.top + ch2 - (v / 100) * ch2;
+
+  // 网格
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 0.5;
+  [0,25,50,75,100].forEach(pct => {
+    const y = toY(pct);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(cw-pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#484f58';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(pct+'%', pad.left-2, y+3);
+  });
+
+  // 时间标签
+  ctx.fillStyle = '#484f58';
+  ctx.font = '8px sans-serif';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(panoHbHistoryData.length / 5));
+  for (let i = 0; i < panoHbHistoryData.length; i += step) {
+    const label = panoHbHistoryData[i].timestamp ? panoHbHistoryData[i].timestamp.slice(11,16) : '';
+    ctx.fillText(label, toX(i), ch-3);
+  }
+
+  function drawLine(color, getVal) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    panoHbHistoryData.forEach((d,i) => {
+      const x = toX(i), y = toY(getVal(d)||0);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+  drawLine('#58a6ff', d => d.cpu);
+  drawLine('#bc8cff', d => d.memory);
+}
+
+async function loadPanoTasks() {
+  const el = document.getElementById('pano-task-list');
+  if (!el) return;
+  try {
+    const resp = await fetch('/api/scheduler/tasks');
+    const data = await resp.json();
+    const tasks = (data.tasks || []).filter(t => t.type !== 'heartbeat');
+    if (tasks.length === 0) {
+      el.innerHTML = '<div style="padding:8px;text-align:center">暂无计划任务</div>';
+      return;
+    }
+    el.innerHTML = tasks.map(t =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #21262d">' +
+      '<span>' + (t.name||'') + '</span>' +
+      '<span style="color:#484f58">' + (t.interval_sec ? t.interval_sec+'s' : '') + '</span>' +
+      '</div>'
+    ).join('');
+  } catch(e) { el.textContent = '加载失败'; }
+}
+
+async function loadPanoHistory() {
+  const el = document.getElementById('pano-task-history');
+  if (!el) return;
+  try {
+    const resp = await fetch('/api/scheduler/history?limit=20');
+    const data = await resp.json();
+    const history = data.history || [];
+    if (history.length === 0) {
+      el.innerHTML = '<div style="padding:8px;text-align:center">暂无执行记录</div>';
+      return;
+    }
+    el.innerHTML = history.slice(0, 10).map(h =>
+      '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;border-bottom:1px solid #161b22">' +
+      '<span>' + (h.name||'') + '</span>' +
+      '<span style="color:' + (h.status==='success'?'#3fb950':h.status==='failed'?'#f85149':'#8b949e') + '">' + (h.status||'') + '</span>' +
+      '</div>'
+    ).join('');
+  } catch(e) { el.textContent = '加载失败'; }
+}
+
+// 通过事件总线实现全景自动刷新（包括健康数据）
 app.on('tick', () => {
   const panoView = document.getElementById('view-panorama');
   if (panoView && panoView.classList.contains('active')) {
     loadPanorama();
+    loadHealthData();
   }
 });
