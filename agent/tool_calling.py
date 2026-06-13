@@ -8,6 +8,21 @@ import json
 import logging
 from typing import Any
 
+
+def _clean_for_json(obj):
+    """递归清理对象，将 bytes 转为字符串，确保 JSON 可序列化
+
+    工具执行结果中可能包含 bytes（如 HTTP 原始响应体），
+    json.dumps 无法序列化 bytes，需要提前转换。
+    """
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    if isinstance(obj, dict):
+        return {k: _clean_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_clean_for_json(v) for v in obj]
+    return obj
+
 from agent import tools
 
 logger = logging.getLogger(__name__)
@@ -81,12 +96,16 @@ class ToolCallingService:
 
             tool_calls = self._extract_tool_calls(response)
             text_preview = self._extract_text(response)
+            reasoning = self._extract_reasoning(response)
 
             if not tool_calls:
                 logger.info("[ToolCalling] LLM 返回纯文本")
                 if text_preview:
                     working_messages.append({"role": "assistant", "content": text_preview})
-                return {"text": text_preview or self._get_last_assistant_text(working_messages), "steps": steps}
+                result = {"text": text_preview or self._get_last_assistant_text(working_messages), "steps": steps}
+                if reasoning:
+                    result["reasoning"] = reasoning
+                return result
 
             logger.info("[ToolCalling] LLM 返回 %d 个工具调用: %s",
                         len(tool_calls),
@@ -103,6 +122,8 @@ class ToolCallingService:
                         raw_args = json.loads(raw_args)
                     except json.JSONDecodeError:
                         raw_args = {}
+
+                logger.info("[ToolCalling] LLM 调用工具: %s, 参数: %s", func_name, raw_args)
 
                 tc_entry = {
                     "id": tc_id,
@@ -134,7 +155,7 @@ class ToolCallingService:
                 tool_results.append({
                     "role": "tool",
                     "tool_call_id": tc_id,
-                    "content": json.dumps(result, ensure_ascii=False),
+                    "content": json.dumps(_clean_for_json(result), ensure_ascii=False),
                 })
 
             # 先添加 assistant 消息（含 tool_calls），再添加工具结果（OpenAI API 要求顺序）
@@ -142,7 +163,11 @@ class ToolCallingService:
             working_messages.extend(tool_results)
 
         steps.append({"type": "text", "content": "（达到最大工具调用轮次）"})
-        return {"text": self._get_last_assistant_text(working_messages), "steps": steps}
+        result = {"text": self._get_last_assistant_text(working_messages), "steps": steps}
+        # 尝试从最后响应中提取 reasoning
+        if hasattr(response, "reasoning_content") and response.reasoning_content:
+            result["reasoning"] = response.reasoning_content
+        return result
 
     def _call_llm_with_tools(self, messages, system_prompt,
                               max_tokens, temperature, tool_defs):
@@ -190,6 +215,14 @@ class ToolCallingService:
             return response.get("tool_calls") or []
         return []
 
+    def _extract_reasoning(self, response) -> str | None:
+        """从 LLM 响应中提取推理过程（reasoning_content），如 DeepSeek-R1 等模型提供"""
+        if hasattr(response, "reasoning_content"):
+            return response.reasoning_content or None
+        if isinstance(response, dict):
+            return response.get("reasoning_content") or response.get("reasoning") or None
+        return None
+
     def _extract_text(self, response) -> str:
         """从 LLM 响应中提取文本内容"""
         if hasattr(response, "content"):
@@ -204,6 +237,9 @@ class ToolCallingService:
             result = tools.call(func_name, **args)
             if not isinstance(result, dict):
                 return {"ok": True, "result": str(result)}
+            # 确保所有 dict 结果都有 "ok" 键，避免步骤状态误判
+            if "ok" not in result:
+                result["ok"] = True
             return result
         except tools.ToolError as e:
             return {"ok": False, "error": str(e)}
@@ -221,8 +257,10 @@ class ToolCallingService:
 
 def _summarize_tool_result(tool_name: str, result: dict) -> str:
     """生成工具执行结果的简短摘要"""
-    if not result.get("ok", False):
-        return f"执行失败: {result.get('error', '未知错误')}"
+    if result.get("ok") is False:
+        # 支持 error 和 message 两种键名（ExtensionManager 等使用 message）
+        err_msg = result.get("error") or result.get("message") or "未知错误"
+        return f"执行失败: {err_msg}"
     if tool_name == "web_search":
         results_list = result.get("results", [])
         if results_list:

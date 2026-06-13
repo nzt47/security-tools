@@ -1880,11 +1880,11 @@ class DigitalLife:
                 return {"ok": False, "error": "请提供文件路径（path）"}
             return read_file(path, encoding=encoding, max_size_mb=max_size_mb, range=file_range)
 
-        @tools.register("write_file", "将内容写入本地文件（可创建新文件或覆盖已有文件）。路径可以是绝对路径或相对路径", schema={
+        @tools.register("write_file", "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数", schema={
             "type": "object",
             "properties": {
-                "path": {"type": "string", "description": "文件路径"},
-                "content": {"type": "string", "description": "写入的内容"},
+                "path": {"type": "string", "description": "文件路径（必填），如 /path/to/file.txt"},
+                "content": {"type": "string", "description": "写入的内容（必填）"},
                 "encoding": {"type": "string", "description": "文件编码，默认 utf-8"},
             },
             "required": ["path", "content"],
@@ -1893,8 +1893,10 @@ class DigitalLife:
             path = kwargs.get("path", "")
             content = kwargs.get("content", "")
             encoding = kwargs.get("encoding", "utf-8")
+            if not path and not content:
+                return {"ok": False, "error": "write_file 需要提供 path（文件路径）和 content（写入内容）两个参数。示例: write_file(path=\"/path/to/file.txt\", content=\"要写入的内容\")"}
             if not path:
-                return {"ok": False, "error": f"write_file 请提供文件路径（path）。收到的参数: {list(kwargs.keys())}"}
+                return {"ok": False, "error": f"write_file 缺少 path 参数。请提供文件路径，如: path=\"/path/to/file.txt\". 收到的参数名: {list(kwargs.keys())}"}
             if not content:
                 return {"ok": False, "error": "请提供文件内容（content）"}
             # 安全检查：通过 PermissionSystem 校验
