@@ -2267,38 +2267,36 @@ class DigitalLife:
             if not command:
                 return {"ok": False, "error": "请提供要执行的命令（command）"}
 
-            # 第 1 关：PermissionSystem 扫描命令内容
-            safety = getattr(self, '_permission', None)
-            if safety:
-                try:
-                    check = safety.check_text(command)
-                    if check.get("level") == "critical":
-                        matches = [m.get("description", "") for m in check.get("matches", [])]
+            # PermissionSystem 扫描命令内容
+            try:
+                check = self._permission.check_text(command)
+                if check.get("level") == "critical":
+                    matches = [m.get("description", "") for m in check.get("matches", [])]
+                    return {
+                        "ok": False,
+                        "error": f"危险命令被安全系统阻止: {matches}",
+                        "blocked": True,
+                        "level": "critical",
+                    }
+                elif check.get("level") == "warning":
+                    desc = "; ".join(m.get("description", "") for m in check.get("matches", []))
+                    perm = self._permission.check_action(
+                        f"shell_execute:warning:{desc[:100]}",
+                        f"执行可能危险的命令: {desc}",
+                    )
+                    if not perm.allowed:
                         return {
                             "ok": False,
-                            "error": f"危险命令被安全系统阻止: {matches}",
+                            "error": f"权限系统拒绝: {perm.reason}",
                             "blocked": True,
-                            "level": "critical",
+                            "level": "warning",
                         }
-                    elif check.get("level") == "warning":
-                        # warning 级别需权限确认
-                        desc = "; ".join(m.get("description", "") for m in check.get("matches", []))
-                        perm = self._permission.check_action(
-                            f"shell_execute:warning:{desc[:100]}",
-                            f"执行可能危险的命令: {desc}",
-                        )
-                        if not perm.allowed:
-                            return {
-                                "ok": False,
-                                "error": f"权限系统拒绝: {perm.reason}",
-                                "blocked": True,
-                                "level": "warning",
-                            }
-                except Exception as e:
-                    logger.warning("[shell_execute] 安全检查异常: %s", e)
+            except Exception as e:
+                logger.warning("[shell_execute] 安全检查异常: %s", e)
+                return {"ok": False, "error": "安全检查系统故障，拒绝执行", "blocked": True}
 
-            # 执行命令
-            return execute_shell(command, shell=shell, cwd=cwd, timeout=timeout)
+            # 执行命令（timeout=None 时使用默认 30 秒）
+            return execute_shell(command, shell=shell, cwd=cwd, timeout=timeout or 30)
 
         # ════════════════════════════════════════════════════════════════════════════════
         #  扩展管理工具（让云枢能自主安装 Skills / MCP / Channels / Plugins）
