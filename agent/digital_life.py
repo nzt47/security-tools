@@ -1894,7 +1894,7 @@ class DigitalLife:
             content = kwargs.get("content", "")
             encoding = kwargs.get("encoding", "utf-8")
             if not path:
-                return {"ok": False, "error": "请提供文件路径（path）"}
+                return {"ok": False, "error": f"write_file 请提供文件路径（path）。收到的参数: {list(kwargs.keys())}"}
             if not content:
                 return {"ok": False, "error": "请提供文件内容（content）"}
             # 安全检查：通过 PermissionSystem 校验
