@@ -22,10 +22,6 @@ function initNav() {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
       if (!view) return;
-      if (view === 'health') {
-        window.location.href = '/health';
-        return;
-      }
       if (view === 'settings') {
         showSettings();
         return;

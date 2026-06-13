@@ -578,7 +578,6 @@
         <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
         <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
         <button class="nav-btn" data-view="network"><span class="nav-icon">🌐</span><span class="nav-label">网络配置</span></button>
-        <button class="nav-btn" data-view="health"><span class="nav-icon">❤️</span><span class="nav-label">健康</span></button>
         <div class="nav-divider"></div>
         <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
         <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
@@ -806,6 +805,32 @@
               <div id="pano-tool-list" class="pano-text"></div>
               <div class="detail-section-title">🛡 权限检查记录</div>
               <div id="pano-perm-info" class="pano-text"></div>
+            </div>
+          </div>
+
+          <!-- 系统健康卡片 -->
+          <div class="pano-card phase-1" style="margin-bottom:10px">
+            <div class="pano-card-header"><span class="phase-badge">❤️</span><span class="pano-card-title">系统健康 · 心跳检测</span></div>
+            <div class="pano-card-body">
+              <div class="card-metrics" style="margin-bottom:8px">
+                <div class="card-metric"><div class="cm-val" id="pano-hb-status" style="color:#3fb950">-</div><div class="cm-label">系统状态</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-hb-total">-</div><div class="cm-label">检查次数</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-hb-cpu">-</div><div class="cm-label">CPU</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-hb-mem">-</div><div class="cm-label">内存</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-hb-llm">-</div><div class="cm-label">LLM</div></div>
+                <div class="card-metric"><div class="cm-val" id="pano-hb-scheduler">-</div><div class="cm-label">调度器</div></div>
+              </div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📈 资源趋势（最近 60 次）</div>
+              <div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px">
+                <canvas id="pano-hb-chart" style="width:100%;height:120px;display:block"></canvas>
+              </div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">⏱️ 计划任务</div>
+              <div id="pano-task-list" style="font-size:12px;color:#8b949e">加载中...</div>
+              <div class="pano-divider"></div>
+              <div class="detail-section-title">📋 执行历史</div>
+              <div id="pano-task-history" style="font-size:12px;color:#8b949e">加载中...</div>
             </div>
           </div>
 

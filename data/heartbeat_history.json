@@ -1,0 +1,177 @@
+{
+  "latest": {
+    "timestamp": "2026-06-13T20:24:26.785045",
+    "status": "healthy",
+    "checks": {
+      "system": {
+        "status": "ok",
+        "cpu": 6.2,
+        "memory": 56.8
+      },
+      "llm": {
+        "status": "ok",
+        "provider": "deepseek",
+        "model": "deepseek-v4-flash",
+        "latency_ms": 0
+      },
+      "memory": {
+        "status": "ok",
+        "message": "MemoryManager 正常运行"
+      },
+      "scheduler": {
+        "status": "ok",
+        "running": true,
+        "tasks": 3
+      },
+      "threads": {
+        "status": "ok",
+        "total": 6,
+        "alive": [
+          "task-scheduler"
+        ]
+      }
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-06-13T20:01:20.198609",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 60.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:01:20.605693",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 60.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:01:34.813853",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 61.7,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:01:51.168841",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:02:04.813361",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:02:21.156293",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.2,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:02:34.812244",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 61.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:02:51.171593",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 61.7,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:03:04.810157",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 61.5,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:03:21.170669",
+      "status": "healthy",
+      "cpu": 13.7,
+      "memory": 62.7,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:03:26.617721",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:03:51.167893",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.1,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:03:57.169110",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.1,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:04:21.162444",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 61.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:16:52.088614",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 57.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:16:53.166638",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 58.3,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:22:54.698843",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 56.6,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:23:24.681750",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 56.1,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:23:55.162659",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 55.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-13T20:24:26.785045",
+      "status": "healthy",
+      "cpu": 6.2,
+      "memory": 56.8,
+      "llm_latency_ms": 0
+    }
+  ]
+}
