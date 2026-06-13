@@ -2907,9 +2907,25 @@ async function stopChat() {
   }
 }
 
-// 绑定发送按钮点击事件（不用 HTML onclick 属性，避免缓存旧函数）
+// 页面加载完成后绑定事件
 document.addEventListener('DOMContentLoaded', function() {
+  // 发送按钮
   document.getElementById('send-btn').onclick = sendMessage;
+  // 复制按钮（事件委托，避免内联 onclick 的转义问题）
+  document.getElementById('chat-messages').addEventListener('click', function(e) {
+    const btn = e.target.closest('.msg-copy');
+    if (!btn) return;
+    const text = btn.dataset.text;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅';
+        setTimeout(() => { btn.textContent = '📋'; }, 1500);
+      }).catch(() => fallbackCopy(text, btn));
+    } else {
+      fallbackCopy(text, btn);
+    }
+  });
 });
 
 function addMessage(text, role, modeLabel) {
@@ -2931,9 +2947,12 @@ function addMessage(text, role, modeLabel) {
   text = text + `<div class="meta" data-has-mode="${hasMode}" style="display:${metaDisplay}">`
       + modeText
       + `<span class="msg-time">${timeStr}</span>`
-      + `<span class="msg-copy" onclick="copyText(this, '${app.escapeHtml(plainText.replace(/'/g, "\\'"))}')" title="复制">📋</span></div>`;
+      + `<span class="msg-copy" title="复制">📋</span></div>`;
 
   div.innerHTML = text;
+  // 把纯文本存到 data-text 属性中，供复制按钮使用
+  const copyBtn = div.querySelector('.msg-copy');
+  if (copyBtn) copyBtn.dataset.text = plainText;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
