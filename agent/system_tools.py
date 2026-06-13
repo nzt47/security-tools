@@ -766,7 +766,6 @@ def run_sandbox(code, timeout_sec=5):
     import sys
     import threading
     import io
-    import re
 
     result = {"stdout": "", "stderr": "", "error": None, "timed_out": False}
 
@@ -1044,7 +1043,7 @@ _UNIX_SHELL_PATTERNS = [
     r"\$\(.*\)",      # $() 命令替换
     r"grep\s+",       # grep
     r"ls\s+-[lahr]",  # ls -l/a/h/r
-    r"ps\s+(aux|ef)", # ps aux/ef
+    r"ps\s+\-?(aux|ef)", # ps aux/ef/-ef
     r"chmod\s+",      # chmod
     r"chown\s+",      # chown
     r"rm\s+-[rf]",    # rm -r/-f
@@ -1122,17 +1121,21 @@ def _truncate_output(text: str, max_bytes: int = 102400) -> str:
     if len(encoded) <= max_bytes:
         return text
     truncated = encoded[:max_bytes].decode("utf-8", errors="replace")
-    return truncated + "\n...（输出已截断，共 %d 字节）" % len(encoded)
+    return truncated + f"\n...（输出已截断，共 {len(encoded)} 字节）"
 
 
 def execute_shell(command: str, shell: str = "auto", cwd: str = None, timeout: int = 30) -> dict:
     """在 shell 中执行命令并返回结果
 
+    注意：此函数本身不进行命令安全检查（如危险命令过滤）。
+    调用方（如 digital_life.py 中的工具注册层）应负责使用 SafetyGuard
+    和 PermissionSystem 执行安全扫描。
+
     Args:
         command: 要执行的命令字符串
         shell: "auto" / "bash" / "cmd" / "powershell"
         cwd: 工作目录，默认使用当前目录
-        timeout: 超时秒数（1-120），默认 30
+        timeout: 超时秒数，会被限制在 1-120 范围内，默认 30
 
     Returns:
         dict: {ok: bool, stdout: str, stderr: str, exit_code: int, shell: str, cwd: str}
