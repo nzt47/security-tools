@@ -188,6 +188,11 @@ class ToolCallingService:
             }
             if tool_defs:
                 kwargs["tools"] = tool_defs
+                # 记录 write_file 的工具定义，确认 required 字段是否正确传递
+                for td in tool_defs:
+                    if td.get("function", {}).get("name") == "write_file":
+                        logger.info("[ToolCalling] write_file 工具定义: %s",
+                                    td.get("function", {}).get("parameters", {}))
 
             response = client.chat.completions.create(**kwargs)
             return response.choices[0].message
