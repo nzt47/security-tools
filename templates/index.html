@@ -162,6 +162,9 @@
 .msg.user{background:#1f6feb30;border:1px solid #1f6feb50;align-self:flex-end;color:#c9d1d9}
 .msg.Yunshu{background:#161b22;border:1px solid #30363d;align-self:flex-start;color:#c9d1d9}
 .msg .meta{font-size:10px;color:#8b949e;margin-top:4px;display:flex;gap:8px}
+.msg-copy{cursor:pointer;opacity:0.4;transition:opacity 0.2s;user-select:none}
+.msg-copy:hover{opacity:1}
+.msg:hover .msg-copy{opacity:0.7}
 .msg .reason{font-size:11px;color:#f85149;margin-top:6px;padding:6px 8px;background:#f8514915;border:1px solid #f8514940;border-radius:4px}
 #chat-input-area{display:flex;gap:8px;padding:12px 16px;background:#161b22;border-top:1px solid #30363d;flex-shrink:0}
 #chat-input{flex:1;padding:10px 14px;border-radius:20px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px}
@@ -2918,18 +2921,50 @@ function addMessage(text, role, modeLabel) {
   const now = new Date();
   const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
-  // 始终生成 .meta（含模式标签+时间），通过 data-has-mode 标记是否含有模式文字
+  // 保存纯文本用于复制（去掉 HTML 标签）
+  const plainText = text.replace(/<[^>]*>/g, '');
+
+  // 始终生成 .meta（含模式标签+时间+复制按钮），通过 data-has-mode 标记是否含有模式文字
   const hasMode = !!modeLabel;
   const showNow = getDisplayPref('thinking');
   const metaDisplay = (hasMode && !showNow) ? 'none' : '';
   const modeText = hasMode ? `<span>模式: ${modeLabel}</span>` : '';
   text = text + `<div class="meta" data-has-mode="${hasMode}" style="display:${metaDisplay}">`
       + modeText
-      + `<span class="msg-time">${timeStr}</span></div>`;
+      + `<span class="msg-time">${timeStr}</span>`
+      + `<span class="msg-copy" onclick="copyText(this, '${app.escapeHtml(plainText.replace(/'/g, "\\'"))}')" title="复制">📋</span></div>`;
 
   div.innerHTML = text;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
+}
+
+function copyText(el, text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = '✅';
+      setTimeout(() => { el.textContent = '📋'; }, 1500);
+    }).catch(() => {
+      fallbackCopy(text, el);
+    });
+  } else {
+    fallbackCopy(text, el);
+  }
+}
+
+function fallbackCopy(text, el) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    el.textContent = '✅';
+    setTimeout(() => { el.textContent = '📋'; }, 1500);
+  } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 function addToolSteps(steps, visible) {
