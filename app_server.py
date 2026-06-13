@@ -40,6 +40,10 @@ except ImportError:
 
 # 安全守护 + 系统工具
 from agent.safety_guard import SafetyGuard, register_alert_callback
+from agent.task_scheduler import (
+    get_scheduler,
+    perform_heartbeat_check,
+)
 from agent.tools import list_tools
 from agent.system_tools import (
     init_workspace, list_workspace, write_workspace, delete_workspace,
@@ -2387,32 +2391,54 @@ def api_window_clear():
 @app.route("/api/heartbeat")
 @log_request(show_response=False)
 def api_heartbeat():
-    """心跳检测接口 — CPU/电池/温度"""
+    """心跳检测接口 — 全维度健康检查"""
     try:
-        readings = _Yunshu.body.collect_quick()
-        result = {
-            "timestamp": datetime.datetime.now().isoformat(),
-            "status": "ok",
-        }
-        for r in readings:
-            d = r.to_dict()
-            name = d.get("sensor_name", "")
-            if name == "cpu_usage":
-                result["cpu_percent"] = d.get("value")
-                result["cpu_severity"] = d.get("severity", "normal")
-            elif name == "battery":
-                result["battery_percent"] = d.get("value")
-                result["battery_severity"] = d.get("severity", "normal")
-            elif "temp" in name:
-                result["temperature"] = d.get("value")
-                result["temperature_unit"] = d.get("unit", "°C")
-                result["temp_severity"] = d.get("severity", "normal")
-            elif name == "memory_usage":
-                result["memory_percent"] = d.get("value")
-                result["memory_severity"] = d.get("severity", "normal")
-        return jsonify(result)
+        # 执行完整心跳检查
+        hb_result = perform_heartbeat_check(_Yunshu)
+        # 同步保存到调度器
+        scheduler = get_scheduler()
+        scheduler._save_heartbeat(hb_result)
+        return jsonify(hb_result)
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/api/heartbeat/history")
+@log_request(show_response=False)
+def api_heartbeat_history():
+    """获取心跳历史"""
+    limit = request.args.get("limit", 100, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    scheduler = get_scheduler()
+    data = scheduler.get_heartbeat_status()
+    history = data.get("history", [])
+    total = len(history)
+    history.reverse()
+    paged = history[offset:offset + limit]
+    return jsonify({
+        "history": paged,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    })
+
+
+@app.route("/api/heartbeat/status")
+@log_request(show_response=False)
+def api_heartbeat_status():
+    """获取心跳概览"""
+    scheduler = get_scheduler()
+    data = scheduler.get_heartbeat_status()
+    latest = data.get("latest", {})
+    history = data.get("history", [])
+    healthy_count = sum(1 for h in history if h.get("status") == "healthy")
+    return jsonify({
+        "status": latest.get("status", "unknown"),
+        "timestamp": latest.get("timestamp"),
+        "total_checks": len(history),
+        "healthy_checks": healthy_count,
+        "latest": latest,
+    })
 
 
 # ════════════════════════════════════════════════════════════
@@ -3093,6 +3119,34 @@ def api_scheduler_toggle():
     return jsonify(toggle_scheduled_task(task_id, enabled))
 
 
+@app.route("/api/scheduler/execute-now", methods=["POST"])
+@require_token
+@log_request()
+def api_scheduler_execute_now():
+    """立即执行指定任务"""
+    data = request.get_json() or {}
+    task_id = data.get("id", "")
+    if not task_id:
+        return jsonify({"ok": False, "error": "缺少任务ID"}), 400
+    scheduler = get_scheduler()
+    result = scheduler.execute_now(task_id)
+    if result is None:
+        return jsonify({"ok": False, "error": "任务不存在"}), 404
+    return jsonify({"ok": True, "result": result})
+
+
+@app.route("/api/scheduler/history")
+@log_request(show_response=False)
+def api_scheduler_history():
+    """获取任务执行历史"""
+    limit = request.args.get("limit", 100, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    task_type = request.args.get("type", "", type=str)
+    scheduler = get_scheduler()
+    history = scheduler.get_history(limit=limit, offset=offset, task_type=task_type)
+    return jsonify({"history": history, "limit": limit, "offset": offset})
+
+
 # ════════════════════════════════════════════════════════════
 #  搜索引擎性能监控接口
 # ════════════════════════════════════════════════════════════
@@ -3595,6 +3649,13 @@ def api_test_division():
 # 程序退出时停止窗口传感器
 import atexit
 
+
+@app.route("/health")
+def health_page():
+    """健康看板页面"""
+    return render_template("health.html")
+
+
 @atexit.register
 def _cleanup_window_sensor():
     global _window_sensor
@@ -3639,7 +3700,28 @@ if __name__ == "__main__":
             print("✅ 系统资源监控线程已启动")
         
         start_metrics_thread()
-    
+
+    # 启动增强型定时任务调度器
+    try:
+        scheduler = get_scheduler()
+        # 从 JSON 加载 API 创建的任务
+        loaded = scheduler.load_from_json()
+        if loaded:
+            print(f"✅ 已加载 {loaded} 个预设定时任务")
+        # 为调度器注入心跳函数和 Yunshu 引用
+        scheduler._heartbeat_func = perform_heartbeat_check
+        scheduler._yunshu_ref = _Yunshu
+        # 注册内置 heartbeat 任务
+        scheduler.add_interval_task(
+            name="系统心跳",
+            func=lambda: None,  # 占位，实际由 _heartbeat_func 处理
+            interval_seconds=60,
+        )
+        scheduler.start_daemon(check_interval=10)
+        print("✅ 定时任务调度器已启动 (daemon)")
+    except Exception as e:
+        print(f"⚠️ 定时任务调度器启动失败: {e}")
+
     # 启动搜索引擎性能监控（可选，默认不启动）
     try:
         # 从配置文件读取是否启动性能监控
