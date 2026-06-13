@@ -3710,6 +3710,28 @@ if __name__ == "__main__":
         
         start_metrics_thread()
 
+    # 启动前先清理 5678 端口的旧进程
+    try:
+        import subprocess, signal
+        result = subprocess.run(
+            ['netstat', '-ano'], capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            if ':5678' in line and 'LISTENING' in line:
+                parts = line.strip().split()
+                if parts:
+                    pid = parts[-1]
+                    try:
+                        if sys.platform == 'win32':
+                            subprocess.run(['taskkill', '/F', '/PID', pid],
+                                         capture_output=True, timeout=3)
+                        else:
+                            os.kill(int(pid), signal.SIGTERM)
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
     # 启动增强型定时任务调度器
     try:
         scheduler = get_scheduler()
