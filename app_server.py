@@ -3658,13 +3658,6 @@ def api_test_division():
 # 程序退出时停止窗口传感器
 import atexit
 
-
-@app.route("/health")
-def health_page():
-    """健康看板页面"""
-    return render_template("health.html")
-
-
 @atexit.register
 def _cleanup_window_sensor():
     global _window_sensor
