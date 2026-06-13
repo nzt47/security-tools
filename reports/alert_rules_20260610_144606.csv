@@ -1,0 +1,7 @@
+﻿告警名称,严重级别,触发条件,触发次数,最后触发时间,恢复时间,状态
+SafeFileReaderConsecutiveParseFailures,critical,increase(errors_total{json_parse_failed}[5m]) > 10,1,2026-06-10 00:50:00,2026-06-10 01:00:00,已恢复
+SafeFileReaderHighInvalidRatio,warning,invalid_ratio > 0.1,1,2026-06-10 00:50:00,2026-06-10 01:00:00,已恢复
+SafeFileReaderHistoryLoadEmpty,info,loaded_history_count == 0,2,2026-06-10 00:50:00,2026-06-10 01:00:00,已恢复
+SafeFileReaderEncodingFallback,info,increase(encoding_fallbacks_total[5m]) > 0,1,2026-06-10 01:00:00,-,活跃
+SafeFileReaderFileNotFound,warning,increase(errors_total{file_not_found}[5m]) > 0,0,-,-,未触发
+SafeFileReaderSlowRead,warning,"histogram_quantile(0.95, rate(read_duration[5m])) > 5",0,-,-,未触发

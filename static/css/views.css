@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════
-   灵犀 · 管理视图通用样式
+   云枢 · 管理视图通用样式
    ════════════════════════════════════════ */
 
 /* 所有视图默认隐藏 */
@@ -147,3 +147,187 @@
 .badge.on { background: var(--success); color: #fff; }
 .badge.off { background: var(--danger); color: #fff; }
 .badge.info { background: var(--accent); color: #fff; }
+
+/* ── 技能分类区域 ── */
+.skills-section {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-color, #30363d);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.skills-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary, #0d1117);
+  border-bottom: 1px solid var(--border-color, #30363d);
+}
+.skills-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #c9d1d9);
+}
+.skills-section-count {
+  font-size: 11px;
+  color: var(--text-muted, #484f58);
+  background: var(--bg-primary, #0d1117);
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #30363d);
+}
+.skills-toggle-header {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.15s;
+}
+.skills-toggle-header:hover {
+  background: var(--bg-hover, #1c2128);
+}
+.skills-toggle-icon {
+  font-size: 10px;
+  color: var(--text-muted, #484f58);
+  width: 14px;
+  flex-shrink: 0;
+}
+.skills-body {
+  transition: all 0.2s ease;
+}
+
+/* ── 历史会话 · 对话风格展示 ── */
+.history-chat-group {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #21262d);
+}
+.history-chat-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.hc-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+.hc-row.user {
+  flex-direction: row;
+}
+.hc-row.yunshu {
+  flex-direction: row;
+}
+
+.hc-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--bg-tertiary, #0d1117);
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #30363d);
+  margin-top: 2px;
+}
+
+.hc-bubble {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-primary, #c9d1d9);
+}
+.hc-bubble.user {
+  background: #1f6feb15;
+  border: 1px solid #1f6feb30;
+}
+.hc-bubble.yunshu {
+  background: var(--bg-primary, #0d1117);
+  border: 1px solid var(--border-color, #30363d);
+}
+
+.hc-bubble-text {
+  margin-bottom: 4px;
+}
+
+.hc-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-muted, #484f58);
+}
+.hc-time {
+  flex-shrink: 0;
+}
+.hc-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.hc-row:hover .hc-actions {
+  opacity: 1;
+}
+
+.hc-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.1s;
+  line-height: 1;
+}
+.hc-btn:hover {
+  background: var(--bg-hover, #1c2128);
+}
+.hc-btn-del:hover {
+  background: #f8514920;
+}
+
+/* 详情弹窗 */
+.hc-detail-modal {
+  max-width: 560px !important;
+}
+.hc-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color, #30363d);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #c9d1d9);
+}
+.hc-detail-header .modal-close {
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-muted, #8b949e);
+  background: none;
+  border: none;
+}
+.hc-detail-header .modal-close:hover {
+  color: var(--text-primary, #c9d1d9);
+}
+.hc-detail-body {
+  padding: 16px 18px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.hc-detail-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  border-top: 1px solid var(--border-color, #30363d);
+}

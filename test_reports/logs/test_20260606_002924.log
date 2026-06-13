@@ -1,0 +1,194 @@
+2026-06-06 00:29:25,610 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 00:29:25,635 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 00:29:25,642 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 00:29:25,648 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 00:29:25,684 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 00:29:25,690 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 00:29:25,692 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 00:29:25,694 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 00:29:25,700 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 00:29:25,729 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:29:25,730 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 00:29:25,732 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 00:29:25,736 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 00:29:25,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-06 00:29:25,985 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 00:29:25,986 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:29:25,994 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:29:25,994 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 00:29:25,995 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 00:29:25,995 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 00:29:25,995 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 00:29:25,995 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 00:29:25,996 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 00:29:25,996 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-06 00:29:25,996 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 00:29:25,996 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:29:25,997 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-06 00:29:25,997 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-06 00:29:25,997 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 00:29:26,290 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,296 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,308 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 00:29:26,308 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,325 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,332 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,341 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,347 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,356 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,363 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,371 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,378 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,379 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Unknown error
+2026-06-06 00:29:26,389 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,394 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,400 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,408 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 00:29:26,409 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,417 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,424 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,432 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,438 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,443 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,452 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,462 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,469 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,485 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,489 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,495 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,501 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,508 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,515 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:29:26,521 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,526 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,533 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,539 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,544 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,550 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,555 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,560 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,568 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,577 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,582 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,588 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,593 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,601 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,607 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,612 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,618 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,647 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,653 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,659 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,667 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,673 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,679 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,729 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,734 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,740 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:29:26,765 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,771 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-06 00:29:26,776 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,781 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:16:40,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,791 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,796 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,802 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,808 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,823 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,828 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,834 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,840 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,846 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,851 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,856 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,863 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,867 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,873 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,878 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,885 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:25:00,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,897 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,903 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,914 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,920 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,924 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:29:26,930 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:26,935 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=2, UA=2)
+2026-06-06 00:29:26,940 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:26,944 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=0.5s, 代理=0, UA=9)
+2026-06-06 00:29:27,441 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,566 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,572 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,578 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,587 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,592 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-06 00:29:27,599 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,604 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-06 00:29:27,610 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,617 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,623 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,624 [ WARNING] agent.web.crawler_control: 域名 example.com 被限速(429)，延迟调整为 2.0s
+2026-06-06 00:29:27,629 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,636 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,642 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,647 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,652 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,657 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,662 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-06 00:29:27,666 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=1)
+2026-06-06 00:29:27,671 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=3)
+2026-06-06 00:29:27,676 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,676 [    INFO] agent.web.crawler_control: 已加载 2 个代理
+2026-06-06 00:29:27,682 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,688 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-06 00:29:27,693 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-06 00:29:27,698 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-06 00:29:27,702 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-06 00:29:27,707 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-06 00:29:27,712 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,718 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,723 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,728 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,735 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,740 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,745 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,750 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-06 00:29:27,755 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,760 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-06 00:29:27,765 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-06 00:29:27,770 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-06 00:29:27,774 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,779 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,784 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,789 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=3.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,794 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,799 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:27,805 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,549 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,551 [   ERROR] agent.web.crawler_control: 加载代理文件失败: [Errno 2] No such file or directory: 'nonexistent_file.txt'
+2026-06-06 00:29:28,564 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,566 [    INFO] agent.web.crawler_control: 已加载 3 个代理
+2026-06-06 00:29:28,574 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,581 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,588 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,595 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=0.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,601 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,606 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,613 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,620 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-06 00:29:28,625 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)

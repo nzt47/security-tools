@@ -1,8 +1,8 @@
-# 灵犀界面布局重构实现计划
+# 云枢界面布局重构实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将灵犀 Web 界面从"侧边栏+堆叠内容"重构为"图标栏+主内容+状态面板"的三列仪表盘布局，保留所有现有功能。
+**Goal:** 将云枢 Web 界面从"侧边栏+堆叠内容"重构为"图标栏+主内容+状态面板"的三列仪表盘布局，保留所有现有功能。
 
 **Architecture:** CSS Grid 三列布局（48px 图标栏 + 1fr 主内容 + 170px 状态面板），全景视图时状态面板隐藏。管理模块从固定侧边栏改为图标栏浮层交互。新增 layout.css 和 responsive.css，修改 sidebar.css、panorama.css、index.html、sidebar.js。
 
@@ -40,7 +40,7 @@ Untouched:
 
 ```css
 /* ════════════════════════════════════════
-   灵犀 · 全局布局 — CSS Grid 三列结构
+   云枢 · 全局布局 — CSS Grid 三列结构
    ════════════════════════════════════════ */
 
 /* 根变量 */
@@ -271,7 +271,7 @@ git commit -m "feat: add layout.css with CSS Grid three-column structure"
 
 ```css
 /* ════════════════════════════════════════
-   灵犀 · Agent 管理 — 图标栏 + 浮层面板 + 扩展侧边栏
+   云枢 · Agent 管理 — 图标栏 + 浮层面板 + 扩展侧边栏
    ════════════════════════════════════════ */
 
 :root {
@@ -806,7 +806,7 @@ git commit -m "feat: add dashboard grid and detail view styles to panorama.css"
 
 ```css
 /* ════════════════════════════════════════
-   灵犀 · 响应式布局
+   云枢 · 响应式布局
    ════════════════════════════════════════ */
 
 /* 768-900px: 隐藏右侧状态面板 */
@@ -911,7 +911,7 @@ git commit -m "feat: add responsive.css with breakpoints at 900/768/600px"
     <div style="display:flex;align-items:center;gap:10px">
       <button class="mobile-menu-btn" onclick="toggleSidebar()" title="菜单"
               style="display:none;width:28px;height:28px;border:none;background:transparent;color:#8b949e;font-size:18px;cursor:pointer;border-radius:4px">☰</button>
-      <h1 style="font-size:18px;color:#58a6ff;margin:0">灵犀 · 数字生命体</h1>
+      <h1 style="font-size:18px;color:#58a6ff;margin:0">云枢 · 数字生命体</h1>
       <span class="sub" style="font-size:12px;color:#8b949e" id="status-sub">感知-认知-行动闭环</span>
     </div>
     <div class="actions" style="display:flex;gap:8px">
@@ -990,7 +990,7 @@ git commit -m "feat: add responsive.css with breakpoints at 900/768/600px"
       <div id="chat-panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
         <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
         <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:#161b22;border-top:1px solid #30363d;flex-shrink:0">
-          <textarea id="chat-input" rows="1" placeholder="和灵犀说话..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+          <textarea id="chat-input" rows="1" placeholder="和云枢说话..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
                     style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
           <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap">发送</button>
         </div>
@@ -1246,7 +1246,7 @@ git commit -m "feat: add responsive.css with breakpoints at 900/768/600px"
 <div id="settings-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSettings()">
   <div class="modal" style="background:#161b22;border:1px solid #30363d;border-radius:12px;width:420px;max-width:90vw;box-shadow:0 8px 32px #00000080">
     <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #30363d">
-      <h3 style="margin:0;font-size:16px;color:#c9d1d9">⚙ 灵犀设置</h3>
+      <h3 style="margin:0;font-size:16px;color:#c9d1d9">⚙ 云枢设置</h3>
       <span class="modal-close" onclick="hideSettings()" style="font-size:24px;cursor:pointer;color:#8b949e;line-height:1">&times;</span>
     </div>
     <div class="modal-body" style="padding:20px">
@@ -1338,7 +1338,7 @@ git commit -m "refactor: restructure HTML DOM for three-column layout with icon 
 
 ```javascript
 // ════════════════════════════════════════════════════════════
-// 灵犀 · Agent 管理 — 图标栏 + 浮层面板 + 状态面板
+// 云枢 · Agent 管理 — 图标栏 + 浮层面板 + 状态面板
 // ════════════════════════════════════════════════════════════
 
 let _activeFloatingPanel = null;
@@ -1727,7 +1727,7 @@ git commit -m "refactor: rewrite sidebar.js for floating panels + status panel +
 
 ```javascript
 // ════════════════════════════════════════════════════════════
-// 灵犀 · 系统全景仪表盘
+// 云枢 · 系统全景仪表盘
 // ════════════════════════════════════════════════════════════
 
 // ── 左侧导航切换 ──

@@ -1,0 +1,130 @@
+<h2>方案 C 详细设计 — 整体布局架构</h2>
+<p class="subtitle">云枢 · 数字生命体 界面重构方案</p>
+
+<div class="section">
+  <h3>整体布局结构</h3>
+  <div class="mockup" style="max-width: 800px; margin: 0 auto;">
+    <div class="mockup-header">页面骨架 — CSS Grid 布局</div>
+    <div class="mockup-body" style="padding:0;background:#0d1117;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="background:#161b22;padding:8px 16px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:16px;color:#8b949e;cursor:pointer">☰</span>
+          <span style="color:#58a6ff;font-weight:bold;font-size:13px">云枢 · 数字生命体</span>
+          <span style="color:#8b949e;font-size:9px">感知-认知-行动闭环</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span style="border:1px solid #30363d;border-radius:10px;padding:3px 10px;font-size:10px;color:#c9d1d9;cursor:pointer">⚙ 设置</span>
+          <span style="border:1px solid #30363d;border-radius:10px;padding:3px 10px;font-size:10px;color:#c9d1d9;cursor:pointer">⟳ 刷新</span>
+          <span style="border:1px solid #30363d;border-radius:10px;padding:3px 10px;font-size:10px;color:#c9d1d9;cursor:pointer">清空对话</span>
+        </div>
+      </div>
+
+      <div style="background:#0d1117;padding:4px 12px;border-bottom:1px solid #30363d;display:flex;gap:6px;align-items:center">
+        <span style="color:#58a6ff;border-bottom:2px solid #58a6ff;padding-bottom:3px;font-size:11px">💬 对话</span>
+        <span style="color:#8b949e;font-size:11px;cursor:pointer">🗺 全景</span>
+        <div style="margin-left:auto;display:flex;gap:10px;font-size:9px;color:#8b949e">
+          <span>CPU <b style="color:#3fb950">42%</b></span>
+          <span style="color:#30363d">|</span>
+          <span>内存 <b style="color:#3fb950">58%</b></span>
+          <span style="color:#30363d">|</span>
+          <span>磁盘 <b style="color:#d29922">72%</b></span>
+          <span style="color:#30363d">|</span>
+          <span>电池 <b style="color:#3fb950">85%</b></span>
+          <span style="color:#30363d">|</span>
+          <span>📡 <b style="color:#c9d1d9">3/5</b></span>
+        </div>
+      </div>
+
+      <div style="display:flex;height:360px">
+        <!-- 图标栏 48px -->
+        <div style="width:48px;background:#161b22;border-right:1px solid #30363d;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:12px">
+          <div style="position:relative">
+            <span style="font-size:16px;cursor:pointer">🕐</span>
+            <div style="position:absolute;left:44px;top:-8px;background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:10px;white-space:nowrap;display:none;color:#c9d1d9;z-index:10">历史会话</div>
+          </div>
+          <span style="font-size:16px;cursor:pointer">🔧</span>
+          <span style="font-size:16px;cursor:pointer">🛠</span>
+          <span style="font-size:16px;cursor:pointer">🎭</span>
+          <span style="font-size:16px;cursor:pointer">🧠</span>
+        </div>
+
+        <!-- 主内容 -->
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div style="display:flex;flex:1">
+            <!-- 聊天区 -->
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:6px">
+                <div style="align-self:flex-end;background:#1f6feb30;border:1px solid #1f6feb50;border-radius:10px;padding:6px 10px;max-width:70%;font-size:10px">你好云枢，今天怎么样？</div>
+                <div style="align-self:flex-start;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:6px 10px;max-width:70%;font-size:10px">你好！我是来自网天的云枢，所有系统运行正常。CPU 42%，内存 58%，磁盘空间充足。有什么我可以帮你的？</div>
+                <div style="font-size:9px;color:#8b949e;margin-top:2px">模式: 正常 | 认知引擎: 活跃</div>
+              </div>
+              <div style="background:#161b22;padding:8px 12px;border-top:1px solid #30363d;display:flex;gap:8px">
+                <div style="flex:1;background:#0d1117;border:1px solid #30363d;border-radius:16px;padding:6px 12px;font-size:10px;color:#8b949e">和云枢说话... (Enter 发送)</div>
+                <div style="background:#238636;color:#fff;padding:6px 16px;border-radius:16px;font-size:10px;cursor:pointer">发送</div>
+              </div>
+            </div>
+
+            <!-- 右侧状态面板 170px -->
+            <div style="width:170px;background:#161b22;border-left:1px solid #30363d;padding:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden">
+              <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:2px">📊 系统状态</div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">CPU</span><span style="color:#3fb950;font-weight:bold">42%</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">内存</span><span style="color:#3fb950;font-weight:bold">58%</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">磁盘</span><span style="color:#d29922;font-weight:bold">72%</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">电池</span><span style="color:#3fb950;font-weight:bold">85%</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">网络</span><span style="color:#3fb950;font-weight:bold">正常</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">传感器</span><span style="color:#c9d1d9;font-weight:bold">3/5</span>
+              </div>
+              <div style="background:#0d1117;border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;font-size:9px">
+                <span style="color:#8b949e">模式</span><span style="background:#3fb95020;color:#3fb950;padding:0 5px;border-radius:6px">正常</span>
+              </div>
+              <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-top:6px;margin-bottom:2px">📋 事件流</div>
+              <div style="font-size:8px;color:#8b949e;line-height:1.5;overflow-y:auto;flex:1">
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">🎯 模式: 正常</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">🧠 LLM 已连接</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">⚠ 磁盘使用 72%</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">💬 用户发送消息</div>
+                <div style="padding:2px 0">🤖 云枢响应</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键设计决策</h3>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-body">
+        <h3>图标栏 (48px)</h3>
+        <p>左侧 5 个管理模块收缩为纯图标。悬停时显示 tooltip 标签。点击图标弹出浮层面板（而非展开侧边栏），浮层覆盖在主内容上方，操作完毕自动消失。保留 ☰ 按钮可展开完整侧边栏（280px）。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>健康指标移到标签栏右侧</h3>
+        <p>原本占据约 80px 高度的独立健康指标栏，精简为一行紧凑数据嵌入标签栏最右侧。释放约 60px 垂直空间给聊天消息区。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>右侧状态面板 (170px)</h3>
+        <p>对话视图专属，常驻显示系统健康指标 + 事件流。不随标签切换隐藏。在全景视图中，这部分空间归还给全景内容（全景有自己的信息展示）。</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_629_20260605131209",
+  "content": "云枢已觉醒！会话开始：20260605_131208",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "system",
+    "event": "system_start"
+  },
+  "created_at": "2026-06-05T13:12:09.146249",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "system"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

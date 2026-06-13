@@ -1,0 +1,152 @@
+<h2>交互与细节设计</h2>
+<p class="subtitle">侧边栏行为、状态面板、响应式适配</p>
+
+<div class="section">
+  <h3>1. 图标栏交互行为</h3>
+  <div class="mockup" style="max-width: 700px; margin: 0 auto 16px;">
+    <div class="mockup-header">图标栏三种状态：折叠 → 悬停tooltip → 点击弹出浮层面板</div>
+    <div class="mockup-body" style="padding:0;background:#0d1117;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="display:flex;height:240px">
+        <div style="width:48px;background:#161b22;border-right:1px solid #30363d;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:12px">
+          <span style="font-size:16px;cursor:pointer;position:relative">
+            🕐
+            <span style="position:absolute;left:36px;top:-2px;background:#21262d;color:#c9d1d9;padding:3px 8px;border-radius:4px;font-size:9px;white-space:nowrap;z-index:5;border:1px solid #30363d">历史会话</span>
+          </span>
+          <span style="font-size:16px;cursor:pointer">🔧</span>
+          <span style="font-size:16px;cursor:pointer">🛠</span>
+          <span style="font-size:16px;cursor:pointer">🎭</span>
+          <span style="font-size:16px;cursor:pointer">🧠</span>
+        </div>
+        <div style="flex:1;position:relative;background:#0d1117;overflow:hidden">
+          <!-- 浮层面板 -->
+          <div style="position:absolute;left:8px;top:8px;width:240px;background:#161b22;border:1px solid #30363d;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);z-index:10">
+            <div style="padding:8px 12px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;font-weight:bold;color:#c9d1d9">🕐 历史会话</span>
+              <span style="font-size:14px;color:#8b949e;cursor:pointer">&times;</span>
+            </div>
+            <div style="padding:8px 12px">
+              <div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;margin-bottom:6px">
+                <input style="background:none;border:none;color:#c9d1d9;font-size:10px;width:100%;outline:none" placeholder="🔍 搜索历史...">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto">
+                <div style="background:#0d1117;border-radius:4px;padding:5px 8px;cursor:pointer">
+                  <div style="font-size:10px;color:#c9d1d9">用户: 你好云枢</div>
+                  <div style="font-size:8px;color:#484f58;margin-top:1px">2026-05-29 10:25 · 正常模式</div>
+                </div>
+                <div style="background:#0d1117;border-radius:4px;padding:5px 8px;cursor:pointer">
+                  <div style="font-size:10px;color:#c9d1d9">用户: 帮我查看系统状态</div>
+                  <div style="font-size:8px;color:#484f58;margin-top:1px">2026-05-29 10:20 · 正常模式</div>
+                </div>
+                <div style="background:#0d1117;border-radius:4px;padding:5px 8px;cursor:pointer">
+                  <div style="font-size:10px;color:#c9d1d9">用户: 今天天气怎么样</div>
+                  <div style="font-size:8px;color:#484f58;margin-top:1px">2026-05-29 10:15 · 省电模式</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;bottom:8px;left:8px;font-size:9px;color:#8b949e">
+            ← 点击图标弹出浮层面板，点击外部或 × 关闭
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-body">
+        <h3>浮层面板规则</h3>
+        <ul style="font-size:12px;color:#8b949e;line-height:1.6">
+          <li>点击图标 → 在图标右侧弹出 240px 浮层面板</li>
+          <li>点击浮层外部 / ✕ 按钮 / 再次点击图标 → 关闭</li>
+          <li>同一时间只有一个浮层打开</li>
+          <li>浮层内容与当前侧边栏面板内容相同</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>☰ 完整侧边栏</h3>
+        <ul style="font-size:12px;color:#8b949e;line-height:1.6">
+          <li>点击 ☰ → 展开 280px 完整侧边栏（替代图标栏）</li>
+          <li>再次点击 ☰ → 收缩回 48px 图标栏</li>
+          <li>状态通过 sessionStorage 保持</li>
+          <li>展开后 5 个模块显示完整标签和面板</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. 右侧状态面板 — 对话视图专属</h3>
+  <div class="mockup" style="max-width: 500px; margin: 0 auto 16px;">
+    <div class="mockup-header">170px 右侧面板内容结构</div>
+    <div class="mockup-body" style="padding:12px;background:#161b22;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="font-size:10px;color:#8b949e;font-weight:bold;margin-bottom:6px">📊 系统状态</div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">🖥 CPU</span>
+          <span style="color:#3fb950;font-weight:bold">42%</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">🧩 内存</span>
+          <span style="color:#3fb950;font-weight:bold">58%</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">💿 磁盘</span>
+          <span style="color:#d29922;font-weight:bold">72%</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">🔋 电池</span>
+          <span style="color:#3fb950;font-weight:bold">85%</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">🌐 网络</span>
+          <span style="color:#3fb950;font-weight:bold">正常</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between">
+          <span style="color:#8b949e">📡 传感器</span>
+          <span style="color:#c9d1d9;font-weight:bold">3/5</span>
+        </div>
+        <div style="background:#0d1117;border-radius:4px;padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#8b949e">🎯 模式</span>
+          <span style="background:#3fb95020;color:#3fb950;padding:1px 8px;border-radius:6px;font-weight:bold;font-size:9px">正常</span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#8b949e;font-weight:bold;margin-bottom:6px">📋 事件流</div>
+      <div style="font-size:8px;color:#8b949e;max-height:80px;overflow-y:auto;line-height:1.5">
+        <div style="padding:2px 0;border-bottom:1px solid #21262d40"><span style="color:#58a6ff">🎯</span> 正常模式</div>
+        <div style="padding:2px 0;border-bottom:1px solid #21262d40"><span style="color:#3fb950">🧠</span> LLM已连接</div>
+        <div style="padding:2px 0;border-bottom:1px solid #21262d40"><span style="color:#d29922">⚠</span> 磁盘使用 72%</div>
+        <div style="padding:2px 0;border-bottom:1px solid #21262d40"><span style="color:#c9d1d9">💬</span> 用户发送消息</div>
+        <div style="padding:2px 0"><span style="color:#8b949e">🤖</span> 云枢响应</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="card">
+      <div class="card-body">
+        <h3>面板显示规则</h3>
+        <ul style="font-size:12px;color:#8b949e;line-height:1.6">
+          <li>对话视图：右侧面板始终可见</li>
+          <li>全景视图：右侧面板隐藏，全景内容全宽显示</li>
+          <li>10 秒自动刷新面板数据</li>
+          <li>与顶栏指标保持数据同步</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>响应式处理</h3>
+        <ul style="font-size:12px;color:#8b949e;line-height:1.6">
+          <li>窗口 &lt; 900px：右侧面板折叠到底部或隐藏</li>
+          <li>窗口 &lt; 768px：图标栏隐藏，☰ 移入顶栏</li>
+          <li>窗口 &lt; 600px：全景导航折叠为顶部 tab</li>
+          <li>所有自适应通过 CSS media query 实现</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

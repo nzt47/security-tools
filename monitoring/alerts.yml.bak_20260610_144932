@@ -1,0 +1,213 @@
+groups:
+  - name: yunshu_alerts
+    interval: 30s
+    rules:
+      # ==================== 错误率告警 ====================
+      - alert: HighErrorRate
+        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "高错误率检测 - {{ $labels.instance }}"
+          description: "应用 {{ $labels.instance }} 的错误率超过 10% (当前值：{{ $value | humanizePercentage }})"
+          
+      - alert: VeryHighErrorRate
+        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: emergency
+        annotations:
+          summary: "严重错误率 - {{ $labels.instance }}"
+          description: "应用 {{ $labels.instance }} 的错误率超过 50% (当前值：{{ $value | humanizePercentage }})"
+      
+      # ==================== 延迟告警 ====================
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高延迟检测"
+          description: "95 分位响应时间超过 5 秒 (当前值：{{ $value | humanizeDuration }})"
+          
+      - alert: VeryHighLatency
+        expr: histogram_quantile(0.99, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重延迟检测"
+          description: "99 分位响应时间超过 10 秒 (当前值：{{ $value | humanizeDuration }})"
+      
+      # ==================== 安全告警 ====================
+      - alert: SecurityAttack
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "安全攻击检测"
+          description: "检测到频繁的安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
+          
+      - alert: CriticalSecurityAttack
+        expr: sum(rate(yunshu_security_blocks_total{level="critical"}[5m])) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重安全攻击检测"
+          description: "检测到频繁的严重级别安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
+      
+      # ==================== 系统资源告警 ====================
+      - alert: HighCPUUsage
+        expr: yunshu_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率超过 80% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: VeryHighCPUUsage
+        expr: yunshu_cpu_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU 使用率严重过高"
+          description: "CPU 使用率超过 95% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: HighMemoryUsage
+        expr: yunshu_memory_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率超过 80% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: VeryHighMemoryUsage
+        expr: yunshu_memory_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用率严重过高"
+          description: "内存使用率超过 95% (当前值：{{ $value | humanize }}%)"
+      
+      # ==================== 对话系统告警 ====================
+      - alert: HighConversationErrorRate
+        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "对话系统错误率过高"
+          description: "对话异常率超过 20% (当前值：{{ $value | humanizePercentage }})"
+      
+      # ==================== 服务可用性告警 ====================
+      - alert: YunshuDown
+        expr: up{job="yunshu"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Yunshu 服务不可用"
+          description: "Yunshu 服务已停止响应超过 1 分钟"
+          
+      - alert: PrometheusTargetMissing
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus 目标丢失"
+          description: "监控目标 {{ $labels.job }} 不可用"
+
+      # ==================== SafeFileReader 告警 ====================
+      # 文件读取失败
+      - alert: SafeFileReaderFileNotFound
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_not_found"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件不存在"
+          description: "检测到文件读取失败，文件不存在: {{ $labels.file_path }}"
+
+      - alert: SafeFileReaderFileTooLarge
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_too_large"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件过大被拒绝"
+          description: "文件大小超过限制: {{ $labels.file_path }}"
+
+      # 编码异常
+      - alert: SafeFileReaderEncodingFallback
+        expr: increase(yunshu_safe_file_reader_encoding_fallbacks_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "SafeFileReader 编码降级"
+          description: "UTF-8 读取失败，已降级到备用编码: {{ $labels.file_path }}"
+
+      - alert: SafeFileReaderAllEncodingsFailed
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="encoding_failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SafeFileReader 编码完全失败"
+          description: "所有编码尝试均失败，文件无法读取: {{ $labels.file_path }}"
+
+      # 数据质量
+      - alert: SafeFileReaderHighInvalidRatio
+        expr: yunshu_safe_file_reader_invalid_ratio > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 无效行比例过高"
+          description: "无效行比例超过 10% (当前值: {{ $value | humanizePercentage }}, 文件: {{ $labels.file_path }})"
+
+      - alert: SafeFileReaderConsecutiveParseFailures
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="json_parse_failed"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SafeFileReader 连续 JSON 解析失败"
+          description: "5 分钟内超过 10 行 JSON 解析失败，文件可能已损坏: {{ $labels.file_path }}"
+
+      # 历史加载
+      - alert: SafeFileReaderHistoryLoadFailed
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="history_load_failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "历史记忆加载失败"
+          description: "服务启动时无法加载历史对话，可能导致用户看不到历史记录"
+
+      - alert: SafeFileReaderHistoryLoadEmpty
+        expr: yunshu_safe_file_reader_loaded_history_count == 0
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "历史记忆加载为空"
+          description: "历史文件加载完成但无有效历史，可能是首次运行或文件为空"
+
+      # 性能
+      - alert: SafeFileReaderSlowRead
+        expr: histogram_quantile(0.95, rate(yunshu_safe_file_reader_read_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件读取缓慢"
+          description: "95 分位读取时间超过 5 秒 (当前值: {{ $value | humanizeDuration }})"

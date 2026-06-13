@@ -1,0 +1,90 @@
+<h2>当前布局问题分析</h2>
+<p class="subtitle">云枢 · 数字生命体 — 现有界面结构诊断</p>
+
+<div class="section">
+  <h3>当前布局结构</h3>
+  <div class="mockup" style="max-width: 700px; margin: 0 auto;">
+    <div class="mockup-header">当前 index.html 的实际布局</div>
+    <div class="mockup-body" style="padding: 0; background: #0d1117; font-size: 11px; font-family: monospace; color: #c9d1d9;">
+      <div style="background:#161b22;padding:8px 14px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;">
+        <span style="color:#58a6ff">云枢 · 数字生命体</span>
+        <span style="color:#8b949e">⚙设置 ⟳刷新 清空对话</span>
+      </div>
+      <div style="background:#0d1117;padding:4px 14px;border-bottom:1px solid #30363d;">
+        <span style="color:#58a6ff;border-bottom:2px solid #58a6ff;padding-bottom:3px">💬 对话</span>
+        <span style="color:#8b949e;margin-left:16px">🗺 全景</span>
+      </div>
+      <div style="display:flex;height:300px">
+        <div style="width:200px;background:#161b22;border-right:1px solid #30363d;padding:6px;overflow:hidden">
+          <div style="color:#8b949e;font-size:10px;margin-bottom:4px">☰ Agent 管理</div>
+          <div style="color:#58a6ff;padding:3px 6px;background:#1c2333;border-radius:3px;margin:1px 0;font-size:10px">🕐 历史会话</div>
+          <div style="color:#8b949e;padding:3px 6px;margin:1px 0;font-size:10px">🔧 技能管理</div>
+          <div style="color:#8b949e;padding:3px 6px;margin:1px 0;font-size:10px">🛠 工具集成</div>
+          <div style="color:#8b949e;padding:3px 6px;margin:1px 0;font-size:10px">🎭 人格配置</div>
+          <div style="color:#8b949e;padding:3px 6px;margin:1px 0;font-size:10px">🧠 记忆管理</div>
+          <div style="color:#484f58;font-size:9px;margin-top:8px;padding:4px;background:#0d1117;border-radius:3px">面板内容区（可滚动）</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div style="background:#161b22;padding:6px 10px;border-bottom:1px solid #30363d">
+            <div style="display:flex;gap:4px">
+              <div style="flex:1;text-align:center;background:#0d1117;border-radius:4px;padding:3px"><span style="color:#3fb950;font-size:14px">42%</span><br><span style="font-size:8px;color:#8b949e">CPU</span></div>
+              <div style="flex:1;text-align:center;background:#0d1117;border-radius:4px;padding:3px"><span style="color:#3fb950;font-size:14px">58%</span><br><span style="font-size:8px;color:#8b949e">内存</span></div>
+              <div style="flex:1;text-align:center;background:#0d1117;border-radius:4px;padding:3px"><span style="color:#d29922;font-size:14px">72%</span><br><span style="font-size:8px;color:#8b949e">磁盘</span></div>
+              <div style="flex:1;text-align:center;background:#0d1117;border-radius:4px;padding:3px"><span style="color:#3fb950;font-size:14px">85%</span><br><span style="font-size:8px;color:#8b949e">电池</span></div>
+            </div>
+          </div>
+          <div style="background:#0d1117;padding:4px 10px;border-bottom:1px solid #21262d;font-size:10px;color:#8b949e">
+            <span style="background:#3fb95020;color:#3fb950;padding:1px 6px;border-radius:8px">正常模式</span>
+            <span style="margin-left:6px">认知引擎就绪</span>
+            <span style="float:right">📡 3/5</span>
+          </div>
+          <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:4px">
+            <div style="align-self:flex-end;background:#1f6feb30;border:1px solid #1f6feb50;border-radius:8px;padding:5px 8px;max-width:70%;font-size:10px">你好云枢</div>
+            <div style="align-self:flex-start;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:5px 8px;max-width:70%;font-size:10px">我是来自网天的云枢...</div>
+          </div>
+          <div style="background:#161b22;padding:6px 10px;border-top:1px solid #30363d;display:flex;gap:6px">
+            <div style="flex:1;background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:4px 8px;font-size:10px;color:#8b949e">和云枢说话...</div>
+            <div style="background:#238636;color:#fff;padding:4px 12px;border-radius:12px;font-size:10px">发送</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>诊断发现的 5 个核心问题</h3>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-body">
+        <h3>1. 侧边栏与主内容割裂</h3>
+        <p>左侧 280px 的 Agent 管理侧边栏包含 5 个管理模块（历史/技能/工具/人格/记忆），但它们与主区域的「对话」和「全景」视图没有视觉或功能上的关联，左右各自独立滚动，用户认知负担重。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>2. 全景视图内容堆砌</h3>
+        <p>全景视图将所有内容（流水线 + 4 张可展开卡片 + 系统总览 + 交互追踪）全部纵向堆叠在一个滚动区域中，没有侧导航或分栏，查找信息需要大量滚动。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>3. 对话视图顶部空间浪费</h3>
+        <p>健康指标栏 + 状态栏在对话视图顶部占约 100px 高度，压缩了下方消息列表的可视空间。指标虽是实时数据但排列松散。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>4. 缺少统一的仪表盘入口</h3>
+        <p>用户需要在「对话」看健康指标、在「全景」看架构详情、在「侧边栏」管理配置——三处信息本应关联，却被物理隔离在不同区域。</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>5. panorama.css 已有更好的布局设计但未使用</h3>
+        <p>panorama.css 中定义了 .pano-layout / .pano-nav / .pano-content 的左导航+右内容布局，以及 .pano-healthbar 横向健康条，但 index.html 并未采用，仍使用最简单的 .pano-scroll 垂直堆叠。</p>
+      </div>
+    </div>
+  </div>
+</div>

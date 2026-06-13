@@ -1,0 +1,77 @@
+2026-06-11 00:38:19,820 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:38:19,845 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:38:19,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:38:19,857 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:38:19,897 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:38:19,903 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:38:19,905 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:38:19,906 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:38:19,912 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:38:19,942 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:38:19,943 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:38:19,945 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:38:19,949 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:38:20,249 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-11 00:38:20,257 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:38:20,258 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:38:20,271 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:38:20,271 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:38:20,271 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:38:20,271 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:38:20,272 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:38:20,272 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:38:20,272 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:38:20,272 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-11 00:38:20,272 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:38:20,273 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:38:20,273 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-11 00:38:20,273 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-11 00:38:20,273 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:38:20,350 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:38:20,358 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 00:38:20,360 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:38:20,362 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpro26y4mx.json
+2026-06-11 00:38:20,362 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=c0e2a07d-29fe-48a1-a86f-35cffea939d6, name=Instance1, provider=openai
+2026-06-11 00:38:20,362 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=c0e2a07d-29fe-48a1-a86f-35cffea939d6
+2026-06-11 00:38:20,363 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:38:20,363 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 00:38:20,364 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 00:38:20,364 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=c0e2a07d-29fe-48a1-a86f-35cffea939d6
+2026-06-11 00:38:20,367 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpro26y4mx.json
+2026-06-11 00:38:20,367 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=c0e2a07d-29fe-48a1-a86f-35cffea939d6
+2026-06-11 00:38:20,377 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 00:38:20,378 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:38:20,380 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpgnnsw652.json
+2026-06-11 00:38:20,381 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=709433a6-33e1-448c-a3ca-99af69278013, name=Instance1, provider=openai
+2026-06-11 00:38:20,381 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=709433a6-33e1-448c-a3ca-99af69278013
+2026-06-11 00:38:20,382 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:38:20,382 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 00:38:20,383 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 00:38:20,383 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance2, provider=deepseek
+2026-06-11 00:38:20,386 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpgnnsw652.json
+2026-06-11 00:38:20,386 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=0ad03c85-a256-42e7-8105-d8cc828cbe10, name=Instance2, provider=deepseek
+2026-06-11 00:38:20,386 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=0ad03c85-a256-42e7-8105-d8cc828cbe10
+2026-06-11 00:38:20,387 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:38:20,388 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 00:38:20,388 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance2
+2026-06-11 00:38:20,388 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=0ad03c85-a256-42e7-8105-d8cc828cbe10
+2026-06-11 00:38:20,390 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpgnnsw652.json
+2026-06-11 00:38:20,391 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=0ad03c85-a256-42e7-8105-d8cc828cbe10
+2026-06-11 00:38:20,391 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:38:20,393 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 00:38:20,399 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=PersistentInstance, provider=openai
+2026-06-11 00:38:20,400 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:38:20,402 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp0pjhbltf.json
+2026-06-11 00:38:20,402 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=34bba354-4b28-4d92-90a3-34c7b04922c7, name=PersistentInstance, provider=openai
+2026-06-11 00:38:20,403 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=34bba354-4b28-4d92-90a3-34c7b04922c7
+2026-06-11 00:38:20,403 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 00:38:20,404 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 00:38:20,404 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=PersistentInstance
+2026-06-11 00:38:20,404 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=34bba354-4b28-4d92-90a3-34c7b04922c7
+2026-06-11 00:38:20,406 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp0pjhbltf.json
+2026-06-11 00:38:20,407 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=34bba354-4b28-4d92-90a3-34c7b04922c7
+2026-06-11 00:38:20,407 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Windows\TEMP\tmp0pjhbltf.json
+2026-06-11 00:38:20,414 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 00:38:20,423 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Windows\TEMP\tmpqwp0xa47.json

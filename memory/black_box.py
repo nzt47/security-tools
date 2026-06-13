@@ -63,7 +63,7 @@ class BlackBox:
                  max_size_bytes=10 * 1024 * 1024,
                  max_files=10,
                  encryption_enabled=True,
-                 encryption_key_env="LINGXI_ENCRYPT_KEY"):
+                 encryption_key_env="Yunshu_ENCRYPT_KEY"):
         """初始化黑匣子
 
         Args:

@@ -1,0 +1,239 @@
+=============================================
+  会话记录 #3
+=============================================
+
+🕒 时间：2026年06月13日 13:27
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+legend的图示还是与下面的模块叠在一起
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="execute_command">
+<｜｜DSML｜｜parameter name="command" string="true">cat > /mnt/c/Users/Administrator/Desktop/云枢系统架构图_final.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云枢数字生命体 · 系统架构图</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background: #0a0e1a;
+    min-height: 100vh;
+    padding: 30px 40px;
+    color: #e2e8f0;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #111827;
+    border-radius: 16px;
+    border: 1px solid #1e293b;
+    padding: 32px 40px 28px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h1 .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: #22d3ee;
+    border-radius: 50%;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .subtitle {
+    color: #64748b;
+    font-size: 13px;
+    margin-bottom: 28px;
+    margin-left: 22px;
+  }
+  .row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+  }
+  .box {
+    flex: 1;
+    min-width: 0;
+    border-radius: 10px;
+    padding: 14px 12px 12px;
+    border: 1.5px solid;
+    position: relative;
+    margin: 0 5px 10px;
+    transition: transform 0.15s;
+  }
+  .box:hover { transform: translateY(-2px); }
+  .box .label {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
+  }
+  .box .desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+  .tier-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 1px;
+    margin: 18px 0 6px 8px;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 6px;
+  }
+
+  /* 颜色主题 */
+  .box.frontend { background: rgba(8,51,68,0.35); border-color: #22d3ee; }
+  .box.frontend .label { color: #22d3ee; }
+  .box.backend { background: rgba(6,78,59,0.25); border-color: #34d399; }
+  .box.backend .label { color: #34d399; }
+  .box.database { background: rgba(76,29,149,0.25); border-color: #a78bfa; }
+  .box.database .label { color: #a78bfa; }
+  .box.security { background: rgba(136,19,55,0.25); border-color: #fb7185; }
+  .box.security .label { color: #fb7185; }
+  .box.external { background: rgba(30,41,59,0.4); border-color: #64748b; }
+  .box.external .label { color: #94a3b8; }
+
+  /* 图例 */
+  .legend-area {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 28px;
+    align-items: center;
+  }
+  .legend-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .legend-item .swatch {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1.5px solid;
+    flex-shrink: 0;
+  }
+
+  .footer {
+    margin-top: 22px;
+    text-align: center;
+    font-size: 11px;
+    color: #334155;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1><span class="dot"></span> 云枢数字生命体 · 系统架构图</h1>
+<p class="subtitle">15 个核心组件 · 6 层体系 · 实时交互</p>
+
+<!-- ===== 第1层：UI交互层 ===== -->
+<div class="tier-label">🌐 交互层</div>
+<div class="row">
+  <div class="box frontend">
+    <div class="label">UI 交互层</div>
+    <div class="desc">Flask Web 面板 · 语音交互 · 实时看板</div>
+  </div>
+</div>
+
+<!-- ===== 第2层：核心大脑 ===== -->
+<div class="tier-label">🧠 核心层</div>
+<div class="row">
+  <div class="box backend">
+    <div class="label">LLM 大模型大脑</div>
+    <div class="desc">AI 决策核心 · 提示词注入器 · 认知处理</div>
+  </div>
+  <div class="box backend">
+    <div class="label">行为控制器</div>
+    <div class="desc">6 种模式：正常/安全/省电/内存整理/离线/警告</div>
+  </div>
+</div>
+
+<!-- ===== 第3层：四大子系统 ===== -->
+<div class="tier-label">⚙️ 子系统层</div>
+<div class="row">
+  <div class="box backend">
+    <div class="label">感知系统</div>
+    <div class="desc">34 个传感器：CPU/内存/磁盘/电池/网络/语音/OCR</div>
+  </div>
+  <div class="box database">
+    <div class="label">记忆系统</div>
+    <div class="desc">三层存储：短期→中期→长期 · 向量检索 · 摘要</div>
+  </div>
+  <div class="box backend">
+    <div class="label">认知系统</div>
+    <div class="desc">提示词注入 · 上下文感知 · 情感表达</div>
+  </div>
+  <div class="box backend">
+    <div class="label">人格系统</div>
+    <div class="desc">Persona 管理 · 情感模型 · 个性特征</div>
+  </div>
+</div>
+
+<!-- ===== 第4层 ===== -->
+<div class="tier-label">📊 管理层</div>
+<div class="row">
+  <div class="box backend">
+    <div class="label">生命周期</div>
+    <div class="desc">LifeTrace · 状态追踪 · 健康管理</div>
+  </div>
+  <div class="box security">
+    <div class="label">监控系统</div>
+    <div class="desc">实时健康监控 · 异常告警 · 资源预警</div>
+  </div>
+  <div class="box backend">
+    <div class="label">规划引擎</div>
+    <div class="desc">任务拆解 · 编排执行 · 进度追踪</div>
+  </div>
+  <div class="box backend">
+    <div class="label">MCP 工具系统</div>
+    <div class="desc">36 个工具：文件/网络/进程/扩展/外设</div>
+  </div>
+</div>
+
+<!-- ===== 第5层 ===== -->
+<div class="tier-label">🧩 能力层</div>
+<div class="row">
+  <div class="box backend">
+    <div class="label">技能系统</div>
+    <div class="desc">7 项：自省/记忆摘要/情感/建议/
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟡 warning
+
+— 云枢 🤖 于 2026.06.13 13:27
+=============================================
+

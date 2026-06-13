@@ -1,0 +1,82 @@
+# 使用阿里云镜像源的 Docker Compose 配置
+# 适用于中国大陆地区用户
+
+version: '3.8'
+
+services:
+  prometheus:
+    # 使用网易镜像加速器
+    image: hub-mirror.c.163.com/prom/prometheus:latest
+    container_name: yunshu-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - yunshu-monitoring
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    # 使用网易镜像加速器
+    image: hub-mirror.c.163.com/grafana/grafana:latest
+    container_name: yunshu-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      # 时区设置
+      - TZ=Asia/Shanghai
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - yunshu-monitoring
+    # 健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  yunshu-monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# 说明：
+# 1. 使用阿里云镜像源，无需配置 Docker 镜像加速器
+# 2. 镜像地址格式：registry.cn-hangzhou.aliyuncs.com/组织/镜像名:版本
+# 3. 如果阿里云镜像不可用，可尝试以下替代源：
+#    - hub-mirror.c.163.com/prom/prometheus:latest
+#    - mirror.baidubce.com/prom/prometheus:latest
+#    - registry.docker-cn.com/prom/prometheus:latest

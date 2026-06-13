@@ -1,0 +1,154 @@
+2026-06-05 19:16:18,055 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 19:16:18,081 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 19:16:18,087 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 19:16:18,094 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 19:16:18,131 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 19:16:18,136 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 19:16:18,138 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 19:16:18,140 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 19:16:18,146 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 19:16:18,179 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 19:16:18,180 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 19:16:18,182 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 19:16:18,185 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 19:16:18,431 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 19:16:18,439 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 19:16:18,439 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:16:18,449 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:16:18,450 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 19:16:18,450 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 19:16:18,450 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 19:16:18,451 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 19:16:18,451 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 19:16:18,451 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 19:16:18,451 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 19:16:18,452 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 19:16:18,452 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:16:18,452 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 19:16:18,452 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 19:16:18,453 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 19:16:18,679 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-05 19:16:19,017 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,023 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=2, UA=2)
+2026-06-05 19:16:19,030 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,035 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=0.5s, 代理=0, UA=9)
+2026-06-05 19:16:19,621 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,729 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,733 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,739 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,745 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,750 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-05 19:16:19,754 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,760 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=9)
+2026-06-05 19:16:19,766 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,771 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,777 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,777 [ WARNING] agent.web.crawler_control: 域名 example.com 被限速(429)，延迟调整为 2.0s
+2026-06-05 19:16:19,782 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,787 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,794 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,799 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,804 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,809 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,815 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=9)
+2026-06-05 19:16:19,820 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=1)
+2026-06-05 19:16:19,825 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=3)
+2026-06-05 19:16:19,831 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,831 [    INFO] agent.web.crawler_control: 已加载 2 个代理
+2026-06-05 19:16:19,836 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,842 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 19:16:19,848 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 19:16:19,852 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 19:16:19,858 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 19:16:19,863 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 19:16:19,869 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,874 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,880 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,885 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,890 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,896 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,901 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,907 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 19:16:19,912 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,918 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 19:16:19,923 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=1, UA=10)
+2026-06-05 19:16:19,930 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=10)
+2026-06-05 19:16:19,935 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,941 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,946 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,951 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=3.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,956 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,961 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:19,966 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,801 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,802 [   ERROR] agent.web.crawler_control: 加载代理文件失败: [Errno 2] No such file or directory: 'nonexistent_file.txt'
+2026-06-05 19:16:20,808 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,810 [    INFO] agent.web.crawler_control: 已加载 3 个代理
+2026-06-05 19:16:20,816 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,822 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,828 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,834 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=0.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,839 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,845 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,852 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,857 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:20,863 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=10)
+2026-06-05 19:16:21,043 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,044 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,049 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,050 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,055 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,055 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,065 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,066 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,071 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,071 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,077 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,078 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,083 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,083 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,089 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,089 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,095 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,095 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,095 [    INFO] agent.utils.index_manager: [IndexManager] 清空索引
+2026-06-05 19:16:21,100 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,101 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,106 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,106 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,112 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,112 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,117 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,117 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,122 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,122 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,128 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,128 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,133 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,133 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,139 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,139 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,145 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,145 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,150 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,151 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,163 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,163 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,170 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,170 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,176 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,176 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,181 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,181 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,186 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,187 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,193 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,193 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,198 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,198 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,204 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,204 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:16:21,211 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:16:21,211 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成

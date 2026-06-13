@@ -1,0 +1,102 @@
+<h2>窗口监控功能 — 方案对比</h2>
+<p class="subtitle">在记忆管理模块中扩展 OS 级窗口活动监控</p>
+
+<div class="section">
+  <h3>方案 A：窗口传感器 + 黑盒日志集成（推荐）</h3>
+  <div class="mockup" style="max-width: 750px; margin: 0 auto 16px;">
+    <div class="mockup-header">架构：复用现有传感器 + 黑盒日志 + 记忆面板扩展</div>
+    <div class="mockup-body" style="padding:12px;background:#0d1117;font-size:11px;font-family:monospace;color:#c9d1d9">
+      <div style="text-align:center;margin-bottom:10px;color:#8b949e;font-size:10px">数据流</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div style="background:#161b22;border:1px solid #58a6ff;border-radius:6px;padding:8px 12px;text-align:center">
+          <div style="font-size:14px">🪟</div>
+          <div style="font-size:10px;color:#58a6ff">WindowSensor</div>
+          <div style="font-size:8px;color:#8b949e">Win32 API 轮询</div>
+        </div>
+        <span style="color:#30363d">→</span>
+        <div style="background:#161b22;border:1px solid #3fb950;border-radius:6px;padding:8px 12px;text-align:center">
+          <div style="font-size:14px">📋</div>
+          <div style="font-size:10px;color:#3fb950">BlackBox</div>
+          <div style="font-size:8px;color:#8b949e">event_type="window_event"</div>
+        </div>
+        <span style="color:#30363d">→</span>
+        <div style="background:#161b22;border:1px solid #bc8cff;border-radius:6px;padding:8px 12px;text-align:center">
+          <div style="font-size:14px">📊</div>
+          <div style="font-size:10px;color:#bc8cff">Memory API</div>
+          <div style="font-size:8px;color:#8b949e">/api/memory/windows</div>
+        </div>
+        <span style="color:#30363d">→</span>
+        <div style="background:#161b22;border:1px solid #d29922;border-radius:6px;padding:8px 12px;text-align:center">
+          <div style="font-size:14px">🧠</div>
+          <div style="font-size:10px;color:#d29922">记忆面板</div>
+          <div style="font-size:8px;color:#8b949e">实时事件流 + 统计</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#161b22;border-radius:4px;padding:8px">
+          <div style="font-size:10px;color:#c9d1d9;font-weight:bold;margin-bottom:4px">后端改动</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5">
+            + sensor/window_sensor.py（~80行）<br>
+            + app_server.py 添加 2 个 API<br>
+            &nbsp;&nbsp;GET /api/memory/windows/events<br>
+            &nbsp;&nbsp;GET /api/memory/windows/stats
+          </div>
+        </div>
+        <div style="background:#161b22;border-radius:4px;padding:8px">
+          <div style="font-size:10px;color:#c9d1d9;font-weight:bold;margin-bottom:4px">前端改动</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5">
+            ~ memory.js 面板扩展<br>
+            &nbsp;&nbsp;+ 实时事件流区<br>
+            &nbsp;&nbsp;+ 使用时长统计表<br>
+            &nbsp;&nbsp;+ 监控开关/参数配置
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pros-cons">
+    <div class="pros"><h4>优点</h4><ul>
+      <li>最大程度复用现有 BlackBox 日志和 MemoryManager 架构</li>
+      <li>窗口事件自然融入日志统计系统，无需额外存储</li>
+      <li>改动量适中，2 个新文件 + 少量修改</li>
+      <li>与现有记忆压缩/摘要机制统一</li>
+    </ul></div>
+    <div class="cons"><h4>缺点</h4><ul>
+      <li>BlackBox JSONL 格式对时序查询不够高效</li>
+      <li>统计分析需全量扫描日志文件</li>
+    </ul></div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>方案 B：专用窗口监控服务 + SQLite 存储</h3>
+  <div class="pros-cons">
+    <div class="pros"><h4>优点</h4><ul>
+      <li>SQLite 支持高效的时间范围查询和聚合</li>
+      <li>独立的服务进程，与传感器系统解耦</li>
+      <li>更丰富的统计能力</li>
+    </ul></div>
+    <div class="cons"><h4>缺点</h4><ul>
+      <li>引入新依赖（sqlite3 虽内置但增加复杂度）</li>
+      <li>需要独立的存储管理、迁移、清理逻辑</li>
+      <li>与现有记忆管理体系割裂，概念不统一</li>
+      <li>改动量大，约 5-6 个新文件</li>
+    </ul></div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>方案 C：轻量内存缓存 + 纯前端展示</h3>
+  <div class="pros-cons">
+    <div class="pros"><h4>优点</h4><ul>
+      <li>实现最快，无持久化逻辑</li>
+      <li>零存储开销</li>
+    </ul></div>
+    <div class="cons"><h4>缺点</h4><ul>
+      <li>服务重启后数据全部丢失</li>
+      <li>无法做历史趋势分析</li>
+      <li>内存缓存有上限</li>
+      <li>与"记忆管理"理念不符（记忆应该持久）</li>
+    </ul></div>
+  </div>
+</div>

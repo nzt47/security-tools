@@ -1,0 +1,126 @@
+2026-06-05 14:21:54,625 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 14:21:54,633 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 14:21:54,636 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 14:21:54,640 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 14:21:54,661 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 14:21:54,664 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 14:21:54,666 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 14:21:54,667 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 14:21:54,670 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 14:21:54,684 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 14:21:54,685 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 14:21:54,686 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 14:21:54,687 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 14:21:54,818 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 14:21:54,824 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 14:21:54,824 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:21:54,832 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:21:54,833 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 14:21:54,833 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 14:21:54,833 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 14:21:54,833 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:21:54,834 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 14:21:54,835 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 14:21:54,835 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 14:21:54,935 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:54,939 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:54,943 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:54,948 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:54,949 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,235 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,236 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,249 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,249 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,254 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,255 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,264 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-05 14:21:55,264 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,270 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,275 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,275 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,280 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,280 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Connection error
+2026-06-05 14:21:55,286 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,289 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,294 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,298 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,298 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 190, in request
+    "cookies": dict(resp.cookies),
+               ^^^^^^^^^^^^^^^^^^
+TypeError: Mock.keys() returned a non-iterable (type Mock)
+2026-06-05 14:21:55,309 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,310 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Timeout
+2026-06-05 14:21:55,315 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:21:55,318 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,322 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-05 14:21:55,326 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,330 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,333 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,336 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,345 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,354 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-05 14:21:55,357 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:21:55,366 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:25:11,521 [    INFO] agent.web.browser_agent: 浏览器实例已启动 (headless=True)
+2026-06-05 14:25:11,524 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 14:25:11,528 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)

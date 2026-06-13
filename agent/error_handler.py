@@ -326,23 +326,89 @@ class RetryPolicy:
         max_delay: float = 30.0,
         backoff_factor: float = 2.0,
         jitter_factor: float = 0.1,
+        strategy: str = "exponential",
+        retryable_exceptions: Optional[Tuple[Type[Exception], ...]] = None,
+        retryable_status_codes: Optional[List[int]] = None,
+        custom_retry_condition: Optional[Callable[[Exception], bool]] = None,
     ):
         self.max_retries = max_retries
         self.initial_delay = initial_delay
         self.max_delay = max_delay
         self.backoff_factor = backoff_factor
         self.jitter_factor = jitter_factor
+        self.strategy = strategy
+        self.retryable_exceptions = retryable_exceptions
+        self.retryable_status_codes = retryable_status_codes
+        self.custom_retry_condition = custom_retry_condition
+
+    def should_retry(self, exception: Exception, attempt: int) -> bool:
+        """判断是否应该重试"""
+        if attempt >= self.max_retries:
+            logger.debug(
+                f"[RetryPolicy.should_retry] 重试次数已用尽: attempt={attempt}, max_retries={self.max_retries}"
+            )
+            return False
+        
+        if self.retryable_exceptions and not isinstance(exception, self.retryable_exceptions):
+            logger.debug(
+                f"[RetryPolicy.should_retry] 异常类型不匹配: exception_type={type(exception).__name__}, "
+                f"retryable_exceptions={self.retryable_exceptions}"
+            )
+            return False
+        
+        if self.custom_retry_condition and not self.custom_retry_condition(exception):
+            logger.debug(
+                f"[RetryPolicy.should_retry] 自定义重试条件未满足: exception={exception}"
+            )
+            return False
+        
+        logger.debug(
+            f"[RetryPolicy.should_retry] 允许重试: attempt={attempt}, exception={exception}"
+        )
+        return True
 
     def calculate_delay(self, attempt: int) -> float:
-        """计算当前尝试的延迟（指数退避+抖动）"""
+        """计算当前尝试的延迟"""
         import random
-        delay = min(
-            self.initial_delay * (self.backoff_factor ** attempt),
-            self.max_delay,
+        
+        logger.debug(
+            f"[RetryPolicy.calculate_delay] 开始计算延迟: attempt={attempt}, strategy={self.strategy}, "
+            f"initial_delay={self.initial_delay}, backoff_factor={self.backoff_factor}, "
+            f"max_delay={self.max_delay}, jitter_factor={self.jitter_factor}"
         )
-        # 添加抖动，避免惊群效应
-        jitter = random.uniform(1 - self.jitter_factor, 1 + self.jitter_factor)
-        return delay * jitter
+        
+        if self.strategy == "fixed":
+            delay = self.initial_delay
+            logger.debug(f"[RetryPolicy.calculate_delay] 使用固定延迟策略: delay={delay}")
+        elif self.strategy == "linear":
+            delay = self.initial_delay * (attempt + 1)
+            logger.debug(f"[RetryPolicy.calculate_delay] 使用线性延迟策略: delay={delay}")
+        elif self.strategy == "exponential":
+            raw_delay = self.initial_delay * (self.backoff_factor ** attempt)
+            delay = min(raw_delay, self.max_delay)
+            logger.debug(
+                f"[RetryPolicy.calculate_delay] 使用指数退避策略: raw_delay={raw_delay}, "
+                f"max_delay={self.max_delay}, applied_delay={delay}"
+            )
+        else:
+            delay = self.initial_delay
+            logger.debug(f"[RetryPolicy.calculate_delay] 使用默认延迟策略: delay={delay}")
+        
+        original_delay = delay
+        if self.jitter_factor > 0:
+            jitter = random.uniform(1 - self.jitter_factor, 1 + self.jitter_factor)
+            delay = delay * jitter
+            logger.debug(
+                f"[RetryPolicy.calculate_delay] 应用抖动: jitter={jitter:.4f}, "
+                f"original_delay={original_delay:.4f}, jittered_delay={delay:.4f}"
+            )
+        
+        final_delay = min(delay, self.max_delay)
+        logger.debug(
+            f"[RetryPolicy.calculate_delay] 计算完成: final_delay={final_delay:.4f}"
+        )
+        
+        return final_delay
 
 
 class ErrorHandler:
@@ -422,28 +488,100 @@ class ErrorHandler:
         retry_policy: Optional[RetryPolicy] = None,
         circuit_breaker: Optional[CircuitBreaker] = None,
         retryable_exceptions: Optional[Tuple[Type[Exception], ...]] = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
+        on_retry: Optional[Callable[[int, Exception], None]] = None,
+        error_counter: Optional[str] = None,
+        func_args: Optional[Tuple] = None,
+        func_kwargs: Optional[Dict] = None,
     ) -> R:
-        """执行函数，带自动重试和熔断器保护"""
+        """执行函数，带自动重试和熔断器保护
+        
+        Args:
+            func: 要执行的函数
+            retry_policy: 重试策略
+            circuit_breaker: 熔断器
+            retryable_exceptions: 可重试的异常类型
+            on_retry: 重试回调
+            error_counter: 错误计数器名称
+            func_args: 函数的位置参数（元组）
+            func_kwargs: 函数的关键字参数（字典）
+        """
+        # 详细日志：记录调用参数
+        logger.debug(
+            f"[execute_with_retry] 开始执行: func={func.__name__}, "
+            f"retry_policy={retry_policy}, circuit_breaker={circuit_breaker}, "
+            f"retryable_exceptions={retryable_exceptions}, on_retry={on_retry}, "
+            f"error_counter={error_counter}, func_args={func_args}, func_kwargs={func_kwargs}"
+        )
+        
         policy = retry_policy or RetryPolicy()
         
         retryable = retryable_exceptions or (RecoverableError, YunshuError)
         
+        # 使用空元组和空字典作为默认值
+        args = func_args or ()
+        kwargs = func_kwargs or {}
+        
+        logger.debug(
+            f"[execute_with_retry] 参数解析完成: args={args}, kwargs={kwargs}, "
+            f"policy.max_retries={policy.max_retries}, policy.strategy={policy.strategy}"
+        )
+        
         for attempt in range(policy.max_retries + 1):
             try:
+                logger.debug(f"[execute_with_retry] 第 {attempt + 1} 次尝试执行: func={func.__name__}")
                 if circuit_breaker:
-                    return circuit_breaker.execute(func, *args, **kwargs)
+                    logger.debug(f"[execute_with_retry] 通过熔断器执行: circuit_breaker={circuit_breaker.name}")
+                    result = circuit_breaker.execute(func, *args, **kwargs)
                 else:
-                    return func(*args, **kwargs)
+                    result = func(*args, **kwargs)
+                
+                if error_counter and attempt == 0:
+                    try:
+                        from agent.monitoring.metrics import get_metrics_collector
+                        collector = get_metrics_collector()
+                        collector.increment_counter(f"{error_counter}.success")
+                        logger.debug(f"[execute_with_retry] metrics 成功计数: {error_counter}.success")
+                    except Exception as metrics_err:
+                        logger.debug(f"[execute_with_retry] metrics 记录失败: {metrics_err}")
+                
+                logger.debug(f"[execute_with_retry] 执行成功: func={func.__name__}, result_type={type(result).__name__}")
+                return result
             except Exception as e:
-                # 检查是否可以重试
-                if isinstance(e, YunshuError):
-                    if not e.retryable:
-                        raise self.record_error(e)
-                elif not any(
-                    issubclass(e.__class__, cls) for cls in retryable
-                ):
+                logger.debug(
+                    f"[execute_with_retry] 第 {attempt + 1} 次尝试失败: func={func.__name__}, "
+                    f"exception_type={type(e).__name__}, exception_msg={str(e)[:100]}"
+                )
+                # 判断是否应该重试
+                should_retry = False
+                
+                # 1. 首先检查是否是 YunshuError 并且是可重试的
+                if isinstance(e, YunshuError) and e.retryable:
+                    should_retry = True
+                    logger.debug(f"[execute_with_retry] YunshuError 可重试: retryable={e.retryable}")
+                # 2. 然后检查是否是自定义可重试异常
+                elif retryable and any(issubclass(e.__class__, cls) for cls in retryable):
+                    should_retry = True
+                    logger.debug(f"[execute_with_retry] 匹配可重试异常类型: {type(e).__name__}")
+                # 3. 最后检查重试策略的自定义规则（如果有）
+                elif policy.retryable_exceptions or policy.custom_retry_condition:
+                    if policy.should_retry(e, attempt):
+                        should_retry = True
+                        logger.debug(f"[execute_with_retry] 策略判定可重试: policy.should_retry=True")
+                
+                # 如果不应该重试，立即抛出
+                if not should_retry:
+                    logger.warning(
+                        f"[execute_with_retry] 异常不可重试，立即抛出: func={func.__name__}, "
+                        f"exception_type={type(e).__name__}"
+                    )
+                    if error_counter:
+                        try:
+                            from agent.monitoring.metrics import get_metrics_collector
+                            collector = get_metrics_collector()
+                            collector.increment_counter(f"{error_counter}.failure")
+                            logger.debug(f"[execute_with_retry] metrics 失败计数: {error_counter}.failure")
+                        except Exception as metrics_err:
+                            logger.debug(f"[execute_with_retry] metrics 记录失败: {metrics_err}")
                     raise self.record_error(e)
                 
                 if attempt >= policy.max_retries:
@@ -452,6 +590,12 @@ class ErrorHandler:
                         exc_info=True,
                     )
                     raise self.record_error(e)
+                
+                if on_retry:
+                    try:
+                        on_retry(attempt + 1, e)
+                    except Exception:
+                        pass
                 
                 delay = policy.calculate_delay(attempt)
                 logger.warning(
@@ -507,8 +651,12 @@ def with_retry(
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
     backoff_factor: float = 2.0,
+    strategy: str = "exponential",
+    jitter_factor: float = 0.1,
     circuit_breaker: Optional[CircuitBreaker] = None,
     retryable_exceptions: Optional[Tuple[Type[Exception], ...]] = None,
+    on_retry: Optional[Callable[[int, Exception], None]] = None,
+    error_counter: Optional[str] = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     装饰器：自动重试
@@ -521,21 +669,159 @@ def with_retry(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            logger.debug(
+                f"[with_retry] 开始执行函数: func={func.__name__}, max_retries={max_retries}, "
+                f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
+                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"
+            )
+            
             policy = RetryPolicy(
                 max_retries=max_retries,
                 initial_delay=initial_delay,
                 max_delay=max_delay,
                 backoff_factor=backoff_factor,
+                strategy=strategy,
+                jitter_factor=jitter_factor,
+                retryable_exceptions=retryable_exceptions,
             )
             handler = get_error_handler()
-            return handler.execute_with_retry(
+            result = handler.execute_with_retry(
                 func,
                 retry_policy=policy,
                 circuit_breaker=circuit_breaker,
                 retryable_exceptions=retryable_exceptions,
-                *args,
-                **kwargs,
+                on_retry=on_retry,
+                error_counter=error_counter,
+                func_args=args,
+                func_kwargs=kwargs,
             )
+            
+            logger.debug(f"[with_retry] 函数执行成功: func={func.__name__}")
+            return result
+        return wrapper
+    return decorator
+
+
+def async_with_retry(
+    max_retries: int = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 30.0,
+    backoff_factor: float = 2.0,
+    strategy: str = "exponential",
+    jitter_factor: float = 0.1,
+    circuit_breaker: Optional[CircuitBreaker] = None,
+    retryable_exceptions: Optional[Tuple[Type[Exception], ...]] = None,
+    on_retry: Optional[Callable[[int, Exception], None]] = None,
+    error_counter: Optional[str] = None,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """
+    装饰器：异步函数的自动重试
+    
+    用法:
+        @async_with_retry(max_retries=3, initial_delay=1.0)
+        async def my_function():
+            ...
+    """
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @functools.wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            logger.debug(
+                f"[async_with_retry] 开始执行异步函数: func={func.__name__}, max_retries={max_retries}, "
+                f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
+                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"
+            )
+            
+            policy = RetryPolicy(
+                max_retries=max_retries,
+                initial_delay=initial_delay,
+                max_delay=max_delay,
+                backoff_factor=backoff_factor,
+                strategy=strategy,
+                jitter_factor=jitter_factor,
+                retryable_exceptions=retryable_exceptions,
+            )
+            handler = get_error_handler()
+            
+            retryable = retryable_exceptions or (RecoverableError, YunshuError)
+            
+            for attempt in range(policy.max_retries + 1):
+                logger.debug(f"[async_with_retry] 执行第 {attempt + 1} 次尝试: func={func.__name__}")
+                
+                try:
+                    if circuit_breaker:
+                        logger.debug(
+                            f"[async_with_retry] 通过熔断器执行: func={func.__name__}, "
+                            f"circuit_breaker={circuit_breaker.name}"
+                        )
+                        result = await circuit_breaker.execute(func, *args, **kwargs)
+                    else:
+                        result = await func(*args, **kwargs)
+                    
+                    if error_counter and attempt == 0:
+                        try:
+                            from agent.monitoring.metrics import get_metrics_collector
+                            collector = get_metrics_collector()
+                            collector.increment_counter(f"{error_counter}.success")
+                        except Exception:
+                            pass
+                    
+                    logger.debug(f"[async_with_retry] 异步函数执行成功: func={func.__name__}")
+                    return result
+                except Exception as e:
+                    should_retry = False
+                    
+                    logger.debug(
+                        f"[async_with_retry] 捕获异常: func={func.__name__}, attempt={attempt}, "
+                        f"exception_type={type(e).__name__}, exception={e}"
+                    )
+                    
+                    # 首先检查是否是 YunshuError 并明确设置了 retryable=False
+                    if isinstance(e, YunshuError):
+                        if e.retryable:
+                            should_retry = True
+                            logger.debug(
+                                f"[async_with_retry] YunshuError 标记为可重试: retryable={e.retryable}"
+                            )
+                    elif policy.should_retry(e, attempt):
+                        should_retry = True
+                        logger.debug(f"[async_with_retry] 重试策略允许重试")
+                    elif retryable and any(issubclass(e.__class__, cls) for cls in retryable):
+                        should_retry = True
+                        logger.debug(f"[async_with_retry] 异常类型在可重试列表中")
+                    
+                    if not should_retry:
+                        logger.debug(
+                            f"[async_with_retry] 不允许重试，直接抛出异常: func={func.__name__}"
+                        )
+                        if error_counter:
+                            try:
+                                from agent.monitoring.metrics import get_metrics_collector
+                                collector = get_metrics_collector()
+                                collector.increment_counter(f"{error_counter}.failure")
+                            except Exception:
+                                pass
+                        raise handler.record_error(e)
+                    
+                    if attempt >= policy.max_retries:
+                        logger.error(
+                            f"[async_with_retry] 所有 {policy.max_retries} 次重试已用尽: func={func.__name__}",
+                            exc_info=True,
+                        )
+                        raise handler.record_error(e)
+                    
+                    if on_retry:
+                        try:
+                            on_retry(attempt + 1, e)
+                        except Exception:
+                            pass
+                    
+                    delay = policy.calculate_delay(attempt)
+                    logger.warning(
+                        f"[async_with_retry] 第 {attempt + 1}/{policy.max_retries} 次尝试失败, "
+                        f"等待 {delay:.2f}s 后重试: {e}"
+                    )
+                    import asyncio
+                    await asyncio.sleep(delay)
         return wrapper
     return decorator
 

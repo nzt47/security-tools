@@ -1,0 +1,264 @@
+2026-06-07 00:55:39,567 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 00:55:39,574 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 00:55:39,578 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 00:55:39,581 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 00:55:39,601 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 00:55:39,604 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 00:55:39,604 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 00:55:39,606 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 00:55:39,610 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 00:55:39,623 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 00:55:39,623 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 00:55:39,625 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 00:55:39,626 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 00:55:39,645 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-07 00:55:39,652 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 00:55:39,652 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 00:55:39,658 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 00:55:39,659 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 00:55:39,659 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-07 00:55:39,659 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 00:55:39,659 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,659 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-07 00:55:39,659 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-07 00:55:39,660 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 00:55:39,823 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 00:55:39,837 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 00:55:39,845 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 00:55:39,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 00:55:39,883 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 00:55:39,886 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 00:55:39,888 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 00:55:39,889 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 00:55:39,893 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 00:55:39,914 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 00:55:39,914 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 00:55:39,916 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 00:55:39,918 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 00:55:39,943 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-07 00:55:39,952 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 00:55:39,952 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,956 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,956 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 00:55:39,956 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 00:55:39,957 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-07 00:55:39,958 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-07 00:55:39,958 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 00:55:40,117 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,123 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,128 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,133 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,142 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,149 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,155 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,161 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,167 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,174 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,182 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,188 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,194 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,200 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,204 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,211 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,216 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,249 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,256 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,262 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,271 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,280 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,286 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,339 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,346 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,353 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,378 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,384 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,385 [ WARNING] agent.web.scraper: XPath 提取失败 (//div[@invalid=]): Invalid expression
+2026-06-07 00:55:40,388 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,388 [ WARNING] agent.web.scraper: CSS 选择器提取失败 (div[invalid=): Expected string or ident, got <EOF at 12>
+2026-06-07 00:55:40,395 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,438 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-07 00:55:40,444 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,450 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-07 00:55:40,457 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,465 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:16:40,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,477 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,479 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,487 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,493 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,506 [ WARNING] agent.web.search: 解析 DuckDuckGo 结果失败: Parse error
+2026-06-07 00:55:40,516 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,524 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,531 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,536 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,543 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,547 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,556 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,562 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,567 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,572 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,579 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,586 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,592 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,597 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,604 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:25:00,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,615 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,618 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,629 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,636 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,640 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-07 00:55:40,654 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,661 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,673 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-07 00:55:40,673 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,686 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,693 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,700 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,706 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,713 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,721 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,730 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,816 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,816 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Unknown error
+2026-06-07 00:55:40,826 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,832 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,839 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,851 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-07 00:55:40,851 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,859 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,868 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,877 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,882 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,887 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,898 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,908 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,916 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,930 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,935 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,939 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,946 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,954 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,961 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,971 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,983 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,991 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:40,996 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,003 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,018 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,023 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,033 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,040 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,047 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,055 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,061 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,068 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-07 00:55:41,074 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,074 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,077 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,078 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=WFdoOHE2cE1RVWR5NUp4LXVXRzJGdnRqWHBZdDlYQUxDejEzSGpNamNhVT0=
+2026-06-07 00:55:41,078 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,078 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,087 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,090 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,096 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,101 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,106 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,113 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,118 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,123 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,128 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,133 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,135 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,135 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=bkFQRW5iczhUc0xsMFk4QzN2WTdXczNXTDZfbHMtZU1GNXZGTlZZRHdSTT0=
+2026-06-07 00:55:41,136 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,136 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,142 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,145 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,145 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=M1VqM1pKMVdCZU9tOGRVNHVtU29vZXBLR0JfU1h3Z2ZPdWNwVjJFNUJMZz0=
+2026-06-07 00:55:41,145 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,145 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,150 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,153 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,153 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=RWh6aC1QcjMxbFdQZTZkYWRPSmYxclQwLTViRnc4Mi1DbEhScVRaYVFVWT0=
+2026-06-07 00:55:41,153 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,153 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,158 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,161 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,162 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=RFlMRXhBUE1pZmJlWkJLazUwcnpydXQyMHczYUhER1Q0ekxPOHBFVDVaTT0=
+2026-06-07 00:55:41,162 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,162 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,167 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,170 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,170 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=c1lrbnFTR0VOS2dKY2t5Ry03VWdmbkRtTVE2dURGa2RzN1dfLTdqM1ZxWT0=
+2026-06-07 00:55:41,170 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,170 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,178 [ WARNING] agent.security_utils: cryptography库未安装，加密功能不可用
+2026-06-07 00:55:41,183 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,186 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,187 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=T05lMjJhUWl5anEwMjJJQXlXcFlhMkxWcDFacEljNzZWYXRaRFEyUUVVOD0=
+2026-06-07 00:55:41,187 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,187 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,191 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,208 [ WARNING] agent.security_utils: 加载密钥失败: Incorrect padding，将生成新密钥
+2026-06-07 00:55:41,208 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,212 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,212 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=aTJxMHA3c0YzNUtsZkRmQzlTclgtWlZKcEU4dmJkOVU2czBtd09VUTc2WT0=
+2026-06-07 00:55:41,212 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,212 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,220 [   ERROR] agent.security_utils: 生成密钥失败: Key generation failed
+2026-06-07 00:55:41,227 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,228 [   ERROR] agent.security_utils: 加密失败: Encryption failed
+2026-06-07 00:55:41,238 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,238 [   ERROR] agent.security_utils: 解密失败: Incorrect padding
+2026-06-07 00:55:41,246 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,247 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,248 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=c1dhQ0E3ZzdvOUFTUmZnM2xYQTlQLVpDZjM5ZHVnSmJ2V1ltWW1yOUV6MD0=
+2026-06-07 00:55:41,248 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,248 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,253 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,256 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,256 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=MjFqOS1kb1RrTG9GVlV3UHBURDMyWDB6QlREZXdvaFF2ZmkzYmUzUFhCTT0=
+2026-06-07 00:55:41,256 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,256 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-07 00:55:41,262 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,266 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,271 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,275 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,281 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,286 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,291 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-07 00:55:41,292 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,294 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-07 00:55:41,295 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=RGJ6c05wTmxFNEJwQTVTbEZmYldpX1NPZ1RQMmZHRnlNRDI5cHlPbmdEaz0=
+2026-06-07 00:55:41,295 [ WARNING] agent.security_utils: ======================================================================
+2026-06-07 00:55:41,295 [    INFO] agent.security_utils: 日志加密器已初始化

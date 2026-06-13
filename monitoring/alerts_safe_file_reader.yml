@@ -1,0 +1,108 @@
+# SafeFileReader 异常事件告警规则
+# 用于监控文件读取容错工具的异常行为
+# 部署位置: monitoring/alerts_safe_file_reader.yml
+# 关联指标: 需在 prometheus_exporter.py 中添加对应指标
+
+groups:
+  - name: safe_file_reader_alerts
+    interval: 30s
+    rules:
+      # ==================== 文件读取失败告警 ====================
+      
+      # 文件不存在（warning - 可能是首次运行或配置错误）
+      - alert: SafeFileReaderFileNotFound
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_not_found"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件不存在"
+          description: "检测到文件读取失败，文件不存在: {{ $labels.file_path }}"
+
+      # 文件过大被拒绝（warning - 可能配置不当或数据异常增长）
+      - alert: SafeFileReaderFileTooLarge
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_too_large"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件过大被拒绝"
+          description: "文件大小超过限制: {{ $labels.file_path }} ({{ $labels.file_size_mb }}MB > {{ $labels.max_size_mb }}MB)"
+
+      # ==================== 编码异常告警 ====================
+      
+      # UTF-8 编码失败（info - 自动降级处理中）
+      - alert: SafeFileReaderEncodingFallback
+        expr: increase(yunshu_safe_file_reader_encoding_fallbacks_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "SafeFileReader 编码降级"
+          description: "UTF-8 读取失败，已降级到备用编码: {{ $labels.file_path }}"
+
+      # 所有编码均失败（critical - 文件完全无法读取）
+      - alert: SafeFileReaderAllEncodingsFailed
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="encoding_failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SafeFileReader 编码完全失败"
+          description: "所有编码尝试均失败，文件无法读取: {{ $labels.file_path }}"
+
+      # ==================== 数据质量告警 ====================
+      
+      # 高无效行比例（warning - 数据质量下降）
+      - alert: SafeFileReaderHighInvalidRatio
+        expr: yunshu_safe_file_reader_invalid_ratio > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 无效行比例过高"
+          description: "无效行比例超过 10% (当前值: {{ $value | humanizePercentage }}, 文件: {{ $labels.file_path }})"
+
+      # 连续 JSON 解析失败（critical - 可能文件损坏）
+      - alert: SafeFileReaderConsecutiveParseFailures
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="json_parse_failed"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SafeFileReader 连续 JSON 解析失败"
+          description: "5 分钟内超过 10 行 JSON 解析失败，文件可能已损坏: {{ $labels.file_path }}"
+
+      # ==================== 服务启动加载告警 ====================
+      
+      # 历史加载失败（critical - 服务启动时历史记忆丢失）
+      - alert: SafeFileReaderHistoryLoadFailed
+        expr: increase(yunshu_safe_file_reader_errors_total{error_type="history_load_failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "历史记忆加载失败"
+          description: "服务启动时无法加载历史对话，可能导致用户看不到历史记录"
+
+      # 历史加载为空（warning - 可能是文件为空或首次运行）
+      - alert: SafeFileReaderHistoryLoadEmpty
+        expr: yunshu_safe_file_reader_loaded_history_count == 0
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "历史记忆加载为空"
+          description: "历史文件加载完成但无有效历史，可能是首次运行或文件为空"
+
+      # ==================== 性能告警 ====================
+      
+      # 文件读取耗时过长（warning - 文件过大或 IO 问题）
+      - alert: SafeFileReaderSlowRead
+        expr: histogram_quantile(0.95, rate(yunshu_safe_file_reader_read_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeFileReader 文件读取缓慢"
+          description: "95 分位读取时间超过 5 秒 (当前值: {{ $value | humanizeDuration }})"

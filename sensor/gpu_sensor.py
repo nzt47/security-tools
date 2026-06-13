@@ -40,7 +40,7 @@ class GPUSensor:
         "category": Category.GPU,
         "platforms": ["Windows", "Linux", "Darwin"],
         "dependencies": ["pynvml"],
-        "enabled_by_default": False,  # 需要 NVIDIA GPU
+        "enabled_by_default": True,   # GTX 1650 已可用
     }
 
     def __init__(self):

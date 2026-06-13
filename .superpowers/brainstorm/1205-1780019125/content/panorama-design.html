@@ -1,0 +1,168 @@
+<h2>全景视图详细设计</h2>
+<p class="subtitle">从左到右：导航栏 → 仪表盘内容区，采用 master-detail 模式</p>
+
+<div class="section">
+  <h3>全景视图 — 左侧导航 (130px)</h3>
+  <p style="color:#8b949e;font-size:13px">代替当前的线性滚动，改为分类导航 + 对应内容面板</p>
+
+  <div class="mockup" style="max-width: 800px; margin: 0 auto 16px;">
+    <div class="mockup-header">全景 — 默认"仪表盘总览"视图</div>
+    <div class="mockup-body" style="padding:0;background:#0d1117;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="display:flex;height:400px">
+        <!-- 左侧导航 -->
+        <div style="width:130px;background:#161b22;border-right:1px solid #30363d;padding:10px 8px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+          <div style="font-size:9px;color:#8b949e;padding:4px 6px;margin-bottom:4px">🧭 导航</div>
+          <div style="padding:6px 8px;border-radius:5px;background:#1c2333;color:#58a6ff;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">📊</span> 仪表盘总览
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">👁</span> 感知层
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">🧠</span> 认知层
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">💾</span> 记忆层
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">🤖</span> 行动层
+          </div>
+          <div style="height:1px;background:#21262d;margin:6px 0"></div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">🔍</span> 交互追踪
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">⚡</span> 系统总览
+          </div>
+        </div>
+
+        <!-- 右侧内容区 -->
+        <div style="flex:1;padding:12px;overflow-y:auto">
+          <!-- 流水线 -->
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 16px;margin-bottom:10px;display:flex;justify-content:center;align-items:center;gap:0">
+            <div style="text-align:center;min-width:60px"><div style="font-size:16px">👁</div><div style="font-size:9px;color:#58a6ff">感知层</div><div style="font-size:8px;color:#8b949e">BodySensor</div></div>
+            <span style="color:#30363d;margin:0 8px">→</span>
+            <div style="text-align:center;min-width:60px"><div style="font-size:16px">🧠</div><div style="font-size:9px;color:#bc8cff">认知层</div><div style="font-size:8px;color:#8b949e">Injector</div></div>
+            <span style="color:#30363d;margin:0 8px">→</span>
+            <div style="text-align:center;min-width:60px"><div style="font-size:16px">💾</div><div style="font-size:9px;color:#3fb950">记忆层</div><div style="font-size:8px;color:#8b949e">Memory</div></div>
+            <span style="color:#30363d;margin:0 8px">→</span>
+            <div style="text-align:center;min-width:60px"><div style="font-size:16px">🤖</div><div style="font-size:9px;color:#d29922">行动层</div><div style="font-size:8px;color:#8b949e">DigitalLife</div></div>
+            <span style="color:#30363d;margin:0 8px">→</span>
+            <div style="text-align:center;min-width:50px"><div style="font-size:16px;color:#f85149">💬</div><div style="font-size:9px;color:#c9d1d9">响应</div></div>
+          </div>
+
+          <!-- 四阶段指标卡片 2x2 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+            <div style="background:#161b22;border-left:3px solid #58a6ff;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#58a6ff;font-weight:bold;margin-bottom:4px">👁 感知层</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">42%</div><div style="font-size:7px;color:#8b949e">CPU</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">58%</div><div style="font-size:7px;color:#8b949e">内存</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">72%</div><div style="font-size:7px;color:#8b949e">磁盘</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">3/5</div><div style="font-size:7px;color:#8b949e">传感器</div></div>
+              </div>
+            </div>
+            <div style="background:#161b22;border-left:3px solid #bc8cff;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#bc8cff;font-weight:bold;margin-bottom:4px">🧠 认知层</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#3fb950">活跃</div><div style="font-size:7px;color:#8b949e">引擎状态</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#3fb950">✓</div><div style="font-size:7px;color:#8b949e">可执行</div></div>
+              </div>
+            </div>
+            <div style="background:#161b22;border-left:3px solid #3fb950;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#3fb950;font-weight:bold;margin-bottom:4px">💾 记忆层</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">42</div><div style="font-size:7px;color:#8b949e">消息数</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">v3</div><div style="font-size:7px;color:#8b949e">摘要版本</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">128</div><div style="font-size:7px;color:#8b949e">日志条数</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">80%</div><div style="font-size:7px;color:#8b949e">压缩阈值</div></div>
+              </div>
+            </div>
+            <div style="background:#161b22;border-left:3px solid #d29922;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#d29922;font-weight:bold;margin-bottom:4px">🤖 行动层</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">正常</div><div style="font-size:7px;color:#8b949e">行为模式</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">5</div><div style="font-size:7px;color:#8b949e">注册工具</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#c9d1d9">12</div><div style="font-size:7px;color:#8b949e">反思记录</div></div>
+                <div style="background:#0d1117;border-radius:3px;padding:3px;text-align:center"><div style="font-size:13px;color:#3fb950">已连接</div><div style="font-size:7px;color:#8b949e">LLM</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 事件流 + 系统总览 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#c9d1d9;font-weight:bold;margin-bottom:4px">📋 实时事件流</div>
+              <div style="font-size:8px;color:#8b949e;max-height:90px;overflow:hidden">
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">10:25 🎯 模式: 正常</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">10:25 🧠 LLM 已连接</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">10:24 ⚠ 磁盘使用 72%</div>
+                <div style="padding:2px 0;border-bottom:1px solid #21262d40">10:23 💬 用户消息</div>
+              </div>
+            </div>
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:8px 10px">
+              <div style="font-size:9px;color:#c9d1d9;font-weight:bold;margin-bottom:4px">⚡ 系统总览</div>
+              <div style="font-size:8px;color:#8b949e;line-height:1.6">
+                会话: abc123def<br>
+                交互次数: 42<br>
+                运行时间: 12分30秒<br>
+                行为模式: <span style="background:#3fb95020;color:#3fb950;padding:0 5px;border-radius:4px">正常</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="max-width: 800px; margin: 0 auto;">
+    <div class="mockup-header">点击导航 → 进入单层详情视图（以"感知层"为例）</div>
+    <div class="mockup-body" style="padding:0;background:#0d1117;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="display:flex;height:300px">
+        <div style="width:130px;background:#161b22;border-right:1px solid #30363d;padding:10px 8px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">📊 仪表盘总览</div>
+          <div style="padding:6px 8px;border-radius:5px;background:#1c2333;color:#58a6ff;cursor:pointer;font-size:10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px">👁</span> 感知层
+          </div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">🧠 认知层</div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">💾 记忆层</div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">🤖 行动层</div>
+          <div style="height:1px;background:#21262d;margin:6px 0"></div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">🔍 交互追踪</div>
+          <div style="padding:6px 8px;border-radius:5px;color:#8b949e;cursor:pointer;font-size:10px">⚡ 系统总览</div>
+        </div>
+        <div style="flex:1;padding:12px;overflow-y:auto">
+          <div style="background:#161b22;border-left:3px solid #58a6ff;border-radius:4px;padding:10px;margin-bottom:8px">
+            <div style="font-size:11px;color:#58a6ff;font-weight:bold;margin-bottom:6px">👁 感知底座 · BodySensor</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px">
+              <div style="background:#0d1117;border-radius:3px;padding:4px;text-align:center"><div style="font-size:14px;color:#3fb950">42%</div><div style="font-size:7px;color:#8b949e">CPU</div></div>
+              <div style="background:#0d1117;border-radius:3px;padding:4px;text-align:center"><div style="font-size:14px;color:#3fb950">58%</div><div style="font-size:7px;color:#8b949e">内存</div></div>
+              <div style="background:#0d1117;border-radius:3px;padding:4px;text-align:center"><div style="font-size:14px;color:#d29922">72%</div><div style="font-size:7px;color:#8b949e">磁盘</div></div>
+              <div style="background:#0d1117;border-radius:3px;padding:4px;text-align:center"><div style="font-size:14px;color:#3fb950">85%</div><div style="font-size:7px;color:#8b949e">电池</div></div>
+            </div>
+            <div style="font-size:9px;color:#8b949e;margin-bottom:4px">📡 传感器: 3/5 活跃</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px">
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📂 传感器四大分类</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:8px">
+              <div style="background:#0d1117;padding:3px 6px;border-radius:3px;display:flex;justify-content:space-between"><span style="color:#8b949e">🖥 系统资源</span><span style="color:#c9d1d9">4个</span></div>
+              <div style="background:#0d1117;padding:3px 6px;border-radius:3px;display:flex;justify-content:space-between"><span style="color:#8b949e">📡 网络状态</span><span style="color:#c9d1d9">2个</span></div>
+              <div style="background:#0d1117;padding:3px 6px;border-radius:3px;display:flex;justify-content:space-between"><span style="color:#8b949e">⏱ 进程信息</span><span style="color:#c9d1d9">3个</span></div>
+              <div style="background:#0d1117;padding:3px 6px;border-radius:3px;display:flex;justify-content:space-between"><span style="color:#8b949e">🌡 环境感知</span><span style="color:#c9d1d9">1个</span></div>
+            </div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:10px">
+            <div style="font-size:9px;color:#8b949e;font-weight:bold;margin-bottom:4px">📡 全部传感器</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:8px">
+              <div style="padding:2px 4px">🟢 cpu_usage</div>
+              <div style="padding:2px 4px">🟢 memory_usage</div>
+              <div style="padding:2px 4px">🟡 disk_usage</div>
+              <div style="padding:2px 4px">🟢 battery</div>
+              <div style="padding:2px 4px">⚫ network</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

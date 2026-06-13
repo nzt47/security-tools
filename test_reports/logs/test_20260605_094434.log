@@ -1,0 +1,82 @@
+2026-06-05 09:44:34,783 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 09:44:34,808 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 09:44:34,817 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 09:44:34,823 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 09:44:34,863 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 09:44:34,869 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 09:44:34,871 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 09:44:34,873 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 09:44:34,879 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 09:44:34,912 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 09:44:34,912 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 09:44:34,915 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 09:44:34,919 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 09:44:35,206 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 09:44:35,217 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 09:44:35,217 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 09:44:35,227 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 09:44:35,227 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 09:44:35,227 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 09:44:35,228 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 09:44:35,228 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 09:44:35,228 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 09:44:35,228 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 09:44:35,229 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 09:44:35,229 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 09:44:35,229 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 09:44:35,230 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 09:44:35,230 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 09:44:35,230 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 09:44:35,428 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,429 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,429 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 09:44:35,430 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 09:44:35,430 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 09:44:35,430 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-05 09:44:35,434 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-05 09:44:35,435 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 09:44:35,441 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,442 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,442 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 09:44:35,443 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 09:44:35,443 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 09:44:35,443 [    INFO] agent.p6_snapshot: [P6] │   └─ 查找指定快照ID: test-snapshot-123
+2026-06-05 09:44:35,446 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-05 09:44:35,446 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 09:44:35,454 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,455 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,461 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,462 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,468 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,469 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,471 [ WARNING] agent.p6_snapshot: [P6] 快照文件不存在: \fake\path
+2026-06-05 09:44:35,479 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,480 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,784 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,785 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,792 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,793 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,800 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,801 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,808 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,809 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,810 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: p5.0.0, 当前版本: p6.2.0
+2026-06-05 09:44:35,815 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,816 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,817 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: , 当前版本: p6.2.0
+2026-06-05 09:44:35,865 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,866 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,874 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 09:44:35,876 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 09:44:35,880 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap10
+2026-06-05 09:44:35,880 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap10
+2026-06-05 09:44:35,881 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap11
+2026-06-05 09:44:35,881 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap11
+2026-06-05 09:44:35,882 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap12
+2026-06-05 09:44:35,882 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap12
+2026-06-05 09:44:35,882 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap13
+2026-06-05 09:44:35,883 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap13
+2026-06-05 09:44:35,883 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap14
+2026-06-05 09:44:35,883 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap14

@@ -1,0 +1,65 @@
+2026-06-08 22:37:47,564 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 22:37:47,607 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 22:37:47,614 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 22:37:47,621 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 22:37:47,666 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 22:37:47,672 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 22:37:47,675 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 22:37:47,676 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 22:37:47,683 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 22:37:47,716 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 22:37:47,716 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 22:37:47,718 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 22:37:47,721 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 22:37:47,986 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 22:37:47,993 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 22:37:47,994 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 22:37:48,001 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 22:37:48,001 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 22:37:48,001 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 22:37:48,002 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 22:37:48,003 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 22:37:48,003 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 22:37:48,078 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=1
+2026-06-08 22:37:48,078 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 1 failures
+2026-06-08 22:37:48,078 [    INFO] agent.error_handler: Circuit breaker 'test_cb': recovered to CLOSED state
+2026-06-08 22:37:48,086 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,091 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,096 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=1
+2026-06-08 22:37:48,096 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 1 failures
+2026-06-08 22:37:48,248 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=1
+2026-06-08 22:37:48,253 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 1 failures
+2026-06-08 22:37:48,258 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,262 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=1
+2026-06-08 22:37:48,263 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 1 failures
+2026-06-08 22:37:48,268 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,271 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,377 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 22:37:48,378 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=5
+2026-06-08 22:37:48,383 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 22:37:48,383 [    INFO] agent.error_handler: Circuit breaker 'cb1' initialized: max_failures=3
+2026-06-08 22:37:48,383 [    INFO] agent.error_handler: Circuit breaker 'cb2' initialized: max_failures=5
+2026-06-08 22:37:48,388 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 22:37:48,393 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 22:37:48,393 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=3
+2026-06-08 22:37:48,408 [ WARNING] agent.error_handler: [async_with_retry] 第 1/2 次尝试失败, 等待 0.01s 后重试: 总是失败
+2026-06-08 22:37:48,422 [ WARNING] agent.error_handler: [async_with_retry] 第 2/2 次尝试失败, 等待 0.02s 后重试: 总是失败
+2026-06-08 22:37:48,454 [   ERROR] agent.error_handler: [async_with_retry] 所有 2 次重试已用尽: func=always_fail
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 714, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler_final_coverage.py", line 342, in always_fail
+    raise YunshuError("总是失败", retryable=True)
+agent.error_handler.YunshuError: 总是失败
+2026-06-08 22:37:48,455 [   ERROR] agent.error_handler: [error] unknown: 总是失败
+2026-06-08 22:37:48,460 [    INFO] agent.error_handler: Circuit breaker 'async_cb' initialized: max_failures=2

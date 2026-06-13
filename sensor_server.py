@@ -1,5 +1,5 @@
 """
-灵犀感知底座 — Web 可视化仪表盘
+云枢感知底座 — Web 可视化仪表盘
 
 快速 API（健康+传感器列表）立即加载，
 传感器读数采用按类别点按式加载（懒加载），避免全量采集超时。
@@ -196,7 +196,7 @@ HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>灵犀 · 感知底座</title>
+<title>云枢 · 感知底座</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;padding:20px}
@@ -257,7 +257,7 @@ h1{font-size:24px;margin-bottom:4px}
 </style>
 </head>
 <body>
-<h1>🧠 灵犀 · 感知底座</h1>
+<h1>🧠 云枢 · 感知底座</h1>
 <div class="sub">PC 硬件/软件/行为传感器系统 · 点击传感器查看读数</div>
 
 <div class="grid-2">
@@ -760,7 +760,7 @@ except Exception as e:
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  灵犀感知底座 · Web 仪表盘")
+    print("  云枢感知底座 · Web 仪表盘")
     print("  http://127.0.0.1:5678")
     print("=" * 50)
     print("  点击传感器卡片按类别加载数据")

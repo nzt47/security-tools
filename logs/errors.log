@@ -1,0 +1,152 @@
+
+================================================================================
+Level: ERROR
+Time: 2026-05-30T19:44:52.690037
+Type: Exception
+Message: Shortcut test
+Trace ID: N/A
+
+Context:
+{
+  "shortcut": true
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-05-31T00:08:11.538891
+Type: Exception
+Message: Shortcut test
+Trace ID: N/A
+
+Context:
+{
+  "shortcut": true
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-02T17:03:59.143465
+Type: ValueError
+Message: catch me
+Trace ID: N/A
+
+Context:
+{
+  "test": "context",
+  "function": "catch_func",
+  "trace_id": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 392, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\test_error_handling.py", line 176, in catch_func
+    raise ValueError("catch me")
+ValueError: catch me
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-02T17:05:57.650937
+Type: ValueError
+Message: catch me
+Trace ID: N/A
+
+Context:
+{
+  "test": "context",
+  "function": "catch_func",
+  "trace_id": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 392, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\test_error_handling.py", line 176, in catch_func
+    raise ValueError("catch me")
+ValueError: catch me
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-02T17:06:38.824733
+Type: ValueError
+Message: catch me
+Trace ID: N/A
+
+Context:
+{
+  "test": "context",
+  "function": "catch_func",
+  "trace_id": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 392, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\test_error_handling.py", line 176, in catch_func
+    raise ValueError("catch me")
+ValueError: catch me
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-02T17:07:31.247265
+Type: ValueError
+Message: catch me
+Trace ID: N/A
+
+Context:
+{
+  "test": "context",
+  "function": "catch_func",
+  "trace_id": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 392, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\test_error_handling.py", line 176, in catch_func
+    raise ValueError("catch me")
+ValueError: catch me
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-03T09:06:55.891866
+Type: ValueError
+Message: catch me
+Trace ID: N/A
+
+Context:
+{
+  "test": "context",
+  "function": "catch_func",
+  "trace_id": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 392, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\test_error_handling.py", line 176, in catch_func
+    raise ValueError("catch me")
+ValueError: catch me
+

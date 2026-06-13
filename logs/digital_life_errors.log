@@ -1,0 +1,248 @@
+
+================================================================================
+Level: ERROR
+Time: 2026-05-31T00:12:31.083132
+Type: RuntimeError
+Message: 🚨 This is a test error for reporting!
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "这会触发错误！",
+  "trace_id": "abf20c0c8ae34325",
+  "interaction_count": 2,
+  "session_id": "20260531_001215"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 294, in chat
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\test_digital_life_error_reporting.py", line 91, in failing_process
+    raise RuntimeError("🚨 This is a test error for reporting!")
+RuntimeError: 🚨 This is a test error for reporting!
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-09T10:23:49.166823
+Type: AttributeError
+Message: 'BodySensor' object has no attribute 'get_health_report'
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "检查我的身体状态，调用 get_health_report 方法",
+  "trace_id": "e0998a5898204d7a",
+  "interaction_count": 30,
+  "session_id": "20260609_100531"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 872, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1193, in _process_user_input
+    response = self._call_llm(user_input, body_status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1306, in _call_llm
+    return self._build_offline_response(user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1457, in _build_offline_response
+    health = self.body.get_health_report()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BodySensor' object has no attribute 'get_health_report'
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-11T12:36:41.252572
+Type: AttributeError
+Message: 'ToolCallingService' object has no attribute '_get_last_assistant_text'
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "今天有什么国际新闻？",
+  "trace_id": "adc75e1cab784b84",
+  "interaction_count": 2,
+  "session_id": "20260611_121922"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 61, in chat_with_steps
+    response = self._call_llm_with_tools(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 167, in _call_llm_with_tools
+    response = client.chat.completions.create(**kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\resources\chat\completions\completions.py", line 1204, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'Content Exists Risk', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 890, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1211, in _process_user_input
+    response = self._call_llm(user_input, body_status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1308, in _call_llm
+    dl_result = self._tool_calling_service.chat_with_steps(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 80, in chat_with_steps
+    return {"text": self._get_last_assistant_text(working_messages), "steps": steps}
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ToolCallingService' object has no attribute '_get_last_assistant_text'
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-11T12:40:04.616718
+Type: AttributeError
+Message: 'ToolCallingService' object has no attribute '_get_last_assistant_text'
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "今天有什么国际新闻？",
+  "trace_id": "52106361d3814fee",
+  "interaction_count": 3,
+  "session_id": "20260611_121922"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 61, in chat_with_steps
+    response = self._call_llm_with_tools(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 167, in _call_llm_with_tools
+    response = client.chat.completions.create(**kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\resources\chat\completions\completions.py", line 1204, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'Content Exists Risk', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 890, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1211, in _process_user_input
+    response = self._call_llm(user_input, body_status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1308, in _call_llm
+    dl_result = self._tool_calling_service.chat_with_steps(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 80, in chat_with_steps
+    return {"text": self._get_last_assistant_text(working_messages), "steps": steps}
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ToolCallingService' object has no attribute '_get_last_assistant_text'
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-11T20:59:48.806991
+Type: TypeError
+Message: Object of type bytes is not JSON serializable
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "飞书和 Firecrawl的API Key / Token你可以到C:\\Users\\Administrator\\.openclaw\\.env里面找，找到了帮我把这两个搞过来",
+  "trace_id": "97e5e4d769e24f42",
+  "interaction_count": 7,
+  "session_id": "20260611_200542"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 891, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1212, in _process_user_input
+    response = self._call_llm(user_input, body_status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1310, in _call_llm
+    dl_result = self._tool_calling_service.chat_with_steps(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\tool_calling.py", line 137, in chat_with_steps
+    "content": json.dumps(result, ensure_ascii=False),
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\json\__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type bytes is not JSON serializable
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-12T16:00:56.492363
+Type: NameError
+Message: name 'json' is not defined
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "你好",
+  "trace_id": "6017711cf8d343a2",
+  "interaction_count": 1,
+  "session_id": "20260612_155757"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1256, in _get_enabled_tools_whitelist
+    data = json.load(f)
+           ^^^^
+NameError: name 'json' is not defined. Did you forget to import 'json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 891, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1212, in _process_user_input
+    response = self._call_llm(user_input, body_status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1323, in _call_llm
+    tools_whitelist = self._get_enabled_tools_whitelist()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1261, in _get_enabled_tools_whitelist
+    except (FileNotFoundError, json.JSONDecodeError):
+                               ^^^^
+NameError: name 'json' is not defined. Did you forget to import 'json'
+

@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_1029_20260605152033",
+  "content": "（轻量模式）正常\n\n<MagicMock name='BehaviorController().profile.suggestion' id='2287791574432'>",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "assistant",
+    "interaction_id": 1
+  },
+  "created_at": "2026-06-05T15:20:33.732810",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "assistant"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

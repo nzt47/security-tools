@@ -21,6 +21,7 @@ import os
 import json
 import logging
 import uuid
+import datetime
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Any, Optional, List
@@ -66,13 +67,16 @@ _DEFAULT_NETWORK_CONFIG = {
         "max_results": 10,
         "timeout": 30,
         "cache_ttl": 300,
-        "engine_priority": ["duckduckgo", "tavily", "bing", "brave", "google"],
+        "engine_priority": ["duckduckgo", "baidu", "sogou", "so360", "tavily", "bing", "brave", "google"],
         "engine_enabled": {
             "duckduckgo": True,
             "tavily": True,
             "bing": True,
             "google": True,
             "brave": True,
+            "baidu": True,
+            "sogou": True,
+            "so360": True,
         },
     },
     # 搜索引擎 API Key（敏感信息，加密存储）
@@ -230,6 +234,24 @@ class NetworkConfigManager:
                 'google_cx': '',
                 'brave': '',
             }
+
+        # 确保搜索引擎启用状态包含新引擎
+        search_cfg = self._cache.get('search', {})
+        if 'engine_enabled' in search_cfg:
+            default_enabled = {
+                'duckduckgo': True, 'tavily': True, 'bing': True,
+                'google': True, 'brave': True,
+                'baidu': True, 'sogou': True, 'so360': True,
+            }
+            for engine, enabled in default_enabled.items():
+                if engine not in search_cfg['engine_enabled']:
+                    search_cfg['engine_enabled'][engine] = enabled
+
+        # 确保 LLM 实例都有 ID
+        for instance in self._cache.get('llm_instances', []):
+            if not instance.get('id'):
+                instance['id'] = str(uuid.uuid4())
+                logger.info(f"[网络配置] 为实例 {instance.get('name')} 自动生成 ID: {instance['id']}")
 
     def _save(self, data: dict):
         """保存网络配置到文件"""
@@ -608,7 +630,11 @@ class NetworkConfigManager:
         return self.get_llm_instance(new_instance['id'])
 
     def update_llm_instance(self, instance_id: str, updates: dict) -> Optional[dict]:
-        """更新 LLM 实例"""
+        """更新 LLM 实例
+        
+        Args:
+            instance_id: 实例 ID 或实例名称
+        """
         import datetime
         
         logger.info(f"[网络配置] 开始更新 LLM 实例: instance_id={instance_id}, updates_keys={list(updates.keys())}")
@@ -617,18 +643,21 @@ class NetworkConfigManager:
         instances = config.get('llm_instances', [])
         
         for instance in instances:
-            if instance['id'] == instance_id:
+            # 支持 UUID 和名称匹配
+            if (instance.get('id') == instance_id or instance.get('name') == instance_id):
+                actual_id = instance.get('id') or instance.get('name')
+                
                 # 检查名称是否与其他实例重复
                 if 'name' in updates:
-                    if any(i['name'] == updates['name'] and i['id'] != instance_id for i in instances):
+                    if any(i['name'] == updates['name'] and (i.get('id') or i.get('name')) != actual_id for i in instances):
                         logger.warning(f"[网络配置] LLM 实例名称重复: {updates['name']}")
                         raise ValueError(f"LLM 实例名称已存在: {updates['name']}")
 
                 # 处理 API Key 更新
                 api_key = updates.get('api_key', '')
                 if api_key and api_key != '***' and not api_key.startswith('***'):
-                    logger.debug(f"[网络配置] 更新 LLM 实例 API Key: instance_id={instance_id}")
-                    self._save_secure(f'llm_{instance_id}_api_key', api_key)
+                    logger.debug(f"[网络配置] 更新 LLM 实例 API Key: instance_id={actual_id}")
+                    self._save_secure(f'llm_{actual_id}_api_key', api_key)
                 elif api_key and api_key.startswith('***'):
                     updates.pop('api_key', None)  # 跳过脱敏值
 
@@ -636,65 +665,91 @@ class NetworkConfigManager:
                 instance['updated_at'] = datetime.datetime.now().isoformat()
                 
                 self._save(config)
-                self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
+                self._add_change_log('update', 'llm_instance', {'id': actual_id, 'name': instance.get('name')})
                 
-                logger.info(f"[网络配置] 已成功更新 LLM 实例: id={instance_id}, name={instance.get('name')}")
-                return self.get_llm_instance(instance_id)
+                logger.info(f"[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get('name')}")
+                return self.get_llm_instance(actual_id)
         
         logger.warning(f"[网络配置] 更新 LLM 实例失败，未找到实例: instance_id={instance_id}")
         return None
 
     def delete_llm_instance(self, instance_id: str) -> bool:
-        """删除 LLM 实例"""
+        """删除 LLM 实例
+        
+        Args:
+            instance_id: 实例 ID 或实例名称
+        """
         logger.info(f"[网络配置] 开始删除 LLM 实例: instance_id={instance_id}")
         
         config = self._load()
         instances = config.get('llm_instances', [])
         
-        before_count = len(instances)
-        config['llm_instances'] = [i for i in instances if i['id'] != instance_id]
+        # 找到要删除的实例
+        instance_to_delete = None
+        for instance in instances:
+            if instance.get('id') == instance_id or instance.get('name') == instance_id:
+                instance_to_delete = instance
+                break
         
-        if len(config['llm_instances']) < before_count:
-            # 删除对应的加密密钥
-            logger.debug(f"[网络配置] 删除 LLM 实例加密密钥: instance_id={instance_id}")
-            self._save_secure(f'llm_{instance_id}_api_key', '')
-            
-            # 如果删除的是默认实例，清空 default_llm_instance
-            if config.get('default_llm_instance') == instance_id:
-                config['default_llm_instance'] = ''
-            
-            self._save(config)
-            self._add_change_log('delete', 'llm_instance', {'id': instance_id})
-            
-            logger.info(f"[网络配置] 已成功删除 LLM 实例: instance_id={instance_id}")
-            return True
+        if not instance_to_delete:
+            logger.warning(f"[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}")
+            return False
         
-        logger.warning(f"[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}")
-        return False
+        actual_id = instance_to_delete.get('id') or instance_to_delete.get('name')
+        
+        # 删除实例
+        config['llm_instances'] = [i for i in instances if (i.get('id') or i.get('name')) != actual_id]
+        
+        # 删除对应的加密密钥
+        logger.debug(f"[网络配置] 删除 LLM 实例加密密钥: instance_id={actual_id}")
+        self._save_secure(f'llm_{actual_id}_api_key', '')
+        
+        # 如果删除的是默认实例，清空 default_llm_instance
+        if config.get('default_llm_instance') == actual_id:
+            config['default_llm_instance'] = ''
+        
+        self._save(config)
+        self._add_change_log('delete', 'llm_instance', {'id': actual_id})
+        
+        logger.info(f"[网络配置] 已成功删除 LLM 实例: instance_id={actual_id}")
+        return True
 
     def set_default_llm_instance(self, instance_id: str) -> bool:
-        """设置默认 LLM 实例"""
+        """设置默认 LLM 实例
+        
+        Args:
+            instance_id: 实例 ID 或实例名称
+        """
         logger.info(f"[网络配置] 开始设置默认 LLM 实例: instance_id={instance_id}")
         
         config = self._load()
         
-        # 检查实例是否存在
-        instance_exists = any(i['id'] == instance_id for i in config.get('llm_instances', []))
-        if not instance_exists:
+        # 检查实例是否存在（支持 UUID 和名称匹配）
+        instance_found = None
+        for instance in config.get('llm_instances', []):
+            if instance.get('id') == instance_id or instance.get('name') == instance_id:
+                instance_found = instance
+                break
+        
+        if not instance_found:
             logger.warning(f"[网络配置] 设置默认 LLM 实例失败，实例不存在: instance_id={instance_id}")
             return False
         
+        # 获取实际的实例 ID（优先使用 UUID，如果没有则使用名称）
+        actual_id = instance_found.get('id') or instance_found.get('name')
+        logger.info(f"[网络配置] 找到实例: name={instance_found.get('name')}, actual_id={actual_id}")
+        
         # 更新所有实例的 is_default 标记
         for instance in config.get('llm_instances', []):
-            instance['is_default'] = (instance['id'] == instance_id)
+            instance['is_default'] = ((instance.get('id') or instance.get('name')) == actual_id)
         
         # 更新默认实例 ID
-        config['default_llm_instance'] = instance_id
+        config['default_llm_instance'] = actual_id
         
         self._save(config)
-        self._add_change_log('update', 'llm_instance', {'id': instance_id, 'action': 'set_default'})
+        self._add_change_log('update', 'llm_instance', {'id': actual_id, 'action': 'set_default'})
         
-        logger.info(f"[网络配置] 已成功设置默认 LLM 实例: instance_id={instance_id}")
+        logger.info(f"[网络配置] 已成功设置默认 LLM 实例: instance_id={actual_id}")
         return True
 
     # ════════════════════════════════════════════════════════════
@@ -824,10 +879,13 @@ class NetworkConfigManager:
                     'default_engine': search_config.get('default_engine', 'duckduckgo'),
                 }
                 
-                # 添加 API Keys
-                for key_name in ['tavily', 'bing', 'google', 'google_cx', 'brave']:
-                    if search_api_keys.get(key_name):
-                        update_config[f'{key_name}_api_key' if key_name != 'google_cx' else 'google_cx'] = search_api_keys[key_name]
+                # 动态添加 API Keys（所有非空值）
+                for key_name, key_value in search_api_keys.items():
+                    if key_value:
+                        if key_name == 'google_cx':
+                            update_config['google_cx'] = key_value
+                        else:
+                            update_config[f'{key_name}_api_key'] = key_value
                 
                 app_instance._web_search.update_config(update_config)
                 logger.info("[网络配置] [即时生效] 搜索引擎配置已更新:")
@@ -874,12 +932,25 @@ class NetworkConfigManager:
         config = self.get_raw_config()
         search_config = config.get('search', {})
         api_keys = config.get('search_api_keys', {})
-        
+
         # 检查 API Key 是否已配置（非空字符串）
         def is_key_configured(key_name):
             key_value = api_keys.get(key_name, '')
             return bool(key_value and key_value.strip())
-        
+
+        # 动态生成 api_keys 状态（基于 engine_priority 列表）
+        api_keys_status = {}
+        for engine in search_config.get('engine_priority', []):
+            if engine == 'google':
+                api_keys_status['google'] = is_key_configured('google')
+                api_keys_status['google_cx'] = is_key_configured('google_cx')
+            elif engine in api_keys:
+                api_keys_status[engine] = is_key_configured(engine)
+            # 无需 API Key 的引擎（duckduckgo, baidu, sogou, so360）自动标记为 True
+            if engine in ('duckduckgo', 'baidu', 'sogou', 'so360'):
+                engine_key = f'{engine}_configured'
+                api_keys_status[engine_key] = True
+
         return {
             'enabled': search_config.get('enabled', True),
             'default_engine': search_config.get('default_engine', 'duckduckgo'),
@@ -887,13 +958,7 @@ class NetworkConfigManager:
             'timeout': search_config.get('timeout', 30),
             'engine_priority': search_config.get('engine_priority', ['duckduckgo', 'tavily']),
             'engine_enabled': search_config.get('engine_enabled', {}),
-            'api_keys': {
-                'tavily': is_key_configured('tavily'),
-                'bing': is_key_configured('bing'),
-                'google': is_key_configured('google'),
-                'google_cx': is_key_configured('google_cx'),
-                'brave': is_key_configured('brave'),
-            },
+            'api_keys': api_keys_status,
         }
 
     def update_search_config(self, search_updates: dict) -> dict:

@@ -1,0 +1,153 @@
+2026-06-08 00:23:54,218 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 00:23:54,223 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 00:23:54,248 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 00:23:54,254 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 00:23:54,260 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 00:23:54,297 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 00:23:54,300 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 00:23:54,304 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 00:23:54,305 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 00:23:54,312 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 00:23:54,341 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 00:23:54,343 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 00:23:54,345 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 00:23:54,600 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 00:23:54,609 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 00:23:54,610 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:23:54,622 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:23:54,622 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 00:23:54,622 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 00:23:54,623 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 00:23:54,623 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 00:23:54,623 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 00:23:54,623 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 00:23:54,623 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 00:23:54,624 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 00:23:54,624 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:23:54,624 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 00:23:54,625 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 00:23:54,625 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 00:23:54,736 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-08 00:23:54,738 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-08 00:23:54,740 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-08 00:23:54,740 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,740 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-08 00:23:54,754 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-08 00:23:54,771 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:54,784 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-08 00:23:54,820 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-08 00:23:54,925 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,930 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-08 00:23:54,936 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用, 降级为 json
+2026-06-08 00:23:54,936 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,938 [ WARNING] agent.utils.serialization: [Serialization] cbor 不可用, 降级为 json
+2026-06-08 00:23:54,938 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,947 [ WARNING] agent.utils.serialization: [Serialization] 未知格式: unknown_format, 使用 json
+2026-06-08 00:23:54,948 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,952 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,960 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=True
+2026-06-08 00:23:54,968 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,973 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,974 [   ERROR] agent.utils.serialization: [Serialization] 加载失败: C:\Windows\TEMP\tmp9z24deet, 错误: Expecting value: line 1 column 1 (char 0)
+2026-06-08 00:23:54,998 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-08 00:23:54,999 [    INFO] agent.utils.serialization: [Serialization] json: {'serialize_time_ms': 0.0, 'deserialize_time_ms': 0.078, 'size_bytes': 512, 'total_time_ms': 0.078}
+2026-06-08 00:23:54,999 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-08 00:23:55,000 [    INFO] agent.utils.serialization: [Serialization] pickle: {'serialize_time_ms': 0.0, 'deserialize_time_ms': 0.0, 'size_bytes': 405, 'total_time_ms': 0.0}
+2026-06-08 00:23:55,015 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,015 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,019 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,019 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,029 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,029 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,034 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,035 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,040 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,040 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,045 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,046 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,050 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,050 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,061 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,061 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,068 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,068 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,071 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,071 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,078 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,079 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,084 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,084 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,085 [    INFO] agent.utils.index_manager: [IndexManager] 清空索引
+2026-06-08 00:23:55,088 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,088 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,094 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,094 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,100 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,100 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,105 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,105 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,109 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-08 00:23:55,110 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-08 00:23:55,133 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:55,138 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:55,144 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=1s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:56,265 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=3, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:56,270 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:56,276 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:56,276 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-08 00:23:56,282 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-08 00:23:56,288 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=1s), L2(enabled=True, dir=C:\Windows\TEMP\tmp3zuqcm8d, max=100MB)
+2026-06-08 00:23:57,420 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-08 00:23:57,437 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-08 00:23:57,441 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=1s
+2026-06-08 00:23:58,550 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=3, ttl=3600s
+2026-06-08 00:23:58,575 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-08 00:23:58,587 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-08 00:23:58,598 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-08 00:23:58,767 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,767 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,773 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,773 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,774 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_cron (每周0 09:00)
+2026-06-08 00:23:58,779 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,780 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,780 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_interval (每60秒)
+2026-06-08 00:23:58,787 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,787 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,788 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-08 00:23:58,788 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test_task
+2026-06-08 00:23:58,793 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,794 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,794 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-08 00:23:58,795 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: test_task, 错误: test error
+2026-06-08 00:23:58,800 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,800 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,805 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,805 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,811 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,811 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,816 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,817 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,822 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,823 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,823 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: task1 (每周0 09:00)
+2026-06-08 00:23:58,823 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: task2 (每60秒)
+2026-06-08 00:23:58,829 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,829 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,829 [    INFO] agent.task_scheduler: [TaskScheduler] 停止调度器
+2026-06-08 00:23:58,836 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,836 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,836 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: immediate (每1秒)
+2026-06-08 00:23:58,836 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: immediate
+2026-06-08 00:23:58,838 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: immediate
+2026-06-08 00:23:58,842 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 00:23:58,843 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 00:23:58,843 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-08 00:23:58,843 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-08 00:23:58,852 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-08 00:23:58,854 [    INFO] agent.task_scheduler: [TaskScheduler] 日志清理完成
+2026-06-08 00:23:58,863 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-08 00:23:58,865 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-08 00:23:58,866 [    INFO] agent.task_scheduler: [TaskScheduler] 周报生成完成: 1 个文件

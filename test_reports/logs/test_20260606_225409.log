@@ -1,0 +1,120 @@
+2026-06-06 22:54:09,692 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 22:54:09,700 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 22:54:09,703 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 22:54:09,708 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 22:54:09,732 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 22:54:09,736 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 22:54:09,738 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 22:54:09,739 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 22:54:09,743 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 22:54:09,755 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 22:54:09,756 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 22:54:09,757 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 22:54:09,758 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 22:54:09,778 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-06 22:54:09,788 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 22:54:09,788 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 22:54:09,794 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-06 22:54:09,795 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 22:54:09,795 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:09,795 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-06 22:54:09,795 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-06 22:54:09,795 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 22:54:10,058 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 22:54:10,071 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 22:54:10,076 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 22:54:10,082 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 22:54:10,113 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 22:54:10,119 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 22:54:10,121 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 22:54:10,122 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 22:54:10,126 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 22:54:10,150 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 22:54:10,150 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 22:54:10,152 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 22:54:10,154 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 22:54:10,186 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-06 22:54:10,200 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 22:54:10,202 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:10,207 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:10,207 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 22:54:10,208 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 22:54:10,208 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 22:54:10,208 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 22:54:10,209 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 22:54:10,209 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 22:54:10,209 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-06 22:54:10,209 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 22:54:10,210 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 22:54:10,210 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-06 22:54:10,210 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-06 22:54:10,210 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 22:54:10,316 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,322 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,332 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 22:54:10,332 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,349 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,356 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,362 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,369 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,376 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,383 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,390 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,450 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,450 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Unknown error
+2026-06-06 22:54:10,458 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,463 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,468 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,477 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 22:54:10,477 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,486 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,493 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,500 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,505 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,511 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,522 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,532 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,538 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,551 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,558 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,562 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,569 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,576 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,584 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,592 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,606 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,614 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,620 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,627 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,642 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,648 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,723 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,731 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,737 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,746 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,752 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 22:54:10,757 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化

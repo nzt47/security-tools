@@ -1,0 +1,36 @@
+2026-06-07 23:57:11,136 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 23:57:11,166 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 23:57:11,174 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 23:57:11,182 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 23:57:11,222 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 23:57:11,226 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 23:57:11,226 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 23:57:11,233 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 23:57:11,239 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 23:57:11,269 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 23:57:11,270 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 23:57:11,272 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 23:57:11,276 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 23:57:11,550 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-07 23:57:11,558 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 23:57:11,558 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 23:57:11,566 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-07 23:57:11,571 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 23:57:11,571 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:57:11,571 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-07 23:57:11,571 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-07 23:57:11,571 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 23:57:11,641 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-07 23:57:11,698 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-07 23:57:11,729 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:57:11,736 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:57:11,741 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=1s), L2(enabled=False, dir=./cache/l2, max=100MB)

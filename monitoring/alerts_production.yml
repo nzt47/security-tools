@@ -1,0 +1,181 @@
+groups:
+  - name: yunshu_alerts
+    interval: 30s
+    rules:
+      # ==================== 错误率告警 ====================
+      - alert: HighErrorRate
+        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高错误率检测 - {{ $labels.instance }}"
+          description: "应用 {{ $labels.instance }} 的错误率超过 5% (当前值：{{ $value | humanizePercentage }})"
+          
+      - alert: CriticalErrorRate
+        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.20
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重错误率 - {{ $labels.instance }}"
+          description: "应用 {{ $labels.instance }} 的错误率超过 20% (当前值：{{ $value | humanizePercentage }})"
+          
+      - alert: VeryHighErrorRate
+        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.50
+        for: 2m
+        labels:
+          severity: emergency
+        annotations:
+          summary: "致命错误率 - {{ $labels.instance }}"
+          description: "应用 {{ $labels.instance }} 的错误率超过 50% (当前值：{{ $value | humanizePercentage }})"
+      
+      # ==================== 延迟告警 ====================
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高延迟检测"
+          description: "95 分位响应时间超过 500ms (当前值：{{ $value | humanizeDuration }})"
+          
+      - alert: VeryHighLatency
+        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重延迟检测"
+          description: "95 分位响应时间超过 1 秒 (当前值：{{ $value | humanizeDuration }})"
+          
+      - alert: ExtremeLatency
+        expr: histogram_quantile(0.99, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 2.0
+        for: 2m
+        labels:
+          severity: emergency
+        annotations:
+          summary: "极端延迟检测"
+          description: "99 分位响应时间超过 2 秒 (当前值：{{ $value | humanizeDuration }})"
+      
+      # ==================== 安全告警 ====================
+      - alert: SecurityAttack
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 3
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "安全攻击检测"
+          description: "检测到频繁的安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
+          
+      - alert: CriticalSecurityAttack
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重安全攻击检测"
+          description: "检测到频繁的严重级别安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
+          
+      - alert: MassiveSecurityAttack
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 30
+        for: 1m
+        labels:
+          severity: emergency
+        annotations:
+          summary: "大规模安全攻击"
+          description: "检测到大规模安全攻击 (当前速率：{{ $value | humanize }} 次/分钟)"
+      
+      # ==================== 系统资源告警 ====================
+      - alert: HighCPUUsage
+        expr: yunshu_cpu_usage_percent > 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率超过 70% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: VeryHighCPUUsage
+        expr: yunshu_cpu_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU 使用率严重过高"
+          description: "CPU 使用率超过 90% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: HighMemoryUsage
+        expr: yunshu_memory_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率超过 80% (当前值：{{ $value | humanize }}%)"
+          
+      - alert: VeryHighMemoryUsage
+        expr: yunshu_memory_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用率严重过高"
+          description: "内存使用率超过 90% (当前值：{{ $value | humanize }}%)"
+      
+      # ==================== 对话系统告警 ====================
+      - alert: HighConversationErrorRate
+        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "对话系统错误率过高"
+          description: "对话异常率超过 10% (当前值：{{ $value | humanizePercentage }})"
+          
+      - alert: CriticalConversationErrorRate
+        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.30
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "对话系统严重错误"
+          description: "对话异常率超过 30% (当前值：{{ $value | humanizePercentage }})"
+      
+      # ==================== 服务可用性告警 ====================
+      - alert: YunshuDown
+        expr: up{job="yunshu"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Yunshu 服务不可用"
+          description: "Yunshu 服务已停止响应超过 1 分钟"
+          
+      - alert: PrometheusTargetMissing
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus 目标丢失"
+          description: "监控目标 {{ $labels.job }} 不可用"
+          
+      # ==================== 业务指标告警 ====================
+      - alert: NoTraffic
+        expr: sum(rate(yunshu_http_requests_total[10m])) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "无流量检测"
+          description: "系统已超过 10 分钟没有收到任何请求"
+          
+      - alert: HighActiveConnections
+        expr: yunshu_active_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "活跃连接数过高"
+          description: "活跃连接数超过 100 (当前值：{{ $value }})"

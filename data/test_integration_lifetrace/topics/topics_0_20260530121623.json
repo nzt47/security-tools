@@ -1,0 +1,21 @@
+{
+  "node_id": "topics_0_20260530121623",
+  "content": "主题: 反思",
+  "node_type": "branch",
+  "metadata": {},
+  "created_at": "2026-05-30T12:16:23.428801",
+  "children": [
+    "topics_1_20260530121623",
+    "topics_2_20260530121623",
+    "topics_4_20260530125850",
+    "topics_6_20260530130003"
+  ],
+  "parent": null,
+  "tags": [
+    "topic",
+    "反思"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

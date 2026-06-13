@@ -1,0 +1,240 @@
+{
+  "timestamp": "2026-06-09T13:00:13.957513",
+  "base_url": "http://127.0.0.1:5678",
+  "summary": {
+    "total": 16,
+    "passed": 16,
+    "warned": 0,
+    "failed": 0,
+    "pass_rate": "100.0%",
+    "avg_latency_ms": 132.4
+  },
+  "categories": {
+    "核心": {
+      "total": 7,
+      "pass": 7,
+      "warn": 0,
+      "fail": 0
+    },
+    "工具": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    },
+    "记忆": {
+      "total": 3,
+      "pass": 3,
+      "warn": 0,
+      "fail": 0
+    },
+    "文件系统": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    },
+    "进程": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    },
+    "定时任务": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    },
+    "沙盒": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    },
+    "聊天": {
+      "total": 1,
+      "pass": 1,
+      "warn": 0,
+      "fail": 0
+    }
+  },
+  "results": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "category": "核心",
+      "desc": "健康检查",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 11.1,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/status",
+      "category": "核心",
+      "desc": "系统状态",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 24.3,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/panorama",
+      "category": "核心",
+      "desc": "全景概览",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 16.1,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/sensors",
+      "category": "核心",
+      "desc": "传感器数据",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 3.5,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace",
+      "category": "核心",
+      "desc": "工作区",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 18.3,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/clipboard",
+      "category": "核心",
+      "desc": "剪贴板",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 16.1,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "category": "核心",
+      "desc": "监控指标",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 30.0,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/tools/config",
+      "category": "工具",
+      "desc": "工具配置",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 30.1,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/memory/overview",
+      "category": "记忆",
+      "desc": "记忆概览",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 21.2,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/memory/windows/events",
+      "category": "记忆",
+      "desc": "窗口事件",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 41.3,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/memory/windows/stats",
+      "category": "记忆",
+      "desc": "窗口统计",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 180.4,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/filesystem/list?path=.",
+      "category": "文件系统",
+      "desc": "目录列表",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 57.5,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/process/list",
+      "category": "进程",
+      "desc": "进程列表",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 1655.9,
+      "error": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/scheduler/tasks",
+      "category": "定时任务",
+      "desc": "任务列表",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS",
+      "latency_ms": 3.1,
+      "error": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/sandbox/run",
+      "category": "沙盒",
+      "desc": "沙盒（应关闭）",
+      "expected": 503,
+      "actual": 503,
+      "status": "PASS",
+      "latency_ms": 6.0,
+      "error": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "category": "聊天",
+      "desc": "空消息校验",
+      "expected": 400,
+      "actual": 400,
+      "status": "PASS",
+      "latency_ms": 3.0,
+      "error": null
+    }
+  ]
+}

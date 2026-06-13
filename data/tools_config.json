@@ -1,0 +1,7 @@
+{
+  "tool_states": {
+    "check_health": true,
+    "get_status": true,
+    "search_memory": true
+  }
+}

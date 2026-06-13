@@ -1,0 +1,128 @@
+2026-06-05 10:17:33,724 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 10:17:33,749 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 10:17:33,756 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 10:17:33,762 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 10:17:33,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 10:17:33,802 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 10:17:33,804 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 10:17:33,806 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 10:17:33,812 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 10:17:33,847 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 10:17:33,848 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 10:17:33,850 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 10:17:33,852 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 10:17:34,103 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 10:17:34,112 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 10:17:34,112 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 10:17:34,121 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 10:17:34,121 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 10:17:34,122 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 10:17:34,122 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 10:17:34,122 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 10:17:34,122 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 10:17:34,122 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 10:17:34,123 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 10:17:34,123 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 10:17:34,123 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 10:17:34,123 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 10:17:34,123 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 10:17:34,124 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 10:17:34,377 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,377 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,378 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 10:17:34,378 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 10:17:34,378 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 10:17:34,379 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-05 10:17:34,382 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-05 10:17:34,382 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 10:17:34,387 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,388 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,388 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 10:17:34,389 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 10:17:34,389 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 10:17:34,389 [    INFO] agent.p6_snapshot: [P6] │   └─ 查找指定快照ID: test-snapshot-123
+2026-06-05 10:17:34,392 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-05 10:17:34,392 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 10:17:34,398 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,398 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,405 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,405 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,414 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,414 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,415 [ WARNING] agent.p6_snapshot: [P6] 快照文件不存在: \fake\path
+2026-06-05 10:17:34,421 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,421 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,428 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,428 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,434 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,434 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,440 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,441 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,447 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,447 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,448 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: p5.0.0, 当前版本: p6.2.0
+2026-06-05 10:17:34,452 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,453 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,454 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: , 当前版本: p6.2.0
+2026-06-05 10:17:34,486 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,486 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,492 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,493 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,496 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap10
+2026-06-05 10:17:34,497 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap10
+2026-06-05 10:17:34,497 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap11
+2026-06-05 10:17:34,497 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap11
+2026-06-05 10:17:34,498 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap12
+2026-06-05 10:17:34,498 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap12
+2026-06-05 10:17:34,498 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap13
+2026-06-05 10:17:34,499 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap13
+2026-06-05 10:17:34,499 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap14
+2026-06-05 10:17:34,499 [    INFO] agent.p6_snapshot: [P6] 删除旧快照: snap14
+2026-06-05 10:17:34,730 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,731 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,738 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,739 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,748 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,749 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,759 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,760 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,768 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,769 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,777 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,778 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,788 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,788 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,798 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,798 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,804 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,804 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,810 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,810 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,816 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,816 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,823 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,823 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,832 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,832 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,837 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,838 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,844 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,845 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,849 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,850 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,855 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,856 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,857 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.50ms, 累计节省 500 bytes
+2026-06-05 10:17:34,862 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,863 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,867 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,868 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,868 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.00ms, 累计节省 0 bytes
+2026-06-05 10:17:34,868 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 200.00ms, 累计节省 0 bytes
+2026-06-05 10:17:34,869 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 300.00ms, 累计节省 0 bytes
+2026-06-05 10:17:34,874 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,875 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 10:17:34,881 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 10:17:34,882 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots

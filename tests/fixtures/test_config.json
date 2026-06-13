@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "description": "云枢系统测试数据配置",
+  "test_environments": {
+    "development": {
+      "api_endpoint": "http://localhost:5000",
+      "llm_provider": "mock",
+      "database": ":memory:",
+      "log_level": "DEBUG"
+    },
+    "staging": {
+      "api_endpoint": "https://staging.Yunshu.example.com",
+      "llm_provider": "openai",
+      "database": "postgresql://staging/db",
+      "log_level": "INFO"
+    },
+    "production": {
+      "api_endpoint": "https://Yunshu.example.com",
+      "llm_provider": "openai",
+      "database": "postgresql://prod/db",
+      "log_level": "WARNING"
+    }
+  },
+  "test_users": [
+    {
+      "id": "test_user_001",
+      "name": "测试用户1",
+      "role": "admin",
+      "permissions": ["read", "write", "delete"]
+    },
+    {
+      "id": "test_user_002",
+      "name": "测试用户2",
+      "role": "user",
+      "permissions": ["read"]
+    }
+  ],
+  "test_scenarios": [
+    {
+      "id": "normal_conversation",
+      "description": "正常对话场景",
+      "priority": "P0"
+    },
+    {
+      "id": "permission_denial",
+      "description": "权限拒绝场景",
+      "priority": "P0"
+    },
+    {
+      "id": "memory_retrieval",
+      "description": "记忆检索场景",
+      "priority": "P1"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_1_20260530125836",
+  "content": "窗口活动: VS Code - active",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "window",
+    "window_title": "VS Code",
+    "event_type": "active",
+    "test": true
+  },
+  "created_at": "2026-05-30T12:58:36.344705",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "window",
+    "active"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

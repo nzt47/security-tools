@@ -20,6 +20,9 @@ jobs:
   code-quality:
     name: 代码质量检查
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      status: ${{ job.status }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -30,11 +33,21 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: 快速安装依赖
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+        continue-on-error: true
+
       - name: 安装依赖
         run: |
-          python -m pip install --upgrade pip
-          pip install flake8 black isort mypy pytest pytest-cov
-          pip install -e .[dev]
+          python -m pip install --upgrade pip --timeout=120
+          pip install --timeout=120 flake8 black isort mypy pytest pytest-cov || true
+          pip install -e .[dev] --timeout=120 || true
+        continue-on-error: true
 
       - name: 代码格式检查
         run: |
@@ -55,6 +68,7 @@ jobs:
   unit-tests:
     name: 单元测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -70,19 +84,41 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      - name: 快速安装依赖 (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
+
       - name: 安装依赖 (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-xdist
-          pip install -e .
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-cov pytest-mock pytest-xdist || true
+          pip install -e . --timeout=180 || true
+        continue-on-error: true
+
+      - name: 快速安装依赖 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
 
       - name: 安装依赖 (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-xdist
-          pip install -e .[windows]
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-cov pytest-mock pytest-xdist || true
+          pip install -e .[windows] --timeout=180 || true
+        continue-on-error: true
 
       - name: 创建测试目录
         run: |
@@ -119,6 +155,7 @@ jobs:
   integration-tests:
     name: 集成测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -134,19 +171,41 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      - name: 快速安装依赖 (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
+
       - name: 安装依赖 (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
-          pip install -e .
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-cov pytest-mock pytest-asyncio || true
+          pip install -e . --timeout=180 || true
+        continue-on-error: true
+
+      - name: 快速安装依赖 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
 
       - name: 安装依赖 (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
-          pip install -e .[windows]
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-cov pytest-mock pytest-asyncio || true
+          pip install -e .[windows] --timeout=180 || true
+        continue-on-error: true
 
       - name: 创建测试目录
         run: |
@@ -173,6 +232,7 @@ jobs:
   performance-tests:
     name: 性能测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -188,33 +248,57 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      - name: 快速安装依赖 (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
+
       - name: 安装依赖 (Ubuntu - Python 3.8)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-benchmark>=3.4,<4.0
-          pip install -e .
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-benchmark>=3.4,<4.0 || true
+          pip install -e . --timeout=180 || true
+        continue-on-error: true
 
       - name: 安装依赖 (Ubuntu - Python 3.9+)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version != '3.8'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-benchmark>=4.0
-          pip install -e .
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-benchmark>=4.0 || true
+          pip install -e . --timeout=180 || true
+        continue-on-error: true
+
+      - name: 快速安装依赖 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        continue-on-error: true
 
       - name: 安装依赖 (Windows - Python 3.8)
         if: matrix.os == 'windows-latest' && matrix.python-version == '3.8'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-benchmark>=3.4,<4.0
-          pip install -e .[windows]
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-benchmark>=3.4,<4.0 || true
+          pip install -e .[windows] --timeout=180 || true
+        continue-on-error: true
 
       - name: 安装依赖 (Windows - Python 3.9+)
         if: matrix.os == 'windows-latest' && matrix.python-version != '3.8'
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-benchmark>=4.0
-          pip install -e .[windows]
+          python -m pip install --upgrade pip --timeout=180
+          pip install --timeout=180 pytest pytest-benchmark>=4.0 || true
+          pip install -e .[windows] --timeout=180 || true
+        continue-on-error: true
 
       - name: 创建测试目录
         run: |

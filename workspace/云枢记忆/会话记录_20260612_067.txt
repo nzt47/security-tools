@@ -1,0 +1,32 @@
+=============================================
+  会话记录 #67
+=============================================
+
+🕒 时间：2026年06月12日 23:19
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+展示你的永久记忆里面都有些啥？
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="read_file">
+<｜｜DSML｜｜parameter name="path" string="true">./data/memory/agent_memory.json</｜｜DSML｜｜parameter>
+<｜｜DSML｜｜parameter name="max_size_mb" string="false">2</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.12 23:19
+=============================================
+

@@ -1,12 +1,12 @@
 {
-  "current_profile": "gentle_helper",
+  "current_profile": "custom",
   "custom_params": {
-    "tone": 0.6,
-    "emotion": 0.7,
-    "conciseness": 0.4,
-    "initiative": 0.5,
-    "humor": 0.3,
-    "empathy": 0.8
+    "tone": 0.01,
+    "emotion": 0.01,
+    "conciseness": 1,
+    "initiative": 0.1,
+    "humor": 0.01,
+    "empathy": 0.01
   },
   "profiles": {
     "gentle_helper": {

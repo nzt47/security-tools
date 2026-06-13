@@ -1,0 +1,1033 @@
+2026-06-05 13:22:04,405 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 13:22:04,412 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 13:22:04,416 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 13:22:04,419 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 13:22:04,440 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 13:22:04,443 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 13:22:04,444 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 13:22:04,445 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 13:22:04,449 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 13:22:04,463 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 13:22:04,463 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 13:22:04,464 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 13:22:04,466 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 13:22:04,595 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 13:22:04,601 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 13:22:04,601 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:22:04,609 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:22:04,609 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 13:22:04,609 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 13:22:04,609 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 13:22:04,610 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 13:22:04,610 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 13:22:04,610 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 13:22:04,610 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 13:22:04,610 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 13:22:04,611 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 13:22:04,611 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 13:22:04,611 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 13:22:04,611 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 13:22:04,718 [    INFO] agent.digital_life_v2_p3: [P3.1] 启用并行初始化优化...
+2026-06-05 13:22:04,718 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1：并行初始化核心模块...
+2026-06-05 13:22:04,719 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BodySensor
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 模块 BodySensor 初始化完成: 0.00ms (成功)
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: TraceRecorder
+2026-06-05 13:22:04,720 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 模块 TraceRecorder 初始化完成: 0.52ms (成功)
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaModel
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonalityPreferenceExtractor
+2026-06-05 13:22:04,720 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaDistiller
+2026-06-05 13:22:04,721 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:04,721 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryManager
+2026-06-05 13:22:04,721 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaModel 初始化完成: 1.21ms (成功)
+2026-06-05 13:22:04,721 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PromptInjector
+2026-06-05 13:22:04,721 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonalityPreferenceExtractor 初始化完成: 1.21ms (成功)
+2026-06-05 13:22:04,722 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BehaviorController
+2026-06-05 13:22:04,722 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaDistiller 初始化完成: 2.21ms (成功)
+2026-06-05 13:22:04,722 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PermissionSystem
+2026-06-05 13:22:04,722 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 body 初始化完成
+2026-06-05 13:22:04,723 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryManager 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,723 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:04,723 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,723 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:04,724 [    INFO] agent.performance_monitor: [性能追踪] 模块 BehaviorController 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,724 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:04,725 [    INFO] agent.performance_monitor: [性能追踪] 模块 PermissionSystem 初始化完成: 2.68ms (成功)
+2026-06-05 13:22:04,725 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 trace_recorder 初始化完成
+2026-06-05 13:22:04,725 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:04,726 [    INFO] agent.performance_monitor: [性能追踪] 模块 PromptInjector 初始化完成: 3.68ms (成功)
+2026-06-05 13:22:04,726 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:04,726 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:04,726 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_model 初始化完成
+2026-06-05 13:22:04,727 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:04,727 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_extractor 初始化完成
+2026-06-05 13:22:04,728 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 distiller 初始化完成
+2026-06-05 13:22:04,728 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_memory 初始化完成
+2026-06-05 13:22:04,728 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_injector 初始化完成
+2026-06-05 13:22:04,728 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 behavior 初始化完成
+2026-06-05 13:22:04,728 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 permission 初始化完成
+2026-06-05 13:22:04,729 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1完成，耗时: 11.43ms
+2026-06-05 13:22:04,729 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2：并行初始化依赖模块...
+2026-06-05 13:22:04,729 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryRetriever
+2026-06-05 13:22:04,730 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaInjector
+2026-06-05 13:22:04,731 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryRetriever 初始化完成: 2.01ms (成功)
+2026-06-05 13:22:04,731 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,731 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaInjector 初始化完成: 1.01ms (成功)
+2026-06-05 13:22:04,731 [    INFO] agent.digital_life_v2_p3: [ok] MemoryRetriever（记忆检索器）已激活
+2026-06-05 13:22:04,731 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,732 [    INFO] agent.digital_life_v2_p3: [ok] PersonaInjector（人格注入器）已激活
+2026-06-05 13:22:04,732 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 memory_retriever 初始化完成
+2026-06-05 13:22:04,732 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,732 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 persona_injector 初始化完成
+2026-06-05 13:22:04,733 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,733 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,733 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,733 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,733 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,734 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,734 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,734 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 tools 初始化完成
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2完成，耗时: 6.11ms
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3: [P3.1] 并行初始化完成！总耗时: 17.53ms
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,735 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,736 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534619512752'>
+2026-06-05 13:22:04,736 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620607840'>
+2026-06-05 13:22:04,737 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534620000288'>
+2026-06-05 13:22:04,737 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,737 [    INFO] agent.digital_life_v2_p3:   并行初始化: 启用
+2026-06-05 13:22:04,738 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,743 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,744 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,745 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,745 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,745 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,746 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,746 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,746 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,747 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,747 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,747 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,748 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,748 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,748 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,748 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,748 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,749 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,749 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,749 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,749 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,749 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,750 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,750 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,751 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,751 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,751 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,751 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,752 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,752 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,752 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,752 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,752 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,753 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,753 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,753 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,753 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,754 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534619512272'>
+2026-06-05 13:22:04,754 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620558448'>
+2026-06-05 13:22:04,754 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534620180272'>
+2026-06-05 13:22:04,755 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,755 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,755 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,759 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,760 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,760 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,761 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,761 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,761 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,762 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,762 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,762 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,763 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,763 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,763 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,763 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,763 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,764 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,764 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,764 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,764 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,764 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,765 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,765 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,765 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,766 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,766 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,766 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,767 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,767 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,767 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,767 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,767 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,767 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,767 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,767 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,768 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,768 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,768 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,769 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534620093840'>
+2026-06-05 13:22:04,769 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534619954160'>
+2026-06-05 13:22:04,770 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534619887280'>
+2026-06-05 13:22:04,770 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,770 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,770 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,771 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,776 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,776 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,777 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,777 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,777 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,778 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,778 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,778 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,779 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,779 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,780 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,780 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,780 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,780 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,781 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,781 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,781 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,781 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,781 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,781 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,782 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,782 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,782 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,782 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,782 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,783 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,783 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,783 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,783 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,783 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,783 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,784 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,784 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,784 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,784 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,784 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,785 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534620168800'>
+2026-06-05 13:22:04,785 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620180752'>
+2026-06-05 13:22:04,786 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534231358496'>
+2026-06-05 13:22:04,786 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,786 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,787 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,787 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:04,792 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,793 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,793 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,794 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,794 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,794 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,795 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,795 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,795 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,796 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,796 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,796 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,796 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,796 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,796 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,797 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,797 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,797 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,797 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,797 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,798 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,798 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,798 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,798 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,798 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,799 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,799 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,799 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,799 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,799 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,800 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,800 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,800 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,800 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,800 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,800 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,801 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534222380784'>
+2026-06-05 13:22:04,801 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620374720'>
+2026-06-05 13:22:04,802 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534620888192'>
+2026-06-05 13:22:04,802 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,803 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,803 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,803 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:04,808 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,808 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,809 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,809 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,810 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,810 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,810 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,811 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,811 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,811 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,811 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,812 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,812 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,812 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,812 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,812 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,812 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,813 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,813 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,813 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,813 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,813 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,813 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,814 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,814 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,814 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,815 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,815 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,815 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,815 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,815 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,816 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,816 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,816 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,816 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,816 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,817 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534621407872'>
+2026-06-05 13:22:04,817 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534621448576'>
+2026-06-05 13:22:04,818 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534621480336'>
+2026-06-05 13:22:04,818 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,818 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,819 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,819 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:04,824 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,824 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,825 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,825 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,825 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,827 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,827 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,827 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,827 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,828 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,828 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,828 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,828 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,828 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,829 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,829 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,829 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,829 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,829 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,830 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,830 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,830 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,830 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,830 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,831 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,831 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,831 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,831 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,831 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,832 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,832 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,832 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,832 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,832 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,832 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,833 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,833 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534621272192'>
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620874368'>
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534621002256'>
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,834 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:04,840 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,840 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,841 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,843 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,844 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,845 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,846 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,847 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,848 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,848 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,848 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,849 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,849 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,849 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,849 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,850 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,850 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,850 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,850 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,851 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,851 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,851 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,851 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,851 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,852 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,852 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,852 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,852 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,852 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,853 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,853 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,853 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,853 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,853 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,854 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,854 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,855 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534620764624'>
+2026-06-05 13:22:04,855 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534621714176'>
+2026-06-05 13:22:04,856 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534621762320'>
+2026-06-05 13:22:04,856 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,856 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,857 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,857 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:04,863 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,864 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,864 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,864 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,865 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,865 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,866 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,866 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,867 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,867 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,867 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,868 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,868 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,868 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,868 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,869 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,869 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,869 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,869 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,869 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,870 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,870 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,870 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,870 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,870 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,871 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,871 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,871 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,871 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,872 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,872 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,872 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,872 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,873 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,873 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,875 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534621881280'>
+2026-06-05 13:22:04,875 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534621958400'>
+2026-06-05 13:22:04,876 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534622006496'>
+2026-06-05 13:22:04,876 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,876 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,876 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,877 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:04,882 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,882 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,884 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,884 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,885 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,885 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,885 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,885 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,886 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,886 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,886 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,886 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,887 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,887 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,887 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,887 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,887 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,888 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,888 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,888 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,888 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,888 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,888 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,889 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,889 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,889 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,889 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,889 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,889 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,889 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,890 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,890 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,890 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,890 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,890 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,891 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,891 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534621709712'>
+2026-06-05 13:22:04,892 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620532800'>
+2026-06-05 13:22:04,893 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534605057408'>
+2026-06-05 13:22:04,893 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,893 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,894 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,894 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:04,898 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,899 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,899 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,900 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,900 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,901 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,901 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,901 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,902 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,902 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,902 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,903 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,903 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,903 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,903 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,903 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,903 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,904 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,904 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,904 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,905 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,905 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,905 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,905 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,905 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,905 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,906 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,906 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,906 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,906 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,906 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,906 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,906 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,907 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,907 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,907 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,907 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534618522512'>
+2026-06-05 13:22:04,908 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534619483216'>
+2026-06-05 13:22:04,909 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534622185472'>
+2026-06-05 13:22:04,909 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,909 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,909 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,909 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:04,914 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,915 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,915 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,915 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,915 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,916 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,916 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,916 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,917 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,917 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,917 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,917 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,918 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,918 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,918 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,918 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,918 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,919 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,919 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,919 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,919 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,919 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,920 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,920 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,920 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,920 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,920 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,920 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,920 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,921 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,921 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,921 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,921 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,921 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,921 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,922 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,922 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534622336960'>
+2026-06-05 13:22:04,923 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534622393984'>
+2026-06-05 13:22:04,923 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534622425744'>
+2026-06-05 13:22:04,924 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,924 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,924 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,924 [    INFO] agent.digital_life_v2_p3: * 云枢 v2.0 已觉醒！感知神经全面激活。
+2026-06-05 13:22:04,930 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,930 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,931 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,931 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,931 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,932 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,932 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,932 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,933 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,933 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,933 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,933 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,934 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,934 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,934 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,935 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,935 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,935 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,935 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,935 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,935 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,936 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,936 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,936 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,936 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,936 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,937 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,937 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,937 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,937 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,937 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,937 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,937 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,937 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,937 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,938 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,938 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534225444400'>
+2026-06-05 13:22:04,939 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534620787104'>
+2026-06-05 13:22:04,939 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534621802864'>
+2026-06-05 13:22:04,939 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,940 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,940 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,940 [    INFO] agent.digital_life_v2_p3: * 云枢正在休眠...
+2026-06-05 13:22:04,945 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,945 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,946 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,946 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,947 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,947 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,947 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,948 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,948 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,948 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,949 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,949 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,949 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,949 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,949 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,950 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,950 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,950 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,950 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,950 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,951 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,951 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,951 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,951 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,951 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,951 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,952 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,952 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,952 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,952 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,953 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,953 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,953 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,953 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,954 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,954 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,955 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534619493344'>
+2026-06-05 13:22:04,955 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534622621632'>
+2026-06-05 13:22:04,956 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534619573200'>
+2026-06-05 13:22:04,956 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,957 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,957 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,963 [    INFO] agent.digital_life_v2_p3: [P3.1] 回退到顺序初始化（兼容模式）...
+2026-06-05 13:22:04,963 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,963 [    INFO] agent.digital_life_v2_p3: [ok] 海马体（LifeTrace）已激活
+2026-06-05 13:22:04,964 [    INFO] agent.digital_life_v2_p3: [ok] 人格（Persona）已激活
+2026-06-05 13:22:04,964 [    INFO] agent.digital_life_v2_p3: [ok] 人格蒸馏器（PersonaDistiller）已激活
+2026-06-05 13:22:04,964 [    INFO] agent.digital_life_v2_p3: [ok] 兼容记忆层已激活
+2026-06-05 13:22:04,964 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,965 [    INFO] agent.digital_life_v2_p3: [ok] 兼容认知层已激活
+2026-06-05 13:22:04,965 [    INFO] agent.digital_life_v2_p3: [ok] 本能（BehaviorController）已激活
+2026-06-05 13:22:04,965 [    INFO] agent.digital_life_v2_p3: [ok] 道德（PermissionSystem）已激活
+2026-06-05 13:22:04,966 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,966 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,966 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,966 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,967 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,967 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,967 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,967 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,967 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,967 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,967 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,967 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,968 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,968 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,968 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,968 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,969 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,969 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,969 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,969 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,969 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,970 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,970 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,970 [    INFO] agent.digital_life_v2_p3: [ok] 工具（Tool System）已激活
+2026-06-05 13:22:04,970 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,970 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,971 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534622849040'>
+2026-06-05 13:22:04,971 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534622885936'>
+2026-06-05 13:22:04,973 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534622677088'>
+2026-06-05 13:22:04,973 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:04,973 [    INFO] agent.digital_life_v2_p3:   并行初始化: 禁用
+2026-06-05 13:22:04,973 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,978 [    INFO] agent.digital_life_v2_p3: [P3.1] 启用并行初始化优化...
+2026-06-05 13:22:04,978 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1：并行初始化核心模块...
+2026-06-05 13:22:04,979 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BodySensor
+2026-06-05 13:22:04,979 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: TraceRecorder
+2026-06-05 13:22:04,979 [    INFO] agent.performance_monitor: [性能追踪] 模块 BodySensor 初始化完成: 0.00ms (成功)
+2026-06-05 13:22:04,980 [    INFO] agent.performance_monitor: [性能追踪] 模块 TraceRecorder 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:04,980 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaModel
+2026-06-05 13:22:04,980 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:04,980 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonalityPreferenceExtractor
+2026-06-05 13:22:04,981 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:04,981 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaDistiller
+2026-06-05 13:22:04,982 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaModel 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,982 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryManager
+2026-06-05 13:22:04,982 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PromptInjector
+2026-06-05 13:22:04,983 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonalityPreferenceExtractor 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:04,983 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BehaviorController
+2026-06-05 13:22:04,983 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PermissionSystem
+2026-06-05 13:22:04,983 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaDistiller 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,984 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 body 初始化完成
+2026-06-05 13:22:04,984 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:04,984 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryManager 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,985 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:04,985 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:04,985 [    INFO] agent.performance_monitor: [性能追踪] 模块 BehaviorController 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:04,986 [    INFO] agent.performance_monitor: [性能追踪] 模块 PermissionSystem 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:04,986 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:04,986 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 trace_recorder 初始化完成
+2026-06-05 13:22:04,987 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:04,987 [    INFO] agent.performance_monitor: [性能追踪] 模块 PromptInjector 初始化完成: 5.00ms (成功)
+2026-06-05 13:22:04,987 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:04,988 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:04,988 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_model 初始化完成
+2026-06-05 13:22:04,988 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:04,989 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_extractor 初始化完成
+2026-06-05 13:22:04,989 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 distiller 初始化完成
+2026-06-05 13:22:04,989 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_memory 初始化完成
+2026-06-05 13:22:04,989 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_injector 初始化完成
+2026-06-05 13:22:04,990 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 behavior 初始化完成
+2026-06-05 13:22:04,990 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 permission 初始化完成
+2026-06-05 13:22:04,990 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1完成，耗时: 12.00ms
+2026-06-05 13:22:04,990 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2：并行初始化依赖模块...
+2026-06-05 13:22:04,991 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryRetriever
+2026-06-05 13:22:04,991 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaInjector
+2026-06-05 13:22:04,992 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryRetriever 初始化完成: 0.00ms (成功)
+2026-06-05 13:22:04,992 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:04,992 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaInjector 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:04,992 [    INFO] agent.digital_life_v2_p3: [ok] MemoryRetriever（记忆检索器）已激活
+2026-06-05 13:22:04,992 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:04,992 [    INFO] agent.digital_life_v2_p3: [ok] PersonaInjector（人格注入器）已激活
+2026-06-05 13:22:04,993 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 memory_retriever 初始化完成
+2026-06-05 13:22:04,993 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:04,993 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 persona_injector 初始化完成
+2026-06-05 13:22:04,993 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:04,994 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:04,994 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:04,994 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:04,994 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:04,994 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:04,994 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:04,995 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:04,995 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:04,995 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:04,995 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:04,995 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:04,995 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:04,996 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:04,996 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:04,996 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:04,996 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:04,996 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:04,996 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:04,997 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:04,997 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 tools 初始化完成
+2026-06-05 13:22:04,997 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2完成，耗时: 6.00ms
+2026-06-05 13:22:04,998 [    INFO] agent.digital_life_v2_p3: [P3.1] 并行初始化完成！总耗时: 18.00ms
+2026-06-05 13:22:04,998 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:04,998 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:04,999 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534619930384'>
+2026-06-05 13:22:04,999 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534619864320'>
+2026-06-05 13:22:05,000 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534622192048'>
+2026-06-05 13:22:05,000 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132204
+2026-06-05 13:22:05,000 [    INFO] agent.digital_life_v2_p3:   并行初始化: 启用
+2026-06-05 13:22:05,000 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,005 [    INFO] agent.digital_life_v2_p3: [P3.1] 启用并行初始化优化...
+2026-06-05 13:22:05,006 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1：并行初始化核心模块...
+2026-06-05 13:22:05,007 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BodySensor
+2026-06-05 13:22:05,007 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: TraceRecorder
+2026-06-05 13:22:05,008 [    INFO] agent.performance_monitor: [性能追踪] 模块 BodySensor 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,008 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaModel
+2026-06-05 13:22:05,008 [    INFO] agent.performance_monitor: [性能追踪] 模块 TraceRecorder 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,009 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonalityPreferenceExtractor
+2026-06-05 13:22:05,009 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:05,009 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaDistiller
+2026-06-05 13:22:05,009 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaModel 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,009 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryManager
+2026-06-05 13:22:05,010 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:05,010 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PromptInjector
+2026-06-05 13:22:05,010 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonalityPreferenceExtractor 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,010 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BehaviorController
+2026-06-05 13:22:05,010 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 body 初始化完成
+2026-06-05 13:22:05,011 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PermissionSystem
+2026-06-05 13:22:05,011 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaDistiller 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,011 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:05,012 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryManager 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:05,012 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:05,012 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:05,013 [    INFO] agent.performance_monitor: [性能追踪] 模块 BehaviorController 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:05,013 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 trace_recorder 初始化完成
+2026-06-05 13:22:05,013 [    INFO] agent.performance_monitor: [性能追踪] 模块 PermissionSystem 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,014 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:05,014 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:05,014 [    INFO] agent.performance_monitor: [性能追踪] 模块 PromptInjector 初始化完成: 4.41ms (成功)
+2026-06-05 13:22:05,014 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:05,014 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_model 初始化完成
+2026-06-05 13:22:05,015 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:05,015 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:05,016 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_extractor 初始化完成
+2026-06-05 13:22:05,016 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 distiller 初始化完成
+2026-06-05 13:22:05,016 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_memory 初始化完成
+2026-06-05 13:22:05,017 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_injector 初始化完成
+2026-06-05 13:22:05,017 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 behavior 初始化完成
+2026-06-05 13:22:05,017 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 permission 初始化完成
+2026-06-05 13:22:05,017 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1完成，耗时: 11.15ms
+2026-06-05 13:22:05,018 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2：并行初始化依赖模块...
+2026-06-05 13:22:05,018 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryRetriever
+2026-06-05 13:22:05,018 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaInjector
+2026-06-05 13:22:05,019 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryRetriever 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,019 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:05,019 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaInjector 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,019 [    INFO] agent.digital_life_v2_p3: [ok] MemoryRetriever（记忆检索器）已激活
+2026-06-05 13:22:05,019 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:05,020 [    INFO] agent.digital_life_v2_p3: [ok] PersonaInjector（人格注入器）已激活
+2026-06-05 13:22:05,020 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 memory_retriever 初始化完成
+2026-06-05 13:22:05,020 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:05,020 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 persona_injector 初始化完成
+2026-06-05 13:22:05,021 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:05,021 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:05,021 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:05,021 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:05,021 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:05,022 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:05,022 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:05,022 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:05,022 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:05,023 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:05,023 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:05,023 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:05,023 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:05,023 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:05,024 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:05,024 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:05,024 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:05,024 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:05,024 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:05,024 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:05,025 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 tools 初始化完成
+2026-06-05 13:22:05,025 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2完成，耗时: 7.00ms
+2026-06-05 13:22:05,025 [    INFO] agent.digital_life_v2_p3: [P3.1] 并行初始化完成！总耗时: 18.15ms
+2026-06-05 13:22:05,025 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,026 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:05,026 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534622983904'>
+2026-06-05 13:22:05,027 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534623130688'>
+2026-06-05 13:22:05,027 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534623178448'>
+2026-06-05 13:22:05,028 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132205
+2026-06-05 13:22:05,028 [    INFO] agent.digital_life_v2_p3:   并行初始化: 启用
+2026-06-05 13:22:05,028 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,033 [    INFO] agent.digital_life_v2_p3: [P3.1] 启用并行初始化优化...
+2026-06-05 13:22:05,034 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1：并行初始化核心模块...
+2026-06-05 13:22:05,035 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BodySensor
+2026-06-05 13:22:05,035 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: TraceRecorder
+2026-06-05 13:22:05,035 [    INFO] agent.performance_monitor: [性能追踪] 模块 BodySensor 初始化完成: 0.00ms (成功)
+2026-06-05 13:22:05,035 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaModel
+2026-06-05 13:22:05,036 [    INFO] agent.performance_monitor: [性能追踪] 模块 TraceRecorder 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,036 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonalityPreferenceExtractor
+2026-06-05 13:22:05,036 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:05,036 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaDistiller
+2026-06-05 13:22:05,037 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaModel 初始化完成: 1.99ms (成功)
+2026-06-05 13:22:05,037 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryManager
+2026-06-05 13:22:05,037 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:05,037 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PromptInjector
+2026-06-05 13:22:05,037 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonalityPreferenceExtractor 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,038 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BehaviorController
+2026-06-05 13:22:05,038 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PermissionSystem
+2026-06-05 13:22:05,038 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 body 初始化完成
+2026-06-05 13:22:05,038 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaDistiller 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,038 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:05,039 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryManager 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,039 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:05,040 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:05,040 [    INFO] agent.performance_monitor: [性能追踪] 模块 BehaviorController 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,041 [    INFO] agent.performance_monitor: [性能追踪] 模块 PermissionSystem 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:05,041 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 trace_recorder 初始化完成
+2026-06-05 13:22:05,041 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:05,042 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:05,042 [    INFO] agent.performance_monitor: [性能追踪] 模块 PromptInjector 初始化完成: 5.01ms (成功)
+2026-06-05 13:22:05,043 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:05,043 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:05,043 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_model 初始化完成
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_extractor 初始化完成
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 distiller 初始化完成
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_memory 初始化完成
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_injector 初始化完成
+2026-06-05 13:22:05,044 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 behavior 初始化完成
+2026-06-05 13:22:05,045 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 permission 初始化完成
+2026-06-05 13:22:05,045 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1完成，耗时: 11.04ms
+2026-06-05 13:22:05,045 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2：并行初始化依赖模块...
+2026-06-05 13:22:05,046 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryRetriever
+2026-06-05 13:22:05,046 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaInjector
+2026-06-05 13:22:05,047 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryRetriever 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,047 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaInjector 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,047 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:05,047 [    INFO] agent.digital_life_v2_p3: [ok] MemoryRetriever（记忆检索器）已激活
+2026-06-05 13:22:05,047 [    INFO] agent.digital_life_v2_p3: [ok] PersonaInjector（人格注入器）已激活
+2026-06-05 13:22:05,048 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:05,048 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 memory_retriever 初始化完成
+2026-06-05 13:22:05,048 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:05,048 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 persona_injector 初始化完成
+2026-06-05 13:22:05,049 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:05,049 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:05,049 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:05,049 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:05,049 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:05,050 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:05,050 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:05,050 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:05,050 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:05,050 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:05,050 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:05,051 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:05,051 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:05,051 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:05,051 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:05,051 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:05,051 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:05,052 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:05,052 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:05,052 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:05,052 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 tools 初始化完成
+2026-06-05 13:22:05,052 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2完成，耗时: 7.00ms
+2026-06-05 13:22:05,053 [    INFO] agent.digital_life_v2_p3: [P3.1] 并行初始化完成！总耗时: 18.04ms
+2026-06-05 13:22:05,053 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,053 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:05,054 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534623303568'>
+2026-06-05 13:22:05,055 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534623216320'>
+2026-06-05 13:22:05,056 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534623084080'>
+2026-06-05 13:22:05,056 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132205
+2026-06-05 13:22:05,057 [    INFO] agent.digital_life_v2_p3:   并行初始化: 启用
+2026-06-05 13:22:05,057 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,061 [    INFO] agent.digital_life_v2_p3: [P3.1] 启用并行初始化优化...
+2026-06-05 13:22:05,062 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1：并行初始化核心模块...
+2026-06-05 13:22:05,062 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BodySensor
+2026-06-05 13:22:05,062 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: TraceRecorder
+2026-06-05 13:22:05,063 [    INFO] agent.performance_monitor: [性能追踪] 模块 BodySensor 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,063 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaModel
+2026-06-05 13:22:05,063 [    INFO] agent.performance_monitor: [性能追踪] 模块 TraceRecorder 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,063 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonalityPreferenceExtractor
+2026-06-05 13:22:05,064 [    INFO] agent.digital_life_v2_p3: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaDistiller
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaModel 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryManager
+2026-06-05 13:22:05,064 [    INFO] agent.digital_life_v2_p3: [ok] TraceRecorder（记忆记录器）已激活
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PromptInjector
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: BehaviorController
+2026-06-05 13:22:05,064 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonalityPreferenceExtractor 初始化完成: 1.60ms (成功)
+2026-06-05 13:22:05,065 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PermissionSystem
+2026-06-05 13:22:05,065 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 body 初始化完成
+2026-06-05 13:22:05,065 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaDistiller 初始化完成: 1.60ms (成功)
+2026-06-05 13:22:05,065 [    INFO] agent.digital_life_v2_p3: [ok] PersonaModel（人格模型）已激活
+2026-06-05 13:22:05,066 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryManager 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,066 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-05 13:22:05,067 [    INFO] agent.performance_monitor: [性能追踪] 模块 BehaviorController 初始化完成: 3.00ms (成功)
+2026-06-05 13:22:05,067 [    INFO] agent.digital_life_v2_p3: [ok] PersonalityPreferenceExtractor（偏好提取器）已激活
+2026-06-05 13:22:05,067 [    INFO] agent.performance_monitor: [性能追踪] 模块 PermissionSystem 初始化完成: 2.00ms (成功)
+2026-06-05 13:22:05,067 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 trace_recorder 初始化完成
+2026-06-05 13:22:05,068 [    INFO] agent.digital_life_v2_p3: [ok] PersonaDistiller（人格蒸馏器）已激活
+2026-06-05 13:22:05,068 [    INFO] agent.digital_life_v2_p3: [ok] MemoryManager（记忆管理器）已激活
+2026-06-05 13:22:05,068 [    INFO] agent.performance_monitor: [性能追踪] 模块 PromptInjector 初始化完成: 4.10ms (成功)
+2026-06-05 13:22:05,069 [    INFO] agent.digital_life_v2_p3: [ok] BehaviorController（行为控制器）已激活
+2026-06-05 13:22:05,069 [    INFO] agent.digital_life_v2_p3: [ok] PermissionSystem（权限系统）已激活
+2026-06-05 13:22:05,069 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_model 初始化完成
+2026-06-05 13:22:05,070 [    INFO] agent.digital_life_v2_p3: [ok] PromptInjector（Prompt 注入器）已激活
+2026-06-05 13:22:05,070 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 persona_extractor 初始化完成
+2026-06-05 13:22:05,070 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 distiller 初始化完成
+2026-06-05 13:22:05,071 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_memory 初始化完成
+2026-06-05 13:22:05,071 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 old_injector 初始化完成
+2026-06-05 13:22:05,071 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 behavior 初始化完成
+2026-06-05 13:22:05,071 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1模块 permission 初始化完成
+2026-06-05 13:22:05,072 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段1完成，耗时: 10.70ms
+2026-06-05 13:22:05,072 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2：并行初始化依赖模块...
+2026-06-05 13:22:05,072 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: MemoryRetriever
+2026-06-05 13:22:05,072 [    INFO] agent.performance_monitor: [性能追踪] 开始初始化模块: PersonaInjector
+2026-06-05 13:22:05,073 [    INFO] agent.performance_monitor: [性能追踪] 模块 MemoryRetriever 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,073 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-05 13:22:05,073 [    INFO] agent.performance_monitor: [性能追踪] 模块 PersonaInjector 初始化完成: 1.00ms (成功)
+2026-06-05 13:22:05,074 [    INFO] agent.digital_life_v2_p3: [ok] MemoryRetriever（记忆检索器）已激活
+2026-06-05 13:22:05,074 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-05 13:22:05,074 [    INFO] agent.digital_life_v2_p3: [ok] PersonaInjector（人格注入器）已激活
+2026-06-05 13:22:05,074 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 memory_retriever 初始化完成
+2026-06-05 13:22:05,074 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-05 13:22:05,075 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 persona_injector 初始化完成
+2026-06-05 13:22:05,075 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-05 13:22:05,075 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-05 13:22:05,075 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-05 13:22:05,076 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-05 13:22:05,076 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-05 13:22:05,076 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-05 13:22:05,076 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-05 13:22:05,076 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-05 13:22:05,076 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-05 13:22:05,076 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-05 13:22:05,077 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-05 13:22:05,077 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-05 13:22:05,077 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-05 13:22:05,077 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-05 13:22:05,077 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-05 13:22:05,078 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-05 13:22:05,078 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-05 13:22:05,078 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-05 13:22:05,078 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-05 13:22:05,078 [    INFO] agent.digital_life_v2_p3: 已注册 11 个内置工具
+2026-06-05 13:22:05,078 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2模块 tools 初始化完成
+2026-06-05 13:22:05,079 [    INFO] agent.digital_life_v2_p3: [P3.1] 阶段2完成，耗时: 7.00ms
+2026-06-05 13:22:05,079 [    INFO] agent.digital_life_v2_p3: [P3.1] 并行初始化完成！总耗时: 17.70ms
+2026-06-05 13:22:05,079 [    INFO] agent.digital_life_v2_p3: ==================================================
+2026-06-05 13:22:05,079 [    INFO] agent.digital_life_v2_p3:   云枢 v2.0 启动配置:
+2026-06-05 13:22:05,080 [    INFO] agent.digital_life_v2_p3:   LLM:     <MagicMock name='MemoryManager()._llm_service.provider' id='2534623063232'>
+2026-06-05 13:22:05,081 [    INFO] agent.digital_life_v2_p3:   Model:   <MagicMock name='MemoryManager()._llm_service.model' id='2534622569552'>
+2026-06-05 13:22:05,081 [    INFO] agent.digital_life_v2_p3:   人格:    <MagicMock name='PersonaModel().persona.get()' id='2534619868112'>
+2026-06-05 13:22:05,081 [    INFO] agent.digital_life_v2_p3:   会话:    20260605_132205
+2026-06-05 13:22:05,082 [    INFO] agent.digital_life_v2_p3:   并行初始化: 启用
+2026-06-05 13:22:05,082 [    INFO] agent.digital_life_v2_p3: ==================================================

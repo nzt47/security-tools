@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>云枢 · 数字生命体</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;height:100vh;overflow:hidden}
+
+/* ── 布局 ── */
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* 顶栏 */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0}
+#topbar h1{font-size:18px;color:#58a6ff}
+#topbar .sub{font-size:12px;color:#8b949e}
+#topbar .actions{display:flex;gap:8px}
+#topbar .actions button{padding:5px 14px;border-radius:12px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:12px;cursor:pointer}
+#topbar .actions button:hover{background:#21262d}
+
+/* 标签栏 */
+#tabs{display:flex;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0;padding:0 12px}
+.tab{padding:8px 18px;font-size:13px;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;user-select:none}
+.tab:hover{color:#c9d1d9}
+.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tab-view{display:none;flex:1;min-height:0}
+.tab-view.active{display:flex}
+
+/* 主区域 */
+#main{display:flex;flex:1;min-height:0}
+#chat-view{flex-direction:column}
+
+/* 顶部健康指标行 */
+#chat-metrics-bar{flex-shrink:0;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d}
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.metric{text-align:center;padding:8px 6px;background:#0d1117;border-radius:8px;border:1px solid #21262d}
+.metric .value{font-size:22px;font-weight:700}
+.metric .label{font-size:10px;color:#8b949e;margin-top:2px}
+.metric.normal .value{color:#3fb950}
+.metric.warning .value{color:#d29922}
+.metric.critical .value{color:#f85149}
+
+/* 状态栏 */
+#chat-status-bar{display:flex;align-items:center;padding:6px 16px;background:#0d1117;border-bottom:1px solid #21262d;flex-shrink:0;gap:8px}
+.status-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
+.status-badge.normal{background:#3fb95020;color:#3fb950;border:1px solid #3fb95080}
+.status-badge.safe{background:#f8514920;color:#f85149;border:1px solid #f8514980}
+.status-badge.power_save{background:#d2992220;color:#d29922;border:1px solid #d2992280}
+.status-badge.memory_compact{background:#bc8cff20;color:#bc8cff;border:1px solid #bc8cff80}
+.status-badge.offline{background:#8b949e20;color:#8b949e;border:1px solid #8b949e80}
+.status-badge.warning{background:#db6d2820;color:#db6d28;border:1px solid #db6d2880}
+
+/* 聊天面板（全宽） */
+#chat-panel{flex:1;display:flex;flex-direction:column;min-height:0}
+
+#chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+
+.msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.msg.user{background:#1f6feb30;border:1px solid #1f6feb50;align-self:flex-end;color:#c9d1d9}
+.msg.Yunshu{background:#161b22;border:1px solid #30363d;align-self:flex-start;color:#c9d1d9}
+.msg .meta{font-size:10px;color:#8b949e;margin-top:4px;display:flex;gap:8px}
+.msg .reason{font-size:11px;color:#f85149;margin-top:6px;padding:6px 8px;background:#f8514915;border:1px solid #f8514940;border-radius:4px}
+
+/* 输入区 */
+#chat-input-area{display:flex;gap:8px;padding:12px 16px;background:#161b22;border-top:1px solid #30363d;flex-shrink:0}
+#chat-input{flex:1;padding:10px 14px;border-radius:20px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px}
+#chat-input:focus{border-color:#58a6ff}
+#send-btn{padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap}
+#send-btn:hover{background:#2ea043}
+#send-btn:disabled{background:#23863660;cursor:not-allowed}
+
+/* 状态指示器 */
+.thinking-dots::after{content:'';animation:dots 1.5s infinite}
+@keyframes dots{0%,20%{content:'.'}40%{content:'..'}60%,100%{content:'...'}}
+
+/* 加载 */
+.loading{text-align:center;padding:20px;color:#8b949e;font-size:13px}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+</style>
+<link rel="stylesheet" href="/static/css/sidebar.css">
+<link rel="stylesheet" href="/static/css/panorama.css">
+</head>
+<body>
+<div id="app" class="with-sidebar">
+  <!-- 顶栏 -->
+  <div id="topbar">
+    <div>
+      <h1>云枢 · 数字生命体</h1>
+      <div class="sub" id="status-sub">感知-认知-行动闭环</div>
+    </div>
+    <div class="actions">
+      <button onclick="showSettings()">⚙ 设置</button>
+      <button onclick="refreshLeft()">⟳ 刷新</button>
+      <button onclick="clearChat()">清空对话</button>
+    </div>
+  </div>
+
+  <!-- 标签切换 -->
+  <div id="tabs">
+    <span class="tab active" data-tab="chat" onclick="switchTab('chat')">💬 对话</span>
+    <span class="tab" data-tab="panorama" onclick="switchTab('panorama')">🗺 全景</span>
+  </div>
+
+  <!-- 侧边栏 -->
+  <div id="sidebar" style="width:var(--sidebar-width,280px)">
+    <div class="sidebar-header">
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
+      <span class="sidebar-title">Agent 管理</span>
+    </div>
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" data-panel="history" onclick="switchSidebarTab('history')">
+        <span class="tab-icon">🕐</span>
+        <span class="tab-label">历史会话</span>
+      </div>
+      <div class="sidebar-tab" data-panel="skills" onclick="switchSidebarTab('skills')">
+        <span class="tab-icon">🔧</span>
+        <span class="tab-label">技能管理</span>
+      </div>
+      <div class="sidebar-tab" data-panel="tools" onclick="switchSidebarTab('tools')">
+        <span class="tab-icon">🛠</span>
+        <span class="tab-label">工具集成</span>
+      </div>
+      <div class="sidebar-tab" data-panel="personality" onclick="switchSidebarTab('personality')">
+        <span class="tab-icon">🎭</span>
+        <span class="tab-label">人格配置</span>
+      </div>
+      <div class="sidebar-tab" data-panel="memory" onclick="switchSidebarTab('memory')">
+        <span class="tab-icon">🧠</span>
+        <span class="tab-label">记忆管理</span>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-resizer" id="sidebar-resizer"></div>
+
+  <div id="main">
+    <!-- 对话视图 -->
+    <div id="chat-view" class="tab-view active">
+      <!-- 顶部：健康指标行 -->
+      <div id="chat-metrics-bar">
+        <div class="quick-grid" id="quick-metrics"></div>
+      </div>
+
+      <!-- 状态栏 -->
+      <div id="chat-status-bar">
+        <span id="chat-mode-badge" class="status-badge normal">正常模式</span>
+        <span id="chat-cognitive-text" style="font-size:12px;color:#8b949e;flex:1;margin-left:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <span id="chat-sensor-info" style="font-size:11px;color:#8b949e;white-space:nowrap">📡 <span id="chat-sensor-count">0/0</span></span>
+      </div>
+
+      <!-- 聊天面板（全宽） -->
+      <div id="chat-panel">
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <textarea id="chat-input" rows="1" placeholder="和云枢说话..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+          <button id="send-btn" onclick="sendMessage()">发送</button>
+        </div>
+      </div>
+    </div>
+    <!-- /对话视图 -->
+
+  <!-- 全景视图 -->
+  <div id="panorama-view" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+
+      <!-- 全局健康条 -->
+      <div class="pano-healthbar" id="pano-healthbar">
+        <div class="health-item" id="health-cpu"><div class="hi-icon">🖥</div><div><div class="hi-label">CPU</div><div class="hi-value">-</div></div></div>
+        <div class="health-item" id="health-memory"><div class="hi-icon">🧠</div><div><div class="hi-label">内存</div><div class="hi-value">-</div></div></div>
+        <div class="health-item" id="health-disk"><div class="hi-icon">💾</div><div><div class="hi-label">磁盘</div><div class="hi-value">-</div></div></div>
+        <div class="health-item" id="health-battery"><div class="hi-icon">🔋</div><div><div class="hi-label">电量</div><div class="hi-value">-</div></div></div>
+        <div class="health-item" id="health-network"><div class="hi-icon">🌐</div><div><div class="hi-label">网络</div><div class="hi-value">-</div></div></div>
+      </div>
+
+      <!-- 主布局：左侧导航 + 右侧内容 -->
+      <div class="pano-layout" style="flex:1;min-height:0">
+        <!-- 左侧导航 -->
+        <div class="pano-nav">
+          <div class="pano-nav-item active" data-pano-section="pipeline" onclick="switchPanoSection('pipeline')">
+            <span class="nav-dot" style="background:linear-gradient(90deg,#58a6ff,#d29922)"></span>
+            <span>架构全景</span>
+          </div>
+          <div class="pano-nav-item" data-pano-section="phase1" onclick="switchPanoSection('phase1')">
+            <span class="nav-dot" style="background:#58a6ff"></span>
+            <span>感知层</span>
+          </div>
+          <div class="pano-nav-item" data-pano-section="phase2" onclick="switchPanoSection('phase2')">
+            <span class="nav-dot" style="background:#bc8cff"></span>
+            <span>认知层</span>
+          </div>
+          <div class="pano-nav-item" data-pano-section="phase3" onclick="switchPanoSection('phase3')">
+            <span class="nav-dot" style="background:#3fb950"></span>
+            <span>记忆层</span>
+          </div>
+          <div class="pano-nav-item" data-pano-section="phase4" onclick="switchPanoSection('phase4')">
+            <span class="nav-dot" style="background:#d29922"></span>
+            <span>行动层</span>
+          </div>
+          <div class="pano-nav-indicator"></div>
+          <div class="pano-nav-item" data-pano-section="events" onclick="switchPanoSection('events')">
+            <span class="nav-dot" style="background:#8b949e"></span>
+            <span>事件流</span>
+          </div>
+        </div>
+
+        <!-- 右侧主内容 -->
+        <div class="pano-content">
+
+          <!-- 架构流水线 -->
+          <div id="pano-section-pipeline">
+            <div class="pano-pipeline" id="pano-pipeline">
+              <div class="pipe-node phase-1" onclick="scrollToPhase(1)">
+                <div class="pn-icon">👁</div>
+                <div class="pn-label">感知层</div>
+                <div class="pn-sub">BodySensor</div>
+                <div class="pn-status">●</div>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-node phase-2" onclick="scrollToPhase(2)">
+                <div class="pn-icon">🧠</div>
+                <div class="pn-label">认知层</div>
+                <div class="pn-sub">PromptInjector</div>
+                <div class="pn-status">●</div>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-node phase-3" onclick="scrollToPhase(3)">
+                <div class="pn-icon">💾</div>
+                <div class="pn-label">记忆层</div>
+                <div class="pn-sub">MemoryManager</div>
+                <div class="pn-status">●</div>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-node phase-4" onclick="scrollToPhase(4)">
+                <div class="pn-icon">🤖</div>
+                <div class="pn-label">行动层</div>
+                <div class="pn-sub">DigitalLife</div>
+                <div class="pn-status">●</div>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-node pipe-output">
+                <div class="pn-icon">💬</div>
+                <div class="pn-label">响应</div>
+                <div class="pn-sub">输出</div>
+              </div>
+            </div>
+
+            <!-- 四阶段卡片网格 -->
+            <div class="pano-cards">
+              <!-- 感知层 -->
+              <div class="pano-card phase-1" id="pano-card-1">
+                <div class="pano-card-header" onclick="togglePanoDetail(1)">
+                  <span class="phase-badge">阶段一</span>
+                  <span class="pano-card-title">感知底座</span>
+                  <button class="expand-btn">展开 ▸</button>
+                </div>
+                <div class="pano-card-body">
+                  <div class="card-metrics">
+                    <div class="card-metric"><div class="cm-val" id="pano-cpu-val">-</div><div class="cm-label">CPU</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-mem-val">-</div><div class="cm-label">内存</div></div>
+                    <div class="card-metric" style="grid-column:1/-1"><div class="cm-val" id="pano-sensor-val" style="font-size:14px">-</div><div class="cm-label">传感器</div></div>
+                  </div>
+                  <div class="pano-detail-overlay" id="pano-detail-1" style="display:none">
+                    <div class="detail-section">
+                      <div class="detail-section-title">📂 传感器分类</div>
+                      <div id="pano-sensor-categories" class="detail-text"></div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-section-title">🏷 八维标签</div>
+                      <div id="pano-tag-grid" class="detail-text"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 认知层 -->
+              <div class="pano-card phase-2" id="pano-card-2">
+                <div class="pano-card-header" onclick="togglePanoDetail(2)">
+                  <span class="phase-badge">阶段二</span>
+                  <span class="pano-card-title">元认知引擎</span>
+                  <button class="expand-btn">展开 ▸</button>
+                </div>
+                <div class="pano-card-body">
+                  <div class="card-metrics">
+                    <div class="card-metric"><div class="cm-val" id="pano-cog-status">-</div><div class="cm-label">状态</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-reject-status" style="font-size:14px">-</div><div class="cm-label">任务</div></div>
+                  </div>
+                  <div class="pano-detail-overlay" id="pano-detail-2" style="display:none">
+                    <div class="detail-section">
+                      <div class="detail-section-title">📜 翻译规则</div>
+                      <div id="pano-translate-rules" class="detail-text"></div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-section-title">📝 提示词模板</div>
+                      <pre id="pano-prompt-preview" class="detail-text" style="font-family:monospace;max-height:100px;overflow-y:auto"></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 记忆层 -->
+              <div class="pano-card phase-3" id="pano-card-3">
+                <div class="pano-card-header" onclick="togglePanoDetail(3)">
+                  <span class="phase-badge">阶段三</span>
+                  <span class="pano-card-title">记忆管理</span>
+                  <button class="expand-btn">展开 ▸</button>
+                </div>
+                <div class="pano-card-body">
+                  <div class="card-metrics">
+                    <div class="card-metric"><div class="cm-val" id="pano-msg-count">-</div><div class="cm-label">消息</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-log-count">-</div><div class="cm-label">日志</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-summary-ver" style="font-size:14px">-</div><div class="cm-label">摘要版本</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-compress-info" style="font-size:11px">-</div><div class="cm-label">压缩</div></div>
+                  </div>
+                  <div class="pano-detail-overlay" id="pano-detail-3" style="display:none">
+                    <div class="detail-section">
+                      <div class="detail-section-title">📄 当前摘要</div>
+                      <pre id="pano-summary-text" class="detail-text" style="font-family:monospace;max-height:80px;overflow-y:auto"></pre>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-section-title">📊 日志统计</div>
+                      <div id="pano-log-stats" class="detail-text"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 行动层 -->
+              <div class="pano-card phase-4" id="pano-card-4">
+                <div class="pano-card-header" onclick="togglePanoDetail(4)">
+                  <span class="phase-badge">阶段四</span>
+                  <span class="pano-card-title">反身智能</span>
+                  <button class="expand-btn">展开 ▸</button>
+                </div>
+                <div class="pano-card-body">
+                  <div class="card-metrics">
+                    <div class="card-metric"><div class="cm-val" id="pano-mode" style="font-size:14px">-</div><div class="cm-label">模式</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-tools">-</div><div class="cm-label">工具</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-reflections">-</div><div class="cm-label">反思</div></div>
+                    <div class="card-metric"><div class="cm-val" id="pano-llm" style="font-size:14px">-</div><div class="cm-label">LLM</div></div>
+                  </div>
+                  <div class="pano-detail-overlay" id="pano-detail-4" style="display:none">
+                    <div class="detail-section">
+                      <div class="detail-section-title">🔄 行为模式</div>
+                      <div id="pano-mode-list" class="detail-text"></div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-section-title">🔧 注册工具</div>
+                      <div id="pano-tool-list" class="detail-text"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 事件流 -->
+          <div id="pano-section-events" style="display:none">
+            <div class="pano-events">
+              <div class="pano-events-header">
+                <span>📋 实时事件流</span>
+                <span style="font-size:10px;color:#8b949e">自动更新</span>
+              </div>
+              <div class="pano-events-body" id="pano-events-body">
+                <div class="pano-empty">暂无事件</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 系统总览 -->
+          <div class="pano-sysbar">
+            <div class="sys-item">🆔 会话: <span id="pano-session">-</span></div>
+            <div class="sys-item">🔄 交互: <span id="pano-interactions">-</span></div>
+            <div class="sys-item">⏱ 运行: <span id="pano-uptime">-</span></div>
+            <div class="sys-item">🎯 模式: <span class="status-badge normal" id="pano-mode-badge-2">正常</span></div>
+            <div class="sys-item">📡 传感器: <span id="pano-sensor-total">-</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- /全景视图 -->
+
+    <!-- 历史会话详情 -->
+    <div id="detail-history" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        🕐 历史会话
+        <span style="font-size:12px;color:#8b949e;font-weight:400" id="detail-history-count">0 条记录</span>
+      </h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input class="sidebar-search" id="detail-history-search" placeholder="搜索历史记录..." oninput="loadHistory()" style="max-width:300px;margin-bottom:0">
+        <select id="detail-history-sort" class="btn-sm" onchange="loadHistory()">
+          <option value="newest">最新优先</option>
+          <option value="oldest">最早优先</option>
+        </select>
+        <button class="btn-sm danger" onclick="clearAllHistory()" style="margin-left:auto">清空全部</button>
+      </div>
+      <div id="detail-history-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 技能管理详情 -->
+  <div id="detail-skills" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        🔧 技能管理
+        <span style="font-size:12px;color:#8b949e;font-weight:400" id="detail-skills-count">0 个技能</span>
+      </h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+      </div>
+      <div id="detail-skills-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 工具集成详情 -->
+  <div id="detail-tools" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🛠 工具集成</h3>
+      <div style="font-size:13px;color:#8b949e;margin-bottom:12px" id="detail-tools-count">0 个工具</div>
+      <div id="detail-tools-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- 人格配置详情 -->
+  <div id="detail-personality" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🎭 人格配置</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;overflow-y:auto">
+        <div>
+          <h4 style="font-size:14px;color:#8b949e;margin-bottom:8px">★ 预设人格</h4>
+          <div id="detail-personality-presets"></div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;color:#8b949e;margin-bottom:8px">详细参数</h4>
+          <div id="detail-personality-sliders"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-sm primary" onclick="savePersonality()">💾 保存配置</button>
+            <button class="btn-sm" onclick="resetPersonality()">↺ 恢复默认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 记忆管理详情 -->
+  <div id="detail-memory" class="tab-view">
+    <div style="display:flex;flex-direction:column;height:100%;padding:16px 20px;overflow:hidden">
+      <h3 style="font-size:16px;margin-bottom:12px">🧠 记忆管理</h3>
+      <div id="detail-memory-overview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-sm primary" onclick="showAddMemory()">+ 手动添加</button>
+        <button class="btn-sm" onclick="triggerCompression()">⚡ 触发压缩</button>
+      </div>
+      <div id="detail-memory-content" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+</div><!-- /#main -->
+
+</div><!-- /#app -->
+
+<div id="settings-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSettings()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙ 云枢设置</h3>
+      <span class="modal-close" onclick="hideSettings()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>LLM 提供商</label>
+        <select id="cfg-provider" onchange="updateModelHint()">
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="cfg-apikey" placeholder="sk-..." autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>模型名称</label>
+        <div class="model-hint" id="cfg-model-hint">提示: gpt-4 / deepseek-chat / claude-sonnet-4-20250514</div>
+        <input type="text" id="cfg-model" placeholder="deepseek-chat">
+      </div>
+      <div id="cfg-status" class="cfg-status"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="hideSettings()">取消</button>
+      <button class="btn-primary" onclick="saveConfig()">保存并连接</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#00000080;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:12px;width:420px;max-width:90vw;box-shadow:0 8px 32px #00000080}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #30363d}
+.modal-header h3{margin:0;font-size:16px;color:#c9d1d9}
+.modal-close{font-size:24px;cursor:pointer;color:#8b949e;line-height:1}
+.modal-close:hover{color:#c9d1d9}
+.modal-body{padding:20px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #30363d}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:#8b949e;margin-bottom:4px}
+.form-group input,.form-group select{width:100%;padding:8px 12px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;outline:none;box-sizing:border-box}
+.form-group input:focus,.form-group select:focus{border-color:#58a6ff}
+.form-group .model-hint{font-size:11px;color:#8b949e;margin-bottom:4px}
+.cfg-status{padding:8px 12px;border-radius:6px;font-size:13px;display:none}
+.cfg-status.ok{display:block;background:#3fb95020;color:#3fb950;border:1px solid #3fb95080}
+.cfg-status.err{display:block;background:#f8514920;color:#f85149;border:1px solid #f8514980}
+.btn-primary{padding:7px 18px;border-radius:6px;border:none;background:#238636;color:#fff;font-size:13px;cursor:pointer}
+.btn-primary:hover{background:#2ea043}
+.btn-secondary{padding:7px 18px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:13px;cursor:pointer}
+.btn-secondary:hover{background:#21262d}
+
+/* 详情视图通用 */
+.tab-view.detail-view .detail-scroll{overflow-y:auto;flex:1;min-height:0}
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  设置面板
+// ════════════════════════════════════════════════════════════
+async function showSettings() {
+  document.getElementById('settings-modal').style.display = 'flex';
+  document.getElementById('cfg-status').style.display = 'none';
+  // 加载当前配置
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    if (cfg.configured) {
+      document.getElementById('cfg-provider').value = cfg.provider;
+      document.getElementById('cfg-model').value = cfg.model;
+    }
+  } catch(e) {}
+}
+
+function hideSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+
+function updateModelHint() {
+  const provider = document.getElementById('cfg-provider').value;
+  const hints = {
+    openai: 'gpt-4, gpt-4-turbo, gpt-3.5-turbo',
+    deepseek: 'deepseek-chat, deepseek-reasoner',
+    anthropic: 'claude-sonnet-4-20250514, claude-opus-4-20250514',
+  };
+  document.getElementById('cfg-model-hint').textContent = '提示: ' + (hints[provider] || '');
+  const placeholder = {
+    openai: 'gpt-4',
+    deepseek: 'deepseek-chat',
+    anthropic: 'claude-sonnet-4-20250514',
+  };
+  document.getElementById('cfg-model').placeholder = placeholder[provider] || '';
+}
+
+async function saveConfig() {
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.textContent = '连接中...';
+  const status = document.getElementById('cfg-status');
+  status.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        provider: document.getElementById('cfg-provider').value,
+        api_key: document.getElementById('cfg-apikey').value,
+        model: document.getElementById('cfg-model').value || undefined,
+      }),
+    });
+    const result = await r.json();
+    status.className = 'cfg-status ' + (result.ok ? 'ok' : 'err');
+    status.textContent = result.ok ? '✓ LLM 连接成功！云枢现在可以说话了。' : '✗ ' + (result.error || '配置失败');
+    status.style.display = 'block';
+  } catch(e) {
+    status.className = 'cfg-status err';
+    status.textContent = '✗ 连接失败';
+    status.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存并连接';
+  }
+}
+refreshLeft();
+loadChatStatus();
+document.getElementById('chat-input').focus();
+
+// ════════════════════════════════════════════════════════════
+//  左侧面板
+// ════════════════════════════════════════════════════════════
+async function refreshLeft() {
+  await Promise.allSettled([
+    loadChatHealth(),
+    loadChatStatus(),
+  ]);
+}
+
+async function loadChatHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const data = await r.json();
+    const el = document.getElementById('quick-metrics');
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div style="font-size:12px;color:#8b949e">暂无数据</div>';
+      return;
+    }
+    el.innerHTML = data.map(m => {
+      let cls = 'normal';
+      if (m.severity === 'warning') cls = 'warning';
+      else if (m.severity === 'critical') cls = 'critical';
+      return `<div class="metric ${cls}">
+        <div class="value">${m.value}${m.unit||''}</div>
+        <div class="label">${m.description||m.sensor_name}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('quick-metrics').innerHTML =
+      '<div style="font-size:12px;color:#8b949e">加载失败</div>';
+  }
+}
+
+async function loadChatStatus() {
+  try {
+    const [modeR, cogR, sensR] = await Promise.allSettled([
+      fetch('/api/mode'),
+      fetch('/api/cognitive/status'),
+      fetch('/api/sensors'),
+    ]);
+
+    // 模式
+    if (modeR.status === 'fulfilled') {
+      const m = await modeR.value.json();
+      const badge = document.getElementById('chat-mode-badge');
+      badge.textContent = m.label;
+      badge.className = 'status-badge ' + m.mode;
+    }
+
+    // 认知
+    if (cogR.status === 'fulfilled') {
+      const data = await cogR.value.json();
+      document.getElementById('chat-cognitive-text').textContent =
+        data.summary || data.full || '';
+    }
+
+    // 传感器
+    if (sensR.status === 'fulfilled') {
+      const data = await sensR.value.json();
+      const on = data.filter(s => s.enabled).length;
+      document.getElementById('chat-sensor-count').textContent = `${on}/${data.length}`;
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+//  聊天
+// ════════════════════════════════════════════════════════════
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  addMessage(text, 'user');
+
+  // 显示等待状态
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.textContent = '思考中...';
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: text}),
+    });
+    const data = await r.json();
+    addMessage(data.response, 'Yunshu', data.mode_label);
+    document.getElementById('chat-mode-badge').textContent = data.mode_label;
+  } catch(e) {
+    addMessage('（连接失败，请确认服务器正在运行）', 'Yunshu');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '发送';
+    input.focus();
+  }
+}
+
+function addMessage(text, role, modeLabel) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+
+  if (modeLabel) {
+    text = text + `<div class="meta"><span>模式: ${modeLabel}</span></div>`;
+  }
+
+  div.innerHTML = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function clearChat() {
+  if (!confirm('确定清空对话记录？')) return;
+  await fetch('/api/clear', {method: 'POST'});
+  document.getElementById('chat-messages').innerHTML = '';
+}
+
+// ════════════════════════════════════════════════════════════
+//  标签切换
+// ════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(name + '-view').classList.add('active');
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+  if (name === 'panorama') loadPanorama();
+}
+
+// 自动调整输入框高度
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// 定时刷新
+setInterval(function() {
+  refreshLeft();
+  loadChatStatus();
+  if (document.getElementById('panorama-view').classList.contains('active')) {
+    loadPanorama();
+  }
+}, 10000);
+</script>
+<script src="/static/js/sidebar/sidebar.js"></script>
+<script src="/static/js/sidebar/history.js"></script>
+<script src="/static/js/sidebar/skills.js"></script>
+<script src="/static/js/sidebar/tools.js"></script>
+<script src="/static/js/sidebar/personality.js"></script>
+<script src="/static/js/sidebar/memory.js"></script>
+<script src="/static/js/panorama.js"></script>
+</body>
+</html>

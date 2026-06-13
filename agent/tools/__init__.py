@@ -66,11 +66,15 @@ def unregister(name: str):
         logger.info(f"工具注销: {name}")
 
 
-def call(name: str, **params) -> Any:
+def call(*args, **params) -> Any:
     """调用指定工具
 
+    支持两种调用方式:
+      1. call("tool_name", **params) — 标准方式
+      2. call(**params_with_name) — params 中包含 name 字段（用于扩展管理工具等场景）
+
     Args:
-        name: 工具名称
+        *args: 第一个参数为工具名称（可选，也可从 params 中取）
         **params: 工具参数
 
     Returns:
@@ -79,6 +83,11 @@ def call(name: str, **params) -> Any:
     Raises:
         ToolError: 工具不存在或执行失败
     """
+    # 从 args 或 params 中提取工具名称，避免 name 关键字冲突
+    name = args[0] if args else params.pop("name", None)
+    if not name:
+        raise ToolError("调用工具时缺少工具名称")
+
     tool = _registry.get(name)
     if not tool:
         raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")

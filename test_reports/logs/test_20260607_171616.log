@@ -1,0 +1,46 @@
+2026-06-07 17:16:17,756 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 17:16:17,785 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 17:16:17,791 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 17:16:17,800 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 17:16:17,841 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 17:16:17,849 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 17:16:17,851 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 17:16:17,853 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 17:16:17,860 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 17:16:17,894 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 17:16:17,895 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 17:16:17,898 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 17:16:17,901 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 17:16:18,163 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-07 17:16:18,173 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 17:16:18,174 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:16:18,183 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:16:18,184 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 17:16:18,184 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 17:16:18,184 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 17:16:18,184 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 17:16:18,185 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 17:16:18,185 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 17:16:18,185 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-07 17:16:18,186 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 17:16:18,186 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:16:18,186 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-07 17:16:18,187 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-07 17:16:18,187 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 17:16:18,335 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=2
+2026-06-07 17:16:18,335 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 2 failures
+2026-06-07 17:16:18,339 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-07 17:16:18,340 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-07 17:16:18,451 [    INFO] agent.error_handler: Circuit breaker 'default': transitioning to HALF_OPEN
+2026-06-07 17:16:18,451 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-07 17:16:18,456 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-07 17:16:18,457 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-07 17:16:18,568 [    INFO] agent.error_handler: Circuit breaker 'default': transitioning to HALF_OPEN
+2026-06-07 17:16:18,568 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-07 17:16:18,573 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-07 17:16:18,574 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-07 17:16:18,685 [    INFO] agent.error_handler: Circuit breaker 'default': transitioning to HALF_OPEN
+2026-06-07 17:16:18,686 [ WARNING] agent.error_handler: Circuit breaker 'default': reopened after failure in half-open state
+2026-06-07 17:16:18,691 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=5

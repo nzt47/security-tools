@@ -1,0 +1,11 @@
+[
+  {
+    "id": "lesson_20260531_011824_597912",
+    "task_type": "delete",
+    "task_description": "测试删除文件",
+    "failure_point": "权限不足",
+    "solution": null,
+    "timestamp": "2026-05-31T01:18:24.597912",
+    "metadata": null
+  }
+]

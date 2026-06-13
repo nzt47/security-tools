@@ -1,0 +1,68 @@
+{
+  "p6_snapshot": {
+    "enabled": true,
+    "description": "P6 冷启动优化 - 快照管理器配置",
+    
+    "snapshot_directory": "./.p6_snapshots",
+    
+    "frequency_control": {
+      "min_interval_seconds": 300,
+      "max_snapshots": 5,
+      "description": "快照保存频率控制，防止频繁磁盘写入",
+      
+      "min_interval_seconds_description": "最小保存间隔（秒），防止过于频繁的快照持久化操作",
+      "max_snapshots_description": "最大保留快照数量，超过后自动清理最旧的快照"
+    },
+    
+    "compression": {
+      "enabled": true,
+      "level": 6,
+      "description": "快照数据压缩配置",
+      
+      "level_description": "gzip压缩级别，1-9，6为平衡压缩率和性能"
+    },
+    
+    "modules": {
+      "body_sensor": {
+        "enabled": true,
+        "restore_priority": 100,
+        "description": "BodySensor模块序列化"
+      },
+      "behavior": {
+        "enabled": true,
+        "restore_priority": 90,
+        "description": "BehaviorController模块序列化"
+      },
+      "permission": {
+        "enabled": true,
+        "restore_priority": 80,
+        "description": "PermissionSystem模块序列化"
+      },
+      "tools_registry": {
+        "enabled": true,
+        "restore_priority": 70,
+        "description": "ToolsRegistry模块序列化"
+      }
+    },
+    
+    "security": {
+      "enable_checksum": true,
+      "enable_version_check": true,
+      "description": "安全特性配置"
+    },
+    
+    "logging": {
+      "level": "INFO",
+      "format": "[%(asctime)s] %(levelname)s - %(message)s",
+      "description": "日志配置"
+    },
+    
+    "performance": {
+      "max_snapshot_size_mb": 10,
+      "target_save_time_ms": 10,
+      "target_load_time_ms": 5,
+      "description": "性能目标配置"
+    }
+  }
+}
+

@@ -32,9 +32,18 @@
     {"pattern": "subprocess\\.call\\s*\\(\\s*\\[?\\s*['\"]rm\\s+-rf", "description": "Python子进程删除命令", "category": "代码执行"},
     {"pattern": "__import__\\s*\\(\\s*['\"]os['\"]", "description": "Python动态导入OS模块", "category": "代码执行"},
     {"pattern": "\\.\\s*format\\s*\\(\\s*\\)", "description": "Python格式化字符串攻击", "category": "代码执行"},
-    {"pattern": "DROP\\s+TABLE", "description": "SQL删除表", "category": "数据破坏"},
-    {"pattern": "DELETE\\s+FROM\\s+.*WHERE", "description": "SQL无条件删除", "category": "数据破坏"},
-    {"pattern": "TRUNCATE\\s+TABLE", "description": "SQL清空表", "category": "数据破坏"}
+    {"pattern": "DROP\\s+TABLE", "description": "SQL 删除表", "category": "数据破坏"},
+    {"pattern": "DELETE\\s+FROM\\s+.*WHERE", "description": "SQL 无条件删除", "category": "数据破坏"},
+    {"pattern": "TRUNCATE\\s+TABLE", "description": "SQL 清空表", "category": "数据破坏"},
+    {"pattern": "删除.*文件", "description": "中文删除指令", "category": "文件破坏"},
+    {"pattern": "删除所有", "description": "中文删除所有数据", "category": "文件破坏"},
+    {"pattern": "删除.*目录", "description": "中文删除目录", "category": "文件破坏"},
+    {"pattern": "<script[^>]*>", "description": "XSS 脚本注入", "category": "代码注入"},
+    {"pattern": "javascript:", "description": "JS 协议注入", "category": "代码注入"},
+    {"pattern": "on\\w+\\s*=", "description": "HTML 事件注入", "category": "代码注入"},
+    {"pattern": "SELECT.*FROM.*WHERE", "description": "SQL 条件查询", "category": "数据访问"},
+    {"pattern": "INSERT\\s+INTO", "description": "SQL 插入操作", "category": "数据访问"},
+    {"pattern": "UPDATE.*SET.*WHERE", "description": "SQL 更新操作", "category": "数据访问"}
   ],
   "warning": [
     {"pattern": "kill\\s+-9", "description": "强制终止进程", "category": "进程控制"},

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "mem_20260531_015706_158676",
+    "content": "Python是一种解释型、面向对象、动态数据类型的高级程序设计语言",
+    "metadata": {
+      "type": "document",
+      "source": "维基百科",
+      "tags": ["python", "programming"],
+      "created_at": "2026-05-31T01:57:06.158676"
+    },
+    "timestamp": "2026-05-31T01:57:06.158676"
+  },
+  {
+    "id": "mem_20260531_015706_160675",
+    "content": "ChromaDB是一个轻量级的开源向量数据库，专门用于AI应用",
+    "metadata": {
+      "type": "document",
+      "source": "技术文档",
+      "tags": ["vector", "database", "ai"],
+      "created_at": "2026-05-31T01:57:06.160675"
+    },
+    "timestamp": "2026-05-31T01:57:06.160675"
+  },
+  {
+    "id": "mem_20260531_015706_162677",
+    "content": "ReAct模式是结合推理(Reasoning)和行动(Acting)的AI代理框架",
+    "metadata": {
+      "type": "document",
+      "source": "论文",
+      "tags": ["ai", "agent", "react"],
+      "created_at": "2026-05-31T01:57:06.162677"
+    },
+    "timestamp": "2026-05-31T01:57:06.162677"
+  },
+  {
+    "id": "mem_20260531_122421_254963",
+    "content": "Flask 是一个轻量级的 Web 框架",
+    "metadata": {
+      "type": "document",
+      "source": "Flask文档",
+      "tags": ["Web开发", "Flask"],
+      "created_at": "2026-05-31T12:24:21.254963"
+    },
+    "timestamp": "2026-05-31T12:24:21.254963"
+  },
+  {
+    "id": "mem_20260531_122421_255965",
+    "content": "Django 是一个高级 Python Web 框架",
+    "metadata": {
+      "type": "document",
+      "source": "Django文档",
+      "tags": ["Web开发", "Django"],
+      "created_at": "2026-05-31T12:24:21.255965"
+    },
+    "timestamp": "2026-05-31T12:24:21.255965"
+  }
+]

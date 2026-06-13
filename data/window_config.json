@@ -1,6 +1,6 @@
 {
-  "enabled": true,
-  "poll_interval_sec": 1,
+  "enabled": false,
+  "poll_interval_sec": 0.5,
   "max_events": 500,
   "idle_timeout_sec": 300,
   "ignore_processes": []
