@@ -311,17 +311,229 @@
   color: var(--text-primary);
   margin-bottom: 4px;
 }
+
+/* ── 帮助提示与建议标签 ── */
+.help-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  border-radius: 8px;
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-color, #30363d);
+  font-size: 12px;
+  color: var(--text-secondary, #8b949e);
+  line-height: 1.6;
+}
+.help-tip .help-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  margin-top: 1px;
+}
+.help-tip code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 139, 253, 0.15);
+  color: #58a6ff;
+  font-size: 11px;
+  font-family: SF Mono, Cascadia Code, monospace;
+  white-space: nowrap;
+}
+.help-tip .help-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.help-tip .help-example {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(56, 139, 253, 0.1);
+  border: 1px solid rgba(56, 139, 253, 0.2);
+  color: #58a6ff;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.help-tip .help-example:hover {
+  background: rgba(56, 139, 253, 0.2);
+  border-color: rgba(56, 139, 253, 0.4);
+}
+/* 对话区建议标签 */
+.suggestion-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+}
+.suggestion-chip {
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: rgba(56, 139, 253, 0.08);
+  border: 1px solid rgba(56, 139, 253, 0.15);
+  color: var(--text-secondary, #8b949e);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+.suggestion-chip:hover {
+  background: rgba(56, 139, 253, 0.18);
+  border-color: rgba(56, 139, 253, 0.3);
+  color: #58a6ff;
+}
+.suggestion-chip .chip-icon {
+  margin-right: 3px;
+}
+
+/* ── 快捷开关栏 ── */
+.quick-toggle-bar {
+  border-top: 1px solid var(--border-color, #30363d);
+  background: var(--bg-secondary, #161b22);
+  user-select: none;
+}
+.quick-toggle-bar .qt-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted, #8b949e);
+  transition: background 0.15s;
+}
+.quick-toggle-bar .qt-collapsed:hover {
+  background: var(--bg-hover, #1c2128);
+}
+.qt-summary-icon { font-size: 13px; }
+.qt-summary-text { flex: 1; }
+.qt-expand-icon { font-size: 10px; color: var(--text-muted, #484f58); }
+.qt-expanded {
+  max-height: 260px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color, #21262d);
+}
+.qt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-tertiary, #0d1117);
+  border-bottom: 1px solid var(--border-color, #21262d);
+}
+.qt-title { font-size: 12px; font-weight: 600; color: var(--text-primary, #c9d1d9); }
+.qt-close { cursor: pointer; font-size: 14px; color: var(--text-muted, #484f58); padding: 0 4px; }
+.qt-close:hover { color: var(--text-primary, #c9d1d9); }
+.qt-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color, #21262d);
+  padding: 0 16px;
+  background: var(--bg-tertiary, #0d1117);
+}
+.qt-tab {
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--text-muted, #8b949e);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.qt-tab:hover { color: var(--text-primary, #c9d1d9); }
+.qt-tab.active {
+  color: var(--accent, #58a6ff);
+  border-bottom-color: var(--accent, #58a6ff);
+}
+.qt-search-box {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border-color, #21262d);
+}
+.qt-search {
+  width: 100%;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #30363d);
+  background: var(--bg-primary, #0d1117);
+  color: var(--text-primary, #c9d1d9);
+  font-size: 11px;
+  outline: none;
+  box-sizing: border-box;
+}
+.qt-search:focus { border-color: var(--accent, #58a6ff); }
+.qt-search::placeholder { color: var(--text-muted, #484f58); }
+.qt-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.qt-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  font-size: 11px;
+  color: var(--text-secondary, #8b949e);
+  transition: background 0.1s;
+}
+.qt-item:hover {
+  background: var(--bg-hover, #1c2128);
+}
+.qt-item .qt-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qt-item .qt-item-desc {
+  font-size: 10px;
+  color: var(--text-muted, #484f58);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qt-item .toggle-switch {
+  width: 28px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.qt-item .toggle-switch .toggle-slider:before {
+  height: 10px;
+  width: 10px;
+  left: 3px;
+  bottom: 3px;
+}
+.qt-item .toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(12px);
+}
+.qt-item-type-icon { flex-shrink: 0; font-size: 12px; }
+.qt-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted, #484f58);
+  font-size: 11px;
+}
+/* 视图内帮助区域 */
+.view-help {
+  margin-bottom: 12px;
+}
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260601">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260611">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260611">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260612">
 </head>
 <body>
 <div id="app">
@@ -355,7 +567,7 @@
         <button class="nav-btn" data-view="panorama"><span class="nav-icon">🗺</span><span class="nav-label">全景</span></button>
         <div class="nav-divider"></div>
         <div class="nav-section-label">管理</div>
-        <button class="nav-btn" data-view="history"><span class="nav-icon">🕐</span><span class="nav-label">历史会话</span></button>
+        <!-- 历史会话已合并到对话视图的会话功能中 -->
         <button class="nav-btn" data-view="skills"><span class="nav-icon">🔧</span><span class="nav-label">技能管理</span></button>
         <button class="nav-btn" data-view="tools"><span class="nav-icon">🛠</span><span class="nav-label">工具集成</span></button>
         <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
@@ -371,16 +583,36 @@
     <!-- 主内容区 -->
     <main id="content">
       <!-- 对话视图 -->
-      <div id="view-chat" class="view active" style="flex-direction:column">
+      <div id="view-chat" class="view active" style="flex-direction:column;position:relative">
+        <!-- 内侧历史问话触发器 — 常驻，悬停自动弹出面板 -->
+        <div class="cht-tab" id="cht-tab" title="历史问话"
+             onmouseenter="autoOpenHistoryPanel()"
+             onmouseleave="autoCloseHistoryPanel()">
+          <span class="trigger-icon">🕐</span>
+          <span class="trigger-label">记录</span>
+        </div>
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div class="chat-header" id="chat-header">
-            <div class="chat-header-left" onclick="toggleSessionsDropdown()" style="cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none">
-              <span id="chat-header-title" style="font-size:14px;font-weight:600;color:var(--text-primary,#c9d1d9)">💬 对话</span>
-              <span style="font-size:10px;color:var(--text-secondary,#8b949e)">▾</span>
+            <div class="chat-header-left" id="chat-header-left" onclick="toggleSessionsDropdown()">
+              <span id="chat-header-title">💬 对话</span>
+              <span class="chat-header-arrow">▾</span>
             </div>
-            <span style="font-size:12px;color:var(--text-secondary,#8b949e)" id="chat-header-count"></span>
+            <div class="chat-header-right">
+              <span class="chat-header-count" id="chat-header-count"></span>
+              <div class="chat-header-toggles">
+                <span class="cht-toggle" id="toggle-thinking" onclick="toggleDisplay('thinking')" title="显示/隐藏 Thought 思考过程和模式标签">
+                  <span class="cht-toggle-icon">💭</span>
+                  <span class="cht-toggle-label">Thought</span>
+                </span>
+                <span class="cht-toggle" id="toggle-toolcalls" onclick="toggleDisplay('toolcalls')" title="显示/隐藏工具调用步骤">
+                  <span class="cht-toggle-icon">🔧</span>
+                  <span class="cht-toggle-label">工具</span>
+                </span>
+              </div>
+              <button class="chat-header-btn" onclick="showChatConfig()" title="对话风格设置">🎨</button>
+            </div>
             <!-- 会话下拉菜单 -->
-            <div class="sessions-dropdown" id="sessions-dropdown" style="display:none">
+            <div class="sessions-dropdown" id="sessions-dropdown">
               <div class="sessions-dropdown-header">
                 <span style="font-size:12px;font-weight:600;color:var(--text-primary,#c9d1d9)">📋 会话</span>
                 <button class="btn-new-session" onclick="event.stopPropagation();createNewSession()">+ 新建</button>
@@ -390,18 +622,51 @@
               </div>
             </div>
           </div>
-          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+          <div id="chat-messages"></div>
+
+          <!-- ═══ 快捷开关栏 ═══ -->
+          <div id="quick-toggle-bar" class="quick-toggle-bar" style="flex-shrink:0">
+            <div class="qt-collapsed" id="qt-collapsed" onclick="toggleQuickBar()">
+              <span class="qt-summary-icon">🔧</span>
+              <span class="qt-summary-text" id="qt-summary-text">加载中...</span>
+              <span class="qt-expand-icon">▾</span>
+            </div>
+            <div class="qt-expanded" id="qt-expanded" style="display:none" onmouseleave="autoHideQuickBar()">
+              <div class="qt-header">
+                <span class="qt-title">🔧 快捷开关</span>
+                <span class="qt-close" onclick="toggleQuickBar()">✕</span>
+              </div>
+              <div class="qt-tabs">
+                <span class="qt-tab active" data-qt-tab="all" onclick="switchQtTab('all')">全部</span>
+                <span class="qt-tab" data-qt-tab="tool" onclick="switchQtTab('tool')">工具</span>
+                <span class="qt-tab" data-qt-tab="skill" onclick="switchQtTab('skill')">技能</span>
+              </div>
+              <div class="qt-search-box">
+                <input class="qt-search" id="qt-search" placeholder="搜索..." oninput="filterQuickBar()">
+              </div>
+              <div class="qt-list" id="qt-list"></div>
+            </div>
+          </div>
+
           <div id="chat-input-area" style="display:flex;gap:8px;padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);flex-shrink:0">
             <button id="voice-btn" onclick="startVoiceInput()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="语音输入">
               <span id="voice-icon">🎤</span>
             </button>
-            <textarea id="chat-input" rows="1" placeholder="和云枢说话..."
+            <!-- 建议标签 -->
+<div class="suggestion-bar" id="suggestion-bar">
+  <span class="suggestion-chip" onclick="fillSuggestion(&#39;帮我安装文件系统MCP服务&#39;)"><span class="chip-icon">🔗</span>安装MCP服务</span>
+  <span class="suggestion-chip" onclick="fillSuggestion(&#39;帮我安装自省反思技能&#39;)"><span class="chip-icon">🔧</span>安装技能</span>
+  <span class="suggestion-chip" onclick="fillSuggestion(&#39;发现可用的扩展&#39;)"><span class="chip-icon">🔍</span>发现扩展</span>
+  <span class="suggestion-chip" onclick="fillSuggestion(&#39;列出已安装的扩展&#39;)"><span class="chip-icon">📋</span>列出扩展</span>
+  <span class="suggestion-chip" onclick="fillSuggestion(&#39;通过webhook发送测试消息&#39;)"><span class="chip-icon">📤</span>发送消息</span>
+</div>
+<textarea id="chat-input" rows="1" placeholder="和云枢说话..."
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
               style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:14px;outline:none;resize:none;font-family:inherit;max-height:80px"></textarea>
             <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="切换语音输出模式">
               <span id="voice-toggle-icon">🔊</span>
             </button>
-            <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap">发送</button>
+            <button id="send-btn" onclick="sendMessage()" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.2s">发送</button>
           </div>
         </div>
       </div>
@@ -562,25 +827,24 @@
         </div>
       </div>
 
-      <!-- 历史会话视图 -->
-      <div id="view-history" class="view">
-        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🕐 历史会话</h3>
-          <input class="view-search" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory()">
-          <div class="panel-actions">
-            <select id="history-sort" class="btn-sm" onchange="loadHistory()">
-              <option value="newest">最新优先</option>
-              <option value="oldest">最早优先</option>
-            </select>
-          </div>
-          <div id="history-list"></div>
-        </div>
-      </div>
+      <!-- 历史会话已合并到对话视图的会话功能中 -->
 
       <!-- 技能管理视图 -->
       <div id="view-skills" class="view">
         <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
           <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
+          <div class="help-tip view-help">
+            <span class="help-icon">💡</span>
+            <div>
+              在对话中让云枢自主安装技能
+              <div class="help-examples">
+                <span class="help-example" onclick="fillSuggestion(&#39;帮我安装自省反思技能&#39;)">💬 安装自省反思</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;帮我安装记忆摘要技能&#39;)">💬 安装记忆摘要</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;禁用自省反思技能&#39;)">💬 禁用/启用</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;列出已安装的技能&#39;)">💬 查看已安装</span>
+              </div>
+            </div>
+          </div>
           <div class="panel-actions">
             <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
           </div>
@@ -592,6 +856,29 @@
       <div id="view-tools" class="view">
         <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
           <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🛠 工具集成</h3>
+          <div class="help-tip view-help">
+            <span class="help-icon">💡</span>
+            <div>
+              云枢已注册的工具列表 — 在对话中云枢会自动调用合适的工具
+              <div class="help-examples">
+                <span class="help-example" onclick="fillSuggestion(&#39;检查身体状态&#39;)">💬 检查健康</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;搜索互联网最新AI新闻&#39;)">💬 搜索网络</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;读取桌面上的文件&#39;)">💬 读取文件</span>
+                <span class="help-example" onclick="fillSuggestion(&#39;安装一个MCP服务&#39;)">💬 安装新MCP</span>
+              </div>
+            </div>
+          </div>
+          <!-- ═══ 进程白名单 ═══ -->
+          <div id="process-whitelist" class="process-whitelist">
+            <div class="whitelist-header">
+              <span class="whitelist-title">📋 可运行程序</span>
+              <span class="whitelist-summary" id="process-whitelist-summary">加载中...</span>
+            </div>
+            <div class="whitelist-categories" id="process-whitelist-categories">
+              <div class="view-loading" style="padding:8px;text-align:center;color:#8b949e;font-size:11px">加载中...</div>
+            </div>
+          </div>
+
           <div id="tools-count" style="font-size:12px;color:#8b949e;margin-bottom:8px"></div>
           <div id="tools-list"></div>
         </div>
@@ -941,6 +1228,16 @@
             <div class="network-section-header">
               <span class="section-icon">🔗</span>
               <span class="section-title">MCP 服务配置</span>
+                <div class="help-tip" style="margin:0 0 0 8px;padding:4px 10px;font-size:11px;display:inline-flex">
+                  <span class="help-icon" style="font-size:11px">💡</span>
+                  <div>
+                    <div class="help-examples" style="margin:0">
+                      <span class="help-example" style="font-size:10px" onclick="fillSuggestion(&#39;帮我安装文件系统MCP服务&#39;)">💬 安装文件系统MCP</span>
+                      <span class="help-example" style="font-size:10px" onclick="fillSuggestion(&#39;帮我安装GitHub MCP服务&#39;)">💬 安装GitHub MCP</span>
+                      <span class="help-example" style="font-size:10px" onclick="fillSuggestion(&#39;列出已安装的MCP服务&#39;)">💬 查看已安装</span>
+                    </div>
+                  </div>
+                </div>
               <label class="toggle-switch">
                 <input type="checkbox" id="nc-mcp-enabled" onchange="toggleMcpEnabled(this.checked)">
                 <span class="toggle-slider"></span>
@@ -2368,6 +2665,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // ════════════════════════════════════════════════════════════
 //  语音模式
 // ════════════════════════════════════════════════════════════
+function fillSuggestion(text) {
+  var input = document.getElementById('chat-input');
+  if (input) {
+    input.value = text;
+    input.focus();
+    var chatBtn = document.querySelector('.nav-btn[data-view="chat"]');
+    if (chatBtn) chatBtn.click();
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 80) + 'px';
+  }
+}
+
 let voiceOutputEnabled = true;
 
 function toggleVoiceMode() {
@@ -2391,6 +2700,102 @@ function toggleVoiceMode() {
 // ════════════════════════════════════════════════════════════
 //  聊天
 // ════════════════════════════════════════════════════════════
+// ═══ 扩展安装后自动刷新 UI ═══
+
+const EXT_TOOLS = new Set(['ext_install', 'ext_uninstall', 'ext_toggle', 'ext_configure']);
+
+function refreshExtViews(steps) {
+  let needsRefreshSkills = false;
+  let needsRefreshMcp = false;
+  let needsRefreshChannel = false;
+  let needsRefreshPlugin = false;
+  let refreshTimeout = 1500;
+
+  // 遍历 tool_call steps 记录参数
+  const callArgs = {};
+  for (const step of steps) {
+    if (step.type === 'tool_call' && EXT_TOOLS.has(step.tool)) {
+      callArgs[step.tool] = step.args || {};
+    }
+    if (step.type === 'tool_result' && EXT_TOOLS.has(step.tool) && step.status === 'success') {
+      const args = callArgs[step.tool] || {};
+      const extType = args.type || '';
+      if (extType === 'skill' || extType === 'claude_skill') needsRefreshSkills = true;
+      else if (extType === 'mcp') needsRefreshMcp = true;
+      else if (extType === 'channel') needsRefreshChannel = true;
+      else if (extType === 'plugin') needsRefreshPlugin = true;
+      else {
+        // 不知道类型就全部刷新
+        needsRefreshSkills = needsRefreshMcp = needsRefreshChannel = needsRefreshPlugin = true;
+      }
+    }
+  }
+
+  // 延迟执行刷新，等工具步骤渲染完
+  setTimeout(() => {
+    if (needsRefreshSkills && typeof loadSkills === 'function') {
+      loadSkills();
+    }
+    if ((needsRefreshMcp || needsRefreshChannel || needsRefreshPlugin) && typeof loadNetworkConfig === 'function') {
+      loadNetworkConfig();
+    }
+    if (needsRefreshMcp && typeof loadMcpServices === 'function') {
+      loadMcpServices();
+    }
+  }, 1500);
+}
+
+// ═══ 思考/工具显示开关 ═══
+
+function getDisplayPref(key) {
+  try {
+    const val = localStorage.getItem('yunshu_display_' + key);
+    return val === null ? true : val === 'true';
+  } catch { return true; }
+}
+
+function setDisplayPref(key, val) {
+  localStorage.setItem('yunshu_display_' + key, String(val));
+}
+
+function toggleDisplay(type) {
+  const current = getDisplayPref(type);
+  setDisplayPref(type, !current);
+  updateToggleUI(type);
+}
+
+function updateToggleUI(type) {
+  const el = document.getElementById('toggle-' + type);
+  if (!el) return;
+  const on = getDisplayPref(type);
+  el.classList.toggle('on', on);
+  el.classList.toggle('off', !on);
+  // 同步控制已显示的内容
+  if (type === 'thinking') {
+    const blocks = document.querySelectorAll('.thought-block');
+    const metas = document.querySelectorAll('.msg .meta[data-has-mode="true"]');
+    blocks.forEach(b => b.style.display = on ? '' : 'none');
+    metas.forEach(m => m.style.display = on ? '' : 'none');
+  } else if (type === 'toolcalls') {
+    const steps = document.querySelectorAll('.msg.tool-step');
+    steps.forEach(s => s.style.display = on ? '' : 'none');
+  }
+}
+
+function initToggleUI() {
+  updateToggleUI('thinking');
+  updateToggleUI('toolcalls');
+  console.log('[Toggle] initToggleUI() executed, thinking=' + getDisplayPref('thinking') + ' toolcalls=' + getDisplayPref('toolcalls'));
+}
+
+// 页面加载完成后额外运行一次，确保初始化
+document.addEventListener('DOMContentLoaded', function() {
+  updateToggleUI('thinking');
+  updateToggleUI('toolcalls');
+});
+
+let _abortController = null;
+
 async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
@@ -2401,39 +2806,98 @@ async function sendMessage() {
   addMessage(text, 'user');
 
   const btn = document.getElementById('send-btn');
-  btn.disabled = true;
-  btn.textContent = '思考中...';
+  btn.disabled = false;
+  btn.textContent = '⏹ 停止';
+  btn.style.background = '#da3633';
+  btn.onclick = stopChat;
 
   setMascotMood('thinking');
+
+  // 添加"思考中"占位气泡（受思考开关控制）
+  const showThinking = getDisplayPref('thinking');
+  const thinkingMsgEl = document.createElement('div');
+  thinkingMsgEl.className = 'msg Yunshu thinking-placeholder';
+  thinkingMsgEl.innerHTML = '💭 思考中<span class="thinking-dots"></span>';
+  if (!showThinking) thinkingMsgEl.style.display = 'none';
+  document.getElementById('chat-messages').appendChild(thinkingMsgEl);
+
+  // 创建 AbortController 用于中止 fetch
+  _abortController = new AbortController();
 
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({message: text, voice: voiceOutputEnabled}),
+      signal: _abortController.signal,
     });
     const data = await r.json();
+    // 移除思考中占位
+    thinkingMsgEl.remove();
     if (data.blocked) {
       addMessage('🚫 ' + data.response, 'Yunshu');
-      btn.disabled = false;
       btn.textContent = '发送';
+      btn.style.background = '#238636';
+      btn.onclick = sendMessage;
       input.focus();
       setMascotMood('tired');
       return;
     }
-    // 显示工具调用步骤
+    // 工具调用步骤 — 始终创建 DOM，开关控制显隐
+    const showTools = getDisplayPref('toolcalls');
+    console.log('[sendMessage] showTools=' + showTools + ' steps=' + (data.tool_steps ? data.tool_steps.length : 0));
     if (data.tool_steps && data.tool_steps.length > 0) {
-      addToolSteps(data.tool_steps);
+      addToolSteps(data.tool_steps, showTools);
+      refreshExtViews(data.tool_steps);
     }
-    addMessage(data.response, 'Yunshu', data.mode_label);
+    // 思考过程 — 始终创建 DOM，开关控制显隐
+    let displayText = data.response;
+    console.log('[sendMessage] showThinking=' + showThinking + ' reasoning=' + (data.reasoning ? 'yes (' + data.reasoning.length + ' chars)' : 'no'));
+    if (data.reasoning) {
+      const thoughtHidden = !showThinking ? ' style="display:none"' : '';
+      const thoughtHtml = `<div class="thought-block"${thoughtHidden}>💭 <span class="thought-label">Thought</span><div class="thought-content">${app.escapeHtml(data.reasoning)}</div></div>`;
+      displayText = thoughtHtml + '\n' + data.response;
+    }
+    addMessage(displayText, 'Yunshu', data.mode_label);
     setMascotMood('happy');
   } catch(e) {
-    addMessage('（连接失败，请确认服务器正在运行）', 'Yunshu');
-    setMascotMood('error');
+    if (e.name === 'AbortError') {
+      // 用户手动中止，不显示错误
+      thinkingMsgEl.remove();
+      addMessage('⏹ 已中止', 'Yunshu');
+      setMascotMood('idle');
+    } else {
+      thinkingMsgEl.remove();
+      addMessage('（连接失败，请确认服务器正在运行）', 'Yunshu');
+      setMascotMood('error');
+    }
   } finally {
-    btn.disabled = false;
     btn.textContent = '发送';
+    btn.style.background = '#238636';
+    btn.onclick = sendMessage;
+    btn.disabled = false;
+    _abortController = null;
     input.focus();
+  }
+}
+
+async function stopChat() {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.textContent = '正在停止...';
+  // 中止前端 fetch 请求
+  if (_abortController) {
+    _abortController.abort();
+  }
+  // 通知后端中止工具循环
+  try {
+    await fetch('/api/permission/emergency', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'cancel'}),
+    });
+  } catch(e) {
+    console.log('[stopChat] 中止请求完成（可能已中止）');
   }
 }
 
@@ -2442,20 +2906,29 @@ function addMessage(text, role, modeLabel) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
 
-  if (modeLabel) {
-    text = text + `<div class="meta"><span>模式: ${modeLabel}</span></div>`;
-  }
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  // 始终生成 .meta（含模式标签+时间），通过 data-has-mode 标记是否含有模式文字
+  const hasMode = !!modeLabel;
+  const showNow = getDisplayPref('thinking');
+  const metaDisplay = (hasMode && !showNow) ? 'none' : '';
+  const modeText = hasMode ? `<span>模式: ${modeLabel}</span>` : '';
+  text = text + `<div class="meta" data-has-mode="${hasMode}" style="display:${metaDisplay}">`
+      + modeText
+      + `<span class="msg-time">${timeStr}</span></div>`;
 
   div.innerHTML = text;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
 
-function addToolSteps(steps) {
+function addToolSteps(steps, visible) {
   const el = document.getElementById('chat-messages');
   for (const step of steps) {
     const div = document.createElement('div');
     div.className = 'msg tool-step';
+    if (visible === false) div.style.display = 'none';
     if (step.type === 'tool_call') {
       const args = step.args || {};
       const query = args.query || args.url || JSON.stringify(args);
@@ -2513,23 +2986,540 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=20260611"></script>
-<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/history.js') }}?v=20260611"></script>
-<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260601"></script>
-<script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260611"></script>
-<script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260611"></script>
-<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260610"></script>
-<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260601"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260612"></script>
+<script>
+// ═══════════════════════════════════════════════
+// 快捷开关栏
+// ═══════════════════════════════════════════════
+
+let _qtData = [];
+let _qtTab = 'all';
+
+async function loadQuickToggleBar() {
+  try {
+    const data = await app.get('/api/tools/status-batch');
+    _qtData = data;
+    renderQtCollapsed();
+    renderQtList();
+  } catch(e) {
+    document.getElementById('qt-summary-text').textContent = '加载失败';
+  }
+}
+
+function renderQtCollapsed() {
+  const tools = _qtData.filter(i => i.type === 'tool');
+  const skills = _qtData.filter(i => i.type === 'skill');
+  const tEnabled = tools.filter(i => i.enabled).length;
+  const sEnabled = skills.filter(i => i.enabled).length;
+  document.getElementById('qt-summary-text').textContent =
+    `工具 (${tEnabled}/${tools.length} 启用) · 技能 (${sEnabled}/${skills.length} 启用)  — 点击展开`;
+}
+
+let _qtAutoHideTimer = null;
+
+function toggleQuickBar() {
+  const el = document.getElementById('qt-expanded');
+  const collapsed = document.getElementById('qt-collapsed');
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'flex';
+  collapsed.style.display = isOpen ? 'flex' : 'none';
+  if (!isOpen) {
+    loadQuickToggleBar();
+    if (_qtAutoHideTimer) { clearTimeout(_qtAutoHideTimer); _qtAutoHideTimer = null; }
+  }
+}
+
+function autoHideQuickBar() {
+  if (_qtAutoHideTimer) clearTimeout(_qtAutoHideTimer);
+  _qtAutoHideTimer = setTimeout(() => {
+    const el = document.getElementById('qt-expanded');
+    const collapsed = document.getElementById('qt-collapsed');
+    if (el) el.style.display = 'none';
+    if (collapsed) collapsed.style.display = 'flex';
+    _qtAutoHideTimer = null;
+  }, 300);
+}
+
+function switchQtTab(tab) {
+  _qtTab = tab;
+  document.querySelectorAll('.qt-tab').forEach(t => t.classList.toggle('active', t.dataset.qtTab === tab));
+  renderQtList();
+}
+
+function filterQuickBar() {
+  renderQtList();
+}
+
+function renderQtList() {
+  const list = document.getElementById('qt-list');
+  const q = (document.getElementById('qt-search').value || '').toLowerCase().trim();
+  let items = _qtData;
+  if (_qtTab === 'tool') items = items.filter(i => i.type === 'tool');
+  else if (_qtTab === 'skill') items = items.filter(i => i.type === 'skill');
+  if (q) items = items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+  if (!items.length) {
+    list.innerHTML = '<div class="qt-empty">无匹配项</div>';
+    return;
+  }
+  list.innerHTML = items.map(i => {
+    const typeIcon = i.type === 'tool' ? '🔧' : '🔌';
+    const isEnabled = i.enabled !== false;
+    if (i.type === 'tool') {
+      return `<div class="qt-item">
+        <span class="qt-item-type-icon">${typeIcon}</span>
+        <span class="qt-item-name">${app.escapeHtml(i.name)}</span>
+        <span class="qt-item-desc">${app.escapeHtml(i.description || '')}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="qtToggleTool('${i.name}', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+    }
+    return `<div class="qt-item">
+      <span class="qt-item-type-icon">${typeIcon}</span>
+      <span class="qt-item-name">${app.escapeHtml(i.name)}</span>
+      <span class="qt-item-desc">${app.escapeHtml(i.description || '')}</span>
+      <label class="toggle-switch">
+        <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="qtToggleSkill('${i.id}')">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+  }).join('');
+}
+
+async function qtToggleTool(name, enabled) {
+  try {
+    const r = await app.post('/api/tools/toggle', { name, enabled });
+    if (r.ok) {
+      app.showToast(enabled ? `「${name}」已启用` : `「${name}」已禁用`);
+      loadQuickToggleBar();
+    }
+  } catch(e) {
+    app.showToast('操作失败', 'error');
+  }
+}
+
+async function qtToggleSkill(id) {
+  try {
+    const r = await app.post('/api/skills/toggle', { id });
+    if (r.ok) {
+      app.showToast(r.enabled ? '已启用' : '已禁用');
+      loadQuickToggleBar();
+    }
+  } catch(e) {
+    app.showToast('操作失败', 'error');
+  }
+}
+
+// 初始加载快捷开关栏
+loadQuickToggleBar();
+</script>
+<script>
+// ════════════════════════════════════════════════════════════
+// 对话风格配置
+// ════════════════════════════════════════════════════════════
+
+const CHAT_THEMES = {
+  midnight: {
+    label: '午夜',
+    icon: '🌙',
+    '--chat-user-bg': '#1f6feb30',
+    '--chat-user-border': '#1f6feb50',
+    '--chat-user-text': '#c9d1d9',
+    '--chat-bot-bg': '#161b22',
+    '--chat-bot-border': '#30363d',
+    '--chat-bot-text': '#c9d1d9',
+  },
+  ocean: {
+    label: '海洋',
+    icon: '🌊',
+    '--chat-user-bg': '#0ea5e920',
+    '--chat-user-border': '#0ea5e950',
+    '--chat-user-text': '#e0f2fe',
+    '--chat-bot-bg': '#0f172a',
+    '--chat-bot-border': '#1e3a5f',
+    '--chat-bot-text': '#e0f2fe',
+  },
+  forest: {
+    label: '森林',
+    icon: '🌿',
+    '--chat-user-bg': '#22c55e20',
+    '--chat-user-border': '#22c55e40',
+    '--chat-user-text': '#dcfce7',
+    '--chat-bot-bg': '#052e16',
+    '--chat-bot-border': '#166534',
+    '--chat-bot-text': '#dcfce7',
+  },
+  warm: {
+    label: '暖阳',
+    icon: '☀️',
+    '--chat-user-bg': '#f9731620',
+    '--chat-user-border': '#f9731640',
+    '--chat-user-text': '#fff7ed',
+    '--chat-bot-bg': '#1c1917',
+    '--chat-bot-border': '#7c2d12',
+    '--chat-bot-text': '#fff7ed',
+  },
+  purple: {
+    label: '紫韵',
+    icon: '🔮',
+    '--chat-user-bg': '#a855f720',
+    '--chat-user-border': '#a855f740',
+    '--chat-user-text': '#f3e8ff',
+    '--chat-bot-bg': '#150e1f',
+    '--chat-bot-border': '#4a245e',
+    '--chat-bot-text': '#f3e8ff',
+  },
+};
+
+const CHAT_BUBBLE_STYLES = {
+  rounded: { label: '圆润', '--chat-bubble-radius': '14px', '--chat-bubble-radius-user': '14px 14px 4px 14px', '--chat-bubble-radius-bot': '14px 14px 14px 4px' },
+  modern: { label: '现代', '--chat-bubble-radius': '10px', '--chat-bubble-radius-user': '10px 10px 2px 10px', '--chat-bubble-radius-bot': '10px 10px 10px 2px' },
+  minimal: { label: '简约', '--chat-bubble-radius': '6px', '--chat-bubble-radius-user': '6px 6px 6px 6px', '--chat-bubble-radius-bot': '6px 6px 6px 6px' },
+};
+
+const CHAT_FONT_SIZES = {
+  small: { label: '小', value: '13px' },
+  normal: { label: '中', value: '14px' },
+  large: { label: '大', value: '16px' },
+};
+
+function getChatConfig() {
+  try {
+    return JSON.parse(localStorage.getItem('yunshu_chat_config')) || {};
+  } catch { return {}; }
+}
+
+function saveChatConfig(cfg) {
+  const current = getChatConfig();
+  Object.assign(current, cfg);
+  localStorage.setItem('yunshu_chat_config', JSON.stringify(current));
+  applyChatConfig();
+}
+
+function applyChatConfig() {
+  const cfg = getChatConfig();
+  const root = document.documentElement;
+  // 颜色主题
+  const theme = CHAT_THEMES[cfg.theme];
+  if (theme) {
+    Object.entries(theme).forEach(([key, val]) => {
+      if (key.startsWith('--')) root.style.setProperty(key, val);
+    });
+  }
+  // 气泡样式
+  const style = CHAT_BUBBLE_STYLES[cfg.bubbleStyle];
+  if (style) {
+    Object.entries(style).forEach(([key, val]) => {
+      if (key.startsWith('--')) root.style.setProperty(key, val);
+    });
+  }
+  // 字体大小
+  const fs = CHAT_FONT_SIZES[cfg.fontSize];
+  if (fs) root.style.setProperty('--chat-fs', fs.value);
+  // 应用气泡圆角到 .msg
+  document.querySelectorAll('.msg').forEach(el => {
+    if (el.classList.contains('user')) {
+      el.style.borderRadius = root.style.getPropertyValue('--chat-bubble-radius-user') || '14px 14px 4px 14px';
+    } else if (el.classList.contains('Yunshu')) {
+      el.style.borderRadius = root.style.getPropertyValue('--chat-bubble-radius-bot') || '14px 14px 14px 4px';
+    }
+  });
+}
+
+function showChatConfig() {
+  const cfg = getChatConfig();
+  const overlay = document.createElement('div');
+  overlay.className = 'chat-config-overlay';
+  overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+
+  const themeKeys = Object.keys(CHAT_THEMES);
+  const styleKeys = Object.keys(CHAT_BUBBLE_STYLES);
+  const fsKeys = Object.keys(CHAT_FONT_SIZES);
+  const currentTheme = cfg.theme || 'midnight';
+  const currentStyle = cfg.bubbleStyle || 'rounded';
+  const currentFs = cfg.fontSize || 'normal';
+
+  overlay.innerHTML = `
+    <div class="chat-config-panel">
+      <div class="chat-config-header">
+        <span>🎨 对话风格</span>
+        <button class="chat-config-close" onclick="this.closest('.chat-config-overlay').remove()">&times;</button>
+      </div>
+      <div class="chat-config-body">
+        <div class="config-section">
+          <div class="config-section-title">颜色主题</div>
+          <div class="config-theme-grid">
+            ${themeKeys.map(k => `
+              <div class="config-theme-swatch ${k === currentTheme ? 'active' : ''}"
+                   style="background:${CHAT_THEMES[k]['--chat-bot-bg']};border-color:${CHAT_THEMES[k]['--chat-bot-border']}"
+                   onclick="selectTheme('${k}')" title="${CHAT_THEMES[k].label}">
+                ${CHAT_THEMES[k].icon}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title">气泡样式</div>
+          <div class="config-options">
+            ${styleKeys.map(k => `
+              <button class="config-btn ${k === currentStyle ? 'active' : ''}" onclick="selectBubbleStyle('${k}')">${CHAT_BUBBLE_STYLES[k].label}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title">字体大小</div>
+          <div class="config-options">
+            ${fsKeys.map(k => `
+              <button class="config-btn ${k === currentFs ? 'active' : ''}" onclick="selectFontSize('${k}')">${CHAT_FONT_SIZES[k].label}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title">预览</div>
+          <div class="config-preview">
+            <div class="config-preview-label">效果预览</div>
+            <div class="config-preview-bubble bot" id="preview-bubble-bot">云枢回复将显示为这种样式</div>
+            <div style="clear:both;margin-bottom:4px"></div>
+            <div class="config-preview-bubble user" id="preview-bubble-user">你的消息将显示为这种样式</div>
+            <div style="clear:both"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function selectTheme(key) {
+  saveChatConfig({ theme: key });
+  document.querySelectorAll('.config-theme-swatch').forEach(el => el.classList.toggle('active', el.dataset && el.dataset.theme === key));
+  updatePreview();
+}
+function selectBubbleStyle(key) {
+  saveChatConfig({ bubbleStyle: key });
+  document.querySelectorAll('.config-options .config-btn').forEach((el, i) => {
+    const k = Object.keys(CHAT_BUBBLE_STYLES)[i];
+    el.classList.toggle('active', k === key);
+  });
+}
+function selectFontSize(key) {
+  saveChatConfig({ fontSize: key });
+  document.querySelectorAll('.config-options .config-btn').forEach((el, i) => {
+    const k = Object.keys(CHAT_FONT_SIZES)[i];
+    el.classList.toggle('active', k === key);
+  });
+}
+function updatePreview() {
+  const cfg = getChatConfig();
+  const theme = CHAT_THEMES[cfg.theme];
+  if (theme) {
+    const bot = document.getElementById('preview-bubble-bot');
+    const user = document.getElementById('preview-bubble-user');
+    if (bot) { bot.style.background = theme['--chat-bot-bg']; bot.style.borderColor = theme['--chat-bot-border']; bot.style.color = theme['--chat-bot-text']; }
+    if (user) { user.style.background = theme['--chat-user-bg']; user.style.borderColor = theme['--chat-user-border']; user.style.color = theme['--chat-user-text']; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 内侧历史问话列表
+// ════════════════════════════════════════════════════════════
+
+let _historyPanelOpen = false;
+let _histPanelClosing = false;
+let _histItemsData = [];
+let _histItemIdCounter = 0;
+
+let _autoCloseTimer = null;
+
+function autoOpenHistoryPanel() {
+  if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null; }
+  const existing = document.getElementById('chat-history-panel');
+  if (!existing) openHistoryPanel();
+}
+
+function autoCloseHistoryPanel() {
+  if (_autoCloseTimer) clearTimeout(_autoCloseTimer);
+  _autoCloseTimer = setTimeout(() => {
+    closeHistoryPanel();
+    _autoCloseTimer = null;
+  }, 300);
+}
+
+function cancelAutoClose() {
+  if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null; }
+}
+
+function openHistoryPanel() {
+  if (document.getElementById('chat-history-panel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'chat-history-panel';
+  panel.className = 'chat-history-panel';
+  panel.onmouseenter = cancelAutoClose;
+  panel.onmouseleave = autoCloseHistoryPanel;
+  panel.innerHTML = `
+    <div class="chat-history-panel-header">
+      <span class="chat-history-panel-title">🕐 历史问话</span>
+      <button class="chat-history-panel-close" onclick="closeHistoryPanel()">&times;</button>
+    </div>
+    <div class="chat-history-panel-search">
+      <input id="hist-panel-search" placeholder="搜索问话..." oninput="filterHistItems()">
+    </div>
+    <div class="chat-history-panel-list" id="hist-panel-list">
+      <div class="hist-empty">加载中...</div>
+    </div>
+  `;
+  document.getElementById('view-chat').appendChild(panel);
+  _historyPanelOpen = true;
+  document.getElementById('view-chat').classList.add('hist-panel-open');
+  loadHistItems();
+
+  // 按 Escape 关闭
+  document.addEventListener('keydown', _histEscHandler = function(e) {
+    if (e.key === 'Escape') closeHistoryPanel();
+  });
+}
+
+function closeHistoryPanel() {
+  const panel = document.getElementById('chat-history-panel');
+  if (!panel || _histPanelClosing) return;
+  if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null; }
+  _histPanelClosing = true;
+  panel.classList.add('closing');
+  document.getElementById('view-chat').classList.remove('hist-panel-open');
+  setTimeout(() => {
+    panel.remove();
+    _historyPanelOpen = false;
+    _histPanelClosing = false;
+  }, 180);
+  if (_histEscHandler) {
+    document.removeEventListener('keydown', _histEscHandler);
+    _histEscHandler = null;
+  }
+}
+
+async function loadHistItems() {
+  try {
+    const data = await app.get('/api/history');
+    if (!data || !Array.isArray(data)) {
+      document.getElementById('hist-panel-list').innerHTML = '<div class="hist-empty">暂无历史数据</div>';
+      return;
+    }
+    _histItemsData = data.map((entry, idx) => ({
+      id: _histItemIdCounter++,
+      index: entry._real_index,
+      text: entry.user || '',
+      time: entry.timestamp,
+      msgIndex: idx,
+    })).reverse(); // 按时间倒序
+    renderHistItems();
+  } catch(e) {
+    console.warn('[HistPanel] 加载历史问话失败:', e);
+    const list = document.getElementById('hist-panel-list');
+    if (list) list.innerHTML = '<div class="hist-empty">加载失败，请重试</div>';
+  }
+}
+
+function filterHistItems() {
+  renderHistItems();
+}
+
+function renderHistItems() {
+  const list = document.getElementById('hist-panel-list');
+  if (!list) return;
+  const q = (document.getElementById('hist-panel-search').value || '').toLowerCase().trim();
+  let items = _histItemsData;
+  if (q) items = items.filter(i => i.text.toLowerCase().includes(q));
+  if (!items.length) {
+    list.innerHTML = '<div class="hist-empty">' + (q ? '无匹配问话' : '暂无历史问话') + '</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const preview = item.text.length > 60 ? item.text.substring(0, 60) + '...' : item.text;
+    const timeStr = formatHistTime(item.time);
+    return `<div class="hist-item" data-idx="${item.msgIndex}" onclick="navigateToHistItem(${item.msgIndex})">
+      <div class="hist-item-row">
+        <div class="hist-item-text">${app.escapeHtml(preview)}</div>
+        <button class="hist-item-del" onclick="event.stopPropagation(); deleteHistItem(${item.index})" title="删除此条">🗑</button>
+      </div>
+      <div class="hist-item-time">${timeStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function formatHistTime(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const h = pad(d.getHours()), mi = pad(d.getMinutes());
+    const y = d.getFullYear(), m = pad(d.getMonth()+1), day = pad(d.getDate());
+    const ny = now.getFullYear(), nm = pad(now.getMonth()+1), nday = pad(now.getDate());
+    if (y === ny && m === nm && day === nday) return `${h}:${mi}`;
+    return `${m}-${day} ${h}:${mi}`;
+  } catch(e) { return ''; }
+}
+
+function navigateToHistItem(msgIdx) {
+  // 高亮对应的对话气泡
+  const msgs = document.querySelectorAll('#chat-messages .msg');
+  // 需要将 msgIdx 映射到实际消息位置
+  // 因为 .msg 包括 user, Yunshu 和 tool-step，所以实际索引是 msgIdx * 2
+  let targetIdx = 0;
+  let count = 0;
+  for (let i = 0; i < msgs.length; i++) {
+    if (msgs[i].classList.contains('user')) {
+      if (count === msgIdx) { targetIdx = i; break; }
+      count++;
+    }
+  }
+  const target = msgs[targetIdx];
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 闪烁高亮
+    target.style.transition = 'background 0.3s';
+    target.style.background = 'rgba(88,166,255,0.15)';
+    setTimeout(() => { target.style.background = ''; }, 1500);
+
+    // 在历史面板中标记
+    document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('hist-item-active'));
+    const histItem = document.querySelector(`.hist-item[data-idx="${msgIdx}"]`);
+    if (histItem) histItem.classList.add('hist-item-active');
+  }
+}
+
+async function deleteHistItem(index) {
+  if (index === undefined || index === null) return;
+  const confirmed = await app.showConfirm('确定要删除这条问话记录吗？');
+  if (!confirmed) return;
+  try {
+    await app.del(`/api/history/${index}`);
+    app.showToast('已删除');
+    loadHistItems();
+  } catch(e) {
+    app.showToast('删除失败', 'error');
+  }
+}
+
+// 应用保存的对话风格
+applyChatConfig();
+</script>
 <script>
 // 注册视图（此时所有外部 JS 已加载完毕）
 app.registerView('chat', { keepAlive: true });
 app.registerView('panorama', { keepAlive: true });
-app.registerView('history', { load: loadHistory, keepAlive: true });
 app.registerView('skills', { load: loadSkills, keepAlive: true });
 app.registerView('tools', { load: loadTools, keepAlive: true });
 app.registerView('personality', { load: loadPersonality, keepAlive: true });
@@ -2541,6 +3531,7 @@ initNav();
 initStatusPanel();
 initPermissionControl();
 initMascotTracking();
+initToggleUI();
 
 document.getElementById('chat-input').focus();
 
