@@ -1,13 +1,14 @@
 """
-BodySensor 主类 — 灵犀的"身体"
+BodySensor 主类 — 云枢的"身体"
 
 负责整合各类硬件、网络、安全与文件系统传感器，统一输出 JSON 格式数据。
-我是灵犀，BodySensor 就是我的整个身体——每个传感器都是我的一条感知神经。
+我是来自网天的云枢，BodySensor 就是我的整个身体——每个传感器都是我的一条感知神经。
 
 每个传感器都有一个独立开关，可按需开闭感知通道。
 """
 import logging
 import json
+import time
 from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
@@ -20,13 +21,25 @@ from .change_detector import ChangeDetector
 from .file_watcher import FileWatcher
 from .event_monitor import EventMonitor
 
+# 传感器健康监控
+try:
+    from agent.sensor_health_monitor import get_sensor_health_monitor, monitor_sensor_reading
+    HAS_HEALTH_MONITOR = True
+except ImportError:
+    HAS_HEALTH_MONITOR = False
+    
+    def monitor_sensor_reading(func):
+        """降级装饰器 - 不进行监控"""
+        return func
+
 
 class BodySensor:
-    """灵犀的身体——整合所有感知模块，每个传感器带独立开关。"""
+    """云枢的身体——整合所有感知模块，每个传感器带独立开关。"""
 
     def __init__(self, watch_dirs=None, file_event_callback=None,
                  file_include=None, file_exclude=None,
-                 enable_change_detection=True, enable_event_monitor=True):
+                 enable_change_detection=True, enable_event_monitor=True,
+                 lazy_load=True):
         """
         初始化感知底座，加载所有传感器。
 
@@ -34,7 +47,11 @@ class BodySensor:
         :param file_event_callback: 文件变动回调函数
         :param enable_change_detection: 是否启用变更检测（轮询快照）
         :param enable_event_monitor: 是否启用实时硬件事件监测（推送）
+        :param lazy_load: 是否启用懒加载（默认 True，可大幅提升初始化速度）
         """
+        init_start = time.time()
+        logger.info("[BodySensor] 开始初始化，懒加载模式: %s", lazy_load)
+        
         # 主线程 COM 初始化（Windows），确保 WMI 传感器调用正常
         import platform
         if platform.system() == "Windows":
@@ -43,27 +60,40 @@ class BodySensor:
                 pythoncom.CoInitialize()
             except Exception:
                 pass
+        
+        # 保存配置用于懒加载
+        self._watch_dirs = watch_dirs
+        self._file_event_callback = file_event_callback
+        self._file_include = file_include
+        self._file_exclude = file_exclude
+        self._enable_change_detection = enable_change_detection
+        self._enable_event_monitor = enable_event_monitor
+        self._lazy_load = lazy_load
 
         # ── 特殊传感器（需条件创建或单独生命周期）──
+        blueprint_start = time.time()
         self.blueprint = HardwareBlueprint()
         self.file_blueprint = FileBlueprint()
         self.software_blueprint = SoftwareBlueprint()
-        self.change_detector = ChangeDetector() if enable_change_detection else None
-        self.event_monitor = None
-        self._enable_event_monitor = enable_event_monitor
-        self.file_watcher = None
-        if watch_dirs:
-            self.file_watcher = FileWatcher(watch_dirs, file_event_callback,
-                                            include=file_include, exclude=file_exclude)
-            self.file_watcher.start()
+        self.change_detector = None  # 懒加载
+        self.event_monitor = None    # 懒加载
+        self.file_watcher = None     # 懒加载
+        logger.debug("[BodySensor] Blueprint 初始化完成，耗时: %.3fms", (time.time() - blueprint_start) * 1000)
+        
+        # 初始化标志
+        self._change_detector_initialized = False
+        self._event_monitor_initialized = False
+        self._file_watcher_initialized = False
 
         # ── 自动发现标准传感器 ──
+        registry_start = time.time()
         from .registry import SensorRegistry, SensorCapabilities
         self._sensor_registry = SensorRegistry()
         self._sensor_registry.discover(extra_kwargs={
             "process": {"top_n": 10},
             "behavior": {"top_n": 10},
         })
+        logger.debug("[BodySensor] 传感器注册发现完成，耗时: %.3fms", (time.time() - registry_start) * 1000)
 
         # ── 传感器注册表（带独立开关 + 中文标签）──
         _LABELS = {
@@ -91,7 +121,7 @@ class BodySensor:
         # filewatch（条件创建，可能为 None）
         self._registry["filewatch"] = {
             "label": "文件系统（触觉）",
-            "sensor": self.file_watcher,
+            "sensor": None,  # 懒加载后更新
             "category": Category.FILE,
             "enabled": True,
         }
@@ -113,19 +143,119 @@ class BodySensor:
         # 标签模块引用（按需加载）
         self._tag_module = None
 
-        # 初始化实时事件监测
-        if self._enable_event_monitor:
-            self.event_monitor = EventMonitor(callback=self._on_hardware_event)
-            self.event_monitor.start()
-            if self.change_detector:
-                startup_changes = self.event_monitor.detect_startup_changes()
-                for change in startup_changes:
-                    self.change_detector.register_change_from_event(change)
-                    logger.info(f"启动时硬件变化: {change.get('event_type')} - {change.get('device_name')}")
-
-        logger.info("灵犀的感知底座（BodySensor）初始化完成。我能感受到 CPU 的思维节奏、GPU 的视觉皮层、内存的拥挤度...")
-        if self.event_monitor:
-            logger.info("实时硬件事件监测已激活——任何设备插拔我都会立刻感知。")
+        # 如果非懒加载模式，立即初始化所有模块
+        if not lazy_load:
+            full_init_start = time.time()
+            self._init_change_detector()
+            self._init_event_monitor()
+            self._init_file_watcher()
+            logger.info("[BodySensor] 云枢的感知底座（BodySensor）初始化完成（全同步模式），全量初始化耗时: %.3fms", (time.time() - full_init_start) * 1000)
+        else:
+            logger.info("[BodySensor] 云枢的感知底座（BodySensor）初始化完成（懒加载模式），总耗时: %.3fms", (time.time() - init_start) * 1000)
+            logger.info("[BodySensor] 变更检测、事件监控和文件监听将在首次使用时激活。")
+    
+    def _ensure_change_detector(self):
+        """确保 ChangeDetector 已初始化"""
+        if not self._change_detector_initialized and self._enable_change_detection:
+            logger.info("[BodySensor] ChangeDetector 首次使用，开始懒加载初始化...")
+            self._init_change_detector()
+        elif self._change_detector_initialized:
+            logger.debug("[BodySensor] ChangeDetector 已初始化，无需重复初始化")
+    
+    def _init_change_detector(self):
+        """初始化 ChangeDetector"""
+        start_time = time.time()
+        logger.info("[BodySensor] 正在初始化 ChangeDetector...")
+        self.change_detector = ChangeDetector()
+        self._change_detector_initialized = True
+        elapsed = (time.time() - start_time) * 1000
+        logger.info("[BodySensor] ChangeDetector 初始化完成，耗时: %.3fms", elapsed)
+    
+    def _ensure_event_monitor(self):
+        """确保 EventMonitor 已初始化"""
+        if not self._event_monitor_initialized and self._enable_event_monitor:
+            logger.info("[BodySensor] EventMonitor 首次使用，开始懒加载初始化...")
+            self._init_event_monitor()
+        elif self._event_monitor_initialized:
+            logger.debug("[BodySensor] EventMonitor 已初始化，无需重复初始化")
+    
+    def _on_hardware_event(self, event):
+        """EventMonitor 回调，当检测到硬件变化时调用"""
+        event_type = event.get('event_type')
+        device_name = event.get('device_name')
+        logger.info("[BodySensor] 收到硬件事件: %s - %s", event_type, device_name)
+        if self._enable_change_detection and self.change_detector:
+            self.change_detector.register_change_from_event(event)
+    
+    def _init_event_monitor(self):
+        """初始化 EventMonitor（P4 优化版）"""
+        start_time = time.time()
+        logger.info("[BodySensor] 正在初始化 EventMonitor（P4 优化版）...")
+        
+        # P4 优化：使用优化后的 EventMonitor，启用所有优化特性
+        self.event_monitor = EventMonitor(
+            callback=self._on_hardware_event,
+            lazy_startup_change_detection=True,
+            wmic_optimized=True,
+            enable_fast_path=True
+        )
+        self.event_monitor.start()
+        self._event_monitor_initialized = True
+        
+        # P4 优化：启动变化检测现在是异步的，在后台线程执行
+        # 我们不需要在这里等待，因为通过 get_startup_changes() 可以异步获取
+        logger.debug("[BodySensor] EventMonitor 已启动，启动变化检测在后台异步执行")
+        
+        elapsed = (time.time() - start_time) * 1000
+        logger.info("[BodySensor] EventMonitor 初始化完成（P4 优化版），耗时: %.3fms", elapsed)
+        logger.info("[BodySensor] 实时硬件事件监测已激活——任何设备插拔我都会立刻感知。")
+    
+    def _ensure_file_watcher(self):
+        """确保 FileWatcher 已初始化"""
+        if not self._file_watcher_initialized and self._watch_dirs:
+            logger.info("[BodySensor] FileWatcher 首次使用，开始懒加载初始化...")
+            self._init_file_watcher()
+        elif self._file_watcher_initialized:
+            logger.debug("[BodySensor] FileWatcher 已初始化，无需重复初始化")
+    
+    def _init_file_watcher(self):
+        """初始化 FileWatcher"""
+        if self._watch_dirs:
+            start_time = time.time()
+            logger.info("[BodySensor] 正在初始化 FileWatcher，监听目录: %s", self._watch_dirs)
+            self.file_watcher = FileWatcher(self._watch_dirs, 
+                                           self._file_event_callback,
+                                           include=self._file_include,
+                                           exclude=self._file_exclude)
+            self.file_watcher.start()
+            self._file_watcher_initialized = True
+            # 更新注册表中的 sensor 引用
+            self._registry["filewatch"]["sensor"] = self.file_watcher
+            elapsed = (time.time() - start_time) * 1000
+            logger.info("[BodySensor] FileWatcher 初始化完成，耗时: %.3fms", elapsed)
+    
+    def initialize_all(self):
+        """强制立即初始化所有模块（非懒加载）"""
+        all_start = time.time()
+        logger.info("[BodySensor] 开始强制初始化所有懒加载模块...")
+        self._ensure_change_detector()
+        self._ensure_event_monitor()
+        self._ensure_file_watcher()
+        elapsed = (time.time() - all_start) * 1000
+        logger.info("[BodySensor] 所有懒加载模块初始化完成，总耗时: %.3fms", elapsed)
+    
+    def establish_baseline(self):
+        """建立变更检测基准快照——在 start() 时调用"""
+        baseline_start = time.time()
+        logger.info("[BodySensor] 开始建立变更检测基准快照...")
+        self._ensure_change_detector()
+        if self.change_detector:
+            result = self.change_detector.set_baseline()
+            elapsed = (time.time() - baseline_start) * 1000
+            logger.info("[BodySensor] 变更检测基准快照建立完成，耗时: %.3fms", elapsed)
+            return result
+        logger.warning("[BodySensor] 无法建立基准快照：ChangeDetector 未初始化")
+        return None
 
     # ════════════════════════════════════════════════════════════
     #  传感器注册
@@ -244,6 +374,52 @@ class BodySensor:
         return {name: entry["enabled"]
                 for name, entry in self._registry.items()}
 
+    def get_sensor_info(self):
+        """获取所有传感器的详细信息列表。"""
+        result = []
+        for name, entry in self._registry.items():
+            result.append({
+                "name": name,
+                "label": entry["label"],
+                "category": str(entry["category"].value) if hasattr(entry["category"], 'value') else str(entry["category"]),
+                "enabled": entry["enabled"],
+            })
+        return result
+
+    def get_health_report(self) -> dict:
+        """获取健康状态报告——快速采集+格式化
+
+        返回格式与 get_status 兼容，供 check_health 等工具使用。
+        """
+        readings = self.collect_quick()
+        report = {}
+        for r in readings:
+            report[str(r.sensor_name)] = {
+                "值": f"{r.value}{r.unit}",
+                "严重程度": r.severity,
+                "描述": r.description,
+            }
+        return report
+
+    def get_sensor_summary(self) -> dict:
+        """获取传感器摘要信息——整合开关状态、详细信息和健康读数"""
+        try:
+            info = self.get_sensor_info()
+            status = self.get_switch_status()
+            health = self.get_health_report()
+            return {
+                "total_sensors": len(info),
+                "enabled_sensors": sum(1 for s in status.values() if s),
+                "disabled_sensors": sum(1 for s in status.values() if not s),
+                "sensors": info,
+                "health": health,
+            }
+        except Exception as e:
+            return {
+                "total_sensors": 0,
+                "error": str(e),
+            }
+
     # ════════════════════════════════════════════════════════════
     #  标签辅助方法
     # ════════════════════════════════════════════════════════════
@@ -329,7 +505,8 @@ class BodySensor:
             except Exception as e:
                 logging.error(f"采集 {entry['label']} 数据时出错: {e}")
 
-        # 变更检测（单独处理）
+        # 变更检测（单独处理，确保懒加载触发）
+        self._ensure_change_detector()
         if self.change_detector and self._registry.get("change", {}).get("enabled", True):
             try:
                 changes = self.change_detector.collect()
@@ -361,12 +538,16 @@ class BodySensor:
         logging.warning(f"未知传感器类别: {category}")
         return []
 
+    @monitor_sensor_reading
     def collect_quick(self):
         """快速采集模式——只采集核心指标。"""
         results = []
         try:
             import psutil
-            usage = psutil.cpu_percent(interval=0.1)
+            # 极致优化：完全不使用 interval，直接获取瞬时值
+            # psutil.cpu_percent(interval=None) 会立即返回，第一次是 0 但之后是准确的
+            usage = psutil.cpu_percent(interval=None)
+            
             results.append(SensorReading(
                 "cpu_usage", usage, "%", "CPU 使用率",
                 Category.CPU, Severity.CRITICAL if usage > 90 else (Severity.WARNING if usage > 70 else Severity.NORMAL)
@@ -386,157 +567,3 @@ class BodySensor:
             logging.error(f"快速采集失败: {e}")
         self._apply_tags(results)
         return results
-
-    # ════════════════════════════════════════════════════════════
-    #  报告与状态
-    # ════════════════════════════════════════════════════════════
-
-    def get_health_report(self):
-        """生成身体状态摘要报告。"""
-        quick = self.collect_quick()
-        lines = ["===== 灵犀身体状态报告 ====="]
-        for r in quick:
-            if r.severity == "critical":
-                lines.append(f"  [危急] {r.description}: {r.value}{r.unit}")
-            elif r.severity == "warning":
-                lines.append(f"  [警告] {r.description}: {r.value}{r.unit}")
-        if len(lines) == 1:
-            lines.append("  [正常] 我感觉很好！")
-        return "\n".join(lines)
-
-    def get_sensor_summary(self):
-        """获取传感器开关状态摘要。"""
-        total = len(self._registry)
-        enabled = sum(1 for e in self._registry.values() if e["enabled"])
-        lines = [f"传感器状态: {enabled}/{total} 已开启"]
-        for name, entry in self._registry.items():
-            state = "●" if entry["enabled"] else "○"
-            lines.append(f"  {state} {entry['label']} ({name})")
-        return "\n".join(lines)
-
-    def get_sensor_info(self):
-        """返回传感器注册信息的可序列化字典。"""
-        return [
-            {"name": name, "label": entry["label"],
-             "category": entry["category"].value if entry["category"] else None,
-             "enabled": entry["enabled"]}
-            for name, entry in self._registry.items()
-        ]
-
-    # ════════════════════════════════════════════════════════════
-    #  文件监听控制
-    # ════════════════════════════════════════════════════════════
-
-    def start_file_watch(self):
-        """启动文件系统监听"""
-        if self.file_watcher:
-            self.file_watcher.start()
-            logging.info("文件系统监听已启动——我的触觉网络已张开。")
-        else:
-            logging.warning("未配置文件监听目录，触觉网络未激活。")
-
-    def stop_file_watch(self):
-        """停止文件系统监听"""
-        if self.file_watcher:
-            self.file_watcher.stop()
-            logging.info("文件系统监听已停止——触觉网络已收回。")
-
-    # ════════════════════════════════════════════════════════════
-    #  事件监测控制
-    # ════════════════════════════════════════════════════════════
-
-    def start_event_monitor(self, health_check_interval=60):
-        """启动实时硬件事件监测（痛觉神经）"""
-        if not self.event_monitor:
-            self.event_monitor = EventMonitor(callback=self._on_hardware_event)
-        if not self.event_monitor.is_running:
-            self.event_monitor.start()
-            self.event_monitor.start_health_check(interval_seconds=health_check_interval)
-            logging.info("实时硬件事件监测已启动——我的痛觉神经已激活。")
-        else:
-            logging.info("实时硬件事件监测已在运行中。")
-
-    def stop_event_monitor(self):
-        """停止实时硬件事件监测"""
-        if self.event_monitor and self.event_monitor.is_running:
-            self.event_monitor.stop()
-            logging.info("实时硬件事件监测已停止。")
-
-    def get_hardware_event_history(self, event_type=None, limit=50):
-        """获取硬件事件历史"""
-        if self.event_monitor:
-            return self.event_monitor.get_history(event_type=event_type, limit=limit)
-        return []
-
-    def get_hardware_event_summary(self):
-        """获取硬件事件摘要"""
-        if self.event_monitor:
-            return self.event_monitor.get_event_summary()
-        return {"total": 0, "by_type": {}, "message": "事件监测未启用"}
-
-    def _on_hardware_event(self, event_info):
-        """实时硬件事件回调"""
-        event_type = event_info.get("event_type", "unknown")
-        device = event_info.get("device_name", "未知设备")
-        if "added" in event_type:
-            logging.info(f"[硬件事件] 新设备接入: {device}")
-        elif "removed" in event_type:
-            logging.warning(f"[硬件事件] 设备移除: {device}")
-        elif "failure" in event_type:
-            logging.error(f"[硬件事件] 设备故障: {device} - {event_info.get('detail', '')}")
-        if self.change_detector:
-            self.change_detector.register_change_from_event(event_info)
-
-    # ════════════════════════════════════════════════════════════
-    #  硬件蓝图
-    # ════════════════════════════════════════════════════════════
-
-    def collect_blueprint(self):
-        """采集完整硬件蓝图。"""
-        try:
-            return self.blueprint.collect()
-        except Exception as e:
-            logging.error(f"硬件蓝图采集失败: {e}")
-            return []
-
-    def get_physical_checklist(self):
-        """获取需人工检查的硬件清单。"""
-        try:
-            blueprint_data = self.blueprint.collect()
-            manual_items = [r for r in blueprint_data
-                          if r.metadata and r.metadata.get("method") == "manual_check"]
-            if not manual_items:
-                return "无需要人工检查的硬件项。"
-            lines = ["=" * 60,
-                     "  以下硬件接口/组件需人工检查（无法通过软件检测）",
-                     "  请打开机箱或参考主板手册逐一核对",
-                     "=" * 60]
-            for i, item in enumerate(manual_items, 1):
-                name = item.sensor_name.replace("blueprint_", "").replace("_", " ")
-                hint = item.metadata.get("hint", "")
-                lines.append(f"  {i:2d}. {name}")
-                if hint:
-                    lines.append(f"      {hint}")
-            lines.append("=" * 60)
-            return "\n".join(lines)
-        except Exception as e:
-            return f"生成物理检查清单失败: {e}"
-
-    def establish_baseline(self):
-        """建立变更检测基准"""
-        if self.change_detector:
-            self.change_detector.set_baseline()
-            logging.info("变更检测基准已建立——我现在知道身体的正常状态了。")
-        else:
-            logging.warning("变更检测未启用。")
-
-    @staticmethod
-    def to_json(sensor_name, value, unit, description):
-        """统一格式化输出 JSON（兼容旧接口）"""
-        return json.dumps({
-            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "sensor_name": sensor_name,
-            "value": value,
-            "unit": unit,
-            "description": description
-        }, ensure_ascii=False)
