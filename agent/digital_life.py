@@ -1901,8 +1901,8 @@ class DigitalLife:
             perm = self._permission.check_action(f"write_file:{path}", f"写入文件 {path}")
             if not perm.allowed:
                 return {"ok": False, "error": f"权限系统拒绝: {perm.reason}", "blocked": True}
-            # 通过 SafetyGuard 检查内容
-            safety = getattr(self, '_safety_monitor', None)
+            # 通过 PermissionSystem 检查内容
+            safety = getattr(self, '_permission', None)
             if safety:
                 try:
                     check = safety.check_text(content)
@@ -2267,8 +2267,8 @@ class DigitalLife:
             if not command:
                 return {"ok": False, "error": "请提供要执行的命令（command）"}
 
-            # 第 1 关：SafetyGuard 扫描命令内容
-            safety = getattr(self, '_safety_monitor', None)
+            # 第 1 关：PermissionSystem 扫描命令内容
+            safety = getattr(self, '_permission', None)
             if safety:
                 try:
                     check = safety.check_text(command)
