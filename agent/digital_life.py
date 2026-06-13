@@ -2726,10 +2726,10 @@ class DigitalLife:
         #  架构图工具 — 云枢生成系统架构图的能力
         # ════════════════════════════════════════════════════════════
 
-        @tools.register("arch_diagram", "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）", schema={
+        @tools.register("arch_diagram", "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）", schema={
             "type": "object",
             "properties": {
-                "title": {"type": "string", "description": "架构图标题"},
+                "title": {"type": "string", "description": "架构图标题（必填）"},
                 "components": {
                     "type": "array",
                     "items": {
@@ -2741,9 +2741,9 @@ class DigitalLife:
                         },
                         "required": ["name", "type"],
                     },
-                    "description": "组件列表",
+                    "description": "组件列表（必填）",
                 },
-                "output_path": {"type": "string", "description": "输出 HTML 文件路径"},
+                "output_path": {"type": "string", "description": "输出 HTML 文件路径（必填）"},
             },
             "required": ["title", "components", "output_path"],
         })
@@ -2751,6 +2751,10 @@ class DigitalLife:
             title = kwargs.get("title", "")
             components = kwargs.get("components", [])
             output_path = kwargs.get("output_path", "")
+            if not title and not components and not output_path:
+                return {"ok": False, "error": "arch_diagram 需要提供 title（架构图标题）、components（组件列表）和 output_path（输出路径）三个参数。示例: arch_diagram(title=\"系统架构\", components=[{name: \"前端\", type: \"frontend\"}, {name: \"后端\", type: \"backend\"}], output_path=\"/path/to/diagram.html\")"}
+            if not title:
+                return {"ok": False, "error": f"arch_diagram 缺少 title 参数。请提供架构图标题，如: title=\"系统架构图\". 收到的参数名: {list(kwargs.keys())}"}
             # 权限检查
             perm = self._permission.check_action(f"write_file:{output_path}", f"生成架构图到 {output_path}")
             if not perm.allowed:
