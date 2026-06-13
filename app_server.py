@@ -3488,8 +3488,13 @@ def api_web_search_status():
 
 @app.route("/")
 def index():
+    import time as t_mod
     from flask import make_response
-    resp = make_response(render_template("index.html"))
+    html = render_template("index.html")
+    # 注入构建时间戳，确保每次内容不同防止浏览器缓存
+    build_tag = f'<!-- build:{int(t_mod.time())} -->'
+    html = html.replace('</head>', f'<meta name="build" content="{int(t_mod.time())}">\n</head>')
+    resp = make_response(html)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
