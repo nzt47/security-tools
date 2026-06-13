@@ -21,6 +21,15 @@ import functools
 import secrets
 import concurrent.futures
 import time
+import sys
+
+# 修复 Windows 控制台编码，避免中文日志乱码
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from flask import Flask, jsonify, render_template, request, g
 
 # 导入 Prometheus 监控（使用 prometheus_flask_exporter）
@@ -56,7 +65,7 @@ from agent.system_tools import (
 from agent.web import HttpClient, Scraper, SearchEngine, DataProcessor, CrawlerController, BrowserAgent
 from agent.session_manager import SessionManager
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
