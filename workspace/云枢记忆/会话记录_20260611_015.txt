@@ -1,0 +1,35 @@
+=============================================
+  会话记录 #15
+=============================================
+
+🕒 时间：2026年06月11日 21:39
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+开始安装飞书技能
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="read_file">
+<｜｜DSML｜｜parameter name="path" string="true">C:\Users\Administrator\.claude\skills\lark-doc\SKILL.md</｜｜DSML｜｜parameter>
+<｜｜DSML｜｜parameter name="range" string="true">1-50</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+<｜｜DSML｜｜invoke name="list_directory">
+<｜｜DSML｜｜parameter name="path" string="true">C:\Users\Administrator\.claude\skills\lark-doc\references</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.11 21:39
+=============================================
+

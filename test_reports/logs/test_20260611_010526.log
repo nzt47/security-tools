@@ -1,0 +1,1289 @@
+2026-06-11 01:05:27,347 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 01:05:27,354 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 01:05:27,357 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 01:05:27,360 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 01:05:27,383 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 01:05:27,385 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 01:05:27,387 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 01:05:27,388 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 01:05:27,390 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 01:05:27,405 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 01:05:27,405 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 01:05:27,406 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 01:05:27,407 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 01:05:27,425 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 01:05:27,431 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 01:05:27,431 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 01:05:27,437 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 01:05:27,438 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 01:05:27,438 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 01:05:27,603 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 01:05:27,617 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 01:05:27,623 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 01:05:27,629 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 01:05:27,661 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 01:05:27,666 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 01:05:27,667 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 01:05:27,669 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 01:05:27,674 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 01:05:27,696 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 01:05:27,696 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 01:05:27,698 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 01:05:27,700 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 01:05:27,725 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 01:05:27,736 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 01:05:27,736 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 01:05:27,740 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 01:05:27,741 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 01:05:27,741 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 01:05:27,741 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 01:05:27,741 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 01:05:27,741 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 01:05:27,886 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,886 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,887 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 01:05:27,888 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_api_key
+2026-06-11 01:05:27,888 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 01:05:27,888 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,888 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpge_mwih9.json
+2026-06-11 01:05:27,890 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpge_mwih9.json
+2026-06-11 01:05:27,891 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:27,898 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,899 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,899 [    INFO] agent.network_config: [网络配置] LLM API Key 未变更（脱敏值），跳过更新
+2026-06-11 01:05:27,899 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,899 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp3tcy6yhs.json
+2026-06-11 01:05:27,901 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp3tcy6yhs.json
+2026-06-11 01:05:27,901 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:27,907 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,907 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] 检测到新的 tavily API Key，准备加密保存...
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] 已加密保存: search_tavily_key
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] tavily API Key 已加密保存
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] 检测到新的 bing API Key，准备加密保存...
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] 已加密保存: search_bing_key
+2026-06-11 01:05:27,908 [    INFO] agent.network_config: [网络配置] bing API Key 已加密保存
+2026-06-11 01:05:27,909 [    INFO] agent.network_config: [网络配置] 检测到新的 google API Key，准备加密保存...
+2026-06-11 01:05:27,909 [    INFO] agent.network_config: [网络配置] 已加密保存: search_google_key
+2026-06-11 01:05:27,909 [    INFO] agent.network_config: [网络配置] google API Key 已加密保存
+2026-06-11 01:05:27,909 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,909 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpqocuvdhb.json
+2026-06-11 01:05:27,911 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpqocuvdhb.json
+2026-06-11 01:05:27,911 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:27,917 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,918 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,918 [    INFO] agent.network_config: [网络配置] 检测到新的 Webhook URL，准备加密保存...
+2026-06-11 01:05:27,918 [    INFO] agent.network_config: [网络配置] 已加密保存: error_reporting_webhook
+2026-06-11 01:05:27,919 [    INFO] agent.network_config: [网络配置] Webhook URL 已加密保存
+2026-06-11 01:05:27,919 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,919 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpkpur5v1o.json
+2026-06-11 01:05:27,920 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpkpur5v1o.json
+2026-06-11 01:05:27,920 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:27,927 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,934 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,941 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,942 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,942 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 01:05:27,942 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-11 01:05:27,942 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 01:05:27,943 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,943 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp2p61khcb.json
+2026-06-11 01:05:27,944 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp2p61khcb.json
+2026-06-11 01:05:27,945 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:27,951 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,958 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,966 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 01:05:27,966 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,967 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_cff614e3-74d6-4b2e-a30a-63c38fb8ec3f_api_key
+2026-06-11 01:05:27,968 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp3s524wbr.json
+2026-06-11 01:05:27,969 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=cff614e3-74d6-4b2e-a30a-63c38fb8ec3f, name=TestInstance, provider=openai
+2026-06-11 01:05:27,969 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=cff614e3-74d6-4b2e-a30a-63c38fb8ec3f
+2026-06-11 01:05:27,969 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:27,969 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:27,970 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:27,976 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:27,977 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:27,977 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:27,977 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpom0kxr40.json
+2026-06-11 01:05:27,979 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpom0kxr40.json
+2026-06-11 01:05:27,979 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,004 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,014 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,021 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,022 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpzi1colqh.json
+2026-06-11 01:05:28,034 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,035 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,035 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,035 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmphfnizn3u.json
+2026-06-11 01:05:28,037 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphfnizn3u.json
+2026-06-11 01:05:28,037 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,038 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphfnizn3u.json
+2026-06-11 01:05:28,039 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphfnizn3u.json
+2026-06-11 01:05:28,041 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphfnizn3u.json
+2026-06-11 01:05:28,049 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,055 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 01:05:28,056 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,058 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp5eh4j57g.json
+2026-06-11 01:05:28,058 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=eea1f6cf-7c08-4e50-bf29-e839fd46d6f3, name=Instance1, provider=openai
+2026-06-11 01:05:28,058 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=eea1f6cf-7c08-4e50-bf29-e839fd46d6f3
+2026-06-11 01:05:28,058 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,059 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,059 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 01:05:28,059 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=eea1f6cf-7c08-4e50-bf29-e839fd46d6f3
+2026-06-11 01:05:28,059 [    INFO] agent.network_config: [网络配置] 找到实例: name=Instance1, actual_id=eea1f6cf-7c08-4e50-bf29-e839fd46d6f3
+2026-06-11 01:05:28,061 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp5eh4j57g.json
+2026-06-11 01:05:28,062 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=eea1f6cf-7c08-4e50-bf29-e839fd46d6f3
+2026-06-11 01:05:28,068 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 01:05:28,069 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,071 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpwycco8az.json
+2026-06-11 01:05:28,071 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=c5ec9f58-5d6f-4801-a5ad-0e534e149c6e, name=Instance1, provider=openai
+2026-06-11 01:05:28,071 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=c5ec9f58-5d6f-4801-a5ad-0e534e149c6e
+2026-06-11 01:05:28,071 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,072 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,072 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 01:05:28,072 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance2, provider=deepseek
+2026-06-11 01:05:28,074 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpwycco8az.json
+2026-06-11 01:05:28,074 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=7f50c5b2-3362-4528-bffb-24a6abea6b1c, name=Instance2, provider=deepseek
+2026-06-11 01:05:28,075 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=7f50c5b2-3362-4528-bffb-24a6abea6b1c
+2026-06-11 01:05:28,075 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,075 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 01:05:28,076 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance2
+2026-06-11 01:05:28,076 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=7f50c5b2-3362-4528-bffb-24a6abea6b1c
+2026-06-11 01:05:28,076 [    INFO] agent.network_config: [网络配置] 找到实例: name=Instance2, actual_id=7f50c5b2-3362-4528-bffb-24a6abea6b1c
+2026-06-11 01:05:28,078 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpwycco8az.json
+2026-06-11 01:05:28,078 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=7f50c5b2-3362-4528-bffb-24a6abea6b1c
+2026-06-11 01:05:28,078 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,079 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 01:05:28,085 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=PersistentInstance, provider=openai
+2026-06-11 01:05:28,086 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,088 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp7jsrgd7c.json
+2026-06-11 01:05:28,088 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=67e6b8ee-1ac5-4296-a356-ac5aa1caef96, name=PersistentInstance, provider=openai
+2026-06-11 01:05:28,088 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=67e6b8ee-1ac5-4296-a356-ac5aa1caef96
+2026-06-11 01:05:28,088 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,089 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,089 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=PersistentInstance
+2026-06-11 01:05:28,089 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=67e6b8ee-1ac5-4296-a356-ac5aa1caef96
+2026-06-11 01:05:28,089 [    INFO] agent.network_config: [网络配置] 找到实例: name=PersistentInstance, actual_id=67e6b8ee-1ac5-4296-a356-ac5aa1caef96
+2026-06-11 01:05:28,091 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp7jsrgd7c.json
+2026-06-11 01:05:28,091 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=67e6b8ee-1ac5-4296-a356-ac5aa1caef96
+2026-06-11 01:05:28,092 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Windows\TEMP\tmp7jsrgd7c.json
+2026-06-11 01:05:28,099 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,106 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Windows\TEMP\tmprga44pu1.json
+2026-06-11 01:05:28,112 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 01:05:28,113 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,114 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_964a45ae-6bfd-46c4-8edb-c77d9389b192_api_key
+2026-06-11 01:05:28,116 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpftt2oh49.json
+2026-06-11 01:05:28,116 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=964a45ae-6bfd-46c4-8edb-c77d9389b192, name=TestInstance, provider=openai
+2026-06-11 01:05:28,116 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=964a45ae-6bfd-46c4-8edb-c77d9389b192
+2026-06-11 01:05:28,116 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,117 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,117 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:28,123 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 01:05:28,123 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,125 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpp0obmq4n.json
+2026-06-11 01:05:28,125 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=39063e90-f9eb-48ee-b18a-42489e9096b1, name=Instance1, provider=openai
+2026-06-11 01:05:28,125 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=39063e90-f9eb-48ee-b18a-42489e9096b1
+2026-06-11 01:05:28,125 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,126 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,126 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 01:05:28,126 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=deepseek
+2026-06-11 01:05:28,127 [ WARNING] agent.network_config: [网络配置] LLM 实例名称重复: Instance1
+2026-06-11 01:05:28,132 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 01:05:28,132 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,134 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpfku87t0s.json
+2026-06-11 01:05:28,134 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=6115c54a-7ccd-4d05-8557-38933551c3b5, name=TestInstance, provider=openai
+2026-06-11 01:05:28,134 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=6115c54a-7ccd-4d05-8557-38933551c3b5
+2026-06-11 01:05:28,135 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,135 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,135 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:28,135 [    INFO] agent.network_config: [网络配置] 开始更新 LLM 实例: instance_id=6115c54a-7ccd-4d05-8557-38933551c3b5, updates_keys=['timeout']
+2026-06-11 01:05:28,137 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpfku87t0s.json
+2026-06-11 01:05:28,137 [    INFO] agent.network_config: [网络配置] 已成功更新 LLM 实例: id=6115c54a-7ccd-4d05-8557-38933551c3b5, name=TestInstance
+2026-06-11 01:05:28,137 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=6115c54a-7ccd-4d05-8557-38933551c3b5
+2026-06-11 01:05:28,138 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,138 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,138 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:28,146 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=ToDelete, provider=openai
+2026-06-11 01:05:28,147 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,148 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpxay5jquz.json
+2026-06-11 01:05:28,148 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=30899f9b-ffdb-4952-a34a-e1c7692f00da, name=ToDelete, provider=openai
+2026-06-11 01:05:28,148 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=30899f9b-ffdb-4952-a34a-e1c7692f00da
+2026-06-11 01:05:28,148 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,149 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,149 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=ToDelete
+2026-06-11 01:05:28,149 [    INFO] agent.network_config: [网络配置] 开始删除 LLM 实例: instance_id=30899f9b-ffdb-4952-a34a-e1c7692f00da
+2026-06-11 01:05:28,150 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_30899f9b-ffdb-4952-a34a-e1c7692f00da_api_key
+2026-06-11 01:05:28,151 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpxay5jquz.json
+2026-06-11 01:05:28,151 [    INFO] agent.network_config: [网络配置] 已成功删除 LLM 实例: instance_id=30899f9b-ffdb-4952-a34a-e1c7692f00da
+2026-06-11 01:05:28,151 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,152 [    INFO] agent.network_config: [网络配置] 获取到 0 个 LLM 实例
+2026-06-11 01:05:28,158 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance1, provider=openai
+2026-06-11 01:05:28,159 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,160 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpd0ragrr1.json
+2026-06-11 01:05:28,161 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=9ca4f976-8efb-41bc-88c0-7844cf38a154, name=Instance1, provider=openai
+2026-06-11 01:05:28,161 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=9ca4f976-8efb-41bc-88c0-7844cf38a154
+2026-06-11 01:05:28,161 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,161 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,162 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance1
+2026-06-11 01:05:28,162 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Instance2, provider=deepseek
+2026-06-11 01:05:28,164 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpd0ragrr1.json
+2026-06-11 01:05:28,164 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=d48e1d7f-28db-43a2-94d8-50c1a17dbc14, name=Instance2, provider=deepseek
+2026-06-11 01:05:28,164 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=d48e1d7f-28db-43a2-94d8-50c1a17dbc14
+2026-06-11 01:05:28,164 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,165 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 01:05:28,165 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Instance2
+2026-06-11 01:05:28,165 [    INFO] agent.network_config: [网络配置] 开始设置默认 LLM 实例: instance_id=d48e1d7f-28db-43a2-94d8-50c1a17dbc14
+2026-06-11 01:05:28,165 [    INFO] agent.network_config: [网络配置] 找到实例: name=Instance2, actual_id=d48e1d7f-28db-43a2-94d8-50c1a17dbc14
+2026-06-11 01:05:28,167 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpd0ragrr1.json
+2026-06-11 01:05:28,167 [    INFO] agent.network_config: [网络配置] 已成功设置默认 LLM 实例: instance_id=d48e1d7f-28db-43a2-94d8-50c1a17dbc14
+2026-06-11 01:05:28,167 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,168 [    INFO] agent.network_config: [网络配置] 获取到 2 个 LLM 实例
+2026-06-11 01:05:28,174 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,176 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmph8n57amp.json
+2026-06-11 01:05:28,176 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: TestMCP
+2026-06-11 01:05:28,183 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,184 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp7s73sa70.json
+2026-06-11 01:05:28,185 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: MCP1
+2026-06-11 01:05:28,191 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,193 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpe48jeieb.json
+2026-06-11 01:05:28,193 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: TestMCP
+2026-06-11 01:05:28,195 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpe48jeieb.json
+2026-06-11 01:05:28,195 [    INFO] agent.network_config: [网络配置] 已更新 MCP 服务: TestMCP
+2026-06-11 01:05:28,202 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,204 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpuoxkq6lk.json
+2026-06-11 01:05:28,204 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: ToDelete
+2026-06-11 01:05:28,206 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpuoxkq6lk.json
+2026-06-11 01:05:28,206 [    INFO] agent.network_config: [网络配置] 已删除 MCP 服务: 91708f9f-eadf-4a9c-8f7f-8501ed43b19e
+2026-06-11 01:05:28,234 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,234 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,235 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,235 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmphh7mpl_1.json
+2026-06-11 01:05:28,236 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphh7mpl_1.json
+2026-06-11 01:05:28,236 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,238 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphh7mpl_1.json
+2026-06-11 01:05:28,239 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-11 01:05:28,246 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=Test, provider=openai
+2026-06-11 01:05:28,247 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,249 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp1g71axeq.json
+2026-06-11 01:05:28,249 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=f99223c9-b926-462a-a34c-cca034275769, name=Test, provider=openai
+2026-06-11 01:05:28,249 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=f99223c9-b926-462a-a34c-cca034275769
+2026-06-11 01:05:28,249 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,250 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:28,250 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=Test
+2026-06-11 01:05:28,251 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp1g71axeq.json
+2026-06-11 01:05:28,251 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-11 01:05:28,252 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:28,252 [    INFO] agent.network_config: [网络配置] 获取到 0 个 LLM 实例
+2026-06-11 01:05:28,258 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,258 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,259 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,259 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpqyfp1lya.json
+2026-06-11 01:05:28,260 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpqyfp1lya.json
+2026-06-11 01:05:28,261 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,267 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,267 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:28,268 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,268 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,269 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,269 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,270 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,270 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,270 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,271 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,272 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,272 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,272 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,272 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,274 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,274 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,274 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,275 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,275 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,276 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,277 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,277 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,277 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,277 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,279 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,279 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,280 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,280 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,280 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,282 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,282 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,282 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,283 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,283 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,284 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,284 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,285 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,285 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,285 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,288 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,288 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,288 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,288 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,288 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,291 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,291 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,292 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,292 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,292 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,295 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,295 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,295 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,296 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,296 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,298 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,298 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,299 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,299 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,300 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,301 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,302 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,302 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,302 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,303 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,305 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,305 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,306 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,306 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,306 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,309 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,309 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,311 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,311 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,311 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,314 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,314 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,314 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,314 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,315 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,317 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,318 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,318 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,319 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,319 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,322 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,322 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,323 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,323 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,323 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,327 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,327 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,328 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,328 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,328 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,332 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,332 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,333 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,333 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,333 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,336 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,337 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,337 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,338 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,338 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,341 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,341 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,342 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,342 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,342 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,346 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,346 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,347 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,347 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,347 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,351 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,351 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,352 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,352 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,352 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,356 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,356 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,357 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,357 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,357 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,361 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,361 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,362 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,362 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,362 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,367 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,367 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,368 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,368 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,368 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,372 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,372 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,373 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,373 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,373 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,378 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,378 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,379 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,379 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,379 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,384 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,384 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,385 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,385 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,385 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,390 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,390 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,391 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,391 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,391 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,396 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,396 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,397 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,397 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,397 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,402 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,402 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,403 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,403 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,403 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,409 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,409 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,410 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,410 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,410 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,415 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,415 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,416 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,416 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,416 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,421 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,421 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,422 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,423 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,423 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,428 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,428 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,430 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,430 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,430 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,435 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,435 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,436 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,437 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,437 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,442 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,442 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,443 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,443 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,444 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,450 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,450 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,451 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,451 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,451 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,456 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,456 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,458 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,458 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,458 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,463 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,464 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,465 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,465 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,465 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,471 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,471 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,472 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,473 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,473 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,480 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,480 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,481 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,482 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,482 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,488 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,488 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,489 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,489 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,489 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,496 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,496 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,498 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,498 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,498 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,504 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,504 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,505 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,506 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,506 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,512 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,512 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,514 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,514 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,514 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,520 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,521 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,523 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,523 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,523 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,529 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,529 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,531 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,531 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,531 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,538 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,538 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,539 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,539 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,540 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,548 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,549 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,551 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,551 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,551 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,558 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,558 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,560 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,561 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,561 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,570 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,570 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,571 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,572 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,572 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,580 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,580 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,583 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,583 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,583 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,591 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,591 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,593 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,593 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,593 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,603 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,603 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,605 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,606 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,606 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,614 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,614 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,616 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,616 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,616 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,624 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,624 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,626 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,626 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,626 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,634 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,634 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,635 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,635 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,635 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,643 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,643 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,646 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,647 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,647 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,655 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,655 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,657 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,657 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,657 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,666 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,667 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,668 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,669 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,669 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,677 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,677 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,679 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,679 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,679 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,687 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,688 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,689 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,690 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,690 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,698 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,698 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,700 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,700 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,700 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,709 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,709 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,712 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,712 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,712 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,721 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,721 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,723 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,723 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,723 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,731 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,732 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,734 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,734 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,734 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,742 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,742 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,744 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,744 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,744 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,753 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,754 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,755 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,756 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,756 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,765 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,765 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,767 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,767 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,768 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,777 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,777 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,779 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,779 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,779 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,788 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,788 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,790 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,791 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,791 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,799 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,800 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,801 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,802 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,802 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,811 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,812 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,814 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,814 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,814 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,823 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,823 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,825 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,825 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,825 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,835 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,835 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,837 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,837 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,837 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,847 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,848 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,850 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,850 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,850 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,859 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,859 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,862 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,862 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,862 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,872 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,872 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,874 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,874 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,874 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,884 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,884 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,886 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,887 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,887 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,897 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,897 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,899 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,900 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,900 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,910 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,910 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,912 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,912 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,913 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,922 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,922 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,924 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,925 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,925 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,936 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,936 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,938 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,938 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,938 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,948 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,948 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,951 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,951 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,951 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,961 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,961 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,964 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,964 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,964 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,975 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,975 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,977 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,977 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,977 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,987 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:28,988 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:28,990 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:28,990 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:28,990 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,001 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,002 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,004 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,004 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,004 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,015 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,015 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,016 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,017 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,017 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,028 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,028 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,030 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,030 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,031 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,041 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,041 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,045 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,045 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,045 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,055 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,055 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,057 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,058 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,058 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,069 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,069 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,071 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,071 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,071 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,083 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,083 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,086 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,086 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,087 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,097 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,097 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,100 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,100 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,101 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,112 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,112 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,115 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,115 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,115 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,127 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,127 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,129 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,129 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,129 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,142 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,142 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,145 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,145 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,145 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,156 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,156 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,158 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,158 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,159 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,172 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,172 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,175 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,175 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,175 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,188 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,188 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,191 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,191 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,191 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,204 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,204 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,207 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,207 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,207 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,220 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,220 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,223 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,223 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,223 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,236 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,236 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,239 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,239 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,239 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,251 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,251 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,254 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,254 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,254 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,266 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,266 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,269 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,269 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,269 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,281 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,281 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,284 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,284 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,284 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,297 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,297 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,299 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,300 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,300 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,312 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,312 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,314 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,315 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,315 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,327 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,327 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,329 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,330 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,330 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,341 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,341 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,344 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,344 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,344 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,356 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,356 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,359 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,359 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,359 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,371 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,371 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,374 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,374 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,374 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,386 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,386 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,389 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,389 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,389 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,401 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,402 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,404 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,404 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,404 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,416 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,416 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,418 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,419 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,419 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,432 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,432 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,435 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,435 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,435 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,448 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,448 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,451 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,451 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,451 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,465 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,465 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,467 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,468 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,468 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,480 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,480 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,482 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,482 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,484 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,497 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,498 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,500 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,500 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,500 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,516 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,516 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,519 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,519 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,519 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,531 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,532 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,534 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,534 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,535 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,547 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,547 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,550 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,550 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,550 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,563 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,563 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,566 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,566 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,566 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,578 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,578 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,581 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,581 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,581 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,593 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,593 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,596 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,596 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,596 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,608 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,608 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,611 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,611 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,611 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,622 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,623 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,626 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,626 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,627 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,640 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,640 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,643 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,643 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,643 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,655 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,655 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,657 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,657 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,657 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,670 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,670 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,673 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,673 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,673 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,685 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,685 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,687 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,688 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,688 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,699 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,699 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,702 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,702 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,702 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,714 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,715 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,717 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,717 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,717 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,729 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,729 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,732 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,732 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,732 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,744 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,745 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,747 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,747 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,747 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,759 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,759 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,761 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,761 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,762 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,774 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,774 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,776 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,776 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,776 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,788 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,788 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,791 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,791 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,791 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,802 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,802 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,805 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,805 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,805 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,817 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,817 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,819 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,819 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,820 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,832 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,832 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,835 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,835 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,835 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,846 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,846 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,849 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,849 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,849 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,860 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,861 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,863 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,863 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,863 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,874 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,874 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,877 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,877 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,877 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,889 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,889 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,891 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,891 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,891 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,903 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmppkb2s279.json
+2026-06-11 01:05:29,904 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,913 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 01:05:29,914 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,915 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmps9vpp2vy.json
+2026-06-11 01:05:29,915 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=5fcdd590-e0cf-4c5e-8698-849e0c831fb4, name=TestInstance, provider=openai
+2026-06-11 01:05:29,916 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=5fcdd590-e0cf-4c5e-8698-849e0c831fb4
+2026-06-11 01:05:29,916 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:29,916 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:29,916 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:29,917 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,917 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,917 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmps9vpp2vy.json
+2026-06-11 01:05:29,919 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmps9vpp2vy.json
+2026-06-11 01:05:29,919 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,919 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=5fcdd590-e0cf-4c5e-8698-849e0c831fb4
+2026-06-11 01:05:29,919 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:29,920 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:29,920 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:29,925 [    INFO] agent.network_config: [网络配置] 开始添加 LLM 实例: name=TestInstance, provider=openai
+2026-06-11 01:05:29,925 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,927 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmprosxnla8.json
+2026-06-11 01:05:29,927 [    INFO] agent.network_config: [网络配置] 已成功添加 LLM 实例: id=449faa13-18ef-46e0-b11d-a3c99a39fabc, name=TestInstance, provider=openai
+2026-06-11 01:05:29,927 [    INFO] agent.network_config: [网络配置] 获取 LLM 实例: instance_id=449faa13-18ef-46e0-b11d-a3c99a39fabc
+2026-06-11 01:05:29,928 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 找到 LLM 实例: name=TestInstance
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_449faa13-18ef-46e0-b11d-a3c99a39fabc_api_key
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,929 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmprosxnla8.json
+2026-06-11 01:05:29,931 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmprosxnla8.json
+2026-06-11 01:05:29,931 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,938 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,938 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,939 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,939 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpyka9krmb.json
+2026-06-11 01:05:29,940 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpyka9krmb.json
+2026-06-11 01:05:29,940 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,941 [    INFO] agent.network_config: [网络配置] 获取所有 LLM 实例
+2026-06-11 01:05:29,941 [    INFO] agent.network_config: [网络配置] 获取到 1 个 LLM 实例
+2026-06-11 01:05:29,947 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,947 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,948 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,948 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpohxq8of4.json
+2026-06-11 01:05:29,949 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpohxq8of4.json
+2026-06-11 01:05:29,949 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,955 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,957 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpfxxp5y51.json
+2026-06-11 01:05:29,957 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: NewMCP
+2026-06-11 01:05:29,963 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,965 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp2trww15p.json
+2026-06-11 01:05:29,965 [    INFO] agent.network_config: [网络配置] 已添加 MCP 服务: TestMCP
+2026-06-11 01:05:29,966 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,966 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,966 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp2trww15p.json
+2026-06-11 01:05:29,968 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp2trww15p.json
+2026-06-11 01:05:29,968 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,974 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,974 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,974 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,974 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpygsb3fdh.json
+2026-06-11 01:05:29,976 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpygsb3fdh.json
+2026-06-11 01:05:29,976 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,976 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:29,976 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529783144784'>
+2026-06-11 01:05:29,977 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:29,977 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:29,977 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s
+2026-06-11 01:05:29,977 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3
+2026-06-11 01:05:29,979 [    INFO] agent.network_config: [网络配置] [即时生效] 搜索引擎配置已更新:
+2026-06-11 01:05:29,979 [    INFO] agent.network_config:   - 默认引擎: duckduckgo
+2026-06-11 01:05:29,979 [    INFO] agent.network_config:   - 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google']
+2026-06-11 01:05:29,979 [    INFO] agent.network_config:   - 超时: 30s
+2026-06-11 01:05:29,979 [    INFO] agent.network_config:   - 启用状态: {'duckduckgo': True, 'tavily': True, 'bing': True, 'google': True, 'brave': True}
+2026-06-11 01:05:29,980 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=, api_key_set=no, model=
+2026-06-11 01:05:29,980 [    INFO] agent.network_config: [网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=True, provider=False, api_key=False)
+2026-06-11 01:05:29,980 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:29,986 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:29,986 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529801724912'>
+2026-06-11 01:05:29,987 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:29,987 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,988 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:29,988 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_http 属性，跳过 HTTP 配置应用
+2026-06-11 01:05:29,988 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用
+2026-06-11 01:05:29,988 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:29,994 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:29,994 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:29,995 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:29,995 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpxj2cxrxw.json
+2026-06-11 01:05:29,996 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpxj2cxrxw.json
+2026-06-11 01:05:29,996 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:29,997 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:29,997 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529803061728'>
+2026-06-11 01:05:29,997 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:29,998 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:29,998 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 30s
+2026-06-11 01:05:29,998 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=30, max_retries=<Mock name='mock._web_http.max_retries' id='2529803064176'>
+2026-06-11 01:05:29,999 [    INFO] agent.network_config: [网络配置] [即时生效] 搜索引擎配置已更新:
+2026-06-11 01:05:29,999 [    INFO] agent.network_config:   - 默认引擎: duckduckgo
+2026-06-11 01:05:29,999 [    INFO] agent.network_config:   - 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google']
+2026-06-11 01:05:29,999 [    INFO] agent.network_config:   - 超时: 20s
+2026-06-11 01:05:29,999 [    INFO] agent.network_config:   - 启用状态: {'duckduckgo': True, 'tavily': True, 'bing': True, 'google': True, 'brave': True}
+2026-06-11 01:05:29,999 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=, api_key_set=no, model=
+2026-06-11 01:05:29,999 [    INFO] agent.network_config: [网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=True, provider=False, api_key=False)
+2026-06-11 01:05:30,000 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:30,006 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,006 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,007 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 01:05:30,007 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_api_key
+2026-06-11 01:05:30,007 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 01:05:30,007 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,007 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmptnvs3a_c.json
+2026-06-11 01:05:30,008 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmptnvs3a_c.json
+2026-06-11 01:05:30,009 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,009 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:30,009 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529803074736'>
+2026-06-11 01:05:30,010 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:30,010 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:30,010 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 30s
+2026-06-11 01:05:30,010 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=30, max_retries=<Mock name='mock._web_http.max_retries' id='2529803065520'>
+2026-06-11 01:05:30,011 [    INFO] agent.network_config: [网络配置] [即时生效] 搜索引擎配置已更新:
+2026-06-11 01:05:30,011 [    INFO] agent.network_config:   - 默认引擎: duckduckgo
+2026-06-11 01:05:30,011 [    INFO] agent.network_config:   - 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google']
+2026-06-11 01:05:30,011 [    INFO] agent.network_config:   - 超时: 30s
+2026-06-11 01:05:30,011 [    INFO] agent.network_config:   - 启用状态: {'duckduckgo': True, 'tavily': True, 'bing': True, 'google': True, 'brave': True}
+2026-06-11 01:05:30,012 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=***, model=gpt-4
+2026-06-11 01:05:30,012 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm...
+2026-06-11 01:05:30,012 [    INFO] agent.network_config: [网络配置] [即时生效] LLM 配置已应用: openai/gpt-4
+2026-06-11 01:05:30,012 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:30,017 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,017 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,018 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-11 01:05:30,018 [    INFO] agent.network_config: [网络配置] 已加密保存: llm_api_key
+2026-06-11 01:05:30,018 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-11 01:05:30,018 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,018 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpfm6qt54d.json
+2026-06-11 01:05:30,020 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpfm6qt54d.json
+2026-06-11 01:05:30,020 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,021 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:30,021 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529803062160'>
+2026-06-11 01:05:30,072 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:30,073 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:30,073 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 30s
+2026-06-11 01:05:30,073 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=30, max_retries=<Mock name='mock._web_http.max_retries' id='2529801320832'>
+2026-06-11 01:05:30,074 [    INFO] agent.network_config: [网络配置] [即时生效] 搜索引擎配置已更新:
+2026-06-11 01:05:30,074 [    INFO] agent.network_config:   - 默认引擎: duckduckgo
+2026-06-11 01:05:30,074 [    INFO] agent.network_config:   - 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google']
+2026-06-11 01:05:30,074 [    INFO] agent.network_config:   - 超时: 30s
+2026-06-11 01:05:30,074 [    INFO] agent.network_config:   - 启用状态: {'duckduckgo': True, 'tavily': True, 'bing': True, 'google': True, 'brave': True}
+2026-06-11 01:05:30,074 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=***, model=gpt-4
+2026-06-11 01:05:30,074 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm...
+2026-06-11 01:05:30,074 [ WARNING] agent.network_config: [网络配置] LLM 配置应用失败: Invalid API Key
+2026-06-11 01:05:30,074 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:30,082 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,083 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,083 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,083 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpvvxf8xb1.json
+2026-06-11 01:05:30,084 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpvvxf8xb1.json
+2026-06-11 01:05:30,085 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,085 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-11 01:05:30,086 [    INFO] agent.network_config: [网络配置] 应用实例: <Mock id='2529801846656'>
+2026-06-11 01:05:30,086 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'unittest.mock.Mock'>
+2026-06-11 01:05:30,086 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-11 01:05:30,086 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 30s
+2026-06-11 01:05:30,087 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=30, max_retries=<Mock name='mock._web_http.max_retries' id='2529801842960'>
+2026-06-11 01:05:30,087 [    INFO] agent.network_config: [网络配置] [即时生效] 搜索引擎配置已更新:
+2026-06-11 01:05:30,087 [    INFO] agent.network_config:   - 默认引擎: duckduckgo
+2026-06-11 01:05:30,087 [    INFO] agent.network_config:   - 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google']
+2026-06-11 01:05:30,087 [    INFO] agent.network_config:   - 超时: 30s
+2026-06-11 01:05:30,087 [    INFO] agent.network_config:   - 启用状态: {'duckduckgo': True, 'tavily': True, 'bing': True, 'google': True, 'brave': True}
+2026-06-11 01:05:30,088 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=no, model=gpt-4
+2026-06-11 01:05:30,088 [    INFO] agent.network_config: [网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=True, provider=True, api_key=False)
+2026-06-11 01:05:30,088 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-11 01:05:30,096 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,096 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,097 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,097 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpqlfzxs_k.json
+2026-06-11 01:05:30,098 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpqlfzxs_k.json
+2026-06-11 01:05:30,099 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,105 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,106 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,106 [    INFO] agent.network_config: [网络配置] 检测到新的 tavily API Key，准备加密保存...
+2026-06-11 01:05:30,106 [    INFO] agent.network_config: [网络配置] 已加密保存: search_tavily_key
+2026-06-11 01:05:30,106 [    INFO] agent.network_config: [网络配置] tavily API Key 已加密保存
+2026-06-11 01:05:30,107 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,107 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpkkkb9tf0.json
+2026-06-11 01:05:30,108 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpkkkb9tf0.json
+2026-06-11 01:05:30,108 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,115 [    INFO] agent.network_config: [网络配置] 更新搜索引擎配置: {'default_engine': 'tavily', 'max_results': 20, 'timeout': 30, 'engine_priority': ['tavily', 'duckduckgo'], 'engine_enabled': {'tavily': True, 'duckduckgo': False}}
+2026-06-11 01:05:30,115 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,116 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,116 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,116 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpcvlwge2y.json
+2026-06-11 01:05:30,118 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpcvlwge2y.json
+2026-06-11 01:05:30,118 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,118 [    INFO] agent.network_config: [网络配置] 搜索引擎配置更新完成
+2026-06-11 01:05:30,124 [    INFO] agent.network_config: [网络配置] 更新搜索引擎配置: {'api_keys': {'tavily': 'tvly-new-key', 'bing': 'bing-new-key'}}
+2026-06-11 01:05:30,125 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,125 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,125 [    INFO] agent.network_config: [网络配置] 检测到新的 tavily API Key，准备加密保存...
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] 已加密保存: search_tavily_key
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] tavily API Key 已加密保存
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] 检测到新的 bing API Key，准备加密保存...
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] 已加密保存: search_bing_key
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] bing API Key 已加密保存
+2026-06-11 01:05:30,126 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,127 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmphfdi2pje.json
+2026-06-11 01:05:30,128 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmphfdi2pje.json
+2026-06-11 01:05:30,129 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,129 [    INFO] agent.network_config: [网络配置] 搜索引擎配置更新完成
+2026-06-11 01:05:30,136 [    INFO] agent.network_config: [网络配置] 更新搜索引擎配置: {'api_keys': {'tavily': '***1234', 'bing': 'bing-new-key'}}
+2026-06-11 01:05:30,136 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,136 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,137 [    INFO] agent.network_config: [网络配置] 检测到新的 bing API Key，准备加密保存...
+2026-06-11 01:05:30,137 [    INFO] agent.network_config: [网络配置] 已加密保存: search_bing_key
+2026-06-11 01:05:30,137 [    INFO] agent.network_config: [网络配置] bing API Key 已加密保存
+2026-06-11 01:05:30,137 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,137 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpchmct4nq.json
+2026-06-11 01:05:30,139 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpchmct4nq.json
+2026-06-11 01:05:30,139 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,140 [    INFO] agent.network_config: [网络配置] 搜索引擎配置更新完成
+2026-06-11 01:05:30,178 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,178 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,179 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,179 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmp261n2tyo.json
+2026-06-11 01:05:30,180 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp261n2tyo.json
+2026-06-11 01:05:30,181 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,182 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmp261n2tyo.json
+2026-06-11 01:05:30,188 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-11 01:05:30,189 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-11 01:05:30,189 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-11 01:05:30,189 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpesnonff5.json
+2026-06-11 01:05:30,191 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpesnonff5.json
+2026-06-11 01:05:30,191 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-11 01:05:30,193 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Windows\TEMP\tmpesnonff5.json
+2026-06-11 01:05:30,200 [ WARNING] agent.network_config: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)

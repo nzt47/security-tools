@@ -1,0 +1,49 @@
+2026-06-08 02:47:43,658 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:47:43,686 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:47:43,693 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:47:43,699 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:47:43,735 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:47:43,741 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:47:43,744 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:47:43,746 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:47:43,751 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:47:43,783 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:47:43,783 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:47:43,785 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:47:43,786 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:47:44,035 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 02:47:44,043 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:47:44,043 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 02:47:44,052 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:47:44,053 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:47:44,053 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 02:47:44,053 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 02:47:44,053 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 02:47:44,109 [    INFO] agent.performance_logging: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-08 02:47:44,348 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,353 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,353 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: my_module, level=CRITICAL, deps=[]
+2026-06-08 02:47:44,358 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,358 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dep, level=CRITICAL, deps=[]
+2026-06-08 02:47:44,358 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dep']
+2026-06-08 02:47:44,364 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,364 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: critical, level=CRITICAL, deps=[]
+2026-06-08 02:47:44,365 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-08 02:47:44,367 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-08 02:47:44,372 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,372 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: my_mod, level=OPTIONAL, deps=[]
+2026-06-08 02:47:44,382 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,382 [   ERROR] agent.lazy_loader: [LazyLoader] 模块 nonexistent 未注册
+2026-06-08 02:47:44,386 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-08 02:47:44,386 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=OPTIONAL, deps=[]
+2026-06-08 02:47:44,395 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4

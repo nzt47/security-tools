@@ -1,0 +1,244 @@
+/* 云枢 App 主样式 */
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+
+.app-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--space-lg);
+  max-width: 1400px;
+  width: 100%;
+  height: calc(100vh - var(--space-lg) * 2);
+  max-height: 900px;
+}
+
+/* 侧边栏 */
+.sidebar {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--mascot-primary);
+  margin: 0;
+}
+
+/* Mascot 包装器 */
+.mascot-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Mascot 信息 */
+.mascot-info {
+  text-align: center;
+}
+
+.mascot-greeting {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.mascot-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 侧边栏操作按钮 */
+.sidebar-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.action-btn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-breathe);
+}
+
+.action-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--mascot-primary);
+  color: var(--mascot-primary);
+}
+
+/* 存储方式切换 */
+.storage-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.toggle-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.toggle-buttons {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.toggle-btn.active {
+  background: var(--mascot-primary);
+  color: white;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 测试日志 */
+.test-log {
+  margin-top: auto;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  max-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.test-log h3 {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.log-content {
+  flex: 1;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.log-entry {
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.log-entry:last-child {
+  color: var(--mascot-primary);
+  font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .app-container {
+    grid-template-columns: 280px 1fr;
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: var(--space-md);
+  }
+
+  .app-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: auto;
+    max-height: none;
+  }
+
+  .sidebar {
+    padding: var(--space-md);
+  }
+
+  .mascot-wrapper {
+    min-height: 180px;
+  }
+
+  .sidebar-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: var(--space-sm);
+  }
+
+  .sidebar {
+    padding: var(--space-sm);
+    gap: var(--space-md);
+  }
+
+  .mascot-wrapper {
+    min-height: 150px;
+  }
+
+  .mascot-info {
+    display: none;
+  }
+}

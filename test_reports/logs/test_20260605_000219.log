@@ -1,0 +1,108 @@
+2026-06-05 00:02:19,666 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 00:02:19,681 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 00:02:19,686 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 00:02:19,691 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 00:02:19,722 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 00:02:19,727 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 00:02:19,728 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 00:02:19,729 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 00:02:19,734 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 00:02:19,764 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 00:02:19,764 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 00:02:19,765 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 00:02:19,767 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 00:02:20,076 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 00:02:20,083 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 00:02:20,083 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 00:02:20,098 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 00:02:20,099 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 00:02:20,099 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 00:02:20,099 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 00:02:20,099 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 00:02:20,347 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpx5x4ewxf
+2026-06-05 00:02:20,351 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpc5fmjgox
+2026-06-05 00:02:20,357 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmppab6ki4t
+2026-06-05 00:02:20,503 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpm179accm
+2026-06-05 00:02:22,846 [ WARNING] agent.system_tools: selenium 未安装，浏览器功能不可用
+2026-06-05 00:02:37,260 [ WARNING] agent.system_tools: 无头浏览器启动失败: Failed to start browser
+2026-06-05 00:02:38,602 [    INFO] agent.system_tools: 页面加载超时时间设置为 15 秒
+2026-06-05 00:02:38,615 [    INFO] agent.system_tools: 无头浏览器已成功启动
+2026-06-05 00:03:00,383 [ WARNING] agent.system_tools: 文件备份失败: Backup failed
+2026-06-05 00:16:47,181 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:47,228 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:47,522 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:47,568 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:47,893 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:47,939 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:48,235 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:48,282 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:48,610 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:48,656 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:48,656 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:48,671 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 00:16:48,686 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 00:16:48,702 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-05 00:16:49,230 [    INFO] agent.p6_snapshot: [P6] │   ├─ 快照ID: <MagicMock name='mock.snapshot_id' id='1996414943600'>
+2026-06-05 00:16:49,230 [    INFO] agent.p6_snapshot: [P6] │   ├─ 版本: p5.0.0
+2026-06-05 00:16:49,231 [    INFO] agent.p6_snapshot: [P6] │   ├─ 创建时间: <MagicMock name='mock.created_at' id='1996418109312'>
+2026-06-05 00:16:49,231 [    INFO] agent.p6_snapshot: [P6] │   ├─ 配置键数: 0
+2026-06-05 00:16:49,231 [    INFO] agent.p6_snapshot: [P6] │   ├─ 模块数: 0
+2026-06-05 00:16:49,232 [    INFO] agent.p6_snapshot: [P6] │   └─ 类型: 增量快照
+2026-06-05 00:16:49,246 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤2: 版本兼容性检查...
+2026-06-05 00:16:49,588 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:49,866 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:49,913 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:49,913 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:49,945 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-05 00:16:49,945 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-05 00:16:49,945 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-05 00:16:50,316 [    INFO] agent.p6_snapshot: [P6] │   ├─ 快照ID: <MagicMock name='mock.snapshot_id' id='1996417887952'>
+2026-06-05 00:16:50,331 [    INFO] agent.p6_snapshot: [P6] │   ├─ 版本: p6.2.0
+2026-06-05 00:16:50,332 [    INFO] agent.p6_snapshot: [P6] │   ├─ 创建时间: <MagicMock name='mock.created_at' id='1996418524768'>
+2026-06-05 00:16:50,347 [    INFO] agent.p6_snapshot: [P6] │   ├─ 配置键数: 1
+2026-06-05 00:16:50,347 [    INFO] agent.p6_snapshot: [P6] │   ├─ 模块数: 0
+2026-06-05 00:16:50,378 [    INFO] agent.p6_snapshot: [P6] │   └─ 类型: 增量快照
+2026-06-05 00:16:50,393 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤2: 版本兼容性检查...
+2026-06-05 00:16:50,904 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤3: 创建 DigitalLife 实例...
+2026-06-05 00:16:50,919 [ WARNING] agent.p6_snapshot: [P6] │   └─ 警告: 未提供 DigitalLife 类，仅返回快照数据
+2026-06-05 00:16:50,919 [    INFO] agent.p6_snapshot: [P6] ├─ 快照加载总计耗时: 1005.97ms
+2026-06-05 00:16:50,919 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:50,934 [    INFO] agent.p6_snapshot: [P6] 快照加载成功（仅数据，未恢复实例）！
+2026-06-05 00:16:50,966 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:51,259 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:51,305 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:51,585 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:51,631 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:51,632 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:51,647 [    INFO] agent.p6_snapshot: [P6] Phase 3: 按优先级恢复模块开始
+2026-06-05 00:16:51,647 [    INFO] agent.p6_snapshot: [P6] ├─ 模块恢复顺序: []
+2026-06-05 00:16:51,647 [    INFO] agent.p6_snapshot: [P6] ├─ 模块恢复完成: 0/0 成功
+2026-06-05 00:16:51,662 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-05 00:16:51,894 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:51,941 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:52,202 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:52,249 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:52,528 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:52,574 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:52,884 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:52,945 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:53,331 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:53,378 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:53,672 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:53,718 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:54,552 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:54,598 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:16:55,048 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-05 00:16:55,110 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-05 00:17:02,852 [   ERROR] agent.digital_life: [FAIL] 保存向量记忆失败: Memory save failed
+2026-06-05 00:17:04,612 [   ERROR] agent.digital_life: Vector memory search failed: Search failed

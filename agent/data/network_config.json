@@ -1,0 +1,711 @@
+{
+  "llm": {
+    "enabled": true,
+    "provider": "deepseek",
+    "api_key": "***REMOVED_API_KEY***",
+    "model": "deepseek-v4-flash",
+    "api_endpoint": "https://api.deepseek.com/anthropic",
+    "timeout": 60,
+    "max_retries": 3
+  },
+  "network": {
+    "timeout": 30,
+    "max_retries": 3,
+    "backoff_factor": 2,
+    "proxy_enabled": false,
+    "proxy_url": ""
+  },
+  "search": {
+    "enabled": true,
+    "default_engine": "duckduckgo",
+    "max_results": 5,
+    "engine_priority": [
+      "duckduckgo",
+      "baidu",
+      "sogou",
+      "so360",
+      "tavily",
+      "bing",
+      "brave",
+      "google"
+    ],
+    "engine_enabled": {
+      "duckduckgo": true,
+      "tavily": true,
+      "bing": false,
+      "brave": false,
+      "google": false,
+      "baidu": true,
+      "sogou": true,
+      "so360": true
+    },
+    "timeout": 15,
+    "cache_ttl": 300
+  },
+  "web_scraping": {
+    "enabled": true,
+    "respect_robots_txt": true,
+    "delay_between_requests": 1
+  },
+  "browser": {
+    "enabled": true,
+    "headless": true,
+    "timeout": 30
+  },
+  "sync": {
+    "enabled": true,
+    "interval_minutes": 60,
+    "auto_sync_on_start": true
+  },
+  "external_services": {
+    "error_reporting": {
+      "enabled": true,
+      "webhook_url": ""
+    },
+    "monitoring": {
+      "enabled": true,
+      "endpoint": ""
+    }
+  },
+  "search_api_keys": {
+    "tavily": "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",
+    "bing": "",
+    "google": "",
+    "google_cx": "",
+    "brave": ""
+  },
+  "llm_instances": [
+    {
+      "name": "Deepseek",
+      "enabled": true,
+      "provider": "deepseek",
+      "api_endpoint": "https://api.deepseek.com/anthropic",
+      "auth_method": "api_key",
+      "api_key": "",
+      "model": "deepseek-v4-flash",
+      "models": [],
+      "max_concurrent_requests": 10,
+      "timeout": 60,
+      "max_retries": 3,
+      "description": "",
+      "created_at": "2026-06-10T14:22:57.840107",
+      "updated_at": "2026-06-12T16:09:47.923165",
+      "id": "89032468-980f-46ed-926d-0cff1373fa98",
+      "is_default": true
+    },
+    {
+      "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+      "name": "Deepseek-pro",
+      "provider": "deepseek",
+      "api_key": "***REMOVED_API_KEY***",
+      "model": "deepseek-v4-pro",
+      "api_endpoint": "https://api.deepseek.com/anthropic",
+      "auth_method": "api_key",
+      "max_concurrent_requests": 5,
+      "timeout": 30,
+      "max_retries": 3,
+      "description": "",
+      "enabled": true,
+      "created_at": "2026-06-11T10:51:27.809687",
+      "updated_at": "2026-06-12T16:09:47.925165"
+    }
+  ],
+  "default_llm_instance": "89032468-980f-46ed-926d-0cff1373fa98",
+  "mcp": {
+    "enabled": true,
+    "services": [
+      {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP",
+        "address": "localhost",
+        "port": 8080,
+        "protocol": "stdio",
+        "timeout": 30,
+        "retry_strategy": "fixed",
+        "max_retries": 3,
+        "security_methods": [],
+        "certificate_path": "",
+        "description": "安全的文件系统操作服务",
+        "enabled": true,
+        "created_at": "2026-06-11T20:13:04.282233",
+        "updated_at": "2026-06-12T00:30:37.862240",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem"
+        ]
+      },
+      {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP",
+        "address": "localhost",
+        "port": 8080,
+        "protocol": "stdio",
+        "timeout": 30,
+        "retry_strategy": "fixed",
+        "max_retries": 3,
+        "security_methods": [],
+        "certificate_path": "",
+        "description": "GitHub API 集成服务",
+        "enabled": true,
+        "created_at": "2026-06-11T20:13:05.953946",
+        "updated_at": "2026-06-11T20:13:05.953946",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-github"
+        ]
+      }
+    ]
+  },
+  "change_log": [
+    {
+      "id": "5d4d4093-acf3-477e-8779-d9a09bb68c8b",
+      "timestamp": "2026-06-13T12:44:09.589989",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "search"
+        ]
+      }
+    },
+    {
+      "id": "82ab29f3-454b-4dd1-bd93-972fc35ce4c8",
+      "timestamp": "2026-06-12T16:09:47.925165",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "ae6c625c-aa50-4826-9ad0-82ddaa98604c",
+      "timestamp": "2026-06-12T16:09:47.925165",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "0aaf1eb4-57df-4797-9939-ea8169829045",
+      "timestamp": "2026-06-12T16:09:47.925165",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "fd46165a-2db1-4d4c-94c4-ea9e4c0db016",
+      "timestamp": "2026-06-12T16:09:47.923165",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "d08dc626-38da-4cdc-8b39-d898214c72f5",
+      "timestamp": "2026-06-12T09:51:47.256655",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "search_api_keys",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services"
+        ]
+      }
+    },
+    {
+      "id": "c5bccca2-eb93-4f49-8f06-64bae4376068",
+      "timestamp": "2026-06-12T09:51:46.250034",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "search_api_keys",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services"
+        ]
+      }
+    },
+    {
+      "id": "ea2abbc9-ab05-4643-8f70-726d304141e0",
+      "timestamp": "2026-06-12T09:51:43.553738",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "b8d534c2-9944-4d26-a52d-be7b9898182a",
+      "timestamp": "2026-06-12T09:51:43.551738",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "f472b08c-e7ae-4c4d-8a3e-73b25ddefad8",
+      "timestamp": "2026-06-12T09:51:43.551738",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "9931f07a-5149-4afd-90fa-a96d023f2a19",
+      "timestamp": "2026-06-12T09:51:43.551738",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "ac637832-c8b0-40c8-b012-d0026bd16849",
+      "timestamp": "2026-06-12T09:51:43.549738",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "1286134d-7978-4d36-b63f-0e28ecc2d00b",
+      "timestamp": "2026-06-12T00:33:12.659620",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "ec24e991-a04a-479f-87e2-06d9504f1f92",
+      "timestamp": "2026-06-12T00:33:12.659620",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "bb553c53-2b5c-4b9c-b8e3-a0a40eac770f",
+      "timestamp": "2026-06-12T00:33:12.659620",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "c0322be3-6643-4574-b908-e3c79431fbc2",
+      "timestamp": "2026-06-12T00:33:12.658615",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "a04404ee-b3c1-4e3e-b0b7-24beede53220",
+      "timestamp": "2026-06-12T00:33:05.717834",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "f64b2fbd-2518-4dcb-9184-287aed0083b8",
+      "timestamp": "2026-06-12T00:33:05.715833",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "e60e162b-740d-430a-b987-356051dab066",
+      "timestamp": "2026-06-12T00:33:05.715833",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "138c9bd6-c682-4501-9ec6-683d026269f6",
+      "timestamp": "2026-06-12T00:33:05.715833",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "e3f52ea7-c2ec-4b7a-ba5b-4f767130223a",
+      "timestamp": "2026-06-12T00:33:05.714833",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "1d51441e-61ac-4f9e-a174-9519d2658c7a",
+      "timestamp": "2026-06-12T00:31:17.279869",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "8a8c8b9d-ddfd-41b1-8fc8-9c3cf589a5be",
+      "timestamp": "2026-06-12T00:31:17.278865",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "392b9f8e-0d83-4c35-b3af-273e9d0cd5ba",
+      "timestamp": "2026-06-12T00:31:17.278865",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "c05caf08-6745-4941-a887-a4a8a1765a9f",
+      "timestamp": "2026-06-12T00:31:17.278865",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "df9d40b9-8097-4396-b0af-0bf58e6670d4",
+      "timestamp": "2026-06-12T00:31:17.276848",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "ff997a38-a28d-4228-9b71-45327159e70b",
+      "timestamp": "2026-06-12T00:30:37.867240",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "844a5f39-f2cb-4486-964f-9336d11c8c2f",
+      "timestamp": "2026-06-12T00:30:35.925086",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "8eacbd21-e802-4d52-94fd-c6b299ec2382",
+      "timestamp": "2026-06-11T20:17:35.608901",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "14e11c1d-1daa-479d-93de-9be6180a3fc7",
+        "name": "GitHub MCP"
+      }
+    },
+    {
+      "id": "6760a14f-6765-4017-9a66-daa28589c2ff",
+      "timestamp": "2026-06-11T20:17:35.608901",
+      "action": "update",
+      "section": "mcp_service",
+      "details": {
+        "id": "ced4c817-f86e-4689-b283-fcc7243b3609",
+        "name": "文件系统 MCP"
+      }
+    },
+    {
+      "id": "092afadc-8d05-470d-a77d-11408f8e7a3f",
+      "timestamp": "2026-06-11T20:17:35.608901",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "ab77bc1c-3889-489d-9454-63d308ae2366",
+      "timestamp": "2026-06-11T20:17:35.607904",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "88b1211b-c7cd-4ca9-95ab-1acdb55ca4f9",
+      "timestamp": "2026-06-11T12:53:40.614683",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "e35e595f-b1bd-4ee4-9633-32fb6bae0f44",
+      "timestamp": "2026-06-11T12:53:40.612681",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "4bf90a88-25e3-4668-aa08-54471c38e331",
+      "timestamp": "2026-06-11T12:53:38.384412",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "5265a76f-ab8f-4b19-9253-9a6f0c005190",
+      "timestamp": "2026-06-11T12:53:38.383412",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "ea21bed5-7bc1-48ed-81d3-68791b120803",
+        "name": "Deepseek-pro"
+      }
+    },
+    {
+      "id": "74123776-d212-4e9b-b725-4f868e4902d0",
+      "timestamp": "2026-06-11T12:53:38.381407",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "e3dd9b7d-6ce7-45e8-b909-9f53c6d529f2",
+      "timestamp": "2026-06-11T01:10:23.075754",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "e0010ae2-e6c2-4ee2-bf69-021a3cd2add2",
+      "timestamp": "2026-06-11T01:10:19.619755",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "action": "set_default"
+      }
+    },
+    {
+      "id": "f302140f-5d2c-4700-a0d1-748cfab8401f",
+      "timestamp": "2026-06-11T01:10:12.585794",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "99adadc4-9a2f-488b-a22b-9c255f610f3a",
+      "timestamp": "2026-06-11T01:10:12.584795",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "f381fef5-bd34-43a5-9cbd-504f737bfd69",
+      "timestamp": "2026-06-11T01:10:10.777952",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services",
+          "search_api_keys",
+          "llm_instances",
+          "default_llm_instance",
+          "mcp",
+          "change_log"
+        ]
+      }
+    },
+    {
+      "id": "b89bf9e6-7e44-4213-b424-067b343c0568",
+      "timestamp": "2026-06-11T01:10:10.775909",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "09454d36-1dcb-4b85-9fae-e5f32b28da16",
+      "timestamp": "2026-06-11T01:09:46.862506",
+      "action": "delete",
+      "section": "llm_instance",
+      "details": {
+        "id": "3b7a85f3-2227-4285-9e3c-d217c685969b"
+      }
+    },
+    {
+      "id": "aa474c93-2021-478e-ad14-c1c0cac2054d",
+      "timestamp": "2026-06-11T01:09:37.082539",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    },
+    {
+      "id": "e03340b5-5a9a-4528-a1a0-75121f07b5ef",
+      "timestamp": "2026-06-11T01:09:33.899980",
+      "action": "update",
+      "section": "llm_instance",
+      "details": {
+        "id": "89032468-980f-46ed-926d-0cff1373fa98",
+        "name": "Deepseek"
+      }
+    }
+  ]
+}

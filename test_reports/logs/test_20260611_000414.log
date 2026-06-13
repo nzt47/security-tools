@@ -1,0 +1,261 @@
+2026-06-11 00:04:15,122 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:04:15,129 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:04:15,133 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:04:15,136 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:04:15,159 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:04:15,163 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:04:15,164 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:04:15,165 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:04:15,168 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:04:15,182 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:04:15,183 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:04:15,184 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:04:15,186 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:04:15,204 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 00:04:15,211 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:04:15,212 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,218 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,219 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:04:15,219 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:04:15,219 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:04:15,219 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:04:15,220 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:04:15,220 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:04:15,220 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 00:04:15,220 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:04:15,221 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,221 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 00:04:15,221 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 00:04:15,222 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:04:15,384 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:04:15,397 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:04:15,403 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:04:15,410 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:04:15,445 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:04:15,451 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:04:15,453 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:04:15,454 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:04:15,459 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:04:15,483 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:04:15,484 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:04:15,486 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:04:15,489 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:04:15,516 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 00:04:15,527 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:04:15,527 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,532 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,532 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:04:15,532 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:04:15,533 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:04:15,533 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:04:15,533 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:04:15,534 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:04:15,534 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 00:04:15,534 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:04:15,535 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:04:15,535 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 00:04:15,535 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 00:04:15,535 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:04:15,655 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2mbi2q2i\test.txt
+2026-06-11 00:04:15,655 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2mbi2q2i\test.txt
+2026-06-11 00:04:15,656 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2mbi2q2i\test.txt
+2026-06-11 00:04:15,661 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\System32\notepad.exe, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,662 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\notepad.exe
+2026-06-11 00:04:15,662 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\notepad.exe
+2026-06-11 00:04:15,662 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\notepad.exe
+2026-06-11 00:04:15,663 [ WARNING] agent.system_tools: [read_file] 路径解析失败: path=C:\Windows\System32\notepad.exe, error=路径位于系统保护目录，拒绝访问: C:\Windows\System32\notepad.exe
+2026-06-11 00:04:15,668 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32
+2026-06-11 00:04:15,669 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32
+2026-06-11 00:04:15,669 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32
+2026-06-11 00:04:15,679 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,680 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,680 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,683 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpvib8g202.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,683 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,683 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,684 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,684 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpvib8g202.txt
+2026-06-11 00:04:15,684 [    INFO] agent.system_tools: [read_file] 文件大小: 12 bytes
+2026-06-11 00:04:15,685 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=12
+2026-06-11 00:04:15,685 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:04:15,685 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:04:15,686 [    INFO] agent.system_tools: [read_file] 解码成功: encoding=utf-8, content_length=12
+2026-06-11 00:04:15,686 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-11 00:04:15,721 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpni5mf0ky.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,721 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpni5mf0ky.txt
+2026-06-11 00:04:15,722 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpni5mf0ky.txt
+2026-06-11 00:04:15,722 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpni5mf0ky.txt
+2026-06-11 00:04:15,722 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpni5mf0ky.txt
+2026-06-11 00:04:15,723 [    INFO] agent.system_tools: [read_file] 文件大小: 10485761 bytes
+2026-06-11 00:04:15,723 [ WARNING] agent.system_tools: [read_file] 文件过大: file_size=10485761, max_size=10485760
+2026-06-11 00:04:15,729 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=nonexistent_file_12345.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,729 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=nonexistent_file_12345.txt
+2026-06-11 00:04:15,730 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:04:15,731 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:04:15,731 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:04:15,732 [ WARNING] agent.system_tools: [read_file] 文件不存在: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:04:15,738 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpd7sqll_9, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,739 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpd7sqll_9
+2026-06-11 00:04:15,739 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpd7sqll_9
+2026-06-11 00:04:15,739 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpd7sqll_9
+2026-06-11 00:04:15,740 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpd7sqll_9
+2026-06-11 00:04:15,740 [ WARNING] agent.system_tools: [read_file] 路径不是文件: safe_path=C:\Windows\TEMP\tmpd7sqll_9
+2026-06-11 00:04:15,746 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpqh7d_q51.bin, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,746 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpqh7d_q51.bin
+2026-06-11 00:04:15,746 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpqh7d_q51.bin
+2026-06-11 00:04:15,747 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpqh7d_q51.bin
+2026-06-11 00:04:15,747 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpqh7d_q51.bin
+2026-06-11 00:04:15,748 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:04:15,748 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=4
+2026-06-11 00:04:15,748 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:04:15,749 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:04:15,755 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpn5vb0rs_.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,756 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpn5vb0rs_.txt
+2026-06-11 00:04:15,756 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpn5vb0rs_.txt
+2026-06-11 00:04:15,756 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpn5vb0rs_.txt
+2026-06-11 00:04:15,757 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpn5vb0rs_.txt
+2026-06-11 00:04:15,757 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:04:15,757 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:04:15,758 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:04:15,758 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:04:15,764 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmptzkzmg2y.exe
+2026-06-11 00:04:15,764 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmptzkzmg2y.exe
+2026-06-11 00:04:15,765 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmptzkzmg2y.exe
+2026-06-11 00:04:15,784 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpgsxs6odx.txt
+2026-06-11 00:04:15,785 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpgsxs6odx.txt
+2026-06-11 00:04:15,785 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpgsxs6odx.txt
+2026-06-11 00:04:15,822 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\test.txt
+2026-06-11 00:04:15,822 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\test.txt
+2026-06-11 00:04:15,823 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\test.txt
+2026-06-11 00:04:15,829 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpvzc3lq08
+2026-06-11 00:04:15,829 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpvzc3lq08
+2026-06-11 00:04:15,830 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpvzc3lq08
+2026-06-11 00:04:15,837 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpwwqdvamx.txt
+2026-06-11 00:04:15,837 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpwwqdvamx.txt
+2026-06-11 00:04:15,838 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpwwqdvamx.txt
+2026-06-11 00:04:15,844 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpfgn4zpe0
+2026-06-11 00:04:15,844 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpfgn4zpe0
+2026-06-11 00:04:15,844 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpfgn4zpe0
+2026-06-11 00:04:15,858 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp6plrs7gu\workspace
+2026-06-11 00:04:15,904 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmp_ol4k_pd, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,905 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp_ol4k_pd
+2026-06-11 00:04:15,905 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp_ol4k_pd
+2026-06-11 00:04:15,905 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp_ol4k_pd
+2026-06-11 00:04:15,905 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp_ol4k_pd
+2026-06-11 00:04:15,906 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:04:15,906 [ WARNING] agent.system_tools: [read_file] OS错误: safe_path=C:\Windows\TEMP\tmp_ol4k_pd, error=test error
+2026-06-11 00:04:15,912 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpyr7362kc, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:15,913 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpyr7362kc
+2026-06-11 00:04:15,913 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpyr7362kc
+2026-06-11 00:04:15,913 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpyr7362kc
+2026-06-11 00:04:15,914 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpyr7362kc
+2026-06-11 00:04:15,914 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:04:15,915 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:04:15,915 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:04:15,915 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:04:15,922 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpqn7m87lc\test.txt
+2026-06-11 00:04:15,923 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpqn7m87lc\test.txt
+2026-06-11 00:04:15,923 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpqn7m87lc\test.txt
+2026-06-11 00:04:15,941 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-11 00:04:15,941 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-11 00:04:15,941 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-11 00:04:15,948 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmps3jhk38l
+2026-06-11 00:04:15,948 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmps3jhk38l
+2026-06-11 00:04:15,949 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmps3jhk38l
+2026-06-11 00:04:15,960 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,960 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,961 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,962 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,962 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,962 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpkbf5fedw
+2026-06-11 00:04:15,973 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp4qz_fqrk
+2026-06-11 00:04:15,973 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp4qz_fqrk
+2026-06-11 00:04:15,974 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp4qz_fqrk
+2026-06-11 00:04:15,988 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-11 00:04:15,988 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-11 00:04:15,988 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-11 00:04:15,994 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpr_ai50fk
+2026-06-11 00:04:15,994 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpr_ai50fk
+2026-06-11 00:04:15,995 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpr_ai50fk
+2026-06-11 00:04:16,007 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path_xyz123
+2026-06-11 00:04:16,007 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path_xyz123
+2026-06-11 00:04:16,007 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path_xyz123
+2026-06-11 00:04:16,013 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp50knu0bq
+2026-06-11 00:04:16,013 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp50knu0bq
+2026-06-11 00:04:16,014 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp50knu0bq
+2026-06-11 00:04:16,021 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp8h05a7ll
+2026-06-11 00:04:16,021 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp8h05a7ll
+2026-06-11 00:04:16,022 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp8h05a7ll
+2026-06-11 00:04:16,029 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmprv47f27b
+2026-06-11 00:04:16,030 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmprv47f27b
+2026-06-11 00:04:16,030 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmprv47f27b
+2026-06-11 00:04:17,358 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=test/path
+2026-06-11 00:04:17,358 [ WARNING] agent.system_tools: [safe_resolve_path] 路径解析异常: path=test/path, error=ValueError: invalid path
+2026-06-11 00:04:17,364 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=test/path
+2026-06-11 00:04:17,364 [ WARNING] agent.system_tools: [safe_resolve_path] 路径解析异常: path=test/path, error=OSError: os error
+2026-06-11 00:04:17,370 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmp4e4otde4, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:17,370 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp4e4otde4
+2026-06-11 00:04:17,370 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp4e4otde4
+2026-06-11 00:04:17,371 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp4e4otde4
+2026-06-11 00:04:17,371 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp4e4otde4
+2026-06-11 00:04:17,372 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:04:17,372 [ WARNING] agent.system_tools: [read_file] 权限错误: safe_path=C:\Windows\TEMP\tmp4e4otde4, error=permission denied
+2026-06-11 00:04:17,378 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpnkootx7q, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:17,379 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpnkootx7q
+2026-06-11 00:04:17,379 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpnkootx7q
+2026-06-11 00:04:17,380 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpnkootx7q
+2026-06-11 00:04:17,380 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpnkootx7q
+2026-06-11 00:04:17,381 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:04:17,381 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:04:17,382 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:04:17,382 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:04:17,382 [ WARNING] agent.system_tools: [read_file] 解码失败，尝试降级: encoding=utf-8, error='utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2026-06-11 00:04:17,383 [    INFO] agent.system_tools: [read_file] 降级解码成功: encoding=utf-8 (with replacements)
+2026-06-11 00:04:17,383 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8 (with replacements), binary=False
+2026-06-11 00:04:17,390 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmptaxe857i, encoding=utf-8, max_size_mb=10
+2026-06-11 00:04:17,390 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmptaxe857i
+2026-06-11 00:04:17,390 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmptaxe857i
+2026-06-11 00:04:17,391 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmptaxe857i
+2026-06-11 00:04:17,391 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmptaxe857i
+2026-06-11 00:04:17,392 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:04:17,392 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:04:17,392 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:04:17,393 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:04:17,393 [ WARNING] agent.system_tools: [read_file] 解码失败，尝试降级: encoding=utf-8, error='utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2026-06-11 00:04:17,393 [    INFO] agent.system_tools: [read_file] 降级解码成功: encoding=utf-8 (with replacements)
+2026-06-11 00:04:17,394 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8 (with replacements), binary=False
+2026-06-11 00:04:17,400 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpby9opt_5\test.txt
+2026-06-11 00:04:17,400 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpby9opt_5\test.txt
+2026-06-11 00:04:17,400 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpby9opt_5\test.txt
+2026-06-11 00:04:17,401 [ WARNING] agent.system_tools: 文件备份失败: backup failed
+2026-06-11 00:04:17,408 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp0dndl7o5\test.txt
+2026-06-11 00:04:17,408 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp0dndl7o5\test.txt
+2026-06-11 00:04:17,409 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp0dndl7o5\test.txt
+2026-06-11 00:04:17,415 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2_21vp35\nonexistent\test.txt
+2026-06-11 00:04:17,415 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2_21vp35\nonexistent\test.txt
+2026-06-11 00:04:17,416 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2_21vp35\nonexistent\test.txt
+2026-06-11 00:04:17,422 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp8pxjswwc
+2026-06-11 00:04:17,423 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp8pxjswwc
+2026-06-11 00:04:17,423 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp8pxjswwc
+2026-06-11 00:04:17,430 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpnqt3ll6a
+2026-06-11 00:04:17,430 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpnqt3ll6a
+2026-06-11 00:04:17,431 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpnqt3ll6a
+2026-06-11 00:04:17,439 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpat2qfavc
+2026-06-11 00:04:17,439 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpat2qfavc
+2026-06-11 00:04:17,439 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpat2qfavc
+2026-06-11 00:04:17,445 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmppj_wb7mc
+2026-06-11 00:04:17,446 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmppj_wb7mc
+2026-06-11 00:04:17,446 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmppj_wb7mc
+2026-06-11 00:04:17,456 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp41cgn50f
+2026-06-11 00:04:17,456 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp41cgn50f
+2026-06-11 00:04:17,457 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp41cgn50f
+2026-06-11 00:04:17,467 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpippnugjd
+2026-06-11 00:04:17,468 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpippnugjd
+2026-06-11 00:04:17,468 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpippnugjd
+2026-06-11 00:04:17,475 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp92c1gnxm
+2026-06-11 00:04:17,475 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp92c1gnxm
+2026-06-11 00:04:17,476 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp92c1gnxm

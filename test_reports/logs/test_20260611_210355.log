@@ -1,0 +1,52 @@
+2026-06-11 21:03:55,326 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 21:03:55,334 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 21:03:55,337 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 21:03:55,340 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 21:03:55,358 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 21:03:55,361 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 21:03:55,362 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 21:03:55,363 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 21:03:55,366 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 21:03:55,380 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 21:03:55,380 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 21:03:55,380 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 21:03:55,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 21:03:55,500 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-11 21:03:55,505 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 21:03:55,505 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 21:03:55,516 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-11 21:03:55,517 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 21:03:55,569 [    INFO] agent.tool_calling: [ToolCalling] chat() 开始，工具定义数: 0, 消息数: 1
+2026-06-11 21:03:55,569 [    INFO] agent.tool_calling: [ToolCalling] 第 0 轮 LLM 调用，无工具
+2026-06-11 21:03:55,569 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回纯文本
+2026-06-11 21:03:55,570 [    INFO] agent.tool_calling: [ToolCalling] chat() 开始，工具定义数: 0, 消息数: 1
+2026-06-11 21:03:55,571 [    INFO] agent.tool_calling: [ToolCalling] 第 0 轮 LLM 调用，无工具
+2026-06-11 21:03:55,571 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回 1 个工具调用: [<MagicMock name='check_health.name' id='1508172480640'>]
+2026-06-11 21:03:55,571 [    INFO] agent.tool_calling: [ToolCalling] 第 1 轮 LLM 调用，无工具
+2026-06-11 21:03:55,571 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回纯文本
+2026-06-11 21:03:55,573 [    INFO] agent.tool_calling: [ToolCalling] chat() 开始，工具定义数: 0, 消息数: 1
+2026-06-11 21:03:55,573 [    INFO] agent.tool_calling: [ToolCalling] 第 0 轮 LLM 调用，无工具
+2026-06-11 21:03:55,573 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回 1 个工具调用: ['check_health']
+2026-06-11 21:03:55,573 [    INFO] agent.tool_calling: [ToolCalling] 第 1 轮 LLM 调用，无工具
+2026-06-11 21:03:55,574 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回 1 个工具调用: ['check_health']
+2026-06-11 21:03:55,574 [    INFO] agent.tool_calling: [ToolCalling] 第 2 轮 LLM 调用，无工具
+2026-06-11 21:03:55,574 [    INFO] agent.tool_calling: [ToolCalling] LLM 返回 1 个工具调用: ['check_health']
+2026-06-11 21:03:55,576 [    INFO] agent.tool_calling: [ToolCalling] chat() 开始，工具定义数: 0, 消息数: 1
+2026-06-11 21:03:55,577 [    INFO] agent.tool_calling: [ToolCalling] 第 0 轮 LLM 调用，无工具
+2026-06-11 21:03:55,577 [   ERROR] agent.tool_calling: LLM 调用失败（第 0 轮）: API Error
+2026-06-11 21:03:55,577 [ WARNING] agent.tool_calling: [ToolCalling] 首轮失败，降级为纯文本 LLM 调用
+2026-06-11 21:03:55,622 [   ERROR] agent.digital_life: [FAIL] 保存向量记忆失败: Memory save failed
+2026-06-11 21:03:55,966 [   ERROR] agent.digital_life: Vector memory search failed: Search failed

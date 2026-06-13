@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索引擎状态监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .status-active {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-inactive {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status-enabled {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-disabled {
+            background: #e5e7eb;
+            color: #666;
+        }
+        
+        .engine-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .engine-tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .engine-tag.disabled {
+            background: #e5e7eb;
+            color: #666;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #d4d4d4;
+        }
+        
+        .log-entry {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: #2d2d2d;
+        }
+        
+        .log-entry.success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .log-entry.warning {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .log-entry.error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .log-entry.info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .test-section {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .test-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .test-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .test-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .test-form select {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .test-form button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #059669;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .test-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-result {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .test-result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-success {
+            background: #10b981;
+        }
+        
+        .status-failed {
+            background: #ef4444;
+        }
+        
+        .timing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .timing-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timing-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .timing-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .timing-label {
+            color: #666;
+        }
+        
+        .timing-value {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>    
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 搜索引擎状态监控</h1>
+            <p>实时显示搜索引擎配置、降级历史和切换日志</p>
+        </div>
+        
+        <div class="content">
+            <!-- 降级测试表单 -->
+            <div class="test-section">
+                <h3>🔧 手动触发降级测试</h3>
+                <div class="test-form">
+                    <input type="text" id="test-query" placeholder="输入搜索关键词..." value="人工智能">
+                    <select id="test-engine">
+                        <option value="">全部引擎（自动降级）</option>
+                        <option value="duckduckgo">DuckDuckGo</option>
+                        <option value="tavily" selected>Tavily</option>
+                    </select>
+                    <button onclick="testSearch()">执行测试</button>
+                </div>
+                <div id="test-result" class="test-result" style="display: none;">
+                    <pre id="test-result-content"></pre>
+                </div>
+            </div>
+            
+            <!-- 当前状态概览 -->
+            <div class="section">
+                <h2 class="section-title">📊 当前状态概览</h2>
+                <div class="info-grid" id="status-overview">
+                    <div class="loading">加载中</div>
+                </div>
+            </div>
+            
+            <!-- 搜索引擎配置 -->
+            <div class="section">
+                <h2 class="section-title">⚙️ 搜索引擎配置</h2>
+                <div class="info-grid" id="engine-config">
+                    <div class="loading">加载中</div>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="section">
+                <h2 class="section-title">📈 统计信息</h2>
+                <div class="stats-row" id="stats-row">
+                    <div class="loading">加载中</div>
+                </div>
+            </div>
+            
+            <!-- 耗时统计 -->
+            <div class="section">
+                <h2 class="section-title">⏱️ 引擎耗时对比</h2>
+                <div class="timing-grid" id="timing-section">
+                    <div class="loading">加载中</div>
+                </div>
+            </div>
+            
+            <!-- 降级历史 -->
+            <div class="section">
+                <h2 class="section-title">📋 降级历史记录</h2>
+                <div class="log-container" id="fallback-history">
+                    <div class="loading">加载中</div>
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="refreshStatus()">
+                    🔄 刷新状态
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    🏠 返回主界面
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 刷新状态
+        function refreshStatus() {
+            fetchStatus();
+        }
+        
+        // 获取搜索引擎状态
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/web/search/status');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    updateUI(data.status);
+                } else {
+                    console.error('获取状态失败:', data.error);
+                    alert('获取状态失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                alert('请求失败: ' + error.message);
+            }
+        }
+        
+        // 更新UI
+        function updateUI(status) {
+            // 1. 状态概览
+            const overview = document.getElementById('status-overview');
+            overview.innerHTML = `
+                <div class="info-card">
+                    <h3>🔍 当前搜索引擎</h3>
+                    <div class="info-item">
+                        <span class="info-label">默认引擎</span>
+                        <span class="info-value"><strong>${status.default_engine.toUpperCase()}</strong></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">超时设置</span>
+                        <span class="info-value">${status.timeout} 秒</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">引擎优先级</span>
+                        <span class="info-value">${status.engine_priority.join(' → ')}</span>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>🔑 API Key 状态</h3>
+                    ${Object.entries(status.api_keys_status).map(([key, configured]) => `
+                        <div class="info-item">
+                            <span class="info-label">${key.toUpperCase()}</span>
+                            <span class="status-badge ${configured ? 'status-enabled' : 'status-disabled'}">
+                                ${configured ? '✓ 已配置' : '✗ 未配置'}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // 2. 引擎配置
+            const engineConfig = document.getElementById('engine-config');
+            engineConfig.innerHTML = `
+                <div class="info-card">
+                    <h3>🎯 引擎优先级排序</h3>
+                    <div class="engine-list">
+                        ${status.engine_priority.map((engine, idx) => `
+                            <div class="engine-tag ${!status.engine_enabled[engine] ? 'disabled' : ''}">
+                                <span>${idx + 1}</span>
+                                <span>${engine.toUpperCase()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>⚡ 引擎启用状态</h3>
+                    ${Object.entries(status.engine_enabled).map(([engine, enabled]) => `
+                        <div class="info-item">
+                            <span class="info-label">${engine.toUpperCase()}</span>
+                            <span class="status-badge ${enabled ? 'status-enabled' : 'status-disabled'}">
+                                ${enabled ? '✓ 启用' : '✗ 禁用'}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // 3. 统计信息
+            const statsRow = document.getElementById('stats-row');
+            statsRow.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${status.stats.total_searches}</div>
+                    <div class="stat-label">总搜索次数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${status.stats.fallback_count}</div>
+                    <div class="stat-label">降级次数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${status.stats.cache_size}</div>
+                    <div class="stat-label">缓存大小</div>
+                </div>
+            `;
+            
+            // 4. 耗时统计（新增）
+            const timingSection = document.getElementById('timing-section');
+            if (timingSection && status.stats.engine_timing) {
+                let timingHtml = '';
+                const engineTiming = status.stats.engine_timing;
+                
+                for (const [engine, timing] of Object.entries(engineTiming)) {
+                    if (timing.count > 0) {
+                        timingHtml += `
+                            <div class="timing-card">
+                                <h4>${engine.toUpperCase()}</h4>
+                                <div class="timing-item">
+                                    <span class="timing-label">平均耗时</span>
+                                    <span class="timing-value">${timing.avg.toFixed(2)}s</span>
+                                </div>
+                                <div class="timing-item">
+                                    <span class="timing-label">最小耗时</span>
+                                    <span class="timing-value">${timing.min.toFixed(2)}s</span>
+                                </div>
+                                <div class="timing-item">
+                                    <span class="timing-label">最大耗时</span>
+                                    <span class="timing-value">${timing.max.toFixed(2)}s</span>
+                                </div>
+                                <div class="timing-item">
+                                    <span class="timing-label">调用次数</span>
+                                    <span class="timing-value">${timing.count}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                if (timingHtml) {
+                    timingSection.innerHTML = timingHtml;
+                } else {
+                    timingSection.innerHTML = '<div class="loading">暂无耗时数据</div>';
+                }
+            }
+            
+            // 4. 降级历史
+            const fallbackHistory = document.getElementById('fallback-history');
+            if (status.recent_fallbacks && status.recent_fallbacks.length > 0) {
+                fallbackHistory.innerHTML = status.recent_fallbacks.map(fallback => {
+                    const timestamp = new Date(fallback.timestamp * 1000);
+                    const timeStr = timestamp.toLocaleString('zh-CN');
+                    
+                    return `
+                        <div class="log-entry ${fallback.fallback_history && fallback.fallback_history.length > 0 ? 'warning' : 'success'}">
+                            <div>
+                                <span class="log-time">[${timeStr}]</span>
+                                <strong>查询:</strong> ${fallback.query}
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <strong>尝试引擎:</strong> ${fallback.engines_tried.join(' → ')}
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <strong>降级历史:</strong>
+                                <ul style="margin: 5px 0 0 20px;">
+                                    ${(fallback.fallback_history || []).map(h => `
+                                        <li>${h.engine}: ${h.status} - ${h.reason}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            <div style="margin-top: 5px; color: #888;">
+                                耗时: ${fallback.elapsed.toFixed(2)}s
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                fallbackHistory.innerHTML = `
+                    <div class="log-entry info">
+                        <div>暂无降级历史记录</div>
+                        <div style="color: #888; margin-top: 5px;">
+                            执行一次搜索后，降级历史将显示在这里
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载时自动刷新
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStatus();
+            
+            // 每 5 秒自动刷新一次
+            setInterval(fetchStatus, 5000);
+        });
+        
+        // 测试搜索函数
+        async function testSearch() {
+            const query = document.getElementById('test-query').value.trim();
+            const engine = document.getElementById('test-engine').value;
+            
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('test-result');
+            const resultContent = document.getElementById('test-result-content');
+            
+            resultDiv.style.display = 'block';
+            resultContent.textContent = '正在执行搜索测试...\n引擎: ' + (engine || '全部引擎（自动降级）') + '\n关键词: ' + query + '\n\n请查看服务器控制台获取详细日志...';
+            
+            try {
+                const params = new URLSearchParams({
+                    query: query,
+                    num_results: 3
+                });
+                if (engine) {
+                    params.append('engine', engine);
+                }
+                
+                const response = await fetch('/api/web/search?' + params.toString());
+                const result = await response.json();
+                
+                // 格式化输出
+                const formatted = formatResult(result);
+                resultContent.textContent = formatted;
+                
+                // 根据结果更新样式
+                if (result.ok && result.results && result.results.length > 0) {
+                    resultContent.style.color = '#10b981';
+                } else {
+                    resultContent.style.color = '#fee';
+                }
+                
+                // 刷新状态
+                setTimeout(fetchStatus, 1000);
+            } catch (error) {
+                resultContent.textContent = '请求失败: ' + error.message;
+                resultContent.style.color = '#fee';
+            }
+        }
+        
+        // 格式化搜索结果
+        function formatResult(result) {
+            let output = '';
+            output += '='.repeat(80) + '\n';
+            output += '搜索结果\n';
+            output += '='.repeat(80) + '\n\n';
+            output += '状态: ' + (result.ok ? '成功' : '失败') + '\n';
+            output += '引擎: ' + (result.engine || 'N/A') + '\n';
+            output += '查询: ' + result.query + '\n';
+            output += '结果数: ' + (result.results ? result.results.length : 0) + '\n';
+            output += '耗时: ' + (result.elapsed ? result.elapsed.toFixed(2) + 's' : 'N/A') + '\n';
+            output += '降级次数: ' + (result.fallback_count || 0) + '\n';
+            output += '降级使用: ' + (result.fallback_used ? '是' : '否') + '\n\n';
+            
+            if (result.results && result.results.length > 0) {
+                output += '-'.repeat(80) + '\n';
+                output += '搜索结果:\n';
+                output += '-'.repeat(80) + '\n';
+                result.results.forEach((item, idx) => {
+                    output += '\n#' + (idx + 1) + ' ' + item.title + '\n';
+                    output += 'URL: ' + item.url + '\n';
+                    output += '来源: ' + (item.source || 'N/A') + '\n';
+                    if (item.snippet) {
+                        output += '摘要: ' + item.snippet.substring(0, 200) + (item.snippet.length > 200 ? '...' : '') + '\n';
+                    }
+                });
+            }
+            
+            if (result.error) {
+                output += '\n' + '-'.repeat(80) + '\n';
+                output += '错误: ' + result.error + '\n';
+            }
+            
+            if (result.fallback_history && result.fallback_history.length > 0) {
+                output += '\n' + '-'.repeat(80) + '\n';
+                output += '降级历史:\n';
+                output += '-'.repeat(80) + '\n';
+                result.fallback_history.forEach((item, idx) => {
+                    const statusIcon = item.status === 'failed' ? '[X]' : item.status === 'no_results' ? '[-]' : '[OK]';
+                    output += statusIcon + ' ' + item.engine.toUpperCase() + ': ' + item.reason + '\n';
+                });
+            }
+            
+            output += '\n' + '='.repeat(80);
+            return output;
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════
-   灵犀 · 导航栏 + 浮层面板
+   云枢 · 导航栏 + 浮层面板
    ════════════════════════════════════════ */
 
 :root {
@@ -216,3 +216,139 @@
 .window-stat-item .ws-pct { font-size: 8px; color: #8b949e; min-width: 32px; text-align: right; }
 
 .window-panel-actions { display: flex; gap: 4px; margin-top: 10px; }
+
+/* ── 进程白名单 ── */
+.process-whitelist {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.whitelist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.whitelist-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.whitelist-summary {
+  font-size: 10px;
+  color: #8b949e;
+}
+
+.whitelist-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proc-category {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.proc-cat-title {
+  font-size: 9px;
+  color: #8b949e;
+  min-width: 44px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.proc-cat-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.proc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 18px;
+  background: #1c2333;
+  color: #58a6ff;
+  border: 1px solid #58a6ff33;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  white-space: nowrap;
+  transition: all 0.15s;
+  cursor: default;
+}
+
+.proc-tag:hover {
+  background: #58a6ff22;
+  border-color: #58a6ff66;
+}
+
+.proc-tag.custom {
+  background: #23863622;
+  color: #3fb950;
+  border: 1px solid #23863644;
+}
+
+.proc-tag.custom:hover {
+  background: #23863633;
+  border-color: #3fb95066;
+}
+
+.proc-tag-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+  color: #f85149;
+  cursor: pointer;
+  margin-left: 1px;
+  transition: all 0.12s;
+}
+
+.proc-tag-del:hover {
+  background: #f85149;
+  color: #fff;
+}
+
+/* ── 添加白名单行 ── */
+.proc-add-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #30363d44;
+}
+
+.proc-add-input {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #c9d1d9;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+}
+
+.proc-add-input:focus {
+  border-color: #58a6ff;
+}
+
+.proc-add-input::placeholder {
+  color: #484f58;
+}

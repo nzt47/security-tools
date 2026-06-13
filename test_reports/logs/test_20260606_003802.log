@@ -1,0 +1,133 @@
+2026-06-06 00:38:03,283 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 00:38:03,309 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 00:38:03,316 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 00:38:03,324 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 00:38:03,361 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 00:38:03,366 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 00:38:03,368 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 00:38:03,370 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 00:38:03,375 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 00:38:03,405 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:38:03,406 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 00:38:03,408 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 00:38:03,410 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 00:38:03,655 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-06 00:38:03,664 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 00:38:03,664 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:38:03,673 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:38:03,673 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 00:38:03,673 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 00:38:03,674 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 00:38:03,674 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 00:38:03,674 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 00:38:03,675 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 00:38:03,675 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-06 00:38:03,675 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 00:38:03,675 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:38:03,676 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-06 00:38:03,676 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-06 00:38:03,676 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 00:38:03,887 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,895 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,911 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 00:38:03,912 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,934 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,945 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,952 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,959 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,966 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,974 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,982 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,989 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:03,989 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 142, in request
+    resp = self._session.request(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Unknown error
+2026-06-06 00:38:03,998 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,003 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,009 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,018 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-06 00:38:04,019 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,027 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,034 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,044 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,050 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,054 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,064 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,075 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,083 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,098 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,103 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,109 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,115 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,122 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,129 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-06 00:38:04,135 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,140 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,145 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,150 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,156 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,163 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,168 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,173 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,180 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,186 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,192 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,197 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,203 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,210 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,215 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,221 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,227 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,256 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,264 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,270 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,275 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,282 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,288 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,344 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,350 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,355 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-06 00:38:04,382 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,387 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-06 00:38:04,394 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,400 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:16:40,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,411 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,418 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,424 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,431 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,447 [ WARNING] agent.web.search: 解析 DuckDuckGo 结果失败: Parse error
+2026-06-06 00:38:04,460 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,465 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,470 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,476 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,482 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,487 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,492 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,498 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,503 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,511 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,516 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,522 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,528 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,534 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,540 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:25:00,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,552 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,557 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,567 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,572 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 00:38:04,579 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)

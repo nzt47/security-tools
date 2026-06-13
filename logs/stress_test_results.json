@@ -1,0 +1,365 @@
+{
+  "summary": {
+    "total_tests": 50,
+    "successful": 50,
+    "failed": 0,
+    "success_rate": 100.0,
+    "avg_duration": 0.09839791774749757,
+    "max_duration": 0.26411962509155273,
+    "min_duration": 0.052304983139038086,
+    "total_retries": 20,
+    "avg_retries": 0.4
+  },
+  "detailed_results": [
+    {
+      "thread_id": 0,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05246400833129883,
+      "error": ""
+    },
+    {
+      "thread_id": 1,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05231356620788574,
+      "error": ""
+    },
+    {
+      "thread_id": 2,
+      "success": true,
+      "retries": 0,
+      "duration": 0.052304983139038086,
+      "error": ""
+    },
+    {
+      "thread_id": 3,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05330801010131836,
+      "error": ""
+    },
+    {
+      "thread_id": 4,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0543062686920166,
+      "error": ""
+    },
+    {
+      "thread_id": 5,
+      "success": true,
+      "retries": 0,
+      "duration": 0.054303884506225586,
+      "error": ""
+    },
+    {
+      "thread_id": 6,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0543055534362793,
+      "error": ""
+    },
+    {
+      "thread_id": 7,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0543055534362793,
+      "error": ""
+    },
+    {
+      "thread_id": 9,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05539250373840332,
+      "error": ""
+    },
+    {
+      "thread_id": 10,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05542182922363281,
+      "error": ""
+    },
+    {
+      "thread_id": 12,
+      "success": true,
+      "retries": 0,
+      "duration": 0.056423187255859375,
+      "error": ""
+    },
+    {
+      "thread_id": 13,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05642127990722656,
+      "error": ""
+    },
+    {
+      "thread_id": 14,
+      "success": true,
+      "retries": 0,
+      "duration": 0.057421207427978516,
+      "error": ""
+    },
+    {
+      "thread_id": 16,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05872154235839844,
+      "error": ""
+    },
+    {
+      "thread_id": 19,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06136941909790039,
+      "error": ""
+    },
+    {
+      "thread_id": 20,
+      "success": true,
+      "retries": 0,
+      "duration": 0.061361074447631836,
+      "error": ""
+    },
+    {
+      "thread_id": 21,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06183362007141113,
+      "error": ""
+    },
+    {
+      "thread_id": 25,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0630483627319336,
+      "error": ""
+    },
+    {
+      "thread_id": 26,
+      "success": true,
+      "retries": 0,
+      "duration": 0.061566829681396484,
+      "error": ""
+    },
+    {
+      "thread_id": 27,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06208062171936035,
+      "error": ""
+    },
+    {
+      "thread_id": 28,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06273603439331055,
+      "error": ""
+    },
+    {
+      "thread_id": 29,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0627298355102539,
+      "error": ""
+    },
+    {
+      "thread_id": 31,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06194925308227539,
+      "error": ""
+    },
+    {
+      "thread_id": 30,
+      "success": true,
+      "retries": 0,
+      "duration": 0.06252789497375488,
+      "error": ""
+    },
+    {
+      "thread_id": 37,
+      "success": true,
+      "retries": 0,
+      "duration": 0.058945417404174805,
+      "error": ""
+    },
+    {
+      "thread_id": 34,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05994534492492676,
+      "error": ""
+    },
+    {
+      "thread_id": 32,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0609433650970459,
+      "error": ""
+    },
+    {
+      "thread_id": 33,
+      "success": true,
+      "retries": 0,
+      "duration": 0.0609433650970459,
+      "error": ""
+    },
+    {
+      "thread_id": 41,
+      "success": true,
+      "retries": 0,
+      "duration": 0.057425498962402344,
+      "error": ""
+    },
+    {
+      "thread_id": 42,
+      "success": true,
+      "retries": 0,
+      "duration": 0.057425498962402344,
+      "error": ""
+    },
+    {
+      "thread_id": 49,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05342411994934082,
+      "error": ""
+    },
+    {
+      "thread_id": 48,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05442380905151367,
+      "error": ""
+    },
+    {
+      "thread_id": 47,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05542325973510742,
+      "error": ""
+    },
+    {
+      "thread_id": 43,
+      "success": true,
+      "retries": 0,
+      "duration": 0.057424306869506836,
+      "error": ""
+    },
+    {
+      "thread_id": 44,
+      "success": true,
+      "retries": 0,
+      "duration": 0.057424306869506836,
+      "error": ""
+    },
+    {
+      "thread_id": 46,
+      "success": true,
+      "retries": 0,
+      "duration": 0.05542325973510742,
+      "error": ""
+    },
+    {
+      "thread_id": 11,
+      "success": true,
+      "retries": 1,
+      "duration": 0.15657711029052734,
+      "error": ""
+    },
+    {
+      "thread_id": 15,
+      "success": true,
+      "retries": 1,
+      "duration": 0.15690088272094727,
+      "error": ""
+    },
+    {
+      "thread_id": 17,
+      "success": true,
+      "retries": 1,
+      "duration": 0.1592719554901123,
+      "error": ""
+    },
+    {
+      "thread_id": 18,
+      "success": true,
+      "retries": 1,
+      "duration": 0.1609663963317871,
+      "error": ""
+    },
+    {
+      "thread_id": 23,
+      "success": true,
+      "retries": 1,
+      "duration": 0.16347050666809082,
+      "error": ""
+    },
+    {
+      "thread_id": 39,
+      "success": true,
+      "retries": 1,
+      "duration": 0.15834808349609375,
+      "error": ""
+    },
+    {
+      "thread_id": 40,
+      "success": true,
+      "retries": 1,
+      "duration": 0.15886259078979492,
+      "error": ""
+    },
+    {
+      "thread_id": 45,
+      "success": true,
+      "retries": 1,
+      "duration": 0.15641403198242188,
+      "error": ""
+    },
+    {
+      "thread_id": 8,
+      "success": true,
+      "retries": 2,
+      "duration": 0.25668954849243164,
+      "error": ""
+    },
+    {
+      "thread_id": 22,
+      "success": true,
+      "retries": 2,
+      "duration": 0.26411962509155273,
+      "error": ""
+    },
+    {
+      "thread_id": 24,
+      "success": true,
+      "retries": 2,
+      "duration": 0.2640807628631592,
+      "error": ""
+    },
+    {
+      "thread_id": 36,
+      "success": true,
+      "retries": 2,
+      "duration": 0.26213526725769043,
+      "error": ""
+    },
+    {
+      "thread_id": 35,
+      "success": true,
+      "retries": 2,
+      "duration": 0.2631351947784424,
+      "error": ""
+    },
+    {
+      "thread_id": 38,
+      "success": true,
+      "retries": 2,
+      "duration": 0.2611360549926758,
+      "error": ""
+    }
+  ]
+}

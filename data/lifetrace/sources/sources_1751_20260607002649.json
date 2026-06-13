@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_1751_20260607002649",
+  "content": "!@#$%^&*()_+-=[]{}|;':\",./<>?`~",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 1,
+    "timestamp": "2026-06-06T16:26:49.228222+00:00"
+  },
+  "created_at": "2026-06-07T00:26:49.228222",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

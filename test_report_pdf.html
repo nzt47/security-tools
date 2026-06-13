@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全配置测试报告</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .test-result {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .skip {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+        .summary-box {
+            background-color: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #777;
+            font-size: 14px;
+        }
+        .timestamp {
+            color: #777;
+            font-size: 14px;
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .status-icon {
+            font-size: 18px;
+            margin-right: 8px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #777;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timestamp">生成时间：2026年6月3日 09:50</div>
+        
+        <h1>🔐 安全配置测试报告</h1>
+        
+        <div class="summary-box">
+            <h2>📊 测试概览</h2>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-number">21</div>
+                    <div class="stat-label">测试总数</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: #27ae60;">20</div>
+                    <div class="stat-label">通过</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: #f39c12;">1</div>
+                    <div class="stat-label">跳过</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: #e74c3c;">0</div>
+                    <div class="stat-label">失败</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>✅ 脱敏功能测试</h2>
+        
+        <h3>1. API Key 脱敏</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <p>原始: <code>sk-proj-abc123def456ghi789jkl0mno</code></p>
+            <p>脱敏后: <code>***</code></p>
+        </div>
+
+        <h3>2. JWT Token 脱敏</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <p>原始: <code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></p>
+            <p>脱敏后: <code>***</code></p>
+        </div>
+
+        <h3>3. 密码字段脱敏</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <p>原始: <code>password='secret12345'</code></p>
+            <p>脱敏后: <code>password="***"</code></p>
+        </div>
+
+        <h3>4. 手机号脱敏（新增）</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <table>
+                <tr><th>类型</th><th>原始值</th><th>脱敏后</th></tr>
+                <tr><td>中国大陆手机号</td><td>13812345678</td><td>138****5678</td></tr>
+                <tr><td>带+86区号</td><td>+8613900001111</td><td>+86139****1111</td></tr>
+                <tr><td>带86前缀</td><td>8618822223333</td><td>86188****3333</td></tr>
+                <tr><td>香港手机号</td><td>98765432</td><td>9876****</td></tr>
+                <tr><td>带+852区号</td><td>+85251234567</td><td>+8525123****</td></tr>
+            </table>
+        </div>
+
+        <h3>5. 身份证号脱敏（新增）</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <table>
+                <tr><th>类型</th><th>原始值</th><th>脱敏后</th></tr>
+                <tr><td>18位身份证</td><td>110101199003071234</td><td>110101********1234</td></tr>
+                <tr><td>含X身份证</td><td>44030119851212001X</td><td>440301********001X</td></tr>
+                <tr><td>15位旧版身份证</td><td>110101900307123</td><td>110101******123</td></tr>
+            </table>
+        </div>
+
+        <h3>6. 混合场景测试</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <p><strong>原始:</strong></p>
+            <p class="highlight">用户登录 - 手机号: 13812345678, 身份证: 110101199001011234, API Key: sk-proj-abc123</p>
+            <p><strong>脱敏后:</strong></p>
+            <p class="highlight">用户登录 - 手机号: 138****5678, 身份证: 110101********1234, API Key: ***</p>
+        </div>
+
+        <h3>7. URL参数脱敏</h3>
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>测试通过</strong>
+            <p>原始: <code>https://api.example.com/v1/users?api_key=sk-abc123&token=xyz789</code></p>
+            <p>脱敏后: <code>https://api.example.com/v1/users?api_key=***</code></p>
+        </div>
+
+        <h2>🔐 加密功能测试</h2>
+        
+        <table>
+            <tr><th>测试项</th><th>结果</th><th>说明</th></tr>
+            <tr><td>AES-GCM加密解密</td><td class="pass">✓ 通过</td><td>对称加密算法正常工作</td></tr>
+            <tr><td>空字符串加密</td><td class="pass">✓ 通过</td><td>边界情况处理正常</td></tr>
+            <tr><td>无效Base64解密</td><td class="pass">✓ 通过</td><td>错误处理正常</td></tr>
+            <tr><td>错误密钥解密</td><td class="pass">✓ 通过</td><td>认证失败正确处理</td></tr>
+            <tr><td>配置保存加载</td><td class="pass">✓ 通过</td><td>加密配置文件正常读写</td></tr>
+            <tr><td>配置优先级</td><td class="pass">✓ 通过</td><td>环境变量 > 加密文件 > 默认值</td></tr>
+            <tr><td>文件权限测试</td><td class="skip">○ 跳过</td><td>Windows系统不适用</td></tr>
+        </table>
+
+        <h2>📝 审计日志测试</h2>
+        
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>所有审计日志测试通过</strong>
+            <p>审计日志已正确记录到 <code>logs/audit.log</code></p>
+            <p>记录类型：配置访问、配置修改、安全配置访问、认证尝试、敏感操作</p>
+        </div>
+
+        <h2>📋 日志格式验证</h2>
+        
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>日志格式符合要求</strong>
+            <p><code>2026-06-03 09:50:15 [INFO    ] test_phone_id: 用户手机号: 138****5678</code></p>
+            <p>包含：时间戳、日志级别、模块名、脱敏后的消息</p>
+        </div>
+
+        <h2>🔑 安全配置集成</h2>
+        
+        <div class="test-result pass">
+            <span class="status-icon">✓</span>
+            <strong>安全配置已集成到主项目</strong>
+            <ul>
+                <li>config.py - 全局配置聚合器已集成安全配置管理器</li>
+                <li>config_secure.py - AES-GCM加密模块</li>
+                <li>agent/logging_utils.py - 脱敏过滤器和审计日志</li>
+            </ul>
+        </div>
+
+        <h2>📌 测试结论</h2>
+        
+        <div class="summary-box">
+            <h3>✅ 所有测试通过！</h3>
+            <p><strong>安全功能状态：</strong></p>
+            <ul>
+                <li>✓ API Key 加密存储：正常</li>
+                <li>✓ 日志敏感信息脱敏：正常</li>
+                <li>✓ 手机号脱敏：正常</li>
+                <li>✓ 身份证号脱敏：正常</li>
+                <li>✓ 审计日志记录：正常</li>
+                <li>✓ 配置加载优先级：正常</li>
+            </ul>
+            <p><strong>建议：</strong></p>
+            <ul>
+                <li>定期备份加密密钥文件</li>
+                <li>生产环境使用环境变量管理敏感配置</li>
+                <li>定期清理审计日志</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>安全配置测试报告 - 云枢项目</p>
+            <p>版本：1.0 | 日期：2026年6月3日</p>
+        </div>
+    </div>
+</body>
+</html>

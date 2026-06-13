@@ -1,0 +1,29 @@
+{
+  "expression_style": {
+    "formal": 0.0,
+    "casual": 1.0,
+    "concise": 1.0,
+    "verbose": 0.0,
+    "humorous": 1.0,
+    "serious": 0.0,
+    "emotional": 0.5,
+    "rational": 0.0
+  },
+  "topic_interest": {
+    "编程": 1.0,
+    "生活": 0.3333333333333333,
+    "科技": 0.3333333333333333
+  },
+  "interaction_pattern": {
+    "morning": 0.0,
+    "afternoon": 0.0,
+    "evening": 0.0,
+    "night": 1.0
+  },
+  "tool_preference": {
+    "creative": 1.0,
+    "calculation": 0.5
+  },
+  "response_length": 0.5,
+  "last_updated": "2026-05-30T13:15:58.819618"
+}

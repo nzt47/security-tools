@@ -1,0 +1,208 @@
+2026-06-08 13:05:39,612 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 13:05:39,618 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 13:05:39,622 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 13:05:39,626 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 13:05:39,646 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 13:05:39,649 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 13:05:39,650 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 13:05:39,651 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 13:05:39,653 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 13:05:39,666 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 13:05:39,666 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 13:05:39,667 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 13:05:39,668 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 13:05:39,684 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-08 13:05:39,691 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 13:05:39,691 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 13:05:39,699 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-08 13:05:39,700 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 13:05:39,700 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:39,700 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-08 13:05:39,700 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-08 13:05:39,700 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 13:05:39,920 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 13:05:39,932 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 13:05:39,938 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 13:05:39,944 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 13:05:39,981 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 13:05:39,985 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 13:05:39,987 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 13:05:39,987 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 13:05:39,993 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 13:05:40,015 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 13:05:40,016 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 13:05:40,017 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 13:05:40,019 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 13:05:40,046 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-08 13:05:40,056 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 13:05:40,057 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:40,060 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-08 13:05:40,061 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 13:05:40,062 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 13:05:40,062 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-08 13:05:40,062 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-08 13:05:40,062 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 13:05:40,101 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-08 13:05:40,152 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-08 13:05:40,173 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,173 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,179 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,179 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,183 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,184 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,184 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,189 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,189 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,189 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,191 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-08 13:05:40,195 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,195 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,195 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 3 天
+2026-06-08 13:05:40,196 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-08 13:05:40,200 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,201 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,201 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,206 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,206 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,206 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,211 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,211 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,212 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 1.0x
+2026-06-08 13:05:40,213 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-08 13:05:40,219 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,219 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,220 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,221 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-08 13:05:40,225 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,226 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,226 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,231 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,231 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,232 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,232 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,238 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,238 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,238 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,239 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,244 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,244 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,245 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,245 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,250 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,250 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,255 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,255 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,259 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,260 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,265 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,265 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,266 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: json
+2026-06-08 13:05:40,266 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,267 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:40,267 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,267 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,268 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,273 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,273 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,274 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: html
+2026-06-08 13:05:40,274 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,275 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:40,275 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,275 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,275 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,281 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,281 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,282 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-08 13:05:40,282 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,283 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:40,283 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,283 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,283 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,288 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,288 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,289 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-08 13:05:40,289 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-08 13:05:40,289 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-08 13:05:40,289 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-08 13:05:40,290 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-08 13:05:40,290 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-08 13:05:40,295 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,295 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,299 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-08 13:05:40,300 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-08 13:05:40,416 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpgj88mufz
+2026-06-08 13:05:46,828 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:46,874 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:47,540 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:47,555 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:47,555 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_cron (每周0 09:30)
+2026-06-08 13:05:48,061 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:48,066 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:48,113 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_interval (每60秒)
+2026-06-08 13:05:48,608 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:48,639 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:49,074 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:49,089 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:49,507 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:49,524 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:49,959 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:49,991 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:50,502 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:50,517 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:50,734 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:50,765 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:51,215 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:51,261 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:51,307 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-08 13:05:51,323 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test
+2026-06-08 13:05:51,837 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:51,852 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:51,868 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-08 13:05:51,883 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: test, 错误: 测试错误
+2026-06-08 13:05:52,226 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:52,241 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:52,521 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:52,536 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:52,536 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每周0 13:05)
+2026-06-08 13:05:52,551 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-08 13:05:52,582 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test
+2026-06-08 13:05:53,175 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:53,190 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:53,190 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test1 (每60秒)
+2026-06-08 13:05:53,191 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test2 (每周0 09:00)
+2026-06-08 13:05:53,467 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:53,498 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:53,498 [    INFO] agent.task_scheduler: [TaskScheduler] 停止调度器
+2026-06-08 13:05:53,906 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:53,948 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:53,963 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-08 13:05:54,010 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-08 13:05:54,306 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-08 13:05:54,322 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-08 13:05:54,322 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-08 13:05:54,322 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-08 13:05:55,253 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-08 13:05:55,956 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-08 13:05:55,971 [    INFO] agent.task_scheduler: [TaskScheduler] 周报生成完成: 2 个文件
+2026-06-08 13:05:56,236 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-08 13:05:56,251 [   ERROR] agent.task_scheduler: [TaskScheduler] 周报生成失败: 生成失败
+2026-06-08 13:05:57,249 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-08 13:05:57,390 [    INFO] agent.task_scheduler: [TaskScheduler] 日志清理完成

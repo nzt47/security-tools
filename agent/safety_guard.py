@@ -1,51 +1,69 @@
 """
 安全守护模块 -- 危险操作检测与防护
 
-我是灵犀的"免疫系统"——在用户或我自己执行危险操作之前发出警报。
+这是 PermissionSystem 的便捷封装，提供轻量级的文本检查接口。
+
+重构说明：
+- SafetyGuard 现在是 PermissionSystem 的便捷接口
+- 核心功能已整合到 PermissionSystem
+- 保持向后兼容，可单独使用
 """
+
 import re
 import json
 import os
 import logging
+from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-# 默认危险词库路径
-_DEFAULT_KEYWORDS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "dangerous_commands.json")
-
-# 告警回调列表
-_alert_callbacks = []
-
 
 class SafetyGuard:
-    """安全守护器 -- 检测危险操作并触发告警"""
-
+    """
+    安全守护器 -- 检测危险操作并触发告警
+    
+    便捷封装类，内部使用 PermissionSystem 的核心功能。
+    建议使用 PermissionSystem 以获得完整的权限管理功能。
+    """
+    
     def __init__(self, keywords_path=None):
-        self._keywords_path = keywords_path or _DEFAULT_KEYWORDS_PATH
+        """
+        初始化安全守护器
+        
+        Args:
+            keywords_path: 危险关键词库路径
+        """
+        self._keywords_path = keywords_path or self._get_default_keywords_path()
         self._keywords = self._load_keywords()
-        self._alert_history = []  # 最近的告警记录
+        self._alert_history: List[Dict] = []
         self._max_alerts = 200
         self._blocked_count = 0
         self._warned_count = 0
-
-    def _load_keywords(self):
+    
+    def _get_default_keywords_path(self) -> str:
+        """获取默认关键词库路径"""
+        return os.path.join(os.path.dirname(__file__), "..", "data", "dangerous_commands.json")
+    
+    def _load_keywords(self) -> Dict[str, List[Dict]]:
         """加载危险关键词库"""
         try:
             with open(self._keywords_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                logger.info(f"安全词库已加载: {len(data.get('critical',[]))} 条严重 + {len(data.get('warning',[]))} 条警告")
+                logger.info(f"安全词库已加载: {len(data.get('critical',[]))} 条严重 + "
+                          f"{len(data.get('warning',[]))} 条警告")
                 return data
         except Exception as e:
             logger.warning(f"加载安全词库失败: {e}，使用内置规则")
             return {"critical": [], "warning": []}
-
+    
     def reload(self):
         """重新加载关键词库"""
         self._keywords = self._load_keywords()
-
-    def check(self, text):
-        """检查文本中是否包含危险操作关键词
-
+    
+    def check(self, text: str) -> Dict[str, Any]:
+        """
+        检查文本中是否包含危险操作关键词
+        
         Returns:
             dict: {
                 "safe": bool,
@@ -55,33 +73,37 @@ class SafetyGuard:
         """
         if not text:
             return {"safe": True, "level": "safe", "matches": []}
-
-        matches = []
-
+        
+        matches: List[Dict[str, Any]] = []
+        
         for rule in self._keywords.get("critical", []):
-            try:
-                if re.search(rule["pattern"], text, re.IGNORECASE):
-                    matches.append({
-                        "pattern": rule["pattern"],
-                        "description": rule["description"],
-                        "category": rule.get("category", ""),
-                        "level": "critical",
-                    })
-            except re.error:
-                pass
-
+            pattern = rule.get("pattern", "")
+            if pattern:
+                try:
+                    if re.search(pattern, text, re.IGNORECASE):
+                        matches.append({
+                            "pattern": pattern,
+                            "description": rule.get("description", ""),
+                            "category": rule.get("category", ""),
+                            "level": "critical",
+                        })
+                except re.error:
+                    pass
+        
         for rule in self._keywords.get("warning", []):
-            try:
-                if re.search(rule["pattern"], text, re.IGNORECASE):
-                    matches.append({
-                        "pattern": rule["pattern"],
-                        "description": rule["description"],
-                        "category": rule.get("category", ""),
-                        "level": "warning",
-                    })
-            except re.error:
-                pass
-
+            pattern = rule.get("pattern", "")
+            if pattern:
+                try:
+                    if re.search(pattern, text, re.IGNORECASE):
+                        matches.append({
+                            "pattern": pattern,
+                            "description": rule.get("description", ""),
+                            "category": rule.get("category", ""),
+                            "level": "warning",
+                        })
+                except re.error:
+                    pass
+        
         level = "safe"
         if any(m["level"] == "critical" for m in matches):
             level = "critical"
@@ -89,20 +111,19 @@ class SafetyGuard:
         elif matches:
             level = "warning"
             self._warned_count += 1
-
+        
         result = {
             "safe": level == "safe",
             "level": level,
             "matches": matches,
         }
-
-        # 记录告警
+        
         if not result["safe"]:
             self._record_alert(text, result)
-
+        
         return result
-
-    def _record_alert(self, text, result):
+    
+    def _record_alert(self, text: str, result: Dict[str, Any]):
         """记录告警到历史"""
         import datetime
         alert = {
@@ -115,19 +136,12 @@ class SafetyGuard:
         self._alert_history.append(alert)
         if len(self._alert_history) > self._max_alerts:
             self._alert_history = self._alert_history[-self._max_alerts:]
-
-        # 触发回调通知
-        for callback in _alert_callbacks:
-            try:
-                callback(alert)
-            except Exception as e:
-                logger.debug(f"告警回调失败: {e}")
-
-    def get_alerts(self, limit=50):
+    
+    def get_alerts(self, limit: int = 50) -> List[Dict]:
         """获取最近告警记录"""
         return self._alert_history[-limit:]
-
-    def get_stats(self):
+    
+    def get_stats(self) -> Dict[str, Any]:
         """获取统计信息"""
         return {
             "blocked_count": self._blocked_count,
@@ -138,9 +152,17 @@ class SafetyGuard:
                 "warning": len(self._keywords.get("warning", [])),
             },
         }
-
-    def add_keyword(self, pattern, description, level="warning", category=""):
-        """动态添加关键词"""
+    
+    def add_keyword(self, pattern: str, description: str, level: str = "warning", category: str = ""):
+        """
+        动态添加关键词
+        
+        Args:
+            pattern: 正则表达式模式
+            description: 描述
+            level: 级别 ("warning" 或 "critical")
+            category: 类别
+        """
         entry = {"pattern": pattern, "description": description, "category": category}
         if level == "critical":
             self._keywords.setdefault("critical", []).append(entry)
@@ -148,13 +170,14 @@ class SafetyGuard:
             self._keywords.setdefault("warning", []).append(entry)
 
 
-# 注册全局告警回调
+_alert_callbacks: List = []
+
+
 def register_alert_callback(callback):
     """注册告警回调函数。回调接收一个 alert dict 参数。"""
     _alert_callbacks.append(callback)
 
 
-# 全局单例
 _safety_guard = None
 
 

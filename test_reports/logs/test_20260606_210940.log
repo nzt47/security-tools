@@ -1,0 +1,93 @@
+2026-06-06 21:09:40,996 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 21:09:41,003 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 21:09:41,006 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 21:09:41,011 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 21:09:41,033 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 21:09:41,036 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 21:09:41,037 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 21:09:41,038 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 21:09:41,042 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 21:09:41,055 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 21:09:41,055 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 21:09:41,056 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 21:09:41,058 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 21:09:41,077 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-06 21:09:41,083 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 21:09:41,083 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,089 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,089 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,090 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-06 21:09:41,090 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-06 21:09:41,091 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 21:09:41,264 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 21:09:41,281 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 21:09:41,289 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 21:09:41,296 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 21:09:41,332 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 21:09:41,337 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 21:09:41,339 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 21:09:41,340 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 21:09:41,346 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 21:09:41,372 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 21:09:41,373 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 21:09:41,375 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 21:09:41,378 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 21:09:41,406 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-06 21:09:41,417 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 21:09:41,417 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 21:09:41,422 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 21:09:41,423 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-06 21:09:41,423 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 21:09:41,423 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 21:09:41,423 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-06 21:09:41,423 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-06 21:09:41,424 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 21:09:41,516 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,523 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: bing)
+2026-06-06 21:09:41,529 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,535 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:16:40,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,551 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,558 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,564 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,570 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,587 [ WARNING] agent.web.search: 解析 DuckDuckGo 结果失败: Parse error
+2026-06-06 21:09:41,601 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,607 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,613 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,618 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,625 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,631 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,636 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,642 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,649 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,653 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,660 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,665 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,671 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,677 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,682 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+1970-01-01 08:25:00,000 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,694 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,700 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,711 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,716 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)
+2026-06-06 21:09:41,721 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo)

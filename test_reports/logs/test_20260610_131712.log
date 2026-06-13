@@ -1,0 +1,179 @@
+2026-06-10 13:17:13,293 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-10 13:17:13,316 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-10 13:17:13,324 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-10 13:17:13,330 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-10 13:17:13,364 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-10 13:17:13,370 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-10 13:17:13,371 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-10 13:17:13,373 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-10 13:17:13,378 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-10 13:17:13,409 [    INFO] agent.error_handler: Error handler initialized
+2026-06-10 13:17:13,409 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-10 13:17:13,411 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-10 13:17:13,414 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-10 13:17:13,672 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-10 13:17:13,682 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-10 13:17:13,683 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-10 13:17:13,692 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 13:17:13,692 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-10 13:17:13,692 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-10 13:17:13,693 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-10 13:17:13,693 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-10 13:17:13,693 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-10 13:17:13,693 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-10 13:17:13,694 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-10 13:17:13,694 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-10 13:17:13,694 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-10 13:17:13,694 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-10 13:17:13,695 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-10 13:17:13,695 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-10 13:17:13,827 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-10 13:17:13,885 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=2
+2026-06-10 13:17:13,892 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,892 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,897 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,897 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,898 [ WARNING] agent.lazy_loader: [LazyLoader] 模块 test_module 已存在，将被覆盖
+2026-06-10 13:17:13,898 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=IMPORTANT, deps=[]
+2026-06-10 13:17:13,903 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,903 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main_module, level=IMPORTANT, deps=['dep1', 'dep2']
+2026-06-10 13:17:13,909 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,909 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: critical, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,909 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-10 13:17:13,913 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:13,918 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,918 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,919 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-10 13:17:13,921 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:13,926 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,926 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dependency, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,927 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dependency']
+2026-06-10 13:17:13,927 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-10 13:17:13,929 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:13,930 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: IMPORTANT
+2026-06-10 13:17:13,932 [    INFO] agent.lazy_loader: [LazyLoader] 级别 IMPORTANT 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:13,939 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,939 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: failing, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,940 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-10 13:17:13,942 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=0, 失败=1
+2026-06-10 13:17:13,948 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,948 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=OPTIONAL, deps=[]
+2026-06-10 13:17:13,956 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,957 [   ERROR] agent.lazy_loader: [LazyLoader] 模块 nonexistent 未注册
+2026-06-10 13:17:13,962 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,962 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dep, level=CRITICAL, deps=[]
+2026-06-10 13:17:13,962 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=OPTIONAL, deps=['dep']
+2026-06-10 13:17:13,972 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:13,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: async, level=IMPORTANT, deps=[]
+2026-06-10 13:17:13,974 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: IMPORTANT
+2026-06-10 13:17:13,974 [    INFO] agent.lazy_loader: [LazyLoader] 异步加载级别: IMPORTANT
+2026-06-10 13:17:14,076 [    INFO] agent.lazy_loader: [LazyLoader] 级别 IMPORTANT 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:14,182 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,183 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=OPTIONAL, deps=[]
+2026-06-10 13:17:14,191 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,192 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dep, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,192 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=OPTIONAL, deps=['dep']
+2026-06-10 13:17:14,200 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,200 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,208 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,208 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,217 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,217 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,218 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-10 13:17:14,221 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-10 13:17:14,227 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,227 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,235 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,235 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-10 13:17:14,238 [    INFO] agent.lazy_loader: [LazyLoader] 重置完成
+2026-06-10 13:17:14,248 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,254 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=2
+2026-06-10 13:17:14,254 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 2 个模块
+2026-06-10 13:17:14,255 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=2, 失败=0, elapsed=1.12ms
+2026-06-10 13:17:14,260 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=1
+2026-06-10 13:17:14,260 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 1 个模块
+2026-06-10 13:17:14,762 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=1, 失败=0, elapsed=501.31ms
+2026-06-10 13:17:14,786 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=1
+2026-06-10 13:17:14,787 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 1 个模块
+2026-06-10 13:17:14,789 [   ERROR] agent.lazy_loader: [ParallelPreloader] 预加载失败: 失败
+2026-06-10 13:17:14,790 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=0, 失败=1, elapsed=1.77ms
+2026-06-10 13:17:14,798 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=2
+2026-06-10 13:17:14,798 [    INFO] agent.lazy_loader: [ParallelPreloader] 已关闭
+2026-06-10 13:17:14,804 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-10 13:17:14,902 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpu66iwk0p\workspace
+2026-06-10 13:17:16,663 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,663 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,668 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,668 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,669 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周0 09:00)
+2026-06-10 13:17:16,674 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,674 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,675 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: interval_task (每60秒)
+2026-06-10 13:17:16,680 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,680 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,681 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周0 09:00)
+2026-06-10 13:17:16,686 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,686 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,687 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每0秒)
+2026-06-10 13:17:16,687 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-10 13:17:16,687 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test_task
+2026-06-10 13:17:16,692 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,693 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,693 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周None 00:00)
+2026-06-10 13:17:16,699 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,699 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,700 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-10 13:17:16,705 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,705 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,706 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-10 13:17:16,706 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-10 13:17:16,706 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test_task
+2026-06-10 13:17:16,711 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,712 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,712 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: failing_task (每60秒)
+2026-06-10 13:17:16,712 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: failing_task
+2026-06-10 13:17:16,712 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: failing_task, 错误: 任务执行失败
+2026-06-10 13:17:16,718 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-10 13:17:16,718 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-10 13:17:16,718 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-10 13:17:16,719 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-10 13:17:16,724 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-10 13:17:16,726 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-10 13:17:16,727 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-10 13:17:16,730 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-10 13:17:16,730 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-10 13:17:16,731 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: data\reports
+2026-06-10 13:17:16,731 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-10 13:17:16,732 [    INFO] agent.weekly_report_generator: 生成本周报告...
+2026-06-10 13:17:16,732 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-10 13:17:16,732 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-03 至 2026-06-10
+2026-06-10 13:17:16,733 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-10 13:17:16,735 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-10 13:17:16,743 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-10 13:17:16,743 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-10 13:17:16,744 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 173
+2026-06-10 13:17:16,745 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-10 13:17:16,745 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-10 13:17:16,745 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-10 13:17:16,745 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-10 13:17:16,745 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-10 13:17:16,746 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-10 13:17:16,746 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-10 13:17:16,746 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-10 13:17:16,747 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-03.json
+2026-06-10 13:17:16,748 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-03.json
+2026-06-10 13:17:16,749 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-03.html
+2026-06-10 13:17:16,749 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-03.html
+2026-06-10 13:17:16,750 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-03.text
+2026-06-10 13:17:16,750 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-03.text
+2026-06-10 13:17:16,751 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-10 13:17:16,753 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-10 13:17:16,754 [    INFO] agent.weekly_report_generator: 已保存 3 个文件:
+2026-06-10 13:17:16,754 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-03.json
+2026-06-10 13:17:16,754 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-03.html
+2026-06-10 13:17:16,754 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-03.text
+2026-06-10 13:17:16,755 [    INFO] agent.task_scheduler: [TaskScheduler] 周报生成完成: 3 个文件
+2026-06-10 13:17:16,760 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-10 13:17:16,762 [    INFO] agent.task_scheduler: [TaskScheduler] 日志清理完成

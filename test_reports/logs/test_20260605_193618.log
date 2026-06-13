@@ -1,0 +1,119 @@
+2026-06-05 19:36:19,077 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 19:36:19,085 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 19:36:19,088 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 19:36:19,092 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 19:36:19,114 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 19:36:19,117 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 19:36:19,119 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 19:36:19,120 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 19:36:19,124 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 19:36:19,137 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 19:36:19,137 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 19:36:19,138 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 19:36:19,140 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 19:36:19,159 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 19:36:19,165 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 19:36:19,165 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,171 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,172 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 19:36:19,172 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 19:36:19,172 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 19:36:19,172 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 19:36:19,173 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 19:36:19,173 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 19:36:19,174 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 19:36:19,174 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 19:36:19,174 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,174 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 19:36:19,174 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 19:36:19,175 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 19:36:19,459 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 19:36:19,474 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 19:36:19,480 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 19:36:19,486 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 19:36:19,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 19:36:19,530 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 19:36:19,532 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 19:36:19,532 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 19:36:19,539 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 19:36:19,563 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 19:36:19,563 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 19:36:19,565 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 19:36:19,567 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 19:36:19,596 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 19:36:19,608 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 19:36:19,608 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,612 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,612 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 19:36:19,612 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 19:36:19,613 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 19:36:19,613 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 19:36:19,613 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 19:36:19,613 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 19:36:19,613 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 19:36:19,614 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 19:36:19,614 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:36:19,614 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 19:36:19,614 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 19:36:19,615 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 19:36:19,760 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,767 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-05 19:36:19,773 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,779 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,784 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,790 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,795 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,800 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,806 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,812 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,818 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,823 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:19,829 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:21,838 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:21,844 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:22,852 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:23,858 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:23,936 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:23,946 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,456 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,462 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,471 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,477 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,482 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,489 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,497 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,517 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,524 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,530 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,536 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,543 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,549 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,556 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,828 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,835 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,842 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,849 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,852 [ WARNING] agent.web.browser_agent: 填写字段 input[name='invalid'] 失败: Field not found
+2026-06-05 19:36:24,857 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,863 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,864 [ WARNING] agent.web.browser_agent: 填写字段 input 失败: Form error
+2026-06-05 19:36:24,894 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,900 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,935 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,941 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,949 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,981 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,987 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,993 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:24,994 [    INFO] agent.web.browser_agent: 浏览器已关闭
+2026-06-05 19:36:24,999 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:25,005 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:25,010 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:26,016 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:26,023 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:26,029 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-05 19:36:26,035 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)

@@ -1,0 +1,45 @@
+2026-06-08 00:41:05,403 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 00:41:05,405 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 00:41:05,431 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 00:41:05,437 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 00:41:05,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 00:41:05,480 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 00:41:05,485 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 00:41:05,487 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 00:41:05,488 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 00:41:05,494 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 00:41:05,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 00:41:05,526 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 00:41:05,530 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 00:41:05,775 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 00:41:05,783 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 00:41:05,783 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:41:05,794 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:41:05,794 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 00:41:05,794 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 00:41:05,795 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 00:41:05,795 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 00:41:05,795 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 00:41:05,795 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 00:41:05,796 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 00:41:05,796 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 00:41:05,796 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 00:41:05,797 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 00:41:05,797 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 00:41:05,797 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 00:41:06,109 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,114 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,119 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,124 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,130 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,149 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,153 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,163 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-08 00:41:06,163 [   ERROR] agent.web.http_client: HTTP 请求未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\web\http_client.py", line 191, in request
+    "redirect_history": [r.url for r in resp.history] if resp.history else [],
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'Mock' object is not iterable

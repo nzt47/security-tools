@@ -1,0 +1,105 @@
+<h2>窗口监控 — 详细设计</h2>
+<p class="subtitle">方案 A：WindowSensor + BlackBox + 记忆面板扩展</p>
+
+<div class="section">
+  <h3>1. 架构总览</h3>
+  <div class="mockup" style="max-width: 750px; margin: 0 auto;">
+    <div class="mockup-header">系统架构</div>
+    <div class="mockup-body" style="padding:0;background:#0d1117;font-size:10px;font-family:monospace;color:#c9d1d9">
+      <div style="padding:16px">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+          <!-- Layer 1 -->
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="background:#58a6ff20;border:1px solid #58a6ff;border-radius:6px;padding:10px 16px;text-align:center;min-width:160px">
+              <div style="font-size:18px">🪟</div>
+              <div style="font-size:11px;color:#58a6ff;font-weight:bold">WindowSensor</div>
+              <div style="font-size:9px;color:#8b949e;margin-top:4px">每 1 秒通过 Win32 API<br>获取前台窗口句柄<br>提取标题 + 进程名</div>
+            </div>
+          </div>
+          <div style="color:#30363d;font-size:16px">↓</div>
+          <!-- Layer 2 -->
+          <div style="display:flex;gap:8px">
+            <div style="background:#3fb95020;border:1px solid #3fb950;border-radius:6px;padding:8px 14px;text-align:center;min-width:140px">
+              <div style="font-size:11px;color:#3fb950;font-weight:bold">BlackBox</div>
+              <div style="font-size:9px;color:#8b949e">event_type:<br>"window_event"</div>
+            </div>
+            <div style="background:#d2992220;border:1px solid #d29922;border-radius:6px;padding:8px 14px;text-align:center;min-width:140px">
+              <div style="font-size:11px;color:#d29922;font-weight:bold">MemoryManager</div>
+              <div style="font-size:9px;color:#8b949e">save_log()<br>query_logs()</div>
+            </div>
+          </div>
+          <div style="color:#30363d;font-size:16px">↓</div>
+          <!-- Layer 3 -->
+          <div style="display:flex;gap:8px">
+            <div style="background:#bc8cff20;border:1px solid #bc8cff;border-radius:6px;padding:8px 14px;text-align:center;min-width:140px">
+              <div style="font-size:11px;color:#bc8cff;font-weight:bold">GET /api/memory/windows/events</div>
+              <div style="font-size:9px;color:#8b949e">最近 N 条切换事件</div>
+            </div>
+            <div style="background:#bc8cff20;border:1px solid #bc8cff;border-radius:6px;padding:8px 14px;text-align:center;min-width:140px">
+              <div style="font-size:11px;color:#bc8cff;font-weight:bold">GET /api/memory/windows/stats</div>
+              <div style="font-size:9px;color:#8b949e">时长/频率/排行</div>
+            </div>
+          </div>
+          <div style="color:#30363d;font-size:16px">↓</div>
+          <!-- Layer 4: UI -->
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px;width:100%">
+            <div style="font-size:10px;color:#c9d1d9;font-weight:bold;margin-bottom:6px">🧠 记忆管理面板 → 窗口活动分页</div>
+            <div style="display:flex;gap:4px">
+              <div style="flex:1;background:#0d1117;border-radius:4px;padding:6px;text-align:center;font-size:9px;color:#8b949e">📡 实时事件流<br><span style="color:#c9d1d9">VS Code → Chrome → Terminal</span></div>
+              <div style="flex:1;background:#0d1117;border-radius:4px;padding:6px;text-align:center;font-size:9px;color:#8b949e">📊 使用时长<br><span style="color:#c9d1d9">Chrome 45%、VS Code 30%</span></div>
+              <div style="flex:1;background:#0d1117;border-radius:4px;padding:6px;text-align:center;font-size:9px;color:#8b949e">⚙ 监控参数<br><span style="color:#c9d1d9">间隔 1s | 保留 500 条</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. 数据模型</h3>
+  <div class="mockup" style="max-width: 750px; margin: 0 auto;">
+    <div class="mockup-header">BlackBox 日志中的窗口事件格式</div>
+    <div class="mockup-body" style="padding:12px;background:#0d1117;font-size:11px;font-family:monospace;color:#c9d1d9">
+      <pre style="background:#161b22;padding:10px;border-radius:4px;font-size:10px;color:#8b949e;overflow-x:auto">
+{
+  "id": "bb_0123",
+  "timestamp": "2026-05-29T14:32:05",
+  "event_type": "window_event",
+  "data": {
+    "action": "switch",           // switch | focus | blur | idle
+    "from_window": "VS Code",     // 上一个窗口标题（首次为 null）
+    "from_process": "Code.exe",
+    "to_window": "Google Chrome",
+    "to_process": "chrome.exe",
+    "duration_sec": 245           // 在上一窗口停留的秒数
+  }
+}</pre>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div style="font-size:9px;color:#8b949e">
+          <b style="color:#c9d1d9">统计聚合（stats API 返回）</b><br><br>
+          {<br>
+          &nbsp;&nbsp;"total_duration": 3600,<br>
+          &nbsp;&nbsp;"apps": [<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;{ "process": "chrome.exe",<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"title": "Google Chrome",<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"duration_sec": 1620,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"switch_count": 12,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"percentage": 45 }<br>
+          &nbsp;&nbsp;]<br>
+          }
+        </div>
+        <div style="font-size:9px;color:#8b949e">
+          <b style="color:#c9d1d9">配置参数（data/window_config.json）</b><br><br>
+          {<br>
+          &nbsp;&nbsp;"enabled": true,<br>
+          &nbsp;&nbsp;"poll_interval_sec": 1,<br>
+          &nbsp;&nbsp;"max_events": 500,<br>
+          &nbsp;&nbsp;"idle_timeout_sec": 300,<br>
+          &nbsp;&nbsp;"ignore_processes": ["Idle"]<br>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

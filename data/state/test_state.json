@@ -1,0 +1,74 @@
+{
+  "version": "2.0",
+  "session_id": "20260603_094144",
+  "interaction_count": 0,
+  "running": true,
+  "started_at": "2026-06-03T01:41:44.590952+00:00",
+  "current_mode": "normal",
+  "health_check_interval": 30,
+  "last_health_check": 0.0,
+  "config": {
+    "sensor": {
+      "enable_change_detection": true,
+      "enable_event_monitor": true,
+      "watch_dirs": null
+    },
+    "cognitive": {
+      "config_path": null
+    },
+    "memory": {
+      "data_dir": "./data",
+      "token_limit": 4096,
+      "compress_threshold": 0.8,
+      "async_compress": {
+        "enabled": true,
+        "interval_seconds": 60
+      },
+      "llm": {
+        "provider": "",
+        "api_key": "",
+        "model": "",
+        "timeout": 30
+      },
+      "blackbox": {
+        "max_size_mb": 10,
+        "max_files": 10
+      }
+    },
+    "behavior": {
+      "check_interval": 30
+    },
+    "permission": {
+      "backup_dir": "./.backups"
+    },
+    "security": {
+      "enable_encryption": true,
+      "key_file": ".encryption_key",
+      "secure_config_file": ".secure_config.json"
+    },
+    "features": {
+      "v2_lifetrace": false,
+      "v2_persona": false,
+      "v2_distillation": false
+    },
+    "voice": {
+      "tts_engine": "pyttsx3",
+      "audio_dir": "./data/audio",
+      "non_blocking": true
+    },
+    "planning": {
+      "enabled": true,
+      "max_iterations": 10,
+      "complexity_threshold": 0.5
+    }
+  },
+  "behavior": {
+    "current_mode": "normal"
+  },
+  "_metadata": {
+    "state_id": "test_state",
+    "version": "1.0",
+    "created_at": "2026-06-03T01:42:00.146833+00:00",
+    "data_size": 1620
+  }
+}

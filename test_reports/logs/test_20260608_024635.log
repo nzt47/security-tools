@@ -1,0 +1,49 @@
+2026-06-08 02:46:36,277 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 02:46:36,302 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 02:46:36,308 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 02:46:36,315 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 02:46:36,348 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 02:46:36,357 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 02:46:36,357 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 02:46:36,357 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 02:46:36,366 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 02:46:36,404 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 02:46:36,405 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 02:46:36,407 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 02:46:36,409 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 02:46:36,657 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 02:46:36,664 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 02:46:36,666 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 02:46:36,677 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 02:46:36,812 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 可重试
+2026-06-08 02:46:36,834 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 总是失败
+2026-06-08 02:46:36,855 [   ERROR] agent.error_handler: All 1 retry attempts exhausted
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 659, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3172, in always_fail
+    raise RecoverableError("总是失败")
+agent.error_handler.RecoverableError: 总是失败
+2026-06-08 02:46:36,857 [ WARNING] agent.error_handler: [warning] unknown: 总是失败
+2026-06-08 02:46:36,864 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=5
+2026-06-08 02:46:36,874 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-08 02:46:36,899 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+2026-06-08 02:46:36,907 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-08 02:46:36,927 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=5
+2026-06-08 02:46:36,929 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 重试错误
+2026-06-08 02:46:36,952 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.02s: 重试错误

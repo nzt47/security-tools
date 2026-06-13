@@ -1,0 +1,105 @@
+/* 眼睛组件样式 */
+
+.eye {
+  position: relative;
+  background: var(--mascot-primary, #4fd1c5);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  transition: all var(--duration-fast, 150ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 尺寸变体 */
+.eye-size-small {
+  width: 24px;
+  height: 16px;
+}
+
+.eye-size-medium {
+  width: 32px;
+  height: 20px;
+}
+
+.eye-size-large {
+  width: 44px;
+  height: 28px;
+}
+
+/* 瞳孔 */
+.eye-pupil {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  background: var(--bg-deep, #0a0a0f);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform var(--duration-fast, 150ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+  z-index: 1;
+}
+
+/* 高光 */
+.eye-highlight {
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  background: white;
+  border-radius: 50%;
+  top: 25%;
+  left: 60%;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 眨眼状态 */
+.eye-blinking {
+  transform: scaleY(0.1) !important;
+}
+
+/* 情绪状态 - 开心 */
+.eye-mood-happy {
+  border-radius: 50% 50% 50% 50% / 100% 100% 0% 0%;
+  height: 10px !important;
+}
+
+/* 情绪状态 - 惊讶 */
+.eye-mood-surprised {
+  border-radius: 50%;
+  width: 36px !important;
+  height: 24px !important;
+}
+
+/* 情绪状态 - 思考 */
+.eye-mood-thinking {
+  height: 12px !important;
+  transform: translateY(2px);
+}
+
+/* 情绪状态 - 疲惫 */
+.eye-mood-tired {
+  height: 8px !important;
+  opacity: 0.7;
+  border-radius: 50% 50% 50% 50% / 100% 100% 0% 0%;
+}
+
+/* 情绪状态 - 警惕 */
+.eye-mood-alert {
+  height: 6px !important;
+  width: 36px !important;
+  border-radius: 3px;
+}
+
+/* 情绪状态 - 错误 */
+.eye-mood-error {
+  background: var(--mascot-error, #fc8181) !important;
+  animation: shake 0.5s infinite;
+}
+
+/* 注视时的瞳孔移动 */
+.eye:hover .eye-pupil {
+  transform: translate(calc(-50% + 1px), calc(-50% - 1px));
+}

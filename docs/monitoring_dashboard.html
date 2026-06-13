@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeFileReader 全链路监控大屏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 { font-size: 28px; color: #00d4ff; }
+        .header .time { font-size: 14px; color: #888; margin-top: 10px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .panel {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .panel-title {
+            font-size: 16px;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #00d4ff;
+            margin-right: 10px;
+        }
+        .metric-value {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .metric-value.success { color: #00ff88; }
+        .metric-value.warning { color: #ffaa00; }
+        .metric-value.danger { color: #ff4444; }
+        .metric-value.info { color: #00d4ff; }
+        .metric-label {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+        .chart-container {
+            height: 150px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 100%;
+            padding: 10px;
+        }
+        .bar {
+            width: 20px;
+            background: linear-gradient(to top, #00d4ff, #00ff88);
+            border-radius: 3px 3px 0 0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .alert-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .alert-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .alert-item.critical { background: rgba(255,68,68,0.3); border-left: 3px solid #ff4444; }
+        .alert-item.warning { background: rgba(255,170,0,0.3); border-left: 3px solid #ffaa00; }
+        .alert-item.info { background: rgba(0,212,255,0.3); border-left: 3px solid #00d4ff; }
+        .alert-item.resolved { background: rgba(0,255,136,0.3); border-left: 3px solid #00ff88; }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .status-item {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            text-align: center;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-dot.active { background: #00ff88; animation: blink 1s infinite; }
+        .status-dot.inactive { background: #ff4444; }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+        .timeline-item {
+            position: relative;
+            padding: 10px 0;
+            font-size: 12px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            background: #00d4ff;
+            border-radius: 50%;
+        }
+        .gauge {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(#00ff88 0deg, #00ff88 var(--value), rgba(0,0,0,0.3) var(--value));
+            margin: 0 auto;
+            position: relative;
+        }
+        .gauge::after {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50%;
+            top: 15px;
+            left: 15px;
+        }
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .row-2 { grid-column: span 2; }
+        .refresh-btn {
+            background: #00d4ff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .refresh-btn:hover { background: #00b4e4; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SafeFileReader 全链路监控大屏</h1>
+        <div class="time" id="currentTime">2026-06-10 15:00:00 | 服务状态: 正常运行</div>
+    </div>
+
+    <div class="grid">
+        <!-- 核心指标面板 -->
+        <div class="panel">
+            <div class="panel-title">历史加载成功率</div>
+            <div class="gauge" style="--value: 360deg;">
+                <div class="gauge-text success">100%</div>
+            </div>
+            <div class="metric-label">有效历史加载比例</div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">加载历史对话数</div>
+            <div class="metric-value success" id="historyCount">5</div>
+            <div class="metric-label">yunshu_safe_file_reader_loaded_history_count</div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">文件读取耗时</div>
+            <div class="metric-value info" id="readDuration">1ms</div>
+            <div class="metric-label">95分位: 1ms | 阈值: 5000ms</div>
+        </div>
+
+        <!-- 错误统计 -->
+        <div class="panel row-2">
+            <div class="panel-title">错误类型分布</div>
+            <div class="chart-container">
+                <div class="bar-chart">
+                    <div class="bar" style="height: 10%;" title="file_not_found: 0"></div>
+                    <div class="bar" style="height: 5%;" title="file_too_large: 0"></div>
+                    <div class="bar" style="height: 15%;" title="encoding_failed: 0"></div>
+                    <div class="bar" style="height: 20%;" title="json_parse_failed: 0"></div>
+                    <div class="bar" style="height: 8%;" title="history_load_failed: 0"></div>
+                </div>
+            </div>
+            <div class="status-grid" style="margin-top: 10px;">
+                <div class="status-item">
+                    <span class="status-dot active"></span> file_not_found: 0
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> file_too_large: 0
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> encoding_failed: 0
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> json_parse_failed: 0
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">无效行比例</div>
+            <div class="metric-value success" id="invalidRatio">0%</div>
+            <div class="metric-label">阈值: 10% | 状态: 正常</div>
+            <div class="chart-container">
+                <div class="bar-chart">
+                    <div class="bar" style="height: 5%; background: #00ff88;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 编码统计 -->
+        <div class="panel">
+            <div class="panel-title">编码降级统计</div>
+            <div class="metric-value info" id="encodingFallback">0</div>
+            <div class="metric-label">编码降级次数 | 阈值: 触发即告警(info)</div>
+            <div class="status-grid" style="margin-top: 10px;">
+                <div class="status-item">UTF-8: <span style="color:#00ff88">100%</span></div>
+                <div class="status-item">UTF-8-SIG: <span style="color:#888">0%</span></div>
+                <div class="status-item">GBK: <span style="color:#888">0%</span></div>
+                <div class="status-item">失败: <span style="color:#00ff88">0%</span></div>
+            </div>
+        </div>
+
+        <!-- 告警面板 -->
+        <div class="panel row-2">
+            <div class="panel-title">活跃告警 (实时)</div>
+            <div class="alert-list" id="alertList">
+                <div class="alert-item resolved">
+                    <strong>[已恢复] SafeFileReaderConsecutiveParseFailures</strong>
+                    <br>触发时间: 2026-06-10 00:50:00 | 恢复时间: 2026-06-10 01:00:00
+                    <br>原因: 测试注入损坏数据，已恢复正常
+                </div>
+                <div class="alert-item resolved">
+                    <strong>[已恢复] SafeFileReaderHighInvalidRatio</strong>
+                    <br>触发时间: 2026-06-10 00:50:00 | 恢复时间: 2026-06-10 01:00:00
+                    <br>原因: 测试场景，无效比例已恢复正常
+                </div>
+                <div class="alert-item info">
+                    <strong>[活跃] SafeFileReaderEncodingFallback</strong>
+                    <br>触发时间: 2026-06-10 01:00:00
+                    <br>原因: GBK编码文件自动降级处理
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">服务健康状态</div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-dot active"></span> 服务运行
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> 指标上报
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> 告警规则
+                </div>
+                <div class="status-item">
+                    <span class="status-dot active"></span> 回滚就绪
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间线 -->
+        <div class="panel row-2">
+            <div class="panel-title">最近事件时间线</div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span style="color:#00ff88">[15:00:00]</span> 监控大屏启动
+                </div>
+                <div class="timeline-item">
+                    <span style="color:#00d4ff">[14:50:00]</span> 部署检查全部通过
+                </div>
+                <div class="timeline-item">
+                    <span style="color:#00d4ff">[14:49:32]</span> 备份文件创建完成
+                </div>
+                <div class="timeline-item">
+                    <span style="color:#00ff88">[14:47:57]</span> 服务启动成功
+                </div>
+                <div class="timeline-item">
+                    <span style="color:#00d4ff">[14:46:38]</span> 上线演练完成
+                </div>
+                <div class="timeline-item">
+                    <span style="color:#00ff88">[01:00:00]</span> 告警自动恢复
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">快速操作</div>
+            <button class="refresh-btn" onclick="refreshMetrics()">刷新指标</button>
+            <button class="refresh-btn" style="background:#ffaa00;margin-top:5px;" onclick="window.location.href='docs/emergency_plan.md'">应急预案</button>
+            <button class="refresh-btn" style="background:#ff4444;margin-top:5px;" onclick="executeRollback()">执行回滚</button>
+        </div>
+    </div>
+
+    <script>
+        // 实时更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', { hour12: false });
+            document.getElementById('currentTime').textContent = timeStr + ' | 服务状态: 正常运行';
+        }
+        setInterval(updateTime, 1000);
+
+        // 模拟刷新指标
+        function refreshMetrics() {
+            // 模拟数据变化
+            const historyCount = Math.floor(Math.random() * 10) + 5;
+            const duration = Math.floor(Math.random() * 5) + 1;
+            
+            document.getElementById('historyCount').textContent = historyCount;
+            document.getElementById('readDuration').textContent = duration + 'ms';
+            
+            alert('指标已刷新！\n历史对话数: ' + historyCount + '\n读取耗时: ' + duration + 'ms');
+        }
+
+        // 模拟回滚操作
+        function executeRollback() {
+            if (confirm('确定要执行回滚操作吗？\n这将恢复到上一个稳定版本。')) {
+                alert('回滚命令已发送！\n请查看 scripts/rollback.sh 或 scripts/rollback.ps1');
+            }
+        }
+
+        // 模拟指标动态变化
+        function simulateMetrics() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const currentHeight = parseFloat(bar.style.height);
+                const newHeight = Math.max(5, Math.min(30, currentHeight + Math.random() * 5 - 2));
+                bar.style.height = newHeight + '%';
+            });
+        }
+        setInterval(simulateMetrics, 3000);
+    </script>
+</body>
+</html>

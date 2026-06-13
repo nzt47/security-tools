@@ -1,0 +1,239 @@
+2026-06-06 00:16:08,573 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-06 00:16:08,600 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-06 00:16:08,606 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-06 00:16:08,606 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-06 00:16:08,641 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-06 00:16:08,648 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-06 00:16:08,650 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-06 00:16:08,651 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-06 00:16:08,657 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-06 00:16:08,688 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:08,688 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-06 00:16:08,690 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-06 00:16:08,693 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-06 00:16:08,951 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-06 00:16:09,008 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-06 00:16:09,009 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:16:09,018 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:16:09,018 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-06 00:16:09,018 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-06 00:16:09,019 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-06 00:16:09,020 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-06 00:16:09,020 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-06 00:16:09,203 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,204 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,217 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,217 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,223 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,223 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,229 [    INFO] persona.distiller: 已加载历史记录，共 628 条
+2026-06-06 00:16:09,229 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,229 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.324
+2026-06-06 00:16:09,230 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.21200000000000002
+2026-06-06 00:16:09,230 [    INFO] persona.persona_model_enhanced: 更新表达风格: conciseness = 0.694
+2026-06-06 00:16:09,280 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-06 00:16:09,285 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,285 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,288 [    INFO] persona.distiller: 已加载历史记录，共 629 条
+2026-06-06 00:16:09,288 [    INFO] persona.distiller: 开始人格蒸馏，策略: conservative
+2026-06-06 00:16:09,289 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.318
+2026-06-06 00:16:09,289 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.197
+2026-06-06 00:16:09,350 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,355 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,356 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,359 [    INFO] persona.distiller: 已加载历史记录，共 630 条
+2026-06-06 00:16:09,359 [    INFO] persona.distiller: 开始人格蒸馏，策略: aggressive
+2026-06-06 00:16:09,360 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.29
+2026-06-06 00:16:09,360 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.26
+2026-06-06 00:16:09,414 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,422 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,422 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,425 [    INFO] persona.distiller: 已加载历史记录，共 631 条
+2026-06-06 00:16:09,425 [    INFO] persona.distiller: 开始融合 2 个人格
+2026-06-06 00:16:09,426 [    INFO] persona.distiller: 人格融合完成
+2026-06-06 00:16:09,436 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,436 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,440 [    INFO] persona.distiller: 已加载历史记录，共 631 条
+2026-06-06 00:16:09,441 [    INFO] persona.distiller: 开始融合 2 个人格
+2026-06-06 00:16:09,442 [    INFO] persona.distiller: 人格融合完成
+2026-06-06 00:16:09,448 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,449 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,452 [    INFO] persona.distiller: 已加载历史记录，共 631 条
+2026-06-06 00:16:09,457 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,458 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,461 [    INFO] persona.distiller: 已加载历史记录，共 631 条
+2026-06-06 00:16:09,461 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,462 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.318
+2026-06-06 00:16:09,462 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.21200000000000002
+2026-06-06 00:16:09,515 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-06 00:16:09,520 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,521 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,523 [    INFO] persona.distiller: 已加载历史记录，共 632 条
+2026-06-06 00:16:09,523 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,523 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.32999999999999996
+2026-06-06 00:16:09,524 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.2
+2026-06-06 00:16:09,577 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,582 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,582 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,585 [    INFO] persona.distiller: 已加载历史记录，共 633 条
+2026-06-06 00:16:09,585 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,585 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.312
+2026-06-06 00:16:09,640 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,645 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,646 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,648 [    INFO] persona.distiller: 已加载历史记录，共 634 条
+2026-06-06 00:16:09,649 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,649 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.324
+2026-06-06 00:16:09,703 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,708 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,708 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,712 [    INFO] persona.distiller: 已加载历史记录，共 635 条
+2026-06-06 00:16:09,712 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,712 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.33599999999999997
+2026-06-06 00:16:09,771 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,772 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,772 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.32183999999999996
+2026-06-06 00:16:09,829 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,830 [    INFO] persona.distiller: 已回滚到快照: distillation_635
+2026-06-06 00:16:09,835 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,835 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,838 [    INFO] persona.distiller: 已加载历史记录，共 637 条
+2026-06-06 00:16:09,838 [ WARNING] persona.distiller: 未找到快照: nonexistent_snapshot
+2026-06-06 00:16:09,845 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,845 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,846 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:09,846 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:09,848 [    INFO] persona.distiller: 已加载历史记录，共 637 条
+2026-06-06 00:16:09,848 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,848 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.282
+2026-06-06 00:16:09,889 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,889 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,890 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.27108
+2026-06-06 00:16:09,930 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:09,930 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,930 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.2668152
+2026-06-06 00:16:09,982 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-06 00:16:09,983 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:09,983 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.26880628799999995
+2026-06-06 00:16:10,021 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-06 00:16:10,021 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,021 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.27667791072
+2026-06-06 00:16:10,060 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-06 00:16:10,060 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,060 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.29007723607679997
+2026-06-06 00:16:10,098 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,098 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,099 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.308672601912192
+2026-06-06 00:16:10,141 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,141 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,142 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.33215224579746044
+2026-06-06 00:16:10,179 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,179 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,180 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.3602231110496128
+2026-06-06 00:16:10,219 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,219 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,219 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.39260972438663605
+2026-06-06 00:16:10,260 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,265 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,265 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,267 [    INFO] persona.distiller: 已加载历史记录，共 647 条
+2026-06-06 00:16:10,267 [    INFO] persona.distiller: 提升学习率至: 0.13
+2026-06-06 00:16:10,268 [    INFO] persona.distiller: 切换至激进策略
+2026-06-06 00:16:10,272 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,272 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,275 [    INFO] persona.distiller: 已加载历史记录，共 647 条
+2026-06-06 00:16:10,275 [    INFO] persona.distiller: 降低学习率至: 0.06999999999999999
+2026-06-06 00:16:10,275 [    INFO] persona.distiller: 切换至保守策略
+2026-06-06 00:16:10,279 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,280 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,282 [    INFO] persona.distiller: 已加载历史记录，共 647 条
+2026-06-06 00:16:10,282 [    INFO] persona.distiller: 降低学习率至: 0.06999999999999999
+2026-06-06 00:16:10,282 [    INFO] persona.distiller: 切换至保守策略
+2026-06-06 00:16:10,287 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,287 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,289 [    INFO] persona.distiller: 已加载历史记录，共 647 条
+2026-06-06 00:16:10,289 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,289 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.318
+2026-06-06 00:16:10,328 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,333 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,333 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,335 [    INFO] persona.distiller: 已加载历史记录，共 648 条
+2026-06-06 00:16:10,336 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,336 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.312
+2026-06-06 00:16:10,377 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,383 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,383 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,385 [    INFO] persona.distiller: 已加载历史记录，共 649 条
+2026-06-06 00:16:10,386 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,386 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.324
+2026-06-06 00:16:10,386 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.20600000000000002
+2026-06-06 00:16:10,386 [    INFO] persona.persona_model_enhanced: 更新表达风格: conciseness = 0.76
+2026-06-06 00:16:10,428 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-06 00:16:10,428 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,429 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.34056000000000003
+2026-06-06 00:16:10,429 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.21764000000000003
+2026-06-06 00:16:10,472 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-06 00:16:10,477 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,477 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,479 [    INFO] persona.distiller: 已加载历史记录，共 651 条
+2026-06-06 00:16:10,480 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,480 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.33599999999999997
+2026-06-06 00:16:10,524 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-06 00:16:10,525 [    INFO] persona.distiller: 已回滚到快照: distillation_651
+2026-06-06 00:16:10,529 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,529 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,532 [    INFO] persona.distiller: 已加载历史记录，共 652 条
+2026-06-06 00:16:10,532 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,576 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-06 00:16:10,580 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,581 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,583 [    INFO] persona.distiller: 已加载历史记录，共 653 条
+2026-06-06 00:16:10,588 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-06 00:16:10,588 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-06 00:16:10,590 [    INFO] persona.distiller: 已加载历史记录，共 653 条
+2026-06-06 00:16:10,590 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-06 00:16:10,590 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.34199999999999997
+2026-06-06 00:16:10,591 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.188
+2026-06-06 00:16:10,591 [    INFO] persona.persona_model_enhanced: 更新表达风格: conciseness = 0.718
+2026-06-06 00:16:10,635 [    INFO] persona.distiller: 人格蒸馏完成，评分: 0.41，变更: 3
+2026-06-06 00:16:10,688 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-06 00:16:10,694 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-06 00:16:10,699 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-06 00:16:10,699 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 3 failures
+2026-06-06 00:16:10,703 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=3
+2026-06-06 00:16:10,708 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=2
+2026-06-06 00:16:10,709 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 2 failures
+2026-06-06 00:16:10,714 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-06 00:16:10,729 [    INFO] agent.error_handler: Circuit breaker 'test' initialized: max_failures=5
+2026-06-06 00:16:10,743 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,747 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,748 [ WARNING] agent.error_handler: [warning] unknown: 测试错误
+2026-06-06 00:16:10,752 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,753 [   ERROR] agent.error_handler: [error] unknown: 标准异常
+ValueError: 标准异常
+2026-06-06 00:16:10,759 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,760 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=5
+2026-06-06 00:16:10,764 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,768 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:10,769 [ WARNING] agent.error_handler: Attempt 1/3 failed, retrying in 0.96s: 暂时失败
+2026-06-06 00:16:11,734 [ WARNING] agent.error_handler: Attempt 2/3 failed, retrying in 2.14s: 暂时失败
+2026-06-06 00:16:13,879 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:13,880 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 432, in execute_with_retry
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 372, in failing_func
+    raise ValueError("不可重试")
+ValueError: 不可重试
+2026-06-06 00:16:13,886 [    INFO] agent.error_handler: Error handler initialized
+2026-06-06 00:16:13,886 [   ERROR] agent.error_handler: [error] unknown: 测试

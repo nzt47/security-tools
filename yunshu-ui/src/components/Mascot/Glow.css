@@ -1,0 +1,152 @@
+/* 光晕效果组件样式 */
+
+.glow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* 尺寸变体 */
+.glow-size-small {
+  width: 80px;
+  height: 80px;
+}
+
+.glow-size-medium {
+  width: 120px;
+  height: 120px;
+}
+
+.glow-size-large {
+  width: 180px;
+  height: 180px;
+}
+
+/* 颜色变体 */
+.glow-color-primary {
+  --glow-color: var(--mascot-primary, #4fd1c5);
+  --glow-glow: rgba(79, 209, 197, 0.4);
+}
+
+.glow-color-happy {
+  --glow-color: var(--mascot-happy, #4fd1c5);
+  --glow-glow: rgba(79, 209, 197, 0.4);
+}
+
+.glow-color-excited {
+  --glow-color: var(--mascot-excited, #f687b3);
+  --glow-glow: rgba(246, 135, 179, 0.4);
+}
+
+.glow-color-calm {
+  --glow-color: var(--mascot-calm, #63b3ed);
+  --glow-glow: rgba(99, 179, 237, 0.4);
+}
+
+.glow-color-tired {
+  --glow-color: var(--mascot-tired, #a0aec0);
+  --glow-glow: rgba(160, 174, 192, 0.3);
+}
+
+.glow-color-thinking {
+  --glow-color: var(--mascot-thinking, #9f7aea);
+  --glow-glow: rgba(159, 122, 234, 0.4);
+}
+
+.glow-color-error {
+  --glow-color: var(--mascot-error, #fc8181);
+  --glow-glow: rgba(252, 129, 129, 0.4);
+}
+
+/* 光晕层 */
+.glow-inner {
+  position: absolute;
+  inset: 20%;
+  background: radial-gradient(
+    circle,
+    var(--glow-color) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.glow-middle {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    transparent 40%,
+    var(--glow-glow) 70%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.glow-outer {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle,
+    transparent 50%,
+    var(--glow-glow) 70%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  opacity: 0.2;
+}
+
+/* 脉冲动画 */
+.glow-pulsing .glow-inner {
+  animation: glow-pulse-inner 2s ease-in-out infinite;
+}
+
+.glow-pulsing .glow-middle {
+  animation: glow-pulse-middle 2s ease-in-out infinite;
+}
+
+.glow-pulsing .glow-outer {
+  animation: glow-pulse-outer 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-inner {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes glow-pulse-middle {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes glow-pulse-outer {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.02);
+  }
+}
+
+/* 内容容器 */
+.glow-content {
+  position: relative;
+  z-index: 10;
+}

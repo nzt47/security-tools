@@ -1,0 +1,55 @@
+2026-06-08 14:24:21,028 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 14:24:21,051 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 14:24:21,057 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 14:24:21,063 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 14:24:21,097 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 14:24:21,102 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 14:24:21,103 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 14:24:21,104 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 14:24:21,110 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 14:24:21,138 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 14:24:21,139 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 14:24:21,140 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 14:24:21,143 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 14:24:21,401 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 14:24:21,409 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 14:24:21,409 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 14:24:21,417 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 14:24:21,417 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 14:24:21,417 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 14:24:21,418 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 14:24:21,419 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 14:24:21,419 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 14:24:21,528 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 14:24:21,528 [   ERROR] agent.error_handler: [error] unknown: 测试错误
+2026-06-08 14:24:21,533 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 14:24:21,534 [   ERROR] agent.error_handler: [error] unknown: 普通错误
+ValueError: 普通错误
+2026-06-08 14:24:21,539 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 14:24:21,539 [   ERROR] agent.error_handler: [error] unknown: 测试错误
+2026-06-08 14:24:21,544 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 14:24:21,545 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=5
+2026-06-08 14:24:21,568 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+2026-06-08 14:24:21,576 [ WARNING] agent.error_handler: [async_with_retry] 第 1/1 次尝试失败, 等待 0.01s 后重试: 未知异常
+2026-06-08 14:24:21,589 [   ERROR] agent.error_handler: [error] unknown: 未知异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 714, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler_supplement.py", line 252, in func
+    raise ValueError("未知异常")
+ValueError: 未知异常
+2026-06-08 14:24:21,598 [ WARNING] agent.error_handler: [async_with_retry] 第 1/2 次尝试失败, 等待 0.01s 后重试: 可重试的自定义异常
+2026-06-08 14:24:21,620 [ WARNING] agent.error_handler: [async_with_retry] 第 2/2 次尝试失败, 等待 0.02s 后重试: 可重试的自定义异常
+2026-06-08 14:24:21,657 [    INFO] agent.error_handler: Circuit breaker 'test_decorator' initialized: max_failures=3
+2026-06-08 14:24:21,662 [    INFO] agent.error_handler: Circuit breaker 'test_trip' initialized: max_failures=2
+2026-06-08 14:24:21,662 [ WARNING] agent.error_handler: Circuit breaker 'test_trip': OPENED after 2 failures

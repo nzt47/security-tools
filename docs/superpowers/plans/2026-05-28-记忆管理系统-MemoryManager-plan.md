@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 实现灵犀的记忆管理系统，支持 Token 计量、滚动摘要 + 滑动窗口、黑匣子日志
+**Goal:** 实现云枢的记忆管理系统，支持 Token 计量、滚动摘要 + 滑动窗口、黑匣子日志
 
 **Architecture:** 经典分层架构，严格单向依赖：`storage → black_box → summarizer → llm_service → token_counter`，由 `memory_manager` 统一编排
 
@@ -18,7 +18,7 @@
 - [ ] **Step 1: 创建 memory 包与 __init__.py**
 
 ```python
-"""灵犀记忆管理系统 — 滚动摘要 + 滑动窗口 + 黑匣子日志"""
+"""云枢记忆管理系统 — 滚动摘要 + 滑动窗口 + 黑匣子日志"""
 
 from .memory_manager import MemoryManager
 
@@ -1084,7 +1084,7 @@ def manager(tmp_path):
 
 def test_add_message(manager):
     """添加消息应成功"""
-    msg_id = manager.add_message("user", "你好灵犀")
+    msg_id = manager.add_message("user", "你好云枢")
     assert msg_id is not None
 
 
@@ -1262,7 +1262,7 @@ class AsyncCompressor:
 
 
 class MemoryManager:
-    """记忆管理器 — 灵犀的记忆系统入口
+    """记忆管理器 — 云枢的记忆系统入口
 
     管理对话历史、滚动摘要、黑匣子日志的完整生命周期。
     """
@@ -1465,7 +1465,7 @@ Run: `cd c:/Users/Administrator/agent && git add memory/memory_manager.py memory
 - [ ] **Step 1: 更新 __init__.py 导出所有公开类**
 
 ```python
-"""灵犀记忆管理系统 — 滚动摘要 + 滑动窗口 + 黑匣子日志
+"""云枢记忆管理系统 — 滚动摘要 + 滑动窗口 + 黑匣子日志
 
 提供 MemoryManager 作为核心入口，同时导出子组件供直接使用。
 """

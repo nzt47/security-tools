@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_78_20260601002850",
+  "content": "今天天气怎么样",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 2,
+    "timestamp": "2026-05-31T16:28:50.096192+00:00"
+  },
+  "created_at": "2026-06-01T00:28:50.096192",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

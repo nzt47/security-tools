@@ -1,0 +1,32 @@
+=============================================
+  会话记录 #5
+=============================================
+
+🕒 时间：2026年06月11日 20:20
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+重试一次
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="ext_install">
+<｜｜DSML｜｜parameter name="source" string="true">voice_interaction</｜｜DSML｜｜parameter>
+<｜｜DSML｜｜parameter name="type" string="true">skill</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.11 20:20
+=============================================
+

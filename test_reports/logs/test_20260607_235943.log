@@ -1,0 +1,48 @@
+2026-06-07 23:59:44,365 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 23:59:44,391 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 23:59:44,397 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 23:59:44,403 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 23:59:44,436 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 23:59:44,440 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 23:59:44,446 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 23:59:44,446 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 23:59:44,452 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 23:59:44,481 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 23:59:44,481 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 23:59:44,485 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 23:59:44,487 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 23:59:44,740 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-07 23:59:44,750 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 23:59:44,750 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:59:44,761 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:59:44,762 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 23:59:44,762 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 23:59:44,762 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 23:59:44,763 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 23:59:44,763 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 23:59:44,763 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 23:59:44,763 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-07 23:59:44,763 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 23:59:44,765 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 23:59:44,765 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-07 23:59:44,766 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-07 23:59:44,766 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 23:59:44,823 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:44,899 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-07 23:59:44,931 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:44,936 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:44,941 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=1s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:46,053 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=3, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:46,063 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:46,068 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:46,068 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-07 23:59:46,073 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-07 23:59:46,080 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=1s), L2(enabled=True, dir=C:\Windows\TEMP\tmpb04ftyqz, max=100MB)
+2026-06-07 23:59:47,229 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-07 23:59:47,243 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-07 23:59:47,248 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=1s
+2026-06-07 23:59:48,358 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=3, ttl=3600s
+2026-06-07 23:59:48,388 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-07 23:59:48,400 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s

@@ -30,7 +30,7 @@ class TestPromptInjector:
             {"sensor_name": "cpu_temperature", "value": 50.0, "unit": "°C", "severity": "normal"},
         ]
         result = self.injector.inject(readings)
-        assert "灵犀" in result
+        assert "云枢" in result
 
     def test_translate_single(self):
         """translate 应返回单条翻译"""

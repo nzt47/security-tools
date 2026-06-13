@@ -163,7 +163,9 @@ class SessionManager:
         return self._current_id
 
     def add_message(self, session_id: str, role: str, content: str,
-                    tool_calls: list | None = None) -> dict:
+                    tool_calls: list | None = None,
+                    tool_steps: list | None = None,
+                    reasoning: str | None = None) -> dict:
         """添加消息到会话"""
         session_dir = self._sessions_dir / session_id
         if not session_dir.exists():
@@ -176,6 +178,10 @@ class SessionManager:
         }
         if tool_calls:
             msg["tool_calls"] = tool_calls
+        if tool_steps:
+            msg["tool_steps"] = tool_steps
+        if reasoning:
+            msg["reasoning"] = reasoning
 
         msg_file = session_dir / "messages.jsonl"
         with self._lock:

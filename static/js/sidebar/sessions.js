@@ -87,17 +87,53 @@ async function loadSessionMessages(sessionId) {
     container.innerHTML = '<div class="view-loading" style="padding:20px;text-align:center;color:#8b949e">加载中...</div>';
     try {
         const messages = await app.get(`/api/sessions/${sessionId}/messages`);
-        container.innerHTML = messages.map(m => {
+        // 判断开关状态
+        const thinkingOn = typeof getDisplayPref === 'function' ? getDisplayPref('thinking') : true;
+        const toolsOn = typeof getDisplayPref === 'function' ? getDisplayPref('toolcalls') : true;
+        let html = '';
+        for (const m of messages) {
+            const ts = m.timestamp ? formatMsgTime(m.timestamp) : '';
+            const content = app.escapeHtml(m.content || '');
             if (m.role === 'user') {
-                return '<div class="message user-msg"><div class="msg-label">👤 你</div><div class="msg-content">' + app.escapeHtml(m.content || '') + '</div></div>';
+                html += `<div class="msg user">${content}<span class="msg-time">${ts}</span></div>`;
             } else if (m.role === 'assistant') {
-                return '<div class="message bot-msg"><div class="msg-label">🤖 云枢</div><div class="msg-content">' + app.escapeHtml(m.content || '') + '</div></div>';
+                // 恢复 tool_steps
+                if (m.tool_steps && m.tool_steps.length > 0 && toolsOn) {
+                    for (const step of m.tool_steps) {
+                        if (step.type === 'tool_call') {
+                            const args = step.args || {};
+                            const query = args.query || args.url || JSON.stringify(args);
+                            html += `<div class="msg tool-step"><span class="tool-step-icon">🔧</span> ${app.escapeHtml(step.tool)} <span class="tool-step-status running">⋯ 进行中</span><div class="tool-step-args">${app.escapeHtml(String(query).substring(0, 100))}</div></div>`;
+                        } else if (step.type === 'tool_result') {
+                            html += `<div class="msg tool-step"><span class="tool-step-icon">✅</span> ${app.escapeHtml(step.tool)} <span class="tool-step-status ${step.status}">${step.status === 'success' ? '✓ 完成' : '✗ 失败'}</span><div class="tool-step-summary">${app.escapeHtml(step.summary || '')}</div></div>`;
+                        }
+                    }
+                }
+                // 恢复 reasoning（thought 框）
+                let displayContent = content;
+                if (m.reasoning && thinkingOn) {
+                    displayContent = `<div class="thought-block">💭 <span class="thought-label">Thought</span><div class="thought-content">${app.escapeHtml(m.reasoning)}</div></div>\n` + content;
+                }
+                // 生成 .meta（历史消息不含模式标签，仅有时间）
+                const metaDisplay = thinkingOn ? '' : 'none';
+                html += `<div class="msg Yunshu">${displayContent}<div class="meta" data-has-mode="false" style="display:${metaDisplay}"><span class="msg-time">${ts}</span></div></div>`;
             }
-            return '';
-        }).join('');
+        }
+        container.innerHTML = html;
         container.scrollTop = container.scrollHeight;
     } catch(e) {
         container.innerHTML = '<div class="view-empty">加载消息失败</div>';
+    }
+}
+
+function formatMsgTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return '';
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    } catch(e) {
+        return '';
     }
 }
 
@@ -155,6 +191,9 @@ function toggleSessionsDropdown() {
     if (!dropdown) return;
     const isOpen = dropdown.style.display !== 'none';
     dropdown.style.display = isOpen ? 'none' : 'flex';
+    // 箭头动画
+    const left = document.getElementById('chat-header-left');
+    if (left) left.classList.toggle('open', !isOpen);
 }
 
 function closeSessionsDropdown() {
@@ -172,7 +211,11 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-    loadSessions();
+// 初始化：加载会话列表，然后加载当前会话的消息
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSessions();
+    // 加载当前会话的对话历史，确保页面刷新后聊天区有内容
+    if (_sessionsData.current_id) {
+        loadSessionMessages(_sessionsData.current_id);
+    }
 });

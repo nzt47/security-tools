@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeFileReader 历史记忆容错 - 测试报告</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #007bff;
+        }
+        
+        .header h1 {
+            color: #007bff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        table th {
+            background: #f8f9fa;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .metric-card {
+            display: inline-block;
+            width: calc(50% - 10px);
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-right: 20px;
+            margin-bottom: 20px;
+            vertical-align: top;
+        }
+        
+        .metric-card:nth-child(2n) {
+            margin-right: 0;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #007bff;
+        }
+        
+        .metric-unit {
+            font-size: 14px;
+            color: #666;
+            margin-left: 5px;
+        }
+        
+        .metric-status {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .metric-status.ok {
+            color: #28a745;
+        }
+        
+        .metric-status.warning {
+            color: #ffc107;
+        }
+        
+        .metric-status.critical {
+            color: #dc3545;
+        }
+        
+        .chart-container {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 20px;
+        }
+        
+        .bar {
+            flex: 1;
+            background: linear-gradient(180deg, #007bff 0%, #0056b3 100%);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            min-height: 10px;
+        }
+        
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+        }
+        
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .alert-rule {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .alert-rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .alert-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .alert-severity {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .severity-critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .severity-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .severity-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .alert-description {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .test-scenario {
+            background: #fff;
+            border-left: 4px solid #007bff;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+        }
+        
+        .scenario-title {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .scenario-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #e9ecef;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        @media print {
+            body {
+                font-size: 12px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .metric-card {
+                width: calc(50% - 5px);
+                padding: 15px;
+            }
+            
+            .metric-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SafeFileReader 历史记忆容错 - 测试报告</h1>
+            <p>生成日期: 2026年6月10日 | 版本: v1.0</p>
+            <span class="status-badge status-passed">全部通过</span>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">测试概览</h2>
+            <div class="metric-card">
+                <div class="metric-label">测试场景总数</div>
+                <div class="metric-value">12<span class="metric-unit">个</span></div>
+                <div class="metric-status ok">全部通过</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">损坏文件场景错误计数</div>
+                <div class="metric-value">15<span class="metric-unit">条</span></div>
+                <div class="metric-status warning">超过告警阈值（10条）</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">加载耗时</div>
+                <div class="metric-value">1<span class="metric-unit">ms</span></div>
+                <div class="metric-status ok">性能正常</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">无效行比例</div>
+                <div class="metric-value">100<span class="metric-unit">%</span></div>
+                <div class="metric-status critical">超过告警阈值（10%）</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">测试结果分布</h2>
+            <div class="chart-container">
+                <div class="chart-title">测试类别分布</div>
+                <div class="bar-chart">
+                    <div class="bar" style="height: 100%">
+                        <div class="bar-value">100%</div>
+                        <div class="bar-label">功能测试</div>
+                    </div>
+                    <div class="bar" style="height: 100%">
+                        <div class="bar-value">100%</div>
+                        <div class="bar-label">破坏性测试</div>
+                    </div>
+                    <div class="bar" style="height: 100%">
+                        <div class="bar-value">100%</div>
+                        <div class="bar-label">告警验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">告警规则验证</h2>
+            <div class="alert-rule">
+                <div class="alert-rule-header">
+                    <span class="alert-name">SafeFileReaderConsecutiveParseFailures</span>
+                    <span class="alert-severity severity-critical">CRITICAL</span>
+                </div>
+                <div class="alert-description">5分钟内JSON解析失败超过10行，文件可能已损坏。<br>
+                    <strong>实际值:</strong> 15条（触发条件: >10条）→ <span style="color: #dc3545">已触发</span>
+                </div>
+            </div>
+            <div class="alert-rule">
+                <div class="alert-rule-header">
+                    <span class="alert-name">SafeFileReaderHighInvalidRatio</span>
+                    <span class="alert-severity severity-warning">WARNING</span>
+                </div>
+                <div class="alert-description">无效行比例超过10%，数据质量下降。<br>
+                    <strong>实际值:</strong> 100%（触发条件: >10%）→ <span style="color: #dc3545">已触发</span>
+                </div>
+            </div>
+            <div class="alert-rule">
+                <div class="alert-rule-header">
+                    <span class="alert-name">SafeFileReaderEncodingFallback</span>
+                    <span class="alert-severity severity-info">INFO</span>
+                </div>
+                <div class="alert-description">UTF-8读取失败，已降级到备用编码。<br>
+                    <strong>实际值:</strong> 0次（触发条件: >0）→ <span style="color: #28a745">未触发</span>
+                </div>
+            </div>
+            <div class="alert-rule">
+                <div class="alert-rule-header">
+                    <span class="alert-name">SafeFileReaderHistoryLoadEmpty</span>
+                    <span class="alert-severity severity-info">INFO</span>
+                </div>
+                <div class="alert-description">历史文件加载完成但无有效历史。<br>
+                    <strong>实际值:</strong> 0条（触发条件: ==0）→ <span style="color: #dc3545">已触发</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">关键测试场景</h2>
+            <div class="test-scenario">
+                <div class="scenario-title">✅ 正常历史加载</div>
+                <div class="scenario-desc">服务启动时从正常文件加载5条历史对话，耗时1ms，所有消息正确配对。</div>
+            </div>
+            <div class="test-scenario">
+                <div class="scenario-title">✅ 文件损坏容错（15条损坏行）</div>
+                <div class="scenario-desc">模拟文件被篡改，15条损坏JSON行全部逐行跳过，服务正常启动，未崩溃。</div>
+            </div>
+            <div class="test-scenario">
+                <div class="scenario-title">✅ 编码容错（GBK编码）</div>
+                <div class="scenario-desc">支持utf-8 → utf-8-sig → gbk三级编码降级链，自动识别并解析不同编码文件。</div>
+            </div>
+            <div class="test-scenario">
+                <div class="scenario-title">✅ 空文件容错</div>
+                <div class="scenario-desc">首次运行空文件场景，服务正常启动，不触发错误告警。</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">性能指标</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>指标名称</th>
+                            <th>值</th>
+                            <th>说明</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>历史加载耗时</td>
+                            <td>1ms</td>
+                            <td>5条正常消息加载时间</td>
+                            <td><span class="status-badge status-passed">正常</span></td>
+                        </tr>
+                        <tr>
+                            <td>损坏文件加载耗时</td>
+                            <td>1ms</td>
+                            <td>15条损坏行快速跳过</td>
+                            <td><span class="status-badge status-passed">正常</span></td>
+                        </tr>
+                        <tr>
+                            <td>文件大小限制</td>
+                            <td>10MB</td>
+                            <td>防DoS攻击保护</td>
+                            <td><span class="status-badge status-passed">正常</span></td>
+                        </tr>
+                        <tr>
+                            <td>内存占用增量</td>
+                            <td>&lt; 1MB</td>
+                            <td>历史消息内存映射</td>
+                            <td><span class="status-badge status-passed">正常</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">安全评估</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>风险项</th>
+                            <th>状态</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>DoS防护</td>
+                            <td><span class="status-badge status-passed">通过</span></td>
+                            <td>文件大小限制10MB</td>
+                        </tr>
+                        <tr>
+                            <td>恶意格式</td>
+                            <td><span class="status-badge status-passed">通过</span></td>
+                            <td>逐行跳过，不崩溃</td>
+                        </tr>
+                        <tr>
+                            <td>编码注入</td>
+                            <td><span class="status-badge status-passed">通过</span></td>
+                            <td>仅允许utf-8/utf-8-sig/gbk</td>
+                        </tr>
+                        <tr>
+                            <td>路径穿越</td>
+                            <td><span class="status-badge status-passed">通过</span></td>
+                            <td>路径由safe_join验证</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>SafeFileReader 历史记忆容错测试报告</p>
+            <p>报告生成时间: 2026年6月10日 00:50:00</p>
+            <p>版本: v1.0</p>
+        </div>
+    </div>
+</body>
+</html>

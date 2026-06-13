@@ -1,0 +1,1467 @@
+2026-06-11 00:23:32,869 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:23:32,877 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:23:32,881 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:23:32,884 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:23:32,906 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:23:32,910 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:23:32,912 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:23:32,913 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:23:32,916 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:23:32,929 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:23:32,929 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:23:32,930 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:23:32,931 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:23:32,949 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 00:23:32,955 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:23:32,956 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:32,961 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:32,961 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 00:23:32,962 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 00:23:32,962 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:23:33,245 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-11 00:23:33,259 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-11 00:23:33,265 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-11 00:23:33,270 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-11 00:23:33,305 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-11 00:23:33,312 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-11 00:23:33,314 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-11 00:23:33,315 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-11 00:23:33,320 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-11 00:23:33,346 [    INFO] agent.error_handler: Error handler initialized
+2026-06-11 00:23:33,347 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-11 00:23:33,349 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-11 00:23:33,351 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-11 00:23:33,380 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-11 00:23:33,390 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-11 00:23:33,391 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:33,394 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:33,394 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-11 00:23:33,394 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-11 00:23:33,394 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-11 00:23:33,395 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-11 00:23:33,395 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-11 00:23:33,396 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-11 00:23:33,577 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-11 00:23:33,705 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpm63sg30w\test.txt
+2026-06-11 00:23:33,705 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpm63sg30w\test.txt
+2026-06-11 00:23:33,706 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpm63sg30w\test.txt
+2026-06-11 00:23:33,711 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\System32\notepad.exe, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,711 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\notepad.exe
+2026-06-11 00:23:33,711 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\notepad.exe
+2026-06-11 00:23:33,712 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\notepad.exe
+2026-06-11 00:23:33,712 [ WARNING] agent.system_tools: [read_file] 路径解析失败: path=C:\Windows\System32\notepad.exe, error=路径位于系统保护目录，拒绝访问: C:\Windows\System32\notepad.exe
+2026-06-11 00:23:33,717 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32
+2026-06-11 00:23:33,718 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32
+2026-06-11 00:23:33,718 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32
+2026-06-11 00:23:33,727 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpp2k7r6hi.txt, encoding=utf-8, content_length=12
+2026-06-11 00:23:33,727 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,728 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,728 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,728 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,728 [    INFO] agent.system_tools: [write_file] 内容大小: 12 bytes
+2026-06-11 00:23:33,728 [    INFO] agent.system_tools: [write_file] 文件已存在，准备备份: safe_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,729 [    INFO] agent.system_tools: [write_file] 备份成功: backup_path=C:\Users\Administrator\agent\agent\..\.file_backups\tmpp2k7r6hi.txt.20260611_002333.bak
+2026-06-11 00:23:33,729 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP
+2026-06-11 00:23:33,730 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:33,730 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:33,730 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=12, backup=C:\Users\Administrator\agent\agent\..\.file_backups\tmpp2k7r6hi.txt.20260611_002333.bak
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpp2k7r6hi.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,731 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpp2k7r6hi.txt
+2026-06-11 00:23:33,732 [    INFO] agent.system_tools: [read_file] 文件大小: 12 bytes
+2026-06-11 00:23:33,732 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=12
+2026-06-11 00:23:33,732 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:23:33,732 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:23:33,732 [    INFO] agent.system_tools: [read_file] 解码成功: encoding=utf-8, content_length=12
+2026-06-11 00:23:33,733 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-11 00:23:33,765 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmp3ljgrgzh.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,765 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp3ljgrgzh.txt
+2026-06-11 00:23:33,765 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp3ljgrgzh.txt
+2026-06-11 00:23:33,765 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp3ljgrgzh.txt
+2026-06-11 00:23:33,766 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp3ljgrgzh.txt
+2026-06-11 00:23:33,766 [    INFO] agent.system_tools: [read_file] 文件大小: 10485761 bytes
+2026-06-11 00:23:33,766 [ WARNING] agent.system_tools: [read_file] 文件过大: file_size=10485761, max_size=10485760
+2026-06-11 00:23:33,772 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=nonexistent_file_12345.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,772 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=nonexistent_file_12345.txt
+2026-06-11 00:23:33,772 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:23:33,772 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:23:33,772 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:23:33,773 [ WARNING] agent.system_tools: [read_file] 文件不存在: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-11 00:23:33,778 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpfyuvrf17, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,778 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpfyuvrf17
+2026-06-11 00:23:33,778 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpfyuvrf17
+2026-06-11 00:23:33,778 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpfyuvrf17
+2026-06-11 00:23:33,778 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpfyuvrf17
+2026-06-11 00:23:33,779 [ WARNING] agent.system_tools: [read_file] 路径不是文件: safe_path=C:\Windows\TEMP\tmpfyuvrf17
+2026-06-11 00:23:33,785 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpvv9ukvji.bin, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,785 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpvv9ukvji.bin
+2026-06-11 00:23:33,785 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpvv9ukvji.bin
+2026-06-11 00:23:33,786 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpvv9ukvji.bin
+2026-06-11 00:23:33,786 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpvv9ukvji.bin
+2026-06-11 00:23:33,786 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:23:33,786 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=4
+2026-06-11 00:23:33,787 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:23:33,787 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:23:33,793 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpwkgbjq41.txt, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,793 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpwkgbjq41.txt
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpwkgbjq41.txt
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpwkgbjq41.txt
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpwkgbjq41.txt
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:23:33,794 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:23:33,795 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:23:33,801 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpzf3fc3dl.exe, encoding=utf-8, content_length=4
+2026-06-11 00:23:33,801 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpzf3fc3dl.exe
+2026-06-11 00:23:33,801 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpzf3fc3dl.exe
+2026-06-11 00:23:33,801 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpzf3fc3dl.exe
+2026-06-11 00:23:33,801 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpzf3fc3dl.exe
+2026-06-11 00:23:33,802 [ WARNING] agent.system_tools: [write_file] 禁止写入可执行文件类型: ext=.exe
+2026-06-11 00:23:33,818 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpypyz8g9z.txt, encoding=utf-8, content_length=53477376
+2026-06-11 00:23:33,818 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpypyz8g9z.txt
+2026-06-11 00:23:33,819 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpypyz8g9z.txt
+2026-06-11 00:23:33,819 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpypyz8g9z.txt
+2026-06-11 00:23:33,819 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpypyz8g9z.txt
+2026-06-11 00:23:33,832 [    INFO] agent.system_tools: [write_file] 内容大小: 53477376 bytes
+2026-06-11 00:23:33,832 [ WARNING] agent.system_tools: [write_file] 内容过大: size=53477376, max_size=52428800
+2026-06-11 00:23:33,844 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\System32\test.txt, encoding=utf-8, content_length=4
+2026-06-11 00:23:33,844 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\test.txt
+2026-06-11 00:23:33,844 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\test.txt
+2026-06-11 00:23:33,845 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\test.txt
+2026-06-11 00:23:33,845 [ WARNING] agent.system_tools: [write_file] 路径解析失败: path=C:\Windows\System32\test.txt, error=路径位于系统保护目录，拒绝访问: C:\Windows\System32\test.txt
+2026-06-11 00:23:33,850 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmpl9t183u9, show_hidden=False, max_items=500
+2026-06-11 00:23:33,850 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpl9t183u9
+2026-06-11 00:23:33,851 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpl9t183u9
+2026-06-11 00:23:33,851 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpl9t183u9
+2026-06-11 00:23:33,851 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpl9t183u9
+2026-06-11 00:23:33,851 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:33,851 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmpl9t183u9\file.txt
+2026-06-11 00:23:33,852 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=4, mode=0o100666
+2026-06-11 00:23:33,852 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:33,852 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=4
+2026-06-11 00:23:33,852 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmpl9t183u9\subdir
+2026-06-11 00:23:33,852 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o40777
+2026-06-11 00:23:33,853 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=True, is_link=False
+2026-06-11 00:23:33,853 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=dir, size=0
+2026-06-11 00:23:33,853 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-11 00:23:33,859 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp4uw7lpo9.txt
+2026-06-11 00:23:33,859 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp4uw7lpo9.txt
+2026-06-11 00:23:33,859 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp4uw7lpo9.txt
+2026-06-11 00:23:33,860 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp4uw7lpo9.txt
+2026-06-11 00:23:33,860 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o100666
+2026-06-11 00:23:33,860 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:33,860 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=0
+2026-06-11 00:23:33,866 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmpyqlz2hsb, max_results=200, ignore_case=True
+2026-06-11 00:23:33,866 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpyqlz2hsb
+2026-06-11 00:23:33,867 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpyqlz2hsb
+2026-06-11 00:23:33,867 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpyqlz2hsb
+2026-06-11 00:23:33,867 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmpyqlz2hsb
+2026-06-11 00:23:33,867 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:33,868 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-11 00:23:33,881 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpipmig_o1\workspace
+2026-06-11 00:23:33,955 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpeqzuun0l, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,957 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpeqzuun0l
+2026-06-11 00:23:33,957 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpeqzuun0l
+2026-06-11 00:23:33,958 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpeqzuun0l
+2026-06-11 00:23:33,958 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpeqzuun0l
+2026-06-11 00:23:33,959 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:23:33,959 [ WARNING] agent.system_tools: [read_file] OS错误: safe_path=C:\Windows\TEMP\tmpeqzuun0l, error=test error
+2026-06-11 00:23:33,968 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpdd8eju72, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:33,969 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpdd8eju72
+2026-06-11 00:23:33,969 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpdd8eju72
+2026-06-11 00:23:33,969 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpdd8eju72
+2026-06-11 00:23:33,969 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpdd8eju72
+2026-06-11 00:23:33,970 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:23:33,970 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:23:33,970 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-11 00:23:33,970 [    INFO] agent.system_tools: [read_file] 使用二进制模式返回 base64
+2026-06-11 00:23:33,979 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmp80yid3o6\test.txt, encoding=utf-8, content_length=7
+2026-06-11 00:23:33,980 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp80yid3o6\test.txt
+2026-06-11 00:23:33,980 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp80yid3o6\test.txt
+2026-06-11 00:23:33,980 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp80yid3o6\test.txt
+2026-06-11 00:23:33,980 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp80yid3o6\test.txt
+2026-06-11 00:23:33,981 [    INFO] agent.system_tools: [write_file] 内容大小: 7 bytes
+2026-06-11 00:23:33,981 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmp80yid3o6
+2026-06-11 00:23:33,982 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:33,982 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:33,982 [ WARNING] agent.system_tools: [write_file] OS错误: safe_path=C:\Windows\TEMP\tmp80yid3o6\test.txt, error=test error
+2026-06-11 00:23:33,989 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=test.txt, encoding=utf-8, content_length=7
+2026-06-11 00:23:33,990 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=test.txt
+2026-06-11 00:23:33,990 [    INFO] agent.system_tools: [write_file] 内容大小: 7 bytes
+2026-06-11 00:23:33,990 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=
+2026-06-11 00:23:33,990 [ WARNING] agent.system_tools: [write_file] 创建目录失败: dir_path=, error=mkdir error
+2026-06-11 00:23:33,996 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=invalid, show_hidden=False, max_items=500
+2026-06-11 00:23:33,997 [ WARNING] agent.system_tools: [list_directory] 路径解析失败: path=invalid, error=invalid path
+2026-06-11 00:23:34,005 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=/nonexistent/path/xyz123, show_hidden=False, max_items=500
+2026-06-11 00:23:34,005 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-11 00:23:34,005 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,006 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,006 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,006 [ WARNING] agent.system_tools: [list_directory] 路径不存在: safe_path=C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,017 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmpwtv2f59y, show_hidden=False, max_items=500
+2026-06-11 00:23:34,019 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpwtv2f59y
+2026-06-11 00:23:34,019 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpwtv2f59y
+2026-06-11 00:23:34,019 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpwtv2f59y
+2026-06-11 00:23:34,019 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpwtv2f59y
+2026-06-11 00:23:34,020 [    INFO] agent.system_tools: [list_directory] 路径是文件而非目录: safe_path=C:\Windows\TEMP\tmpwtv2f59y
+2026-06-11 00:23:34,032 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=test_dir, show_hidden=False, max_items=500
+2026-06-11 00:23:34,033 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=test_dir
+2026-06-11 00:23:34,033 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:34,034 [ WARNING] agent.system_tools: [list_directory] 权限错误: safe_path=test_dir, error=permission denied
+2026-06-11 00:23:34,041 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmp9f9ceqqq, show_hidden=True, max_items=500
+2026-06-11 00:23:34,042 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,042 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,042 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,042 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,043 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:34,043 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9f9ceqqq\.hidden
+2026-06-11 00:23:34,043 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=6, mode=0o100666
+2026-06-11 00:23:34,044 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,044 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=6
+2026-06-11 00:23:34,044 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9f9ceqqq\visible
+2026-06-11 00:23:34,044 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=7, mode=0o100666
+2026-06-11 00:23:34,044 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,045 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=7
+2026-06-11 00:23:34,045 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-11 00:23:34,045 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmp9f9ceqqq, show_hidden=False, max_items=500
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp9f9ceqqq
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9f9ceqqq\visible
+2026-06-11 00:23:34,046 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=7, mode=0o100666
+2026-06-11 00:23:34,047 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,047 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=7
+2026-06-11 00:23:34,047 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=1
+2026-06-11 00:23:34,062 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmp9sj69i03, show_hidden=False, max_items=5
+2026-06-11 00:23:34,062 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp9sj69i03
+2026-06-11 00:23:34,062 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp9sj69i03
+2026-06-11 00:23:34,062 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp9sj69i03
+2026-06-11 00:23:34,062 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp9sj69i03
+2026-06-11 00:23:34,063 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:34,063 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9sj69i03\file0.txt
+2026-06-11 00:23:34,063 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-11 00:23:34,063 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9sj69i03\file1.txt
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9sj69i03\file2.txt
+2026-06-11 00:23:34,064 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-11 00:23:34,065 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,065 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-11 00:23:34,065 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9sj69i03\file3.txt
+2026-06-11 00:23:34,065 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-11 00:23:34,065 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,066 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-11 00:23:34,066 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmp9sj69i03\file4.txt
+2026-06-11 00:23:34,066 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-11 00:23:34,067 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,067 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-11 00:23:34,067 [    INFO] agent.system_tools: [list_directory] 达到最大条目数限制: max_items=5
+2026-06-11 00:23:34,067 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=5
+2026-06-11 00:23:34,081 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-11 00:23:34,081 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,081 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-11 00:23:34,086 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpcp_z31ws
+2026-06-11 00:23:34,086 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpcp_z31ws
+2026-06-11 00:23:34,087 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpcp_z31ws
+2026-06-11 00:23:34,087 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmpcp_z31ws
+2026-06-11 00:23:34,087 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=12, mode=0o100666
+2026-06-11 00:23:34,087 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-11 00:23:34,088 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=12
+2026-06-11 00:23:34,094 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=invalid, max_results=200, ignore_case=True
+2026-06-11 00:23:34,094 [ WARNING] agent.system_tools: [search_files] 路径解析失败: root_path=invalid, error=invalid
+2026-06-11 00:23:34,099 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=/nonexistent/path_xyz123, max_results=200, ignore_case=True
+2026-06-11 00:23:34,099 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path_xyz123
+2026-06-11 00:23:34,099 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path_xyz123
+2026-06-11 00:23:34,099 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path_xyz123
+2026-06-11 00:23:34,099 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\nonexistent\path_xyz123
+2026-06-11 00:23:34,099 [ WARNING] agent.system_tools: [search_files] 搜索根目录不存在: safe_root=C:\nonexistent\path_xyz123
+2026-06-11 00:23:34,104 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmp2sa5iz1o, max_results=200, ignore_case=True
+2026-06-11 00:23:34,104 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2sa5iz1o
+2026-06-11 00:23:34,105 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2sa5iz1o
+2026-06-11 00:23:34,105 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2sa5iz1o
+2026-06-11 00:23:34,105 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmp2sa5iz1o
+2026-06-11 00:23:34,105 [ WARNING] agent.system_tools: [search_files] 搜索根目录不是目录: safe_root=C:\Windows\TEMP\tmp2sa5iz1o
+2026-06-11 00:23:34,112 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmpkwfzoj5r, max_results=200, ignore_case=True
+2026-06-11 00:23:34,112 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpkwfzoj5r
+2026-06-11 00:23:34,112 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpkwfzoj5r
+2026-06-11 00:23:34,112 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpkwfzoj5r
+2026-06-11 00:23:34,113 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmpkwfzoj5r
+2026-06-11 00:23:34,113 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:34,113 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=1, walked=2, truncated=False
+2026-06-11 00:23:34,119 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmp8y8njgww, max_results=200, ignore_case=True
+2026-06-11 00:23:34,119 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp8y8njgww
+2026-06-11 00:23:34,119 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp8y8njgww
+2026-06-11 00:23:34,119 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp8y8njgww
+2026-06-11 00:23:34,119 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmp8y8njgww
+2026-06-11 00:23:34,120 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:34,120 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-11 00:23:35,730 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=test/path
+2026-06-11 00:23:35,731 [ WARNING] agent.system_tools: [safe_resolve_path] 路径解析异常: path=test/path, error=ValueError: invalid path
+2026-06-11 00:23:35,735 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=test/path
+2026-06-11 00:23:35,735 [ WARNING] agent.system_tools: [safe_resolve_path] 路径解析异常: path=test/path, error=OSError: os error
+2026-06-11 00:23:35,741 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpxpjbcqo9, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:35,741 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpxpjbcqo9
+2026-06-11 00:23:35,741 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpxpjbcqo9
+2026-06-11 00:23:35,741 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpxpjbcqo9
+2026-06-11 00:23:35,741 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpxpjbcqo9
+2026-06-11 00:23:35,742 [    INFO] agent.system_tools: [read_file] 文件大小: 4 bytes
+2026-06-11 00:23:35,742 [ WARNING] agent.system_tools: [read_file] 权限错误: safe_path=C:\Windows\TEMP\tmpxpjbcqo9, error=permission denied
+2026-06-11 00:23:35,747 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmp8x33a687, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:35,748 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp8x33a687
+2026-06-11 00:23:35,748 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp8x33a687
+2026-06-11 00:23:35,748 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp8x33a687
+2026-06-11 00:23:35,748 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp8x33a687
+2026-06-11 00:23:35,748 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:23:35,749 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:23:35,749 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:23:35,749 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:23:35,749 [ WARNING] agent.system_tools: [read_file] 解码失败，尝试降级: encoding=utf-8, error='utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2026-06-11 00:23:35,749 [    INFO] agent.system_tools: [read_file] 降级解码成功: encoding=utf-8 (with replacements)
+2026-06-11 00:23:35,750 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8 (with replacements), binary=False
+2026-06-11 00:23:35,755 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmp1f7e8dyw, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:35,756 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp1f7e8dyw
+2026-06-11 00:23:35,756 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp1f7e8dyw
+2026-06-11 00:23:35,756 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp1f7e8dyw
+2026-06-11 00:23:35,756 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp1f7e8dyw
+2026-06-11 00:23:35,756 [    INFO] agent.system_tools: [read_file] 文件大小: 3 bytes
+2026-06-11 00:23:35,757 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-11 00:23:35,757 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:23:35,757 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:23:35,757 [ WARNING] agent.system_tools: [read_file] 解码失败，尝试降级: encoding=utf-8, error='utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2026-06-11 00:23:35,757 [    INFO] agent.system_tools: [read_file] 降级解码成功: encoding=utf-8 (with replacements)
+2026-06-11 00:23:35,758 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8 (with replacements), binary=False
+2026-06-11 00:23:35,763 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt, encoding=utf-8, content_length=11
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [write_file] 内容大小: 11 bytes
+2026-06-11 00:23:35,764 [    INFO] agent.system_tools: [write_file] 文件已存在，准备备份: safe_path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,765 [ WARNING] agent.system_tools: [write_file] 备份失败（继续写入）: error=backup failed
+2026-06-11 00:23:35,765 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmp2l7jm_8p
+2026-06-11 00:23:35,765 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:35,766 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:35,766 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\TEMP\tmp2l7jm_8p\test.txt
+2026-06-11 00:23:35,766 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=11, backup=C:\Users\Administrator\agent\agent\..\.file_backups\test.txt.20260611_002335.bak
+2026-06-11 00:23:35,772 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpcwyub2f4\test.txt, encoding=utf-8, content_length=7
+2026-06-11 00:23:35,772 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpcwyub2f4\test.txt
+2026-06-11 00:23:35,773 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpcwyub2f4\test.txt
+2026-06-11 00:23:35,773 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpcwyub2f4\test.txt
+2026-06-11 00:23:35,773 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpcwyub2f4\test.txt
+2026-06-11 00:23:35,773 [    INFO] agent.system_tools: [write_file] 内容大小: 7 bytes
+2026-06-11 00:23:35,773 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmpcwyub2f4
+2026-06-11 00:23:35,774 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:35,774 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:35,774 [ WARNING] agent.system_tools: [write_file] 权限错误: safe_path=C:\Windows\TEMP\tmpcwyub2f4\test.txt, error=permission denied
+2026-06-11 00:23:35,780 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent\test.txt, encoding=utf-8, content_length=7
+2026-06-11 00:23:35,780 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent\test.txt
+2026-06-11 00:23:35,780 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent\test.txt
+2026-06-11 00:23:35,780 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpvdh_tjgb\nonexistent\test.txt
+2026-06-11 00:23:35,780 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent\test.txt
+2026-06-11 00:23:35,782 [    INFO] agent.system_tools: [write_file] 内容大小: 7 bytes
+2026-06-11 00:23:35,782 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent
+2026-06-11 00:23:35,782 [ WARNING] agent.system_tools: [write_file] 创建目录失败: dir_path=C:\Windows\TEMP\tmpvdh_tjgb\nonexistent, error=mkdir failed
+2026-06-11 00:23:35,788 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmph9trl22z, show_hidden=False, max_items=500
+2026-06-11 00:23:35,789 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmph9trl22z
+2026-06-11 00:23:35,789 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmph9trl22z
+2026-06-11 00:23:35,789 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmph9trl22z
+2026-06-11 00:23:35,789 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmph9trl22z
+2026-06-11 00:23:35,789 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:35,790 [ WARNING] agent.system_tools: [list_directory] 获取文件信息失败: name=test.txt, error=stat failed
+2026-06-11 00:23:35,790 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=1
+2026-06-11 00:23:35,796 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmpm0_jysos, show_hidden=False, max_items=500
+2026-06-11 00:23:35,796 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpm0_jysos
+2026-06-11 00:23:35,796 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpm0_jysos
+2026-06-11 00:23:35,796 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpm0_jysos
+2026-06-11 00:23:35,797 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpm0_jysos
+2026-06-11 00:23:35,797 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:35,797 [ WARNING] agent.system_tools: [list_directory] 权限错误: safe_path=C:\Windows\TEMP\tmpm0_jysos, error=permission denied
+2026-06-11 00:23:35,803 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\TEMP\tmp0vgw6w74, show_hidden=False, max_items=500
+2026-06-11 00:23:35,803 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp0vgw6w74
+2026-06-11 00:23:35,803 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp0vgw6w74
+2026-06-11 00:23:35,803 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp0vgw6w74
+2026-06-11 00:23:35,804 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp0vgw6w74
+2026-06-11 00:23:35,804 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-11 00:23:35,804 [ WARNING] agent.system_tools: [list_directory] OS错误: safe_path=C:\Windows\TEMP\tmp0vgw6w74, error=os error
+2026-06-11 00:23:35,810 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmp_06svrc7, max_results=200, ignore_case=False
+2026-06-11 00:23:35,810 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp_06svrc7
+2026-06-11 00:23:35,810 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp_06svrc7
+2026-06-11 00:23:35,811 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp_06svrc7
+2026-06-11 00:23:35,811 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmp_06svrc7
+2026-06-11 00:23:35,811 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:35,812 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-11 00:23:35,993 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmputn_nzc9, max_results=5, ignore_case=True
+2026-06-11 00:23:35,993 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmputn_nzc9
+2026-06-11 00:23:35,993 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmputn_nzc9
+2026-06-11 00:23:35,994 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmputn_nzc9
+2026-06-11 00:23:35,994 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmputn_nzc9
+2026-06-11 00:23:35,994 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:35,995 [    INFO] agent.system_tools: [search_files] 结果数达到上限: max_results=5
+2026-06-11 00:23:35,995 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=5, walked=6, truncated=True
+2026-06-11 00:23:36,005 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmpw3l8seua, max_results=200, ignore_case=True
+2026-06-11 00:23:36,005 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpw3l8seua
+2026-06-11 00:23:36,005 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpw3l8seua
+2026-06-11 00:23:36,005 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpw3l8seua
+2026-06-11 00:23:36,006 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmpw3l8seua
+2026-06-11 00:23:36,006 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:36,006 [ WARNING] agent.system_tools: [search_files] 获取文件stat失败: full_path=C:\Windows\TEMP\tmpw3l8seua\test.txt, error=stat failed
+2026-06-11 00:23:36,007 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=0, walked=1, truncated=False
+2026-06-11 00:23:36,013 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmp1c_eqm42, max_results=200, ignore_case=True
+2026-06-11 00:23:36,013 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp1c_eqm42
+2026-06-11 00:23:36,013 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp1c_eqm42
+2026-06-11 00:23:36,013 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp1c_eqm42
+2026-06-11 00:23:36,014 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmp1c_eqm42
+2026-06-11 00:23:36,014 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:36,014 [ WARNING] agent.system_tools: [search_files] 权限错误（继续返回已有结果）: error=permission denied
+2026-06-11 00:23:36,014 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=0, walked=0, truncated=False
+2026-06-11 00:23:36,021 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmpgdar21p2\test.txt
+2026-06-11 00:23:36,021 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=4, mode=0o100666
+2026-06-11 00:23:36,022 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=True
+2026-06-11 00:23:36,022 [    INFO] agent.system_tools: [_get_single_file_info] 文件是符号链接，尝试读取目标
+2026-06-11 00:23:36,022 [ WARNING] agent.system_tools: [_get_single_file_info] 读取符号链接目标失败: path=C:\Windows\TEMP\tmpgdar21p2\test.txt, error=readlink failed
+2026-06-11 00:23:36,022 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=4
+2026-06-11 00:23:36,028 [ WARNING] agent.system_tools: selenium 未安装，浏览器功能不可用
+2026-06-11 00:23:36,116 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmp2duyqrlx, max_results=200, ignore_case=True
+2026-06-11 00:23:36,116 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2duyqrlx
+2026-06-11 00:23:36,116 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2duyqrlx
+2026-06-11 00:23:36,117 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2duyqrlx
+2026-06-11 00:23:36,117 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmp2duyqrlx
+2026-06-11 00:23:36,117 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:36,124 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=100, walked=100, truncated=False
+2026-06-11 00:23:36,133 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmpyt97eqx9, max_results=200, ignore_case=True
+2026-06-11 00:23:36,134 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpyt97eqx9
+2026-06-11 00:23:36,134 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpyt97eqx9
+2026-06-11 00:23:36,134 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpyt97eqx9
+2026-06-11 00:23:36,134 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmpyt97eqx9
+2026-06-11 00:23:36,134 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:36,135 [ WARNING] agent.system_tools: [search_files] OS错误: safe_root=C:\Windows\TEMP\tmpyt97eqx9, error=os error
+2026-06-11 00:23:36,141 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Windows\TEMP\tmpyrssehl2, max_results=5, ignore_case=True
+2026-06-11 00:23:36,141 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpyrssehl2
+2026-06-11 00:23:36,141 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpyrssehl2
+2026-06-11 00:23:36,141 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpyrssehl2
+2026-06-11 00:23:36,142 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\TEMP\tmpyrssehl2
+2026-06-11 00:23:36,142 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-11 00:23:36,142 [    INFO] agent.system_tools: [search_files] 结果数达到上限: max_results=5
+2026-06-11 00:23:36,142 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=5, walked=6, truncated=True
+2026-06-11 00:23:36,148 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\TEMP\tmpoyq5uoxp\test.txt
+2026-06-11 00:23:36,148 [ WARNING] agent.system_tools: [_get_single_file_info] stat获取失败: path=C:\Windows\TEMP\tmpoyq5uoxp\test.txt, error=stat failed
+2026-06-11 00:23:36,204 [ WARNING] agent.system_tools: selenium 未安装，浏览器功能不可用
+2026-06-11 00:23:36,209 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmpyoov24ct, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:36,209 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpyoov24ct
+2026-06-11 00:23:36,209 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpyoov24ct
+2026-06-11 00:23:36,209 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpyoov24ct
+2026-06-11 00:23:36,209 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpyoov24ct
+2026-06-11 00:23:36,210 [    INFO] agent.system_tools: [read_file] 文件大小: 12 bytes
+2026-06-11 00:23:36,210 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=12
+2026-06-11 00:23:36,210 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:23:36,210 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:23:36,210 [    INFO] agent.system_tools: [read_file] 解码成功: encoding=utf-8, content_length=12
+2026-06-11 00:23:36,211 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-11 00:23:36,215 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\TEMP\tmperhy5voj, encoding=utf-8, max_size_mb=10
+2026-06-11 00:23:36,216 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmperhy5voj
+2026-06-11 00:23:36,216 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmperhy5voj
+2026-06-11 00:23:36,216 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmperhy5voj
+2026-06-11 00:23:36,216 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmperhy5voj
+2026-06-11 00:23:36,216 [    INFO] agent.system_tools: [read_file] 文件大小: 10000 bytes
+2026-06-11 00:23:36,217 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=10000
+2026-06-11 00:23:36,220 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-11 00:23:36,220 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-11 00:23:36,220 [    INFO] agent.system_tools: [read_file] 解码成功: encoding=utf-8, content_length=10000
+2026-06-11 00:23:36,220 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-11 00:23:36,226 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmpmwt7nmno\large.txt, encoding=utf-8, content_length=100000
+2026-06-11 00:23:36,226 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmpmwt7nmno\large.txt
+2026-06-11 00:23:36,226 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmpmwt7nmno\large.txt
+2026-06-11 00:23:36,227 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmpmwt7nmno\large.txt
+2026-06-11 00:23:36,227 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmpmwt7nmno\large.txt
+2026-06-11 00:23:36,227 [    INFO] agent.system_tools: [write_file] 内容大小: 100000 bytes
+2026-06-11 00:23:36,227 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmpmwt7nmno
+2026-06-11 00:23:36,227 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:36,228 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:36,228 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\TEMP\tmpmwt7nmno\large.txt
+2026-06-11 00:23:36,228 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=100000, backup=None
+2026-06-11 00:23:36,234 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmp1ffv9skl\unicode.txt, encoding=utf-8, content_length=10
+2026-06-11 00:23:36,234 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp1ffv9skl\unicode.txt
+2026-06-11 00:23:36,235 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp1ffv9skl\unicode.txt
+2026-06-11 00:23:36,235 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp1ffv9skl\unicode.txt
+2026-06-11 00:23:36,235 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp1ffv9skl\unicode.txt
+2026-06-11 00:23:36,235 [    INFO] agent.system_tools: [write_file] 内容大小: 24 bytes
+2026-06-11 00:23:36,235 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmp1ffv9skl
+2026-06-11 00:23:36,236 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:36,236 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:36,236 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\TEMP\tmp1ffv9skl\unicode.txt
+2026-06-11 00:23:36,236 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=24, backup=None
+2026-06-11 00:23:36,242 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\TEMP\tmp2howdpy0\empty.txt, encoding=utf-8, content_length=0
+2026-06-11 00:23:36,242 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\TEMP\tmp2howdpy0\empty.txt
+2026-06-11 00:23:36,243 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\TEMP\tmp2howdpy0\empty.txt
+2026-06-11 00:23:36,243 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\TEMP\tmp2howdpy0\empty.txt
+2026-06-11 00:23:36,243 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\TEMP\tmp2howdpy0\empty.txt
+2026-06-11 00:23:36,243 [    INFO] agent.system_tools: [write_file] 内容大小: 0 bytes
+2026-06-11 00:23:36,243 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\TEMP\tmp2howdpy0
+2026-06-11 00:23:36,244 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-11 00:23:36,244 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-11 00:23:36,244 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\TEMP\tmp2howdpy0\empty.txt
+2026-06-11 00:23:36,244 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=0, backup=None
+2026-06-11 00:23:36,250 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,250 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,255 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,255 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,255 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周0 09:00)
+2026-06-11 00:23:36,260 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,260 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,260 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: interval_task (每60秒)
+2026-06-11 00:23:36,265 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,265 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,265 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周0 09:00)
+2026-06-11 00:23:36,269 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,270 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,270 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每0秒)
+2026-06-11 00:23:36,270 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-11 00:23:36,270 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test_task
+2026-06-11 00:23:36,275 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,275 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,275 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周0 00:00)
+2026-06-11 00:23:36,281 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,281 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,282 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每周None 00:00)
+2026-06-11 00:23:36,286 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,286 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,286 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-11 00:23:36,290 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:36,291 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:36,291 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每1秒)
+2026-06-11 00:23:38,299 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,299 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,299 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-11 00:23:38,304 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,304 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,310 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,311 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,311 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-11 00:23:38,311 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test_task
+2026-06-11 00:23:38,311 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test_task
+2026-06-11 00:23:38,316 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,316 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,316 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: failing_task (每60秒)
+2026-06-11 00:23:38,316 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: failing_task
+2026-06-11 00:23:38,316 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: failing_task, 错误: 任务执行失败
+2026-06-11 00:23:38,321 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,321 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,321 [    INFO] agent.task_scheduler: [TaskScheduler] 停止调度器
+2026-06-11 00:23:38,325 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-11 00:23:38,326 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-11 00:23:38,326 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-11 00:23:38,326 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-11 00:23:38,330 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-11 00:23:38,332 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-11 00:23:38,332 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-11 00:23:38,335 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-11 00:23:38,335 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-11 00:23:38,336 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: data\reports
+2026-06-11 00:23:38,336 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-11 00:23:38,336 [    INFO] agent.weekly_report_generator: 生成本周报告...
+2026-06-11 00:23:38,336 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-11 00:23:38,336 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-04 至 2026-06-11
+2026-06-11 00:23:38,337 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-11 00:23:38,339 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-11 00:23:38,346 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-11 00:23:38,346 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-11 00:23:38,347 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 176
+2026-06-11 00:23:38,347 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-11 00:23:38,347 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-11 00:23:38,347 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-11 00:23:38,347 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-11 00:23:38,347 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-11 00:23:38,347 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-11 00:23:38,348 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-11 00:23:38,348 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-11 00:23:38,348 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-04.json
+2026-06-11 00:23:38,349 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-04.json
+2026-06-11 00:23:38,349 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-04.html
+2026-06-11 00:23:38,350 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-04.html
+2026-06-11 00:23:38,350 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: data\reports\weekly_report_2026-06-04.text
+2026-06-11 00:23:38,351 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: data\reports\weekly_report_2026-06-04.text
+2026-06-11 00:23:38,351 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-11 00:23:38,354 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-11 00:23:38,354 [    INFO] agent.weekly_report_generator: 已保存 3 个文件:
+2026-06-11 00:23:38,354 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-04.json
+2026-06-11 00:23:38,354 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-04.html
+2026-06-11 00:23:38,354 [    INFO] agent.weekly_report_generator:   - data\reports\weekly_report_2026-06-04.text
+2026-06-11 00:23:38,355 [    INFO] agent.task_scheduler: [TaskScheduler] 周报生成完成: 3 个文件
+2026-06-11 00:23:38,361 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-11 00:23:38,361 [   ERROR] agent.task_scheduler: [TaskScheduler] 周报生成失败: 测试异常
+2026-06-11 00:23:38,365 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-11 00:23:38,367 [    INFO] agent.task_scheduler: [TaskScheduler] 日志清理完成
+2026-06-11 00:23:38,372 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-11 00:23:38,372 [   ERROR] agent.task_scheduler: [TaskScheduler] 日志清理失败: 测试异常
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:38,380 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:38,381 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:38,381 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:38,382 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:38,382 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:38,382 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:38,382 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:38,382 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:38,382 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:38,382 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:38,383 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:38,383 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:38,383 [    INFO] agent.digital_life_v2:   初始化耗时: 4.03ms
+2026-06-11 00:23:38,383 [    INFO] agent.digital_life_v2:   会话:    20260611_002338
+2026-06-11 00:23:38,383 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:38,389 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:38,390 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:38,390 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:38,390 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:38,390 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:38,390 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:38,390 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:38,391 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:38,391 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:38,391 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:38,391 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:38,391 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:38,391 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:38,391 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:38,391 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:38,392 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:38,392 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:38,392 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:38,392 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:38,392 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:38,392 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:38,392 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:38,392 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:38,393 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:38,393 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:38,393 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:38,394 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:38,394 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:38,394 [    INFO] agent.digital_life_v2:   初始化耗时: 5.60ms
+2026-06-11 00:23:38,394 [    INFO] agent.digital_life_v2:   会话:    20260611_002338
+2026-06-11 00:23:38,394 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:38,395 [    INFO] agent.digital_life_v2: [P5] 首次访问 LifeTrace，执行懒加载初始化
+2026-06-11 00:23:38,937 [    INFO] lifetrace.memory_tree: 已加载记忆树 sources，共 2061 个节点
+2026-06-11 00:23:39,003 [    INFO] lifetrace.memory_tree: 已加载记忆树 topics，共 253 个节点
+2026-06-11 00:23:39,003 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-11 00:23:39,004 [    INFO] agent.digital_life_v2: [P5] LifeTrace 系统初始化完成，耗时: 608.67ms
+2026-06-11 00:23:40,085 [    INFO] agent.digital_life_v2: * 云枢 v2.0 已觉醒！感知神经全面激活。
+2026-06-11 00:23:41,292 [    INFO] agent.digital_life_v2: * 云枢正在休眠...
+2026-06-11 00:23:41,298 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:41,298 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:41,298 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:41,298 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:41,298 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:41,299 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:41,299 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:41,299 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:41,299 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:41,299 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:41,299 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:41,300 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:41,300 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:41,300 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:41,300 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:41,300 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:41,300 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:41,300 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:41,301 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:41,301 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:41,301 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:41,301 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:41,301 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:41,301 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:41,301 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:41,301 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:41,302 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:41,302 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:41,303 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:41,303 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:41,303 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:41,304 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:41,304 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:41,304 [    INFO] agent.digital_life_v2:   初始化耗时: 5.00ms
+2026-06-11 00:23:41,304 [    INFO] agent.digital_life_v2:   会话:    20260611_002341
+2026-06-11 00:23:41,304 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:41,313 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:41,313 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:41,314 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:41,314 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:41,314 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:41,314 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:41,314 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:41,314 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:41,314 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:41,314 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:41,314 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:41,315 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:41,315 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:41,315 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:41,315 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:41,315 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:41,315 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:41,315 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:41,316 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:41,316 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:41,316 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:41,316 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:41,316 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:41,316 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:41,316 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:41,317 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:41,317 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:41,317 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:41,317 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:41,317 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:41,317 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:41,317 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:41,318 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:41,318 [    INFO] agent.digital_life_v2:   初始化耗时: 4.08ms
+2026-06-11 00:23:41,318 [    INFO] agent.digital_life_v2:   会话:    20260611_002341
+2026-06-11 00:23:41,318 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:41,319 [    INFO] agent.digital_life_v2: [P5] 首次访问 LifeTrace，执行懒加载初始化
+2026-06-11 00:23:41,920 [    INFO] lifetrace.memory_tree: 已加载记忆树 sources，共 2063 个节点
+2026-06-11 00:23:41,997 [    INFO] lifetrace.memory_tree: 已加载记忆树 topics，共 253 个节点
+2026-06-11 00:23:41,998 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-11 00:23:41,998 [    INFO] agent.digital_life_v2: [P5] LifeTrace 系统初始化完成，耗时: 678.61ms
+2026-06-11 00:23:43,167 [    INFO] agent.digital_life_v2: * 云枢 v2.0 已觉醒！感知神经全面激活。
+2026-06-11 00:23:43,168 [    INFO] agent.digital_life_v2: [P5] 首次访问 Persona，执行懒加载初始化
+2026-06-11 00:23:43,171 [    INFO] persona.persona_model: PersonaModel 初始化完成
+2026-06-11 00:23:43,175 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-11 00:23:43,175 [    INFO] agent.digital_life_v2: [P5] Persona 系统初始化完成，耗时: 7.00ms
+2026-06-11 00:23:43,175 [    INFO] agent.digital_life_v2: [P5] 首次访问 MemoryManager，执行懒加载初始化
+2026-06-11 00:23:43,175 [ WARNING] memory.memory_manager: 未配置 LLM API Key，摘要功能不可用
+2026-06-11 00:23:43,175 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-11 00:23:43,176 [    INFO] memory.storage: [Storage] 数据目录: memory_data
+2026-06-11 00:23:43,176 [    INFO] memory.storage: [Storage] 消息文件: memory_data\messages.jsonl
+2026-06-11 00:23:43,176 [    INFO] memory.storage: [Storage] 摘要文件: memory_data\summary.txt
+2026-06-11 00:23:43,176 [    INFO] memory.storage: [Storage] 版本文件: memory_data\summary_version.txt
+2026-06-11 00:23:43,176 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-11 00:23:43,176 [    INFO] memory.black_box: [BlackBox] __init__ 开始初始化
+2026-06-11 00:23:43,177 [    INFO] memory.black_box: [BlackBox] 日志目录: memory_data\blackbox
+2026-06-11 00:23:43,177 [    INFO] memory.black_box: [BlackBox] 单个文件最大: 10485760 字节
+2026-06-11 00:23:43,177 [    INFO] memory.black_box: [BlackBox] 最大文件数: 10
+2026-06-11 00:23:43,177 [    INFO] memory.black_box: 安全工具模块已加载
+2026-06-11 00:23:43,177 [    INFO] memory.black_box: [BlackBox] 初始化加密模块
+2026-06-11 00:23:43,178 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:43,183 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-11 00:23:43,183 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=MVktdlBvR2tMQm85UTZkcmpsMUVFOEQ4OEluMF9xRm94eHRneTNGVy1COD0=
+2026-06-11 00:23:43,183 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:43,183 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-11 00:23:43,183 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-11 00:23:43,184 [    INFO] memory.black_box: [BlackBox] 加密模块已初始化
+2026-06-11 00:23:43,184 [    INFO] memory.black_box:   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:43,184 [    INFO] memory.black_box:   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:43,184 [    INFO] memory.black_box: [BlackBox] __init__ 初始化完成
+2026-06-11 00:23:43,188 [    INFO] memory.memory_manager: MemoryManager 初始化完成
+2026-06-11 00:23:43,189 [    INFO] agent.digital_life_v2: [P5] MemoryManager 系统初始化完成，耗时: 13.00ms
+2026-06-11 00:23:43,189 [    INFO] agent.digital_life_v2: [P5] 首次访问 PromptInjector，执行懒加载初始化
+2026-06-11 00:23:43,189 [ WARNING] memory.memory_manager: 后台压缩任务已启动
+2026-06-11 00:23:43,190 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-06-11 00:23:43,191 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-11 00:23:43,194 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-06-11 00:23:43,194 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-11 00:23:43,194 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-06-11 00:23:43,194 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-11 00:23:43,195 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-06-10T16:23:43.195393+00:00
+2026-06-11 00:23:43,195 [    INFO] agent.digital_life_v2: [P5] PromptInjector 系统初始化完成，耗时: 6.00ms
+2026-06-11 00:23:43,195 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-06-11 00:23:45,735 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-11 00:23:45,736 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: memory_data\messages.jsonl
+2026-06-11 00:23:45,736 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-11 00:23:45,737 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-10T16:23:45.735425+00:00
+2026-06-11 00:23:46,102 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 200 条消息
+2026-06-11 00:23:46,102 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: memory_data\messages.jsonl
+2026-06-11 00:23:46,107 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 1269 行
+2026-06-11 00:23:46,108 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 200 条消息
+2026-06-11 00:23:46,142 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-11 00:23:46,143 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: memory_data\messages.jsonl
+2026-06-11 00:23:46,143 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-11 00:23:46,143 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-10T16:23:46.142503+00:00
+2026-06-11 00:23:46,144 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 200 条消息
+2026-06-11 00:23:46,145 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: memory_data\messages.jsonl
+2026-06-11 00:23:46,149 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 1270 行
+2026-06-11 00:23:46,150 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 200 条消息
+2026-06-11 00:23:46,192 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:46,193 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:46,193 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:46,194 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:46,194 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:46,194 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:46,194 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:46,194 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:46,194 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:46,194 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:46,195 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:46,195 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:46,195 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:46,195 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:46,195 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:46,195 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:46,195 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:46,196 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:46,196 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:46,196 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:46,196 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:46,196 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:46,196 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:46,197 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:46,197 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2:   初始化耗时: 6.52ms
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2:   会话:    20260611_002346
+2026-06-11 00:23:46,198 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,199 [    INFO] agent.digital_life_v2: [P5] 首次访问 LifeTrace，执行懒加载初始化
+2026-06-11 00:23:46,772 [    INFO] lifetrace.memory_tree: 已加载记忆树 sources，共 2066 个节点
+2026-06-11 00:23:46,841 [    INFO] lifetrace.memory_tree: 已加载记忆树 topics，共 253 个节点
+2026-06-11 00:23:46,841 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-11 00:23:46,842 [    INFO] agent.digital_life_v2: [P5] LifeTrace 系统初始化完成，耗时: 642.86ms
+2026-06-11 00:23:46,848 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:46,849 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:46,849 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:46,849 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:46,849 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:46,849 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:46,850 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:46,850 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:46,850 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:46,850 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:46,850 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:46,850 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:46,850 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:46,851 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:46,851 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:46,851 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:46,851 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:46,851 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:46,851 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:46,851 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:46,852 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:46,852 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:46,852 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:46,852 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:46,852 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:46,852 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:46,852 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:46,852 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:46,854 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:46,854 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:46,854 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:46,854 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,855 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:46,855 [    INFO] agent.digital_life_v2:   初始化耗时: 6.04ms
+2026-06-11 00:23:46,855 [    INFO] agent.digital_life_v2:   会话:    20260611_002346
+2026-06-11 00:23:46,855 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,860 [    INFO] agent.digital_life_v2: [P5] 懒加载初始化: test
+2026-06-11 00:23:46,861 [    INFO] agent.digital_life_v2: [P5] test 初始化完成，耗时: 0.00ms
+2026-06-11 00:23:46,865 [    INFO] agent.digital_life_v2: [P5] 懒加载初始化: test
+2026-06-11 00:23:46,866 [    INFO] agent.digital_life_v2: [P5] test 初始化完成，耗时: 0.00ms
+2026-06-11 00:23:46,880 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:46,880 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:46,880 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:46,880 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:46,881 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:46,881 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:46,881 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:46,881 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:46,881 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:46,881 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:46,881 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:46,882 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:46,882 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:46,882 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:46,882 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:46,882 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:46,882 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:46,882 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:46,883 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:46,883 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:46,883 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:46,883 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:46,883 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:46,883 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:46,883 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:46,884 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:46,884 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:46,884 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:46,884 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2:   初始化耗时: 3.98ms
+2026-06-11 00:23:46,884 [    INFO] agent.digital_life_v2:   会话:    20260611_002346
+2026-06-11 00:23:46,886 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:46,886 [    INFO] agent.digital_life_v2: [P5] 首次访问 LifeTrace，执行懒加载初始化
+2026-06-11 00:23:47,517 [    INFO] lifetrace.memory_tree: 已加载记忆树 sources，共 2066 个节点
+2026-06-11 00:23:47,585 [    INFO] lifetrace.memory_tree: 已加载记忆树 topics，共 253 个节点
+2026-06-11 00:23:47,586 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-11 00:23:47,586 [    INFO] agent.digital_life_v2: [P5] LifeTrace 系统初始化完成，耗时: 700.27ms
+2026-06-11 00:23:47,586 [    INFO] agent.digital_life_v2: [P5] 首次访问 MemoryManager，执行懒加载初始化
+2026-06-11 00:23:47,586 [ WARNING] memory.memory_manager: 未配置 LLM API Key，摘要功能不可用
+2026-06-11 00:23:47,586 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-11 00:23:47,586 [    INFO] memory.storage: [Storage] 数据目录: memory_data
+2026-06-11 00:23:47,587 [    INFO] memory.storage: [Storage] 消息文件: memory_data\messages.jsonl
+2026-06-11 00:23:47,587 [    INFO] memory.storage: [Storage] 摘要文件: memory_data\summary.txt
+2026-06-11 00:23:47,587 [    INFO] memory.storage: [Storage] 版本文件: memory_data\summary_version.txt
+2026-06-11 00:23:47,587 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-11 00:23:47,587 [    INFO] memory.black_box: [BlackBox] __init__ 开始初始化
+2026-06-11 00:23:47,587 [    INFO] memory.black_box: [BlackBox] 日志目录: memory_data\blackbox
+2026-06-11 00:23:47,587 [    INFO] memory.black_box: [BlackBox] 单个文件最大: 10485760 字节
+2026-06-11 00:23:47,588 [    INFO] memory.black_box: [BlackBox] 最大文件数: 10
+2026-06-11 00:23:47,588 [    INFO] memory.black_box: [BlackBox] 初始化加密模块
+2026-06-11 00:23:47,588 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,591 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-11 00:23:47,591 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=VUhMN0JCRU1ySXZOWVRuLWhzZV9JbjZrWWpzRDR6ckY0a3VMblhJbFJiYz0=
+2026-06-11 00:23:47,592 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,592 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-11 00:23:47,592 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-11 00:23:47,592 [    INFO] memory.black_box: [BlackBox] 加密模块已初始化
+2026-06-11 00:23:47,592 [    INFO] memory.black_box:   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,592 [    INFO] memory.black_box:   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,592 [    INFO] memory.black_box: [BlackBox] __init__ 初始化完成
+2026-06-11 00:23:47,595 [ WARNING] memory.memory_manager: 后台压缩任务已启动
+2026-06-11 00:23:47,595 [    INFO] memory.memory_manager: MemoryManager 初始化完成
+2026-06-11 00:23:47,595 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-06-11 00:23:47,595 [    INFO] agent.digital_life_v2: [P5] MemoryManager 系统初始化完成，耗时: 8.81ms
+2026-06-11 00:23:47,599 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-06-11 00:23:47,599 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-06-11 00:23:47,599 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-06-10T16:23:47.599985+00:00
+2026-06-11 00:23:47,600 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-06-11 00:23:47,849 [    INFO] agent.digital_life_v2: 反思完成 (#1): （未接入 LLM，反思功能受限）...
+2026-06-11 00:23:47,868 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,868 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,869 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,869 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,869 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,869 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,869 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,869 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,869 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,870 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,870 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,870 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,870 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,870 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,870 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,870 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,871 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,871 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,871 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,871 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,871 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,871 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,871 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,872 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,872 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,872 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,872 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,872 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,874 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,874 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,874 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,874 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,875 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,875 [    INFO] agent.digital_life_v2:   初始化耗时: 6.00ms
+2026-06-11 00:23:47,875 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,875 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,883 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,884 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,884 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,884 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,884 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,884 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,884 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,884 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,885 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,885 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,885 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,885 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,885 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,885 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,885 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,885 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,886 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,886 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,886 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,886 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,886 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,886 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,886 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,887 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2:   初始化耗时: 5.00ms
+2026-06-11 00:23:47,887 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,888 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,888 [    INFO] agent.digital_life_v2: [P5] 首次访问 MemoryManager，执行懒加载初始化
+2026-06-11 00:23:47,888 [ WARNING] memory.memory_manager: 未配置 LLM API Key，摘要功能不可用
+2026-06-11 00:23:47,888 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-11 00:23:47,888 [    INFO] memory.storage: [Storage] 数据目录: memory_data
+2026-06-11 00:23:47,889 [    INFO] memory.storage: [Storage] 消息文件: memory_data\messages.jsonl
+2026-06-11 00:23:47,889 [    INFO] memory.storage: [Storage] 摘要文件: memory_data\summary.txt
+2026-06-11 00:23:47,889 [    INFO] memory.storage: [Storage] 版本文件: memory_data\summary_version.txt
+2026-06-11 00:23:47,889 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-11 00:23:47,889 [    INFO] memory.black_box: [BlackBox] __init__ 开始初始化
+2026-06-11 00:23:47,889 [    INFO] memory.black_box: [BlackBox] 日志目录: memory_data\blackbox
+2026-06-11 00:23:47,890 [    INFO] memory.black_box: [BlackBox] 单个文件最大: 10485760 字节
+2026-06-11 00:23:47,890 [    INFO] memory.black_box: [BlackBox] 最大文件数: 10
+2026-06-11 00:23:47,890 [    INFO] memory.black_box: [BlackBox] 初始化加密模块
+2026-06-11 00:23:47,891 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,893 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-11 00:23:47,894 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=UnZhM044aXRpSWZBODhYc1ZLWmJBZzVZSE9DdEFTZElTcC1GdHIxemRNUT0=
+2026-06-11 00:23:47,894 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,894 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-11 00:23:47,894 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-11 00:23:47,894 [    INFO] memory.black_box: [BlackBox] 加密模块已初始化
+2026-06-11 00:23:47,894 [    INFO] memory.black_box:   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,894 [    INFO] memory.black_box:   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,895 [    INFO] memory.black_box: [BlackBox] __init__ 初始化完成
+2026-06-11 00:23:47,897 [ WARNING] memory.memory_manager: 后台压缩任务已启动
+2026-06-11 00:23:47,897 [    INFO] memory.memory_manager: MemoryManager 初始化完成
+2026-06-11 00:23:47,897 [    INFO] agent.digital_life_v2: [P5] MemoryManager 系统初始化完成，耗时: 9.00ms
+2026-06-11 00:23:47,898 [    INFO] agent.digital_life_v2: 反思完成 (#0): （未接入 LLM，反思功能受限）...
+2026-06-11 00:23:47,898 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-06-11 00:23:47,905 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,905 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-06-11 00:23:47,906 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,906 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-06-11 00:23:47,906 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,906 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-06-10T16:23:47.906307+00:00
+2026-06-11 00:23:47,907 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,907 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-06-11 00:23:47,907 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,907 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,908 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,908 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,908 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,908 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,908 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,908 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,908 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,909 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,909 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,909 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,909 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,909 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,909 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,909 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,910 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,910 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,910 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,910 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,910 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,910 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,910 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,910 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,910 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,910 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,910 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2:   初始化耗时: 5.55ms
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,911 [    INFO] agent.digital_life_v2: [P5] 首次访问 Persona，执行懒加载初始化
+2026-06-11 00:23:47,912 [    INFO] persona.persona_model: PersonaModel 初始化完成
+2026-06-11 00:23:47,912 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-11 00:23:47,913 [    INFO] agent.digital_life_v2: [P5] Persona 系统初始化完成，耗时: 0.00ms
+2026-06-11 00:23:47,913 [    INFO] agent.digital_life_v2: [P5] 首次访问 MemoryManager，执行懒加载初始化
+2026-06-11 00:23:47,913 [ WARNING] memory.memory_manager: 未配置 LLM API Key，摘要功能不可用
+2026-06-11 00:23:47,913 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-11 00:23:47,913 [    INFO] memory.storage: [Storage] 数据目录: memory_data
+2026-06-11 00:23:47,913 [    INFO] memory.storage: [Storage] 消息文件: memory_data\messages.jsonl
+2026-06-11 00:23:47,913 [    INFO] memory.storage: [Storage] 摘要文件: memory_data\summary.txt
+2026-06-11 00:23:47,914 [    INFO] memory.storage: [Storage] 版本文件: memory_data\summary_version.txt
+2026-06-11 00:23:47,914 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-11 00:23:47,914 [    INFO] memory.black_box: [BlackBox] __init__ 开始初始化
+2026-06-11 00:23:47,914 [    INFO] memory.black_box: [BlackBox] 日志目录: memory_data\blackbox
+2026-06-11 00:23:47,914 [    INFO] memory.black_box: [BlackBox] 单个文件最大: 10485760 字节
+2026-06-11 00:23:47,914 [    INFO] memory.black_box: [BlackBox] 最大文件数: 10
+2026-06-11 00:23:47,915 [    INFO] memory.black_box: [BlackBox] 初始化加密模块
+2026-06-11 00:23:47,915 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,917 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-11 00:23:47,918 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=RXBzM0NCMk9oRUJveWY0SUdCOWJpYzNLaXZHSWJ3NGJPX1NfODc2WGxHWT0=
+2026-06-11 00:23:47,918 [ WARNING] agent.security_utils: ======================================================================
+2026-06-11 00:23:47,918 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-11 00:23:47,918 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-11 00:23:47,918 [    INFO] memory.black_box: [BlackBox] 加密模块已初始化
+2026-06-11 00:23:47,918 [    INFO] memory.black_box:   - 加密字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,918 [    INFO] memory.black_box:   - 脱敏字段: ['data', 'user_input', 'response', 'content', 'message']
+2026-06-11 00:23:47,919 [    INFO] memory.black_box: [BlackBox] __init__ 初始化完成
+2026-06-11 00:23:47,921 [ WARNING] memory.memory_manager: 后台压缩任务已启动
+2026-06-11 00:23:47,921 [    INFO] memory.memory_manager: MemoryManager 初始化完成
+2026-06-11 00:23:47,921 [    INFO] agent.digital_life_v2: [P5] MemoryManager 系统初始化完成，耗时: 8.00ms
+2026-06-11 00:23:47,921 [    INFO] agent.digital_life_v2: [P5] 首次访问 PromptInjector，执行懒加载初始化
+2026-06-11 00:23:47,921 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-06-11 00:23:47,922 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-11 00:23:47,922 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-11 00:23:47,924 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-06-11 00:23:47,924 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-11 00:23:47,924 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-06-11 00:23:47,924 [    INFO] agent.digital_life_v2: [P5] PromptInjector 系统初始化完成，耗时: 2.97ms
+2026-06-11 00:23:47,925 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-06-10T16:23:47.925909+00:00
+2026-06-11 00:23:47,926 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-06-11 00:23:47,932 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,933 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,934 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,934 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,934 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,934 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,934 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,934 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,934 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,935 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,935 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,935 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,935 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,935 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,935 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,935 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,936 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,936 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,936 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,936 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,936 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,936 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,936 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,937 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2:   初始化耗时: 5.00ms
+2026-06-11 00:23:47,937 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,938 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,943 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,944 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,945 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,945 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,945 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,945 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,945 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,945 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,945 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,946 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,946 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,946 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,946 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,946 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,946 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,946 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,947 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,947 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,947 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,947 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,947 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,947 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,947 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,948 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2:   初始化耗时: 5.00ms
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,948 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,957 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:47,957 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:47,957 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:47,957 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:47,957 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:47,958 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:47,958 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:47,958 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:47,958 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:47,958 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:47,958 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:47,959 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:47,959 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:47,959 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:47,959 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:47,959 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:47,959 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:47,959 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:47,959 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:47,960 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:47,960 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:47,960 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:47,960 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:47,960 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:47,960 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:47,960 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:47,961 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:47,961 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:47,961 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:47,961 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:47,961 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:47,961 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,961 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:47,962 [    INFO] agent.digital_life_v2:   初始化耗时: 4.00ms
+2026-06-11 00:23:47,962 [    INFO] agent.digital_life_v2:   会话:    20260611_002347
+2026-06-11 00:23:47,962 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:47,962 [    INFO] agent.digital_life_v2: [P5] 首次访问 LifeTrace，执行懒加载初始化
+2026-06-11 00:23:48,997 [    INFO] lifetrace.memory_tree: 已加载记忆树 sources，共 2066 个节点
+2026-06-11 00:23:49,065 [    INFO] lifetrace.memory_tree: 已加载记忆树 topics，共 255 个节点
+2026-06-11 00:23:49,066 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-11 00:23:49,066 [    INFO] agent.digital_life_v2: [P5] LifeTrace 系统初始化完成，耗时: 1104.23ms
+2026-06-11 00:23:49,066 [    INFO] agent.digital_life_v2: [P5] 首次访问 Persona，执行懒加载初始化
+2026-06-11 00:23:49,066 [    INFO] persona.persona_model: PersonaModel 初始化完成
+2026-06-11 00:23:49,067 [    INFO] persona.distiller: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-11 00:23:49,067 [    INFO] agent.digital_life_v2: [P5] Persona 系统初始化完成，耗时: 1.00ms
+2026-06-11 00:23:49,067 [    INFO] agent.digital_life_v2: 开始人格蒸馏（交互 #0）
+2026-06-11 00:23:49,071 [    INFO] agent.digital_life_v2: 偏好提取完成
+2026-06-11 00:23:49,074 [    INFO] persona.distiller: 已加载历史记录，共 836 条
+2026-06-11 00:23:49,074 [    INFO] persona.distiller: 开始人格蒸馏，策略: balanced
+2026-06-11 00:23:49,074 [    INFO] persona.persona_model: 更新表达风格: conciseness = 0.76
+2026-06-11 00:23:49,074 [   ERROR] persona.distiller: 人格蒸馏失败: 'PersonaModel' object has no attribute 'calculate_similarity'
+2026-06-11 00:23:49,075 [ WARNING] agent.digital_life_v2: PersonaDistiller 蒸馏未成功
+2026-06-11 00:23:49,081 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:49,081 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:49,081 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:49,081 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:49,081 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:49,082 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:49,082 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:49,082 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:49,082 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:49,082 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:49,082 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:49,082 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:49,083 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:49,083 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:49,083 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:49,083 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:49,083 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:49,083 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:49,083 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:49,084 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:49,084 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:49,084 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:49,084 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:49,084 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:49,084 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:49,084 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:49,084 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:49,085 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:49,086 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:49,086 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:49,087 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:49,087 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,087 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:49,087 [    INFO] agent.digital_life_v2:   初始化耗时: 6.00ms
+2026-06-11 00:23:49,088 [    INFO] agent.digital_life_v2:   会话:    20260611_002349
+2026-06-11 00:23:49,088 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,088 [    INFO] agent.digital_life_v2: 开始人格蒸馏（交互 #0）
+2026-06-11 00:23:49,094 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:49,094 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:49,095 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:49,095 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:49,095 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:49,095 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:49,096 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:49,096 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:49,096 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:49,096 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:49,096 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:49,096 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:49,096 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:49,097 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:49,097 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:49,097 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:49,097 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:49,097 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:49,097 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:49,097 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:49,098 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:49,098 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:49,098 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:49,098 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:49,098 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:49,099 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:49,099 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:49,099 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:49,099 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:49,099 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:49,099 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:49,099 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,100 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:49,100 [    INFO] agent.digital_life_v2:   初始化耗时: 4.38ms
+2026-06-11 00:23:49,100 [    INFO] agent.digital_life_v2:   会话:    20260611_002349
+2026-06-11 00:23:49,100 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,101 [    INFO] agent.digital_life_v2: 开始人格蒸馏（交互 #10）
+2026-06-11 00:23:49,101 [    INFO] agent.digital_life_v2: 偏好提取完成
+2026-06-11 00:23:49,102 [    INFO] agent.digital_life_v2: PersonaDistiller 未启用，仅完成偏好提取
+2026-06-11 00:23:49,108 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:49,108 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:49,109 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:49,109 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:49,109 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:49,109 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:49,109 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:49,109 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:49,109 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:49,110 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:49,110 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:49,110 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:49,110 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:49,110 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:49,110 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:49,110 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:49,111 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:49,111 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:49,111 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:49,111 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:49,111 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:49,111 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:49,111 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:49,112 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:49,112 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:49,112 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:49,112 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:49,112 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:49,112 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:49,112 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:49,112 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:49,113 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,113 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:49,113 [    INFO] agent.digital_life_v2:   初始化耗时: 4.69ms
+2026-06-11 00:23:49,113 [    INFO] agent.digital_life_v2:   会话:    20260611_002349
+2026-06-11 00:23:49,113 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,123 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:49,124 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:49,125 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:49,125 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:49,125 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:49,125 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:49,126 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:49,126 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:49,126 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:49,126 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:49,126 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:49,126 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:49,126 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:49,126 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:49,127 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:49,127 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:49,127 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:49,127 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:49,127 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:49,127 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:49,127 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:49,128 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:49,128 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:49,128 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:49,128 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:49,128 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:49,128 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,128 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:49,129 [    INFO] agent.digital_life_v2:   初始化耗时: 4.61ms
+2026-06-11 00:23:49,129 [    INFO] agent.digital_life_v2:   会话:    20260611_002349
+2026-06-11 00:23:49,129 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,137 [    INFO] agent.digital_life_v2: [ok] 身体（BodySensor）已激活（懒加载模式）
+2026-06-11 00:23:49,137 [    INFO] agent.digital_life_v2: [P5] 配置 LifeTrace（懒加载模式）
+2026-06-11 00:23:49,137 [    INFO] agent.digital_life_v2: [P5] 配置 Persona（懒加载模式）
+2026-06-11 00:23:49,137 [    INFO] agent.digital_life_v2: [P5] 配置 MemoryManager（懒加载模式）
+2026-06-11 00:23:49,138 [    INFO] agent.digital_life_v2: [P5] 配置 PromptInjector（懒加载模式）
+2026-06-11 00:23:49,138 [    INFO] agent.digital_life_v2: [ok] 本能（BehaviorController）已激活
+2026-06-11 00:23:49,138 [    INFO] agent.digital_life_v2: [ok] 道德（PermissionSystem）已激活
+2026-06-11 00:23:49,138 [ WARNING] agent.tools: 工具 'check_health' 已存在，将被覆盖
+2026-06-11 00:23:49,138 [    INFO] agent.tools: 工具注册: check_health — 检查我的身体状态
+2026-06-11 00:23:49,138 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-11 00:23:49,138 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-11 00:23:49,139 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-11 00:23:49,139 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆（使用 LifeTrace）
+2026-06-11 00:23:49,139 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-11 00:23:49,139 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-11 00:23:49,139 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-11 00:23:49,139 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-11 00:23:49,139 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-11 00:23:49,140 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-11 00:23:49,140 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-11 00:23:49,140 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-11 00:23:49,140 [ WARNING] agent.tools: 工具 'set_distillation_strategy' 已存在，将被覆盖
+2026-06-11 00:23:49,140 [    INFO] agent.tools: 工具注册: set_distillation_strategy — 设置人格蒸馏策略 (conservative/balanced/aggressive/custom)
+2026-06-11 00:23:49,140 [ WARNING] agent.tools: 工具 'get_distillation_report' 已存在，将被覆盖
+2026-06-11 00:23:49,140 [    INFO] agent.tools: 工具注册: get_distillation_report — 获取人格蒸馏评估报告
+2026-06-11 00:23:49,141 [ WARNING] agent.tools: 工具 'auto_tune_distiller' 已存在，将被覆盖
+2026-06-11 00:23:49,141 [    INFO] agent.tools: 工具注册: auto_tune_distiller — 基于反馈自动调整蒸馏器参数 (feedback: 0-1 分)
+2026-06-11 00:23:49,141 [ WARNING] agent.tools: 工具 'rollback_persona' 已存在，将被覆盖
+2026-06-11 00:23:49,141 [    INFO] agent.tools: 工具注册: rollback_persona — 回滚人格到指定快照
+2026-06-11 00:23:49,141 [    INFO] agent.digital_life_v2: 已注册 11 个内置工具
+2026-06-11 00:23:49,141 [    INFO] agent.digital_life_v2: [ok] 工具（Tool System）已激活
+2026-06-11 00:23:49,141 [    INFO] agent.digital_life_v2: ==================================================
+2026-06-11 00:23:49,142 [    INFO] agent.digital_life_v2:   云枢 v2.0 启动配置 (P5 懒加载优化):
+2026-06-11 00:23:49,142 [    INFO] agent.digital_life_v2:   初始化耗时: 3.97ms
+2026-06-11 00:23:49,142 [    INFO] agent.digital_life_v2:   会话:    20260611_002349
+2026-06-11 00:23:49,142 [    INFO] agent.digital_life_v2: ==================================================

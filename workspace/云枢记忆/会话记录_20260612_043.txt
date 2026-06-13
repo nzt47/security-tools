@@ -1,0 +1,35 @@
+=============================================
+  会话记录 #43
+=============================================
+
+🕒 时间：2026年06月12日 21:00
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+扩展注册表在哪个位置？文件名是什么？
+
+🤖 云枢：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="list_directory">
+<｜｜DSML｜｜parameter name="path" string="true">C:\Users\Administrator\agent\agent\extensions</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+<｜｜DSML｜｜invoke name="search_files">
+<｜｜DSML｜｜parameter name="pattern" string="true">**/*ext*registry*</｜｜DSML｜｜parameter>
+<｜｜DSML｜｜parameter name="root_path" string="true">C:\Users\Administrator\agent\agent</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.12 21:00
+=============================================
+

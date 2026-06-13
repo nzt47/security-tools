@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_639_20260605131213",
+  "content": "你好世界！🎉🌍 你叫什么名字？αβγδ",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 1,
+    "timestamp": "2026-06-05T05:12:13.741084+00:00"
+  },
+  "created_at": "2026-06-05T13:12:13.741084",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

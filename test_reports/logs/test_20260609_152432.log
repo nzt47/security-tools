@@ -1,0 +1,130 @@
+2026-06-09 15:24:33,445 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-09 15:24:33,453 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-09 15:24:33,456 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-09 15:24:33,459 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-09 15:24:33,478 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-09 15:24:33,481 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-09 15:24:33,482 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-09 15:24:33,483 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-09 15:24:33,486 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-09 15:24:33,498 [    INFO] agent.error_handler: Error handler initialized
+2026-06-09 15:24:33,499 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-09 15:24:33,499 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-09 15:24:33,500 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-09 15:24:33,518 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-09 15:24:33,525 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-09 15:24:33,525 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,530 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,530 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-09 15:24:33,530 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-09 15:24:33,530 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-09 15:24:33,530 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-09 15:24:33,531 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-09 15:24:33,531 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-09 15:24:33,683 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-09 15:24:33,696 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-09 15:24:33,702 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-09 15:24:33,707 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-09 15:24:33,740 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-09 15:24:33,745 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-09 15:24:33,747 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-09 15:24:33,748 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-09 15:24:33,752 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-09 15:24:33,774 [    INFO] agent.error_handler: Error handler initialized
+2026-06-09 15:24:33,775 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-09 15:24:33,776 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-09 15:24:33,778 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-09 15:24:33,804 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-09 15:24:33,814 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-09 15:24:33,814 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,817 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,818 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-09 15:24:33,818 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-09 15:24:33,818 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-09 15:24:33,818 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-09 15:24:33,819 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-09 15:24:33,819 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-09 15:24:33,855 [    INFO] agent.task_scheduler: [TaskScheduler] 加载定时任务调度器
+2026-06-09 15:24:33,907 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,907 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,912 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,913 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,913 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_cron (每周0 09:30)
+2026-06-09 15:24:33,918 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,918 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,918 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_interval (每60秒)
+2026-06-09 15:24:33,923 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,923 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,927 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,928 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,933 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,933 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,937 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,938 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,943 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,943 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,947 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,948 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,952 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,952 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,953 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-09 15:24:33,954 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test
+2026-06-09 15:24:33,958 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,958 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,958 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-09 15:24:33,959 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: test, 错误: 测试错误
+2026-06-09 15:24:33,963 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,963 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,968 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,968 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,968 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每周1 15:24)
+2026-06-09 15:24:33,968 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-09 15:24:33,969 [    INFO] agent.task_scheduler: [TaskScheduler] 任务完成: test
+2026-06-09 15:24:33,973 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,973 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,974 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test1 (每60秒)
+2026-06-09 15:24:33,974 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test2 (每周0 09:00)
+2026-06-09 15:24:33,981 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,981 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,982 [    INFO] agent.task_scheduler: [TaskScheduler] 停止调度器
+2026-06-09 15:24:33,990 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,990 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,990 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-09 15:24:33,990 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-09 15:24:33,995 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:33,995 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:33,995 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (每周0 09:00)
+2026-06-09 15:24:33,995 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (每周None 02:00)
+2026-06-09 15:24:34,002 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-09 15:24:34,003 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-09 15:24:34,003 [    INFO] agent.task_scheduler: [TaskScheduler] 周报生成完成: 2 个文件
+2026-06-09 15:24:34,008 [    INFO] agent.task_scheduler: [TaskScheduler] 生成周报任务
+2026-06-09 15:24:34,009 [   ERROR] agent.task_scheduler: [TaskScheduler] 周报生成失败: 生成失败
+2026-06-09 15:24:34,016 [    INFO] agent.task_scheduler: [TaskScheduler] 清理旧日志任务
+2026-06-09 15:24:34,018 [    INFO] agent.task_scheduler: [TaskScheduler] 日志清理完成
+2026-06-09 15:24:34,024 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:34,025 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:34,025 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_full (每周1 10:30)
+2026-06-09 15:24:34,029 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:34,030 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:34,030 [    INFO] agent.task_scheduler: [TaskScheduler] 执行任务: test
+2026-06-09 15:24:34,030 [   ERROR] agent.task_scheduler: [TaskScheduler] 任务失败: test, 错误: 测试异常
+2026-06-09 15:24:34,035 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化调度器
+2026-06-09 15:24:34,035 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-09 15:24:34,035 [    INFO] agent.task_scheduler: [TaskScheduler] 启动调度器 (检查间隔: 60秒)

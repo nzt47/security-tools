@@ -1,0 +1,137 @@
+2026-06-07 17:19:15,959 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-07 17:19:15,984 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-07 17:19:15,992 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-07 17:19:16,000 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-07 17:19:16,038 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-07 17:19:16,044 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-07 17:19:16,046 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-07 17:19:16,047 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-07 17:19:16,054 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-07 17:19:16,085 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 17:19:16,085 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-07 17:19:16,087 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-07 17:19:16,091 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-07 17:19:16,341 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-07 17:19:16,350 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-07 17:19:16,351 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:19:16,360 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:19:16,361 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-07 17:19:16,361 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-07 17:19:16,361 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-07 17:19:16,361 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-07 17:19:16,361 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-07 17:19:16,362 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-07 17:19:16,363 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-07 17:19:16,516 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 17:19:16,517 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,518 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,518 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,518 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,518 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,519 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,520 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,520 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,520 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,520 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,521 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,521 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,521 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,521 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,521 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,522 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,522 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,522 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,523 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,523 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,523 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,524 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,524 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,524 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,524 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,525 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,525 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,525 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,526 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,526 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,526 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,526 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,527 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,527 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,527 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,527 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,528 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,528 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,528 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,529 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,529 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,529 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,529 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,530 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,530 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,530 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,530 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,531 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,531 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,531 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,532 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,532 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,532 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,532 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,533 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,533 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,533 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,534 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,534 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,534 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,535 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,535 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,535 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,536 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,536 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,536 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,536 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,537 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,537 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,538 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,538 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,539 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,540 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,540 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,540 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,541 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,541 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,542 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,542 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,542 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,543 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,543 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,543 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,543 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,544 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,544 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,544 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,545 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,545 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,546 [   ERROR] agent.error_handler: [error] unknown: 并发错误
+2026-06-07 17:19:16,554 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=50
+2026-06-07 17:19:16,556 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 50 failures
+2026-06-07 17:19:16,571 [    INFO] agent.error_handler: Error handler initialized
+2026-06-07 17:19:16,571 [   ERROR] agent.error_handler: [error] unknown: 错误1
+2026-06-07 17:19:16,572 [   ERROR] agent.error_handler: [error] unknown: 错误2

@@ -1,0 +1,42 @@
+2026-06-08 23:29:49,750 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-08 23:29:49,774 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-08 23:29:49,781 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-08 23:29:49,786 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-08 23:29:49,819 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-08 23:29:49,825 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-08 23:29:49,826 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-08 23:29:49,827 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-08 23:29:49,832 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-08 23:29:49,861 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 23:29:49,862 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-08 23:29:49,864 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-08 23:29:49,866 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-08 23:29:50,100 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-08 23:29:50,109 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-08 23:29:50,110 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-08 23:29:50,117 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 23:29:50,117 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-08 23:29:50,117 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-08 23:29:50,118 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-08 23:29:50,119 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-08 23:29:50,368 [    INFO] agent.error_handler: Circuit breaker 'test' initialized: max_failures=0
+2026-06-08 23:29:50,374 [    INFO] agent.error_handler: Circuit breaker 'test' initialized: max_failures=1
+2026-06-08 23:29:50,375 [ WARNING] agent.error_handler: Circuit breaker 'test': OPENED after 1 failures
+2026-06-08 23:29:50,400 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 23:29:50,400 [   ERROR] agent.error_handler: [error] unknown: 测试
+2026-06-08 23:29:50,406 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 23:29:50,410 [    INFO] agent.error_handler: Error handler initialized
+2026-06-08 23:29:50,410 [   ERROR] agent.error_handler: [error] unknown: 测试错误
+2026-06-08 23:29:50,543 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp5k9zfb5i
+2026-06-08 23:29:50,550 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpn2yxh8hd
+2026-06-08 23:29:50,557 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp1voyppmy

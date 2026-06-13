@@ -20,7 +20,7 @@ import os
 from datetime import datetime
 from .sensor_reading import SensorReading, Severity, Category, normal, warning, critical
 
-DEFAULT_LOG_DIR = os.path.expanduser("~/.lingxi")
+DEFAULT_LOG_DIR = os.path.expanduser("~/.Yunshu")
 
 SYSTEM = platform.system()
 

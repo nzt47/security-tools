@@ -1,0 +1,125 @@
+/* 状态指示器样式 */
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 尺寸变体 */
+.status-size-small {
+  gap: 4px;
+}
+
+.status-size-small .status-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.status-size-small .status-label {
+  font-size: 10px;
+}
+
+.status-size-medium .status-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.status-size-medium .status-label {
+  font-size: 12px;
+}
+
+.status-size-large .status-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.status-size-large .status-label {
+  font-size: 14px;
+}
+
+/* 状态点 */
+.status-dot {
+  position: relative;
+  border-radius: 50%;
+  transition: all var(--duration-fast, 150ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* 状态颜色 */
+.status-dot.online {
+  background: #48bb78;
+  box-shadow: 0 0 6px rgba(72, 187, 120, 0.5);
+}
+
+.status-dot.busy {
+  background: #ed8936;
+  box-shadow: 0 0 6px rgba(237, 137, 54, 0.5);
+}
+
+.status-dot.away {
+  background: #ecc94b;
+  box-shadow: 0 0 6px rgba(236, 201, 75, 0.5);
+}
+
+.status-dot.offline {
+  background: #a0aec0;
+  box-shadow: none;
+}
+
+.status-dot.error {
+  background: #fc8181;
+  box-shadow: 0 0 6px rgba(252, 129, 129, 0.5);
+  animation: status-error-pulse 1s infinite;
+}
+
+/* 在线状态环 */
+.status-ring {
+  position: absolute;
+  inset: -3px;
+  border: 2px solid #48bb78;
+  border-radius: 50%;
+  animation: status-ring-pulse 1.5s ease-out infinite;
+}
+
+@keyframes status-ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes status-error-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 脉冲动画 */
+.status-pulsing .status-dot {
+  animation: status-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* 标签 */
+.status-label {
+  color: var(--text-secondary, #a0aec0);
+  font-weight: 500;
+  text-transform: capitalize;
+}

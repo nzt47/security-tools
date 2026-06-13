@@ -1,0 +1,10 @@
+2026-06-10 13:16:05,562 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:05,764 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:05,950 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:06,134 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:06,318 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:06,504 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:06,729 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:06,921 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:07,146 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package
+2026-06-10 13:16:07,352 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: No module named 'memory.llm_service'; 'memory' is not a package

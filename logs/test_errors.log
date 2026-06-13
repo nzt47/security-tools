@@ -1,0 +1,94 @@
+
+================================================================================
+Level: ERROR
+Time: 2026-05-30T19:44:52.688038
+Type: ValueError
+Message: Test error message
+Trace ID: test_trace_123
+
+Context:
+{
+  "test": true,
+  "user_id": "test_user"
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-05-30T19:44:52.689037
+Type: Message
+Message: Error message
+Trace ID: N/A
+
+Context:
+{
+  "test_level": "error"
+}
+
+Traceback:
+
+
+================================================================================
+Level: CRITICAL
+Time: 2026-05-30T19:44:52.689037
+Type: Message
+Message: Critical message
+Trace ID: N/A
+
+Context:
+{
+  "test_level": "critical"
+}
+
+Traceback:
+
+
+================================================================================
+Level: ERROR
+Time: 2026-05-31T00:08:11.535273
+Type: ValueError
+Message: Test error message
+Trace ID: test_trace_123
+
+Context:
+{
+  "test": true,
+  "user_id": "test_user"
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-05-31T00:08:11.537380
+Type: Message
+Message: Error message
+Trace ID: N/A
+
+Context:
+{
+  "test_level": "error"
+}
+
+Traceback:
+
+
+================================================================================
+Level: CRITICAL
+Time: 2026-05-31T00:08:11.537891
+Type: Message
+Message: Critical message
+Trace ID: N/A
+
+Context:
+{
+  "test_level": "critical"
+}
+
+Traceback:
+

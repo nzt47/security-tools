@@ -1,0 +1,151 @@
+/* 云枢 Mascot 主组件样式 */
+
+.mascot-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 呼吸动画 */
+.mascot-breathing {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+.mascot-breathing:hover {
+  animation-play-state: paused;
+}
+
+/* 身体容器 */
+.mascot-body {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform var(--duration-normal, 300ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.mascot-hovered .mascot-body {
+  transform: scale(1.05);
+}
+
+/* 脸部 */
+.mascot-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 眼睛容器 */
+.mascot-eyes {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.mascot-eye-left,
+.mascot-eye-right {
+  /* 眼睛样式已由 Eye 组件处理 */
+}
+
+/* 嘴巴 */
+.mascot-mouth {
+  font-size: 12px;
+  color: var(--mascot-primary, #4fd1c5);
+  transition: all var(--duration-fast, 150ms) var(--ease-breathe, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.mascot-mouth-happy {
+  font-size: 14px;
+  color: var(--mascot-primary, #4fd1c5);
+}
+
+.mascot-mouth-excited {
+  font-size: 16px;
+  color: var(--mascot-excited, #f687b3);
+  animation: happy-bounce 0.5s ease-in-out infinite;
+}
+
+.mascot-mouth-thinking {
+  font-size: 10px;
+  color: var(--mascot-thinking, #9f7aea);
+}
+
+.mascot-mouth-tired {
+  font-size: 10px;
+  color: var(--mascot-tired, #a0aec0);
+}
+
+.mascot-mouth-error {
+  font-size: 12px;
+  color: var(--mascot-error, #fc8181);
+  animation: shake 0.3s infinite;
+}
+
+/* 阴影 */
+.mascot-shadow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 8px;
+  background: radial-gradient(
+    ellipse,
+    rgba(0, 0, 0, 0.2) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 情绪状态下的光晕颜色调整 */
+.mascot-mood-happy .glow-inner {
+  --glow-color: var(--mascot-happy, #4fd1c5);
+}
+
+.mascot-mood-excited .glow-inner {
+  --glow-color: var(--mascot-excited, #f687b3);
+}
+
+.mascot-mood-tired .glow-inner {
+  --glow-color: var(--mascot-tired, #a0aec0);
+  opacity: 0.4;
+}
+
+.mascot-mood-thinking .glow-inner {
+  --glow-color: var(--mascot-thinking, #9f7aea);
+}
+
+.mascot-mood-error .glow-inner {
+  --glow-color: var(--mascot-error, #fc8181);
+}
+
+/* 悬浮效果增强 */
+.mascot-container:hover .mascot-eye-left,
+.mascot-container:hover .mascot-eye-right {
+  transform: scale(1.1);
+}
+
+/* 点击效果 */
+.mascot-container:active .mascot-body {
+  transform: scale(0.95);
+}
+
+/* 响应式尺寸 */
+@media (max-width: 768px) {
+  .mascot-eyes {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mascot-eyes {
+    gap: 6px;
+  }
+}

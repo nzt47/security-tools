@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_191_20260530122301",
+  "content": "帮我分析一下这个问题",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 48
+  },
+  "created_at": "2026-05-30T12:23:01.985237",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

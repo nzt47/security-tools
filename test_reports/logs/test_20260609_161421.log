@@ -1,0 +1,77 @@
+2026-06-09 16:14:22,585 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-09 16:14:22,593 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-09 16:14:22,596 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-09 16:14:22,599 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-09 16:14:22,618 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-09 16:14:22,621 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-09 16:14:22,623 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-09 16:14:22,624 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-09 16:14:22,627 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-09 16:14:22,639 [    INFO] agent.error_handler: Error handler initialized
+2026-06-09 16:14:22,640 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-09 16:14:22,640 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-09 16:14:22,642 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-09 16:14:22,659 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-09 16:14:22,665 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-09 16:14:22,665 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,669 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,669 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-09 16:14:22,669 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-09 16:14:22,670 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-09 16:14:22,670 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-09 16:14:22,840 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-09 16:14:22,853 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-09 16:14:22,859 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-09 16:14:22,865 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-09 16:14:22,898 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-09 16:14:22,903 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-09 16:14:22,904 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-09 16:14:22,905 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-09 16:14:22,911 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-09 16:14:22,932 [    INFO] agent.error_handler: Error handler initialized
+2026-06-09 16:14:22,932 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-09 16:14:22,934 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-09 16:14:22,936 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-09 16:14:22,966 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-09 16:14:22,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-09 16:14:22,977 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,980 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-09 16:14:22,981 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-09 16:14:22,982 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-09 16:14:22,982 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-09 16:14:22,982 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-09 16:14:23,296 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpesgsqp5s
+2026-06-09 16:14:42,531 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpftz6gmqn
+2026-06-09 16:14:42,539 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpibj1wdft
+2026-06-09 16:14:42,545 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp2b76novj
+2026-06-09 16:14:42,681 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpesutcupy
+2026-06-09 16:14:42,688 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpihpl60oq
+2026-06-09 16:14:42,693 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp2z050aek
+2026-06-09 16:14:42,700 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpa3_e3u5f
+2026-06-09 16:14:42,706 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpu98b_6pq
+2026-06-09 16:14:44,724 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmpp_mdqcde
+2026-06-09 16:14:44,729 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp4lvzax1u
+2026-06-09 16:14:44,735 [    INFO] agent.system_tools: 工作区已初始化: C:\Windows\TEMP\tmp4fmfi_m5
+2026-06-09 16:14:45,071 [    INFO] agent.system_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\..\workspace
+2026-06-09 16:14:45,169 [ WARNING] agent.system_tools: selenium 未安装，浏览器功能不可用
+2026-06-09 16:14:45,175 [ WARNING] agent.system_tools: selenium 未安装，浏览器功能不可用

@@ -40,6 +40,49 @@ class LLMService:
         self._client = None
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        
+        # 延迟导入避免循环依赖
+        from agent.error_handler import (
+            with_retry,
+            TemporaryNetworkError,
+            ExternalServiceError
+        )
+        
+        self._summarize_with_retry = with_retry(
+            max_retries=self.max_retries,
+            initial_delay=self.retry_delay,
+            max_delay=self.MAX_RETRY_DELAY,
+            backoff_factor=2.0,
+            strategy="exponential",
+            jitter_factor=0.1,
+            retryable_exceptions=(TemporaryNetworkError, ExternalServiceError),
+            error_counter="llm.summarize",
+            on_retry=self._on_summarize_retry
+        )(self._do_summarize)
+        
+        self._chat_with_retry = with_retry(
+            max_retries=self.max_retries,
+            initial_delay=self.retry_delay,
+            max_delay=self.MAX_RETRY_DELAY,
+            backoff_factor=2.0,
+            strategy="exponential",
+            jitter_factor=0.1,
+            retryable_exceptions=(TemporaryNetworkError, ExternalServiceError),
+            error_counter="llm.chat",
+            on_retry=self._on_chat_retry
+        )(self._do_chat)
+    
+    def _on_summarize_retry(self, attempt: int, error: Exception) -> None:
+        logger.info("┌─────────────────────────────────────────────")
+        logger.info("│ 🔄 [LLM摘要] 第 %d/%d 次尝试", attempt, self.max_retries)
+        logger.info("└─────────────────────────────────────────────")
+        logger.warning("├─ 第 %d 次尝试失败: %s", attempt, error)
+    
+    def _on_chat_retry(self, attempt: int, error: Exception) -> None:
+        logger.info("┌─────────────────────────────────────────────")
+        logger.info("│ 🔄 [LLM对话] 第 %d/%d 次尝试", attempt, self.max_retries)
+        logger.info("└─────────────────────────────────────────────")
+        logger.warning("├─ 第 %d 次尝试失败: %s", attempt, error)
 
     def _validate_api_key(self, api_key: str):
         """验证 API Key 是否有效
@@ -80,12 +123,45 @@ class LLMService:
         """判断当前提供商是否兼容 OpenAI API 格式"""
         return self.provider in ("openai", *self.OPENAI_COMPAT.keys())
 
-    def summarize(self, messages: list[dict], max_tokens: int = 500) -> str:
+    def _do_summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "") -> str:
+        """实际的摘要生成逻辑（不含重试）"""
+        system_prompt = system_prompt or "请将以下对话总结为核心要点，保留关键决策、问题和结论。要求简洁准确。"
+        
+        client = self._get_client()
+        
+        if self._is_openai_compat():
+            logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    *messages
+                ],
+                max_tokens=max_tokens
+            )
+            result = response.choices[0].message.content.strip()
+            logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
+            return result
+        
+        elif self.provider == "anthropic":
+            logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
+            response = client.messages.create(
+                model=self.model,
+                system=system_prompt,
+                messages=messages,
+                max_tokens=max_tokens
+            )
+            result = response.content[0].text.strip()
+            logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
+            return result
+    
+    def summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "") -> str:
         """调用 LLM 生成对话摘要（带重试机制）
 
         Args:
             messages: 对话消息列表，格式 [{"role": "...", "content": "..."}]
             max_tokens: 摘要最大 Token 数
+            system_prompt: 自定义系统提示词（可选）
 
         Returns:
             摘要文本。空输入返回空字符串。
@@ -95,67 +171,59 @@ class LLMService:
         """
         if not messages:
             return ""
-
-        system_prompt = "请将以下对话总结为核心要点，保留关键决策、问题和结论。要求简洁准确。"
-        last_exception = None
-
-        for attempt in range(self.max_retries):
-            try:
-                logger.info("┌─────────────────────────────────────────────")
-                logger.info("│ 🔄 [LLM摘要] 第 %d/%d 次尝试", attempt + 1, self.max_retries)
-                logger.info("└─────────────────────────────────────────────")
-
-                client = self._get_client()
-
-                if self._is_openai_compat():
-                    logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-                    response = client.chat.completions.create(
-                        model=self.model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            *messages
-                        ],
-                        max_tokens=max_tokens
-                    )
-                    result = response.choices[0].message.content.strip()
-                    logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
-                    return result
-
-                elif self.provider == "anthropic":
-                    logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-                    response = client.messages.create(
-                        model=self.model,
-                        system=system_prompt,
-                        messages=messages,
-                        max_tokens=max_tokens
-                    )
-                    result = response.content[0].text.strip()
-                    logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
-                    return result
-
-            except Exception as e:
-                last_exception = e
-                logger.warning("├─ 第 %d 次尝试失败: %s", attempt + 1, e)
-
-                if attempt < self.max_retries - 1:
-                    delay = min(self.retry_delay * (2 ** attempt), self.MAX_RETRY_DELAY)
-                    logger.warning("├─ %.1f 秒后进行第 %d 次尝试（指数退避）", delay, attempt + 2)
-                    time.sleep(delay)
-                else:
-                    logger.error("└─────────────────────────────────────────────")
-                    logger.error("│ ✗ [LLM摘要] 所有 %d 次尝试均失败", self.max_retries)
-                    logger.error("├─────────────────────────────────────────────")
-                    logger.error("│   Provider: %s", self.provider)
-                    logger.error("│   Model: %s", self.model)
-                    logger.error("│   Timeout: %s 秒", self.timeout)
-                    logger.error("│   消息数量: %d 条", len(messages))
-                    logger.error("│   最大Token: %d", max_tokens)
-                    logger.error("│   最后错误: %s", e)
-                    logger.error("└─────────────────────────────────────────────")
-                    raise LLMServiceError(f"摘要生成失败（已重试 {self.max_retries} 次）: {e}") from e
-
-        raise LLMServiceError(f"摘要生成失败（已重试 {self.max_retries} 次）: {last_exception}")
-
+        
+        try:
+            return self._summarize_with_retry(messages, max_tokens, system_prompt)
+        except Exception as e:
+            logger.error("└─────────────────────────────────────────────")
+            logger.error("│ ✗ [LLM摘要] 所有 %d 次尝试均失败", self.max_retries)
+            logger.error("├─────────────────────────────────────────────")
+            logger.error("│   Provider: %s", self.provider)
+            logger.error("│   Model: %s", self.model)
+            logger.error("│   Timeout: %s 秒", self.timeout)
+            logger.error("│   消息数量: %d 条", len(messages))
+            logger.error("│   最大Token: %d", max_tokens)
+            logger.error("│   最后错误: %s", e)
+            logger.error("└─────────────────────────────────────────────")
+            raise LLMServiceError(f"摘要生成失败（已重试 {self.max_retries} 次）: {e}") from e
+    
+    def _do_chat(self, messages: list[dict], system_prompt: str = "",
+                 max_tokens: int = 1024, temperature: float = 0.7) -> str:
+        """实际的对话生成逻辑（不含重试）"""
+        client = self._get_client()
+        
+        if self._is_openai_compat():
+            full_messages = []
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+            full_messages.extend(messages)
+            logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=full_messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            result = response.choices[0].message.content.strip()
+            logger.info("│ ✓ 对话生成成功，长度: %d 字符", len(result))
+            return result
+        
+        elif self.provider == "anthropic":
+            kwargs = {}
+            if system_prompt:
+                kwargs["system"] = system_prompt
+            logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
+            response = client.messages.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                **kwargs,
+            )
+            result = response.content[0].text.strip()
+            logger.info("│ ✓ 对话生成成功，长度: %d 字符", len(result))
+            return result
+    
     def chat(self, messages: list[dict], system_prompt: str = "",
              max_tokens: int = 1024, temperature: float = 0.7) -> str:
         """调用 LLM 生成对话响应（带重试机制）
@@ -174,72 +242,22 @@ class LLMService:
         """
         if not messages:
             return ""
-
-        last_exception = None
-
-        for attempt in range(self.max_retries):
-            try:
-                logger.info("┌─────────────────────────────────────────────")
-                logger.info("│ 🔄 [LLM对话] 第 %d/%d 次尝试", attempt + 1, self.max_retries)
-                logger.info("└─────────────────────────────────────────────")
-
-                client = self._get_client()
-
-                if self._is_openai_compat():
-                    full_messages = []
-                    if system_prompt:
-                        full_messages.append({"role": "system", "content": system_prompt})
-                    full_messages.extend(messages)
-                    logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-                    response = client.chat.completions.create(
-                        model=self.model,
-                        messages=full_messages,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                    )
-                    result = response.choices[0].message.content.strip()
-                    logger.info("│ ✓ 对话生成成功，长度: %d 字符", len(result))
-                    return result
-
-                elif self.provider == "anthropic":
-                    kwargs = {}
-                    if system_prompt:
-                        kwargs["system"] = system_prompt
-                    logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-                    response = client.messages.create(
-                        model=self.model,
-                        messages=messages,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                        **kwargs,
-                    )
-                    result = response.content[0].text.strip()
-                    logger.info("│ ✓ 对话生成成功，长度: %d 字符", len(result))
-                    return result
-
-            except Exception as e:
-                last_exception = e
-                logger.warning("├─ 第 %d 次尝试失败: %s", attempt + 1, e)
-
-                if attempt < self.max_retries - 1:
-                    delay = min(self.retry_delay * (2 ** attempt), self.MAX_RETRY_DELAY)
-                    logger.warning("├─ %.1f 秒后进行第 %d 次尝试（指数退避）", delay, attempt + 2)
-                    time.sleep(delay)
-                else:
-                    logger.error("└─────────────────────────────────────────────")
-                    logger.error("│ ✗ [LLM对话] 所有 %d 次尝试均失败", self.max_retries)
-                    logger.error("├─────────────────────────────────────────────")
-                    logger.error("│   Provider: %s", self.provider)
-                    logger.error("│   Model: %s", self.model)
-                    logger.error("│   Timeout: %s 秒", self.timeout)
-                    logger.error("│   Temperature: %.2f", temperature)
-                    logger.error("│   消息数量: %d 条", len(messages))
-                    logger.error("│   最大Token: %d", max_tokens)
-                    logger.error("│   最后错误: %s", e)
-                    logger.error("└─────────────────────────────────────────────")
-                    raise LLMServiceError(f"对话生成失败（已重试 {self.max_retries} 次）: {e}") from e
-
-        raise LLMServiceError(f"对话生成失败（已重试 {self.max_retries} 次）: {last_exception}")
+        
+        try:
+            return self._chat_with_retry(messages, system_prompt, max_tokens, temperature)
+        except Exception as e:
+            logger.error("└─────────────────────────────────────────────")
+            logger.error("│ ✗ [LLM对话] 所有 %d 次尝试均失败", self.max_retries)
+            logger.error("├─────────────────────────────────────────────")
+            logger.error("│   Provider: %s", self.provider)
+            logger.error("│   Model: %s", self.model)
+            logger.error("│   Timeout: %s 秒", self.timeout)
+            logger.error("│   Temperature: %.2f", temperature)
+            logger.error("│   消息数量: %d 条", len(messages))
+            logger.error("│   最大Token: %d", max_tokens)
+            logger.error("│   最后错误: %s", e)
+            logger.error("└─────────────────────────────────────────────")
+            raise LLMServiceError(f"对话生成失败（已重试 {self.max_retries} 次）: {e}") from e
 
     def count_tokens(self, text: str) -> int:
         """使用 tiktoken 估算文本 Token 数（不依赖 LLM API）"""

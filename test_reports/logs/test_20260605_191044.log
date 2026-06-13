@@ -1,0 +1,110 @@
+2026-06-05 19:10:44,686 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 19:10:44,694 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 19:10:44,698 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 19:10:44,702 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 19:10:44,725 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 19:10:44,728 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 19:10:44,730 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 19:10:44,731 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 19:10:44,734 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 19:10:44,750 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 19:10:44,750 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 19:10:44,751 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 19:10:44,753 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 19:10:44,771 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 19:10:44,779 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 19:10:44,779 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:44,786 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:44,786 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 19:10:44,787 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 19:10:44,787 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 19:10:44,787 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 19:10:44,787 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 19:10:44,787 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 19:10:44,788 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 19:10:44,788 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 19:10:44,788 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:44,788 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 19:10:44,789 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 19:10:44,789 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 19:10:44,960 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 19:10:44,973 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 19:10:44,979 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 19:10:44,986 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 19:10:45,019 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 19:10:45,024 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 19:10:45,026 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 19:10:45,027 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 19:10:45,033 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 19:10:45,061 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 19:10:45,062 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 19:10:45,064 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 19:10:45,066 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 19:10:45,095 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-05 19:10:45,107 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 19:10:45,107 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:45,112 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:45,112 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 19:10:45,112 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 19:10:45,113 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 19:10:45,113 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 19:10:45,113 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 19:10:45,113 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 19:10:45,114 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-05 19:10:45,114 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 19:10:45,114 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 19:10:45,114 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-05 19:10:45,115 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-05 19:10:45,115 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 19:10:45,181 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-05 19:10:45,376 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,376 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,382 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,382 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,387 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,388 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,399 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,399 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,405 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,405 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,411 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,412 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,417 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,417 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,421 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,422 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,430 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,430 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,431 [    INFO] agent.utils.index_manager: [IndexManager] 清空索引
+2026-06-05 19:10:45,436 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,437 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,442 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,442 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,448 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,448 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,453 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,454 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,459 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,459 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,465 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,465 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,471 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,471 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,476 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,476 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,482 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,482 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,487 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,487 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,503 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,503 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,511 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,512 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,517 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,517 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成
+2026-06-05 19:10:45,523 [    INFO] agent.utils.index_manager: [IndexManager] 初始化
+2026-06-05 19:10:45,523 [    INFO] agent.utils.index_manager: [IndexManager] 初始化完成

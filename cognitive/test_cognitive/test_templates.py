@@ -11,7 +11,7 @@ class TestTemplateManager:
         """默认模板应正确注入 body_status"""
         result = self.mgr.render("default", body_status="体温正常，能量充足。", task_guidance="状态良好。")
         assert "体温正常" in result
-        assert "灵犀" in result
+        assert "云枢" in result
         assert "状态良好" in result
 
     def test_render_reject_template(self):

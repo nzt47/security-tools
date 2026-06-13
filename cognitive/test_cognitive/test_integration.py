@@ -19,7 +19,7 @@ class TestIntegration:
 
         # inject
         prompt = injector.inject(readings)
-        assert "灵犀" in prompt
+        assert "云枢" in prompt
         assert "体温正常" in prompt
         assert "能量充足" in prompt
 

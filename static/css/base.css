@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════
-   灵犀 · 基础变量与全局样式
+   云枢 · 基础变量与全局样式
    ════════════════════════════════════════ */
 
 :root {
@@ -27,6 +27,18 @@
   /* 字体 */
   --font-sans: -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+
+  /* 对话风格 — 默认（暗色现代） */
+  --chat-fs: 14px;
+  --chat-user-bg: #1f6feb30;
+  --chat-user-border: #1f6feb50;
+  --chat-user-text: #c9d1d9;
+  --chat-bot-bg: #161b22;
+  --chat-bot-border: #30363d;
+  --chat-bot-text: #c9d1d9;
+  --chat-bubble-radius: 14px;
+  --chat-bubble-radius-user: 14px 14px 4px 14px;
+  --chat-bubble-radius-bot: 14px 14px 14px 4px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

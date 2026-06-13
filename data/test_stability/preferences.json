@@ -1,0 +1,30 @@
+{
+  "expression_style": {
+    "formal": 0.32,
+    "casual": 0.68,
+    "concise": 0.9607843137254902,
+    "verbose": 0.0392156862745098,
+    "humorous": 0.3333333333333333,
+    "serious": 0.6666666666666666,
+    "emotional": 0.7857142857142857,
+    "rational": 0.21428571428571427
+  },
+  "topic_interest": {
+    "编程": 1.0,
+    "学习": 0.25,
+    "工作": 0.25,
+    "生活": 0.5,
+    "娱乐": 0.5
+  },
+  "interaction_pattern": {
+    "morning": 0.17,
+    "afternoon": 0.27,
+    "evening": 0.23,
+    "night": 0.33
+  },
+  "tool_preference": {
+    "creative": 1.0
+  },
+  "response_length": 0.5,
+  "last_updated": "2026-05-30T13:21:30.758637"
+}

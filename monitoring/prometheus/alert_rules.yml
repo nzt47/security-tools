@@ -1,0 +1,104 @@
+groups:
+  - name: Yunshu_v2_security_alerts
+    rules:
+      # Critical 级别告警 - 危险操作拦截
+      - alert: CriticalAlertDetected
+        expr: sum(Yunshu_alert_total{level="critical"}) > 0
+        for: 0m
+        labels:
+          severity: critical
+          level: critical
+        annotations:
+          summary: "检测到危险操作被拦截"
+          description: "云枢 V2 检测到危险操作（如 rm -rf /）被拦截，请立即检查系统状态。"
+          value: "{{ $value }}"
+          runbook_url: "http://localhost:3000/d/Yunshu-v2-dashboard"
+
+      # Warning 级别告警 - 可疑操作检测
+      - alert: WarningAlertDetected
+        expr: sum(Yunshu_alert_total{level="warning"}) > 5
+        for: 5m
+        labels:
+          severity: warning
+          level: warning
+        annotations:
+          summary: "检测到多个可疑操作"
+          description: "云枢 V2 在过去 5 分钟内检测到超过 5 个可疑操作，请关注系统状态。"
+          value: "{{ $value }}"
+
+      # 模块加载失败告警
+      - alert: ModuleLoadFailure
+        expr: sum(rate(Yunshu_v2_module_load_total{status="failure"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: v2_modules
+        annotations:
+          summary: "V2 模块加载失败"
+          description: "V2 模块（{{ $labels.module }}）加载失败，请检查模块依赖和配置。"
+          value: "{{ $value }}"
+          runbook_url: "http://localhost:3000/d/Yunshu-v2-dashboard"
+
+  - name: Yunshu_v2_performance_alerts
+    rules:
+      # 模块加载耗时过长
+      - alert: ModuleLoadSlow
+        expr: histogram_quantile(0.95, sum(rate(Yunshu_v2_module_load_duration_seconds_bucket[5m])) by (le, module)) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "V2 模块加载耗时过长"
+          description: "V2 模块 {{ $labels.module }} 加载耗时超过 500ms，可能影响系统性能。"
+          value: "{{ $value | humanizeDuration }}"
+
+      # 交互响应超时
+      - alert: InteractionTimeout
+        expr: histogram_quantile(0.95, sum(rate(Yunshu_interaction_duration_seconds_bucket[5m])) by (le)) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "交互响应超时"
+          description: "95% 的交互响应时间超过 3 秒，可能存在性能瓶颈。"
+          value: "{{ $value | humanizeDuration }}"
+
+      # 交互速率异常
+      - alert: InteractionRateHigh
+        expr: sum(rate(Yunshu_interaction_total[5m])) > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "交互速率异常高"
+          description: "交互速率超过 50 次/秒，可能存在异常流量或系统压力过大。"
+          value: "{{ $value }}"
+
+  - name: Yunshu_v2_memory_alerts
+    rules:
+      # 记忆数量过多
+      - alert: MemoryCountHigh
+        expr: Yunshu_memory_count > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "记忆数量过多"
+          description: "记忆数量超过 10000 条，建议进行记忆压缩或清理。"
+          value: "{{ $value }}"
+
+      # V2 模块状态异常
+      - alert: V2ModuleDisabled
+        expr: Yunshu_v2_module_enabled == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: v2_modules
+        annotations:
+          summary: "V2 模块被禁用"
+          description: "V2 模块 {{ $labels.module }} 当前被禁用，请检查模块配置和依赖。"
+          value: "{{ $value }}"

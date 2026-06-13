@@ -168,7 +168,7 @@ GET /api/memory/windows/stats   → 时长统计
 
 1. **WindowSensor** 使用 `win32gui` / `win32process` / `psutil` 获取窗口信息
 2. 每 `poll_interval_sec` 秒检查一次前台窗口，与上次不同时记录切换事件
-3. 切换事件通过 `_lingxi._memory.save_log("window_event", data)` 写入 BlackBox
+3. 切换事件通过 `_Yunshu._memory.save_log("window_event", data)` 写入 BlackBox
 4. 统计 API 通过扫描 BlackBox 日志文件中 `event_type="window_event"` 的记录，按 `to_process` 分组聚合时长和次数
 5. 前端子页切换时才开始加载窗口数据（懒加载），减少不必要请求
 6. 配置变更即时生效，无需重启

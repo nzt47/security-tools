@@ -1,0 +1,54 @@
+2026-06-05 14:18:43,540 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-05 14:18:43,548 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-05 14:18:43,552 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-05 14:18:43,556 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-05 14:18:43,577 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-05 14:18:43,580 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-05 14:18:43,581 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-05 14:18:43,582 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-05 14:18:43,585 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-05 14:18:43,599 [    INFO] agent.error_handler: Error handler initialized
+2026-06-05 14:18:43,600 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-05 14:18:43,601 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-05 14:18:43,602 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-05 14:18:43,736 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-05 14:18:43,742 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-05 14:18:43,742 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:18:43,750 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:18:43,750 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-05 14:18:43,750 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-05 14:18:43,750 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-05 14:18:43,751 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-05 14:18:43,751 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-05 14:18:43,751 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-05 14:18:43,751 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-05 14:18:43,752 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-05 14:18:43,752 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-05 14:18:43,752 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-05 14:18:43,752 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-05 14:18:43,752 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-05 14:18:43,864 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:43,868 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:43,872 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:43,876 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:45,559 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:47,839 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:48,830 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:49,831 [    INFO] agent.web.http_client: 已加载 1 个持久化 Cookie
+2026-06-05 14:18:49,832 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:49,837 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:49,842 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:51,814 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:52,829 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:52,835 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:52,850 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:18:55,138 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPConnection(host='invalid-url', port=80): Failed to resolve 'invalid-url' ([Errno 11001] getaddrinfo failed)")': /
+2026-06-05 14:18:58,440 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPConnection(host='invalid-url', port=80): Failed to resolve 'invalid-url' ([Errno 11001] getaddrinfo failed)")': /
+2026-06-05 14:19:02,721 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPConnection(host='invalid-url', port=80): Failed to resolve 'invalid-url' ([Errno 11001] getaddrinfo failed)")': /
+2026-06-05 14:19:05,040 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:19:06,863 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-05 14:19:07,079 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<HTTPSConnection(host='example.com', port=443) at 0x1ae7f910e00>, 'Connection to example.com timed out. (connect timeout=0.1)')': /
+2026-06-05 14:19:08,294 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<HTTPSConnection(host='example.com', port=443) at 0x1ae7f913080>, 'Connection to example.com timed out. (connect timeout=0.1)')': /
+2026-06-05 14:19:10,518 [ WARNING] urllib3.connectionpool: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<HTTPSConnection(host='example.com', port=443) at 0x1ae7f910f20>, 'Connection to example.com timed out. (connect timeout=0.1)')': /

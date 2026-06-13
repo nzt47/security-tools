@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  digital-life:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: digital-life-test
+    restart: unless-stopped
+    
+    environment:
+      - ERROR_REPORTING_CONSOLE_LEVEL=warning
+      - ERROR_REPORTING_FILE_ENABLED=true
+      - ERROR_REPORTING_FILE_PATH=/app/logs/digital_life_errors.log
+      - ERROR_REPORTING_FILE_LEVEL=error
+      - ERROR_REPORTING_WEBHOOK_ENABLED=false
+      - ERROR_REPORTING_SLACK_ENABLED=false
+      # 功能开关
+      - YUNSHU_FEATURE_SANDBOX=${YUNSHU_FEATURE_SANDBOX:-false}
+    
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./.backups:/app/.backups
+    
+    networks:
+      - digital-life-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  digital-life-network:
+    driver: bridge

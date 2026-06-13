@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>网络配置调试面板</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+    h2 { color: #7ee787; margin-top: 30px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .btn { background: #238636; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 4px; }
+    .btn:hover { background: #2ea043; }
+    .btn-warn { background: #9e6a03; }
+    .btn-warn:hover { background: #bb8009; }
+    .btn-danger { background: #da3633; }
+    .btn-danger:hover { background: #f85149; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 13px; max-height: 400px; overflow-y: auto; }
+    .status { padding: 8px 12px; border-radius: 6px; margin: 8px 0; }
+    .status-ok { background: #23863633; border: 1px solid #238636; color: #7ee787; }
+    .status-err { background: #da363333; border: 1px solid #da3633; color: #f85149; }
+    .status-info { background: #1f6feb33; border: 1px solid #1f6feb; color: #58a6ff; }
+    .log-entry { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px; line-height: 1.6; padding: 2px 0; }
+    .log-ok { color: #7ee787; }
+    .log-err { color: #f85149; }
+    .log-info { color: #58a6ff; }
+    .log-warn { color: #d29922; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #30363d; }
+    th { color: #8b949e; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+    .badge-ok { background: #23863633; color: #7ee787; }
+    .badge-err { background: #da363333; color: #f85149; }
+    .badge-warn { background: #9e6a0333; color: #d29922; }
+    input, select { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 12px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🌐 网络配置调试面板</h1>
+  
+  <div class="card">
+    <h2>📋 测试场景</h2>
+    <div>
+      <button class="btn" onclick="testNormalFlow()">✅ 测试1：正常配置流程</button>
+      <button class="btn btn-warn" onclick="testMaskedKey()">⚠️ 测试2：API Key 脱敏</button>
+      <button class="btn btn-danger" onclick="testTimeout()">❌ 测试3：模拟超时</button>
+      <button class="btn btn-warn" onclick="testInvalidUrl()">⚠️ 测试4：无效 URL</button>
+      <button class="btn" onclick="loadAndShowConfig()">📥 加载当前配置</button>
+    </div>
+    <div id="test-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 前端状态检查</h2>
+    <table>
+      <tr><th>变量</th><th>值</th><th>状态</th></tr>
+      <tr>
+        <td>__networkConfigCache</td>
+        <td id="cache-status">未加载</td>
+        <td id="cache-badge"><span class="badge badge-warn">未初始化</span></td>
+      </tr>
+      <tr>
+        <td>__networkConfigDirty</td>
+        <td id="dirty-status">N/A</td>
+        <td id="dirty-badge"></td>
+      </tr>
+      <tr>
+        <td>nc-status 元素</td>
+        <td id="status-element">N/A</td>
+        <td id="status-element-badge"></td>
+      </tr>
+    </table>
+    <button class="btn" onclick="refreshStatus()" style="margin-top: 8px;">🔄 刷新状态</button>
+  </div>
+
+  <div class="card">
+    <h2>📝 实时日志</h2>
+    <div id="log-container" style="max-height: 500px; overflow-y: auto;">
+      <pre id="log-content">等待操作...</pre>
+    </div>
+    <button class="btn btn-danger" onclick="clearLogs()">🗑️ 清空日志</button>
+    <button class="btn" onclick="copyLogs()">📋 复制日志</button>
+  </div>
+
+  <script>
+    const logs = [];
+    const originalConsoleLog = console.log;
+    const originalConsoleWarn = console.warn;
+    const originalConsoleError = console.error;
+
+    // 劫持控制台输出
+    console.log = function(...args) {
+      originalConsoleLog.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('[网络配置]')) {
+        addLog('info', args.join(' '));
+      }
+    };
+    console.warn = function(...args) {
+      originalConsoleWarn.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('[网络配置]')) {
+        addLog('warn', args.join(' '));
+      }
+    };
+    console.error = function(...args) {
+      originalConsoleError.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('[网络配置]')) {
+        addLog('err', args.join(' '));
+      }
+    };
+
+    function addLog(type, msg) {
+      const timestamp = new Date().toLocaleTimeString('zh-CN');
+      logs.push(`[${timestamp}] ${msg}`);
+      updateLogDisplay();
+    }
+
+    function updateLogDisplay() {
+      const el = document.getElementById('log-content');
+      el.textContent = logs.join('\n');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLogs() {
+      logs.length = 0;
+      document.getElementById('log-content').textContent = '日志已清空';
+    }
+
+    function copyLogs() {
+      const text = logs.join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        showTestStatus('日志已复制到剪贴板', 'ok');
+      });
+    }
+
+    async function apiFetch(path, opt = {}) {
+      const baseUrl = 'http://127.0.0.1:5678';
+      return fetch(baseUrl + path, opt);
+    }
+
+    function showTestStatus(msg, type) {
+      const el = document.getElementById('test-status');
+      el.innerHTML = `<div class="status status-${type}">${msg}</div>`;
+    }
+
+    async function loadAndShowConfig() {
+      addLog('info', '正在加载配置...');
+      try {
+        const res = await apiFetch('/api/network-config');
+        const config = await res.json();
+        addLog('ok', `配置加载成功: ${JSON.stringify(config, null, 2).substring(0, 200)}...`);
+        
+        // 更新状态表格
+        document.getElementById('cache-status').textContent = JSON.stringify(config, null, 2).substring(0, 100);
+        document.getElementById('cache-badge').innerHTML = '<span class="badge badge-ok">已加载</span>';
+      } catch (e) {
+        addLog('err', `加载失败: ${e.message}`);
+        showTestStatus(`加载失败: ${e.message}`, 'err');
+      }
+    }
+
+    async function testNormalFlow() {
+      showTestStatus('正在执行正常流程测试...', 'info');
+      addLog('info', '====== 测试1：正常配置流程 ======');
+      
+      // 加载配置
+      await loadAndShowConfig();
+      
+      // 模拟保存
+      const config = {
+        llm: { enabled: true, provider: 'openai', api_key: 'sk-test-key-12345', model: 'gpt-4', api_endpoint: '', timeout: 60, max_retries: 3 },
+        network: { timeout: 30, max_retries: 3, backoff_factor: 2, proxy_enabled: false, proxy_url: '' },
+        search: { enabled: true, default_engine: 'baidu', max_results: 5 },
+        web_scraping: { enabled: true, respect_robots_txt: true, delay_between_requests: 1 },
+        browser: { enabled: true, headless: true, timeout: 30 },
+        sync: { enabled: true, interval_minutes: 60, auto_sync_on_start: true },
+        external_services: { error_reporting: { enabled: false, webhook_url: '' }, monitoring: { enabled: false, endpoint: '' } }
+      };
+      
+      addLog('info', '[步骤1] 保存网络配置...');
+      try {
+        const res = await apiFetch('/api/network-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+        const result = await res.json();
+        addLog('ok', `[步骤1] 响应: ${JSON.stringify(result, null, 2)}`);
+        
+        if (result.ok) {
+          // 测试 LLM 配置
+          addLog('info', '[步骤2] 配置 LLM...');
+          const llmRes = await apiFetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: 'openai', api_key: 'sk-test-key-12345', model: 'gpt-4' })
+          });
+          const llmResult = await llmRes.text();
+          addLog('info', `[步骤2] 响应: ${llmResult}`);
+          
+          showTestStatus('✅ 正常流程测试完成！查看日志获取详情', 'ok');
+        } else {
+          showTestStatus(`❌ 保存失败: ${result.error}`, 'err');
+        }
+      } catch (e) {
+        addLog('err', `[错误] ${e.message}`);
+        showTestStatus(`❌ 测试失败: ${e.message}`, 'err');
+      }
+      
+      addLog('info', '====== 测试1 完成 ======');
+    }
+
+    async function testMaskedKey() {
+      showTestStatus('正在执行脱敏 Key 测试...', 'info');
+      addLog('info', '====== 测试2：API Key 脱敏 ======');
+      
+      const config = {
+        llm: { enabled: true, provider: 'openai', api_key: '***12345', model: 'gpt-4', api_endpoint: '', timeout: 60, max_retries: 3 },
+        network: { timeout: 30, max_retries: 3, backoff_factor: 2, proxy_enabled: false, proxy_url: '' },
+        search: { enabled: true, default_engine: 'baidu', max_results: 5 },
+        web_scraping: { enabled: true, respect_robots_txt: true, delay_between_requests: 1 },
+        browser: { enabled: true, headless: true, timeout: 30 },
+        sync: { enabled: true, interval_minutes: 60, auto_sync_on_start: true },
+        external_services: { error_reporting: { enabled: false, webhook_url: '' }, monitoring: { enabled: false, endpoint: '' } }
+      };
+      
+      const isMaskedApiKey = config.llm.api_key.startsWith('***');
+      const shouldConfigureLlm = config.llm.enabled && config.llm.provider && config.llm.api_key && !isMaskedApiKey;
+      
+      addLog('warn', `[判断] isMaskedApiKey=${isMaskedApiKey} shouldConfigureLlm=${shouldConfigureLlm}`);
+      
+      if (isMaskedApiKey) {
+        addLog('info', '[步骤2] 跳过 LLM 配置（API Key 是脱敏值，请重新输入完整 API Key）');
+        showTestStatus('⚠️ 脱敏 Key 已跳过 LLM 配置（符合预期）', 'info');
+      }
+      
+      addLog('info', '====== 测试2 完成 ======');
+    }
+
+    async function testTimeout() {
+      showTestStatus('正在执行超时测试...', 'info');
+      addLog('info', '====== 测试3：模拟超时 ======');
+      
+      // 模拟一个不存在的端点来触发错误
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1秒超时
+      
+      try {
+        addLog('info', '[模拟] 发送请求（1秒超时）...');
+        const res = await fetch('http://127.0.0.1:5678/api/slow-endpoint', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        addLog('ok', `[响应] ${res.status}`);
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+          addLog('err', `[超时] 请求超时，超过 1000ms 限制`);
+          addLog('err', `[详细错误] name=${e.name}, message=${e.message}`);
+          showTestStatus('❌ 超时处理已生效', 'err');
+        } else {
+          addLog('err', `[错误] ${e.name}: ${e.message}`);
+          showTestStatus(`❌ 错误: ${e.message}`, 'err');
+        }
+      }
+      
+      addLog('info', '====== 测试3 完成 ======');
+    }
+
+    async function testInvalidUrl() {
+      showTestStatus('正在执行无效 URL 测试...', 'info');
+      addLog('info', '====== 测试4：无效 URL ======');
+      
+      const config = {
+        llm: { enabled: true, provider: 'openai', api_key: 'sk-test', model: 'gpt-4', api_endpoint: '', timeout: 60, max_retries: 3 },
+        network: { timeout: 30, max_retries: 3, backoff_factor: 2, proxy_enabled: true, proxy_url: 'not-a-valid-url' },
+        search: { enabled: true, default_engine: 'baidu', max_results: 5 },
+        web_scraping: { enabled: true, respect_robots_txt: true, delay_between_requests: 1 },
+        browser: { enabled: true, headless: true, timeout: 30 },
+        sync: { enabled: true, interval_minutes: 60, auto_sync_on_start: true },
+        external_services: { error_reporting: { enabled: true, webhook_url: 'invalid-webhook' }, monitoring: { enabled: false, endpoint: '' } }
+      };
+      
+      // 验证逻辑
+      const errors = [];
+      if (config.network.proxy_enabled && config.network.proxy_url) {
+        try { new URL(config.network.proxy_url); } catch { errors.push('代理 URL 格式无效'); }
+      }
+      if (config.external_services.error_reporting.enabled && config.external_services.error_reporting.webhook_url) {
+        try { new URL(config.external_services.error_reporting.webhook_url); } catch { errors.push('Webhook URL 格式无效'); }
+      }
+      
+      addLog('warn', `验证结果: ${errors.length} 个错误`);
+      errors.forEach(e => addLog('err', `  - ${e}`));
+      
+      showTestStatus(`⚠️ 验证捕获 ${errors.length} 个错误（符合预期）`, 'info');
+      addLog('info', '====== 测试4 完成 ======');
+    }
+
+    function refreshStatus() {
+      if (typeof __networkConfigCache !== 'undefined') {
+        document.getElementById('cache-status').textContent = JSON.stringify(__networkConfigCache, null, 2).substring(0, 100) + '...';
+        document.getElementById('cache-badge').innerHTML = '<span class="badge badge-ok">已加载</span>';
+      }
+      if (typeof __networkConfigDirty !== 'undefined') {
+        document.getElementById('dirty-status').textContent = __networkConfigDirty ? 'true' : 'false';
+        document.getElementById('dirty-badge').innerHTML = __networkConfigDirty ? 
+          '<span class="badge badge-warn">脏数据</span>' : '<span class="badge badge-ok">干净</span>';
+      }
+      const statusEl = document.getElementById('nc-status');
+      if (statusEl) {
+        document.getElementById('status-element').textContent = `display=${statusEl.style.display}, text="${statusEl.textContent}"`;
+        document.getElementById('status-element-badge').innerHTML = statusEl.style.display === 'none' ? 
+          '<span class="badge badge-warn">隐藏</span>' : '<span class="badge badge-ok">可见</span>';
+      }
+    }
+
+    // 页面加载时自动刷新状态
+    window.onload = () => {
+      refreshStatus();
+      addLog('info', '调试面板已加载');
+    };
+  </script>
+</body>
+</html>

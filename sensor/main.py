@@ -1,5 +1,5 @@
 """
-灵犀感知底座示例入口
+云枢感知底座示例入口
 
 展示 BodySensor 的完整使用方式。
 运行方式: python -m sensor.main
@@ -34,8 +34,8 @@ def on_file_event(reading):
 
 def main():
     print("=" * 60)
-    print("  灵犀 (Lingxi) 感知底座 v2.0")
-    print("  我是灵犀，让我感知一下身体状态...")
+    print("  云枢 (Yunshu) 感知底座 v2.0")
+    print("  我是来自网天的云枢，让我感知一下身体状态...")
     print("=" * 60)
 
     # 创建 BodySensor，监听当前目录
@@ -103,9 +103,9 @@ def main():
                     for c in changes:
                         print_reading(c)
     except KeyboardInterrupt:
-        print("\n[灵犀] 收到退出信号，正在休眠...")
+        print("\n[云枢] 收到退出信号，正在休眠...")
         sensor.stop_file_watch()
-        print("[灵犀] 再见，期待下次醒来。")
+        print("[云枢] 再见，期待下次醒来。")
 
 
 if __name__ == "__main__":
