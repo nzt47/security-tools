@@ -2788,6 +2788,20 @@ function updateToggleUI(type) {
   }
 }
 
+// 页面加载时从历史恢复最近对话到主聊天区域
+async function restoreChat() {
+  try {
+    const data = await app.get('/api/history');
+    if (!data || !Array.isArray(data) || data.length === 0) return;
+    // 取最新的对话（最后一条）
+    const last = data[data.length - 1];
+    if (last.user) addMessage(app.escapeHtml(last.user), 'user');
+    if (last.Yunshu) addMessage(app.escapeHtml(last.Yunshu), 'Yunshu', last.mode);
+  } catch(e) {
+    console.warn('[restoreChat] 恢复对话失败:', e);
+  }
+}
+
 function initToggleUI() {
   updateToggleUI('thinking');
   updateToggleUI('toolcalls');
@@ -3608,6 +3622,7 @@ initStatusPanel();
 initPermissionControl();
 initMascotTracking();
 initToggleUI();
+restoreChat();
 
 document.getElementById('chat-input').focus();
 
