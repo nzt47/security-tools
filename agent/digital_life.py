@@ -1198,6 +1198,15 @@ class DigitalLife:
         """申请执行危险操作的权限"""
         return self._permission.check_action(action, context)
 
+    def abort_chat(self):
+        """手动中止当前对话"""
+        if self._tool_calling_service:
+            self._tool_calling_service.abort()
+            logger.info("[DigitalLife] ⏹ 对话中止请求已发送")
+            return True
+        logger.warning("[DigitalLife] 工具调用引擎未启用，无法中止")
+        return False
+
     # ════════════════════════════════════════════════════════════════════════════════
     #  内部方法
     # ════════════════════════════════════════════════════════════════════════════════

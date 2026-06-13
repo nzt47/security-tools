@@ -41,6 +41,12 @@ class ToolCallingService:
         self._max_rounds = max_rounds
         self._tool_timeout = tool_timeout
         self.last_steps: list[dict] = []
+        self._abort_event = threading.Event()
+
+    def abort(self):
+        """手动中止当前正在进行的工具调用循环"""
+        self._abort_event.set()
+        logger.info("[ToolCalling] ⏹ 手动中止已触发")
 
     def chat(self, messages: list[dict], system_prompt: str = "",
              max_tokens: int = 1024, temperature: float = 0.7,
@@ -69,7 +75,17 @@ class ToolCallingService:
         # 连续失败检测：记录每个工具连续返回错误的次数
         _consecutive_failures: dict[str, int] = {}
 
+        # 重置中止事件（每次新对话开始时清除之前的中止信号）
+        self._abort_event.clear()
+
         for round_idx in range(self._max_rounds + 1):
+            # 检查手动中止信号
+            if self._abort_event.is_set():
+                logger.info("[ToolCalling] ⏹ 检测到中止信号，终止工具循环")
+                steps.append({"type": "aborted", "summary": "⏹ 用户手动中止"})
+                result = {"text": self._get_last_assistant_text(working_messages) or "（已中止）", "steps": steps}
+                return result
+
             need_tools = tool_defs if round_idx < self._max_rounds else None
 
             try:

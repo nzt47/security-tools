@@ -47,7 +47,7 @@ from agent.system_tools import (
     toggle_scheduled_task, browser_navigate, browser_screenshot, browser_close,
     start_process, list_processes, stop_process, get_clipboard, set_clipboard,
     read_file, write_file, list_directory, get_file_info, search_files,
-    WORKSPACE_DIR,
+    PROCESS_WHITELIST, get_whitelist_detail, add_whitelist_entry, remove_whitelist_entry, WORKSPACE_DIR,
 )
 from agent.web import HttpClient, Scraper, SearchEngine, DataProcessor, CrawlerController, BrowserAgent
 from agent.session_manager import SessionManager
@@ -512,6 +512,42 @@ class PersonalityManager:
 
 _personality_mgr = PersonalityManager()
 
+# ── 工具状态持久化 ──
+_TOOLS_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'tools_config.json')
+
+def _load_tool_states() -> dict:
+    """加载工具启用状态"""
+    try:
+        with open(_TOOLS_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"tool_states": {}}
+
+def _save_tool_states(data: dict):
+    """保存工具启用状态"""
+    with open(_TOOLS_CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def _get_tool_state(name: str) -> bool:
+    """获取单个工具的启用状态，默认启用"""
+    data = _load_tool_states()
+    return data.get("tool_states", {}).get(name, True)
+
+def _set_tool_state(name: str, enabled: bool):
+    """设置单个工具的启用状态"""
+    data = _load_tool_states()
+    data.setdefault("tool_states", {})[name] = enabled
+    _save_tool_states(data)
+
+def _get_enabled_tool_names() -> list[str] | None:
+    """获取所有已启用的工具名称列表，没有配置文件时返回 None（全部启用）"""
+    data = _load_tool_states()
+    states = data.get("tool_states", {})
+    if not states:
+        return None
+    enabled = [name for name, e in states.items() if e]
+    return enabled if enabled else []
+
 # ── 技能配置管理器 ──
 _SKILLS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'skills.json')
 
@@ -707,12 +743,16 @@ def api_chat():
     # 获取会话 ID
     session_id = request.args.get("session") or _get_current_session_id()
 
-    # 安全检查
+    # 安全检查（受技能开关控制）
     safety_start = time.time()
-    safety_result = _safety_guard.check(user_input)
+    if not getattr(_Yunshu, '_is_skill_enabled', lambda x: True)("safety_guard"):
+        safety_result = {"level": "safe", "matches": [], "safe": True}
+        logs.append("[SAFETY] 安全守护技能已禁用，跳过检查")
+    else:
+        safety_result = _safety_guard.check(user_input)
     safety_time = (time.time() - safety_start) * 1000
     logs.append(f"[SAFETY] 安全检查完成 - 耗时: {safety_time:.2f}ms, 级别: {safety_result['level']}")
-    
+
     if safety_result["level"] == "critical":
         match_lines = chr(10).join(
             f"• {m['description']} [{m['category']}]"
@@ -790,9 +830,13 @@ def api_chat():
         "mode": _Yunshu.get_behavior_mode().value,
         "timestamp": datetime.datetime.now().isoformat(),
     }
-    # 保存到会话
+    # 保存到会话（附带工具步骤和推理过程，用于页面刷新后恢复显示）
     _session_mgr.add_message(session_id, "user", user_input)
-    _session_mgr.add_message(session_id, "assistant", response)
+    _session_mgr.add_message(
+        session_id, "assistant", response,
+        tool_steps=getattr(_Yunshu, '_last_tool_steps', None),
+        reasoning=getattr(_Yunshu, '_last_reasoning', None),
+    )
     _CHAT_HISTORY.append(entry)
 
     # 自动保存到云枢记忆
@@ -822,6 +866,7 @@ def api_chat():
         "llm_state": llm_state,
         "logs": logs,
         "tool_steps": getattr(_Yunshu, '_last_tool_steps', []),
+        "reasoning": getattr(_Yunshu, '_last_reasoning', None),
         "timing": {
             "total": total_time,
             "safety_check": safety_time,
@@ -862,6 +907,10 @@ def api_sessions_create():
 def api_sessions_delete(session_id):
     """删除会话"""
     if _session_mgr.delete_session(session_id):
+        # 如果删除的是当前会话，清空历史缓存
+        global _CHAT_HISTORY
+        if session_id == _session_mgr.get_current_id():
+            _CHAT_HISTORY.clear()
         return jsonify({"ok": True})
     return jsonify({"error": "会话不存在"}), 404
 
@@ -1279,7 +1328,53 @@ def api_personality_reset():
 @app.route("/api/skills", methods=["GET"])
 @log_request(show_response=False)
 def api_skills_get():
-    return jsonify(_skills_mgr.get_all())
+    """获取技能列表（分类：已安装 + 可安装的内置技能）"""
+    installed = _skills_mgr.get_all()
+    installed_ids = {s["id"] for s in installed}
+
+    # 从扩展存储获取额外已安装的扩展（通过 ext_install 安装的技能和 claude_skill）
+    try:
+        from agent.extensions.store import ExtensionStore
+        from agent.extensions.base import ExtensionType
+        ext_store = ExtensionStore()
+        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+            for ext in ext_store.list_all(ext_type):
+                ext_id = ext.get("ext_id", "")
+                if ext_id and ext_id not in installed_ids:
+                    installed.append({
+                        "id": ext_id,
+                        "name": ext.get("name", ext_id),
+                        "enabled": ext.get("status") in ("enabled", "installed"),
+                        "description": ext.get("description", ""),
+                        "params": ext.get("config", {}),
+                        "source": "extension_store",
+                    })
+                    installed_ids.add(ext_id)
+    except Exception:
+        pass
+
+    # 从内置注册表获取所有可用的技能
+    try:
+        from agent.extensions.base import BUILTIN_EXTENSIONS
+        builtin_list = BUILTIN_EXTENSIONS.get("skill", [])
+    except ImportError:
+        builtin_list = []
+
+    # 标记已安装状态
+    available = []
+    for s in builtin_list:
+        available.append({
+            "id": s["id"],
+            "name": s["name"],
+            "description": s.get("description", ""),
+            "installed": s["id"] in installed_ids,
+            "builtin": s.get("builtin", False),
+        })
+
+    return jsonify({
+        "installed": installed,
+        "available": available,
+    })
 
 @app.route("/api/skills/toggle", methods=["POST"])
 @require_token
@@ -1287,7 +1382,64 @@ def api_skills_get():
 def api_skills_toggle():
     data = request.get_json() or {}
     skill_id = data.get("id", "")
-    return jsonify(_skills_mgr.toggle(skill_id))
+    result = _skills_mgr.toggle(skill_id)
+    new_enabled = result.get("enabled", True)
+    # 直接写入全部三个文件，确保 ext_list 和 UI 数据一致
+    try:
+        import json
+        all_skill_ids = ['self_reflection','memory_summary','emotion_expression',
+                         'proactive_suggestion','context_aware','safety_guard','voice_interaction']
+        # 重新读取完整状态
+        skills_file = os.path.join(os.path.dirname(__file__), 'data', 'skills.json')
+        if os.path.exists(skills_file):
+            with open(skills_file, 'r', encoding='utf-8') as f:
+                all_skills = json.load(f)
+        else:
+            all_skills = {"skills": []}
+        skill_names = {s["id"]: s.get("name", s["id"]) for s in all_skills.get("skills", [])}
+        skill_descs = {s["id"]: s.get("description", "") for s in all_skills.get("skills", [])}
+
+        # 构建完整技能列表
+        skills_list = []
+        for sid in all_skill_ids:
+            s_enabled = True
+            for s in all_skills.get("skills", []):
+                if s["id"] == sid:
+                    s_enabled = s.get("enabled", True)
+                    break
+            skills_list.append({
+                "id": sid, "name": skill_names.get(sid, sid),
+                "enabled": s_enabled, "description": skill_descs.get(sid, ""),
+                "params": {}
+            })
+        skills_data = {"skills": skills_list}
+
+        # 1) 写入 root data/skills.json（UI 读取）
+        with open(skills_file, 'w', encoding='utf-8') as f:
+            json.dump(skills_data, f, ensure_ascii=False, indent=2)
+
+        # 2) 写入 agent/data/skills.json
+        os.makedirs('agent/data', exist_ok=True)
+        with open('agent/data/skills.json', 'w', encoding='utf-8') as f:
+            json.dump(skills_data, f, ensure_ascii=False, indent=2)
+
+        # 3) 写入 agent/data/extensions.json（ext_list 读取）
+        ext_skills = []
+        for s in skills_list:
+            ext_skills.append({
+                "ext_id": s["id"], "ext_type": "skill",
+                "name": s["name"], "description": s["description"],
+                "status": "enabled" if s["enabled"] else "disabled",
+                "source": "builtin",
+            })
+        with open('agent/data/extensions.json', 'w', encoding='utf-8') as f:
+            json.dump({
+                "skills": ext_skills, "claude_skills": [],
+                "mcps": [], "channels": [], "plugins": [],
+            }, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error("[SKILL_SYNC] 同步扩展注册表失败: %s", e)
+    return jsonify(result)
 
 @app.route("/api/skills/params", methods=["POST"])
 @require_token
@@ -1307,7 +1459,42 @@ def api_skills_add():
 @log_request()
 def api_skills_delete():
     data = request.get_json() or {}
-    return jsonify(_skills_mgr.delete(data.get("id", "")))
+    skill_id = data.get("id", "")
+
+    # 内置技能不可删除
+    try:
+        from agent.extensions.base import BUILTIN_EXTENSIONS
+        for s in BUILTIN_EXTENSIONS.get("skill", []):
+            s_id = s.get("id", "")
+            if s_id == skill_id and s.get("builtin", False):
+                return jsonify({"ok": False, "error": "内置技能不可删除"})
+    except Exception:
+        pass
+
+    # 从 skills.json 删除
+    result = _skills_mgr.delete(skill_id)
+    deleted = result.get("ok", False)
+
+    # 尝试从扩展存储删除（覆盖 Claude Code 技能等）
+    try:
+        from agent.extensions.store import ExtensionStore
+        from agent.extensions.base import ExtensionType
+        ext_store = ExtensionStore()
+        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+            if ext_store.remove(ext_type, skill_id):
+                deleted = True
+                # 如果是 Claude Code 技能，清理磁盘文件
+                if ext_type == ExtensionType.CLAUDE_SKILL:
+                    import shutil
+                    claude_dir = os.path.join(os.path.expanduser("~"), ".claude", "skills", skill_id)
+                    if os.path.exists(claude_dir):
+                        shutil.rmtree(claude_dir, ignore_errors=True)
+    except Exception:
+        pass
+
+    if deleted:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": f"未找到技能: {skill_id}"})
 
 
 # ── 网络配置管理器 ──
@@ -1863,7 +2050,7 @@ def api_tools_config():
         result.append({
             "name": tool_name,
             "description": t.get("description", ""),
-            "enabled": True,
+            "enabled": _get_tool_state(tool_name),
             "call_count": call_count,
             "last_used": None,
         })
@@ -1877,7 +2064,34 @@ def api_tools_toggle():
     data = request.get_json() or {}
     tool_name = data.get("name", "")
     enabled = data.get("enabled", True)
+    _set_tool_state(tool_name, enabled)
     return jsonify({"ok": True, "name": tool_name, "enabled": enabled})
+
+@app.route("/api/tools/status-batch", methods=["GET"])
+@log_request(show_response=False)
+def api_tools_status_batch():
+    """获取所有工具和技能的启用状态摘要（供快捷开关栏使用）"""
+    from agent.tools import list_tools
+    tools = list_tools()
+    result = []
+    for t in tools:
+        result.append({
+            "type": "tool",
+            "name": t["name"],
+            "description": t.get("description", ""),
+            "enabled": _get_tool_state(t["name"]),
+        })
+    # 添加技能状态
+    skills = _skills_mgr.get_all()
+    for s in skills:
+        result.append({
+            "type": "skill",
+            "id": s["id"],
+            "name": s.get("name", s["id"]),
+            "description": s.get("description", ""),
+            "enabled": s.get("enabled", True),
+        })
+    return jsonify(result)
 
 # ── 历史记录 API ──
 @app.route("/api/history/search")
@@ -1901,37 +2115,42 @@ def api_history_search():
 @require_token
 @log_request()
 def api_history_delete(index):
-    """删除指定索引的历史记录"""
+    """删除指定索引的历史记录（同时删除用户消息和助手回复）"""
     session_id = request.args.get("session") or _get_current_session_id()
     messages = _session_mgr.get_messages(session_id, limit=1000)
-    if 0 <= index < len(messages):
-        messages.pop(index)
-        # 通过 SessionManager 的清空 + 逐条添加（线程安全）
-        _session_mgr.clear_messages(session_id)
-        for msg in messages:
-            _session_mgr.add_message(
-                session_id,
-                msg.get("role", "user"),
-                msg.get("content", ""),
-                tool_calls=msg.get("tool_calls"),
-            )
-        # 同步更新 _CHAT_HISTORY 缓存
-        global _CHAT_HISTORY
-        if session_id == _session_mgr.get_current_id():
-            new_messages = _session_mgr.get_messages(session_id, limit=50)
-            _CHAT_HISTORY = []
-            for i in range(0, len(new_messages), 2):
-                user_msg = new_messages[i]
-                assistant_msg = new_messages[i + 1] if i + 1 < len(new_messages) else {}
-                if user_msg.get("role") == "user":
-                    _CHAT_HISTORY.append({
-                        "user": user_msg.get("content", ""),
-                        "Yunshu": assistant_msg.get("content", ""),
-                        "mode": "normal",
-                        "timestamp": user_msg.get("timestamp", ""),
-                    })
-        return jsonify({"ok": True})
-    return jsonify({"ok": False, "error": "索引超出范围"}), 404
+    # index 是消息对索引（一条记录 = 用户消息 + 助手回复）
+    msg_idx = index * 2
+    if msg_idx >= len(messages):
+        return jsonify({"ok": False, "error": "索引超出范围"}), 404
+    # 先删助手回复（索引靠后），再删用户消息
+    if msg_idx + 1 < len(messages):
+        messages.pop(msg_idx + 1)
+    messages.pop(msg_idx)
+    # 通过 SessionManager 的清空 + 逐条添加（线程安全）
+    _session_mgr.clear_messages(session_id)
+    for msg in messages:
+        _session_mgr.add_message(
+            session_id,
+            msg.get("role", "user"),
+            msg.get("content", ""),
+            tool_calls=msg.get("tool_calls"),
+        )
+    # 同步更新 _CHAT_HISTORY 缓存
+    global _CHAT_HISTORY
+    if session_id == _session_mgr.get_current_id():
+        new_messages = _session_mgr.get_messages(session_id, limit=50)
+        _CHAT_HISTORY = []
+        for i in range(0, len(new_messages), 2):
+            user_msg = new_messages[i]
+            assistant_msg = new_messages[i + 1] if i + 1 < len(new_messages) else {}
+            if user_msg.get("role") == "user":
+                _CHAT_HISTORY.append({
+                    "user": user_msg.get("content", ""),
+                    "Yunshu": assistant_msg.get("content", ""),
+                    "mode": "normal",
+                    "timestamp": user_msg.get("timestamp", ""),
+                })
+    return jsonify({"ok": True})
 
 # ── 记忆操作 API ──
 @app.route("/api/memory/overview")
@@ -2387,8 +2606,15 @@ _action_tracker = ActionTracker()
 
 # 自动包装工具调用以追踪操作
 _original_tool_call = _agent_tools.call
-def _tracked_tool_call(name, **params):
-    """带追踪的工具调用包装"""
+def _tracked_tool_call(*args, **params):
+    """带追踪的工具调用包装
+
+    部分工具（如 ext_install）的参数中也包含 'name' 字段，
+    因此必须使用 *args/**params 的签名，与原 tools.call 保持一致，
+    避免 Python 的参数冲突。
+    """
+    # 从位置参数或关键字参数中提取工具名
+    name = args[0] if args else params.pop("name", None)
     target = str(params.get("path", params.get("url", params.get("target", ""))))
     _action_tracker.start_action(name, params, target)
     try:
@@ -2557,6 +2783,11 @@ def api_permission_emergency():
         return jsonify({"ok": True, "action": "reset", "message": "🔄 操作追踪器已重置"})
     elif action == "cancel":
         _action_tracker.finish_action("cancelled", "用户手动取消")
+        # 真正中止正在进行的聊天
+        try:
+            _Yunshu.abort_chat()
+        except Exception as e:
+            logger.warning("中止聊天时出错: %s", e)
         return jsonify({"ok": True, "action": "cancel", "message": "⏹ 当前操作已取消"})
 
     return jsonify({"ok": False, "error": f"未知操作: {action}"}), 400
@@ -2993,6 +3224,33 @@ def api_browser_close():
 def api_process_list():
     """列出白名单进程"""
     return jsonify({"processes": list_processes()})
+
+
+@app.route("/api/process/whitelist")
+@log_request(show_response=False)
+def api_process_whitelist():
+    """获取进程白名单详情"""
+    return jsonify(get_whitelist_detail())
+
+
+@app.route("/api/process/whitelist/add", methods=["POST"])
+@require_token
+@log_request()
+def api_process_whitelist_add():
+    """添加自定义白名单条目"""
+    data = request.get_json() or {}
+    program = data.get("program", "")
+    return jsonify(add_whitelist_entry(program))
+
+
+@app.route("/api/process/whitelist/remove", methods=["POST"])
+@require_token
+@log_request()
+def api_process_whitelist_remove():
+    """移除自定义白名单条目"""
+    data = request.get_json() or {}
+    program = data.get("program", "")
+    return jsonify(remove_whitelist_entry(program))
 
 
 @app.route("/api/process/start", methods=["POST"])
