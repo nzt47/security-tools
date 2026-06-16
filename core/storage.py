@@ -110,7 +110,7 @@ class JSONFileStorage(BaseStorage):
             self.base_dir.mkdir(parents=True, exist_ok=True)
             logger.info(f"[JSONFileStorage] 目录创建/检查完成")
         
-        logger.info(f"📦 JSONFileStorage initialized: {self.base_dir}")
+        logger.info(f"[JSONFileStorage] JSONFileStorage initialized: {self.base_dir}")
         logger.info("[JSONFileStorage] __init__ 初始化完成")
     
     def _get_filepath(self, key: str) -> Path:
@@ -139,7 +139,7 @@ class JSONFileStorage(BaseStorage):
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
             logger.info(f"[JSONFileStorage.load] 读取成功: {filepath}")
-            logger.info(f"📥 Loaded: {key}")
+            logger.info(f"[JSONFileStorage.load] Loaded: {key}")
             return data
         except Exception as e:
             logger.error(f"[JSONFileStorage.load] 读取异常: {e}")
@@ -155,7 +155,7 @@ class JSONFileStorage(BaseStorage):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"[JSONFileStorage.save] 写入成功: {filepath}")
-            logger.info(f"📤 Saved: {key}")
+            logger.info(f"[JSONFileStorage.save] Saved: {key}")
         except Exception as e:
             logger.error(f"[JSONFileStorage.save] 写入异常: {e}")
             logger.error(f"Failed to save {key}: {e}")
@@ -187,7 +187,7 @@ class JSONFileStorage(BaseStorage):
         try:
             filepath.unlink()
             logger.info(f"[JSONFileStorage.delete] 删除成功")
-            logger.info(f"🗑️ Deleted: {key}")
+            logger.info(f"[JSONFileStorage.delete] Deleted: {key}")
             return True
         except Exception as e:
             logger.error(f"[JSONFileStorage.delete] 删除异常: {e}")
@@ -208,7 +208,7 @@ class InMemoryStorage(BaseStorage):
     def __init__(self):
         logger.info("[InMemoryStorage] __init__ 开始初始化")
         self._data: Dict[str, Any] = {}
-        logger.info("📦 InMemoryStorage initialized")
+        logger.info("[InMemoryStorage] InMemoryStorage initialized")
         logger.info("[InMemoryStorage] __init__ 初始化完成")
     
     def load(self, key: str, default: Any = None) -> Any:
@@ -225,7 +225,7 @@ class InMemoryStorage(BaseStorage):
         logger.info(f"[InMemoryStorage.save] 开始保存: key={key}")
         self._data[key] = data
         logger.info(f"[InMemoryStorage.save] 保存成功: {key}")
-        logger.debug(f"📤 Saved (in-memory): {key}")
+        logger.debug(f"[InMemoryStorage.save] Saved (in-memory): {key}")
     
     def list_keys(self, prefix: str = None) -> List[str]:
         logger.info(f"[InMemoryStorage.list_keys] 开始列出键: prefix={prefix}")
@@ -245,7 +245,7 @@ class InMemoryStorage(BaseStorage):
             logger.info(f"[InMemoryStorage.delete] 键存在，准备删除: {key}")
             del self._data[key]
             logger.info(f"[InMemoryStorage.delete] 删除成功: {key}")
-            logger.debug(f"🗑️ Deleted (in-memory): {key}")
+            logger.debug(f"[InMemoryStorage.delete] Deleted (in-memory): {key}")
             return True
         else:
             logger.warning(f"[InMemoryStorage.delete] 键不存在: {key}")
@@ -274,11 +274,22 @@ def create_storage(storage_type: str = "json", **kwargs) -> BaseStorage:
     
     if storage_type == "json":
         logger.info("[create_storage] 创建 JSONFileStorage")
+        
+        valid_json_args = {"base_dir", "ensure_dir"}
+        invalid_args = [k for k in kwargs if k not in valid_json_args]
+        if invalid_args:
+            logger.warning(f"[create_storage] JSONFileStorage 不支持的参数将被忽略: {invalid_args}")
+            kwargs = {k: v for k, v in kwargs.items() if k in valid_json_args}
+        
         storage = JSONFileStorage(**kwargs)
         logger.info("[create_storage] JSONFileStorage 创建完成")
         return storage
     elif storage_type == "memory":
         logger.info("[create_storage] 创建 InMemoryStorage")
+        
+        if kwargs:
+            logger.warning(f"[create_storage] InMemoryStorage 不接受参数，传入的参数将被忽略: {kwargs.keys()}")
+        
         storage = InMemoryStorage()
         logger.info("[create_storage] InMemoryStorage 创建完成")
         return storage
