@@ -65,11 +65,11 @@ class HttpClient:
             "Upgrade-Insecure-Requests": "1",
         })
 
-        # 重试策略
+        # 重试策略（包含 403 以应对反爬限制）
         retry_strategy = Retry(
             total=self._config.get("max_retries", DEFAULT_MAX_RETRIES),
             backoff_factor=self._config.get("backoff_factor", 0.5),
-            status_forcelist=[429, 500, 502, 503, 504],
+            status_forcelist=[429, 500, 502, 503, 504, 403],
             allowed_methods=["GET", "POST", "HEAD"],
         )
 
