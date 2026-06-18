@@ -1021,6 +1021,7 @@
                 <input type="checkbox" id="nc-search-enabled" onchange="updateNetworkConfig('search.enabled', this.checked)">
                 <span class="toggle-slider"></span>
               </label>
+              <button class="btn-sm primary" style="margin-left:auto" onclick="showSearchInstanceModal()">+ 添加引擎</button>
             </div>
             <div class="network-section-body">
               <div class="form-row-inline">
@@ -1085,9 +1086,6 @@
               <div class="help-tip" style="margin:12px 0 8px">
                 <span class="help-icon">🔧</span>
                 自定义搜索引擎（支持任意 HTTP JSON API）或内置引擎的 API Key 配置。
-              </div>
-              <div style="margin-bottom:8px">
-                <button class="btn-sm primary" onclick="showSearchInstanceModal()">+ 添加引擎</button>
               </div>
               <div id="search-instances-list" class="instances-list"></div>
             </div>
