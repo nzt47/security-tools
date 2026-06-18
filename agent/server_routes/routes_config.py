@@ -10,6 +10,11 @@ from agent.network_config import _DEFAULT_SEARCH_INSTANCE
 logger = logging.getLogger(__name__)
 
 
+# 已知的内置搜索引擎类型
+BUILTIN_ENGINES = {'tavily', 'firecrawl', 'bing', 'google', 'brave',
+                   'duckduckgo', 'baidu', 'sogou', 'so360'}
+
+
 def validate_search_instance(instance: dict) -> List[str]:
     """验证搜索实例配置"""
     errors = []
@@ -18,6 +23,8 @@ def validate_search_instance(instance: dict) -> List[str]:
     engine_type = instance.get('engine_type', '')
     if not engine_type:
         errors.append('引擎类型不能为空')
+    if engine_type != 'custom' and engine_type not in BUILTIN_ENGINES:
+        errors.append(f'未知的内置引擎类型: {engine_type}')
     if engine_type == 'custom':
         if not instance.get('api_endpoint'):
             errors.append('自定义引擎必须提供 API 端点 URL')
@@ -466,20 +473,24 @@ def register_routes(app, state):
             config = ncm.get_raw_config()
             instances = config.get('search_instances', [])
 
-            found = any(i.get('id') == instance_id for i in instances)
-            if not found:
+            inst = next((i for i in instances if i.get('id') == instance_id), None)
+            if not inst:
                 return jsonify({"ok": False, "error": "实例不存在"}), 404
 
-            # 清除其他实例的 is_default
-            for inst in instances:
-                inst['is_default'] = (inst.get('id') == instance_id)
+            # 先调用 set_default_engine（可能抛出 ValueError）
+            if web_search:
+                if inst.get('engine_type') == 'custom':
+                    web_search.set_default_engine(instance_id)
+                else:
+                    # 内置引擎用 engine_type 作为标识
+                    web_search.set_default_engine(inst['engine_type'])
+
+            # 保存配置：清除其他实例的 is_default
+            for i in instances:
+                i['is_default'] = (i.get('id') == instance_id)
 
             ncm._save(config)
             ncm._add_change_log('update', 'search_instance', {'id': instance_id, 'action': 'set_default'})
-
-            # 更新搜索引擎默认
-            if web_search:
-                web_search.set_default_engine(instance_id)
 
             return jsonify({"ok": True, "message": "已设为默认搜索引擎"})
         except Exception as e:

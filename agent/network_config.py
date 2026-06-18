@@ -623,12 +623,17 @@ class NetworkConfigManager:
             if instance.get('api_key'):
                 search_engine._api_keys[engine_type] = instance['api_key']
 
-        # 设置启用状态
-        search_engine.set_engine_enabled(inst_id, enabled)
-
-        # 如果是默认引擎
-        if instance.get('is_default'):
-            search_engine.set_default_engine(inst_id)
+        # 设置启用状态和默认引擎
+        if engine_type == 'custom':
+            search_engine.set_engine_enabled(inst_id, enabled)
+            if instance.get('is_default'):
+                search_engine.set_default_engine(inst_id)
+        else:
+            # 内置引擎用类型名注册，用 engine_type 作为标识
+            search_engine.set_engine_enabled(engine_type, enabled)
+            if instance.get('is_default'):
+                # 内置引擎已通过 _register_builtin_engines 注册，直接设置默认
+                search_engine.set_default_engine(engine_type)
 
     def apply_search_instances(self, search_engine=None):
         """将搜索实例注册到 SearchEngine
