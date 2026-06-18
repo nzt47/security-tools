@@ -593,6 +593,86 @@ class NetworkConfigManager:
                         service['updated_at'] = service['created_at']
                         self._add_change_log('add', 'mcp_service', {'id': service['id'], 'name': service.get('name')})
 
+    def _register_search_instance(self, instance: dict, search_engine):
+        """注册单个搜索实例到 SearchEngine
+
+        Args:
+            instance: 搜索实例配置字典
+            search_engine: SearchEngine 实例
+        """
+        if not search_engine:
+            return
+        inst_id = instance.get('id', '')
+        name = instance.get('name', inst_id)
+        engine_type = instance.get('engine_type', 'custom')
+        enabled = instance.get('enabled', True)
+
+        if engine_type == 'custom':
+            # 自定义引擎：注册通用 handler
+            from functools import partial
+            handler = partial(search_engine._search_custom, instance)
+            search_engine.register_engine(
+                name=inst_id,
+                label=name,
+                handler=handler,
+                needs_key=bool(instance.get('api_key')),
+                description=f"自定义搜索引擎: {instance.get('api_endpoint', '')}",
+            )
+        else:
+            # 内置引擎：已通过 _register_builtin_engines 注册，只需更新 API Key
+            if instance.get('api_key'):
+                search_engine._api_keys[engine_type] = instance['api_key']
+
+        # 设置启用状态
+        search_engine.set_engine_enabled(inst_id, enabled)
+
+        # 如果是默认引擎
+        if instance.get('is_default'):
+            search_engine.set_default_engine(inst_id)
+
+    def apply_search_instances(self, search_engine=None):
+        """将搜索实例注册到 SearchEngine
+
+        先清理已注册的自定义引擎，再根据配置重新注册所有实例，
+        最后更新优先级将自定义引擎排在前面。
+
+        Args:
+            search_engine: SearchEngine 实例
+        """
+        if not search_engine:
+            return
+        config = self.get_raw_config()
+        instances = config.get('search_instances', [])
+        logger.info("[网络配置] 开始注册 %d 个搜索实例...", len(instances))
+
+        # 先清理之前已注册的自定义引擎
+        for inst in instances:
+            inst_id = inst.get('id', '')
+            if inst_id in search_engine._engine_registry:
+                search_engine.remove_engine(inst_id)
+
+        # 重新注册
+        default_set = False
+        for inst in instances:
+            if not inst.get('enabled', True):
+                continue
+            self._register_search_instance(inst, search_engine)
+            if inst.get('is_default'):
+                default_set = True
+
+        # 更新优先级：自定义引擎排在前面
+        custom_ids = [inst['id'] for inst in instances if inst.get('id') and inst.get('enabled', True)]
+        if custom_ids:
+            priority = list(search_engine._engine_priority)
+            # 把自定义 ID 移到前面
+            for cid in custom_ids:
+                if cid in priority:
+                    priority.remove(cid)
+            priority = custom_ids + priority
+            search_engine.set_engine_priority(priority)
+
+        logger.info("[网络配置] 搜索实例注册完成")
+
     def reset(self) -> dict:
         """重置为默认配置"""
         self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
@@ -987,6 +1067,16 @@ class NetworkConfigManager:
                 logger.warning("[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用")
         except Exception as e:
             logger.warning("[网络配置] 应用搜索引擎配置失败: %s", e, exc_info=True)
+
+        # 注册搜索实例
+        try:
+            if app_instance and hasattr(app_instance, '_web_search'):
+                self.apply_search_instances(app_instance._web_search)
+                logger.info("[网络配置] 搜索实例已注册")
+            else:
+                logger.warning("[网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册")
+        except Exception as e:
+            logger.warning("[网络配置] 注册搜索实例失败: %s", e, exc_info=True)
 
         # 应用到 LLM 配置
         if app_instance and hasattr(app_instance, 'configure_llm'):
