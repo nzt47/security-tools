@@ -652,16 +652,16 @@ class NetworkConfigManager:
                 search_engine.remove_engine(inst_id)
 
         # 重新注册
-        default_set = False
         for inst in instances:
+            inst_id = inst.get('id', '')
+            if not inst_id:
+                continue  # 跳过没有 ID 的实例
             if not inst.get('enabled', True):
                 continue
             self._register_search_instance(inst, search_engine)
-            if inst.get('is_default'):
-                default_set = True
 
         # 更新优先级：自定义引擎排在前面
-        custom_ids = [inst['id'] for inst in instances if inst.get('id') and inst.get('enabled', True)]
+        custom_ids = [inst.get('id', '') for inst in instances if inst.get('id') and inst.get('enabled', True)]
         if custom_ids:
             priority = list(search_engine._engine_priority)
             # 把自定义 ID 移到前面
