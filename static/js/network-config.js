@@ -90,8 +90,8 @@ function renderNetworkConfig(config) {
   set('nc-search-max', config.search.max_results);
   set('nc-search-timeout', config.search.timeout || 30);
 
-  // 渲染搜索引擎优先级
-  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google']);
+  // 渲染搜索引擎优先级（含内联 API Key 输入框）
+  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google'], config.search_api_keys);
   
   // 渲染搜索引擎启用状态
   const engineEnabled = config.search.engine_enabled || {};
@@ -100,15 +100,6 @@ function renderNetworkConfig(config) {
   set('nc-engine-bing', engineEnabled.bing !== false);
   set('nc-engine-brave', engineEnabled.brave !== false);
   set('nc-engine-google', engineEnabled.google !== false);
-
-  // API Key 配置
-  const apiKeys = config.search_api_keys || {};
-  set('nc-api-tavily', apiKeys.tavily || '');
-  set('nc-api-firecrawl', apiKeys.firecrawl || '');
-  set('nc-api-bing', apiKeys.bing || '');
-  set('nc-api-google', apiKeys.google || '');
-  set('nc-api-google-cx', apiKeys.google_cx || '');
-  set('nc-api-brave', apiKeys.brave || '');
 
   // Web 抓取服务
   set('nc-scraping-enabled', config.web_scraping.enabled);
@@ -137,9 +128,11 @@ function renderNetworkConfig(config) {
 /**
  * 渲染搜索引擎优先级列表
  */
-function renderSearchEnginePriority(priority) {
+function renderSearchEnginePriority(priority, apiKeys) {
   const list = document.getElementById('search-engine-priority-list');
   if (!list) return;
+
+  apiKeys = apiKeys || {};
 
   const engineNames = {
     duckduckgo: 'DuckDuckGo',
@@ -150,6 +143,9 @@ function renderSearchEnginePriority(priority) {
     google: 'Google'
   };
 
+  // 需要 API Key 的引擎列表
+  const needsKey = { tavily: true, firecrawl: true, bing: true, google: true, brave: true };
+
   list.innerHTML = '';
 
   priority.forEach(engine => {
@@ -157,14 +153,27 @@ function renderSearchEnginePriority(priority) {
       const item = document.createElement('div');
       item.className = 'priority-item';
       item.dataset.engine = engine;
-      item.innerHTML = `
+
+      let html = `
         <span class="priority-handle">⋮⋮</span>
         <span class="priority-label">${engineNames[engine]}</span>
         <label class="toggle-switch small">
           <input type="checkbox" id="nc-engine-${engine}" checked onchange="onEngineToggle('${engine}', this.checked)">
           <span class="toggle-slider"></span>
-        </label>
-      `;
+        </label>`;
+
+      // 需要 API Key 的引擎后面加输入框
+      if (needsKey[engine]) {
+        const val = apiKeys[engine] || '';
+        html += `<input type="password" class="api-key-inline" id="nc-api-${engine}" value="${val}" placeholder="${engine === 'tavily' ? 'tvly-...' : engine === 'firecrawl' ? 'fc-...' : engine === 'brave' ? 'brave-...' : 'sk-...'}" autocomplete="off" onchange="onNetworkConfigChange()">`;
+      }
+      // Google 额外需要 CX
+      if (engine === 'google') {
+        const cxVal = apiKeys['google_cx'] || '';
+        html += `<input type="text" class="api-key-inline cx" id="nc-api-google-cx" value="${cxVal}" placeholder="CX..." onchange="onNetworkConfigChange()">`;
+      }
+
+      item.innerHTML = html;
       list.appendChild(item);
     }
   });
