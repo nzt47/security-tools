@@ -27,7 +27,9 @@ async function loadNetworkConfig() {
     await loadLlmInstances();
     // 加载 MCP 服务
     await loadMcpServices();
-    
+    // 加载搜索引擎实例
+    await loadSearchInstances();
+
     console.log('[网络配置] 配置渲染完成');
   } catch (e) {
     console.error('[网络配置] 加载失败:', e);
@@ -89,7 +91,7 @@ function renderNetworkConfig(config) {
   set('nc-search-timeout', config.search.timeout || 30);
 
   // 渲染搜索引擎优先级
-  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'bing', 'brave', 'google']);
+  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google']);
   
   // 渲染搜索引擎启用状态
   const engineEnabled = config.search.engine_enabled || {};
@@ -102,6 +104,7 @@ function renderNetworkConfig(config) {
   // API Key 配置
   const apiKeys = config.search_api_keys || {};
   set('nc-api-tavily', apiKeys.tavily || '');
+  set('nc-api-firecrawl', apiKeys.firecrawl || '');
   set('nc-api-bing', apiKeys.bing || '');
   set('nc-api-google', apiKeys.google || '');
   set('nc-api-google-cx', apiKeys.google_cx || '');
@@ -141,6 +144,7 @@ function renderSearchEnginePriority(priority) {
   const engineNames = {
     duckduckgo: 'DuckDuckGo',
     tavily: 'Tavily',
+    firecrawl: 'Firecrawl',
     bing: 'Bing',
     brave: 'Brave',
     google: 'Google'
@@ -297,8 +301,10 @@ function collectNetworkConfig() {
       engine_priority: enginePriority,
       engine_enabled: engineEnabled,
     },
+    search_instances: __searchInstances,
     search_api_keys: {
       tavily: get('nc-api-tavily'),
+      firecrawl: get('nc-api-firecrawl'),
       bing: get('nc-api-bing'),
       google: get('nc-api-google'),
       google_cx: get('nc-api-google-cx'),
@@ -1303,6 +1309,251 @@ async function toggleMcpEnabled(enabled) {
     }
   } catch (e) {
     alert('操作失败: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 搜索引擎实例管理
+// ════════════════════════════════════════════════════════════
+
+let __searchInstances = [];
+let __editingSearchId = null;
+
+async function loadSearchInstances() {
+  try {
+    const res = await apiFetch('/api/search/instances');
+    const result = await res.json();
+    if (result.ok) {
+      __searchInstances = result.instances || [];
+      renderSearchInstances(__searchInstances);
+    }
+  } catch (e) {
+    console.error('[网络配置] 加载搜索引擎实例失败:', e);
+  }
+}
+
+function renderSearchInstances(instances) {
+  const container = document.getElementById('search-instances-list');
+  if (!container) return;
+
+  if (instances.length === 0) {
+    container.innerHTML = '<div class="empty-state">暂无搜索引擎实例，点击上方添加</div>';
+    return;
+  }
+
+  // 查找哪个是默认
+  const defaultId = __networkConfigCache?.search?.default_engine || '';
+
+  container.innerHTML = instances.map(inst => {
+    const id = inst.id || inst.name;
+    const isDefault = inst.is_default || (id === defaultId);
+    const isCustom = inst.engine_type === 'custom';
+    const endpoint = isCustom ? inst.api_endpoint : `内置引擎: ${inst.engine_type}`;
+
+    return `
+    <div class="llm-instance-card ${inst.enabled ? '' : 'disabled'}">
+      <div class="llm-instance-header">
+        <div style="flex:1">
+          <div class="llm-instance-name">${escapeHtml(inst.name)}</div>
+          <div class="llm-instance-meta">${inst.engine_type} · ${isCustom ? '自定义' : '内置'}</div>
+        </div>
+        <div class="llm-instance-actions">
+          ${isDefault ? '<span class="default-badge">默认</span>' : ''}
+          <label class="toggle-switch small">
+            <input type="checkbox" ${inst.enabled ? 'checked' : ''} onchange="toggleSearchInstance('${id}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="btn-xs" onclick="testSearchInstance('${id}')" title="测试">▶</button>
+          <button class="btn-xs" onclick="editSearchInstance('${id}')" title="编辑">✏️</button>
+          <button class="btn-xs danger" onclick="deleteSearchInstance('${id}', '${escapeHtml(inst.name)}')" title="删除">🗑</button>
+        </div>
+      </div>
+      <div class="llm-instance-body">
+        <div class="llm-instance-endpoint">📍 ${escapeHtml(endpoint)}</div>
+        <div class="llm-instance-stats">
+          <span>⏱ ${inst.timeout}s</span>
+          <span>🔑 ${inst.api_key ? 'Key已配置' : '无Key'}</span>
+        </div>
+      </div>
+      <button class="llm-set-default" onclick="setDefaultSearchInstance('${id}')" ${isDefault ? 'disabled' : ''}>
+        ${isDefault ? '✓ 已设为默认' : '设为默认'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function showSearchInstanceModal(instanceId) {
+  const modal = document.getElementById('search-instance-modal');
+  const title = document.getElementById('search-modal-title');
+  const form = document.getElementById('search-instance-form');
+
+  if (instanceId) {
+    title.textContent = '编辑搜索引擎';
+    __editingSearchId = instanceId;
+    const inst = __searchInstances.find(i => (i.id || i.name) === instanceId);
+    if (inst) {
+      set('si-form-name', inst.name);
+      set('si-form-engine-type', inst.engine_type);
+      set('si-form-endpoint', inst.api_endpoint || '');
+      set('si-form-api-key', inst.api_key || '');
+      set('si-form-auth-header', inst.auth_header || 'Authorization: Bearer {key}');
+      set('si-form-http-method', inst.http_method || 'GET');
+      set('si-form-timeout', inst.timeout || 30);
+      set('si-form-query-param', inst.query_param || 'q');
+      set('si-form-results-path', inst.results_path || 'data');
+      set('si-form-title-field', inst.title_field || 'title');
+      set('si-form-url-field', inst.url_field || 'url');
+      set('si-form-snippet-field', inst.snippet_field || 'snippet');
+    }
+  } else {
+    title.textContent = '添加搜索引擎';
+    __editingSearchId = null;
+    form.reset();
+    set('si-form-auth-header', 'Authorization: Bearer {key}');
+    set('si-form-http-method', 'GET');
+    set('si-form-timeout', 30);
+    set('si-form-query-param', 'q');
+    set('si-form-results-path', 'data');
+    set('si-form-title-field', 'title');
+    set('si-form-url-field', 'url');
+    set('si-form-snippet-field', 'snippet');
+  }
+
+  onSearchEngineTypeChange(); // 切换 custom 字段显示
+  modal.style.display = 'block';
+}
+
+function hideSearchInstanceModal() {
+  document.getElementById('search-instance-modal').style.display = 'none';
+  __editingSearchId = null;
+}
+
+function switchSearchTab(tabId) {
+  document.querySelectorAll('#search-instance-modal .tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('#search-instance-modal .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabId).style.display = 'block';
+  document.querySelector(`#search-instance-modal .tab-btn[data-tab="${tabId}"]`).classList.add('active');
+}
+
+function onSearchEngineTypeChange() {
+  const isCustom = get('si-form-engine-type') === 'custom';
+  document.querySelectorAll('.si-custom-field').forEach(el => {
+    el.style.display = isCustom ? '' : 'none';
+  });
+}
+
+async function saveSearchInstance() {
+  const instance = {
+    name: get('si-form-name'),
+    engine_type: get('si-form-engine-type'),
+    api_endpoint: get('si-form-endpoint'),
+    api_key: get('si-form-api-key'),
+    auth_header: get('si-form-auth-header'),
+    http_method: get('si-form-http-method'),
+    timeout: num('si-form-timeout'),
+    query_param: get('si-form-query-param'),
+    results_path: get('si-form-results-path'),
+    title_field: get('si-form-title-field'),
+    url_field: get('si-form-url-field'),
+    snippet_field: get('si-form-snippet-field'),
+    enabled: true,
+  };
+
+  if (!instance.name.trim()) { alert('名称不能为空'); return; }
+
+  try {
+    let result;
+    if (__editingSearchId) {
+      result = await apiFetch(`/api/search/instances/${__editingSearchId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ updates: instance }),
+      });
+    } else {
+      result = await apiFetch('/api/search/instances', {
+        method: 'POST',
+        body: JSON.stringify({ instance }),
+      });
+    }
+    const data = await result.json();
+    if (data.ok) {
+      await loadSearchInstances();
+      hideSearchInstanceModal();
+      showNetworkStatus(__editingSearchId ? '✓ 搜索引擎已更新' : '✓ 搜索引擎已添加', 'ok');
+    } else {
+      alert('操作失败: ' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('操作失败: ' + e.message);
+  }
+}
+
+async function deleteSearchInstance(instanceId, name) {
+  if (!confirm(`确定要删除搜索引擎 "${name}" 吗？`)) return;
+  try {
+    const result = await apiFetch(`/api/search/instances/${instanceId}`, { method: 'DELETE' });
+    const data = await result.json();
+    if (data.ok) {
+      await loadSearchInstances();
+      showNetworkStatus('✓ 搜索引擎已删除', 'ok');
+    } else {
+      alert('删除失败: ' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('删除失败: ' + e.message);
+  }
+}
+
+async function toggleSearchInstance(instanceId, enabled) {
+  try {
+    await apiFetch(`/api/search/instances/${instanceId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ updates: { enabled } }),
+    });
+    await loadSearchInstances();
+  } catch (e) {
+    console.error('切换状态失败:', e);
+  }
+}
+
+async function setDefaultSearchInstance(instanceId) {
+  try {
+    const result = await apiFetch(`/api/search/instances/${instanceId}/default`, { method: 'POST' });
+    const data = await result.json();
+    if (data.ok) {
+      await loadSearchInstances();
+      showNetworkStatus('✓ 已设为默认搜索引擎', 'ok');
+    } else {
+      alert('操作失败: ' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('操作失败: ' + e.message);
+  }
+}
+
+async function editSearchInstance(instanceId) {
+  const inst = __searchInstances.find(i => (i.id || i.name) === instanceId);
+  if (inst) showSearchInstanceModal(inst.id || inst.name);
+  else alert('未找到该实例');
+}
+
+async function testSearchInstance(instanceId) {
+  const btn = event.target;
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    const result = await apiFetch(`/api/search/instances/${instanceId}/test`, { method: 'POST' });
+    const data = await result.json();
+    if (data.ok && data.results && data.results.length > 0) {
+      const preview = data.results.slice(0, 2).map(r => `• ${r.title || '(无标题)'}`).join('\n');
+      alert('✓ 测试成功！\n\n返回 ' + data.total + ' 条结果，前 2 条：\n' + preview);
+    } else {
+      alert('✗ 测试失败: ' + (data.error || '无返回结果'));
+    }
+  } catch (e) {
+    alert('✗ 测试异常: ' + e.message);
+  } finally {
+    btn.textContent = '▶';
+    btn.disabled = false;
   }
 }
 
