@@ -1129,6 +1129,16 @@
                   </div>
                 </div>
               </div>
+
+              <!-- 搜索引擎实例列表 -->
+              <div class="help-tip" style="margin:12px 0 8px">
+                <span class="help-icon">🔧</span>
+                自定义搜索引擎（支持任意 HTTP JSON API）或内置引擎的 API Key 配置。
+              </div>
+              <div style="margin-bottom:8px">
+                <button class="btn-sm primary" onclick="showSearchInstanceModal()">+ 添加引擎</button>
+              </div>
+              <div id="search-instances-list" class="instances-list"></div>
             </div>
           </div>
 
@@ -1259,23 +1269,6 @@
             <div class="network-section-body">
               <!-- LLM 多实例列表 -->
               <div id="llm-instances-list" class="instances-list"></div>
-            </div>
-          </div>
-
-          <!-- 搜索引擎管理 -->
-          <div class="network-section">
-            <div class="network-section-header">
-              <span class="section-icon">🔍</span>
-              <span class="section-title">搜索引擎管理</span>
-              <button class="btn-sm primary" onclick="showSearchInstanceModal()">+ 添加引擎</button>
-            </div>
-            <div class="network-section-body">
-              <div class="help-tip" style="margin-bottom:8px">
-                <span class="help-icon">💡</span>
-                添加自定义搜索引擎须提供 API 端点 URL 和字段映射规则。
-                内置引擎（Tavily/Firecrawl/Bing/Google等）可在下方配置 API Key。
-              </div>
-              <div id="search-instances-list" class="instances-list"></div>
             </div>
           </div>
 
