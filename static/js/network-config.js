@@ -86,7 +86,6 @@ function renderNetworkConfig(config) {
 
   // 搜索服务
   set('nc-search-enabled', config.search.enabled);
-  set('nc-search-engine', config.search.default_engine);
   set('nc-search-max', config.search.max_results);
   set('nc-search-timeout', config.search.timeout || 30);
 
@@ -304,7 +303,7 @@ function collectNetworkConfig() {
     },
     search: {
       enabled: get('nc-search-enabled'),
-      default_engine: get('nc-search-engine'),
+      default_engine: enginePriority.length > 0 ? enginePriority[0] : 'duckduckgo',
       max_results: num('nc-search-max'),
       timeout: num('nc-search-timeout'),
       engine_priority: enginePriority,
