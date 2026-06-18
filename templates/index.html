@@ -162,6 +162,7 @@
 .msg.user{background:#1f6feb30;border:1px solid #1f6feb50;align-self:flex-end;color:#c9d1d9}
 .msg.Yunshu{background:#161b22;border:1px solid #30363d;align-self:flex-start;color:#c9d1d9}
 .msg .meta{font-size:10px;color:#8b949e;margin-top:4px;display:flex;gap:8px}
+.msg .meta .thinking-tag{color:#58a6ff;background:#1f6feb20;padding:0 4px;border-radius:3px}
 .msg-copy{cursor:pointer;opacity:0.5;transition:opacity 0.2s;user-select:none;font-size:12px}
 .msg-copy:hover{opacity:1;transform:scale(1.1)}
 .msg .reason{font-size:11px;color:#f85149;margin-top:6px;padding:6px 8px;background:#f8514915;border:1px solid #f8514940;border-radius:4px}
@@ -529,16 +530,16 @@
   margin-bottom: 12px;
 }
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260612">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260612">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status-panel.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260617">
 </head>
 <body>
 <div id="app">
@@ -578,6 +579,7 @@
         <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
         <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
         <button class="nav-btn" data-view="network"><span class="nav-icon">🌐</span><span class="nav-label">网络配置</span></button>
+        <button class="nav-btn" data-view="logs"><span class="nav-icon">📊</span><span class="nav-label">日志分析</span></button>
         <div class="nav-divider"></div>
         <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">设置</span></button>
         <button class="nav-btn" data-view="refresh"><span class="nav-icon">⟳</span><span class="nav-label">刷新</span></button>
@@ -1101,6 +1103,11 @@
                     <label>Tavily API Key <span class="sensitive-hint">🔒 加密存储</span></label>
                     <input type="password" id="nc-api-tavily" placeholder="tvly-..." autocomplete="off" onchange="onNetworkConfigChange()">
                   </div>
+                  <!-- Firecrawl API Key -->
+                  <div class="form-row">
+                    <label>Firecrawl API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                    <input type="password" id="nc-api-firecrawl" placeholder="fc-..." autocomplete="off" onchange="onNetworkConfigChange()">
+                  </div>
                   <!-- Bing API Key -->
                   <div class="form-row">
                     <label>Bing API Key <span class="sensitive-hint">🔒 加密存储</span></label>
@@ -1255,6 +1262,23 @@
             </div>
           </div>
 
+          <!-- 搜索引擎管理 -->
+          <div class="network-section">
+            <div class="network-section-header">
+              <span class="section-icon">🔍</span>
+              <span class="section-title">搜索引擎管理</span>
+              <button class="btn-sm primary" onclick="showSearchInstanceModal()">+ 添加引擎</button>
+            </div>
+            <div class="network-section-body">
+              <div class="help-tip" style="margin-bottom:8px">
+                <span class="help-icon">💡</span>
+                添加自定义搜索引擎须提供 API 端点 URL 和字段映射规则。
+                内置引擎（Tavily/Firecrawl/Bing/Google等）可在下方配置 API Key。
+              </div>
+              <div id="search-instances-list" class="instances-list"></div>
+            </div>
+          </div>
+
           <!-- MCP 服务管理 -->
           <div class="network-section">
             <div class="network-section-header">
@@ -1294,6 +1318,11 @@
           </div>
           <div id="nc-status" class="cfg-status" style="margin-top:12px"></div>
         </div>
+      </div>
+
+      <!-- 日志分析视图 -->
+      <div id="view-logs" class="view" style="height:100%">
+        <iframe src="/logs/dashboard" style="width:100%;height:100%;border:none;background:#0f1923" title="日志分析"></iframe>
       </div>
 
       <!-- LLM 实例编辑模态框 -->
@@ -1367,6 +1396,107 @@
           <div class="modal-footer">
             <button class="btn-secondary" onclick="hideLlmInstanceModal()">取消</button>
             <button class="btn-primary" onclick="saveLlmInstance()">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 搜索引擎实例编辑模态框 -->
+      <div id="search-instance-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSearchInstanceModal()">
+        <div class="modal" style="width:520px">
+          <div class="modal-header">
+            <h3 id="search-modal-title">添加搜索引擎</h3>
+            <span class="modal-close" onclick="hideSearchInstanceModal()">&times;</span>
+          </div>
+          <div class="modal-body">
+            <!-- Tab 切换 -->
+            <div class="tab-bar" style="display:flex;gap:2px;margin-bottom:12px">
+              <button class="tab-btn active" data-tab="search-basic" onclick="switchSearchTab('search-basic')">基本设置</button>
+              <button class="tab-btn" data-tab="search-api" onclick="switchSearchTab('search-api')">解析规则</button>
+            </div>
+            <form id="search-instance-form">
+              <!-- 基本设置 -->
+              <div id="tab-search-basic" class="tab-panel">
+                <div class="form-group">
+                  <label>名称 *</label>
+                  <input type="text" id="si-form-name" placeholder="我的搜索引擎" required>
+                </div>
+                <div class="form-group">
+                  <label>引擎类型</label>
+                  <select id="si-form-engine-type" onchange="onSearchEngineTypeChange()">
+                    <option value="custom">自定义引擎</option>
+                    <optgroup label="内置引擎">
+                      <option value="tavily">Tavily</option>
+                      <option value="firecrawl">Firecrawl</option>
+                      <option value="bing">Bing</option>
+                      <option value="google">Google</option>
+                      <option value="brave">Brave</option>
+                      <option value="duckduckgo">DuckDuckGo</option>
+                      <option value="baidu">百度</option>
+                      <option value="sogou">搜狗</option>
+                      <option value="so360">360搜索</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>API 端点 URL <span class="hint">使用 {query} 作为查询占位符</span></label>
+                  <input type="text" id="si-form-endpoint" placeholder="https://api.example.com/search?q={query}">
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>API Key <span class="sensitive-hint">🔒 加密存储</span></label>
+                  <input type="password" id="si-form-api-key" placeholder="sk-..." autocomplete="off">
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>认证头模板 <span class="hint">使用 {key} 作为占位符</span></label>
+                  <input type="text" id="si-form-auth-header" value="Authorization: Bearer {key}">
+                </div>
+                <div class="form-row-inline">
+                  <div class="form-row half si-custom-field">
+                    <label>HTTP 方法</label>
+                    <select id="si-form-http-method">
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                    </select>
+                  </div>
+                  <div class="form-row half">
+                    <label>超时 (秒)</label>
+                    <input type="number" id="si-form-timeout" min="1" max="300" value="30">
+                  </div>
+                </div>
+              </div>
+              <!-- 解析规则 -->
+              <div id="tab-search-api" class="tab-panel" style="display:none">
+                <div class="help-tip" style="margin-bottom:8px">
+                  <span class="help-icon">🔧</span>
+                  配置 API 返回的 JSON 结构中，结果列表和字段的路径。
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>查询参数名 <span class="hint">URL 中的查询参数名</span></label>
+                  <input type="text" id="si-form-query-param" value="q">
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>结果 JSON 路径 <span class="hint">结果数组的键路径，如 data.items</span></label>
+                  <input type="text" id="si-form-results-path" value="data">
+                </div>
+                <div class="form-row-inline si-custom-field">
+                  <div class="form-row half">
+                    <label>标题字段</label>
+                    <input type="text" id="si-form-title-field" value="title">
+                  </div>
+                  <div class="form-row half">
+                    <label>URL 字段</label>
+                    <input type="text" id="si-form-url-field" value="url">
+                  </div>
+                </div>
+                <div class="form-group si-custom-field">
+                  <label>摘要字段</label>
+                  <input type="text" id="si-form-snippet-field" value="snippet">
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="hideSearchInstanceModal()">取消</button>
+            <button class="btn-primary" onclick="saveSearchInstance()">保存</button>
           </div>
         </div>
       </div>
@@ -1492,6 +1622,7 @@
         <div class="sp-text-row"><span class="sp-label">网络</span><span class="sp-value" id="sp-network">-</span></div>
         <div class="sp-text-row"><span class="sp-label">传感器</span><span class="sp-value" id="sp-sensors">-</span></div>
         <div class="sp-text-row"><span class="sp-label">模式</span><span class="sp-value" id="sp-mode">-</span></div>
+        <div class="sp-text-row"><span class="sp-label">思维</span><span class="sp-value" id="sp-thinking" style="color:#58a6ff">-</span></div>
       </div>
       <div class="sp-section">
         <div class="sp-section-title">运行信息</div>
@@ -1991,6 +2122,78 @@
   font-size: 12px;
   color: #8b949e;
   margin-top: 6px;
+}
+
+/* Tab 切换按钮样式 */
+.tab-btn {
+  background: #161b22;
+  border: 1px solid #1e3a5f;
+  padding: 6px 16px;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px 4px 0 0;
+}
+.tab-btn.active {
+  background: #0d1117;
+  color: #58a6ff;
+  font-weight: 500;
+  border-color: #58a6ff;
+}
+.tab-panel {
+  padding: 8px 0;
+}
+
+/* 搜索引擎实例卡片样式 */
+.search-instance-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.search-instance-card:hover {
+  border-color: #58a6ff;
+}
+.search-instance-card.disabled {
+  opacity: 0.5;
+}
+.search-instance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+}
+.search-instance-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+.search-instance-meta {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 2px;
+}
+.search-instance-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-instance-body {
+  padding: 12px 14px;
+}
+.search-instance-endpoint {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+.search-instance-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #8b949e;
 }
 
 /* 安全认证方式选择 */
@@ -2968,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-function addMessage(text, role, modeLabel) {
+function addMessage(text, role, modeLabel, thinkingMode) {
   const el = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
@@ -2979,11 +3182,15 @@ function addMessage(text, role, modeLabel) {
   // 保存纯文本用于复制（去掉 HTML 标签）
   const plainText = text.replace(/<[^>]*>/g, '');
 
-  // 始终生成 .meta（含模式标签+时间+复制按钮），通过 data-has-mode 标记是否含有模式文字
-  const hasMode = !!modeLabel;
+  // 思考状态标签
+  const thinkingLabel = (thinkingMode && thinkingMode.label) ? thinkingMode.label : '';
+  const hasMode = !!(modeLabel || thinkingLabel);
   const showNow = getDisplayPref('thinking');
   const metaDisplay = (hasMode && !showNow) ? 'none' : '';
-  const modeText = hasMode ? `<span>模式: ${modeLabel}</span>` : '';
+  const modeText = hasMode ? [
+    modeLabel ? `<span>模式: ${modeLabel}</span>` : '',
+    thinkingLabel ? `<span class="thinking-tag">💭 ${thinkingLabel}</span>` : '',
+  ].filter(Boolean).join('') : '';
   text = text + `<div class="meta" data-has-mode="${hasMode}" style="display:${metaDisplay}">`
       + modeText
       + `<span class="msg-time">${timeStr}</span>`
@@ -3100,17 +3307,17 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260612"></script>
-<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260612"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/nav.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260617"></script>
 <script>
 // ═══════════════════════════════════════════════
 // 快捷开关栏
@@ -3641,6 +3848,7 @@ app.registerView('tools', { load: loadTools, keepAlive: true });
 app.registerView('personality', { load: loadPersonality, keepAlive: true });
 app.registerView('memory', { load: loadMemory, keepAlive: true });
 app.registerView('network', { load: loadNetworkConfig, keepAlive: true });
+app.registerView('logs', { keepAlive: true });
 
 app.init();
 initNav();
