@@ -175,24 +175,20 @@ class SearchEngine:
             del self._stats["engine_usage"][name]
         if name in self._stats["engine_timing"]:
             del self._stats["engine_timing"][name]
+        self._api_keys.pop(name, None)
         logger.info("[搜索引擎] 已移除: %s", name)
         return True
 
-    def set_default_engine(self, name: str) -> bool:
-        """设置默认搜索引擎
-
-        Args:
-            name: 引擎内部名称
-
-        Returns:
-            bool: 是否设置成功
-        """
+    def set_default_engine(self, name: str):
+        """设置默认搜索引擎"""
+        if not name:
+            self._default_engine = self._config.get("default_engine", "duckduckgo")
+            logger.info("[搜索引擎] 默认引擎已重置为: %s", self._default_engine)
+            return
         if name not in self._engine_registry:
-            logger.warning("[搜索引擎] 设置默认引擎失败，引擎不存在: %s", name)
-            return False
+            raise ValueError(f"引擎 {name} 未注册")
         self._default_engine = name
-        logger.info("[搜索引擎] 默认引擎已设置为: %s", name)
-        return True
+        logger.info("[搜索引擎] 默认引擎已设为: %s", self._default_engine)
 
     def _load_api_keys_from_config(self):
         """从配置中加载所有已知的 API Key
@@ -716,7 +712,7 @@ class SearchEngine:
 
         # 4. 解析 JSON 响应
         try:
-            data = result.get("data", "")
+            data = result.get("text", "")
             if isinstance(data, str):
                 json_data = json.loads(data)
             else:
