@@ -1090,45 +1090,6 @@
                   </div>
                 </div>
               </div>
-              
-              <!-- API Key 配置 -->
-              <div class="api-key-section">
-                <div class="api-key-header">
-                  <span class="section-icon">🔑</span>
-                  <span class="section-title">API Key 管理</span>
-                </div>
-                <div class="api-key-body">
-                  <!-- Tavily API Key -->
-                  <div class="form-row">
-                    <label>Tavily API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                    <input type="password" id="nc-api-tavily" placeholder="tvly-..." autocomplete="off" onchange="onNetworkConfigChange()">
-                  </div>
-                  <!-- Firecrawl API Key -->
-                  <div class="form-row">
-                    <label>Firecrawl API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                    <input type="password" id="nc-api-firecrawl" placeholder="fc-..." autocomplete="off" onchange="onNetworkConfigChange()">
-                  </div>
-                  <!-- Bing API Key -->
-                  <div class="form-row">
-                    <label>Bing API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                    <input type="password" id="nc-api-bing" placeholder="xxx..." autocomplete="off" onchange="onNetworkConfigChange()">
-                  </div>
-                  <!-- Google API Key -->
-                  <div class="form-row">
-                    <label>Google API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                    <input type="password" id="nc-api-google" placeholder="AIzaSy..." autocomplete="off" onchange="onNetworkConfigChange()">
-                  </div>
-                  <div class="form-row">
-                    <label>Google CX (搜索引擎 ID)</label>
-                    <input type="text" id="nc-api-google-cx" placeholder="0123456789..." onchange="onNetworkConfigChange()">
-                  </div>
-                  <!-- Brave API Key -->
-                  <div class="form-row">
-                    <label>Brave API Key <span class="sensitive-hint">🔒 加密存储</span></label>
-                    <input type="password" id="nc-api-brave" placeholder="brave-..." autocomplete="off" onchange="onNetworkConfigChange()">
-                  </div>
-                </div>
-              </div>
 
               <!-- 搜索引擎实例列表 -->
               <div class="help-tip" style="margin:12px 0 8px">
@@ -1909,33 +1870,20 @@
   color: #c9d1d9;
 }
 
-/* API Key 管理区域 */
-.api-key-section {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #21262d;
-}
-
-.api-key-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.api-key-header .section-icon {
-  font-size: 14px;
-}
-
-.api-key-header .section-title {
+/* 内联 API Key 输入框 */
+.api-key-inline {
+  width: 140px;
+  padding: 3px 8px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #0d1117;
+  color: #c9d1d9;
   font-size: 12px;
-  font-weight: 600;
-  color: #8b949e;
+  outline: none;
+  margin-left: 6px;
 }
-
-.api-key-body {
-  padding-left: 4px;
-}
+.api-key-inline:focus { border-color: #58a6ff; }
+.api-key-inline.cx { width: 80px; }
 
 /* LLM 实例卡片样式 */
 .instances-list {
