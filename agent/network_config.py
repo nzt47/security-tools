@@ -67,7 +67,7 @@ _DEFAULT_NETWORK_CONFIG = {
         "max_results": 10,
         "timeout": 30,
         "cache_ttl": 300,
-        "engine_priority": ["duckduckgo", "baidu", "sogou", "so360", "tavily", "bing", "brave", "google"],
+        "engine_priority": ["duckduckgo", "baidu", "sogou", "so360", "tavily", "firecrawl", "bing", "brave", "google"],
         "engine_enabled": {
             "duckduckgo": True,
             "tavily": True,
@@ -82,11 +82,14 @@ _DEFAULT_NETWORK_CONFIG = {
     # 搜索引擎 API Key（敏感信息，加密存储）
     "search_api_keys": {
         "tavily": "",
+        "firecrawl": "",
         "bing": "",
         "google": "",
         "google_cx": "",
         "brave": "",
     },
+    # 搜索实例配置（新版）
+    "search_instances": [],
     # Web 抓取服务
     "web_scraping": {
         "enabled": True,
@@ -134,6 +137,27 @@ _DEFAULT_LLM_INSTANCE = {
     "max_retries": 3,
     "description": "",
     "enabled": True,
+    "created_at": "",
+    "updated_at": "",
+}
+
+# 搜索实例默认配置
+_DEFAULT_SEARCH_INSTANCE = {
+    "id": "",
+    "name": "",
+    "engine_type": "custom",
+    "api_endpoint": "",
+    "http_method": "GET",
+    "query_param": "q",
+    "api_key": "",
+    "auth_header": "Authorization: Bearer {key}",
+    "results_path": "data",
+    "title_field": "title",
+    "url_field": "url",
+    "snippet_field": "snippet",
+    "enabled": True,
+    "is_default": False,
+    "timeout": 30,
     "created_at": "",
     "updated_at": "",
 }
@@ -229,11 +253,21 @@ class NetworkConfigManager:
         if 'search_api_keys' not in self._cache:
             self._cache['search_api_keys'] = {
                 'tavily': '',
+                'firecrawl': '',
                 'bing': '',
                 'google': '',
                 'google_cx': '',
                 'brave': '',
             }
+
+        # 确保 search_instances 配置存在
+        if 'search_instances' not in self._cache:
+            self._cache['search_instances'] = []
+
+        # 确保搜索实例都有 ID
+        for inst in self._cache.get('search_instances', []):
+            if not inst.get('id'):
+                inst['id'] = str(uuid.uuid4())
 
         # 确保搜索引擎启用状态包含新引擎
         search_cfg = self._cache.get('search', {})
@@ -310,6 +344,7 @@ class NetworkConfigManager:
         # 加载搜索引擎 API Key（加密存储）
         search_api_keys = config.get('search_api_keys', {})
         config['search_api_keys']['tavily'] = self._load_secure('search_tavily_key', search_api_keys.get('tavily', ''))
+        config['search_api_keys']['firecrawl'] = self._load_secure('search_firecrawl_key', search_api_keys.get('firecrawl', ''))
         config['search_api_keys']['bing'] = self._load_secure('search_bing_key', search_api_keys.get('bing', ''))
         config['search_api_keys']['google'] = self._load_secure('search_google_key', search_api_keys.get('google', ''))
         config['search_api_keys']['google_cx'] = self._load_secure('search_google_cx', search_api_keys.get('google_cx', ''))
@@ -322,6 +357,15 @@ class NetworkConfigManager:
                 f'llm_{instance_id}_api_key',
                 instance.get('api_key', '')
             )
+
+        # 加载搜索实例的敏感信息
+        for inst in config.get('search_instances', []):
+            inst_id = inst.get('id', '')
+            if inst_id:
+                inst['api_key'] = self._load_secure(
+                    f'search_{inst_id}_api_key',
+                    inst.get('api_key', '')
+                )
 
         # 脱敏处理
         safe_config = deepcopy(config)
@@ -346,6 +390,12 @@ class NetworkConfigManager:
                 value = instance['api_key']
                 instance['api_key'] = '***' + value[-4:] if len(value) > 4 else '***'
 
+        # 搜索实例 API Key 脱敏
+        for inst in safe_config.get('search_instances', []):
+            if inst.get('api_key'):
+                v = inst['api_key']
+                inst['api_key'] = '***' + v[-4:] if len(v) > 4 else '***'
+
         return safe_config
 
     def get_raw_config(self) -> dict:
@@ -362,6 +412,7 @@ class NetworkConfigManager:
         # 加载搜索引擎 API Key（加密存储）
         search_api_keys = config.get('search_api_keys', {})
         config['search_api_keys']['tavily'] = self._load_secure('search_tavily_key', search_api_keys.get('tavily', ''))
+        config['search_api_keys']['firecrawl'] = self._load_secure('search_firecrawl_key', search_api_keys.get('firecrawl', ''))
         config['search_api_keys']['bing'] = self._load_secure('search_bing_key', search_api_keys.get('bing', ''))
         config['search_api_keys']['google'] = self._load_secure('search_google_key', search_api_keys.get('google', ''))
         config['search_api_keys']['google_cx'] = self._load_secure('search_google_cx', search_api_keys.get('google_cx', ''))
@@ -374,6 +425,15 @@ class NetworkConfigManager:
                 f'llm_{instance_id}_api_key',
                 instance.get('api_key', '')
             )
+
+        # 加载搜索实例的敏感信息
+        for inst in config.get('search_instances', []):
+            inst_id = inst.get('id', '')
+            if inst_id:
+                inst['api_key'] = self._load_secure(
+                    f'search_{inst_id}_api_key',
+                    inst.get('api_key', '')
+                )
 
         return config
 
@@ -414,6 +474,7 @@ class NetworkConfigManager:
         if 'search_api_keys' in updates:
             key_mapping = {
                 'tavily': 'search_tavily_key',
+                'firecrawl': 'search_firecrawl_key',
                 'bing': 'search_bing_key',
                 'google': 'search_google_key',
                 'google_cx': 'search_google_cx',
@@ -431,6 +492,10 @@ class NetworkConfigManager:
         # 处理 LLM 实例
         if 'llm_instances' in updates:
             self._update_llm_instances(updates['llm_instances'])
+
+        # 处理搜索实例
+        if 'search_instances' in updates:
+            self._update_search_instances(updates['search_instances'])
 
         # 处理 MCP 配置
         if 'mcp' in updates:
@@ -484,6 +549,31 @@ class NetworkConfigManager:
                     existing.update(instance)
                     existing['updated_at'] = datetime.datetime.now().isoformat()
                     self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
+
+    def _update_search_instances(self, instances: list):
+        """更新搜索实例配置"""
+        config = self._load()
+        for inst in instances:
+            inst_id = inst.get('id')
+            if not inst_id:
+                # 新增
+                inst['id'] = str(uuid.uuid4())
+                inst['created_at'] = datetime.datetime.now().isoformat()
+                inst['updated_at'] = inst['created_at']
+                api_key = inst.get('api_key', '')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    self._save_secure(f'search_{inst["id"]}_api_key', api_key)
+                config['search_instances'].append(inst)
+                self._add_change_log('add', 'search_instance', {'id': inst['id'], 'name': inst.get('name')})
+            else:
+                existing = next((i for i in config['search_instances'] if i['id'] == inst_id), None)
+                if existing:
+                    api_key = inst.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'search_{inst_id}_api_key', api_key)
+                    existing.update(inst)
+                    existing['updated_at'] = datetime.datetime.now().isoformat()
+                    self._add_change_log('update', 'search_instance', {'id': inst_id, 'name': inst.get('name')})
 
     def _update_mcp_config(self, mcp_config: dict):
         """更新 MCP 配置"""
@@ -901,29 +991,68 @@ class NetworkConfigManager:
         # 应用到 LLM 配置
         if app_instance and hasattr(app_instance, 'configure_llm'):
             llm = config['llm']
-            logger.info("[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s",
-                       llm['enabled'], llm['provider'],
-                       '***' if llm['api_key'] and not llm['api_key'].startswith('***') else 'no',
-                       llm['model'])
 
-            if llm['enabled'] and llm['provider'] and llm['api_key']:
-                logger.info("[网络配置] 正在调用 configure_llm...")
+            # ── 确定最终 LLM 参数：优先使用 llm_instances 中配置的实例 ──
+            provider = llm.get('provider', '')
+            api_key = llm.get('api_key', '')
+            model = llm.get('model', '')
+            base_url = llm.get('api_endpoint', '')
+
+            llm_instances = config.get('llm_instances', [])
+            instance_source = 'legacy'
+            if llm_instances:
+                # 先找默认实例
+                default_id = config.get('default_llm_instance', '')
+                selected = None
+                if default_id:
+                    selected = next(
+                        (i for i in llm_instances
+                         if i.get('id') == default_id and i.get('enabled', False)),
+                        None
+                    )
+                    if selected:
+                        instance_source = f"default({selected.get('name')})"
+                # 没有默认实例，用第一个启用的
+                if not selected:
+                    selected = next(
+                        (i for i in llm_instances if i.get('enabled', False)),
+                        None
+                    )
+                    if selected:
+                        instance_source = f"first_enabled({selected.get('name')})"
+
+                if selected:
+                    provider = selected.get('provider') or provider
+                    api_key = selected.get('api_key') or api_key
+                    model = selected.get('model') or model
+                    base_url = selected.get('api_endpoint') or base_url
+                    logger.info("[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s",
+                               instance_source, selected.get('name'), provider, model)
+
+            logger.info("[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s",
+                       llm['enabled'], provider,
+                       '***' if api_key and not api_key.startswith('***') else 'no',
+                       model)
+
+            if llm['enabled'] and provider and api_key:
+                logger.info("[网络配置] 正在调用 configure_llm (来源: %s)...", instance_source)
                 try:
                     result = app_instance.configure_llm(
-                        provider=llm['provider'],
-                        api_key=llm['api_key'],
-                        model=llm['model']
+                        provider=provider,
+                        api_key=api_key,
+                        model=model,
+                        base_url=base_url,
                     )
                     if result.get('ok'):
                         logger.info("[网络配置] [即时生效] LLM 配置已应用: %s/%s",
-                                   llm['provider'], llm['model'])
+                                   provider, model)
                     else:
                         logger.warning("[网络配置] LLM 配置应用失败: %s", result.get('error'))
                 except Exception as e:
                     logger.warning("[网络配置] 应用 LLM 配置失败: %s", e, exc_info=True)
             else:
                 logger.info("[网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=%s, provider=%s, api_key=%s)",
-                           llm['enabled'], bool(llm['provider']), bool(llm['api_key']))
+                           llm['enabled'], bool(provider), bool(api_key))
 
         logger.info("[网络配置] 配置应用完成")
 
