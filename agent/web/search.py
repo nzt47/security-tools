@@ -15,6 +15,26 @@ from urllib.parse import quote_plus, urlencode
 logger = logging.getLogger(__name__)
 
 
+def _json_get(obj, path: str):
+    """按点号分隔的键路径获取值，如 'data.items' -> obj['data']['items']"""
+    if not path:
+        return obj
+    parts = path.strip(".").split(".")
+    current = obj
+    for part in parts:
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        elif isinstance(current, list):
+            try:
+                idx = int(part)
+                current = current[idx]
+            except (ValueError, IndexError):
+                return None
+        else:
+            return None
+    return current
+
+
 class SearchEngine:
     """搜索引擎集成 — 搜索、分页、结果结构化、自动降级
 
@@ -134,6 +154,46 @@ class SearchEngine:
         logger.info("[搜索引擎] 已注册: %s (%s), 需API Key: %s",
                     name, label, needs_key)
 
+    def remove_engine(self, name: str) -> bool:
+        """从引擎注册表中移除一个搜索引擎
+
+        Args:
+            name: 引擎内部名称
+
+        Returns:
+            bool: 是否成功移除
+        """
+        if name not in self._engine_registry:
+            logger.warning("[搜索引擎] 移除失败，引擎不存在: %s", name)
+            return False
+        del self._engine_registry[name]
+        if name in self._engine_priority:
+            self._engine_priority.remove(name)
+        if name in self._engine_enabled:
+            del self._engine_enabled[name]
+        if name in self._stats["engine_usage"]:
+            del self._stats["engine_usage"][name]
+        if name in self._stats["engine_timing"]:
+            del self._stats["engine_timing"][name]
+        logger.info("[搜索引擎] 已移除: %s", name)
+        return True
+
+    def set_default_engine(self, name: str) -> bool:
+        """设置默认搜索引擎
+
+        Args:
+            name: 引擎内部名称
+
+        Returns:
+            bool: 是否设置成功
+        """
+        if name not in self._engine_registry:
+            logger.warning("[搜索引擎] 设置默认引擎失败，引擎不存在: %s", name)
+            return False
+        self._default_engine = name
+        logger.info("[搜索引擎] 默认引擎已设置为: %s", name)
+        return True
+
     def _load_api_keys_from_config(self):
         """从配置中加载所有已知的 API Key
 
@@ -154,6 +214,8 @@ class SearchEngine:
         # 需要 API Key 的引擎
         self.register_engine("tavily", "Tavily", self._search_tavily,
                              needs_key=True, description="Tavily 搜索 API")
+        self.register_engine("firecrawl", "Firecrawl", self._search_firecrawl,
+                             needs_key=True, description="Firecrawl 搜索 API")
         self.register_engine("bing", "Bing", self._search_bing,
                              needs_key=True, description="Bing 网页搜索 API")
         self.register_engine("google", "Google", self._search_google,
@@ -546,6 +608,153 @@ class SearchEngine:
             "total_estimate": json_data.get("total_results", len(results)),
             "engine": "tavily",
             "answer": json_data.get("answer"),
+        }
+
+    # ── Firecrawl（需 API Key） ──────────────────────────────────
+
+    def _search_firecrawl(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        """Firecrawl Search API"""
+        api_key = self._api_keys.get("firecrawl") or self._config.get("firecrawl_api_key", "")
+        if not api_key:
+            return {"ok": False, "error": "Firecrawl API Key 未配置"}
+
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+
+        result = self._http_client.post(
+            "https://api.firecrawl.dev/v1/search",
+            json_data={
+                "query": query,
+                "limit": num_results,
+            },
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=self._timeout,
+        )
+
+        if not result.get("ok"):
+            return result
+
+        data = result.get("text", "")
+        try:
+            json_data = json.loads(data)
+        except json.JSONDecodeError:
+            return {"ok": False, "error": "解析 Firecrawl API 响应失败"}
+
+        results = []
+        for item in json_data.get("data", []):
+            results.append({
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "snippet": item.get("description", "") or item.get("content", ""),
+                "source": "firecrawl",
+            })
+
+        return {
+            "ok": True,
+            "results": results,
+            "total_estimate": len(results),
+            "engine": "firecrawl",
+        }
+
+    # ── 自定义搜索引擎（通用 Handler） ──────────────────────────────
+
+    def _search_custom(self, instance: dict, query: str, num_results: int = 10,
+                       page: int = 1, **kwargs) -> dict:
+        """通用自定义搜索引擎 handler
+
+        根据 instance 配置动态构建请求并解析响应，支持任意兼容 RESTful API 的搜索引擎。
+        instance 字典的字段参见 Task 1 数据模型。
+
+        Args:
+            instance: 搜索引擎实例配置字典
+            query: 搜索关键词
+            num_results: 返回结果数量
+            page: 页码（部分自定义引擎支持）
+            **kwargs: 额外参数
+
+        Returns:
+            dict: {ok, results: [{title, url, snippet, source}], engine, total_estimate}
+        """
+        if not instance.get('api_endpoint'):
+            return {"ok": False, "error": "API 端点 URL 未配置"}
+
+        # 1. 构建 URL
+        url = instance['api_endpoint'].replace('{query}', quote_plus(query))
+        if instance.get('http_method', 'GET') == 'GET' and instance.get('query_param'):
+            # 如果 URL 中没有 {query}，追加查询参数
+            if '{query}' not in instance['api_endpoint']:
+                sep = '&' if '?' in url else '?'
+                url += f"{sep}{instance['query_param']}={quote_plus(query)}"
+
+        # 2. 构建请求头
+        headers = {}
+        api_key = instance.get('api_key', '')
+        auth_template = instance.get('auth_header', '')
+        if auth_template and api_key:
+            header_str = auth_template.replace('{key}', api_key)
+            if ': ' in header_str:
+                name, value = header_str.split(': ', 1)
+                headers[name.strip()] = value.strip()
+            elif ' ' in header_str:
+                # "Bearer {key}" 风格
+                headers['Authorization'] = header_str.replace('{key}', api_key)
+            else:
+                headers[header_str] = api_key
+
+        # 3. HTTP 请求
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+
+        timeout = instance.get('timeout', 30)
+        if instance.get('http_method', 'GET') == 'POST':
+            result = self._http_client.post(url, headers=headers, timeout=timeout)
+        else:
+            result = self._http_client.get(url, headers=headers, timeout=timeout)
+
+        if not result.get("ok"):
+            return result
+
+        # 4. 解析 JSON 响应
+        try:
+            data = result.get("data", "")
+            if isinstance(data, str):
+                json_data = json.loads(data)
+            else:
+                json_data = data
+        except (json.JSONDecodeError, TypeError):
+            return {"ok": False, "error": "解析 API 响应 JSON 失败"}
+
+        # 5. 沿 results_path 取结果数组
+        results_path = instance.get('results_path', '')
+        raw_results = _json_get(json_data, results_path) if results_path else json_data
+        if raw_results is None:
+            raw_results = []
+        if isinstance(raw_results, dict):
+            raw_results = [raw_results]
+        if not isinstance(raw_results, list):
+            raw_results = []
+
+        # 6. 提取标准化字段
+        title_f = instance.get('title_field', 'title')
+        url_f = instance.get('url_field', 'url')
+        snippet_f = instance.get('snippet_field', 'snippet')
+
+        results = []
+        for item in raw_results[:num_results]:
+            if not isinstance(item, dict):
+                continue
+            results.append({
+                "title": item.get(title_f, '') or '',
+                "url": item.get(url_f, '') or '',
+                "snippet": item.get(snippet_f, '') or '',
+                "source": instance.get('name', 'custom'),
+            })
+
+        return {
+            "ok": True,
+            "results": results,
+            "total_estimate": len(raw_results),
+            "engine": instance.get('name', 'custom'),
         }
 
     # ── Bing（需 API Key） ────────────────────────────────────────
