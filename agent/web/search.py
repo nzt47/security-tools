@@ -176,6 +176,12 @@ class SearchEngine:
         if name in self._stats["engine_timing"]:
             del self._stats["engine_timing"][name]
         self._api_keys.pop(name, None)
+
+        # 如果删除的是当前默认引擎，重置为配置中的默认值
+        if self._default_engine == name:
+            self._default_engine = self._config.get("default_engine", "duckduckgo")
+            logger.info("[搜索引擎] 默认引擎已重置为: %s", self._default_engine)
+
         logger.info("[搜索引擎] 已移除: %s", name)
         return True
 
@@ -687,15 +693,12 @@ class SearchEngine:
         api_key = instance.get('api_key', '')
         auth_template = instance.get('auth_header', '')
         if auth_template and api_key:
-            header_str = auth_template.replace('{key}', api_key)
-            if ': ' in header_str:
-                name, value = header_str.split(': ', 1)
+            header_value = auth_template.replace('{key}', api_key)
+            if ': ' in header_value:
+                name, value = header_value.split(': ', 1)
                 headers[name.strip()] = value.strip()
-            elif ' ' in header_str:
-                # "Bearer {key}" 风格
-                headers['Authorization'] = header_str.replace('{key}', api_key)
             else:
-                headers[header_str] = api_key
+                headers['Authorization'] = header_value
 
         # 3. HTTP 请求
         if not self._http_client:
