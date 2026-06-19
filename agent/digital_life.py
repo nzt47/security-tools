@@ -2177,6 +2177,44 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             return search_files(pattern, root_path=root_path)
 
         # ════════════════════════════════════════════════════════════
+        #  压缩/解压工具 — 云枢压缩和解压文件的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.compression_tools import compress, decompress
+
+        @tools.register("compress", "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理", schema={
+            "type": "object",
+            "properties": {
+                "source_path": {"type": "string", "description": "源文件或目录路径（必填）"},
+                "output_path": {"type": "string", "description": "输出文件路径（可选，默认生成到源文件同目录）"},
+                "format": {"type": "string", "enum": ["zip", "tar.gz"], "description": "压缩格式，默认 zip"},
+            },
+            "required": ["source_path"],
+        })
+        def _compress(**kwargs):
+            source_path = kwargs.get("source_path", "")
+            output_path = kwargs.get("output_path", "")
+            fmt = kwargs.get("format", "zip")
+            if not source_path:
+                return {"ok": False, "error": "请提供源路径（source_path）"}
+            return compress(source_path, output_path=output_path, format=fmt)
+
+        @tools.register("decompress", "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠", schema={
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "压缩文件路径（必填）"},
+                "output_dir": {"type": "string", "description": "解压输出目录（可选，默认解压到压缩文件所在目录下的同名文件夹）"},
+            },
+            "required": ["file_path"],
+        })
+        def _decompress(**kwargs):
+            file_path = kwargs.get("file_path", "")
+            output_dir = kwargs.get("output_dir", "")
+            if not file_path:
+                return {"ok": False, "error": "请提供压缩文件路径（file_path）"}
+            return decompress(file_path, output_dir=output_dir)
+
+        # ════════════════════════════════════════════════════════════
         #  互联网工具 — 云枢获取网络信息的能力
         # ════════════════════════════════════════════════════════════
 
