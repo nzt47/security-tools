@@ -532,6 +532,7 @@ class NetworkConfigManager:
             if handler is None:
                 handler = partial(search_engine._search_custom, instance)
 
+        # 注册引擎（内置引擎同时注册两个名：UUID 供管理，类型名供 LLM 调用）
         search_engine.register_engine(
             name=inst_id,
             label=name,
@@ -539,6 +540,19 @@ class NetworkConfigManager:
             needs_key=bool(instance.get('api_key')),
             description=f"搜索引擎: {engine_type}",
         )
+        if engine_type != 'custom':
+            search_engine.register_engine(
+                name=engine_type,
+                label=name,
+                handler=handler,
+                needs_key=bool(instance.get('api_key')),
+                description=f"搜索引擎: {engine_type}",
+            )
+
+        # 同步 API Key 到引擎注册表（供内置 handler 读取）
+        api_key = instance.get('api_key', '')
+        if api_key and engine_type != 'custom':
+            search_engine._api_keys[engine_type] = api_key
 
         # 设置启用状态和默认引擎
         search_engine.set_engine_enabled(inst_id, enabled)
