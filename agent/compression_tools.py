@@ -71,7 +71,7 @@ def compress(
     if not output_path:
         # 自动生成：同级目录下的 源名.zip 或 源名.tar.gz
         ext = ".tar.gz" if fmt == "tar.gz" else ".zip"
-        parent_dir = os.path.dirname(safe_src) if not is_dir else os.path.dirname(safe_src)
+        parent_dir = os.path.dirname(safe_src)  # 目录或文件路径取其父目录
         output_path = os.path.join(parent_dir or ".", src_name + ext)
     else:
         try:
@@ -215,7 +215,7 @@ def decompress(
     Returns:
         dict: {ok, output_dir, file_count, extracted_size, format, error}
     """
-    from agent.system_tools import safe_resolve_path
+    from agent.system_tools import safe_resolve_path, is_protected_path
 
     # ── 1. 源文件安全检查 ──
     try:
@@ -263,6 +263,10 @@ def decompress(
             output_dir = safe_resolve_path(output_dir)
         except ValueError as e:
             return {"ok": False, "error": f"输出目录不安全: {e}"}
+
+    # 检查输出目录不在系统保护目录中
+    if is_protected_path(output_dir):
+        return {"ok": False, "error": f"输出目录位于系统保护目录，拒绝解压: {output_dir}"}
 
     # 确保输出目录存在
     try:
@@ -325,7 +329,7 @@ def _safe_extract_zip(file_path: str, output_dir: str, progress_callback: callab
 
             # ── Zip Slip 防护 ──
             member_path = os.path.normpath(member.filename)
-            if member_path.startswith("..") or os.path.isabs(member_path):
+            if ".." in member_path.split(os.sep) or os.path.isabs(member_path):
                 logger.warning("[decompress] Zip Slip 攻击检测: 跳过 %s", member.filename)
                 continue
 
