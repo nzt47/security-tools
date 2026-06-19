@@ -128,7 +128,6 @@ class SearchAggregator:
         aggregated = []       # 所有结果
         engine_results = {}   # 各引擎原始结果数
         engine_errors = {}    # 各引擎的错误信息
-        source_counts = {}    # 按来源统计
 
         with ThreadPoolExecutor(max_workers=len(engines)) as executor:
             future_to_engine = {}
@@ -138,49 +137,52 @@ class SearchAggregator:
                 )
                 future_to_engine[future] = eng
 
-            for future in as_completed(future_to_engine):
-                eng = future_to_engine[future]
-                try:
-                    engine_result = future.result()
-                    if engine_result.get("ok") and engine_result.get("results"):
-                        for item in engine_result["results"]:
-                            item["source"] = eng  # 标记真实来源
-                        aggregated.extend(engine_result["results"])
-                        count = len(engine_result["results"])
-                        engine_results[eng] = count
-                        logger.info("[聚合搜索] %s 返回 %d 条结果", eng, count)
-                    elif engine_result.get("error"):
-                        engine_errors[eng] = engine_result["error"]
+            try:
+                for future in as_completed(future_to_engine, timeout=timeout):
+                    eng = future_to_engine[future]
+                    try:
+                        engine_result = future.result()
+                        if engine_result.get("ok") and engine_result.get("results"):
+                            for item in engine_result["results"]:
+                                item["source"] = eng  # 标记真实来源
+                            aggregated.extend(engine_result["results"])
+                            count = len(engine_result["results"])
+                            engine_results[eng] = count
+                            logger.info("[聚合搜索] %s 返回 %d 条结果", eng, count)
+                        elif engine_result.get("error"):
+                            engine_errors[eng] = engine_result["error"]
+                            engine_results[eng] = 0
+                            logger.warning("[聚合搜索] %s 失败: %s", eng, engine_result["error"])
+                        else:
+                            engine_results[eng] = 0
+                            logger.info("[聚合搜索] %s 返回 0 条结果", eng)
+                    except Exception as e:
+                        engine_errors[eng] = str(e)
                         engine_results[eng] = 0
-                        logger.warning("[聚合搜索] %s 失败: %s", eng, engine_result["error"])
-                    else:
-                        engine_results[eng] = 0
-                        logger.info("[聚合搜索] %s 返回 0 条结果", eng)
-                except Exception as e:
-                    engine_errors[eng] = str(e)
-                    engine_results[eng] = 0
-                    logger.warning("[聚合搜索] %s 异常: %s", eng, e)
+                        logger.warning("[聚合搜索] %s 异常: %s", eng, e)
+            except TimeoutError:
+                # 超时：取消所有未完成的 future，记录超时错误
+                logger.warning("[聚合搜索] 聚合超时 (%.1fs)，取消未完成的引擎", timeout)
+                for future, eng in future_to_engine.items():
+                    if not future.done():
+                        future.cancel()
+                        if eng not in engine_results:
+                            engine_errors[eng] = f"超时 (>{timeout}s)"
+                            engine_results[eng] = 0
+                            logger.warning("[聚合搜索] %s 超时未完成", eng)
 
         # 去重
         deduped = self._deduplicate(aggregated)
 
-        # 评分
+        # 评分（使用静态方法，避免重复逻辑）
         for item in deduped:
-            source = item.get("source", "")
-            weight = self._get_source_weight(source)
-            bonus = self._keyword_bonus(item, query)
-            item["score"] = min(round(weight + bonus, 2), MAX_SCORE_CAP)
+            item["score"] = self.score_result(item, query, self._source_weights)
 
         # 按评分降序排序
         deduped.sort(key=lambda x: x.get("score", 0), reverse=True)
 
         # 取 Top N
         top_results = deduped[:num_results]
-
-        # 统计来源
-        for item in top_results:
-            src = item.get("source", "unknown")
-            source_counts[src] = source_counts.get(src, 0) + 1
 
         elapsed = time.time() - start_time
 
@@ -201,8 +203,7 @@ class SearchAggregator:
             "aggregated": True,
             "engines_used": engines,
             "engine_results": engine_results,
-            "source_counts": source_counts,
-            "errors": engine_errors if engine_errors else None,
+            "errors": engine_errors,
             "elapsed": round(elapsed, 2),
         }
 
@@ -262,52 +263,32 @@ class SearchAggregator:
             return {"ok": False, "error": str(e), "engine": engine, "results": []}
 
     def _deduplicate(self, results: List[Dict]) -> List[Dict]:
-        """按归一化 URL 去重
-
-        第一次出现的保留，后续相同的丢弃。
-        也检测 title+snippet 高度相似的情况（标题相同视为重复）。
-        """
-        seen_urls: Dict[str, int] = {}      # normalized_url -> index in output
-        seen_titles: Dict[str, int] = {}    # normalized_title -> index in output
+        """按归一化 URL 去重，第一次出现的保留，后续相同的丢弃。"""
+        seen_urls: set = set()
         output: List[Dict] = []
 
         for item in results:
             url = item.get("url", "")
-            title = item.get("title", "")
 
             # URL 归一化
             norm_url = self.normalize_url(url)
             if norm_url and norm_url in seen_urls:
                 continue
 
-            # 标题去重：相同的标题视为同一结果
-            norm_title = self._normalize_title(title)
-            if norm_title and norm_title in seen_titles:
-                continue
-
             # 添加 dedup_key
             item["dedup_key"] = norm_url
 
             if norm_url:
-                seen_urls[norm_url] = len(output)
-            if norm_title:
-                seen_titles[norm_title] = len(output)
+                seen_urls.add(norm_url)
 
             output.append(item)
 
         return output
 
     def _get_source_weight(self, source: str) -> float:
-        """获取指定来源的权重分数"""
+        """获取指定来源的权重分数（仅精确匹配）"""
         source_lower = source.lower() if source else ""
-        weight = self._source_weights.get(source_lower)
-        if weight is not None:
-            return weight
-        # 尝试部分匹配（如 "tavily_search" 匹配 "tavily"）
-        for key, val in self._source_weights.items():
-            if key in source_lower or source_lower in key:
-                return val
-        return self._source_weights.get("__default__", 0.5)
+        return self._source_weights.get(source_lower, self._source_weights.get("__default__", 0.5))
 
     def _keyword_bonus(self, item: Dict, query: str) -> float:
         """计算关键词在标题和摘要中的命中加分
