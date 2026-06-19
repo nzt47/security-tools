@@ -3359,7 +3359,115 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
 
             return self._software_mgr.uninstall(name, backend=backend)
 
-        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理）", len(tools.list_tools()))
+        # ════════════════════════════════════════════════════════════
+        #  定时调度工具 — 创建/管理周期性任务
+        # ════════════════════════════════════════════════════════════
+
+        @tools.register("schedule_task", "创建定时任务，按指定间隔或 cron 表达式周期性执行。至少提供 interval_minutes 或 cron_expr 之一", schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "任务名称"},
+                "interval_minutes": {"type": "integer", "description": "间隔分钟数"},
+                "cron_expr": {"type": "string", "description": "cron 表达式，5字段格式: 分 时 日 月 周。如 '*/5 * * * *' 每5分钟"},
+                "action": {"type": "string", "description": "操作描述，如 'run_shell_command'"},
+                "params": {"type": "object", "description": "执行参数，如 {\"command\": \"echo hello\"}"},
+            },
+            "required": ["name"],
+        })
+        def _schedule_task(**kwargs):
+            name = kwargs.get("name", "")
+            interval_minutes = kwargs.get("interval_minutes", 0)
+            cron_expr = kwargs.get("cron_expr", "")
+            action = kwargs.get("action", "")
+            params = kwargs.get("params", {})
+
+            if not name.strip():
+                return {"ok": False, "error": "任务名称不能为空"}
+            if interval_minutes <= 0 and not cron_expr.strip():
+                return {"ok": False, "error": "必须提供 interval_minutes 或 cron_expr"}
+            if cron_expr.strip():
+                from agent.scheduling import Scheduler as _SchedValidate
+                if not _SchedValidate.validate_cron_expr(cron_expr):
+                    return {"ok": False, "error": f"无效的 cron 表达式: {cron_expr}"}
+
+            try:
+                from agent.scheduling import get_schedule_scheduler
+                sched = get_schedule_scheduler()
+                result = sched.add_task(
+                    name=name, action=action, params=params,
+                    interval_minutes=interval_minutes, cron_expr=cron_expr,
+                )
+                return result
+            except Exception as e:
+                return {"ok": False, "error": f"创建任务失败: {e}"}
+
+        @tools.register("list_scheduled_tasks", "列出所有已创建的定时任务", schema={
+            "type": "object",
+            "properties": {},
+        })
+        def _list_scheduled_tasks(**kwargs):
+            try:
+                from agent.scheduling import get_schedule_scheduler
+                sched = get_schedule_scheduler()
+                return sched.get_tasks()
+            except Exception as e:
+                return {"ok": False, "error": f"列出任务失败: {e}"}
+
+        @tools.register("cancel_scheduled_task", "取消指定的定时任务", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID"},
+            },
+            "required": ["task_id"],
+        })
+        def _cancel_scheduled_task(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供 task_id"}
+            try:
+                from agent.scheduling import get_schedule_scheduler
+                sched = get_schedule_scheduler()
+                return sched.remove_task(task_id)
+            except Exception as e:
+                return {"ok": False, "error": f"取消任务失败: {e}"}
+
+        @tools.register("pause_scheduled_task", "暂停指定的定时任务", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID"},
+            },
+            "required": ["task_id"],
+        })
+        def _pause_scheduled_task(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供 task_id"}
+            try:
+                from agent.scheduling import get_schedule_scheduler
+                sched = get_schedule_scheduler()
+                return sched.pause_task(task_id)
+            except Exception as e:
+                return {"ok": False, "error": f"暂停任务失败: {e}"}
+
+        @tools.register("resume_scheduled_task", "恢复已暂停的定时任务", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID"},
+            },
+            "required": ["task_id"],
+        })
+        def _resume_scheduled_task(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供 task_id"}
+            try:
+                from agent.scheduling import get_schedule_scheduler
+                sched = get_schedule_scheduler()
+                return sched.resume_task(task_id)
+            except Exception as e:
+                return {"ok": False, "error": f"恢复任务失败: {e}"}
+
+        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理、定时调度）", len(tools.list_tools()))
 
     # ════════════════════════════════════════════════════════════════════════════════
     #  状态查询
