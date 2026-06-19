@@ -15,6 +15,10 @@ _registry: dict[str, dict] = {}
 # 操作追踪器（可选，由权限模块设置）
 _action_tracker = None
 
+# 全局限流器（在 call() 中检查调用频率）
+from agent.rate_limiter import RateLimiter as _RateLimiter
+_rate_limiter = _RateLimiter()
+
 
 class ToolError(Exception):
     """工具执行异常"""
@@ -100,6 +104,11 @@ def call(*args, **params) -> Any:
     name = args[0] if args else params.pop("name", None)
     if not name:
         raise ToolError("调用工具时缺少工具名称")
+
+    # 限流检查
+    if not _rate_limiter.check(name):
+        wait = _rate_limiter.wait_time(name)
+        raise ToolError(f"调用频率过高，请稍后重试（预计等待 {wait:.1f} 秒）")
 
     tool = _registry.get(name)
     if not tool:
