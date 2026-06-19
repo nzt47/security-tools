@@ -3467,7 +3467,74 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             except Exception as e:
                 return {"ok": False, "error": f"恢复任务失败: {e}"}
 
-        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理、定时调度）", len(tools.list_tools()))
+        # ════════════════════════════════════════════════════════════
+        #  异步任务执行工具 — 云枢异步执行任意工具的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.async_executor import get_async_executor
+
+        # 初始化全局异步执行器
+        _executor_cfg = self._config.get("async_executor", {})
+        _async_exec = get_async_executor(
+            max_workers=_executor_cfg.get("max_workers", 3),
+            result_ttl=_executor_cfg.get("result_ttl", 3600),
+        )
+
+        @tools.register("submit_task", "提交异步任务，在后台线程池中执行任意工具，立即返回任务ID。适用于耗时操作（如大型搜索、文件处理等），避免阻塞对话。", schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "任务名称，便于识别（如 '搜索报告'）"},
+                "tool_name": {"type": "string", "description": "要异步调用的工具名称（如 web_search, read_file 等）"},
+                "params": {"type": "object", "description": "传递给工具的参数字典"},
+                "timeout": {"type": "integer", "description": "任务超时秒数（可选），不指定则不限时"},
+            },
+            "required": ["name", "tool_name", "params"],
+        })
+        def _submit_task(**kwargs):
+            name = kwargs.get("name", "")
+            tool_name = kwargs.get("tool_name", "")
+            params = kwargs.get("params", {})
+            timeout = kwargs.get("timeout")
+            if not name:
+                return {"ok": False, "error": "请提供任务名称（name）"}
+            if not tool_name:
+                return {"ok": False, "error": "请提供要调用的工具名称（tool_name）"}
+            if not isinstance(params, dict):
+                return {"ok": False, "error": "params 必须是一个字典"}
+            return _async_exec.submit(
+                name=name,
+                tool_name=tool_name,
+                params=params,
+                timeout=timeout,
+            )
+
+        @tools.register("get_task_status", "查询异步任务的执行状态（pending/running/completed/failed/cancelled）", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID（由 submit_task 返回）"},
+            },
+            "required": ["task_id"],
+        })
+        def _get_task_status(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供任务ID（task_id）"}
+            return _async_exec.get_status(task_id)
+
+        @tools.register("get_task_result", "获取异步任务的执行结果。任务完成后结果保留1小时，超时自动清理。如果任务尚未完成，返回当前状态和提示信息。", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID（由 submit_task 返回）"},
+            },
+            "required": ["task_id"],
+        })
+        def _get_task_result(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供任务ID（task_id）"}
+            return _async_exec.get_result(task_id)
+
+        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理、定时调度、异步任务）", len(tools.list_tools()))
 
     # ════════════════════════════════════════════════════════════════════════════════
     #  状态查询
