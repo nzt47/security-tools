@@ -2215,6 +2215,31 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             return decompress(file_path, output_dir=output_dir)
 
         # ════════════════════════════════════════════════════════════
+        #  文件比较工具 — 云枢比较文件差异的能力
+        # ════════════════════════════════════════════════════════════
+
+        from agent.diff_tools import diff_files
+
+        @tools.register("diff_files", "比较两个文件的差异，返回 unified diff 格式（类似 git diff）。可统计新增、删除和变更行数", schema={
+            "type": "object",
+            "properties": {
+                "path1": {"type": "string", "description": "第一个文件路径（必填）"},
+                "path2": {"type": "string", "description": "第二个文件路径（必填）"},
+                "context_lines": {"type": "integer", "description": "上下文行数，默认 3"},
+            },
+            "required": ["path1", "path2"],
+        })
+        def _diff_files(**kwargs):
+            path1 = kwargs.get("path1", "")
+            path2 = kwargs.get("path2", "")
+            context_lines = kwargs.get("context_lines", 3)
+            if not path1:
+                return {"ok": False, "error": "请提供第一个文件路径（path1）"}
+            if not path2:
+                return {"ok": False, "error": "请提供第二个文件路径（path2）"}
+            return diff_files(path1, path2, context_lines=context_lines)
+
+        # ════════════════════════════════════════════════════════════
         #  互联网工具 — 云枢获取网络信息的能力
         # ════════════════════════════════════════════════════════════
 
