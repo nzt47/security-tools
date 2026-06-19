@@ -125,6 +125,16 @@
   },
   "change_log": [
     {
+      "id": "614babf7-7547-4e5a-a069-a4fc40ef0b0f",
+      "timestamp": "2026-06-19T13:24:24.778391",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "f4f7aca2-74ef-4cdd-be92-b7b25c3dc912",
+        "name": "Firecrawl"
+      }
+    },
+    {
       "id": "3025da2a-b6b7-4d1b-88c5-7d00dcb5393b",
       "timestamp": "2026-06-19T13:16:19.363437",
       "action": "delete",
@@ -815,6 +825,82 @@
       "timeout": 30,
       "created_at": "2026-06-19T13:17:14.365405",
       "updated_at": "2026-06-19T13:17:14.365405"
+    },
+    {
+      "id": "f4f7aca2-74ef-4cdd-be92-b7b25c3dc912",
+      "name": "Firecrawl",
+      "engine_type": "custom",
+      "api_endpoint": "https://api.firecrawl.dev/v1/search",
+      "http_method": "POST",
+      "query_param": "query",
+      "api_key": "fc-a522c1a9ad424fd0a87eedd516a8ae99",
+      "auth_header": "Authorization: Bearer {key}",
+      "results_path": "data",
+      "title_field": "title",
+      "url_field": "url",
+      "snippet_field": "description",
+      "enabled": true,
+      "is_default": false,
+      "timeout": 30,
+      "created_at": "2026-06-19T13:21:29.364094",
+      "updated_at": "2026-06-19T13:24:25.808963"
+    },
+    {
+      "id": "dad7dd3e-8e65-4d16-b3d7-b00d595097ca",
+      "name": "DuckDuckGo",
+      "engine_type": "duckduckgo",
+      "api_endpoint": "https://api.duckduckgo.com/?q={query}&format=json&no_html=1&skip_disambig=1",
+      "http_method": "GET",
+      "query_param": "q",
+      "api_key": "",
+      "auth_header": "",
+      "results_path": "RelatedTopics",
+      "title_field": "Text",
+      "url_field": "FirstURL",
+      "snippet_field": "Text",
+      "enabled": true,
+      "is_default": false,
+      "timeout": 15,
+      "created_at": "2026-06-19T13:23:42.009468",
+      "updated_at": "2026-06-19T13:23:42.009468"
+    },
+    {
+      "id": "f56b4108-9341-413f-950e-f56e11ee1910",
+      "name": "搜狗",
+      "engine_type": "sogou",
+      "api_endpoint": "https://www.sogou.com/web?query={query}",
+      "http_method": "GET",
+      "query_param": "query",
+      "api_key": "",
+      "auth_header": "",
+      "results_path": "",
+      "title_field": "title",
+      "url_field": "url",
+      "snippet_field": "snippet",
+      "enabled": true,
+      "is_default": false,
+      "timeout": 15,
+      "created_at": "2026-06-19T13:23:42.009468",
+      "updated_at": "2026-06-19T13:23:42.009468"
+    },
+    {
+      "id": "a130b377-5f1b-4702-b93e-9f12e3734cd0",
+      "name": "360搜索",
+      "engine_type": "so360",
+      "api_endpoint": "https://www.so.com/s?q={query}",
+      "http_method": "GET",
+      "query_param": "q",
+      "api_key": "",
+      "auth_header": "",
+      "results_path": "",
+      "title_field": "title",
+      "url_field": "url",
+      "snippet_field": "snippet",
+      "enabled": true,
+      "is_default": false,
+      "timeout": 15,
+      "created_at": "2026-06-19T13:23:42.009468",
+      "updated_at": "2026-06-19T13:23:42.009468"
     }
   ]
 }

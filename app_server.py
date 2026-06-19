@@ -17,6 +17,7 @@ import logging
 import platform
 import webbrowser
 import datetime
+import uuid
 import functools
 import secrets
 import concurrent.futures
@@ -1511,7 +1512,7 @@ def api_skills_delete():
 
 
 # ── 网络配置管理器 ──
-from agent.network_config import NetworkConfigManager
+from agent.network_config import NetworkConfigManager, _DEFAULT_SEARCH_INSTANCE
 
 # 传入 secure_manager 以确保 API Key 加密存储和正确恢复
 try:
@@ -1922,6 +1923,166 @@ def api_llm_instance_set_default(instance_id):
             return jsonify({"ok": True, "message": "已设置为默认实例"})
         return jsonify({"ok": False, "error": "操作失败"}), 500
     except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  搜索引擎实例管理 API
+# ════════════════════════════════════════════════════════════
+
+def _validate_search_instance(instance: dict) -> list:
+    errors = []
+    if not instance.get('name'):
+        errors.append('名称不能为空')
+    engine_type = instance.get('engine_type', '')
+    if not engine_type:
+        errors.append('引擎类型不能为空')
+    if engine_type == 'custom' and not instance.get('api_endpoint'):
+        errors.append('自定义引擎必须提供 API 端点 URL')
+    if instance.get('timeout', 30) < 1 or instance.get('timeout', 30) > 300:
+        errors.append('超时必须在 1-300 秒之间')
+    return errors
+
+
+@app.route("/api/search/instances", methods=["GET"])
+@require_token
+@log_request(show_response=False)
+def api_search_instances_get():
+    try:
+        config = _network_config_mgr.get_all()
+        return jsonify({"ok": True, "instances": config.get('search_instances', [])})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/search/instances", methods=["POST"])
+@require_token
+@log_request()
+def api_search_instance_add():
+    try:
+        data = request.get_json() or {}
+        instance = data.get("instance", {})
+        errors = _validate_search_instance(instance)
+        if errors:
+            return jsonify({"ok": False, "errors": errors}), 400
+
+        config = _network_config_mgr.get_raw_config()
+        new_inst = dict(_DEFAULT_SEARCH_INSTANCE)
+        new_inst.update(instance)
+        new_inst['id'] = str(uuid.uuid4())
+        new_inst['created_at'] = datetime.datetime.now().isoformat()
+        new_inst['updated_at'] = new_inst['created_at']
+
+        api_key = new_inst.get('api_key', '')
+        if api_key and not api_key.startswith('***'):
+            _network_config_mgr._save_secure(f'search_{new_inst["id"]}_api_key', api_key)
+
+        config.setdefault('search_instances', []).append(new_inst)
+        _network_config_mgr._save(config)
+        _network_config_mgr._add_change_log('add', 'search_instance', {'id': new_inst['id'], 'name': new_inst['name']})
+        if _web_search:
+            _network_config_mgr._register_search_instance(new_inst, _web_search)
+            _network_config_mgr.apply_search_instances(_web_search)
+
+        return jsonify({"ok": True, "instance": new_inst})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/search/instances/<string:instance_id>", methods=["PUT"])
+@require_token
+@log_request()
+def api_search_instance_update(instance_id):
+    try:
+        data = request.get_json() or {}
+        updates = data.get("updates", {})
+        config = _network_config_mgr.get_raw_config()
+        for inst in config.get('search_instances', []):
+            if inst.get('id') == instance_id:
+                ak = updates.get('api_key', '')
+                if ak and ak != '***' and not ak.startswith('***'):
+                    _network_config_mgr._save_secure(f'search_{instance_id}_api_key', ak)
+                elif ak and ak.startswith('***'):
+                    updates.pop('api_key', None)
+                inst.update(updates)
+                inst['updated_at'] = datetime.datetime.now().isoformat()
+                _network_config_mgr._save(config)
+                _network_config_mgr._add_change_log('update', 'search_instance', {'id': instance_id, 'name': inst.get('name')})
+                if _web_search:
+                    _network_config_mgr.apply_search_instances(_web_search)
+                return jsonify({"ok": True, "instance": inst})
+        return jsonify({"ok": False, "error": "实例不存在"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/search/instances/<string:instance_id>", methods=["DELETE"])
+@require_token
+@log_request()
+def api_search_instance_delete(instance_id):
+    try:
+        config = _network_config_mgr.get_raw_config()
+        before = len(config.get('search_instances', []))
+        config['search_instances'] = [i for i in config.get('search_instances', []) if i.get('id') != instance_id]
+        if len(config['search_instances']) < before:
+            _network_config_mgr._save(config)
+            _network_config_mgr._save_secure(f'search_{instance_id}_api_key', '')
+            _network_config_mgr._add_change_log('delete', 'search_instance', {'id': instance_id})
+            if _web_search:
+                _web_search.remove_engine(instance_id)
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "实例不存在"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/search/instances/<string:instance_id>/default", methods=["POST"])
+@require_token
+@log_request()
+def api_search_instance_set_default(instance_id):
+    try:
+        config = _network_config_mgr.get_raw_config()
+        inst = next((i for i in config.get('search_instances', []) if i.get('id') == instance_id), None)
+        if not inst:
+            return jsonify({"ok": False, "error": "实例不存在"}), 404
+        if _web_search:
+            _web_search.set_default_engine(instance_id if inst.get('engine_type') == 'custom' else inst['engine_type'])
+        for i in config.get('search_instances', []):
+            i['is_default'] = (i.get('id') == instance_id)
+        _network_config_mgr._save(config)
+        _network_config_mgr._add_change_log('update', 'search_instance', {'id': instance_id, 'action': 'set_default'})
+        return jsonify({"ok": True, "message": "已设为默认搜索引擎"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/search/instances/<string:instance_id>/test", methods=["POST"])
+@require_token
+@log_request()
+def api_search_instance_test(instance_id):
+    try:
+        config = _network_config_mgr.get_raw_config()
+        inst = next((i for i in config.get('search_instances', []) if i.get('id') == instance_id), None)
+        if not inst or not _web_search:
+            return jsonify({"ok": False, "error": "实例不存在或搜索引擎未初始化"}), (404 if not inst else 503)
+        if inst.get('engine_type') == 'custom':
+            result = _web_search._search_custom(inst, "test", num_results=2)
+        else:
+            # 调用专用 handler（如 _search_duckduckgo）
+            handler = getattr(_web_search, f'_search_{inst["engine_type"]}', None)
+            if handler:
+                result = handler("test", num_results=2)
+            else:
+                result = _web_search.search(query="test", engine=inst.get('engine_type', ''), num_results=2)
+        return jsonify({
+            "ok": result.get("ok", False),
+            "results": (result.get("results") or [])[:2],
+            "total": result.get("total_estimate", 0),
+            "engine": result.get("engine", ""),
+            "error": result.get("error", ""),
+        })
+    except Exception as e:
+        logger.error("[搜索实例] 测试失败: %s", e, exc_info=True)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
