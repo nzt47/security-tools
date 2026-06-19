@@ -711,6 +711,7 @@ def api_status():
 def api_mode():
     mode = _Yunshu.get_behavior_mode()
     profile = _Yunshu._behavior.profile
+    thinking = getattr(_Yunshu, '_thinking_mode', {})
     return jsonify({
         "mode": mode.value,
         "label": profile.label,
@@ -718,6 +719,7 @@ def api_mode():
         "can_accept_tasks": profile.can_accept_tasks,
         "enable_reflection": profile.enable_reflection,
         "reasons": _Yunshu._behavior._reasons,
+        "thinking_mode": thinking.get("label", ""),
     })
 
 
