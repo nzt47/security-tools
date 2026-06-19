@@ -2327,11 +2327,11 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
         @tools.register("web_search", "搜索互联网信息。自动选择最佳引擎，按优先级（Tavily > Firecrawl > 搜狗 > 360搜索 > DuckDuckGo）依次尝试。不要指定 engine 参数，让系统自动选择。", schema={
-            "type": "object",
+        @tools.register("web_search", "搜索互联网信息。系统自动按优先级选择最佳搜索引擎，不要指定引擎参数。", schema={
+"type": "object",
             "properties": {
                 "query": {"type": "string", "description": "搜索关键词"},
                 "num_results": {"type": "integer", "description": "返回结果数，默认 10"},
-                "engine": {"type": "string", "description": "搜索引擎，可选 tavily/firecrawl/sogou/baidu/so360/duckduckgo/bing/google/brave"},
                 "page": {"type": "integer", "description": "页码，默认 1"},
             },
             "required": ["query"],
@@ -2339,10 +2339,10 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         def _web_search(**kwargs):
             query = kwargs.get("query", "")
             num_results = kwargs.get("num_results", 10)
-            engine = kwargs.get("engine", "")
             page = kwargs.get("page", 1)
             if not query:
                 return {"ok": False, "error": "请提供搜索关键词"}
+            result = self._web_search.search(query, num_results=min(num_results, 8), page=page)
             result = self._web_search.search(query, engine=engine, num_results=min(num_results, 8), page=page)
             if result.get("ok") and result.get("results"):
                 # 使用数据处理器过滤和评分
