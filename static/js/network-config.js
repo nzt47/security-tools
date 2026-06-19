@@ -30,6 +30,11 @@ async function loadNetworkConfig() {
     // 加载搜索引擎实例
     await loadSearchInstances();
 
+    // 将自定义引擎也加入优先级列表
+    if (__searchInstances && __searchInstances.length > 0) {
+      refreshPriorityWithInstances();
+    }
+
     console.log('[网络配置] 配置渲染完成');
   } catch (e) {
     console.error('[网络配置] 加载失败:', e);
@@ -89,8 +94,8 @@ function renderNetworkConfig(config) {
   set('nc-search-max', config.search.max_results);
   set('nc-search-timeout', config.search.timeout || 30);
 
-  // 渲染搜索引擎优先级（含内联 API Key 输入框）
-  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google'], config.search_api_keys);
+  // 渲染搜索引擎优先级（含内联 API Key 输入框 + 自定义引擎实例）
+  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google'], config.search_api_keys, __searchInstances);
   
   // 渲染搜索引擎启用状态
   const engineEnabled = config.search.engine_enabled || {};
@@ -127,11 +132,18 @@ function renderNetworkConfig(config) {
 /**
  * 渲染搜索引擎优先级列表
  */
-function renderSearchEnginePriority(priority, apiKeys) {
+function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
   const list = document.getElementById('search-engine-priority-list');
   if (!list) return;
 
   apiKeys = apiKeys || {};
+  searchInstances = searchInstances || __searchInstances || [];
+  // 建立实例 ID -> 实例名 映射
+  const instanceMap = {};
+  searchInstances.forEach(inst => {
+    const eid = inst.id || inst.name;
+    if (eid) instanceMap[eid] = inst.name || eid;
+  });
 
   const engineNames = {
     duckduckgo: 'DuckDuckGo',
@@ -148,33 +160,36 @@ function renderSearchEnginePriority(priority, apiKeys) {
   list.innerHTML = '';
 
   priority.forEach(engine => {
-    if (engineNames[engine]) {
-      const item = document.createElement('div');
-      item.className = 'priority-item';
-      item.dataset.engine = engine;
+    const isBuiltin = !!engineNames[engine];
+    const isInstance = !isBuiltin && !!instanceMap[engine];
+    if (!isBuiltin && !isInstance) return;
 
-      let html = `
-        <span class="priority-handle">⋮⋮</span>
-        <span class="priority-label">${engineNames[engine]}</span>
-        <label class="toggle-switch small">
-          <input type="checkbox" id="nc-engine-${engine}" checked onchange="onEngineToggle('${engine}', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>`;
+    const label = isBuiltin ? engineNames[engine] : `⚡ ${instanceMap[engine]}`;
+    const item = document.createElement('div');
+    item.className = 'priority-item';
+    item.dataset.engine = engine;
 
-      // 需要 API Key 的引擎后面加输入框
-      if (needsKey[engine]) {
-        const val = apiKeys[engine] || '';
-        html += `<input type="password" class="api-key-inline" id="nc-api-${engine}" value="${val}" placeholder="${engine === 'tavily' ? 'tvly-...' : engine === 'firecrawl' ? 'fc-...' : engine === 'brave' ? 'brave-...' : 'sk-...'}" autocomplete="off" onchange="onNetworkConfigChange()">`;
-      }
-      // Google 额外需要 CX
-      if (engine === 'google') {
-        const cxVal = apiKeys['google_cx'] || '';
-        html += `<input type="text" class="api-key-inline cx" id="nc-api-google-cx" value="${cxVal}" placeholder="CX..." onchange="onNetworkConfigChange()">`;
-      }
+    let html = `
+      <span class="priority-handle">⋮⋮</span>
+      <span class="priority-label">${label}</span>
+      <label class="toggle-switch small">
+        <input type="checkbox" id="nc-engine-${engine}" checked onchange="onEngineToggle('${engine}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>`;
 
-      item.innerHTML = html;
-      list.appendChild(item);
+    // 需要 API Key 的引擎后面加输入框（仅内置引擎）
+    if (isBuiltin && needsKey[engine]) {
+      const val = apiKeys[engine] || '';
+      html += `<input type="password" class="api-key-inline" id="nc-api-${engine}" value="${val}" placeholder="${engine === 'tavily' ? 'tvly-...' : engine === 'firecrawl' ? 'fc-...' : engine === 'brave' ? 'brave-...' : 'sk-...'}" autocomplete="off" onchange="onNetworkConfigChange()">`;
     }
+    // Google 额外需要 CX
+    if (engine === 'google') {
+      const cxVal = apiKeys['google_cx'] || '';
+      html += `<input type="text" class="api-key-inline cx" id="nc-api-google-cx" value="${cxVal}" placeholder="CX..." onchange="onNetworkConfigChange()">`;
+    }
+
+    item.innerHTML = html;
+    list.appendChild(item);
   });
 
   initPriorityDragAndDrop();
@@ -1340,6 +1355,27 @@ async function loadSearchInstances() {
   }
 }
 
+/** 刷新优先级列表（加载自定义引擎后或增删后调用） */
+function refreshPriorityWithInstances() {
+  if (!__networkConfigCache) return;
+  const priority = __networkConfigCache.search.engine_priority || [];
+  const existingIds = new Set(priority);
+  let changed = false;
+  (__searchInstances || []).forEach(inst => {
+    const eid = inst.id || inst.name;
+    if (eid && !existingIds.has(eid)) {
+      priority.push(eid);
+      existingIds.add(eid);
+      changed = true;
+    }
+  });
+  renderSearchEnginePriority(
+    priority,
+    __networkConfigCache.search_api_keys || {},
+    __searchInstances
+  );
+}
+
 function renderSearchInstances(instances) {
   const container = document.getElementById('search-instances-list');
   if (!container) return;
@@ -1485,6 +1521,7 @@ async function saveSearchInstance() {
     const data = await result.json();
     if (data.ok) {
       await loadSearchInstances();
+      refreshPriorityWithInstances();
       hideSearchInstanceModal();
       showNetworkStatus(__editingSearchId ? '✓ 搜索引擎已更新' : '✓ 搜索引擎已添加', 'ok');
     } else {
@@ -1501,6 +1538,8 @@ async function deleteSearchInstance(instanceId, name) {
     const result = await apiFetch(`/api/search/instances/${instanceId}`, { method: 'DELETE' });
     const data = await result.json();
     if (data.ok) {
+      await loadSearchInstances();
+      refreshPriorityWithInstances();
       await loadSearchInstances();
       showNetworkStatus('✓ 搜索引擎已删除', 'ok');
     } else {
