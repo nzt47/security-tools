@@ -85,17 +85,17 @@
     "cache_ttl": 300,
     "engine_priority": [
       "10798c28-6335-4b10-a7a3-1799089be6f8",
-      "dad7dd3e-8e65-4d16-b3d7-b00d595097ca",
+      "16642643-4307-4aaa-89d9-9c5aa297d31f",
+      "ad1a87a0-6f25-41b9-8464-a1e86a7f46e5",
       "f56b4108-9341-413f-950e-f56e11ee1910",
-      "a130b377-5f1b-4702-b93e-9f12e3734cd0",
-      "16642643-4307-4aaa-89d9-9c5aa297d31f"
+      "a130b377-5f1b-4702-b93e-9f12e3734cd0"
     ],
     "engine_enabled": {
-      "dad7dd3e-8e65-4d16-b3d7-b00d595097ca": true,
       "f56b4108-9341-413f-950e-f56e11ee1910": true,
       "a130b377-5f1b-4702-b93e-9f12e3734cd0": true,
       "10798c28-6335-4b10-a7a3-1799089be6f8": true,
-      "16642643-4307-4aaa-89d9-9c5aa297d31f": true
+      "16642643-4307-4aaa-89d9-9c5aa297d31f": true,
+      "ad1a87a0-6f25-41b9-8464-a1e86a7f46e5": true
     }
   },
   "search_api_keys": {
@@ -124,7 +124,7 @@
   "external_services": {
     "error_reporting": {
       "enabled": false,
-      "webhook_url": ""
+      "webhook_url": "sk-ddf2d09a74fc4c9fafb89a906f0f45a3"
     },
     "monitoring": {
       "enabled": false,
@@ -132,6 +132,250 @@
     }
   },
   "change_log": [
+    {
+      "id": "cd509ac2-1be0-4cc7-8d5d-1693a5d5669c",
+      "timestamp": "2026-06-19T13:53:52.434554",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "16642643-4307-4aaa-89d9-9c5aa297d31f",
+        "name": "Firecrawl"
+      }
+    },
+    {
+      "id": "d18fee7c-51c5-4a85-a9c3-f43d66bf299e",
+      "timestamp": "2026-06-19T13:53:52.434554",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "10798c28-6335-4b10-a7a3-1799089be6f8",
+        "name": "Tavily"
+      }
+    },
+    {
+      "id": "f6e1dd70-510a-4457-8b5f-f636bf101ef0",
+      "timestamp": "2026-06-19T13:53:52.433557",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "a130b377-5f1b-4702-b93e-9f12e3734cd0",
+        "name": "360搜索"
+      }
+    },
+    {
+      "id": "4de0e3ba-59e1-4e52-bc8b-d556196cafdc",
+      "timestamp": "2026-06-19T13:53:52.433557",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "f56b4108-9341-413f-950e-f56e11ee1910",
+        "name": "搜狗"
+      }
+    },
+    {
+      "id": "51980759-44e7-4060-a141-4eb0d9fade84",
+      "timestamp": "2026-06-19T13:53:50.158266",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "search_instances",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services"
+        ]
+      }
+    },
+    {
+      "id": "61449f0c-b2ee-47dc-87d4-f8786d6cfa1b",
+      "timestamp": "2026-06-19T13:53:50.154007",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "16642643-4307-4aaa-89d9-9c5aa297d31f",
+        "name": "Firecrawl"
+      }
+    },
+    {
+      "id": "d0944b4d-09e0-44fa-b595-cd0e10154845",
+      "timestamp": "2026-06-19T13:53:50.154007",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "10798c28-6335-4b10-a7a3-1799089be6f8",
+        "name": "Tavily"
+      }
+    },
+    {
+      "id": "d0b48c8a-7b12-48e6-8705-cf5f771a0e67",
+      "timestamp": "2026-06-19T13:53:50.154007",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "a130b377-5f1b-4702-b93e-9f12e3734cd0",
+        "name": "360搜索"
+      }
+    },
+    {
+      "id": "0964f59f-a044-4fe3-ad70-bf40f72153b5",
+      "timestamp": "2026-06-19T13:53:50.154007",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "f56b4108-9341-413f-950e-f56e11ee1910",
+        "name": "搜狗"
+      }
+    },
+    {
+      "id": "c1282505-ac19-4e4f-bab5-3c78f6cbc93f",
+      "timestamp": "2026-06-19T13:53:45.468870",
+      "action": "delete",
+      "section": "search_instance",
+      "details": {
+        "id": "b195fd55-a45c-4ed6-81b0-1d258769d2fb"
+      }
+    },
+    {
+      "id": "87d4feed-c246-46b9-8ddf-467698c6785b",
+      "timestamp": "2026-06-19T13:53:11.746640",
+      "action": "add",
+      "section": "search_instance",
+      "details": {
+        "id": "b195fd55-a45c-4ed6-81b0-1d258769d2fb",
+        "name": "DuckDuckGo"
+      }
+    },
+    {
+      "id": "9552f253-8cde-4ed2-b75d-4e9694118c86",
+      "timestamp": "2026-06-19T13:52:28.389078",
+      "action": "delete",
+      "section": "search_instance",
+      "details": {
+        "id": "dad7dd3e-8e65-4d16-b3d7-b00d595097ca"
+      }
+    },
+    {
+      "id": "ff79ed54-d05d-4a69-bc1d-a0a58a0e000b",
+      "timestamp": "2026-06-19T13:44:20.326098",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "16642643-4307-4aaa-89d9-9c5aa297d31f",
+        "name": "Firecrawl"
+      }
+    },
+    {
+      "id": "c57f4037-67bc-43ce-9b8e-20655adf56cf",
+      "timestamp": "2026-06-19T13:44:20.326098",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "10798c28-6335-4b10-a7a3-1799089be6f8",
+        "name": "Tavily"
+      }
+    },
+    {
+      "id": "86e8363b-7902-4371-99f7-1f312be1473f",
+      "timestamp": "2026-06-19T13:44:20.326098",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "a130b377-5f1b-4702-b93e-9f12e3734cd0",
+        "name": "360搜索"
+      }
+    },
+    {
+      "id": "e2997e99-7ef8-463a-9ba3-e77192f2fe69",
+      "timestamp": "2026-06-19T13:44:20.326098",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "f56b4108-9341-413f-950e-f56e11ee1910",
+        "name": "搜狗"
+      }
+    },
+    {
+      "id": "f5fabcf9-6a24-4092-8fda-834010efebc7",
+      "timestamp": "2026-06-19T13:44:20.326098",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "dad7dd3e-8e65-4d16-b3d7-b00d595097ca",
+        "name": "DuckDuckGo"
+      }
+    },
+    {
+      "id": "2c87bb75-b07b-4e09-b43b-f0af87877fef",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "config",
+      "details": {
+        "keys": [
+          "llm",
+          "network",
+          "search",
+          "search_instances",
+          "web_scraping",
+          "browser",
+          "sync",
+          "external_services"
+        ]
+      }
+    },
+    {
+      "id": "f41f6dd0-4c2a-4029-9109-3fdfa89b4d61",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "16642643-4307-4aaa-89d9-9c5aa297d31f",
+        "name": "Firecrawl"
+      }
+    },
+    {
+      "id": "703a58bd-bf98-408c-bed5-bb6abccd7907",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "10798c28-6335-4b10-a7a3-1799089be6f8",
+        "name": "Tavily"
+      }
+    },
+    {
+      "id": "7b4885d4-f41f-4f81-a13e-3f43eab38315",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "a130b377-5f1b-4702-b93e-9f12e3734cd0",
+        "name": "360搜索"
+      }
+    },
+    {
+      "id": "7f45aa88-b5fc-44c9-a8dd-0b6db8270e15",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "f56b4108-9341-413f-950e-f56e11ee1910",
+        "name": "搜狗"
+      }
+    },
+    {
+      "id": "e733e993-97bb-48a0-824d-5585729cceed",
+      "timestamp": "2026-06-19T13:44:18.413054",
+      "action": "update",
+      "section": "search_instance",
+      "details": {
+        "id": "dad7dd3e-8e65-4d16-b3d7-b00d595097ca",
+        "name": "DuckDuckGo"
+      }
+    },
     {
       "id": "151303e6-e480-4045-a476-544d64eaee8c",
       "timestamp": "2026-06-19T13:38:57.261191",
@@ -1062,25 +1306,6 @@
   ],
   "search_instances": [
     {
-      "api_endpoint": "https://api.duckduckgo.com/?q={query}&format=json&no_html=1&skip_disambig=1",
-      "api_key": "",
-      "auth_header": "",
-      "created_at": "2026-06-19T13:23:42.009468",
-      "enabled": true,
-      "engine_type": "duckduckgo",
-      "http_method": "GET",
-      "id": "dad7dd3e-8e65-4d16-b3d7-b00d595097ca",
-      "is_default": false,
-      "name": "DuckDuckGo",
-      "query_param": "q",
-      "results_path": "RelatedTopics",
-      "snippet_field": "Text",
-      "timeout": 15,
-      "title_field": "Text",
-      "updated_at": "2026-06-19T13:38:20.407557",
-      "url_field": "FirstURL"
-    },
-    {
       "api_endpoint": "https://www.sogou.com/web?query={query}",
       "api_key": "",
       "auth_header": "",
@@ -1120,7 +1345,7 @@
     },
     {
       "api_endpoint": "https://api.tavily.com/search",
-      "api_key": "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",
+      "api_key": "***Au3E",
       "auth_header": "Authorization: Bearer {key}",
       "created_at": "2026-06-19T13:37:38.298371",
       "enabled": true,
@@ -1139,7 +1364,7 @@
     },
     {
       "api_endpoint": "https://api.firecrawl.dev/v1/search",
-      "api_key": "fc-a522c1a9ad424fd0a87eedd516a8ae99",
+      "api_key": "***ae99",
       "auth_header": "Authorization: Bearer {key}",
       "created_at": "2026-06-19T13:37:38.298371",
       "enabled": true,
@@ -1155,6 +1380,25 @@
       "title_field": "title",
       "updated_at": "2026-06-19T13:37:38.298371",
       "url_field": "url"
+    },
+    {
+      "id": "ad1a87a0-6f25-41b9-8464-a1e86a7f46e5",
+      "name": "DuckDuckGo",
+      "engine_type": "duckduckgo",
+      "api_endpoint": "https://html.duckduckgo.com/html/",
+      "http_method": "GET",
+      "query_param": "q",
+      "api_key": "",
+      "auth_header": "",
+      "results_path": "",
+      "title_field": "title",
+      "url_field": "url",
+      "snippet_field": "snippet",
+      "enabled": true,
+      "is_default": false,
+      "timeout": 15,
+      "created_at": "2026-06-19T13:58:32.419753",
+      "updated_at": "2026-06-19T13:58:32.419753"
     }
   ]
 }
