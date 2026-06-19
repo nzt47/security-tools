@@ -2246,6 +2246,13 @@ def api_tools_toggle():
     _set_tool_state(tool_name, enabled)
     return jsonify({"ok": True, "name": tool_name, "enabled": enabled})
 
+@app.route("/api/tools/health")
+@log_request(show_response=False)
+def api_tools_health():
+    """获取工具健康状态（追踪、成功率、评分）"""
+    from agent.tools import get_health_status
+    return jsonify(get_health_status())
+
 @app.route("/api/tools/status-batch", methods=["GET"])
 @log_request(show_response=False)
 def api_tools_status_batch():
