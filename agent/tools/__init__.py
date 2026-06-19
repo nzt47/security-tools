@@ -144,7 +144,7 @@ def call(*args, **params) -> Any:
     # 限流检查
     if not _rate_limiter.check(name):
         wait = _rate_limiter.wait_time(name)
-        raise ToolError(f"调用频率过高，请稍后重试（预计等待 {wait:.1f} 秒）")
+        return {"ok": False, "error": f"调用频率过高，请稍后重试", "retry_after": round(wait, 1)}
 
     tool = _registry.get(name)
     if not tool:
