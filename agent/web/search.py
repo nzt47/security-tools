@@ -470,7 +470,9 @@ class SearchEngine:
 
         timeout = instance.get('timeout', 30)
         if instance.get('http_method', 'GET') == 'POST':
-            result = self._http_client.post(url, headers=headers, timeout=timeout)
+            # POST 请求：用 query_param 字段名作为键发送 JSON body
+            json_body = {instance.get('query_param', 'q'): query}
+            result = self._http_client.post(url, json_data=json_body, headers=headers, timeout=timeout)
         else:
             result = self._http_client.get(url, headers=headers, timeout=timeout)
 

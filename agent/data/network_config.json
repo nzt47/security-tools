@@ -79,31 +79,15 @@
   },
   "search": {
     "enabled": true,
-    "default_engine": "",
+    "default_engine": "b3d7251b-bf05-45bd-9ee5-cd5457ce582c",
     "max_results": 10,
     "timeout": 30,
     "cache_ttl": 300,
     "engine_priority": [
-      "1455147c-6d2c-4a4a-b8dd-0245fd03cce5",
-      "1af8e7a4-21ce-43d0-8d76-91723def40fe",
-      "0cf2cdb4-ae17-4cc5-8222-9cd925586854",
-      "49e8ca26-3134-474b-a261-01560b4194c6",
-      "7f59023e-dfae-4d0b-a539-072d93a738f5",
-      "5e5f0a2c-acf3-44cf-a9a0-30af21012779",
-      "af4ef57d-9ba5-475a-977c-46d9f0459aab",
-      "8d14bc04-5742-48e7-89db-76e5e9838441",
-      "2cb42fed-edf8-4a9d-b834-f5655246d27f"
+      "b3d7251b-bf05-45bd-9ee5-cd5457ce582c"
     ],
     "engine_enabled": {
-      "1455147c-6d2c-4a4a-b8dd-0245fd03cce5": true,
-      "1af8e7a4-21ce-43d0-8d76-91723def40fe": true,
-      "0cf2cdb4-ae17-4cc5-8222-9cd925586854": true,
-      "49e8ca26-3134-474b-a261-01560b4194c6": true,
-      "7f59023e-dfae-4d0b-a539-072d93a738f5": true,
-      "5e5f0a2c-acf3-44cf-a9a0-30af21012779": true,
-      "af4ef57d-9ba5-475a-977c-46d9f0459aab": true,
-      "8d14bc04-5742-48e7-89db-76e5e9838441": true,
-      "2cb42fed-edf8-4a9d-b834-f5655246d27f": true
+      "b3d7251b-bf05-45bd-9ee5-cd5457ce582c": true
     }
   },
   "search_api_keys": {
@@ -140,6 +124,54 @@
     }
   },
   "change_log": [
+    {
+      "id": "3025da2a-b6b7-4d1b-88c5-7d00dcb5393b",
+      "timestamp": "2026-06-19T13:16:19.363437",
+      "action": "delete",
+      "section": "search_instance",
+      "details": {
+        "id": "76dc7407-9edc-48bd-9527-a86b561a44a8"
+      }
+    },
+    {
+      "id": "d061f8f7-685b-46c9-8530-8d8fc176d259",
+      "timestamp": "2026-06-19T13:16:16.938336",
+      "action": "delete",
+      "section": "search_instance",
+      "details": {
+        "id": "2729c130-a2ec-4a3f-81bd-a3c0005c7c78"
+      }
+    },
+    {
+      "id": "3f8c27ed-41c9-4ae2-bc5b-865bc87edfdf",
+      "timestamp": "2026-06-19T13:15:18.529386",
+      "action": "add",
+      "section": "search_instance",
+      "details": {
+        "id": "ae58922e-2e4f-4b9a-b439-d8cf85696ee5",
+        "name": "360"
+      }
+    },
+    {
+      "id": "360b6699-e193-47af-ab2a-d4e4f3d103c3",
+      "timestamp": "2026-06-19T13:13:47.671572",
+      "action": "add",
+      "section": "search_instance",
+      "details": {
+        "id": "76dc7407-9edc-48bd-9527-a86b561a44a8",
+        "name": "搜狗"
+      }
+    },
+    {
+      "id": "82fc1384-8815-45e1-a1c5-59aefe4fbb01",
+      "timestamp": "2026-06-19T13:12:47.337268",
+      "action": "add",
+      "section": "search_instance",
+      "details": {
+        "id": "2729c130-a2ec-4a3f-81bd-a3c0005c7c78",
+        "name": "Tavily"
+      }
+    },
     {
       "id": "c902cf73-f813-4c16-bea2-511dc5dc6755",
       "timestamp": "2026-06-19T12:55:27.971462",
@@ -766,112 +798,23 @@
   ],
   "search_instances": [
     {
-      "id": "1455147c-6d2c-4a4a-b8dd-0245fd03cce5",
+      "id": "b3d7251b-bf05-45bd-9ee5-cd5457ce582c",
       "name": "Tavily",
-      "engine_type": "tavily",
+      "engine_type": "custom",
+      "api_endpoint": "https://api.tavily.com/search",
+      "http_method": "POST",
+      "query_param": "query",
       "api_key": "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",
-      "api_endpoint": "",
+      "auth_header": "Authorization: Bearer {key}",
+      "results_path": "results",
+      "title_field": "title",
+      "url_field": "url",
+      "snippet_field": "content",
       "enabled": true,
-      "is_default": false,
+      "is_default": true,
       "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "1af8e7a4-21ce-43d0-8d76-91723def40fe",
-      "name": "Firecrawl",
-      "engine_type": "firecrawl",
-      "api_key": "fc-a522c1a9ad424fd0a87eedd516a8ae99",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "0cf2cdb4-ae17-4cc5-8222-9cd925586854",
-      "name": "Bing",
-      "engine_type": "bing",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "49e8ca26-3134-474b-a261-01560b4194c6",
-      "name": "Google",
-      "engine_type": "google",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "7f59023e-dfae-4d0b-a539-072d93a738f5",
-      "name": "Brave",
-      "engine_type": "brave",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "5e5f0a2c-acf3-44cf-a9a0-30af21012779",
-      "name": "DuckDuckGo",
-      "engine_type": "duckduckgo",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "af4ef57d-9ba5-475a-977c-46d9f0459aab",
-      "name": "百度",
-      "engine_type": "baidu",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "8d14bc04-5742-48e7-89db-76e5e9838441",
-      "name": "搜狗",
-      "engine_type": "sogou",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
-    },
-    {
-      "id": "2cb42fed-edf8-4a9d-b834-f5655246d27f",
-      "name": "360搜索",
-      "engine_type": "so360",
-      "api_key": "",
-      "api_endpoint": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-19T13:05:29.958749",
-      "updated_at": "2026-06-19T13:05:29.958749"
+      "created_at": "2026-06-19T13:17:14.365405",
+      "updated_at": "2026-06-19T13:17:14.365405"
     }
   ]
 }
