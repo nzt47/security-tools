@@ -38,14 +38,19 @@ SENSITIVE_PATTERNS = [
 ]
 
 SQL_INJECTION_PATTERNS = [
-    (re.compile(r'f["\'].*?\{.*?\}.*?["\']\s*%?\s*[=%]'), "f-string 拼接 SQL 参数"),
+    (re.compile(r'f["\'].*?SELECT.*?\{.*?\}.*?["\']'), "f-string 拼接 SQL 参数"),
+    (re.compile(r'f["\'].*?INSERT.*?\{.*?\}.*?["\']'), "f-string 拼接 SQL 参数"),
+    (re.compile(r'f["\'].*?UPDATE.*?\{.*?\}.*?["\']'), "f-string 拼接 SQL 参数"),
+    (re.compile(r'f["\'].*?DELETE.*?\{.*?\}.*?["\']'), "f-string 拼接 SQL 参数"),
     (re.compile(r'(?:execute|exec|query)\s*\(\s*f["\']'), "动态 f-string SQL 执行"),
     (re.compile(r'raw\(|RawSQL\(|connection\.execute\(.*?\+'), "原生 SQL 拼接"),
+    (re.compile(r'["\'].*?(?:SELECT|INSERT|UPDATE|DELETE).*?\+'), "字符串拼接 SQL"),
 ]
 
 XSS_PATTERNS = [
     (re.compile(r'\.html_safe|\.raw\b|mark_safe\(|dangerouslySetInnerHTML|v-html\s*='), "不安全 HTML 渲染"),
     (re.compile(r'\binnerHTML\s*=\s*["\'].*?\{'), "innerHTML 插值"),
+    (re.compile(r'\binnerHTML\s*=\s*[^;]+\+'), "innerHTML 字符串拼接"),
 ]
 
 COMMAND_INJECTION_PATTERNS = [

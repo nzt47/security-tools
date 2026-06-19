@@ -1,0 +1,96 @@
+2026-06-17 12:04:20,693 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 12:04:20,703 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 12:04:20,707 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 12:04:20,710 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 12:04:20,730 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 12:04:20,734 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 12:04:20,737 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 12:04:20,739 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 12:04:20,740 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 12:04:20,742 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 12:04:20,757 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 12:04:20,758 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 12:04:20,759 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 12:04:20,915 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 12:04:20,918 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 12:04:20,918 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:04:20,928 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:04:20,929 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 12:04:20,929 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 12:04:20,929 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 12:04:20,929 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 12:04:20,930 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 12:04:20,930 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 12:04:20,930 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 12:04:20,930 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 12:04:20,931 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:04:20,931 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 12:04:20,931 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 12:04:20,931 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 12:04:21,198 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,199 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.50ms, 累计节省 1,024 bytes
+2026-06-17 12:04:21,204 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,208 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,208 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.00ms, 累计节省 0 bytes
+2026-06-17 12:04:21,208 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 200.00ms, 累计节省 0 bytes
+2026-06-17 12:04:21,212 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,214 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.00ms, 累计节省 0 bytes
+2026-06-17 12:04:21,221 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,222 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_create_and_restore_snapsh0\snapshots
+2026-06-17 12:04:21,519 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,519 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_list_snapshots_empty0\snapshots
+2026-06-17 12:04:21,524 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,525 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_save_and_list_snapshot0\snapshots
+2026-06-17 12:04:21,537 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,537 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_frequency_control0\snapshots
+2026-06-17 12:04:21,549 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,550 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_incremental_snapshot0\snapshots
+2026-06-17 12:04:21,561 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,561 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_load_snapshot0\snapshots
+2026-06-17 12:04:21,574 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,574 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_check_compatibility0\snapshots
+2026-06-17 12:04:21,575 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: p5.0.0, 当前版本: p6.2.0
+2026-06-17 12:04:21,583 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,583 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_cleanup_old_snapshots0\snapshots
+2026-06-17 12:04:21,595 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,596 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_performance_monitor0\snapshots
+2026-06-17 12:04:21,614 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,619 [ WARNING] P6-Config: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_load_nonexistent_file0\nonexistent.json，使用默认配置
+2026-06-17 12:04:21,624 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_load_valid_config0\p6_config.json
+2026-06-17 12:04:21,631 [   ERROR] P6-Config: 配置加载失败: Expecting value: line 1 column 1 (char 0)
+2026-06-17 12:04:21,635 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,638 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,642 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,646 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,650 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,654 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:04:21,660 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_custom_config_values0\custom_config.json
+2026-06-17 12:04:21,666 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_create_snapshot_manager_f0\test_config.json
+2026-06-17 12:04:21,667 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:04:21,667 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_create_snapshot_manager_f0\snapshots
+2026-06-17 12:04:21,668 [    INFO] P6-Config: 快照管理器创建成功
+2026-06-17 12:04:21,668 [    INFO] P6-Config:   - 快照目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-192\test_create_snapshot_manager_f0\snapshots
+2026-06-17 12:04:21,668 [    INFO] P6-Config:   - 最小间隔: 30秒
+2026-06-17 12:04:21,668 [    INFO] P6-Config:   - 最大快照: 5个
+2026-06-17 12:04:21,668 [    INFO] P6-Config:   - 压缩: True
+2026-06-17 12:04:21,693 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:21,694 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器 daemon 线程已启动 (检查间隔=1秒)
+2026-06-17 12:04:21,794 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:04:21,798 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:21,799 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:04:21,802 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:21,803 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:04:21,807 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:21,811 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:21,817 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:22,366 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:22,366 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:04:22,367 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-17 12:04:22,370 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:22,370 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:04:22,370 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-17 12:04:22,374 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:04:22,374 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:04:22,374 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)

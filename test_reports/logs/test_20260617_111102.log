@@ -1,0 +1,263 @@
+2026-06-17 11:11:02,966 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:11:02,968 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:11:02,974 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 11:11:02,975 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 11:11:02,987 [ WARNING] planning.react: 思考结果JSON解析失败
+2026-06-17 11:11:02,993 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:11:02,995 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:11:02,996 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 11:11:02,996 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 11:11:03,003 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:11:03,005 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:11:03,011 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:11:03,014 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:11:03,064 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,085 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,086 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,094 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,097 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,099 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 11:11:03,102 [    INFO] planning.react:       ├─ 推理: 使用工具执行
+2026-06-17 11:11:03,102 [    INFO] planning.react:       ├─ 行动类型: tool_call
+2026-06-17 11:11:03,103 [    INFO] planning.react:       ├─ 行动: 简单任务
+2026-06-17 11:11:03,103 [    INFO] planning.react:       ├─ 工具名: <MagicMock name='mock.tool_registry.find_tool()' id='1923045067664'>
+2026-06-17 11:11:03,103 [    INFO] planning.react:       └─ 置信度: 0.70
+2026-06-17 11:11:03,104 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,107 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,107 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-17 11:11:03,108 [    INFO] planning.react:    [行动] 工具名: <MagicMock name='mock.tool_registry.find_tool()' id='1923045067664'>
+2026-06-17 11:11:03,108 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-17 11:11:03,109 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-17 11:11:03,112 [    INFO] planning.react:    [行动] 输出: <MagicMock name='mock.tool_registry.get()()' id='1923044267632'>
+2026-06-17 11:11:03,118 [    INFO] planning.react:       ├─ 输出: <MagicMock name='mock.tool_registry.get()()' id='1923044267632'>
+2026-06-17 11:11:03,118 [    INFO] planning.react:       └─ 观察: 成功: <MagicMock name='mock.tool_registry.get()()' id='1923044267632'>
+2026-06-17 11:11:03,122 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,125 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,129 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,131 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,137 [    INFO] planning.react:       └─ 迭代时长: 49.38ms
+2026-06-17 11:11:03,138 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,147 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,150 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,150 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 11:11:03,154 [    INFO] planning.react:       ├─ 推理: 任务已处理完成
+2026-06-17 11:11:03,154 [    INFO] planning.react:       ├─ 行动类型: finish
+2026-06-17 11:11:03,154 [    INFO] planning.react:       └─ 行动: (无)
+2026-06-17 11:11:03,154 [    INFO] planning.react:       └─ 置信度: 0.90
+2026-06-17 11:11:03,155 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,158 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,162 [    INFO] planning.react:       ├─ 执行步数: 2
+2026-06-17 11:11:03,162 [    INFO] planning.react:       ├─ 总时长: 90.85ms
+2026-06-17 11:11:03,162 [    INFO] planning.react:       └─ 结果: 已完成任务处理
+2026-06-17 11:11:03,163 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,174 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:11:03,178 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:11:03,178 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 11:11:03,179 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 11:11:03,179 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,196 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,196 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,204 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,207 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,207 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 11:11:03,210 [    INFO] planning.react:       ├─ 推理: 使用工具执行
+2026-06-17 11:11:03,210 [    INFO] planning.react:       ├─ 行动类型: tool_call
+2026-06-17 11:11:03,211 [    INFO] planning.react:       ├─ 行动: 使用search搜索
+2026-06-17 11:11:03,211 [    INFO] planning.react:       ├─ 工具名: search
+2026-06-17 11:11:03,211 [    INFO] planning.react:       └─ 置信度: 0.70
+2026-06-17 11:11:03,211 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,215 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,216 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-17 11:11:03,216 [    INFO] planning.react:    [行动] 工具名: search
+2026-06-17 11:11:03,216 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-17 11:11:03,217 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-17 11:11:03,225 [    INFO] planning.react:       ├─ 错误: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required positional a...
+2026-06-17 11:11:03,225 [    INFO] planning.react:       └─ 观察: 失败: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required positional argument: 'query'
+2026-06-17 11:11:03,229 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,235 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,238 [    INFO] planning.react:       └─ 迭代时长: 39.41ms
+2026-06-17 11:11:03,238 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,247 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,250 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,250 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 11:11:03,253 [    INFO] planning.react:       ├─ 推理: 任务已处理完成
+2026-06-17 11:11:03,253 [    INFO] planning.react:       ├─ 行动类型: finish
+2026-06-17 11:11:03,253 [    INFO] planning.react:       └─ 行动: (无)
+2026-06-17 11:11:03,254 [    INFO] planning.react:       └─ 置信度: 0.90
+2026-06-17 11:11:03,254 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,257 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,261 [    INFO] planning.react:       ├─ 执行步数: 2
+2026-06-17 11:11:03,262 [    INFO] planning.react:       ├─ 总时长: 75.46ms
+2026-06-17 11:11:03,262 [    INFO] planning.react:       └─ 结果: 已完成任务处理
+2026-06-17 11:11:03,262 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,268 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,288 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,288 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,297 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,300 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,304 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-17 11:11:03,305 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-17 11:11:03,305 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-17 11:11:03,305 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-17 11:11:03,306 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,309 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,309 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 11:11:03,314 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-17 11:11:03,315 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-17 11:11:03,318 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,321 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,325 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,328 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,336 [    INFO] planning.react:       └─ 迭代时长: 45.54ms
+2026-06-17 11:11:03,336 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,345 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,348 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,351 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-17 11:11:03,352 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-17 11:11:03,352 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-17 11:11:03,352 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-17 11:11:03,352 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,355 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,355 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 11:11:03,361 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-17 11:11:03,361 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-17 11:11:03,365 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,368 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,372 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,375 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,381 [    INFO] planning.react:       └─ 迭代时长: 42.50ms
+2026-06-17 11:11:03,382 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-17 11:11:03,389 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,393 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,396 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-17 11:11:03,396 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-17 11:11:03,397 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-17 11:11:03,397 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-17 11:11:03,397 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,399 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,399 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 11:11:03,406 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-17 11:11:03,406 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-17 11:11:03,409 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,412 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,416 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-17 11:11:03,419 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-17 11:11:03,425 [    INFO] planning.react:       └─ 迭代时长: 40.01ms
+2026-06-17 11:11:03,425 [ WARNING] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,437 [ WARNING] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-17 11:11:03,454 [    INFO] planning.decomposer:    子任务1: 完成报告...
+2026-06-17 11:11:03,454 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 11:11:03,468 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,468 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,468 [    INFO] planning.decomposer:    子任务2: 分析数据...
+2026-06-17 11:11:03,470 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 11:11:03,482 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,482 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 11:11:03,483 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,483 [    INFO] planning.decomposer:    子任务2: 处理数据...
+2026-06-17 11:11:03,483 [    INFO] planning.decomposer:    子任务3: 保存结果...
+2026-06-17 11:11:03,483 [    INFO] planning.decomposer:    规则分解完成，共 3 个子任务
+2026-06-17 11:11:03,495 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,496 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,496 [    INFO] planning.decomposer:    子任务2: 保存结果...
+2026-06-17 11:11:03,496 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 11:11:03,506 [    INFO] planning.decomposer:    规则分解完成，共 0 个子任务
+2026-06-17 11:11:03,518 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-17 11:11:03,518 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,518 [    INFO] planning.decomposer:    使用分隔符 '接着' 分割任务
+2026-06-17 11:11:03,518 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 11:11:03,518 [    INFO] planning.decomposer:    规则分解完成，共 0 个子任务
+2026-06-17 11:11:03,531 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-17 11:11:03,531 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,531 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,531 [    INFO] planning.decomposer:    子任务2: 保存...
+2026-06-17 11:11:03,531 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 11:11:03,543 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,543 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 11:11:03,544 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,544 [    INFO] planning.decomposer:    子任务2: 保存...
+2026-06-17 11:11:03,544 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 11:11:03,555 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-17 11:11:03,555 [    INFO] planning.decomposer:    使用分隔符 '接着' 分割任务
+2026-06-17 11:11:03,556 [    INFO] planning.decomposer:    使用分隔符 '之后' 分割任务
+2026-06-17 11:11:03,556 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 11:11:03,556 [    INFO] planning.decomposer:    子任务1: 打开文件，...
+2026-06-17 11:11:03,556 [    INFO] planning.decomposer:    子任务2: 处理数据，...
+2026-06-17 11:11:03,557 [    INFO] planning.decomposer:    子任务3: 分析结果，...
+2026-06-17 11:11:03,557 [    INFO] planning.decomposer:    子任务4: 保存...
+2026-06-17 11:11:03,558 [    INFO] planning.decomposer:    规则分解完成，共 4 个子任务
+2026-06-17 11:11:03,569 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,569 [    INFO] planning.decomposer:    使用分隔符 '接着' 分割任务
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    使用分隔符 '再' 分割任务
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    子任务1: 请先创建一个新文档，...
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    子任务2: 在文档中写入用户信息，...
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    子任务3: 保存文档到指定目录，...
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    子任务4: 发送通知邮件给管理员，...
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    子任务5: 记录操作日志...
+2026-06-17 11:11:03,570 [    INFO] planning.decomposer:    规则分解完成，共 5 个子任务
+2026-06-17 11:11:03,580 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 11:11:03,593 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-17 11:11:03,607 [    INFO] planning.decomposer:    原始数据中包含 5 个子任务
+2026-06-17 11:11:03,629 [    INFO] planning.decomposer:    子任务1: 这是一个无效的JSON响应...
+2026-06-17 11:11:03,629 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 11:11:03,637 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,640 [    INFO] planning.decomposer:    原始任务: 打开文件然后保存
+2026-06-17 11:11:03,641 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 11:11:03,641 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 11:11:03,641 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 11:11:03,647 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-17 11:11:03,650 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 11:11:03,650 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 11:11:03,650 [    INFO] planning.decomposer:    子任务2: 保存...
+2026-06-17 11:11:03,651 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 11:11:03,659 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 11:11:03,663 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-17 11:11:03,663 [    INFO] planning.decomposer:       子任务1: 打开文件...
+2026-06-17 11:11:03,663 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 11:11:03,664 [    INFO] planning.decomposer:       子任务2: 保存...
+2026-06-17 11:11:03,664 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 11:11:03,664 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 11:11:03,668 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-17 11:11:03,668 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 11:11:03,670 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,679 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,682 [    INFO] planning.decomposer:    原始任务: 完成一个功能开发
+2026-06-17 11:11:03,683 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 11:11:03,683 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 11:11:03,683 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 11:11:03,689 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 11:11:03,699 [    INFO] planning.decomposer:    原始数据中包含 3 个子任务
+2026-06-17 11:11:03,701 [    INFO] planning.decomposer:    解析得到 3 个子任务
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:       子任务1: 分析需求...
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:       子任务2: 编写代码...
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:       子任务3: 测试验证...
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 11:11:03,702 [    INFO] planning.decomposer:          依赖: ['step_2']
+2026-06-17 11:11:03,709 [    INFO] planning.decomposer:    子任务总数: 3
+2026-06-17 11:11:03,710 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 11:11:03,710 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,718 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,721 [    INFO] planning.decomposer:    原始任务: 测试任务
+2026-06-17 11:11:03,721 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 11:11:03,721 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 11:11:03,722 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 11:11:03,728 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 11:11:03,732 [   ERROR] planning.decomposer: 异常类型: Exception
+2026-06-17 11:11:03,732 [   ERROR] planning.decomposer: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 95, in decompose
+    subtasks_data = await self._llm_decompose(task_description, context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 142, in _llm_decompose
+    response = await self.llm.chat([{"role": "user", "content": prompt}])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 2253, in _execute_mock_call
+    raise effect
+Exception: LLM服务出错
+
+2026-06-17 11:11:03,734 [    INFO] planning.decomposer: ============================================================
+2026-06-17 11:11:03,748 [    INFO] planning.decomposer: 计划优化完成: 1项调整

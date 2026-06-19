@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-from persona.distiller import (
+from persona.distillation_enhanced import (
     PersonaDistiller,
     DistillationStrategy,
     DistillationConfig,

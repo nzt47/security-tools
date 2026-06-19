@@ -1472,4 +1472,42 @@ def get_weather(city: str = "", format: str = "text") -> dict:
     except json.JSONDecodeError as e:
         return {"ok": False, "error": f"JSON 解析失败: {e}", "city": city}
     except Exception as e:
-        return {"ok": False, "error": f"查询失败: {e}", "city": city}
+        return {"ok": False, "error": f"未知错误: {e}", "city": city}
+
+
+def expand_context_from_memory(digital_life, query, max_items=5):
+    """从记忆库中查找更多与当前话题相关的上下文信息"""
+    try:
+        if hasattr(digital_life, '_vector_memory') and digital_life._vector_memory:
+            results = digital_life._vector_memory.search(query, top_k=max_items)
+            context_items = []
+            for item in results:
+                if hasattr(item, 'content'):
+                    context_items.append({
+                        'content': item.content,
+                        'score': getattr(item, 'score', 0)
+                    })
+                elif isinstance(item, dict) and 'content' in item:
+                    context_items.append({
+                        'content': item['content'],
+                        'score': item.get('score', 0)
+                    })
+            return {
+                "ok": True,
+                "query": query,
+                "count": len(context_items),
+                "items": context_items
+            }
+        else:
+            return {
+                "ok": False,
+                "error": "向量记忆系统未启用",
+                "query": query
+            }
+    except Exception as e:
+        logger.error(f"expand_context_from_memory 错误: {e}")
+        return {
+            "ok": False,
+            "error": str(e),
+            "query": query
+        }

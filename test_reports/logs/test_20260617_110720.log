@@ -1,0 +1,37 @@
+2026-06-17 11:07:20,599 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,607 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,659 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,665 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,671 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,676 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,683 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,688 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,694 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,700 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,705 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,712 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,718 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,723 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,729 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,735 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,735 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,736 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-17 11:07:20,741 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,742 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,742 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-17 11:07:20,767 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,768 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,768 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-17 11:07:20,793 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,793 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,794 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-17 11:07:20,818 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,824 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,844 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,850 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,856 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,856 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,857 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成
+2026-06-17 11:07:20,868 [    INFO] cognitive.config: PromptConfig 初始化完成，共 5 条规则
+2026-06-17 11:07:20,869 [    INFO] cognitive.templates: TemplateManager 初始化完成，共 2 个模板
+2026-06-17 11:07:20,869 [    INFO] cognitive.prompt_injector: PromptInjector 初始化完成

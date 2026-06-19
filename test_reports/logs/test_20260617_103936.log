@@ -1,0 +1,65 @@
+2026-06-17 10:39:36,943 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:36,943 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 1.0000 (Δ=+0.7000, +233.3%)
+  emotion: 0.2000 ↓ 0.0000 (Δ=-0.2000, -100.0%)
+  conciseness: 0.7000 ↑ 1.0000 (Δ=+0.3000, +42.9%)
+  initiative: 0.6000 ↓ 0.0000 (Δ=-0.6000, -100.0%)
+  humor: 0.1000 ↓ 0.0000 (Δ=-0.1000, -100.0%)
+  empathy: 0.4000 ↑ 1.0000 (Δ=+0.6000, +150.0%)
+  [裁剪警告] tone: 100.0000 -> 1.0000 (裁剪), emotion: -50.0000 -> 0.0000 (裁剪), conciseness: 1.5000 -> 1.0000 (裁剪), humor: -0.1000 -> 0.0000 (裁剪), empathy: 10.0000 -> 1.0000 (裁剪)
+2026-06-17 10:39:36,948 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:36,949 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-17 10:39:36,952 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,193 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,200 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,201 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-17 10:39:37,204 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,205 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 → 0.3000 (Δ=+0.0000, +0.0%)
+2026-06-17 10:39:37,210 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,213 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,217 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,220 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,224 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,237 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,242 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,244 [    INFO] persona.persona_model_enhanced: 已加载人格: C:\Windows\TEMP\tmptefz23p1.json
+2026-06-17 10:39:37,247 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,252 [   ERROR] persona.persona_model_enhanced: 加载人格失败: Expecting value: line 1 column 1 (char 0)
+2026-06-17 10:39:37,253 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,257 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,261 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,264 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,267 [    INFO] persona.persona_model_enhanced: 人格已保存: \invalid\path\that\does\not\exist\persona.json
+2026-06-17 10:39:37,277 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,282 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,286 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,290 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,290 [   ERROR] persona.persona_model_enhanced: 人格合并失败: 'NoneType' object has no attribute 'get_expression_style'
+2026-06-17 10:39:37,293 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,294 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,295 [   ERROR] persona.persona_model_enhanced: 人格合并失败: 'self'
+2026-06-17 10:39:37,297 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,298 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,298 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-17 10:39:37,299 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 → 0.3000 (Δ=+0.0000, +0.0%)
+  emotion: 0.2000 → 0.2000 (Δ=+0.0000, +0.0%)
+  conciseness: 0.7000 → 0.7000 (Δ=+0.0000, +0.0%)
+  initiative: 0.6000 → 0.6000 (Δ=+0.0000, +0.0%)
+  humor: 0.1000 → 0.1000 (Δ=+0.0000, +0.0%)
+  empathy: 0.4000 → 0.4000 (Δ=+0.0000, +0.0%)
+2026-06-17 10:39:37,299 [    INFO] persona.persona_model_enhanced: 人格模型合并完成
+2026-06-17 10:39:37,303 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,303 [ WARNING] persona.persona_model_enhanced: 未找到快照: nonexistent
+2026-06-17 10:39:37,306 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,306 [ WARNING] persona.persona_model_enhanced: 未找到快照: any
+2026-06-17 10:39:37,310 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,311 [    INFO] persona.persona_model_enhanced: 人格快照已保存: 20260617_103937
+2026-06-17 10:39:37,314 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:39:37,314 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 1.0000 (Δ=+0.7000, +233.3%)
+  emotion: 0.2000 ↓ 0.0000 (Δ=-0.2000, -100.0%)
+  [裁剪警告] tone: 2.0000 -> 1.0000 (裁剪), emotion: -1.0000 -> 0.0000 (裁剪)
+  [跳过] unknown_param (不存在的参数)

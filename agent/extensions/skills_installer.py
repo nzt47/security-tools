@@ -27,8 +27,8 @@ from agent.extensions.store import ExtensionStore
 
 logger = logging.getLogger(__name__)
 
-# 应用层技能配置文件
-_SKILLS_FILE = Path(__file__).parent.parent / "data" / "skills.json"
+# 应用层技能配置文件（统一使用根目录 data/skills.json 作为唯一数据源）
+_SKILLS_FILE = Path(__file__).parents[2] / "data" / "skills.json"
 
 # Claude Code 技能目录
 _CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"

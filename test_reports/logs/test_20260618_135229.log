@@ -1,0 +1,67 @@
+2026-06-18 13:52:29,920 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 13:52:29,923 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 13:52:29,924 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 13:52:29,933 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 13:52:29,935 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 13:52:29,935 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 13:52:29,957 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 13:52:29,957 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 13:52:29,957 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 13:52:29,963 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 13:52:29,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 13:52:29,978 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 13:52:29,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 13:52:30,101 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 13:52:30,105 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 13:52:30,105 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:52:30,113 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 13:52:30,114 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 13:52:30,114 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 13:52:30,184 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-18 13:52:30,266 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-18 13:52:30,266 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,267 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,267 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 应用实例: <test_network_config_integration.MockApp object at 0x0000020D6934D580>
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'test_network_config_integration.MockApp'>
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 配置已加载，search_api_keys 存在: True
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3
+2026-06-18 13:52:30,268 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=***, model=gpt-4
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm...
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] [即时生效] LLM 配置已应用: openai/gpt-4
+2026-06-18 13:52:30,268 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-18 13:52:30,270 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,270 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,270 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-18 13:52:30,270 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-18 13:52:30,435 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-18 13:52:30,656 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-18 13:52:30,691 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-18 13:52:30,897 [    INFO] agent.performance_logging: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 13:52:31,079 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-18 13:52:31,083 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-18 13:52:31,086 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-18 13:52:31,086 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 13:52:31,086 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 13:52:31,307 [    INFO] agent.utils.cache: [LRUCache] 加载缓存模块
+2026-06-18 13:52:31,407 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器

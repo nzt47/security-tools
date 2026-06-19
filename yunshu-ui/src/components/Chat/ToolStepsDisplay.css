@@ -1,0 +1,107 @@
+/* 工具步骤展示样式 */
+
+.tool-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm, 4px);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+}
+
+.tool-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  animation: tool-fade-in 0.25s ease-out;
+}
+
+.tool-step-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  width: 18px;
+  text-align: center;
+}
+
+.tool-step-name {
+  color: var(--mascot-primary, #4fd1c5);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tool-step-args {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  overflow: hidden;
+  color: var(--text-muted, #718096);
+}
+
+.tool-arg {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.tool-arg-key {
+  color: var(--mascot-secondary, #81e6d9);
+  opacity: 0.7;
+}
+
+.tool-arg-val {
+  color: var(--text-secondary, #a0aec0);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-step-summary {
+  color: var(--text-secondary, #a0aec0);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-step-status {
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.tool-step-status.running {
+  color: var(--mascot-thinking, #9f7aea);
+  animation: tool-pulse 1.5s ease-in-out infinite;
+}
+
+.tool-step-status.success {
+  color: var(--mascot-primary, #4fd1c5);
+}
+
+.tool-step-status.error {
+  color: var(--mascot-error, #fc8181);
+}
+
+/* 成功/失败状态背景 */
+.tool-result.success {
+  opacity: 0.8;
+}
+
+.tool-result.error {
+  background: rgba(252, 129, 129, 0.08);
+}
+
+@keyframes tool-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tool-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

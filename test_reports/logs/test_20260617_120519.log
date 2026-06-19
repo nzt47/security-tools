@@ -1,0 +1,318 @@
+2026-06-17 12:05:19,993 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 12:05:20,001 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 12:05:20,006 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 12:05:20,009 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 12:05:20,028 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 12:05:20,031 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 12:05:20,034 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 12:05:20,035 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 12:05:20,036 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 12:05:20,039 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 12:05:20,053 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 12:05:20,053 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 12:05:20,055 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 12:05:20,207 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 12:05:20,213 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 12:05:20,213 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:05:20,221 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:05:20,221 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 12:05:20,222 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 12:05:20,222 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 12:05:20,222 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 12:05:20,222 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 12:05:20,222 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 12:05:20,223 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 12:05:20,223 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 12:05:20,223 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:05:20,223 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 12:05:20,223 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 12:05:20,224 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 12:05:20,492 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,492 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.50ms, 累计节省 1,024 bytes
+2026-06-17 12:05:20,496 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,501 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,502 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.00ms, 累计节省 0 bytes
+2026-06-17 12:05:20,502 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 200.00ms, 累计节省 0 bytes
+2026-06-17 12:05:20,505 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,506 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 100.00ms, 累计节省 0 bytes
+2026-06-17 12:05:20,513 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,513 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_create_and_restore_snapsh0\snapshots
+2026-06-17 12:05:20,514 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,515 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,515 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,515 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,518 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,518 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,518 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,519 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,519 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,519 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,519 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,520 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 249 bytes, 完整快照
+2026-06-17 12:05:20,522 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,522 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,523 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 9.18ms
+2026-06-17 12:05:20,523 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 9.18ms, 累计节省 0 bytes
+2026-06-17 12:05:20,523 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,523 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,524 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,529 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,530 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_list_snapshots_empty0\snapshots
+2026-06-17 12:05:20,535 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,536 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_save_and_list_snapshot0\snapshots
+2026-06-17 12:05:20,536 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,537 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,537 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,537 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,539 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,539 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,539 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,540 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,540 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,540 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,540 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,541 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 246 bytes, 完整快照
+2026-06-17 12:05:20,543 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,543 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,544 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 8.00ms
+2026-06-17 12:05:20,544 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 8.00ms, 累计节省 0 bytes
+2026-06-17 12:05:20,544 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,545 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,545 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,552 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,552 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_frequency_control0\snapshots
+2026-06-17 12:05:20,553 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,553 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,553 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,553 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,555 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,555 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,556 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,556 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,556 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,556 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,557 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,558 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 245 bytes, 完整快照
+2026-06-17 12:05:20,559 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,560 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,560 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 6.98ms
+2026-06-17 12:05:20,560 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 6.98ms, 累计节省 0 bytes
+2026-06-17 12:05:20,560 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,560 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,561 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,561 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,561 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,561 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=False, incremental=False
+2026-06-17 12:05:20,561 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,563 [ WARNING] agent.p6_snapshot: [P6] └─ 上次保存时间: 1781669120.559047
+2026-06-17 12:05:20,563 [ WARNING] agent.p6_snapshot: [P6] └─ 最小间隔: 300秒
+2026-06-17 12:05:20,568 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,569 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_incremental_snapshot0\snapshots
+2026-06-17 12:05:20,570 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,571 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,571 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,571 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,573 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,574 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,574 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,574 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,574 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,575 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,575 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,576 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 245 bytes, 完整快照
+2026-06-17 12:05:20,578 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,578 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,578 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 8.00ms
+2026-06-17 12:05:20,578 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 8.00ms, 累计节省 0 bytes
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,579 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=True
+2026-06-17 12:05:20,580 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,581 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,581 [    INFO] agent.p6_snapshot: [P6] ├─ 增量快照，基于: snap_20260617_120520
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,582 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,583 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 247 bytes, 增量快照
+2026-06-17 12:05:20,585 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 2
+2026-06-17 12:05:20,585 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,586 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 7.51ms
+2026-06-17 12:05:20,586 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 7.51ms, 累计节省 0 bytes
+2026-06-17 12:05:20,586 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,586 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,586 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,591 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,592 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_load_snapshot_empty0\snapshots
+2026-06-17 12:05:20,592 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,592 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-17 12:05:20,592 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-17 12:05:20,592 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-17 12:05:20,595 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-17 12:05:20,595 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,600 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,600 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_check_compatibility0\snapshots
+2026-06-17 12:05:20,601 [ WARNING] agent.p6_snapshot: [P6] 快照版本不兼容: p5.0.0, 当前版本: p6.2.0
+2026-06-17 12:05:20,608 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,609 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_cleanup_old_snapshots0\snapshots
+2026-06-17 12:05:20,609 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,610 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,610 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,610 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,612 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,612 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,612 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,613 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,613 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,613 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,613 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,613 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 244 bytes, 完整快照
+2026-06-17 12:05:20,615 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,615 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,616 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 7.07ms
+2026-06-17 12:05:20,616 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 7.07ms, 累计节省 0 bytes
+2026-06-17 12:05:20,616 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,616 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,617 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,617 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,617 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,617 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,618 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,621 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 245 bytes, 完整快照
+2026-06-17 12:05:20,622 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 2
+2026-06-17 12:05:20,622 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,623 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 6.38ms
+2026-06-17 12:05:20,623 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 6.38ms, 累计节省 0 bytes
+2026-06-17 12:05:20,623 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,623 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,623 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,624 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,624 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,624 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,624 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,626 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,627 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,628 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 244 bytes, 完整快照
+2026-06-17 12:05:20,629 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 3
+2026-06-17 12:05:20,629 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,630 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 5.03ms
+2026-06-17 12:05:20,631 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 5.03ms, 累计节省 0 bytes
+2026-06-17 12:05:20,631 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,631 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,631 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,631 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,632 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,632 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,632 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,634 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,634 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,634 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,634 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,635 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,635 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,635 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,635 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 246 bytes, 完整快照
+2026-06-17 12:05:20,637 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 4
+2026-06-17 12:05:20,637 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,638 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 7.36ms
+2026-06-17 12:05:20,638 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 7.36ms, 累计节省 0 bytes
+2026-06-17 12:05:20,638 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,639 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,641 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,642 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,642 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 247 bytes, 完整快照
+2026-06-17 12:05:20,644 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 5
+2026-06-17 12:05:20,644 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,645 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 6.01ms
+2026-06-17 12:05:20,645 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 6.01ms, 累计节省 0 bytes
+2026-06-17 12:05:20,645 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,645 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,645 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,651 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,652 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_performance_monitor0\snapshots
+2026-06-17 12:05:20,652 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,653 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-17 12:05:20,653 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-17 12:05:20,653 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: MagicMock
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260617_120520
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 核心模块序列化完成，共 0 个模块
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 模块数据总大小: 0 bytes
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] ├─ 开始持久化到磁盘...
+2026-06-17 12:05:20,655 [    INFO] agent.p6_snapshot: [P6] 快照持久化成功: snap_20260617_120520, 大小: 247 bytes, 完整快照
+2026-06-17 12:05:20,657 [    INFO] agent.p6_snapshot: [P6] ├─ 频率控制器已更新，保存计数: 1
+2026-06-17 12:05:20,657 [    INFO] agent.p6_snapshot: [P6] ├─ 检查是否需要清理旧快照...
+2026-06-17 12:05:20,658 [    INFO] agent.p6_snapshot: [P6] ├─ 快照保存总计耗时: 6.91ms
+2026-06-17 12:05:20,658 [    INFO] agent.p6_snapshot: [P6] 性能记录: 保存 6.91ms, 累计节省 0 bytes
+2026-06-17 12:05:20,658 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,658 [    INFO] agent.p6_snapshot: [P6] 快照保存成功！ID: snap_20260617_120520
+2026-06-17 12:05:20,658 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-17 12:05:20,669 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,674 [ WARNING] P6-Config: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_load_nonexistent_file0\nonexistent.json，使用默认配置
+2026-06-17 12:05:20,678 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_load_valid_config0\p6_config.json
+2026-06-17 12:05:20,685 [   ERROR] P6-Config: 配置加载失败: Expecting value: line 1 column 1 (char 0)
+2026-06-17 12:05:20,689 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,693 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,696 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,699 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,703 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,708 [    INFO] P6-Config: 配置加载成功: p6_config.json
+2026-06-17 12:05:20,713 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_custom_config_values0\custom_config.json
+2026-06-17 12:05:20,719 [    INFO] P6-Config: 配置加载成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_create_snapshot_manager_f0\test_config.json
+2026-06-17 12:05:20,719 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 12:05:20,720 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_create_snapshot_manager_f0\snapshots
+2026-06-17 12:05:20,720 [    INFO] P6-Config: 快照管理器创建成功
+2026-06-17 12:05:20,720 [    INFO] P6-Config:   - 快照目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-194\test_create_snapshot_manager_f0\snapshots
+2026-06-17 12:05:20,720 [    INFO] P6-Config:   - 最小间隔: 30秒
+2026-06-17 12:05:20,721 [    INFO] P6-Config:   - 最大快照: 5个
+2026-06-17 12:05:20,721 [    INFO] P6-Config:   - 压缩: True
+2026-06-17 12:05:20,743 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:20,744 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器 daemon 线程已启动 (检查间隔=1秒)
+2026-06-17 12:05:20,845 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:05:20,859 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:20,862 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:05:20,867 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:20,868 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-17 12:05:20,871 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:20,875 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:20,880 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:21,417 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:21,417 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:05:21,417 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-17 12:05:21,421 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:21,421 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:05:21,421 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-17 12:05:21,424 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-17 12:05:21,424 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-17 12:05:21,425 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)

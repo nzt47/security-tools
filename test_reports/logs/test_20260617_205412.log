@@ -1,0 +1,135 @@
+2026-06-17 20:54:13,894 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 20:54:13,921 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 20:54:13,926 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 20:54:13,933 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 20:54:13,966 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 20:54:13,972 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 20:54:13,977 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 20:54:13,979 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 20:54:13,981 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 20:54:13,987 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 20:54:14,013 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 20:54:14,015 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 20:54:14,018 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 20:54:14,258 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 20:54:14,268 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 20:54:14,268 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 20:54:14,279 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 20:54:14,279 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 20:54:14,279 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 20:54:14,280 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 20:54:14,280 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 20:54:14,280 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 20:54:14,281 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 20:54:14,282 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 20:54:14,371 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-17 20:54:14,405 [    INFO] agent.utils.cache: [LRUCache] 加载缓存模块
+2026-06-17 20:54:14,994 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_init0\cache, max=10MB)
+2026-06-17 20:54:15,002 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_l1_hit0\cache, max=100MB)
+2026-06-17 20:54:15,010 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_l2_hit0\cache, max=100MB)
+2026-06-17 20:54:15,019 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_miss0\cache, max=100MB)
+2026-06-17 20:54:15,027 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_delete0\cache, max=100MB)
+2026-06-17 20:54:15,036 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_clear0\cache, max=100MB)
+2026-06-17 20:54:15,039 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 20:54:15,047 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_stats0\cache, max=100MB)
+2026-06-17 20:54:15,053 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-17 20:54:15,060 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_warmup0\cache, max=100MB)
+2026-06-17 20:54:15,060 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 开始缓存预热...
+2026-06-17 20:54:15,063 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热完成: 2 条数据
+2026-06-17 20:54:15,063 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热耗时: 0.00s
+2026-06-17 20:54:15,075 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_cache_manager_get_cache0\cache, max=100MB)
+2026-06-17 20:54:15,075 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: test_cache
+2026-06-17 20:54:15,082 [    INFO] agent.caching.multi_level_cache: [CacheManager] 删除缓存: test_cache
+2026-06-17 20:54:15,089 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_cache_manager_clear_all0\cache1, max=100MB)
+2026-06-17 20:54:15,090 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache1
+2026-06-17 20:54:15,090 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_cache_manager_clear_all0\cache2, max=100MB)
+2026-06-17 20:54:15,090 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache2
+2026-06-17 20:54:15,091 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 20:54:15,091 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 20:54:15,091 [    INFO] agent.caching.multi_level_cache: [CacheManager] 所有缓存已清空
+2026-06-17 20:54:15,119 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_multi_level_cache_thread_0\cache, max=100MB)
+2026-06-17 20:54:16,172 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 20:54:16,178 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,178 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,183 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=3600
+2026-06-17 20:54:16,183 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,188 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 20:54:16,188 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,194 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=3, ttl_seconds=3600
+2026-06-17 20:54:16,194 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,199 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=0.1
+2026-06-17 20:54:16,199 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,404 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 20:54:16,405 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,405 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 20:54:16,405 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 20:54:16,410 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 20:54:16,410 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,410 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 1, 'misses': 1, 'hit_rate': 50.0, 'expired_count': 0, 'total': 2}
+2026-06-17 20:54:16,415 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 20:54:16,415 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,415 [    INFO] agent.utils.cache: [LRUCache] 重置统计信息
+2026-06-17 20:54:16,415 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 0, 'misses': 0, 'hit_rate': 0, 'expired_count': 0, 'total': 0}
+2026-06-17 20:54:16,421 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=300
+2026-06-17 20:54:16,421 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,426 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=3600
+2026-06-17 20:54:16,426 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,432 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=0.1
+2026-06-17 20:54:16,432 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,637 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,638 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,638 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,638 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 20:54:16,638 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,638 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 20:54:16,643 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,643 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [QueryCache] 清空所有缓存
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 20:54:16,644 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 20:54:16,645 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 20:54:16,645 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 20:54:16,650 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 20:54:16,651 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 1, 'misses': 0, 'hit_rate': 100.0, 'expired_count': 0, 'total': 1}
+2026-06-17 20:54:16,652 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 0, 'max_size': 20, 'hits': 0, 'misses': 0, 'hit_rate': 0, 'expired_count': 0, 'total': 0}
+2026-06-17 20:54:16,678 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-17 20:54:16,683 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-17 20:54:16,703 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_add_metad0\extensions.json
+2026-06-17 20:54:16,703 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 20:54:16,713 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_get_metad0\extensions.json
+2026-06-17 20:54:16,714 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 20:54:16,722 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_get_metad1\extensions.json
+2026-06-17 20:54:16,730 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_list_all0\extensions.json
+2026-06-17 20:54:16,731 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: skill1
+2026-06-17 20:54:16,732 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: mcp1
+2026-06-17 20:54:16,740 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_list_by_t0\extensions.json
+2026-06-17 20:54:16,741 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: skill1
+2026-06-17 20:54:16,742 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: mcp1
+2026-06-17 20:54:16,750 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_remove_me0\extensions.json
+2026-06-17 20:54:16,751 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 20:54:16,752 [    INFO] agent.extensions.store: [扩展存储] 已移除扩展: test_ext
+2026-06-17 20:54:16,760 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_remove_no0\extensions.json
+2026-06-17 20:54:16,769 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_update_st0\extensions.json
+2026-06-17 20:54:16,769 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 20:54:16,771 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: test_ext → enabled
+2026-06-17 20:54:16,778 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_update_co0\extensions.json
+2026-06-17 20:54:16,778 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 20:54:16,780 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: test_ext → enabled
+2026-06-17 20:54:16,788 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-252\test_extension_store_clear_cac0\extensions.json
+2026-06-17 20:54:16,789 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext

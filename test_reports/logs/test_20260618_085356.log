@@ -1,0 +1,503 @@
+2026-06-18 08:53:56,940 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 08:53:56,943 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 08:53:56,944 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 08:53:57,040 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 08:53:57,040 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 08:53:57,047 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 08:53:57,061 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 08:53:57,065 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 08:53:57,066 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-18 08:53:57,069 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 08:53:57,083 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 08:53:57,085 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 08:53:57,087 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 08:53:57,220 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 08:53:57,226 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 08:53:57,226 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-18 08:53:57,236 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 08:53:57,321 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-18 08:53:57,322 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-18 08:53:57,325 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-18 08:53:57,326 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,326 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 08:53:57,382 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_pytest
+2026-06-18 08:53:57,382 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,382 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,390 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_pytest
+2026-06-18 08:53:57,390 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,390 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,401 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_kb
+2026-06-18 08:53:57,401 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,402 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,421 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpy561lo2f
+2026-06-18 08:53:57,421 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,421 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,429 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpqx_si44a
+2026-06-18 08:53:57,429 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,429 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,439 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpd9z_7wnq
+2026-06-18 08:53:57,439 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,440 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,454 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp6467yj80
+2026-06-18 08:53:57,455 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,455 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,468 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 3
+2026-06-18 08:53:57,468 [    INFO] memory.vector_store.vector_store:    │  1. Python 面向对象编程...
+2026-06-18 08:53:57,468 [    INFO] memory.vector_store.vector_store:    │  2. Python 基础语法和数据类型...
+2026-06-18 08:53:57,468 [    INFO] memory.vector_store.vector_store:    │  3. Django REST Framework 教程...
+2026-06-18 08:53:57,468 [    INFO] memory.vector_store.vector_store:    └─ 返回: 3 条
+2026-06-18 08:53:57,476 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmphkzi4yuv
+2026-06-18 08:53:57,476 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,476 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,479 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 0
+2026-06-18 08:53:57,479 [    INFO] memory.vector_store.vector_store:    └─ 返回: 0 条
+2026-06-18 08:53:57,488 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp_sw4uy2y
+2026-06-18 08:53:57,488 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,488 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,494 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 2
+2026-06-18 08:53:57,494 [    INFO] memory.vector_store.vector_store:    │  1. Flask 教程...
+2026-06-18 08:53:57,494 [    INFO] memory.vector_store.vector_store:    │  2. Python 教程...
+2026-06-18 08:53:57,494 [    INFO] memory.vector_store.vector_store:    └─ 返回: 2 条
+2026-06-18 08:53:57,502 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp5nl1r8w8
+2026-06-18 08:53:57,502 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,502 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,534 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpjcvk0q6l
+2026-06-18 08:53:57,534 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,534 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,549 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp2_ishzht
+2026-06-18 08:53:57,549 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,549 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,564 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp2_ishzht
+2026-06-18 08:53:57,564 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,564 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 3
+2026-06-18 08:53:57,580 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp3qcu_zj9
+2026-06-18 08:53:57,580 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,581 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,587 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp3qcu_zj9
+2026-06-18 08:53:57,587 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,587 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 1
+2026-06-18 08:53:57,591 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:53:57,591 [    INFO] memory.vector_store.vector_store:    │  1. 持久化搜索测试...
+2026-06-18 08:53:57,591 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 08:53:57,603 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmps7wzym9_
+2026-06-18 08:53:57,603 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,603 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,626 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpuua3_jeu
+2026-06-18 08:53:57,626 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,626 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,640 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpupsbdmw4
+2026-06-18 08:53:57,640 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,640 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,649 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpodksau7a
+2026-06-18 08:53:57,649 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,649 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,660 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpegof66az
+2026-06-18 08:53:57,660 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,660 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,662 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 08:53:57,670 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmprg5ku2pj
+2026-06-18 08:53:57,670 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,670 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,670 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 08:53:57,674 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Flask文档
+2026-06-18 08:53:57,676 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:53:57,676 [    INFO] memory.vector_store.vector_store:    │  1. Python 是一种高级编程语言...
+2026-06-18 08:53:57,676 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 08:53:57,680 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp1pbefp5w
+2026-06-18 08:53:57,680 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,680 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,697 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpnwi_qtxj
+2026-06-18 08:53:57,697 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:53:57,697 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:53:57,701 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:53:57,701 [    INFO] memory.vector_store.vector_store:    │  1. 一些内容...
+2026-06-18 08:53:57,701 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test_key
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test_key
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test_key, default=None
+2026-06-18 08:53:57,701 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test_key
+2026-06-18 08:53:57,710 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,710 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,710 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,711 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=non_existent, default={'default': 42}
+2026-06-18 08:53:57,711 [ WARNING] core.storage: [InMemoryStorage.load] 键不存在: non_existent, 返回默认值
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key1
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key1
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage.delete] 开始删除: key=key1
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage.delete] 键存在，准备删除: key1
+2026-06-18 08:53:57,714 [    INFO] core.storage: [InMemoryStorage.delete] 删除成功: key1
+2026-06-18 08:53:57,718 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,718 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,718 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,718 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-18 08:53:57,718 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-18 08:53:57,719 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-18 08:53:57,719 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-18 08:53:57,719 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=key, default=None
+2026-06-18 08:53:57,719 [    INFO] core.storage: [InMemoryStorage.load] 键存在: key
+2026-06-18 08:53:57,723 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 08:53:57,723 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpf7w1glpu
+2026-06-18 08:53:57,723 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpf7w1glpu
+2026-06-18 08:53:57,724 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 08:53:57,724 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpf7w1glpu
+2026-06-18 08:53:57,724 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 08:53:57,725 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=test_key
+2026-06-18 08:53:57,725 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpf7w1glpu\test_key.json
+2026-06-18 08:53:57,725 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpf7w1glpu\test_key.json
+2026-06-18 08:53:57,726 [    INFO] core.storage: [JSONFileStorage.save] Saved: test_key
+2026-06-18 08:53:57,726 [    INFO] core.storage: [JSONFileStorage.load] 开始加载: key=test_key, default=None
+2026-06-18 08:53:57,726 [    INFO] core.storage: [JSONFileStorage.load] 文件存在，开始读取: C:\Windows\TEMP\tmpf7w1glpu\test_key.json
+2026-06-18 08:53:57,726 [    INFO] core.storage: [JSONFileStorage.load] 读取成功: C:\Windows\TEMP\tmpf7w1glpu\test_key.json
+2026-06-18 08:53:57,726 [    INFO] core.storage: [JSONFileStorage.load] Loaded: test_key
+2026-06-18 08:53:57,730 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 08:53:57,731 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp9mwljl72
+2026-06-18 08:53:57,731 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp9mwljl72
+2026-06-18 08:53:57,731 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 08:53:57,731 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp9mwljl72
+2026-06-18 08:53:57,731 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 08:53:57,732 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key1
+2026-06-18 08:53:57,732 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp9mwljl72\key1.json
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp9mwljl72\key1.json
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] Saved: key1
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key2
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp9mwljl72\key2.json
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp9mwljl72\key2.json
+2026-06-18 08:53:57,733 [    INFO] core.storage: [JSONFileStorage.save] Saved: key2
+2026-06-18 08:53:57,738 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 08:53:57,738 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp4tlvsbl2
+2026-06-18 08:53:57,738 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp4tlvsbl2
+2026-06-18 08:53:57,739 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 08:53:57,739 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp4tlvsbl2
+2026-06-18 08:53:57,739 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 08:53:57,740 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key
+2026-06-18 08:53:57,740 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp4tlvsbl2\key.json
+2026-06-18 08:53:57,740 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp4tlvsbl2\key.json
+2026-06-18 08:53:57,741 [    INFO] core.storage: [JSONFileStorage.save] Saved: key
+2026-06-18 08:53:57,741 [    INFO] core.storage: [JSONFileStorage.delete] 开始删除: key=key
+2026-06-18 08:53:57,741 [    INFO] core.storage: [JSONFileStorage.delete] 删除文件: C:\Windows\TEMP\tmp4tlvsbl2\key.json
+2026-06-18 08:53:57,741 [    INFO] core.storage: [JSONFileStorage.delete] 删除成功
+2026-06-18 08:53:57,741 [    INFO] core.storage: [JSONFileStorage.delete] Deleted: key
+2026-06-18 08:53:57,745 [    INFO] core.storage: [create_storage] 开始创建存储: type=memory, kwargs={}
+2026-06-18 08:53:57,745 [    INFO] core.storage: [create_storage] 创建 InMemoryStorage
+2026-06-18 08:53:57,745 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,746 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,746 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,746 [    INFO] core.storage: [create_storage] InMemoryStorage 创建完成
+2026-06-18 08:53:57,751 [    INFO] core.storage: [create_storage] 开始创建存储: type=json, kwargs={'base_dir': 'C:\\Windows\\TEMP\\tmp5axq68ws'}
+2026-06-18 08:53:57,751 [    INFO] core.storage: [create_storage] 创建 JSONFileStorage
+2026-06-18 08:53:57,751 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 08:53:57,751 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp5axq68ws
+2026-06-18 08:53:57,751 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp5axq68ws
+2026-06-18 08:53:57,752 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 08:53:57,752 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp5axq68ws
+2026-06-18 08:53:57,752 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 08:53:57,752 [    INFO] core.storage: [create_storage] JSONFileStorage 创建完成
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test
+2026-06-18 08:53:57,763 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test, default=None
+2026-06-18 08:53:57,764 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test
+2026-06-18 08:53:57,769 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,773 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 08:53:57,777 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用, 降级为 json
+2026-06-18 08:53:57,777 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,782 [ WARNING] agent.utils.serialization: [Serialization] cbor 不可用, 降级为 json
+2026-06-18 08:53:57,782 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,785 [ WARNING] agent.utils.serialization: [Serialization] 未知格式: unknown_format, 使用 json
+2026-06-18 08:53:57,786 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,789 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,795 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=True
+2026-06-18 08:53:57,801 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,805 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,806 [   ERROR] agent.utils.serialization: [Serialization] 加载失败: C:\Windows\TEMP\tmp7ve6tj_t, 错误: Expecting value: line 1 column 1 (char 0)
+2026-06-18 08:53:57,822 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 08:53:57,822 [    INFO] agent.utils.serialization: [Serialization] json: {'serialize_time_ms': 0.0, 'deserialize_time_ms': 0.0, 'size_bytes': 512, 'total_time_ms': 0.0}
+2026-06-18 08:53:57,822 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 08:53:57,822 [    INFO] agent.utils.serialization: [Serialization] pickle: {'serialize_time_ms': 0.0, 'deserialize_time_ms': 0.0, 'size_bytes': 405, 'total_time_ms': 0.0}
+2026-06-18 08:53:57,848 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,848 [    INFO] test_task_scheduler: 开始测试: test_add_interval_task
+2026-06-18 08:53:57,848 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 调度器创建成功: running=False
+2026-06-18 08:53:57,850 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test_task (每60秒)
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 添加间隔任务: test_task, 间隔=60秒
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 任务列表: 1 个任务
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler:   - test_task: type=python_func, interval=60
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 开始测试: test_add_cron_task
+2026-06-18 08:53:57,850 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 调度器创建成功
+2026-06-18 08:53:57,850 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: daily_task (cron)
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 添加 Cron 任务: daily_task, day_of_week=0, hour=9, minute=0
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 任务列表: 1 个任务
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler:   - daily_task: type=python_func, cron={'day_of_week': 0, 'hour': 9, 'minute': 0}
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,850 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: 开始测试: test_add_command_task
+2026-06-18 08:53:57,858 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: 调度器创建成功
+2026-06-18 08:53:57,858 [    INFO] agent.task_scheduler: [TaskScheduler] 添加命令任务: cmd_task (每30秒)
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: 添加命令任务: cmd_task, command=echo hello, interval=30
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: 任务列表: 1 个任务
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler:   - cmd_task: type=system_command, command=echo hello
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,858 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,861 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,862 [    INFO] test_task_scheduler: 开始测试: test_remove_task
+2026-06-18 08:53:57,862 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,862 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,862 [    INFO] test_task_scheduler: 添加任务: test, task_id=py_1781744037862_0
+2026-06-18 08:53:57,862 [    INFO] test_task_scheduler: 删除任务结果: True, 剩余任务数: 0
+2026-06-18 08:53:57,862 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,862 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,865 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,865 [    INFO] test_task_scheduler: 开始测试: test_remove_nonexistent_task
+2026-06-18 08:53:57,866 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,866 [    INFO] test_task_scheduler: 调度器创建成功，无任务
+2026-06-18 08:53:57,866 [    INFO] test_task_scheduler: 删除不存在任务结果: False
+2026-06-18 08:53:57,866 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,866 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,869 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,869 [    INFO] test_task_scheduler: 开始测试: test_set_task_enabled
+2026-06-18 08:53:57,869 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,869 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,869 [    INFO] test_task_scheduler: 添加任务: test, task_id=py_1781744037869_0
+2026-06-18 08:53:57,869 [    INFO] test_task_scheduler: 禁用任务结果: True, enabled=False
+2026-06-18 08:53:57,870 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,870 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: 开始测试: test_set_task_enabled_nonexistent
+2026-06-18 08:53:57,873 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: 调度器创建成功，无任务
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: 设置不存在任务结果: False
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,873 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,876 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,876 [    INFO] test_task_scheduler: 开始测试: test_get_task
+2026-06-18 08:53:57,876 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,876 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,876 [    INFO] test_task_scheduler: 添加任务: test, task_id=py_1781744037876_0
+2026-06-18 08:53:57,877 [    INFO] test_task_scheduler: 获取任务结果: {'name': 'test', 'type': 'python_func', 'func': <function TestTaskScheduler.test_get_task.<locals>.<lambda> at 0x000002BC27281940>, 'interval': 60, 'last_run': None, 'enabled': True, 'task_id': 'py_1781744037876_0'}
+2026-06-18 08:53:57,877 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,877 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: 开始测试: test_get_task_nonexistent
+2026-06-18 08:53:57,880 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: 调度器创建成功，无任务
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: 获取不存在任务结果: None
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,880 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,884 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,884 [    INFO] test_task_scheduler: 开始测试: test_run_command_task
+2026-06-18 08:53:57,884 [    INFO] test_task_scheduler: Mock subprocess.Popen 配置完成
+2026-06-18 08:53:57,884 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,885 [    INFO] agent.task_scheduler: [TaskScheduler] 添加命令任务: cmd_test (每30秒)
+2026-06-18 08:53:57,885 [    INFO] test_task_scheduler: 添加命令任务: cmd_test
+2026-06-18 08:53:57,885 [    INFO] test_task_scheduler: 执行任务: cmd_test, type=system_command
+2026-06-18 08:53:57,885 [    INFO] agent.task_scheduler: [TaskScheduler] 执行命令: echo hello
+2026-06-18 08:53:57,888 [    INFO] test_task_scheduler: 执行结果: status=success, output=output
+2026-06-18 08:53:57,888 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,888 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,891 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,891 [    INFO] test_task_scheduler: 开始测试: test_run_python_func_task
+2026-06-18 08:53:57,891 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,891 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: python_test (每60秒)
+2026-06-18 08:53:57,892 [    INFO] test_task_scheduler: 添加 Python 函数任务: python_test
+2026-06-18 08:53:57,892 [    INFO] test_task_scheduler: 执行任务: python_test, type=python_func
+2026-06-18 08:53:57,892 [    INFO] test_task_scheduler: test_func 被调用
+2026-06-18 08:53:57,893 [    INFO] test_task_scheduler: 执行结果: status=success, result_value=['executed']
+2026-06-18 08:53:57,893 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,893 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: 开始测试: test_should_run_interval_first_time
+2026-06-18 08:53:57,896 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,896 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: 添加任务: test, last_run=None
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: 应运行检查结果: True
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,896 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: 开始测试: test_should_run_disabled_task
+2026-06-18 08:53:57,898 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,898 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: 添加禁用任务: test, enabled=False
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: 应运行检查结果: False
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,898 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,909 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,909 [    INFO] test_task_scheduler: 开始测试: test_load_from_json_empty
+2026-06-18 08:53:57,909 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,909 [    INFO] test_task_scheduler: 创建空任务文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-258\test_load_from_json_empty0\tasks.json
+2026-06-18 08:53:57,910 [    INFO] agent.task_scheduler: [TaskScheduler] 从 JSON 加载了 0 个任务
+2026-06-18 08:53:57,910 [    INFO] test_task_scheduler: 加载任务数: 0
+2026-06-18 08:53:57,910 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,910 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: 开始测试: test_load_from_json_with_tasks
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: 创建任务文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-258\test_load_from_json_with_tasks0\tasks.json, 内容: {'tasks': [{'name': 'loaded_task', 'command': 'echo test', 'interval_sec': 60, 'id': 'task_123', 'enabled': True}]}
+2026-06-18 08:53:57,915 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,915 [    INFO] agent.task_scheduler: [TaskScheduler] 添加命令任务: loaded_task (每60秒)
+2026-06-18 08:53:57,915 [    INFO] agent.task_scheduler: [TaskScheduler] 从 JSON 加载了 1 个任务
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: 加载任务数: 1
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: 任务列表: ['loaded_task']
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,915 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: 开始测试: test_list_tasks_empty
+2026-06-18 08:53:57,918 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: 调度器创建成功，无任务
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: 任务列表: []
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,918 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,923 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,923 [    INFO] test_task_scheduler: 开始测试: test_execute_now
+2026-06-18 08:53:57,923 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,923 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: test (每60秒)
+2026-06-18 08:53:57,923 [    INFO] test_task_scheduler: 添加任务: test, task_id=py_1781744037923_0
+2026-06-18 08:53:57,925 [    INFO] test_task_scheduler: 立即执行结果: {'task_id': 'py_1781744037923_0', 'name': 'test', 'type': 'python_func', 'start_time': '2026-06-18T08:53:57.924802', 'status': 'success', 'output': '', 'error': '', 'duration_ms': 0, 'end_time': '2026-06-18T08:53:57.924802'}
+2026-06-18 08:53:57,925 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,925 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,928 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,929 [    INFO] test_task_scheduler: 开始测试: test_execute_now_nonexistent
+2026-06-18 08:53:57,929 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,929 [    INFO] test_task_scheduler: 调度器创建成功，无任务
+2026-06-18 08:53:57,929 [    INFO] test_task_scheduler: 立即执行不存在任务结果: None
+2026-06-18 08:53:57,929 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,929 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,932 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: 开始测试: test_get_history_empty
+2026-06-18 08:53:57,933 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: 调度器创建成功
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: Mock: TASK_HISTORY_FILE.exists() = False
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: 历史记录: []
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,933 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: 开始测试: test_get_heartbeat_status_empty
+2026-06-18 08:53:57,937 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: 调度器创建成功
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: Mock: HEARTBEAT_HISTORY_FILE.exists() = False
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: 心跳状态: {'latest': {'status': 'unknown'}, 'history': []}
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,937 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,940 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,941 [    INFO] test_task_scheduler: 开始测试: test_start_and_stop_daemon
+2026-06-18 08:53:57,941 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,941 [    INFO] test_task_scheduler: 调度器创建成功: running=False
+2026-06-18 08:53:57,941 [    INFO] test_task_scheduler: 启动 daemon 线程...
+2026-06-18 08:53:57,941 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器 daemon 线程已启动 (检查间隔=1秒)
+2026-06-18 08:53:57,942 [    INFO] test_task_scheduler: Daemon 启动后: running=True, thread=<Thread(task-scheduler, started daemon 22344)>
+2026-06-18 08:53:57,942 [    INFO] test_task_scheduler: 停止 daemon 线程...
+2026-06-18 08:53:57,942 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止
+2026-06-18 08:53:57,942 [    INFO] test_task_scheduler: Daemon 停止后: running=False
+2026-06-18 08:53:57,942 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,942 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,945 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,945 [    INFO] test_task_scheduler: 开始测试: test_get_scheduler_singleton
+2026-06-18 08:53:57,945 [    INFO] test_task_scheduler: 获取调度器实例 1...
+2026-06-18 08:53:57,945 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-18 08:53:57,946 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-18 08:53:57,946 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: 实例 1: 3007134852080
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: 获取调度器实例 2...
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: 实例 2: 3007134852080
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: 两个实例是否相同: True
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: 测试通过!
+2026-06-18 08:53:57,946 [    INFO] test_task_scheduler: ============================================================
+2026-06-18 08:53:57,969 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=2
+2026-06-18 08:53:57,972 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=CRITICAL, deps=[]
+2026-06-18 08:53:57,976 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,976 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=CRITICAL, deps=[]
+2026-06-18 08:53:57,976 [ WARNING] agent.lazy_loader: [LazyLoader] 模块 test_module 已存在，将被覆盖
+2026-06-18 08:53:57,976 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_module, level=IMPORTANT, deps=[]
+2026-06-18 08:53:57,979 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,980 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main_module, level=IMPORTANT, deps=['dep1', 'dep2']
+2026-06-18 08:53:57,983 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,983 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: critical, level=CRITICAL, deps=[]
+2026-06-18 08:53:57,983 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 08:53:57,985 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:57,990 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,990 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:57,990 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 08:53:57,992 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:57,995 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:57,996 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dependency, level=CRITICAL, deps=[]
+2026-06-18 08:53:57,996 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dependency']
+2026-06-18 08:53:57,996 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 08:53:57,998 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:57,998 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: IMPORTANT
+2026-06-18 08:53:58,000 [    INFO] agent.lazy_loader: [LazyLoader] 级别 IMPORTANT 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:58,004 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,004 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: failing, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,004 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 08:53:58,006 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=0, 失败=1
+2026-06-18 08:53:58,011 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,012 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=OPTIONAL, deps=[]
+2026-06-18 08:53:58,017 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,018 [   ERROR] agent.lazy_loader: [LazyLoader] 模块 nonexistent 未注册
+2026-06-18 08:53:58,021 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,021 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dep, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,021 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=OPTIONAL, deps=['dep']
+2026-06-18 08:53:58,028 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,029 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: async, level=IMPORTANT, deps=[]
+2026-06-18 08:53:58,029 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: IMPORTANT
+2026-06-18 08:53:58,029 [    INFO] agent.lazy_loader: [LazyLoader] 异步加载级别: IMPORTANT
+2026-06-18 08:53:58,131 [    INFO] agent.lazy_loader: [LazyLoader] 级别 IMPORTANT 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:58,231 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,231 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=OPTIONAL, deps=[]
+2026-06-18 08:53:58,238 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,238 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dep, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,238 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=OPTIONAL, deps=['dep']
+2026-06-18 08:53:58,244 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,244 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,249 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,249 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,253 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,253 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,253 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 08:53:58,253 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-18 08:53:58,260 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,261 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,265 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,265 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test, level=CRITICAL, deps=[]
+2026-06-18 08:53:58,267 [    INFO] agent.lazy_loader: [LazyLoader] 重置完成
+2026-06-18 08:53:58,273 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,277 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=2
+2026-06-18 08:53:58,277 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 2 个模块
+2026-06-18 08:53:58,277 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=2, 失败=0, elapsed=0.61ms
+2026-06-18 08:53:58,281 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=1
+2026-06-18 08:53:58,281 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 1 个模块
+2026-06-18 08:53:58,783 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=1, 失败=0, elapsed=501.07ms
+2026-06-18 08:53:58,786 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=1
+2026-06-18 08:53:58,786 [    INFO] agent.lazy_loader: [ParallelPreloader] 开始预加载: 1 个模块
+2026-06-18 08:53:58,787 [   ERROR] agent.lazy_loader: [ParallelPreloader] 预加载失败: 失败
+2026-06-18 08:53:58,787 [    INFO] agent.lazy_loader: [ParallelPreloader] 预加载完成: 成功=0, 失败=1, elapsed=0.43ms
+2026-06-18 08:53:58,790 [    INFO] agent.lazy_loader: [ParallelPreloader] 初始化完成: max_workers=2
+2026-06-18 08:53:58,790 [    INFO] agent.lazy_loader: [ParallelPreloader] 已关闭
+2026-06-18 08:53:58,793 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 08:53:58,948 [    INFO] agent.task_scheduler: [TaskScheduler] 调度器已停止

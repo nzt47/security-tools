@@ -4,7 +4,7 @@ Memory 模块单元测试
 """
 import pytest
 import tempfile
-from agent.memory import VectorStore, MemoryItem, KnowledgeBase
+from memory import VectorStore, MemoryItem, KnowledgeBase
 
 
 class TestMemoryItem:

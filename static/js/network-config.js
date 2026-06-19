@@ -94,16 +94,8 @@ function renderNetworkConfig(config) {
   set('nc-search-max', config.search.max_results);
   set('nc-search-timeout', config.search.timeout || 30);
 
-  // 渲染搜索引擎优先级（含内联 API Key 输入框 + 自定义引擎实例）
-  renderSearchEnginePriority(config.search.engine_priority || ['duckduckgo', 'tavily', 'firecrawl', 'bing', 'brave', 'google'], config.search_api_keys, __searchInstances);
-  
-  // 渲染搜索引擎启用状态
-  const engineEnabled = config.search.engine_enabled || {};
-  set('nc-engine-duckduckgo', engineEnabled.duckduckgo !== false);
-  set('nc-engine-tavily', engineEnabled.tavily !== false);
-  set('nc-engine-bing', engineEnabled.bing !== false);
-  set('nc-engine-brave', engineEnabled.brave !== false);
-  set('nc-engine-google', engineEnabled.google !== false);
+  // 渲染搜索引擎优先级（实例数据稍后在 loadSearchInstances 中补充）
+  renderSearchEnginePriority(config.search.engine_priority || [], config.search_api_keys, __searchInstances);
 
   // Web 抓取服务
   set('nc-scraping-enabled', config.web_scraping.enabled);
@@ -145,27 +137,13 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
     if (eid) instanceMap[eid] = inst;
   });
 
-  const engineNames = {
-    duckduckgo: 'DuckDuckGo',
-    tavily: 'Tavily',
-    firecrawl: 'Firecrawl',
-    bing: 'Bing',
-    brave: 'Brave',
-    google: 'Google'
-  };
-
-  // 需要 API Key 的引擎列表
-  const needsKey = { tavily: true, firecrawl: true, bing: true, google: true, brave: true };
-
   list.innerHTML = '';
 
   priority.forEach(engine => {
-    const isBuiltin = !!engineNames[engine];
-    const inst = !isBuiltin ? instanceMap[engine] : null;
-    const isInstance = !!inst;
-    if (!isBuiltin && !isInstance) return;
+    const inst = instanceMap[engine];
+    if (!inst) return;
 
-    const label = isBuiltin ? engineNames[engine] : `⚡ ${inst.name || engine}`;
+    const label = `⚡ ${inst.name || engine}`;
     const item = document.createElement('div');
     item.className = 'priority-item' + (inst && !inst.enabled ? ' disabled' : '');
     item.dataset.engine = engine;
@@ -178,30 +156,19 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
         <span class="toggle-slider"></span>
       </label>`;
 
-    // 需要 API Key 的引擎后面加输入框（仅内置引擎）
-    if (isBuiltin && needsKey[engine]) {
-      const val = apiKeys[engine] || '';
-      html += `<input type="password" class="api-key-inline" id="nc-api-${engine}" value="${val}" placeholder="${engine === 'tavily' ? 'tvly-...' : engine === 'firecrawl' ? 'fc-...' : engine === 'brave' ? 'brave-...' : 'sk-...'}" autocomplete="off" onchange="onNetworkConfigChange()">`;
-    }
-    // Google 额外需要 CX
-    if (engine === 'google') {
-      const cxVal = apiKeys['google_cx'] || '';
-      html += `<input type="text" class="api-key-inline cx" id="nc-api-google-cx" value="${cxVal}" placeholder="CX..." onchange="onNetworkConfigChange()">`;
-    }
+    const et = inst.engine_type || '';
+    const isDefault = inst.is_default || (engine === __networkConfigCache?.search?.default_engine);
 
-    // 自定义引擎：末尾加操作按钮
-    if (isInstance) {
-      const isDefault = inst.is_default || (engine === __networkConfigCache?.search?.default_engine);
-      html += `<span style="display:inline-flex;align-items:center;gap:2px;margin-left:auto">`;
-      if (isDefault) html += `<span class="default-badge" style="font-size:10px;padding:1px 6px">默认</span>`;
-      html += `<span style="font-size:11px;color:#8b949e;margin-right:4px">${inst.engine_type}</span>`;
-      html += `<button class="btn-xs" onclick="testSearchInstance('${engine}')" title="测试">▶</button>`;
-      html += `<button class="btn-xs" onclick="editSearchInstance('${engine}')" title="编辑">✏️</button>`;
-      html += `<button class="btn-xs danger" onclick="deleteSearchInstance('${engine}', '${escapeHtml(inst.name || '')}')" title="删除">🗑</button>`;
-      html += `</span>`;
-      // 下一行显示端点
-      html += `<div style="flex-basis:100%;font-size:11px;color:#8b949e;margin-top:2px;padding-left:24px">📍 ${escapeHtml(inst.api_endpoint || inst.engine_type)} · ⏱ ${inst.timeout || 30}s</div>`;
-    }
+    // 操作按钮
+    html += `<span style="display:inline-flex;align-items:center;gap:2px;margin-left:auto">`;
+    if (isDefault) html += `<span class="default-badge" style="font-size:10px;padding:1px 6px">默认</span>`;
+    html += `<span style="font-size:11px;color:#8b949e;margin-right:4px">${et}</span>`;
+    html += `<button class="btn-xs" onclick="testSearchInstance('${engine}')" title="测试">▶</button>`;
+    html += `<button class="btn-xs" onclick="editSearchInstance('${engine}')" title="编辑">✏️</button>`;
+    html += `<button class="btn-xs danger" onclick="deleteSearchInstance('${engine}', '${escapeHtml(inst.name || '')}')" title="删除">🗑</button>`;
+    html += `</span>`;
+    // 下一行显示端点/类型信息
+    html += `<div style="flex-basis:100%;font-size:11px;color:#8b949e;margin-top:2px;padding-left:24px">📍 ${escapeHtml(inst.api_endpoint || et)} · ⏱ ${inst.timeout || 30}s</div>`;
 
     item.innerHTML = html;
     list.appendChild(item);
@@ -333,21 +300,13 @@ function collectNetworkConfig() {
     },
     search: {
       enabled: get('nc-search-enabled'),
-      default_engine: enginePriority.length > 0 ? enginePriority[0] : 'duckduckgo',
+      default_engine: enginePriority.length > 0 ? enginePriority[0] : '',
       max_results: num('nc-search-max'),
       timeout: num('nc-search-timeout'),
       engine_priority: enginePriority,
       engine_enabled: engineEnabled,
     },
     search_instances: __searchInstances,
-    search_api_keys: {
-      tavily: get('nc-api-tavily'),
-      firecrawl: get('nc-api-firecrawl'),
-      bing: get('nc-api-bing'),
-      google: get('nc-api-google'),
-      google_cx: get('nc-api-google-cx'),
-      brave: get('nc-api-brave'),
-    },
     web_scraping: {
       enabled: get('nc-scraping-enabled'),
       respect_robots_txt: get('nc-scraping-robots'),
@@ -1390,7 +1349,7 @@ function refreshPriorityWithInstances() {
   });
   renderSearchEnginePriority(
     priority,
-    __networkConfigCache.search_api_keys || {},
+    {},
     __searchInstances
   );
 }

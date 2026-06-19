@@ -246,3 +246,55 @@ Traceback (most recent call last):
                                ^^^^
 NameError: name 'json' is not defined. Did you forget to import 'json'
 
+
+================================================================================
+Level: ERROR
+Time: 2026-06-17T21:56:28.612490
+Type: AttributeError
+Message: 'MemoryManager' object has no attribute 'score_and_save_message'
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "你好",
+  "trace_id": "5ab5676fe8eb4fda",
+  "interaction_count": 1,
+  "session_id": "20260617_215559"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1029, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1506, in _process_user_input
+    self._memory.score_and_save_message("user", user_input)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MemoryManager' object has no attribute 'score_and_save_message'
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-17T21:59:56.368185
+Type: AttributeError
+Message: 'MemoryManager' object has no attribute 'score_and_save_message'
+Trace ID: N/A
+
+Context:
+{
+  "user_input": "你好",
+  "trace_id": "f7fad921db244fdb",
+  "interaction_count": 2,
+  "session_id": "20260617_215559"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1029, in _chat_impl
+    result = self._process_user_input(user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\digital_life.py", line 1506, in _process_user_input
+    self._memory.score_and_save_message("user", user_input)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MemoryManager' object has no attribute 'score_and_save_message'
+

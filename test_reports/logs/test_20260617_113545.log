@@ -1,0 +1,49 @@
+2026-06-17 11:35:46,033 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 11:35:46,042 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 11:35:46,046 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 11:35:46,050 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 11:35:46,051 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 规划引擎 模块导入失败 (ImportError): cannot import name 'PlanningCore' from partially initialized module 'planning' (most likely due to a...
+2026-06-17 11:35:46,055 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 11:35:46,064 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 11:35:46,065 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 11:35:46,067 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 11:35:46,090 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 11:35:46,090 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 11:35:46,090 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 11:35:46,090 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 11:35:46,234 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 11:35:46,239 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 11:35:46,239 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 11:35:46,248 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 11:35:46,248 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [FAIL] planning: 未加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 11:35:46,250 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 11:35:46,250 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 11:35:46,294 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 11:35:46,300 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 11:35:46,301 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-17 11:35:46,301 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-17 11:35:46,301 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-17 11:35:46,301 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-17 11:35:46,301 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-17 11:35:46,301 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-17 11:35:46,302 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 283, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 156, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+

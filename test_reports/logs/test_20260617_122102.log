@@ -1,0 +1,129 @@
+2026-06-17 12:21:02,817 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 12:21:02,827 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 12:21:02,831 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 12:21:02,835 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 12:21:02,856 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 12:21:02,861 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 12:21:02,866 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 12:21:02,868 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 12:21:02,870 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 12:21:02,873 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 12:21:02,894 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 12:21:02,895 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 12:21:02,898 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 12:21:03,070 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 12:21:03,076 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 12:21:03,076 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:21:03,087 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:21:03,087 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 12:21:03,087 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 12:21:03,087 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 12:21:03,088 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 12:21:03,088 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 12:21:03,088 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 12:21:03,088 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 12:21:03,089 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 12:21:03,089 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 12:21:03,089 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 12:21:03,089 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 12:21:03,090 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 12:21:03,292 [    INFO] test_security_utils: 测试: 无cryptography库时的降级行为
+2026-06-17 12:21:03,292 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,297 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,298 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=ZmhDem0xakRHaUltWEhXU1FsSm9OU0lIcl91UjBhbWo2azdaN0RvQWtSRT0=
+2026-06-17 12:21:03,298 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,298 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,299 [    INFO] test_security_utils:   encryptor创建成功: True
+2026-06-17 12:21:03,304 [    INFO] test_security_utils: 测试: 加密和解密字符串（mock模式）
+2026-06-17 12:21:03,304 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,307 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,307 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=NmprWEdrUlo5eW04enQwZGdaQzg3a1RlQUc4eEFOa3d5bXZRTF82clR1cz0=
+2026-06-17 12:21:03,307 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,307 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,308 [    INFO] test_security_utils:   原文: '这是敏感数据'
+2026-06-17 12:21:03,308 [    INFO] test_security_utils:   加密后: 'ENC[6L+Z5piv5pWP5oSf5pWw5o2u]'
+2026-06-17 12:21:03,308 [    INFO] test_security_utils:   解密后: '这是敏感数据'
+2026-06-17 12:21:03,312 [    INFO] test_security_utils: 测试: 加密空字符串（mock模式）
+2026-06-17 12:21:03,312 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,315 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,315 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=VTI0blYzVlFxcklUOW1sSk9fMU8xNjQ2c2pDb1BSM2FRdGRvR3JMUXdjbz0=
+2026-06-17 12:21:03,315 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,316 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,316 [    INFO] test_security_utils:   空字符串加密结果: ''
+2026-06-17 12:21:03,321 [    INFO] test_security_utils: 测试: 加密和解密字典（mock模式）
+2026-06-17 12:21:03,321 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,323 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,324 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=RlBDTnkwM1I4bzhqOGJzbjJ6WTBFWGJldHRMMHIzZHIzeGt5UlFEa2xFST0=
+2026-06-17 12:21:03,324 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,324 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,324 [    INFO] test_security_utils:   原数据: {'user': 'admin', 'api_key': 'sk-test123456', 'message': '测试消息'}
+2026-06-17 12:21:03,325 [    INFO] test_security_utils:   加密后: {'user': 'admin', 'api_key': 'ENC[c2stdGVzdDEyMzQ1Ng==]', 'message': '测试消息', '_api_key_encrypted': True}
+2026-06-17 12:21:03,325 [    INFO] test_security_utils:   解密后: {'user': 'admin', 'api_key': 'sk-test123456', 'message': '测试消息', '_api_key_encrypted': True}
+2026-06-17 12:21:03,329 [    INFO] test_security_utils: 测试: 无cryptography库时的回退加密
+2026-06-17 12:21:03,329 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,331 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,331 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=c2NDYXlGOEtFbUxmcjFYeGF4N2lNekVUYnhVeW5uY1c0THlCVE1jS0Nncz0=
+2026-06-17 12:21:03,332 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,332 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,334 [    INFO] test_security_utils:   原文: '敏感信息'
+2026-06-17 12:21:03,334 [    INFO] test_security_utils:   加密后: 'Z0FBQUFBQnFNaUN2dklrd1JUX0k0bDA0Q2ljaXZud0NoeDhqM3hyNkhteGFJRlNQb0oyRllSRXcwTUpzeWM1TU5KMGhlQkc0eklmemRBdVRqdFNndVdRVmd0UWdXRmh5NXc9PQ=='
+2026-06-17 12:21:03,344 [    INFO] test_security_utils: 测试: 使用环境变量密钥
+2026-06-17 12:21:03,345 [    INFO] test_security_utils:   设置环境变量: Yunshu_ENCRYPT_KEY
+2026-06-17 12:21:03,345 [ WARNING] agent.security_utils: 加载密钥失败: Incorrect padding，将生成新密钥
+2026-06-17 12:21:03,345 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,346 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,346 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=UGRGYTlwN2RFQVhtRWJlRE9Xa2piX3hDQ3lyLUpacHM2RGdtNW1NM0FNZz0=
+2026-06-17 12:21:03,346 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,350 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,350 [    INFO] test_security_utils:   encryptor创建成功: True
+2026-06-17 12:21:03,350 [    INFO] test_security_utils:   已恢复原始环境变量
+2026-06-17 12:21:03,354 [    INFO] test_security_utils: 测试: 脱敏字符串
+2026-06-17 12:21:03,355 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,355 [    INFO] test_security_utils:   原文: 'API Key=sk-abcdefghijklmnopqrstuv123456, password=MyPassword123, email:user@example.com, phone:13812345678'
+2026-06-17 12:21:03,355 [    INFO] test_security_utils:   脱敏后: 'API Key=[REDACTED], password=[REDACTED] email:[REDACTED], phone:[REDACTED]'
+2026-06-17 12:21:03,356 [    INFO] test_security_utils: 测试: 脱敏字典
+2026-06-17 12:21:03,356 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,356 [    INFO] test_security_utils:   原数据: {'user': 'admin', 'api_key': 'sk-secret-key-123', 'password': 'secret123', 'normal_field': 'value'}
+2026-06-17 12:21:03,359 [    INFO] test_security_utils:   脱敏后: {'user': 'admin', 'api_key': '[REDACTED]', 'password': '[REDACTED]', 'normal_field': 'value'}
+2026-06-17 12:21:03,362 [    INFO] test_security_utils: 测试: 检测敏感键名
+2026-06-17 12:21:03,362 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,362 [    INFO] test_security_utils:   原数据: {'secret_key': 'secret-value', 'auth_token': 'token-value', 'my_password': 'password-value'}
+2026-06-17 12:21:03,362 [    INFO] test_security_utils:   脱敏后: {'secret_key': '[REDACTED]', 'auth_token': '[REDACTED]', 'my_password': '[REDACTED]'}
+2026-06-17 12:21:03,366 [    INFO] test_security_utils: 测试: 脱敏列表值
+2026-06-17 12:21:03,366 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,366 [    INFO] test_security_utils:   原数据: {'api_keys': ['sk-key1', 'sk-key2', 'normal-value'], 'passwords': ['pass1', 'pass2']}
+2026-06-17 12:21:03,367 [    INFO] test_security_utils:   脱敏后: {'api_keys': ['[REDACTED]', '[REDACTED]', '[REDACTED]'], 'passwords': ['[REDACTED]', '[REDACTED]']}
+2026-06-17 12:21:03,370 [    INFO] test_security_utils: 测试: 脱敏嵌套字典
+2026-06-17 12:21:03,370 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,370 [    INFO] test_security_utils:   原数据: {'outer': {'inner': {'api_key': 'sk-secret'}}, 'normal': 'value'}
+2026-06-17 12:21:03,371 [    INFO] test_security_utils:   脱敏后: {'outer': {'inner': {'api_key': '[REDACTED]'}}, 'normal': 'value'}
+2026-06-17 12:21:03,374 [    INFO] test_security_utils: 测试: 脱敏空字符串
+2026-06-17 12:21:03,374 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,374 [    INFO] test_security_utils:   空字符串脱敏结果: ''
+2026-06-17 12:21:03,378 [    INFO] test_security_utils: 测试: 脱敏None值
+2026-06-17 12:21:03,378 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,378 [    INFO] test_security_utils:   原数据: {'api_key': None, 'password': 'secret'}
+2026-06-17 12:21:03,378 [    INFO] test_security_utils:   脱敏后: {'api_key': None, 'password': '[REDACTED]'}
+2026-06-17 12:21:03,382 [    INFO] test_security_utils: 测试: 脱敏混合类型数据
+2026-06-17 12:21:03,382 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-17 12:21:03,382 [    INFO] test_security_utils:   原数据: {'string_field': 'password=secret', 'int_field': 123, 'float_field': 3.14, 'list_field': ['normal', 'password=secret'], 'dict_field': {'api_key': 'sk-test'}}
+2026-06-17 12:21:03,382 [    INFO] test_security_utils:   脱敏后: {'string_field': 'password=[REDACTED]', 'int_field': 123, 'float_field': 3.14, 'list_field': ['normal', 'password=[REDACTED]'], 'dict_field': {'api_key': '[REDACTED]'}}
+2026-06-17 12:21:03,386 [    INFO] test_security_utils: 测试: 无密钥时的行为
+2026-06-17 12:21:03,386 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,389 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-17 12:21:03,389 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=ZVdZOEd2TEEtUHdrZDVtM1JjMjNBZGJsV0Vib1VrcE83RXQ1YkxwUWJOcz0=
+2026-06-17 12:21:03,389 [ WARNING] agent.security_utils: ======================================================================
+2026-06-17 12:21:03,390 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-17 12:21:03,390 [    INFO] test_security_utils:   无密钥加密结果: 'Z0FBQUFBQnFNaUN2OTVsNUZYTzNHaTZFUTVRSUNXR0g4dmU3blIyd2w5UU4yYUVjdW9mN0R3aHF6ZUs3VThIQ21ZczF4amhETF9icjJYeVJzWktuNzBOYnE0UlNrYmVjMWc9PQ=='
+2026-06-17 12:21:03,396 [    INFO] test_safety_guard: 测试: Unicode 攻击规范化检测（模拟）
+2026-06-17 12:21:03,396 [    INFO] test_safety_guard:   输入: 'ｒｍ -ｒｆ ／'
+2026-06-17 12:21:03,397 [    INFO] test_safety_guard:   规范化后: 安全=False, 级别=critical
+2026-06-17 12:21:03,397 [    INFO] test_safety_guard:   输入: 'FORMAT C:'
+2026-06-17 12:21:03,398 [    INFO] test_safety_guard:   规范化后: 安全=False, 级别=critical
+2026-06-17 12:21:03,398 [    INFO] test_safety_guard:   输入: 'HELLO WORLD'
+2026-06-17 12:21:03,398 [    INFO] test_safety_guard:   规范化后: 安全=True, 级别=safe
+2026-06-17 12:21:03,400 [    INFO] test_safety_guard: 测试: 零宽字符攻击应被检测
+2026-06-17 12:21:03,400 [    INFO] agent.safety_guard: 安全词库已加载: 44 条严重 + 16 条警告
+2026-06-17 12:21:03,403 [    INFO] test_safety_guard:   标准危险命令, 安全: False, 级别: critical

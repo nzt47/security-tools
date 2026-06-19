@@ -1,0 +1,440 @@
+2026-06-18 19:30:21,325 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,328 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,331 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,334 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,337 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,340 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,343 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,343 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+2026-06-18 19:30:21,346 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,347 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 1.0000 (Δ=+0.7000, +233.3%)
+  [裁剪警告] tone: 1.5000 -> 1.0000 (裁剪)
+2026-06-18 19:30:21,347 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 1.0000 ↓ 0.0000 (Δ=-1.0000, -100.0%)
+  [裁剪警告] tone: -0.5000 -> 0.0000 (裁剪)
+2026-06-18 19:30:21,350 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,354 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,354 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-18 19:30:21,354 [    INFO] persona.persona_model_enhanced: 人格快照已保存: test_snapshot
+2026-06-18 19:30:21,357 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,357 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-18 19:30:21,357 [    INFO] persona.persona_model_enhanced: 人格快照已保存: test_preserve
+2026-06-18 19:30:21,358 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.9000 ↓ 0.1000 (Δ=-0.8000, -88.9%)
+2026-06-18 19:30:21,360 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,361 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-18 19:30:21,361 [    INFO] persona.persona_model_enhanced: 人格快照已保存: rollback_test
+2026-06-18 19:30:21,361 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.9000 ↓ 0.1000 (Δ=-0.8000, -88.9%)
+2026-06-18 19:30:21,361 [    INFO] persona.persona_model_enhanced: 已回滚到快照: rollback_test
+2026-06-18 19:30:21,364 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,364 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+  emotion: 0.2000 ↑ 0.6000 (Δ=+0.4000, +200.0%)
+2026-06-18 19:30:21,364 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,365 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+  emotion: 0.2000 ↑ 0.7000 (Δ=+0.5000, +250.0%)
+2026-06-18 19:30:21,368 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,368 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+  emotion: 0.2000 ↑ 0.6000 (Δ=+0.4000, +200.0%)
+2026-06-18 19:30:21,368 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,368 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+  emotion: 0.2000 ↑ 0.6000 (Δ=+0.4000, +200.0%)
+2026-06-18 19:30:21,371 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,371 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+  emotion: 0.2000 ↑ 0.6000 (Δ=+0.4000, +200.0%)
+2026-06-18 19:30:21,372 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,372 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.1000 (Δ=-0.2000, -66.7%)
+  emotion: 0.2000 ↓ 0.1000 (Δ=-0.1000, -50.0%)
+2026-06-18 19:30:21,375 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,375 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+  emotion: 0.2000 ↑ 0.9000 (Δ=+0.7000, +350.0%)
+2026-06-18 19:30:21,375 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,375 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.1000 (Δ=-0.2000, -66.7%)
+  emotion: 0.2000 ↓ 0.1000 (Δ=-0.1000, -50.0%)
+2026-06-18 19:30:21,378 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,378 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+  emotion: 0.2000 ↑ 0.9000 (Δ=+0.7000, +350.0%)
+2026-06-18 19:30:21,379 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,379 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8500 (Δ=+0.5500, +183.3%)
+  emotion: 0.2000 ↑ 0.8500 (Δ=+0.6500, +325.0%)
+2026-06-18 19:30:21,382 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,382 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,382 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+  emotion: 0.2000 ↑ 0.8000 (Δ=+0.6000, +300.0%)
+2026-06-18 19:30:21,385 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,385 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,385 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.5000 (Δ=+0.2000, +66.7%)
+2026-06-18 19:30:21,388 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,388 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+2026-06-18 19:30:21,389 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,389 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.2000 (Δ=-0.1000, -33.3%)
+2026-06-18 19:30:21,389 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.8000 ↓ 0.5000 (Δ=-0.3000, -37.5%)
+  emotion: 0.2000 → 0.2000 (Δ=+0.0000, +0.0%)
+  conciseness: 0.7000 → 0.7000 (Δ=+0.0000, +0.0%)
+  initiative: 0.6000 → 0.6000 (Δ=+0.0000, +0.0%)
+  humor: 0.1000 → 0.1000 (Δ=+0.0000, +0.0%)
+  empathy: 0.4000 → 0.4000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,389 [    INFO] persona.persona_model_enhanced: 人格模型合并完成
+2026-06-18 19:30:21,392 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,393 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+2026-06-18 19:30:21,393 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,393 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.2000 (Δ=-0.1000, -33.3%)
+2026-06-18 19:30:21,393 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.8000 → 0.8000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,394 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2000 → 0.2000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,394 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.8000 ↓ 0.6200 (Δ=-0.1800, -22.5%)
+  emotion: 0.2000 ↓ 0.2000 (Δ=-0.0000, -0.0%)
+  conciseness: 0.7000 → 0.7000 (Δ=+0.0000, +0.0%)
+  initiative: 0.6000 → 0.6000 (Δ=+0.0000, +0.0%)
+  humor: 0.1000 ↓ 0.1000 (Δ=-0.0000, -0.0%)
+  empathy: 0.4000 ↓ 0.4000 (Δ=-0.0000, -0.0%)
+2026-06-18 19:30:21,394 [    INFO] persona.persona_model_enhanced: 人格模型合并完成
+2026-06-18 19:30:21,397 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,398 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8500 (Δ=+0.5500, +183.3%)
+2026-06-18 19:30:21,398 [    INFO] persona.persona_model_enhanced: 人格已保存: C:\Windows\TEMP\tmpg5nb74xo.json
+2026-06-18 19:30:21,399 [    INFO] persona.persona_model_enhanced: 已加载人格: C:\Windows\TEMP\tmpg5nb74xo.json
+2026-06-18 19:30:21,399 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,402 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,405 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,410 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,410 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,416 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,416 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,419 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,419 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,420 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 17 条
+2026-06-18 19:30:21,421 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,421 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3240 (Δ=+0.0240, +8.0%)
+2026-06-18 19:30:21,421 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↑ 0.2120 (Δ=+0.0120, +6.0%)
+2026-06-18 19:30:21,421 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  conciseness: 0.7000 ↓ 0.6940 (Δ=-0.0060, -0.9%)
+2026-06-18 19:30:21,424 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-18 19:30:21,427 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,428 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,429 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 18 条
+2026-06-18 19:30:21,429 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: conservative
+2026-06-18 19:30:21,429 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3180 (Δ=+0.0180, +6.0%)
+2026-06-18 19:30:21,429 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↓ 0.1970 (Δ=-0.0030, -1.5%)
+2026-06-18 19:30:21,432 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,434 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,434 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,435 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 19 条
+2026-06-18 19:30:21,436 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: aggressive
+2026-06-18 19:30:21,436 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.2900 (Δ=-0.0100, -3.3%)
+2026-06-18 19:30:21,436 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↑ 0.2600 (Δ=+0.0600, +30.0%)
+2026-06-18 19:30:21,438 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,441 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,442 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,443 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 20 条
+2026-06-18 19:30:21,443 [    INFO] persona.distillation_enhanced: 开始融合 2 个人格
+2026-06-18 19:30:21,443 [    INFO] persona.distillation_enhanced: 人格融合完成
+2026-06-18 19:30:21,446 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,446 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,447 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 20 条
+2026-06-18 19:30:21,447 [    INFO] persona.distillation_enhanced: 开始融合 2 个人格
+2026-06-18 19:30:21,447 [    INFO] persona.distillation_enhanced: 人格融合完成
+2026-06-18 19:30:21,450 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,450 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,451 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 20 条
+2026-06-18 19:30:21,454 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,455 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,456 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 20 条
+2026-06-18 19:30:21,457 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,457 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3180 (Δ=+0.0180, +6.0%)
+2026-06-18 19:30:21,457 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↑ 0.2120 (Δ=+0.0120, +6.0%)
+2026-06-18 19:30:21,460 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-18 19:30:21,463 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,463 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,464 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 21 条
+2026-06-18 19:30:21,464 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,464 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3300 (Δ=+0.0300, +10.0%)
+2026-06-18 19:30:21,464 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 → 0.2000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,467 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,470 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,470 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,471 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 22 条
+2026-06-18 19:30:21,472 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,472 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3120 (Δ=+0.0120, +4.0%)
+2026-06-18 19:30:21,475 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,478 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,478 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,479 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 23 条
+2026-06-18 19:30:21,479 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,480 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3240 (Δ=+0.0240, +8.0%)
+2026-06-18 19:30:21,484 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,486 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,486 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,487 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 24 条
+2026-06-18 19:30:21,488 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,488 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3360 (Δ=+0.0360, +12.0%)
+2026-06-18 19:30:21,491 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,491 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,491 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3360 ↓ 0.3218 (Δ=-0.0142, -4.2%)
+2026-06-18 19:30:21,495 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,495 [    INFO] persona.distillation_enhanced: 已回滚到快照: distillation_24
+2026-06-18 19:30:21,498 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,498 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,500 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 26 条
+2026-06-18 19:30:21,500 [ WARNING] persona.distillation_enhanced: 未找到快照: nonexistent_snapshot
+2026-06-18 19:30:21,503 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,503 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,503 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,504 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,504 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 26 条
+2026-06-18 19:30:21,505 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,505 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.2820 (Δ=-0.0180, -6.0%)
+2026-06-18 19:30:21,506 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,506 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,507 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2820 ↓ 0.2711 (Δ=-0.0109, -3.9%)
+2026-06-18 19:30:21,508 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,508 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,508 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2711 ↓ 0.2668 (Δ=-0.0043, -1.6%)
+2026-06-18 19:30:21,510 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-18 19:30:21,510 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,510 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2668 ↑ 0.2688 (Δ=+0.0020, +0.7%)
+2026-06-18 19:30:21,512 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-18 19:30:21,512 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,512 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2688 ↑ 0.2767 (Δ=+0.0079, +2.9%)
+2026-06-18 19:30:21,513 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-18 19:30:21,514 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,514 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2767 ↑ 0.2901 (Δ=+0.0134, +4.8%)
+2026-06-18 19:30:21,515 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,515 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,516 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.2901 ↑ 0.3087 (Δ=+0.0186, +6.4%)
+2026-06-18 19:30:21,517 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,517 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,518 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3087 ↑ 0.3322 (Δ=+0.0235, +7.6%)
+2026-06-18 19:30:21,519 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,519 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,519 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3322 ↑ 0.3602 (Δ=+0.0281, +8.5%)
+2026-06-18 19:30:21,521 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,521 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,521 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3602 ↑ 0.3926 (Δ=+0.0324, +9.0%)
+2026-06-18 19:30:21,523 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,526 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,526 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,527 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 36 条
+2026-06-18 19:30:21,527 [    INFO] persona.distillation_enhanced: 提升学习率至: 0.13
+2026-06-18 19:30:21,527 [    INFO] persona.distillation_enhanced: 切换至激进策略
+2026-06-18 19:30:21,530 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,530 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,531 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 36 条
+2026-06-18 19:30:21,532 [    INFO] persona.distillation_enhanced: 降低学习率至: 0.06999999999999999
+2026-06-18 19:30:21,532 [    INFO] persona.distillation_enhanced: 切换至保守策略
+2026-06-18 19:30:21,534 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,534 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,535 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 36 条
+2026-06-18 19:30:21,535 [    INFO] persona.distillation_enhanced: 降低学习率至: 0.06999999999999999
+2026-06-18 19:30:21,536 [    INFO] persona.distillation_enhanced: 切换至保守策略
+2026-06-18 19:30:21,538 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,538 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,539 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 36 条
+2026-06-18 19:30:21,539 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,540 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3180 (Δ=+0.0180, +6.0%)
+2026-06-18 19:30:21,541 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,544 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,544 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,545 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 37 条
+2026-06-18 19:30:21,546 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,546 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3120 (Δ=+0.0120, +4.0%)
+2026-06-18 19:30:21,548 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,551 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,551 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,552 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 38 条
+2026-06-18 19:30:21,552 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,552 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3240 (Δ=+0.0240, +8.0%)
+2026-06-18 19:30:21,552 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↑ 0.2060 (Δ=+0.0060, +3.0%)
+2026-06-18 19:30:21,553 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  conciseness: 0.7000 ↑ 0.7600 (Δ=+0.0600, +8.6%)
+2026-06-18 19:30:21,555 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-18 19:30:21,555 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,555 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3240 ↑ 0.3406 (Δ=+0.0166, +5.1%)
+2026-06-18 19:30:21,555 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2060 ↑ 0.2176 (Δ=+0.0116, +5.7%)
+2026-06-18 19:30:21,557 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 2
+2026-06-18 19:30:21,560 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,561 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,562 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 40 条
+2026-06-18 19:30:21,562 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,562 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3360 (Δ=+0.0360, +12.0%)
+2026-06-18 19:30:21,565 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 1
+2026-06-18 19:30:21,565 [    INFO] persona.distillation_enhanced: 已回滚到快照: distillation_40
+2026-06-18 19:30:21,569 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,569 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,570 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 41 条
+2026-06-18 19:30:21,570 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,572 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 0
+2026-06-18 19:30:21,576 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,576 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,577 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 42 条
+2026-06-18 19:30:21,580 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,580 [    INFO] persona.distillation_enhanced: PersonaDistiller 初始化完成（懒加载历史）
+2026-06-18 19:30:21,581 [    INFO] persona.distillation_enhanced: 已加载历史记录，共 42 条
+2026-06-18 19:30:21,582 [    INFO] persona.distillation_enhanced: 开始人格蒸馏，策略: balanced
+2026-06-18 19:30:21,582 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.3420 (Δ=+0.0420, +14.0%)
+2026-06-18 19:30:21,582 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↓ 0.1880 (Δ=-0.0120, -6.0%)
+2026-06-18 19:30:21,582 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  conciseness: 0.7000 ↑ 0.7180 (Δ=+0.0180, +2.6%)
+2026-06-18 19:30:21,584 [    INFO] persona.distillation_enhanced: 人格蒸馏完成，评分: 0.41，变更: 3
+2026-06-18 19:30:21,588 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,592 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,594 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,598 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,601 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,604 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,608 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,609 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.8000 (Δ=+0.5000, +166.7%)
+2026-06-18 19:30:21,613 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,613 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↓ 0.2000 (Δ=-0.1000, -33.3%)
+2026-06-18 19:30:21,616 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,617 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  emotion: 0.2000 ↑ 0.8000 (Δ=+0.6000, +300.0%)
+2026-06-18 19:30:21,620 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,620 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  humor: 0.1000 ↑ 0.8000 (Δ=+0.7000, +700.0%)
+2026-06-18 19:30:21,623 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,623 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  empathy: 0.4000 ↑ 0.8000 (Δ=+0.4000, +100.0%)
+2026-06-18 19:30:21,627 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,630 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,633 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,636 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,639 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,642 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,646 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,649 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,652 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,652 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-18 19:30:21,655 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,656 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+  emotion: 0.2000 ↑ 0.8000 (Δ=+0.6000, +300.0%)
+2026-06-18 19:30:21,659 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,659 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 1.0000 (Δ=+0.7000, +233.3%)
+  emotion: 0.2000 ↓ 0.0000 (Δ=-0.2000, -100.0%)
+  conciseness: 0.7000 ↑ 1.0000 (Δ=+0.3000, +42.9%)
+  initiative: 0.6000 ↓ 0.0000 (Δ=-0.6000, -100.0%)
+  humor: 0.1000 ↓ 0.0000 (Δ=-0.1000, -100.0%)
+  empathy: 0.4000 ↑ 1.0000 (Δ=+0.6000, +150.0%)
+  [裁剪警告] tone: 100.0000 -> 1.0000 (裁剪), emotion: -50.0000 -> 0.0000 (裁剪), conciseness: 1.5000 -> 1.0000 (裁剪), humor: -0.1000 -> 0.0000 (裁剪), empathy: 10.0000 -> 1.0000 (裁剪)
+2026-06-18 19:30:21,662 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,663 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-18 19:30:21,665 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,666 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-18 19:30:21,669 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,669 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-18 19:30:21,672 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,673 [    INFO] persona.persona_model_enhanced: [人格更新] 无有效参数变化
+2026-06-18 19:30:21,676 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,677 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 → 0.3000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,679 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,683 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,688 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,691 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,694 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,697 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,700 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,703 [    INFO] persona.persona_model_enhanced: 已加载人格: C:\Windows\TEMP\tmpg6oearf7.json
+2026-06-18 19:30:21,704 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,708 [   ERROR] persona.persona_model_enhanced: 加载人格失败: Expecting value: line 1 column 1 (char 0)
+2026-06-18 19:30:21,708 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,711 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,714 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,718 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,723 [    INFO] persona.persona_model_enhanced: 人格已保存: \nonexistent\deep\path\to\nowhere\persona.json
+2026-06-18 19:30:21,726 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,729 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,732 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,735 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,736 [   ERROR] persona.persona_model_enhanced: 人格合并失败: 'NoneType' object has no attribute 'get_expression_style'
+2026-06-18 19:30:21,738 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,739 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,739 [   ERROR] persona.persona_model_enhanced: 人格合并失败: 'self'
+2026-06-18 19:30:21,742 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,742 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,743 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 0.9000 (Δ=+0.6000, +200.0%)
+2026-06-18 19:30:21,743 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 → 0.3000 (Δ=+0.0000, +0.0%)
+  emotion: 0.2000 → 0.2000 (Δ=+0.0000, +0.0%)
+  conciseness: 0.7000 → 0.7000 (Δ=+0.0000, +0.0%)
+  initiative: 0.6000 → 0.6000 (Δ=+0.0000, +0.0%)
+  humor: 0.1000 → 0.1000 (Δ=+0.0000, +0.0%)
+  empathy: 0.4000 → 0.4000 (Δ=+0.0000, +0.0%)
+2026-06-18 19:30:21,743 [    INFO] persona.persona_model_enhanced: 人格模型合并完成
+2026-06-18 19:30:21,746 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,746 [ WARNING] persona.persona_model_enhanced: 未找到快照: nonexistent
+2026-06-18 19:30:21,749 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,749 [ WARNING] persona.persona_model_enhanced: 未找到快照: any
+2026-06-18 19:30:21,752 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,753 [    INFO] persona.persona_model_enhanced: 人格快照已保存: 20260618_193021
+2026-06-18 19:30:21,755 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-18 19:30:21,756 [    INFO] persona.persona_model_enhanced: [人格更新] 表达风格参数变化:
+  tone: 0.3000 ↑ 1.0000 (Δ=+0.7000, +233.3%)
+  emotion: 0.2000 ↓ 0.0000 (Δ=-0.2000, -100.0%)
+  [裁剪警告] tone: 2.0000 -> 1.0000 (裁剪), emotion: -1.0000 -> 0.0000 (裁剪)
+  [跳过] unknown_param (不存在的参数)
+2026-06-18 19:30:21,847 [    INFO] persona.distillation_enhanced: 已应用偏好衰减 (factor=0.5)
+2026-06-18 19:30:21,851 [    INFO] persona.distillation_enhanced: 已应用偏好衰减 (factor=0.8)

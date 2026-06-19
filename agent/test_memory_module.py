@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tempfile
 import shutil
-from agent.memory import VectorStore, MemoryItem, KnowledgeBase
+from memory import VectorStore, MemoryItem, KnowledgeBase
 
 
 def test_memory_item():

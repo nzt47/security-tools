@@ -1,0 +1,355 @@
+2026-06-17 14:28:13,421 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 14:28:13,432 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 14:28:13,435 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 14:28:13,439 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 14:28:13,460 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 14:28:13,464 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 14:28:13,467 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 14:28:13,468 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 14:28:13,469 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 14:28:13,472 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 14:28:13,485 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 14:28:13,487 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 14:28:13,488 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 14:28:13,612 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 14:28:13,618 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 14:28:13,618 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 14:28:13,627 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 14:28:13,628 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 14:28:13,628 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 14:28:13,628 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:28:13,628 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 14:28:13,628 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 14:28:13,629 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 14:28:13,730 [    INFO] agent.digital_life: [_call_llm] 使用主模型: mock-model (pro可用=True)
+2026-06-17 14:28:14,039 [    INFO] agent.digital_life: [_call_llm] 使用主模型: mock-model (pro可用=True)
+2026-06-17 14:28:14,055 [    INFO] agent.digital_life: [_call_llm] 使用主模型: mock-model (pro可用=True)
+2026-06-17 14:28:14,138 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,140 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,142 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 14:28:14,142 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 14:28:14,143 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 14:28:14,143 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 14:28:14,143 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 14:28:14,144 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 14:28:14,144 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 14:28:14,144 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 14:28:14,146 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,146 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,146 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,147 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 14:28:14,147 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,147 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 14:28:14,148 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 14:28:14,148 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 14:28:14,149 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 14:28:14,149 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 14:28:14,172 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 14:28:14,172 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 14:28:14,173 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,173 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 14:28:14,173 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,173 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,174 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,175 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 14:28:14,175 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 14:28:14,175 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 14:28:14,175 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）
+2026-06-17 14:28:14,185 [ WARNING] agent.digital_life: Chocolatey 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,186 [ WARNING] agent.digital_life: pip 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,186 [ WARNING] agent.digital_life: npm 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,186 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,187 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,187 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,187 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,187 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,188 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,188 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,188 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,188 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,189 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google', 'baidu', 'sogou', 'so360'])
+2026-06-17 14:28:14,189 [ WARNING] agent.digital_life: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-17 14:28:14,189 [ WARNING] agent.digital_life: GitHub后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,190 [    INFO] agent.digital_life: 已注册 0 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化）
+2026-06-17 14:28:14,190 [    INFO] agent.digital_life: [ok] 工具（Tool System）已激活
+2026-06-17 14:28:14,248 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-17 14:28:14,291 [    INFO] config: [配置校验] 配置校验通过
+2026-06-17 14:28:14,292 [    INFO] agent.digital_life: [ok] 联网引擎（ToolCallingService）已激活，最大工具轮次: 20
+2026-06-17 14:28:14,292 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 14:28:14,295 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 14:28:14,295 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: check_health
+2026-06-17 14:28:14,295 [    INFO] planning.executor: 工具已注册: check_health
+2026-06-17 14:28:14,295 [ WARNING] agent.digital_life: 规划工具注册失败: 'NoneType' object is not callable
+2026-06-17 14:28:14,296 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,296 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 14:28:14,296 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 14:28:14,296 [    INFO] planning.core: 工具注册表: 外部提供
+2026-06-17 14:28:14,296 [    INFO] planning.core: 记忆管理器: 已配置
+2026-06-17 14:28:14,297 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 1
+2026-06-17 14:28:14,297 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 14:28:14,297 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 14:28:14,298 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 14:28:14,298 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 14:28:14,298 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 14:28:14,298 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 14:28:14,299 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 14:28:14,299 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,301 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,301 [    INFO] agent.digital_life: [ok] 规划引擎（PlanningCore）已激活
+2026-06-17 14:28:14,302 [    INFO] agent.digital_life: [ok] 安全监控器已激活
+2026-06-17 14:28:14,313 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 14:28:14,313 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 14:28:14,313 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 14:28:14,314 [    INFO] agent.digital_life: [ok] 向量记忆系统已激活
+2026-06-17 14:28:14,314 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-17 14:28:14,314 [    INFO] agent.digital_life: [ok] 错误上报系统已激活
+2026-06-17 14:28:14,376 [    INFO] comtypes.client._code_cache: Imported existing <module 'comtypes.gen' from 'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\comtypes\\gen\\__init__.py'>
+2026-06-17 14:28:14,376 [    INFO] comtypes.client._code_cache: Using writeable comtypes cache directory: 'C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\comtypes\gen'
+2026-06-17 14:28:14,666 [    INFO] sensor.voice_sensor:    ├─ TTS: pyttsx3
+2026-06-17 14:28:14,666 [    INFO] sensor.voice_sensor:    ├─ 模式: 非阻塞(多线程)
+2026-06-17 14:28:14,666 [    INFO] sensor.voice_sensor:    └─ STT: 可用
+2026-06-17 14:28:14,667 [    INFO] agent.digital_life: [ok] 语音管理器已激活
+2026-06-17 14:28:14,667 [    INFO] agent.digital_life: [ok] OCR传感器已激活
+2026-06-17 14:28:14,667 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 14:28:14,668 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-17 14:28:14,668 [    INFO] agent.digital_life: [ok] P6快照管理器已激活
+2026-06-17 14:28:14,668 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,668 [    INFO] agent.digital_life: [OK] 云枢初始化完成！
+2026-06-17 14:28:14,668 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,668 [    INFO] agent.digital_life: 
+[INFO] 最终配置总结:
+2026-06-17 14:28:14,669 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,675 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,677 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,679 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,679 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,685 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,687 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,689 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 14:28:14,689 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 14:28:14,689 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 14:28:14,690 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 14:28:14,690 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 14:28:14,690 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 14:28:14,690 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 14:28:14,691 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 14:28:14,692 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,692 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,692 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,693 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 14:28:14,693 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,693 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 14:28:14,694 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 14:28:14,694 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 14:28:14,694 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 14:28:14,695 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 14:28:14,696 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 14:28:14,696 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 14:28:14,697 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,697 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 14:28:14,697 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,697 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,697 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,698 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,698 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,699 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,699 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,699 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,699 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 14:28:14,699 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 14:28:14,700 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 14:28:14,700 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）
+2026-06-17 14:28:14,701 [ WARNING] agent.digital_life: Chocolatey 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,701 [ WARNING] agent.digital_life: pip 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,701 [ WARNING] agent.digital_life: npm 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,701 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,702 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,702 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,702 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,702 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,703 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,703 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,703 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,703 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,703 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google', 'baidu', 'sogou', 'so360'])
+2026-06-17 14:28:14,703 [ WARNING] agent.digital_life: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-17 14:28:14,703 [ WARNING] agent.digital_life: GitHub后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,704 [    INFO] agent.digital_life: 已注册 0 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化）
+2026-06-17 14:28:14,705 [    INFO] agent.digital_life: [ok] 工具（Tool System）已激活
+2026-06-17 14:28:14,707 [    INFO] config: [配置校验] 配置校验通过
+2026-06-17 14:28:14,707 [    INFO] agent.digital_life: [ok] 联网引擎（ToolCallingService）已激活，最大工具轮次: 20
+2026-06-17 14:28:14,707 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 14:28:14,710 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 14:28:14,710 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: check_health
+2026-06-17 14:28:14,710 [    INFO] planning.executor: 工具已注册: check_health
+2026-06-17 14:28:14,710 [ WARNING] agent.digital_life: 规划工具注册失败: 'NoneType' object is not callable
+2026-06-17 14:28:14,710 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,711 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 14:28:14,711 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 14:28:14,711 [    INFO] planning.core: 工具注册表: 外部提供
+2026-06-17 14:28:14,711 [    INFO] planning.core: 记忆管理器: 已配置
+2026-06-17 14:28:14,711 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 1
+2026-06-17 14:28:14,711 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 14:28:14,712 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 14:28:14,712 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 14:28:14,712 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 14:28:14,712 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 14:28:14,712 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 14:28:14,712 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 14:28:14,713 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,714 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,715 [    INFO] agent.digital_life: [ok] 规划引擎（PlanningCore）已激活
+2026-06-17 14:28:14,715 [    INFO] agent.digital_life: [ok] 安全监控器已激活
+2026-06-17 14:28:14,724 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 14:28:14,725 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 14:28:14,725 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 14:28:14,725 [    INFO] agent.digital_life: [ok] 向量记忆系统已激活
+2026-06-17 14:28:14,725 [    INFO] agent.digital_life: [ok] 错误上报系统已激活
+2026-06-17 14:28:14,776 [    INFO] sensor.voice_sensor:    ├─ TTS: pyttsx3
+2026-06-17 14:28:14,777 [    INFO] sensor.voice_sensor:    ├─ 模式: 非阻塞(多线程)
+2026-06-17 14:28:14,777 [    INFO] sensor.voice_sensor:    └─ STT: 可用
+2026-06-17 14:28:14,777 [    INFO] agent.digital_life: [ok] 语音管理器已激活
+2026-06-17 14:28:14,778 [    INFO] agent.digital_life: [ok] OCR传感器已激活
+2026-06-17 14:28:14,778 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 14:28:14,778 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-17 14:28:14,779 [    INFO] agent.digital_life: [ok] P6快照管理器已激活
+2026-06-17 14:28:14,779 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,779 [    INFO] agent.digital_life: [OK] 云枢初始化完成！
+2026-06-17 14:28:14,779 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,780 [    INFO] agent.digital_life: 
+[INFO] 最终配置总结:
+2026-06-17 14:28:14,780 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,825 [    INFO] agent.digital_life: * 云枢正在休眠...
+2026-06-17 14:28:14,831 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,833 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,835 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,835 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,841 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,843 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,845 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 14:28:14,846 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 14:28:14,847 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 14:28:14,847 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 14:28:14,847 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 14:28:14,847 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 14:28:14,848 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 14:28:14,848 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 14:28:14,849 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,849 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 14:28:14,850 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,850 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 14:28:14,850 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,851 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 14:28:14,851 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 14:28:14,851 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 14:28:14,851 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 14:28:14,852 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 14:28:14,853 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 14:28:14,853 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 14:28:14,853 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,854 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 14:28:14,854 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,854 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,854 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,854 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,854 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,855 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,855 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,855 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,855 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 14:28:14,856 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 14:28:14,856 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 14:28:14,856 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）
+2026-06-17 14:28:14,857 [ WARNING] agent.digital_life: Chocolatey 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,857 [ WARNING] agent.digital_life: pip 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,857 [ WARNING] agent.digital_life: npm 后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,857 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 14:28:14,857 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 14:28:14,858 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 14:28:14,858 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 14:28:14,858 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 14:28:14,858 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 14:28:14,858 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 14:28:14,859 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 14:28:14,859 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 14:28:14,859 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'tavily', 'bing', 'brave', 'google', 'baidu', 'sogou', 'so360'])
+2026-06-17 14:28:14,859 [ WARNING] agent.digital_life: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-17 14:28:14,859 [ WARNING] agent.digital_life: GitHub后端注册失败: SoftwareManager.register_backend() missing 1 required positional argument: 'backend'
+2026-06-17 14:28:14,860 [    INFO] agent.digital_life: 已注册 0 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化）
+2026-06-17 14:28:14,860 [    INFO] agent.digital_life: [ok] 工具（Tool System）已激活
+2026-06-17 14:28:14,862 [    INFO] config: [配置校验] 配置校验通过
+2026-06-17 14:28:14,863 [    INFO] agent.digital_life: [ok] 联网引擎（ToolCallingService）已激活，最大工具轮次: 20
+2026-06-17 14:28:14,863 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 14:28:14,866 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 14:28:14,866 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: check_health
+2026-06-17 14:28:14,866 [    INFO] planning.executor: 工具已注册: check_health
+2026-06-17 14:28:14,866 [ WARNING] agent.digital_life: 规划工具注册失败: 'NoneType' object is not callable
+2026-06-17 14:28:14,866 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,866 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 14:28:14,866 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 14:28:14,866 [    INFO] planning.core: 工具注册表: 外部提供
+2026-06-17 14:28:14,867 [    INFO] planning.core: 记忆管理器: 已配置
+2026-06-17 14:28:14,867 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 1
+2026-06-17 14:28:14,867 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 14:28:14,867 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 14:28:14,868 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 14:28:14,868 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 14:28:14,868 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 14:28:14,868 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 14:28:14,868 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 14:28:14,868 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,871 [    INFO] planning.core: ============================================================
+2026-06-17 14:28:14,871 [    INFO] agent.digital_life: [ok] 规划引擎（PlanningCore）已激活
+2026-06-17 14:28:14,872 [    INFO] agent.digital_life: [ok] 安全监控器已激活
+2026-06-17 14:28:14,884 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 14:28:14,884 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 14:28:14,884 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 14:28:14,884 [    INFO] agent.digital_life: [ok] 向量记忆系统已激活
+2026-06-17 14:28:14,885 [    INFO] agent.digital_life: [ok] 错误上报系统已激活
+2026-06-17 14:28:14,937 [    INFO] sensor.voice_sensor:    ├─ TTS: pyttsx3
+2026-06-17 14:28:14,937 [    INFO] sensor.voice_sensor:    ├─ 模式: 非阻塞(多线程)
+2026-06-17 14:28:14,937 [    INFO] sensor.voice_sensor:    └─ STT: 可用
+2026-06-17 14:28:14,937 [    INFO] agent.digital_life: [ok] 语音管理器已激活
+2026-06-17 14:28:14,937 [    INFO] agent.digital_life: [ok] OCR传感器已激活
+2026-06-17 14:28:14,938 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-17 14:28:14,938 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: .p6_snapshots
+2026-06-17 14:28:14,938 [    INFO] agent.digital_life: [ok] P6快照管理器已激活
+2026-06-17 14:28:14,938 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,939 [    INFO] agent.digital_life: [OK] 云枢初始化完成！
+2026-06-17 14:28:14,939 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 14:28:14,939 [    INFO] agent.digital_life: 
+[INFO] 最终配置总结:
+2026-06-17 14:28:14,939 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,946 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,948 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,950 [    INFO] agent.digital_life:   ────────────────────────────────────────────────────────────────────
+2026-06-17 14:28:14,950 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 14:28:14,963 [    INFO] agent.digital_life: [模块导入] [OK] [成功] math 模块已加载
+2026-06-17 14:28:14,967 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] nonexistent_xxx_module 模块导入失败 (ImportError): No module named 'nonexistent_xxx_module'
+2026-06-17 14:28:14,971 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'math' 全部 3 个名称导入成功
+2026-06-17 14:28:14,977 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'math' 中不存在名称 'nonexistent_function_xyz'
+2026-06-17 14:28:14,977 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'math' 部分导入成功: 1/2
+2026-06-17 14:28:15,031 [    INFO] agent.digital_life: * 云枢正在休眠...
+2026-06-17 14:28:15,092 [    INFO] agent.digital_life: * 云枢正在休眠...

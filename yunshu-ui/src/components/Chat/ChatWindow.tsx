@@ -1,6 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import ChatBubble, { BubbleType } from './ChatBubble';
 import ChatInput from './ChatInput';
+import ThinkingBlock from './ThinkingBlock';
+import ToolStepsDisplay from './ToolStepsDisplay';
+import type { ToolStep } from './ToolStepsDisplay';
 import './ChatWindow.css';
 
 export interface Message {
@@ -9,6 +12,10 @@ export interface Message {
   content: string;
   timestamp: Date;
   typing?: boolean;
+  /** 思考过程（仅 assistant 消息） */
+  reasoning?: string;
+  /** 工具调用步骤（仅 assistant 消息） */
+  toolSteps?: ToolStep[];
 }
 
 export interface ChatWindowProps {
@@ -29,7 +36,7 @@ export interface ChatWindowProps {
 }
 
 /**
- * 聊天窗口主组件
+ * 聊天窗口主组件 — 支持显示思考过程和工具调用步骤
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
@@ -42,7 +49,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -57,13 +63,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className={`chat-window ${className}`}>
       <div className="chat-messages">
         {messages.map((message) => (
-          <ChatBubble
-            key={message.id}
-            type={message.type}
-            content={message.content}
-            typing={message.typing}
-            timestamp={message.timestamp}
-          />
+          <div key={message.id} className={`message-group ${message.type}`}>
+            {/* Assistant 消息：显示思考过程和工具步骤 */}
+            {message.type === 'assistant' && message.reasoning && (
+              <ThinkingBlock content={message.reasoning} />
+            )}
+            {message.type === 'assistant' && message.toolSteps && message.toolSteps.length > 0 && (
+              <ToolStepsDisplay steps={message.toolSteps} />
+            )}
+            <ChatBubble
+              type={message.type}
+              content={message.content}
+              typing={message.typing}
+              timestamp={message.timestamp}
+            />
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>

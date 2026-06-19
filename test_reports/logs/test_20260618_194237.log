@@ -1,0 +1,36 @@
+2026-06-18 19:42:38,272 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 19:42:38,275 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 19:42:38,276 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 19:42:38,286 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 19:42:38,299 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 19:42:38,303 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 19:42:38,330 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 19:42:38,334 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 19:42:38,339 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 19:42:38,359 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 19:42:38,360 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 19:42:38,360 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 19:42:38,361 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 19:42:38,362 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 19:42:38,478 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 19:42:38,481 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 19:42:38,481 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 19:42:38,489 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 19:42:38,490 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 19:42:38,490 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:38,490 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 19:42:38,490 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 19:42:38,490 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 19:42:38,550 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:42:38,550 [    INFO] agent.monitoring.search: [性能监控] 检测间隔已设置为 60 秒
+2026-06-18 19:42:38,553 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:42:38,557 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录

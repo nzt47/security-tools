@@ -386,6 +386,103 @@ class MemoryManager:
 
         return msg_id
 
+    def score_and_save_message(self, role: str, content: str) -> str:
+        """评分并保存消息
+
+        根据消息内容进行重要性评分（1-10），附带评分一起保存。
+        高重要性消息会在后续的记忆压缩和检索中优先保留。
+
+        Args:
+            role: 消息角色（user/assistant）
+            content: 消息内容
+
+        Returns:
+            消息的时间戳 ID
+        """
+        # 计算重要性分数
+        score = self._score_content(role, content)
+
+        message = {
+            "role": role,
+            "content": content,
+            "importance_score": score,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        msg_id = self._storage.save_message(message)
+
+        # 记录评分到黑匣子
+        self._black_box.log("message_scored", {
+            "role": role,
+            "score": score,
+            "tokens": self._token_counter.count(content)
+        })
+
+        # 高重要性消息（>=7）触发快速压缩检查
+        if score >= 7:
+            recent = self._storage.load_recent_messages(limit=200)
+            total_tokens = self._token_counter.count_messages(recent)
+            if self._summarizer.should_compress(total_tokens, self._token_limit,
+                                                self._compress_threshold):
+                self._need_compress = True
+                self._async_compressor.request()
+
+        return msg_id
+
+    def _score_content(self, role: str, content: str) -> int:
+        """对消息内容进行重要性评分（1-10）
+
+        启发式评分策略：
+        - 长度因子：更长消息更可能重要
+        - 内容因子：问题、代码、指令等关键模式
+        - 角色因子：用户消息权重略高于助手的常规回复
+        """
+        if not content or not content.strip():
+            return 1
+
+        score = 5  # 基准分
+
+        # 长度因子（最长 2000 字符以上得满分）
+        length = len(content)
+        if length > 2000:
+            score += 2
+        elif length > 500:
+            score += 1
+        elif length < 20:
+            score -= 1
+
+        # 用户消息——检测问题、请求、指令
+        if role == "user":
+            # 包含问号（中文/英文）
+            if any(q in content for q in ["？", "?", "吗", "么", "呢", "吧"]):
+                score += 1
+            # 包含指令性词汇
+            if any(kw in content for kw in ["请", "帮", "写", "创建", "修改", "修复",
+                                              "分析", "解释", "如何", "为什么", "怎么"]):
+                score += 1
+            # 包含代码或配置相关
+            if any(kw in content for kw in ["代码", "函数", "class", "def ", "import",
+                                              "配置", "错误", "报错", "异常", "bug"]):
+                score += 1
+            # 长/复杂用户消息
+            if length > 300:
+                score += 1
+
+        # 助手消息——检测技术性回复
+        elif role == "assistant":
+            # 包含代码块
+            if "```" in content:
+                score += 1
+            # 技术性内容
+            if any(kw in content for kw in ["函数", "类", "接口", "方法", "配置",
+                                              "方案", "步骤", "修复"]):
+                score += 1
+            # 较长回复通常更有信息量
+            if length > 800:
+                score += 1
+
+        # 归一化到 1-10
+        return max(1, min(10, score))
+
     def get_context(self, token_limit: int) -> list[dict]:
         """获取压缩后的上下文
 

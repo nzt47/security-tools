@@ -1,0 +1,886 @@
+2026-06-17 10:48:28,182 [    INFO] planning.state_machine: 计划状态转换: init → decomposing
+2026-06-17 10:48:28,196 [    INFO] planning.state_machine: 计划状态转换: decomposing → ready
+2026-06-17 10:48:28,208 [    INFO] planning.state_machine: 计划状态转换: ready → executing
+2026-06-17 10:48:28,223 [    INFO] planning.state_machine: 计划状态转换: executing → completed
+2026-06-17 10:48:28,236 [    INFO] planning.state_machine: 计划状态转换: executing → failed
+2026-06-17 10:48:28,251 [    INFO] planning.state_machine: 计划状态转换: executing → paused
+2026-06-17 10:48:28,259 [    INFO] planning.state_machine: 计划状态转换: paused → executing
+2026-06-17 10:48:28,308 [    INFO] planning.state_machine: 计划状态转换: init → decomposing
+2026-06-17 10:48:28,309 [    INFO] planning.state_machine: 计划状态转换: decomposing → ready
+2026-06-17 10:48:28,310 [    INFO] planning.state_machine: 计划状态转换: ready → executing
+2026-06-17 10:48:28,325 [    INFO] planning.state_machine: 计划状态转换: init → decomposing
+2026-06-17 10:48:28,335 [    INFO] planning.state_machine: 计划状态转换: init → cancelled
+2026-06-17 10:48:28,335 [    INFO] planning.state_machine: 计划状态转换: decomposing → cancelled
+2026-06-17 10:48:28,336 [    INFO] planning.state_machine: 计划状态转换: ready → cancelled
+2026-06-17 10:48:28,336 [    INFO] planning.state_machine: 计划状态转换: executing → cancelled
+2026-06-17 10:48:28,336 [    INFO] planning.state_machine: 计划状态转换: paused → cancelled
+2026-06-17 10:48:28,387 [    INFO] planning.decomposer:    子任务1: 完成报告...
+2026-06-17 10:48:28,387 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 10:48:28,408 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 10:48:28,408 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 10:48:28,409 [    INFO] planning.decomposer:    子任务2: 分析数据...
+2026-06-17 10:48:28,409 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 10:48:28,429 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 10:48:28,430 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-17 10:48:28,431 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 10:48:28,431 [    INFO] planning.decomposer:    子任务2: 处理数据...
+2026-06-17 10:48:28,432 [    INFO] planning.decomposer:    子任务3: 保存结果...
+2026-06-17 10:48:28,432 [    INFO] planning.decomposer:    规则分解完成，共 3 个子任务
+2026-06-17 10:48:28,454 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 10:48:28,467 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-17 10:48:28,482 [    INFO] planning.decomposer:    原始数据中包含 5 个子任务
+2026-06-17 10:48:28,513 [    INFO] planning.decomposer:    子任务1: 这是一个无效的JSON响应...
+2026-06-17 10:48:28,513 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 10:48:28,525 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,529 [    INFO] planning.decomposer:    原始任务: 打开文件然后保存
+2026-06-17 10:48:28,530 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:28,530 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:28,530 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:28,538 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-17 10:48:28,541 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 10:48:28,541 [    INFO] planning.decomposer:    子任务1: 打开文件...
+2026-06-17 10:48:28,542 [    INFO] planning.decomposer:    子任务2: 保存...
+2026-06-17 10:48:28,542 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 10:48:28,551 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 10:48:28,554 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-17 10:48:28,555 [    INFO] planning.decomposer:       子任务1: 打开文件...
+2026-06-17 10:48:28,555 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:28,556 [    INFO] planning.decomposer:       子任务2: 保存...
+2026-06-17 10:48:28,556 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:28,556 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 10:48:28,563 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-17 10:48:28,563 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:28,564 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,577 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,583 [    INFO] planning.decomposer:    原始任务: 完成一个功能开发
+2026-06-17 10:48:28,583 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:28,583 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:28,584 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:28,591 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 10:48:28,603 [    INFO] planning.decomposer:    原始数据中包含 3 个子任务
+2026-06-17 10:48:28,607 [    INFO] planning.decomposer:    解析得到 3 个子任务
+2026-06-17 10:48:28,607 [    INFO] planning.decomposer:       子任务1: 分析需求...
+2026-06-17 10:48:28,608 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:28,608 [    INFO] planning.decomposer:       子任务2: 编写代码...
+2026-06-17 10:48:28,609 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:28,609 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 10:48:28,609 [    INFO] planning.decomposer:       子任务3: 测试验证...
+2026-06-17 10:48:28,609 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:28,610 [    INFO] planning.decomposer:          依赖: ['step_2']
+2026-06-17 10:48:28,620 [    INFO] planning.decomposer:    子任务总数: 3
+2026-06-17 10:48:28,620 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:28,620 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,633 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,636 [    INFO] planning.decomposer:    原始任务: 测试任务
+2026-06-17 10:48:28,637 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:28,637 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:28,637 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:28,646 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 10:48:28,651 [   ERROR] planning.decomposer: 异常类型: Exception
+2026-06-17 10:48:28,652 [   ERROR] planning.decomposer: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 95, in decompose
+    subtasks_data = await self._llm_decompose(task_description, context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 142, in _llm_decompose
+    response = await self.llm.chat([{"role": "user", "content": prompt}])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 2253, in _execute_mock_call
+    raise effect
+Exception: LLM服务出错
+
+2026-06-17 10:48:28,652 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:28,685 [    INFO] planning.decomposer: 计划优化完成: 1项调整
+2026-06-17 10:48:28,700 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:28,704 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:28,714 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:28,718 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:28,718 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-17 10:48:28,718 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-17 10:48:28,727 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:28,732 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:28,740 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:28,743 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:28,744 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:28,744 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:28,745 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: analyze
+2026-06-17 10:48:28,745 [    INFO] planning.executor: 工具已注册: analyze
+2026-06-17 10:48:28,752 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:28,756 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:28,939 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 10:48:28,969 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 10:48:28,979 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 10:48:28,990 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 10:48:28,990 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 10:48:28,997 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 10:48:29,000 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 10:48:29,001 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 10:48:29,008 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 10:48:29,040 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 10:48:29,043 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 10:48:29,046 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 10:48:29,049 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 10:48:29,323 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 10:48:29,332 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 10:48:29,332 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 10:48:29,337 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 10:48:29,339 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 10:48:29,339 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 10:48:29,339 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 10:48:29,339 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 10:48:29,340 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 10:48:29,340 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 10:48:29,340 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 10:48:29,340 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 10:48:29,341 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 10:48:29,341 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 10:48:29,341 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 10:48:29,342 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 10:48:29,400 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,403 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,410 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,413 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,413 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:29,414 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:29,419 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,422 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,428 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,432 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,439 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,443 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,443 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-17 10:48:29,444 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-17 10:48:29,455 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,458 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,458 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: async_tool
+2026-06-17 10:48:29,459 [    INFO] planning.executor: 工具已注册: async_tool
+2026-06-17 10:48:29,468 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,471 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,472 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-17 10:48:29,472 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-17 10:48:29,481 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,484 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,494 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,498 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,498 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:29,498 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:29,499 [    INFO] planning.executor: 开始执行计划: plan_551976ac
+2026-06-17 10:48:29,499 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-17 10:48:29,507 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,510 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,511 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-17 10:48:29,511 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-17 10:48:29,512 [    INFO] planning.executor: 开始执行计划: plan_2305a96c
+2026-06-17 10:48:29,513 [   ERROR] agent.error_handler: [error] unknown: name 'RecoverableError' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 758, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 208, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+          ^^^^^^^^^^^^^^^^
+NameError: name 'RecoverableError' is not defined
+2026-06-17 10:48:29,524 [   ERROR] planning.executor: 任务执行失败: name 'RecoverableError' is not defined
+2026-06-17 10:48:29,524 [   ERROR] planning.executor: 高优先级任务失败: task1
+2026-06-17 10:48:29,525 [    INFO] planning.executor: 计划执行completed: 0.0%
+2026-06-17 10:48:29,534 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,537 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,537 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step1
+2026-06-17 10:48:29,537 [    INFO] planning.executor: 工具已注册: step1
+2026-06-17 10:48:29,538 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step2
+2026-06-17 10:48:29,538 [    INFO] planning.executor: 工具已注册: step2
+2026-06-17 10:48:29,538 [    INFO] planning.executor: 开始执行计划: plan_b2b2aceb
+2026-06-17 10:48:29,539 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-17 10:48:29,548 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,551 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,551 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-17 10:48:29,551 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-17 10:48:29,552 [    INFO] planning.executor: 开始执行计划: plan_15322064
+2026-06-17 10:48:29,552 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-17 10:48:29,561 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,564 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,565 [    INFO] planning.executor: 计划已取消: plan_ce6473de
+2026-06-17 10:48:29,570 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,573 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,597 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmp8z9p614j
+2026-06-17 10:48:29,604 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpmgrhclxe
+2026-06-17 10:48:29,610 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpr8zqva_e
+2026-06-17 10:48:29,616 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmp558dp08e
+2026-06-17 10:48:29,622 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpmnjhf096
+2026-06-17 10:48:29,632 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmp0a742v4e
+2026-06-17 10:48:29,640 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpl_u8zu4b
+2026-06-17 10:48:29,651 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpgr8e4qd1
+2026-06-17 10:48:29,660 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpvzjm9sw0
+2026-06-17 10:48:29,671 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpzr1vuqi5
+2026-06-17 10:48:29,681 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpsf89f3j4
+2026-06-17 10:48:29,696 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpuxtavaag
+2026-06-17 10:48:29,711 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmp42twxnso
+2026-06-17 10:48:29,718 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmp2htiv1dd
+2026-06-17 10:48:29,724 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpamujaror
+2026-06-17 10:48:29,731 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmplvp0sdlq
+2026-06-17 10:48:29,737 [    INFO] planning.reflector: 经验库目录: C:\Windows\TEMP\tmpm1d38wmx
+2026-06-17 10:48:29,795 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,798 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:29,798 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:29,810 [ WARNING] planning.react: 思考结果JSON解析失败
+2026-06-17 10:48:29,816 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,819 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,819 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:29,819 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:29,825 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,827 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,833 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,836 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,854 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,858 [    INFO] planning.react:    任务: 简单任务
+2026-06-17 10:48:29,858 [    INFO] planning.react:    最大迭代次数: 3
+2026-06-17 10:48:29,858 [    INFO] planning.react:    上下文键: []
+2026-06-17 10:48:29,859 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,859 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:29,867 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 10:48:29,871 [    INFO] planning.react:       推理: 使用工具执行...
+2026-06-17 10:48:29,871 [    INFO] planning.react:       行动类型: tool_call
+2026-06-17 10:48:29,871 [    INFO] planning.react:       行动: 简单任务
+2026-06-17 10:48:29,871 [    INFO] planning.react:       置信度: 0.7
+2026-06-17 10:48:29,874 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-17 10:48:29,875 [    INFO] planning.react:    [行动] 工具名: <MagicMock name='mock.tool_registry.find_tool()' id='1900521259328'>
+2026-06-17 10:48:29,875 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-17 10:48:29,876 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-17 10:48:29,880 [    INFO] planning.react:    [行动] 输出: <MagicMock name='mock.tool_registry.get()()' id='1900521323264'>
+2026-06-17 10:48:29,883 [    INFO] planning.react:       成功: True
+2026-06-17 10:48:29,883 [    INFO] planning.react:       输出: <MagicMock name='mock.tool_registry.get()()' id='1900521323264'>
+2026-06-17 10:48:29,884 [    INFO] planning.react:       观察: 成功: <MagicMock name='mock.tool_registry.get()()' id='1900521323264'>
+2026-06-17 10:48:29,896 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:29,902 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 10:48:29,905 [    INFO] planning.react:       推理: 任务已处理完成...
+2026-06-17 10:48:29,905 [    INFO] planning.react:       行动类型: finish
+2026-06-17 10:48:29,905 [    INFO] planning.react:       置信度: 0.9
+2026-06-17 10:48:29,908 [    INFO] planning.react:    执行时长: 51.22ms
+2026-06-17 10:48:29,909 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,919 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:29,922 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:29,922 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-17 10:48:29,923 [    INFO] planning.executor: 工具已注册: search
+2026-06-17 10:48:29,923 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,926 [    INFO] planning.react:    任务: 使用search搜索
+2026-06-17 10:48:29,927 [    INFO] planning.react:    最大迭代次数: 3
+2026-06-17 10:48:29,927 [    INFO] planning.react:    上下文键: []
+2026-06-17 10:48:29,927 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,928 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:29,933 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 10:48:29,936 [    INFO] planning.react:       推理: 使用工具执行...
+2026-06-17 10:48:29,936 [    INFO] planning.react:       行动类型: tool_call
+2026-06-17 10:48:29,937 [    INFO] planning.react:       行动: 使用search搜索
+2026-06-17 10:48:29,937 [    INFO] planning.react:       置信度: 0.7
+2026-06-17 10:48:29,940 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-17 10:48:29,941 [    INFO] planning.react:    [行动] 工具名: search
+2026-06-17 10:48:29,941 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-17 10:48:29,941 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-17 10:48:29,948 [    INFO] planning.react:       成功: False
+2026-06-17 10:48:29,949 [    INFO] planning.react:       错误: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required positional argument: 'query'
+2026-06-17 10:48:29,949 [    INFO] planning.react:       观察: 失败: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required position
+2026-06-17 10:48:29,952 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:29,958 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-17 10:48:29,961 [    INFO] planning.react:       推理: 任务已处理完成...
+2026-06-17 10:48:29,961 [    INFO] planning.react:       行动类型: finish
+2026-06-17 10:48:29,961 [    INFO] planning.react:       置信度: 0.9
+2026-06-17 10:48:29,964 [    INFO] planning.react:    执行时长: 38.58ms
+2026-06-17 10:48:29,965 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,974 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,977 [    INFO] planning.react:    任务: 复杂任务
+2026-06-17 10:48:29,978 [    INFO] planning.react:    最大迭代次数: 3
+2026-06-17 10:48:29,978 [    INFO] planning.react:    上下文键: []
+2026-06-17 10:48:29,978 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:29,979 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:29,988 [    INFO] planning.react:       推理: 继续思考...
+2026-06-17 10:48:29,988 [    INFO] planning.react:       行动类型: response
+2026-06-17 10:48:29,988 [    INFO] planning.react:       行动: 生成回复
+2026-06-17 10:48:29,989 [    INFO] planning.react:       置信度: 0.5
+2026-06-17 10:48:29,991 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 10:48:29,996 [    INFO] planning.react:       成功: True
+2026-06-17 10:48:29,996 [    INFO] planning.react:       输出: 继续
+2026-06-17 10:48:29,996 [    INFO] planning.react:       观察: 成功: 继续
+2026-06-17 10:48:30,008 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:30,019 [    INFO] planning.react:       推理: 继续思考...
+2026-06-17 10:48:30,019 [    INFO] planning.react:       行动类型: response
+2026-06-17 10:48:30,019 [    INFO] planning.react:       行动: 生成回复
+2026-06-17 10:48:30,019 [    INFO] planning.react:       置信度: 0.5
+2026-06-17 10:48:30,022 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 10:48:30,025 [    INFO] planning.react:       成功: True
+2026-06-17 10:48:30,026 [    INFO] planning.react:       输出: 继续
+2026-06-17 10:48:30,026 [    INFO] planning.react:       观察: 成功: 继续
+2026-06-17 10:48:30,037 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:30,046 [    INFO] planning.react:       推理: 继续思考...
+2026-06-17 10:48:30,047 [    INFO] planning.react:       行动类型: response
+2026-06-17 10:48:30,047 [    INFO] planning.react:       行动: 生成回复
+2026-06-17 10:48:30,047 [    INFO] planning.react:       置信度: 0.5
+2026-06-17 10:48:30,050 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-17 10:48:30,053 [    INFO] planning.react:       成功: True
+2026-06-17 10:48:30,054 [    INFO] planning.react:       输出: 继续
+2026-06-17 10:48:30,054 [    INFO] planning.react:       观察: 成功: 继续
+2026-06-17 10:48:30,069 [    INFO] planning.react:    实际执行: 3 步
+2026-06-17 10:48:30,069 [    INFO] planning.react:    总时长: 92.26ms
+2026-06-17 10:48:30,069 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:30,076 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,077 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,077 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,078 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,078 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,078 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,081 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,082 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,082 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 10
+2026-06-17 10:48:30,082 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 2
+2026-06-17 10:48:30,083 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,083 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,083 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,084 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 5
+2026-06-17 10:48:30,084 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,084 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,087 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,093 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,094 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,094 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,094 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,095 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,095 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,098 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,098 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,098 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,099 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,099 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,099 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,100 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,100 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,100 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,100 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,103 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,103 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-17 10:48:30,103 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-17 10:48:30,103 [    INFO] planning.core: 工具已注册到规划引擎: test_tool
+2026-06-17 10:48:30,109 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,109 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,110 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,110 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,111 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,111 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,114 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,114 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,114 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,115 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,115 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,116 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,116 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,117 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,117 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,117 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,120 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,126 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,127 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,127 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,128 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,128 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,128 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,131 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,132 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,132 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,132 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,133 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,133 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,133 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,134 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,134 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,134 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,136 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,137 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-17 10:48:30,137 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,137 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,137 [    INFO] planning.core:    需要规划: True
+2026-06-17 10:48:30,137 [    INFO] planning.core:    复杂指示器匹配: 2 个
+2026-06-17 10:48:30,138 [    INFO] planning.core:    动作关键词匹配: 1 个
+2026-06-17 10:48:30,138 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,138 [    INFO] planning.core:    需要规划: True
+2026-06-17 10:48:30,138 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-17 10:48:30,139 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,139 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,139 [    INFO] planning.core:    需要规划: True
+2026-06-17 10:48:30,139 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,139 [    INFO] planning.core:    动作关键词匹配: 2 个
+2026-06-17 10:48:30,140 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,140 [    INFO] planning.core:    需要规划: True
+2026-06-17 10:48:30,147 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,147 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,148 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,148 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,148 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,149 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,151 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,152 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,152 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,152 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,153 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,153 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,153 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,153 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,154 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,154 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,156 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,156 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,157 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,157 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,157 [    INFO] planning.core:    需要规划: False
+2026-06-17 10:48:30,157 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,157 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,158 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,158 [    INFO] planning.core:    需要规划: False
+2026-06-17 10:48:30,158 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,158 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,159 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,159 [    INFO] planning.core:    需要规划: False
+2026-06-17 10:48:30,167 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,168 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,169 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,169 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,169 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,169 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,172 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,173 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,173 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,173 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,174 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,174 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,174 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,174 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,174 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,174 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,178 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,178 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,181 [    INFO] planning.core:    任务描述: 首先打开文件，然后保存
+2026-06-17 10:48:30,181 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,182 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,184 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,188 [    INFO] planning.decomposer:    原始任务: 首先打开文件，然后保存
+2026-06-17 10:48:30,188 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:30,188 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:30,188 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:30,194 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-17 10:48:30,197 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-17 10:48:30,198 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-17 10:48:30,198 [    INFO] planning.decomposer:    子任务2: 打开文件，...
+2026-06-17 10:48:30,198 [    INFO] planning.decomposer:    子任务3: 保存...
+2026-06-17 10:48:30,198 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-17 10:48:30,207 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 10:48:30,210 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-17 10:48:30,211 [    INFO] planning.decomposer:       子任务1: 打开文件，...
+2026-06-17 10:48:30,211 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,211 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 10:48:30,212 [    INFO] planning.decomposer:       子任务2: 保存...
+2026-06-17 10:48:30,212 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,212 [    INFO] planning.decomposer:          依赖: ['step_2']
+2026-06-17 10:48:30,218 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-17 10:48:30,218 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:30,219 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,222 [    INFO] planning.core:    计划ID: plan_9011bf71
+2026-06-17 10:48:30,222 [    INFO] planning.core:    子任务数: 2
+2026-06-17 10:48:30,222 [    INFO] planning.core:       子任务1: 打开文件，...
+2026-06-17 10:48:30,222 [    INFO] planning.core:       子任务2: 保存...
+2026-06-17 10:48:30,225 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,235 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,236 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,237 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 10:48:30,237 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,238 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,238 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,241 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,242 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,242 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,242 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,243 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,244 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,244 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,244 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,244 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,244 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,247 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,248 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,251 [    INFO] planning.core:    任务描述: 复杂任务
+2026-06-17 10:48:30,251 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,252 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,255 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,258 [    INFO] planning.decomposer:    原始任务: 复杂任务
+2026-06-17 10:48:30,259 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:30,259 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:30,259 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:30,265 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 10:48:30,274 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-17 10:48:30,278 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-17 10:48:30,278 [    INFO] planning.decomposer:       子任务1: 第一步...
+2026-06-17 10:48:30,279 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,279 [    INFO] planning.decomposer:       子任务2: 第二步...
+2026-06-17 10:48:30,279 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,279 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-17 10:48:30,285 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-17 10:48:30,285 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:30,286 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,288 [    INFO] planning.core:    计划ID: plan_8917a391
+2026-06-17 10:48:30,289 [    INFO] planning.core:    子任务数: 2
+2026-06-17 10:48:30,289 [    INFO] planning.core:       子任务1: 第一步...
+2026-06-17 10:48:30,289 [    INFO] planning.core:       子任务2: 第二步...
+2026-06-17 10:48:30,292 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,303 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,304 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,304 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 10:48:30,305 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,305 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,305 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,309 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,310 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,310 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,311 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,312 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,312 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,313 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,313 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,313 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,314 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,317 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,318 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,320 [    INFO] planning.core:    任务描述: 测试任务
+2026-06-17 10:48:30,321 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,321 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,324 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,328 [    INFO] planning.decomposer:    原始任务: 测试任务
+2026-06-17 10:48:30,328 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:30,328 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:30,328 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:30,334 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-17 10:48:30,338 [   ERROR] planning.decomposer: 异常类型: Exception
+2026-06-17 10:48:30,338 [   ERROR] planning.decomposer: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 95, in decompose
+    subtasks_data = await self._llm_decompose(task_description, context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 142, in _llm_decompose
+    response = await self.llm.chat([{"role": "user", "content": prompt}])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 2253, in _execute_mock_call
+    raise effect
+Exception: LLM错误
+
+2026-06-17 10:48:30,339 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,341 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,345 [   ERROR] planning.core: 异常类型: PlanningError
+2026-06-17 10:48:30,346 [   ERROR] planning.core: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\core.py", line 154, in plan
+    raise PlanningError(error_msg)
+planning.core.PlanningError: 任务分解失败: LLM错误
+
+2026-06-17 10:48:30,346 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,355 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,356 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,356 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,356 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,357 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,357 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,360 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,361 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,361 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,361 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,362 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,362 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,363 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,363 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,363 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,363 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,366 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,367 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-17 10:48:30,367 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-17 10:48:30,367 [    INFO] planning.core: 工具已注册到规划引擎: test_tool
+2026-06-17 10:48:30,367 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,370 [    INFO] planning.core:    任务描述: 使用test_tool
+2026-06-17 10:48:30,370 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,371 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,374 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,377 [    INFO] planning.decomposer:    原始任务: 使用test_tool
+2026-06-17 10:48:30,377 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:30,377 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:30,378 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:30,384 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-17 10:48:30,386 [    INFO] planning.decomposer:    子任务1: 使用test_tool...
+2026-06-17 10:48:30,387 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 10:48:30,396 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-17 10:48:30,399 [    INFO] planning.decomposer:    解析得到 1 个子任务
+2026-06-17 10:48:30,399 [    INFO] planning.decomposer:       子任务1: 使用test_tool...
+2026-06-17 10:48:30,399 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,405 [    INFO] planning.decomposer:    子任务总数: 1
+2026-06-17 10:48:30,406 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:30,406 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,408 [    INFO] planning.core:    计划ID: plan_c04d9586
+2026-06-17 10:48:30,409 [    INFO] planning.core:    子任务数: 1
+2026-06-17 10:48:30,409 [    INFO] planning.core:       子任务1: 使用test_tool...
+2026-06-17 10:48:30,413 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,413 [    INFO] planning.core: 计划 plan_c04d9586 已添加到活跃计划列表
+2026-06-17 10:48:30,413 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,416 [    INFO] planning.core:    计划ID: plan_c04d9586
+2026-06-17 10:48:30,416 [    INFO] planning.core:    任务描述: 使用test_tool...
+2026-06-17 10:48:30,417 [    INFO] planning.core:    任务数: 1
+2026-06-17 10:48:30,417 [    INFO] planning.core:    当前状态: ready
+2026-06-17 10:48:30,417 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,420 [    INFO] planning.state_machine: 计划状态转换: ready → executing
+2026-06-17 10:48:30,426 [    INFO] planning.executor: 开始执行计划: plan_c04d9586
+2026-06-17 10:48:30,426 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-17 10:48:30,439 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,442 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,453 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,453 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,454 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,454 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,454 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,454 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,457 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,458 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,458 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,458 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,459 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,460 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,460 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,460 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,461 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,461 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,465 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,465 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-17 10:48:30,465 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-17 10:48:30,466 [    INFO] planning.core: 工具已注册到规划引擎: bad_tool
+2026-06-17 10:48:30,466 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,469 [    INFO] planning.core:    任务描述: 使用bad_tool
+2026-06-17 10:48:30,469 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,469 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,472 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,475 [    INFO] planning.decomposer:    原始任务: 使用bad_tool
+2026-06-17 10:48:30,475 [    INFO] planning.decomposer:    上下文键: []
+2026-06-17 10:48:30,475 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-17 10:48:30,476 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-17 10:48:30,482 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-17 10:48:30,485 [    INFO] planning.decomposer:    子任务1: 使用bad_tool...
+2026-06-17 10:48:30,485 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-17 10:48:30,493 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-17 10:48:30,496 [    INFO] planning.decomposer:    解析得到 1 个子任务
+2026-06-17 10:48:30,497 [    INFO] planning.decomposer:       子任务1: 使用bad_tool...
+2026-06-17 10:48:30,497 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-17 10:48:30,503 [    INFO] planning.decomposer:    子任务总数: 1
+2026-06-17 10:48:30,503 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-17 10:48:30,503 [    INFO] planning.decomposer: ============================================================
+2026-06-17 10:48:30,506 [    INFO] planning.core:    计划ID: plan_579e00aa
+2026-06-17 10:48:30,506 [    INFO] planning.core:    子任务数: 1
+2026-06-17 10:48:30,506 [    INFO] planning.core:       子任务1: 使用bad_tool...
+2026-06-17 10:48:30,509 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,510 [    INFO] planning.core: 计划 plan_579e00aa 已添加到活跃计划列表
+2026-06-17 10:48:30,510 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,514 [    INFO] planning.core:    计划ID: plan_579e00aa
+2026-06-17 10:48:30,514 [    INFO] planning.core:    任务描述: 使用bad_tool...
+2026-06-17 10:48:30,515 [    INFO] planning.core:    任务数: 1
+2026-06-17 10:48:30,515 [    INFO] planning.core:    当前状态: ready
+2026-06-17 10:48:30,515 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,518 [    INFO] planning.state_machine: 计划状态转换: ready → executing
+2026-06-17 10:48:30,524 [    INFO] planning.executor: 开始执行计划: plan_579e00aa
+2026-06-17 10:48:30,524 [   ERROR] agent.error_handler: [error] unknown: name 'RecoverableError' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 758, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 208, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+          ^^^^^^^^^^^^^^^^
+NameError: name 'RecoverableError' is not defined
+2026-06-17 10:48:30,534 [   ERROR] planning.executor: 任务执行失败: name 'RecoverableError' is not defined
+2026-06-17 10:48:30,535 [   ERROR] planning.executor: 高优先级任务失败: step_1
+2026-06-17 10:48:30,535 [    INFO] planning.executor: 计划执行completed: 0.0%
+2026-06-17 10:48:30,549 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,552 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,563 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,563 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,564 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 10:48:30,564 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,564 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,565 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,567 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,567 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,568 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,568 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,569 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,569 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,569 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,569 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,570 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,570 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,573 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,573 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,576 [    INFO] planning.core:    用户消息: 你好
+2026-06-17 10:48:30,576 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,577 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,577 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,578 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,578 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,578 [    INFO] planning.core:    需要规划: False
+2026-06-17 10:48:30,583 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,593 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,594 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,594 [    INFO] planning.core: LLM服务: 已配置
+2026-06-17 10:48:30,595 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,595 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,595 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,598 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,599 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,599 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,599 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,600 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,600 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,600 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,601 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,601 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,601 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,604 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,605 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,607 [    INFO] planning.core:    用户消息: 帮我完成一个复杂的任务
+2026-06-17 10:48:30,608 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,608 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,608 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-17 10:48:30,608 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,608 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,609 [    INFO] planning.core:    需要规划: True
+2026-06-17 10:48:30,615 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,618 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,620 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:30,623 [    INFO] planning.react:    任务: 帮我完成一个复杂的任务
+2026-06-17 10:48:30,624 [    INFO] planning.react:    最大迭代次数: 10
+2026-06-17 10:48:30,624 [    INFO] planning.react:    上下文键: []
+2026-06-17 10:48:30,624 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:30,624 [    INFO] planning.react: ------------------------------------------------------------
+2026-06-17 10:48:30,633 [    INFO] planning.react:       推理: 分析任务...
+2026-06-17 10:48:30,633 [    INFO] planning.react:       行动类型: finish
+2026-06-17 10:48:30,634 [    INFO] planning.react:       行动: 生成回复
+2026-06-17 10:48:30,634 [    INFO] planning.react:       置信度: 0.5
+2026-06-17 10:48:30,637 [    INFO] planning.react:    执行时长: 14.51ms
+2026-06-17 10:48:30,637 [    INFO] planning.react: ============================================================
+2026-06-17 10:48:30,640 [    INFO] planning.core:    成功: True
+2026-06-17 10:48:30,640 [    INFO] planning.core:    迭代次数: 1
+2026-06-17 10:48:30,640 [    INFO] planning.core:    执行时长: 14ms
+2026-06-17 10:48:30,647 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,656 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,657 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,657 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,657 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,658 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,658 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,662 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,662 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,662 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,663 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,663 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,664 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,664 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,664 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,664 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,664 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,668 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,668 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,671 [    INFO] planning.core:    用户消息: 你好
+2026-06-17 10:48:30,671 [    INFO] planning.core:    上下文键: []
+2026-06-17 10:48:30,671 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-17 10:48:30,672 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-17 10:48:30,672 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-17 10:48:30,672 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-17 10:48:30,672 [    INFO] planning.core:    需要规划: False
+2026-06-17 10:48:30,678 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,687 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,688 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,688 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,688 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,688 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,689 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,692 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,693 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,693 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,693 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,694 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,694 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,695 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,695 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,695 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,695 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,698 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,699 [    INFO] planning.state_machine: 计划状态转换: ready → cancelled
+2026-06-17 10:48:30,699 [    INFO] planning.executor: 计划已取消: test_plan
+2026-06-17 10:48:30,705 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,706 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,706 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,706 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,707 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,707 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,710 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,710 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,710 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,711 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,711 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,712 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,712 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,712 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,713 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,713 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,715 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,716 [ WARNING] planning.core: 计划不存在: nonexistent
+2026-06-17 10:48:30,722 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,722 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,722 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,723 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,723 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,723 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,726 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,726 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,726 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,727 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,727 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,728 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,728 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,729 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,729 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,729 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,732 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,738 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,738 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,738 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,738 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,738 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,739 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,741 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,741 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,742 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,743 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,743 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,744 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,744 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,744 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,744 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,745 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,747 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,753 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,754 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-17 10:48:30,754 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-17 10:48:30,754 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-17 10:48:30,755 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-17 10:48:30,755 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-17 10:48:30,757 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-17 10:48:30,758 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-17 10:48:30,758 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-17 10:48:30,758 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-17 10:48:30,759 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-17 10:48:30,759 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-17 10:48:30,759 [    INFO] planning.core: 状态机初始化完成
+2026-06-17 10:48:30,760 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-17 10:48:30,760 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-17 10:48:30,760 [    INFO] planning.core: ============================================================
+2026-06-17 10:48:30,763 [    INFO] planning.core: ============================================================

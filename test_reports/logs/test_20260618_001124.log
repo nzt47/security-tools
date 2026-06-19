@@ -1,0 +1,73 @@
+2026-06-18 00:11:25,230 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 00:11:25,240 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 00:11:25,244 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 00:11:25,247 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 00:11:25,266 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 00:11:25,270 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 00:11:25,274 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 00:11:25,275 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 00:11:25,276 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-18 00:11:25,279 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,293 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 00:11:25,294 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 00:11:25,296 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 00:11:25,418 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 00:11:25,424 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 00:11:25,424 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 00:11:25,433 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 00:11:25,433 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 00:11:25,433 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 00:11:25,434 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 00:11:25,434 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-18 00:11:25,434 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 00:11:25,434 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 00:11:25,435 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 00:11:25,435 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 00:11:25,435 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 00:11:25,435 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-18 00:11:25,435 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-18 00:11:25,436 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 00:11:25,592 [    INFO] agent.monitoring.error_reporter: Error reported to webhook: https://example.com/webhook
+2026-06-18 00:11:25,597 [ WARNING] agent.error_handler: [execute_with_retry] 异常不可重试，立即抛出: func=_do_send_webhook, exception_type=Exception
+2026-06-18 00:11:25,597 [   ERROR] agent.error_handler: [error] unknown: Connection failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 536, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\monitoring\error_reporter.py", line 184, in _do_send_webhook
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Connection failed
+2026-06-18 00:11:25,601 [   ERROR] agent.monitoring.error_reporter: Failed to report to webhook after retries: Connection failed
+2026-06-18 00:11:25,605 [ WARNING] agent.monitoring.error_reporter: Webhook URL not configured
+2026-06-18 00:11:25,613 [    INFO] agent.monitoring.error_reporter: Error reported to Slack: #errors
+2026-06-18 00:11:25,616 [ WARNING] agent.monitoring.error_reporter: Slack webhook URL not configured
+2026-06-18 00:11:25,626 [    INFO] agent.monitoring.error_reporter: Error reported via email: admin@example.com
+2026-06-18 00:11:25,629 [ WARNING] agent.monitoring.error_reporter: Email recipients not configured
+2026-06-18 00:11:25,746 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-18 00:11:25,750 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-18 00:11:25,754 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-18 00:11:25,759 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-18 00:11:25,764 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-18 00:11:25,767 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-18 00:11:25,779 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,786 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,790 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,794 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,797 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,801 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,806 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,810 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,814 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,817 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 00:11:25,821 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化

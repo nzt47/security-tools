@@ -1,0 +1,77 @@
+2026-06-17 16:05:29,439 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 16:05:29,446 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 16:05:29,450 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 16:05:29,453 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 16:05:29,471 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 16:05:29,476 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 16:05:29,479 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 16:05:29,481 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 16:05:29,482 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 16:05:29,485 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 16:05:29,497 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 16:05:29,498 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 16:05:29,499 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 16:05:29,517 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 16:05:29,523 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 16:05:29,523 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,530 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,531 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 16:05:29,531 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 16:05:29,531 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 16:05:29,531 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 16:05:29,531 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 16:05:29,532 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 16:05:29,532 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 16:05:29,532 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 16:05:29,532 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,532 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 16:05:29,533 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 16:05:29,533 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 16:05:29,676 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 16:05:29,687 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 16:05:29,692 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 16:05:29,696 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 16:05:29,724 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 16:05:29,729 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 16:05:29,734 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 16:05:29,735 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 16:05:29,736 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 16:05:29,742 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 16:05:29,758 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 16:05:29,759 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 16:05:29,761 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 16:05:29,785 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 16:05:29,795 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 16:05:29,796 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,799 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,799 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 16:05:29,800 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 16:05:29,800 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 16:05:29,800 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 16:05:29,800 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 16:05:29,801 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 16:05:29,801 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 16:05:29,801 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 16:05:29,802 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 16:05:29,802 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 16:05:29,802 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 16:05:29,802 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 16:05:29,952 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:29,961 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-17 16:05:29,965 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,072 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,075 [    INFO] agent.memory_optimized: [ChromaDB] 使用缓存配置: C:\Windows\TEMP\tmp7g7mf7vo/test_cache
+2026-06-17 16:05:30,076 [    INFO] agent.memory_optimized: [ChromaDB] 缓存命中，跳过完整初始化
+2026-06-17 16:05:30,084 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,095 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,106 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,122 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-17 16:05:30,129 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,134 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,168 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-17 16:05:30,180 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-17 16:05:30,182 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现

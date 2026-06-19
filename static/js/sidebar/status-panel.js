@@ -79,13 +79,19 @@ async function updateStatusPanel() {
       }
     } catch(e) {}
 
-    // 模式
+    // 模式 + 思维状态
     try {
       const mode = await app.get('/api/mode');
       const spMode = document.getElementById('sp-mode');
       if (spMode) {
         spMode.textContent = mode.label || mode.mode || '-';
         spMode.className = 'sp-value normal';
+      }
+      const spThinking = document.getElementById('sp-thinking');
+      if (spThinking) {
+        spThinking.textContent = mode.thinking_mode || '-';
+        spThinking.className = 'sp-value';
+        spThinking.style.color = mode.thinking_mode ? '#58a6ff' : '';
       }
     } catch(e) {}
 

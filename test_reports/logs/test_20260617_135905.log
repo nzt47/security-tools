@@ -1,0 +1,558 @@
+2026-06-17 13:59:05,316 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 13:59:05,325 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 13:59:05,326 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 13:59:05,332 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 13:59:05,350 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 13:59:05,352 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 13:59:05,356 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 13:59:05,357 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 13:59:05,359 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 13:59:05,362 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 13:59:05,377 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 13:59:05,378 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 13:59:05,379 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 13:59:05,509 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 13:59:05,515 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 13:59:05,515 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:59:05,524 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:59:05,524 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:59:05,525 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 13:59:05,526 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 13:59:05,526 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 13:59:05,590 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-17 13:59:05,690 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-17 13:59:05,756 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-17 13:59:05,995 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-17 13:59:06,197 [    INFO] agent.performance_logging: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-17 13:59:06,416 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-17 13:59:06,417 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-17 13:59:06,419 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-17 13:59:06,419 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 13:59:06,419 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-17 13:59:06,674 [    INFO] agent.utils.cache: [LRUCache] 加载缓存模块
+2026-06-17 13:59:06,764 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-17 13:59:06,844 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,847 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-17 13:59:06,850 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,850 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,856 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,859 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,864 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,866 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,868 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,871 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,876 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,879 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,883 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,885 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:06,889 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 13:59:07,406 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_init0\cache, max=10MB)
+2026-06-17 13:59:07,412 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_l1_hit0\cache, max=100MB)
+2026-06-17 13:59:07,418 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_l2_hit0\cache, max=100MB)
+2026-06-17 13:59:07,426 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_miss0\cache, max=100MB)
+2026-06-17 13:59:07,427 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_delete0\cache, max=100MB)
+2026-06-17 13:59:07,436 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_clear0\cache, max=100MB)
+2026-06-17 13:59:07,436 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 13:59:07,446 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_stats0\cache, max=100MB)
+2026-06-17 13:59:07,446 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-17 13:59:07,455 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_warmup0\cache, max=100MB)
+2026-06-17 13:59:07,455 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 开始缓存预热...
+2026-06-17 13:59:07,456 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热完成: 2 条数据
+2026-06-17 13:59:07,456 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热耗时: 0.00s
+2026-06-17 13:59:07,466 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_cache_manager_get_cache0\cache, max=100MB)
+2026-06-17 13:59:07,466 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: test_cache
+2026-06-17 13:59:07,469 [    INFO] agent.caching.multi_level_cache: [CacheManager] 删除缓存: test_cache
+2026-06-17 13:59:07,475 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_cache_manager_clear_all0\cache1, max=100MB)
+2026-06-17 13:59:07,476 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache1
+2026-06-17 13:59:07,476 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_cache_manager_clear_all0\cache2, max=100MB)
+2026-06-17 13:59:07,476 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache2
+2026-06-17 13:59:07,476 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 13:59:07,477 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 13:59:07,477 [    INFO] agent.caching.multi_level_cache: [CacheManager] 所有缓存已清空
+2026-06-17 13:59:07,493 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_multi_level_cache_thread_0\cache, max=100MB)
+2026-06-17 13:59:08,546 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 13:59:08,715 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpon_ywly7.key
+2026-06-17 13:59:08,723 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp4yde8uxd.key
+2026-06-17 13:59:08,726 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp9ft_7c3g.key
+2026-06-17 13:59:08,726 [ WARNING] config_secure: [安全配置] 解密失败：Base64解码错误 - Invalid base64-encoded string: number of data characters (13) cannot be 1 more than a multiple of 4
+2026-06-17 13:59:08,735 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpc4np_fiw.key_1
+2026-06-17 13:59:08,737 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpc4np_fiw.key_2
+2026-06-17 13:59:08,737 [ WARNING] config_secure: [安全配置] 解密失败：无效的认证标签（密钥不匹配或数据被篡改）
+2026-06-17 13:59:08,743 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpc961sm78.key
+2026-06-17 13:59:08,750 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpbpoze6u8.key
+2026-06-17 13:59:08,758 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp9lxsqooa.key
+2026-06-17 13:59:08,765 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpdlythzrg.key
+2026-06-17 13:59:08,826 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,826 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,826 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,828 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test_key
+2026-06-17 13:59:08,828 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test_key
+2026-06-17 13:59:08,828 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test_key, default=None
+2026-06-17 13:59:08,828 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test_key
+2026-06-17 13:59:08,831 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,831 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,831 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,831 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=non_existent, default={'default': 42}
+2026-06-17 13:59:08,831 [ WARNING] core.storage: [InMemoryStorage.load] 键不存在: non_existent, 返回默认值
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key1
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key1
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage.delete] 开始删除: key=key1
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage.delete] 键存在，准备删除: key1
+2026-06-17 13:59:08,835 [    INFO] core.storage: [InMemoryStorage.delete] 删除成功: key1
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=key, default=None
+2026-06-17 13:59:08,838 [    INFO] core.storage: [InMemoryStorage.load] 键存在: key
+2026-06-17 13:59:08,843 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:08,843 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpxooj1x80
+2026-06-17 13:59:08,843 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpxooj1x80
+2026-06-17 13:59:08,843 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:08,844 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpxooj1x80
+2026-06-17 13:59:08,844 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:08,844 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=test_key
+2026-06-17 13:59:08,844 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpxooj1x80\test_key.json
+2026-06-17 13:59:08,845 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpxooj1x80\test_key.json
+2026-06-17 13:59:08,845 [    INFO] core.storage: [JSONFileStorage.save] Saved: test_key
+2026-06-17 13:59:08,845 [    INFO] core.storage: [JSONFileStorage.load] 开始加载: key=test_key, default=None
+2026-06-17 13:59:08,845 [    INFO] core.storage: [JSONFileStorage.load] 文件存在，开始读取: C:\Windows\TEMP\tmpxooj1x80\test_key.json
+2026-06-17 13:59:08,845 [    INFO] core.storage: [JSONFileStorage.load] 读取成功: C:\Windows\TEMP\tmpxooj1x80\test_key.json
+2026-06-17 13:59:08,846 [    INFO] core.storage: [JSONFileStorage.load] Loaded: test_key
+2026-06-17 13:59:08,850 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:08,850 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpfdj2h5m4
+2026-06-17 13:59:08,850 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpfdj2h5m4
+2026-06-17 13:59:08,851 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:08,851 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpfdj2h5m4
+2026-06-17 13:59:08,851 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key1
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpfdj2h5m4\key1.json
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpfdj2h5m4\key1.json
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] Saved: key1
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key2
+2026-06-17 13:59:08,852 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpfdj2h5m4\key2.json
+2026-06-17 13:59:08,854 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpfdj2h5m4\key2.json
+2026-06-17 13:59:08,854 [    INFO] core.storage: [JSONFileStorage.save] Saved: key2
+2026-06-17 13:59:08,859 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:08,859 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpnl07poa9
+2026-06-17 13:59:08,859 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpnl07poa9
+2026-06-17 13:59:08,859 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:08,859 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpnl07poa9
+2026-06-17 13:59:08,860 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:08,860 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key
+2026-06-17 13:59:08,860 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmpnl07poa9\key.json
+2026-06-17 13:59:08,861 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmpnl07poa9\key.json
+2026-06-17 13:59:08,861 [    INFO] core.storage: [JSONFileStorage.save] Saved: key
+2026-06-17 13:59:08,861 [    INFO] core.storage: [JSONFileStorage.delete] 开始删除: key=key
+2026-06-17 13:59:08,861 [    INFO] core.storage: [JSONFileStorage.delete] 删除文件: C:\Windows\TEMP\tmpnl07poa9\key.json
+2026-06-17 13:59:08,862 [    INFO] core.storage: [JSONFileStorage.delete] 删除成功
+2026-06-17 13:59:08,862 [    INFO] core.storage: [JSONFileStorage.delete] Deleted: key
+2026-06-17 13:59:08,866 [    INFO] core.storage: [create_storage] 开始创建存储: type=memory, kwargs={}
+2026-06-17 13:59:08,866 [    INFO] core.storage: [create_storage] 创建 InMemoryStorage
+2026-06-17 13:59:08,866 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,866 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,866 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,866 [    INFO] core.storage: [create_storage] InMemoryStorage 创建完成
+2026-06-17 13:59:08,870 [    INFO] core.storage: [create_storage] 开始创建存储: type=json, kwargs={'base_dir': 'C:\\Windows\\TEMP\\tmpystshh7s'}
+2026-06-17 13:59:08,870 [    INFO] core.storage: [create_storage] 创建 JSONFileStorage
+2026-06-17 13:59:08,870 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:08,870 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpystshh7s
+2026-06-17 13:59:08,870 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpystshh7s
+2026-06-17 13:59:08,871 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:08,871 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpystshh7s
+2026-06-17 13:59:08,871 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:08,871 [    INFO] core.storage: [create_storage] JSONFileStorage 创建完成
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test, default=None
+2026-06-17 13:59:08,881 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test
+2026-06-17 13:59:08,956 [    INFO] test_file_logger: test message
+2026-06-17 13:59:09,028 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key1
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\key1.json
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\key1.json
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage.save] Saved: key1
+2026-06-17 13:59:09,034 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key2
+2026-06-17 13:59:09,035 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\key2.json
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\key2.json
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] Saved: key2
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=prefix_key3
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\prefix_key3.json
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_list_keys0\prefix_key3.json
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.save] Saved: prefix_key3
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.list_keys] 开始列出键: prefix=None
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.list_keys] 返回 3 个键
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.list_keys] 开始列出键: prefix=prefix
+2026-06-17 13:59:09,036 [    INFO] core.storage: [JSONFileStorage.list_keys] 返回 1 个键
+2026-06-17 13:59:09,042 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_load_default0
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_load_default0
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_load_default0
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,043 [    INFO] core.storage: [JSONFileStorage.load] 开始加载: key=nonexistent, default=default
+2026-06-17 13:59:09,044 [ WARNING] core.storage: [JSONFileStorage.load] 文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_load_default0\nonexistent.json, 返回默认值
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_with_sp0
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_with_sp0
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_with_sp0
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=path/to/file
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_with_sp0\path_to_file.json
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_with_sp0\path_to_file.json
+2026-06-17 13:59:09,049 [    INFO] core.storage: [JSONFileStorage.save] Saved: path/to/file
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_error_handli0
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_error_handli0
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_error_handli0
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,055 [    INFO] core.storage: [JSONFileStorage.load] 开始加载: key=invalid, default=None
+2026-06-17 13:59:09,057 [    INFO] core.storage: [JSONFileStorage.load] 文件存在，开始读取: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_error_handli0\invalid.json
+2026-06-17 13:59:09,057 [   ERROR] core.storage: [JSONFileStorage.load] 读取异常: Expecting value: line 1 column 1 (char 0)
+2026-06-17 13:59:09,057 [ WARNING] core.storage: Failed to load invalid: Expecting value: line 1 column 1 (char 0)
+2026-06-17 13:59:09,060 [    INFO] core.storage: [create_storage] 开始创建存储: type=invalid_type, kwargs={}
+2026-06-17 13:59:09,060 [   ERROR] core.storage: [create_storage] 未知的存储类型: invalid_type
+2026-06-17 13:59:09,063 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:09,063 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:09,063 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:09,063 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=user_1
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: user_1
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=user_2
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: user_2
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=admin_1
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: admin_1
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.list_keys] 开始列出键: prefix=user
+2026-06-17 13:59:09,064 [    INFO] core.storage: [InMemoryStorage.list_keys] 返回 2 个键
+2026-06-17 13:59:09,068 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,068 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_excepti0
+2026-06-17 13:59:09,068 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_excepti0
+2026-06-17 13:59:09,069 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,069 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_excepti0
+2026-06-17 13:59:09,069 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,069 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=test
+2026-06-17 13:59:09,069 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_save_excepti0\test.json
+2026-06-17 13:59:09,070 [   ERROR] core.storage: [JSONFileStorage.save] 写入异常: Permission denied
+2026-06-17 13:59:09,070 [   ERROR] core.storage: Failed to save test: Permission denied
+2026-06-17 13:59:09,075 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,075 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_nonex0
+2026-06-17 13:59:09,075 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_nonex0
+2026-06-17 13:59:09,075 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,075 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_nonex0
+2026-06-17 13:59:09,078 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,078 [    INFO] core.storage: [JSONFileStorage.delete] 开始删除: key=nonexistent
+2026-06-17 13:59:09,078 [ WARNING] core.storage: [JSONFileStorage.delete] 文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_nonex0\nonexistent.json
+2026-06-17 13:59:09,080 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,080 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0
+2026-06-17 13:59:09,080 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0
+2026-06-17 13:59:09,080 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=test
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0\test.json
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0\test.json
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.save] Saved: test
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.delete] 开始删除: key=test
+2026-06-17 13:59:09,084 [    INFO] core.storage: [JSONFileStorage.delete] 删除文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_delete_excep0\test.json
+2026-06-17 13:59:09,085 [   ERROR] core.storage: [JSONFileStorage.delete] 删除异常: Permission denied
+2026-06-17 13:59:09,085 [   ERROR] core.storage: Failed to delete test: Permission denied
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath0
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath0
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath0
+2026-06-17 13:59:09,090 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath1
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath1
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath1
+2026-06-17 13:59:09,096 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath2
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath2
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_json_storage_get_filepath2
+2026-06-17 13:59:09,100 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,106 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:09,106 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:09,106 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:09,106 [    INFO] core.storage: [InMemoryStorage.delete] 开始删除: key=nonexistent
+2026-06-17 13:59:09,106 [ WARNING] core.storage: [InMemoryStorage.delete] 键不存在: nonexistent
+2026-06-17 13:59:09,111 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:09,111 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:09,111 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:09,111 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test_key
+2026-06-17 13:59:09,111 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test_key
+2026-06-17 13:59:09,116 [    INFO] core.storage: [create_storage] 开始创建存储: type=json, kwargs={'base_dir': 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-224\\test_create_storage_json_with_0', 'invalid_arg': 'test'}
+2026-06-17 13:59:09,116 [    INFO] core.storage: [create_storage] 创建 JSONFileStorage
+2026-06-17 13:59:09,116 [ WARNING] core.storage: [create_storage] JSONFileStorage 不支持的参数将被忽略: ['invalid_arg']
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_create_storage_json_with_0
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_create_storage_json_with_0
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_create_storage_json_with_0
+2026-06-17 13:59:09,116 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-17 13:59:09,116 [    INFO] core.storage: [create_storage] JSONFileStorage 创建完成
+2026-06-17 13:59:09,121 [    INFO] core.storage: [create_storage] 开始创建存储: type=memory, kwargs={'base_dir': '/some/path', 'extra_arg': 'test'}
+2026-06-17 13:59:09,121 [    INFO] core.storage: [create_storage] 创建 InMemoryStorage
+2026-06-17 13:59:09,121 [ WARNING] core.storage: [create_storage] InMemoryStorage 不接受参数，传入的参数将被忽略: dict_keys(['base_dir', 'extra_arg'])
+2026-06-17 13:59:09,121 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-17 13:59:09,121 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-17 13:59:09,121 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-17 13:59:09,121 [    INFO] core.storage: [create_storage] InMemoryStorage 创建完成
+2026-06-17 13:59:09,129 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,131 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,135 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=21)
+2026-06-17 13:59:09,136 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=2)
+2026-06-17 13:59:09,140 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,156 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,160 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=2.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,165 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,166 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,171 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,175 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=2, UA=21)
+2026-06-17 13:59:09,179 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,182 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,185 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,188 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,192 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:09,195 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,195 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,199 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,199 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,202 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,202 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,202 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,205 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,205 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,205 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,206 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-17 13:59:09,209 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,209 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,209 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 3 天
+2026-06-17 13:59:09,211 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 10 条事件
+2026-06-17 13:59:09,214 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,214 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,214 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,217 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 1.0x
+2026-06-17 13:59:09,222 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-17 13:59:09,227 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,227 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,227 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,227 [    INFO] agent.data_analytics: [DataAnalytics] 异常检测完成: 1 个异常
+2026-06-17 13:59:09,233 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,233 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,233 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,236 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,236 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,236 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,236 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,242 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,242 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,242 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,242 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,246 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,246 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,246 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,246 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,250 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,250 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,253 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,253 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,256 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,256 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,260 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,260 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,261 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: json
+2026-06-17 13:59:09,261 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,261 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-17 13:59:09,261 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,261 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,262 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,266 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,266 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,266 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: html
+2026-06-17 13:59:09,266 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,267 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-17 13:59:09,267 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,267 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,268 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,273 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,274 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,276 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-17 13:59:09,276 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,277 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-17 13:59:09,277 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,277 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,277 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 生成报告: text
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 趋势分析完成: 1 条事件
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:59:09,280 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:59:09,286 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,286 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,289 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:59:09,289 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:59:09,408 [    INFO] agent.diagram_tools: 生成架构图:  -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia0\test.html
+2026-06-17 13:59:09,413 [    INFO] agent.diagram_tools: 生成架构图: Test -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia1\test.html
+2026-06-17 13:59:09,416 [    INFO] agent.diagram_tools: 生成架构图: Test -> 
+2026-06-17 13:59:09,422 [    INFO] agent.diagram_tools: 生成架构图: Test System -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia2\architecture.html
+2026-06-17 13:59:09,423 [    INFO] agent.diagram_tools: 架构图已生成: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia2\architecture.html (3 个组件)
+2026-06-17 13:59:09,429 [    INFO] agent.diagram_tools: 生成架构图: All Types -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia3\all_types.html
+2026-06-17 13:59:09,430 [    INFO] agent.diagram_tools: 架构图已生成: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_architecture_dia3\all_types.html (6 个组件)
+2026-06-17 13:59:09,449 [    INFO] agent.diagram_tools: 生成架构图: Long Names -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_with_long_names0\long_name.html
+2026-06-17 13:59:09,450 [    INFO] agent.diagram_tools: 架构图已生成: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_with_long_names0\long_name.html (1 个组件)
+2026-06-17 13:59:09,455 [    INFO] agent.diagram_tools: 生成架构图: Special Chars -> C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_with_special_cha0\special_chars.html
+2026-06-17 13:59:09,456 [    INFO] agent.diagram_tools: 架构图已生成: C:\Windows\Temp\pytest-of-AdminWT\pytest-224\test_generate_with_special_cha0\special_chars.html (1 个组件)
+2026-06-17 13:59:09,487 [ WARNING] agent.digital_life: Budget context assembly failed: 'MockMemory' object has no attribute '_storage', falling back
+2026-06-17 13:59:09,488 [   ERROR] agent.digital_life: LLM 调用失败: 'MockLLM' object has no attribute '_get_client'
+2026-06-17 13:59:09,836 [ WARNING] agent.digital_life: Budget context assembly failed: 'MockMemory' object has no attribute '_storage', falling back
+2026-06-17 13:59:09,856 [   ERROR] agent.digital_life: LLM 调用失败: 'MockLLM' object has no attribute '_get_client'
+2026-06-17 13:59:09,867 [ WARNING] agent.digital_life: Budget context assembly failed: 'MockMemory' object has no attribute '_storage', falling back
+2026-06-17 13:59:09,872 [   ERROR] agent.digital_life: LLM 调用失败: 'MockLLM' object has no attribute '_get_client'
+2026-06-17 13:59:10,099 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,101 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 13:59:10,103 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 13:59:10,104 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 13:59:10,104 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,106 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 13:59:10,107 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 13:59:10,107 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 13:59:10,107 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 13:59:10,108 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 13:59:10,110 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 13:59:10,110 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 13:59:10,110 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 13:59:10,110 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 13:59:10,110 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 13:59:10,112 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 13:59:10,112 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 13:59:10,112 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 13:59:10,112 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 13:59:10,112 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:10,112 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）
+2026-06-17 13:59:10,256 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,258 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,260 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 13:59:10,261 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 13:59:10,263 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 13:59:10,264 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 13:59:10,264 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 13:59:10,264 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 13:59:10,266 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 13:59:10,266 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 13:59:10,266 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 13:59:10,266 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 13:59:10,266 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 13:59:10,266 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 13:59:10,266 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 13:59:10,267 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 13:59:10,267 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 13:59:10,267 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:10,267 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）
+2026-06-17 13:59:10,396 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,396 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,400 [    INFO] agent.digital_life:    - LifeTrace: [OK] 可用
+2026-06-17 13:59:10,400 [    INFO] agent.digital_life:    - Persona: [OK] 可用
+2026-06-17 13:59:10,400 [    INFO] agent.digital_life:    - Planning: [OK] 可用
+2026-06-17 13:59:10,400 [    INFO] agent.digital_life:    - Vector Memory: [OK] 可用
+2026-06-17 13:59:10,400 [    INFO] agent.digital_life:    - Monitoring: [OK] 可用
+2026-06-17 13:59:10,401 [    INFO] agent.digital_life:    - Voice: [OK] 可用
+2026-06-17 13:59:10,401 [    INFO] agent.digital_life:    - OCR: [OK] 可用
+2026-06-17 13:59:10,401 [    INFO] agent.digital_life:    - P6 Snapshot: [OK] 可用
+2026-06-17 13:59:10,402 [    INFO] agent.digital_life:    请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,402 [    INFO] agent.digital_life:    实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-17 13:59:10,402 [    INFO] agent.digital_life: 
+================================================================================
+2026-06-17 13:59:10,403 [    INFO] agent.digital_life: 开始初始化各子系统
+2026-06-17 13:59:10,403 [    INFO] agent.digital_life: ================================================================================
+2026-06-17 13:59:10,403 [    INFO] agent.digital_life: [ok] 身体（BodySensor）已激活
+2026-06-17 13:59:10,403 [    INFO] agent.digital_life: [ok] 思维（PromptInjector）已激活
+2026-06-17 13:59:10,403 [    INFO] agent.digital_life: [ok] 记忆（MemoryManager）已激活
+2026-06-17 13:59:10,404 [    INFO] agent.digital_life: [ok] 本能（BehaviorController）已激活
+2026-06-17 13:59:10,404 [    INFO] agent.digital_life: [ok] 道德（PermissionSystem）已激活
+2026-06-17 13:59:10,406 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-17 13:59:10,406 [    INFO] agent.digital_life: [网络] 已加载网络配置
+2026-06-17 13:59:10,406 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-17 13:59:10,406 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 13:59:10,407 [    INFO] agent.web.search: [搜索引擎] 已注册: tavily (Tavily), 需API Key: True
+2026-06-17 13:59:10,407 [    INFO] agent.web.search: [搜索引擎] 已注册: bing (Bing), 需API Key: True
+2026-06-17 13:59:10,407 [    INFO] agent.web.search: [搜索引擎] 已注册: google (Google), 需API Key: True
+2026-06-17 13:59:10,407 [    INFO] agent.web.search: [搜索引擎] 已注册: brave (Brave), 需API Key: True
+2026-06-17 13:59:10,407 [    INFO] agent.web.search: [搜索引擎] 已注册: duckduckgo (DuckDuckGo), 需API Key: False
+2026-06-17 13:59:10,408 [    INFO] agent.web.search: [搜索引擎] 已注册: baidu (百度), 需API Key: False
+2026-06-17 13:59:10,408 [    INFO] agent.web.search: [搜索引擎] 已注册: sogou (搜狗), 需API Key: False
+2026-06-17 13:59:10,408 [    INFO] agent.web.search: [搜索引擎] 已注册: so360 (360搜索), 需API Key: False
+2026-06-17 13:59:10,408 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: duckduckgo, 优先级: ['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google'])
+2026-06-17 13:59:10,408 [    INFO] agent.digital_life: [ok] 搜索引擎已配置: 默认引擎=duckduckgo, 优先级=['duckduckgo', 'baidu', 'sogou', 'so360', 'tavily', 'bing', 'brave', 'google']
+2026-06-17 13:59:10,408 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-17 13:59:10,408 [    INFO] agent.digital_life: [ok] 网络模块已激活（搜索引擎: duckduckgo）

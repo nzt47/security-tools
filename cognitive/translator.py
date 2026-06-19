@@ -19,18 +19,50 @@ class Translator:
         匹配逻辑：按 sensor_name 查找规则 → 遍历 thresholds 找值所在区间 → 返回 message。
         区间约定：min <= value < max（左闭右开）。
         """
-        rule = self.config.get_rule(reading.get("sensor_name", ""))
+        if not isinstance(reading, dict):
+            return "传感器读数未识别"
+        
+        sensor_name = reading.get("sensor_name", "")
+        
+        if not sensor_name:
+            return "传感器读数未识别"
+        
+        rule = self.config.get_rule(sensor_name)
         if not rule or "thresholds" not in rule:
-            return self._fallback(reading)
+            return "传感器读数未识别"
 
         value = reading.get("value", 0)
-        for threshold in rule["thresholds"]:
-            lo = threshold.get("min", float("-inf"))
-            hi = threshold.get("max", float("inf"))
-            if lo <= value < hi:
-                return threshold["message"]
+        
+        if value is None:
+            return "传感器读数未识别"
+        
+        if isinstance(value, str):
+            try:
+                value = float(value)
+            except (ValueError, TypeError):
+                return "传感器读数未识别"
+        
+        try:
+            for threshold in rule["thresholds"]:
+                lo = threshold.get("min", float("-inf"))
+                hi = threshold.get("max", float("inf"))
+                if hi == float("inf"):
+                    if lo <= value:
+                        return threshold["message"]
+                elif lo == float("-inf"):
+                    if value < hi:
+                        return threshold["message"]
+                else:
+                    if lo <= value < hi:
+                        return threshold["message"]
+        except TypeError:
+            return "传感器读数未识别"
 
-        return self._fallback(reading)
+        return "传感器读数未识别"
+    
+    def _is_valid_value(self, value):
+        """检查值是否为有效的数值类型"""
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
 
     def translate_all(self, readings: list[dict]) -> list[str]:
         """批量翻译多条传感器读数"""

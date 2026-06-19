@@ -98,8 +98,8 @@ __all__ = [
     "DataSanitizer",
 ]
 
-# 向量记忆模块
-from agent.memory import VectorStore, MemoryItem, KnowledgeBase
+# 向量记忆模块（从 memory 包导入）
+from memory import VectorStore, MemoryItem, KnowledgeBase
 
 # 向后兼容导出
 __all__ += ["VectorStore", "MemoryItem", "KnowledgeBase"]

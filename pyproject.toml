@@ -14,15 +14,13 @@ authors = [
 maintainers = [
   { name = "Yunshu Team", email = "team@Yunshu.ai" }
 ]
-requires-python = ">=3.8,<3.13"
+requires-python = ">=3.10,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -30,9 +28,6 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 keywords = ["AI", "digital-life", "agent", "cognitive"]
-
-[project.scripts]
-Yunshu = "agent.digital_life:main"
 
 [project.dependencies]
 psutil = ">=5.9.0,<6.0.0"
@@ -59,6 +54,9 @@ pydub = ">=0.25.1,<0.26.0"
 watchdog = ">=3.0.0,<4.0.0"
 GPUtil = ">=1.4.0,<1.5.0"
 pynvml = ">=11.0.0,<12.0.0"
+flask = ">=3.0.0"
+prometheus-flask-exporter = ">=0.23.0"
+gunicorn = ">=21.2.0"
 
 [project.optional-dependencies]
 windows = [
@@ -81,12 +79,12 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace"]
+where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
 include = ["*"]
 
 [tool.black]
 line-length = 120
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -106,12 +104,12 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 120
-py_version = 38
+py_version = 310
 include_trailing_comma = true
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 ignore_missing_imports = true
 show_error_codes = true
 strict = false
@@ -125,7 +123,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace"]
+source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
 
 [tool.coverage.report]
 show_missing = true

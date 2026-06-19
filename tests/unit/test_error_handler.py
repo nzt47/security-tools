@@ -1,7 +1,6 @@
-"""
-ErrorHandler 单元测试
-测试 agent/error_handler.py 的功能
-"""
+"""合并后的测试文件 - 由 test_file_consolidation 工具自动生成。"""
+# pylint: disable=redefined-outer-name,missing-function-docstring
+
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone, timedelta
@@ -25,6 +24,61 @@ from agent.error_handler import (
     with_retry,
     with_circuit_breaker,
 )
+import asyncio
+import time
+from unittest.mock import MagicMock, patch, call
+from datetime import datetime, timedelta
+from agent.error_handler import (
+    ErrorSeverity,
+    ErrorCategory,
+    CircuitState,
+    YunshuError,
+    RecoverableError,
+    CriticalError,
+    TemporaryNetworkError,
+    NetworkTimeoutError,
+    ExternalServiceError,
+    DataInvalidError,
+    SecurityError,
+    ErrorMetrics,
+    CircuitBreaker,
+    RetryPolicy,
+    ErrorHandler,
+    get_error_handler,
+    with_retry,
+    async_with_retry,
+    with_circuit_breaker,
+)
+from agent.error_handler import (
+    ErrorHandler,
+    ErrorMetrics,
+    ErrorSeverity,
+    ErrorCategory,
+    YunshuError,
+    CircuitBreaker,
+    RetryPolicy,
+    with_retry,
+    get_error_handler,
+)
+from agent.error_handler import (
+    ErrorHandler,
+    YunshuError,
+    CircuitBreaker,
+    CircuitState,
+    RetryPolicy,
+    async_with_retry,
+    with_retry,
+    ErrorSeverity,
+    ErrorCategory,
+)
+
+
+# === 来自 test_error_handler.py ===
+
+"""
+ErrorHandler 单元测试
+测试 agent/error_handler.py 的功能
+"""
 
 
 class TestErrorSeverity:
@@ -1557,7 +1611,7 @@ class TestErrorHandlerAdditionalCoverage:
         assert call_count[0] == 2
 
 
-class TestGlobalErrorHandler:
+class TestGlobalErrorHandler_error_handler:
     """测试全局错误处理器"""
     
     @pytest.mark.unit
@@ -1660,7 +1714,7 @@ class TestCircuitBreakerPrivateMethods:
         assert cb._can_half_open() is False
 
 
-class TestErrorMetricsPostInit:
+class TestErrorMetricsPostInit_error_handler:
     """测试 ErrorMetrics 的 __post_init__ 方法"""
     
     @pytest.mark.unit
@@ -2090,7 +2144,7 @@ class TestErrorMetricsPostInitFull:
         assert metrics.count_by_category[ErrorCategory.UNKNOWN] == 0
 
 
-class TestErrorHandlerExecuteWithRetryFull:
+class TestErrorHandlerExecuteWithRetryFull_error_handler:
     """测试 ErrorHandler.execute_with_retry 的完整覆盖"""
 
     @pytest.mark.unit
@@ -3031,7 +3085,7 @@ class TestErrorHandlerExecuteWithRetryFullCoverage:
             handler.execute_with_retry(success_func, circuit_breaker=cb)
 
 
-class TestErrorHandlerConcurrency:
+class TestErrorHandlerConcurrency_error_handler:
     """测试 ErrorHandler 的线程安全性"""
 
     @pytest.mark.unit
@@ -3415,7 +3469,7 @@ class TestRetryPolicyShouldRetry:
         assert result is False
 
 
-class TestErrorHandlerExecuteWithRetryEdgeCases:
+class TestErrorHandlerExecuteWithRetryEdgeCases_error_handler:
     """测试 ErrorHandler.execute_with_retry 的额外边界情况"""
 
     @pytest.mark.unit
@@ -4401,3 +4455,1053 @@ class TestWithCircuitBreakerDecoratorEdgeCases:
         assert result == "success"
         assert cb.state == CircuitState.CLOSED
 
+# === 来自 test_error_handler_comprehensive.py ===
+
+"""
+ErrorHandler 综合测试 - 覆盖剩余未覆盖的代码
+目标：将覆盖率从 30% 提升至 90%+
+"""
+
+
+class TestErrorHandlerRemainingCoverage:
+    """测试 ErrorHandler 剩余未覆盖的代码"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_with_args_kwargs(self):
+        """测试 execute_with_retry 使用 func_args 和 func_kwargs 参数"""
+        handler = ErrorHandler()
+        
+        def test_func(a, b, c=3):
+            return a + b + c
+        
+        result = handler.execute_with_retry(
+            test_func,
+            func_args=(1, 2),
+            func_kwargs={'c': 4}
+        )
+        assert result == 7
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_on_retry_callback(self):
+        """测试 execute_with_retry 的 on_retry 回调"""
+        handler = ErrorHandler()
+        retry_count = [0]
+        
+        def on_retry_callback(attempt, exc):
+            retry_count[0] += 1
+        
+        def failing_func():
+            raise RecoverableError("总是失败")
+        
+        with pytest.raises(YunshuError):
+            handler.execute_with_retry(
+                failing_func,
+                retry_policy=RetryPolicy(max_retries=2, initial_delay=0.01),
+                on_retry=on_retry_callback
+            )
+        
+        assert retry_count[0] == 2
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_error_counter(self):
+        """测试 execute_with_retry 的 error_counter 参数"""
+        handler = ErrorHandler()
+        
+        def success_func():
+            return "success"
+        
+        result = handler.execute_with_retry(
+            success_func,
+            error_counter="test_counter"
+        )
+        assert result == "success"
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_get_metrics_all(self):
+        """测试 get_metrics 不带参数时返回所有指标"""
+        handler = ErrorHandler()
+        handler.record_error(YunshuError("测试错误1"))
+        handler.record_error(YunshuError("测试错误2"))
+        
+        all_metrics = handler.get_metrics()
+        assert isinstance(all_metrics, dict)
+        assert "YunshuError" in all_metrics
+
+
+class TestRetryPolicyAdditional:
+    """测试 RetryPolicy 剩余未覆盖的代码"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_retry_policy_linear_strategy(self):
+        """测试线性重试策略"""
+        policy = RetryPolicy(strategy="linear", initial_delay=1.0)
+        delay = policy.calculate_delay(2)
+        assert delay == 3.0  # 1.0 * (2 + 1)
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_retry_policy_fixed_strategy(self):
+        """测试固定重试策略"""
+        policy = RetryPolicy(strategy="fixed", initial_delay=2.0)
+        delay = policy.calculate_delay(5)
+        assert delay == 2.0
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_retry_policy_invalid_strategy(self):
+        """测试无效策略使用默认值"""
+        policy = RetryPolicy(strategy="invalid", initial_delay=1.5)
+        delay = policy.calculate_delay(2)
+        assert delay == 1.5  # 默认使用固定延迟
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_retry_policy_jitter_disabled(self):
+        """测试禁用抖动"""
+        policy = RetryPolicy(jitter_factor=0.0)
+        delay = policy.calculate_delay(0)
+        assert delay == policy.initial_delay
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_should_retry_with_custom_condition(self):
+        """测试自定义重试条件"""
+        def custom_condition(exc):
+            return "retry" in str(exc)
+        
+        policy = RetryPolicy(
+            max_retries=3,
+            custom_retry_condition=custom_condition
+        )
+        
+        assert policy.should_retry(ValueError("should retry"), 0) is True
+        assert policy.should_retry(ValueError("no retry"), 0) is False
+
+
+class TestCircuitBreakerAdditional:
+    """测试 CircuitBreaker 剩余未覆盖的代码"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_circuit_breaker_half_open_timeout(self):
+        """测试半开状态超时"""
+        cb = CircuitBreaker(max_failures=1, reset_timeout=0.1)
+        cb.record_failure()  # 打开断路器
+        
+        time.sleep(0.15)  # 超过重置超时
+        
+        with patch.object(cb, '_can_reset', return_value=True):
+            cb._can_half_open()
+        
+        assert cb.state == CircuitState.OPEN  # 状态不会自动改变，需要执行时检查
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_circuit_breaker_execute_raises_critical_error(self):
+        """测试断路器打开时执行抛出 CriticalError"""
+        cb = CircuitBreaker(max_failures=1)
+        cb.record_failure()  # 打开断路器
+        
+        def test_func():
+            return "test"
+        
+        with pytest.raises(CriticalError):
+            cb.execute(test_func)
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_circuit_breaker_success_after_reset(self):
+        """测试断路器重置后的成功执行"""
+        cb = CircuitBreaker(max_failures=1, reset_timeout=0.1)
+        cb.record_failure()  # 打开断路器
+        
+        time.sleep(0.15)  # 等待超时
+        
+        def success_func():
+            return "success"
+        
+        result = cb.execute(success_func)
+        assert result == "success"
+        assert cb.state == CircuitState.CLOSED
+
+
+class TestDecorators_error_handler_comprehensive:
+    """测试装饰器功能"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_decorator(self):
+        """测试 with_retry 装饰器"""
+        call_count = [0]
+        
+        @with_retry(max_retries=2, initial_delay=0.01)
+        def flaky_func():
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                raise RecoverableError("暂时失败")
+            return "success"
+        
+        result = flaky_func()
+        assert result == "success"
+        assert call_count[0] == 3
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_decorator_non_retryable(self):
+        """测试 with_retry 装饰器处理不可重试异常"""
+        @with_retry(max_retries=2)
+        def always_fail():
+            raise ValueError("不可重试")
+        
+        with pytest.raises(YunshuError):
+            always_fail()
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_circuit_breaker_decorator(self):
+        """测试 with_circuit_breaker 装饰器"""
+        cb = CircuitBreaker(max_failures=2)
+        
+        @with_circuit_breaker(cb)
+        def test_func():
+            return "success"
+        
+        result = test_func()
+        assert result == "success"
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    @pytest.mark.asyncio
+    async def test_async_with_retry_decorator(self):
+        """测试 async_with_retry 装饰器"""
+        call_count = [0]
+        
+        @async_with_retry(max_retries=2, initial_delay=0.01)
+        async def async_flaky_func():
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                raise RecoverableError("暂时失败")
+            return "success"
+        
+        result = await async_flaky_func()
+        assert result == "success"
+        assert call_count[0] == 3
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    @pytest.mark.asyncio
+    async def test_async_with_retry_non_retryable(self):
+        """测试 async_with_retry 装饰器处理不可重试异常"""
+        @async_with_retry(max_retries=2)
+        async def async_fail():
+            raise ValueError("不可重试")
+        
+        with pytest.raises(YunshuError):
+            await async_fail()
+
+
+class TestErrorCategories:
+    """测试所有错误分类"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_all_error_categories(self):
+        """测试所有错误分类值"""
+        categories = [
+            ErrorCategory.NETWORK_TEMPORARY,
+            ErrorCategory.NETWORK_TIMEOUT,
+            ErrorCategory.NETWORK_CONNECTION,
+            ErrorCategory.RESOURCE_MEMORY,
+            ErrorCategory.RESOURCE_DISK,
+            ErrorCategory.RESOURCE_CPU,
+            ErrorCategory.EXTERNAL_SERVICE,
+            ErrorCategory.EXTERNAL_API,
+            ErrorCategory.DATA_INVALID,
+            ErrorCategory.DATA_MISSING,
+            ErrorCategory.DATA_CORRUPT,
+            ErrorCategory.PERMISSION_DENIED,
+            ErrorCategory.SECURITY_ALERT,
+            ErrorCategory.CONFIG_ERROR,
+            ErrorCategory.UNKNOWN,
+        ]
+        
+        for cat in categories:
+            assert isinstance(cat.value, str)
+
+
+class TestGlobalErrorHandler_error_handler_comprehensive:
+    """测试全局错误处理器"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_global_error_handler_singleton(self):
+        """测试全局错误处理器是单例"""
+        handler1 = get_error_handler()
+        handler2 = get_error_handler()
+        assert handler1 is handler2
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_global_error_handler_functionality(self):
+        """测试全局错误处理器功能"""
+        handler = get_error_handler()
+        error = handler.record_error(ValueError("测试"))
+        assert isinstance(error, YunshuError)
+
+# === 来自 test_error_handler_final.py ===
+
+"""
+ErrorHandler 最终补充测试用例
+覆盖剩余未覆盖的代码：metrics收集分支、get_metrics、get_circuit_breaker_status等
+"""
+
+
+class TestErrorHandlerMetrics:
+    """测试 ErrorHandler 的 metrics 收集功能"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_metrics_with_key(self):
+        """测试获取特定 key 的指标"""
+        handler = ErrorHandler()
+        handler.record_error(YunshuError("测试错误"))
+        
+        metrics = handler.get_metrics("YunshuError")
+        
+        assert metrics["key"] == "YunshuError"
+        assert metrics["total_count"] == 1
+        assert "count_by_severity" in metrics
+        assert "count_by_category" in metrics
+        assert "first_occurrence" in metrics
+        assert "last_occurrence" in metrics
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_metrics_nonexistent_key(self):
+        """测试获取不存在的 key 的指标"""
+        handler = ErrorHandler()
+        
+        metrics = handler.get_metrics("nonexistent")
+        
+        assert metrics == {}
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_metrics_all(self):
+        """测试获取所有指标"""
+        handler = ErrorHandler()
+        handler.record_error(YunshuError("错误1"))
+        handler.record_error(YunshuError("错误2"))
+        
+        all_metrics = handler.get_metrics()
+        
+        assert isinstance(all_metrics, dict)
+        assert "YunshuError" in all_metrics
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_circuit_breaker_status(self):
+        """测试获取熔断器状态"""
+        handler = ErrorHandler()
+        cb1 = CircuitBreaker(name="cb1", max_failures=3)
+        cb2 = CircuitBreaker(name="cb2", max_failures=5)
+        
+        handler.register_circuit_breaker("cb1", cb1)
+        handler.register_circuit_breaker("cb2", cb2)
+        
+        status = handler.get_circuit_breaker_status()
+        
+        assert "cb1" in status
+        assert "cb2" in status
+        assert status["cb1"]["name"] == "cb1"
+        assert status["cb2"]["name"] == "cb2"
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_circuit_breaker_status_empty(self):
+        """测试获取空熔断器状态"""
+        handler = ErrorHandler()
+        
+        status = handler.get_circuit_breaker_status()
+        
+        assert status == {}
+
+
+class TestExecuteWithRetryMetrics:
+    """测试 execute_with_retry 的 metrics 收集分支"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_success_metrics(self):
+        """测试成功执行时的 metrics 收集"""
+        handler = ErrorHandler()
+        
+        with patch('agent.error_handler.get_metrics_collector') as mock_collector:
+            mock_instance = MagicMock()
+            mock_collector.return_value = mock_instance
+            
+            def success_func():
+                return "success"
+            
+            result = handler.execute_with_retry(
+                success_func,
+                error_counter="test_counter"
+            )
+            
+            assert result == "success"
+            mock_instance.increment_counter.assert_called_with("test_counter.success")
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_failure_metrics(self):
+        """测试失败执行时的 metrics 收集"""
+        handler = ErrorHandler()
+        
+        with patch('agent.error_handler.get_metrics_collector') as mock_collector:
+            mock_instance = MagicMock()
+            mock_collector.return_value = mock_instance
+            
+            def failure_func():
+                raise ValueError("失败")
+            
+            with pytest.raises(YunshuError):
+                handler.execute_with_retry(
+                    failure_func,
+                    error_counter="test_counter",
+                    retry_policy=RetryPolicy(max_retries=0)
+                )
+            
+            mock_instance.increment_counter.assert_called_with("test_counter.failure")
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_on_retry_callback(self):
+        """测试 on_retry 回调"""
+        handler = ErrorHandler()
+        retry_count = [0]
+        
+        def on_retry_callback(attempt, exc):
+            retry_count[0] += 1
+        
+        def failing_func():
+            raise YunshuError("可重试", retryable=True)
+        
+        with pytest.raises(YunshuError):
+            handler.execute_with_retry(
+                failing_func,
+                retry_policy=RetryPolicy(max_retries=2, initial_delay=0.01),
+                on_retry=on_retry_callback
+            )
+        
+        assert retry_count[0] == 2
+
+
+class TestWithRetryDecorator:
+    """测试 with_retry 装饰器"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_success(self):
+        """测试同步重试装饰器 - 成功"""
+        call_count = [0]
+        
+        @with_retry(max_retries=2, initial_delay=0.01)
+        def func():
+            call_count[0] += 1
+            return "success"
+        
+        result = func()
+        
+        assert result == "success"
+        assert call_count[0] == 1
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_with_circuit_breaker(self):
+        """测试同步重试装饰器 - 带熔断器"""
+        cb = CircuitBreaker(name="test_cb", max_failures=2)
+        
+        @with_retry(max_retries=1, initial_delay=0.01, circuit_breaker=cb)
+        def func():
+            raise ValueError("失败")
+        
+        # 第一次失败
+        with pytest.raises(YunshuError):
+            func()
+        
+        # 第二次失败触发熔断
+        with pytest.raises(YunshuError):
+            func()
+        
+        # 第三次应该被熔断器阻止
+        with pytest.raises(YunshuError):
+            func()
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_error_counter(self):
+        """测试同步重试装饰器 - error_counter"""
+        call_count = [0]
+        
+        with patch('agent.error_handler.get_metrics_collector') as mock_collector:
+            mock_instance = MagicMock()
+            mock_collector.return_value = mock_instance
+            
+            @with_retry(max_retries=0, error_counter="decorator_test")
+            def func():
+                call_count[0] += 1
+                raise ValueError("失败")
+            
+            with pytest.raises(YunshuError):
+                func()
+            
+            mock_instance.increment_counter.assert_called_with("decorator_test.failure")
+
+
+class TestRetryPolicyComplete:
+    """测试 RetryPolicy 的完整功能"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_retry_policy_custom_condition(self):
+        """测试自定义重试条件"""
+        def custom_condition(exc, attempt):
+            return "custom" in str(exc)
+        
+        policy = RetryPolicy(
+            max_retries=2,
+            custom_retry_condition=custom_condition
+        )
+        
+        assert policy.should_retry(ValueError("custom error"), 0) is True
+        assert policy.should_retry(ValueError("other error"), 0) is False
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_retry_policy_retryable_exceptions(self):
+        """测试可重试异常列表"""
+        policy = RetryPolicy(
+            max_retries=2,
+            retryable_exceptions=(ValueError, TypeError)
+        )
+        
+        assert policy.should_retry(ValueError("test"), 0) is True
+        assert policy.should_retry(TypeError("test"), 0) is True
+        assert policy.should_retry(IOError("test"), 0) is False
+
+
+class TestGlobalErrorHandler_error_handler_final:
+    """测试全局错误处理器"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_error_handler_singleton(self):
+        """测试获取全局错误处理器单例"""
+        handler1 = get_error_handler()
+        handler2 = get_error_handler()
+        
+        assert handler1 is handler2
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_global_error_handler_functionality(self):
+        """测试全局错误处理器功能"""
+        handler = get_error_handler()
+        error = YunshuError("全局测试")
+        
+        result = handler.record_error(error)
+        
+        assert result is error
+        metrics = handler.get_metrics("YunshuError")
+        assert metrics["total_count"] >= 1
+
+
+class TestCircuitBreakerComplete:
+    """测试熔断器完整功能"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_circuit_breaker_reset_timeout(self):
+        """测试熔断器超时重置"""
+        cb = CircuitBreaker(name="test_reset", max_failures=1, reset_timeout=0.1)
+        
+        # 触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(lambda: (_ for _ in ()).throw(ValueError()))
+        
+        # 等待超时
+        import time
+        time.sleep(0.2)
+        
+        # 熔断器应该进入半开状态
+        assert cb.state.value == "half_open"
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_circuit_breaker_success_after_reset(self):
+        """测试熔断后成功恢复"""
+        call_count = [0]
+        
+        cb = CircuitBreaker(name="test_recovery", max_failures=1, reset_timeout=0.1)
+        
+        def func():
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ValueError("第一次失败")
+            return "success"
+        
+        # 第一次调用失败，触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(func)
+        
+        # 等待超时
+        import time
+        time.sleep(0.2)
+        
+        # 第二次调用应该成功
+        result = cb.execute(func)
+        
+        assert result == "success"
+        assert cb.state.value == "closed"
+
+# === 来自 test_error_handler_final_coverage.py ===
+
+"""
+ErrorHandler 最终补充测试 - 覆盖剩余8%代码
+针对 error_handler.py 中83行缺失覆盖的代码进行补充测试
+"""
+
+
+class TestCircuitBreakerRecordSuccess:
+    """测试 CircuitBreaker.record_success 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_record_success_in_half_open_state(self):
+        """测试半开状态下记录成功"""
+        cb = CircuitBreaker(name="test_cb", max_failures=1, reset_timeout=0.1)
+        
+        # 触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(lambda: (_ for _ in ()).throw(ValueError()))
+        
+        assert cb.state == CircuitState.OPEN
+        
+        # 手动设置到半开状态
+        cb.state = CircuitState.HALF_OPEN
+        cb.half_open_start = datetime.now()
+        
+        # 在半开状态下记录成功
+        cb.record_success()
+        
+        # 应该恢复到关闭状态
+        assert cb.state == CircuitState.CLOSED
+        assert cb.failure_count == 0
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_record_success_in_closed_state(self):
+        """测试关闭状态下记录成功"""
+        cb = CircuitBreaker(name="test_cb", max_failures=3)
+        
+        # 在关闭状态下记录成功
+        cb.record_success()
+        
+        assert cb.success_count == 1
+        assert cb.last_success_time is not None
+        assert cb.failure_count == 0
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_record_success_multiple_times(self):
+        """测试多次记录成功"""
+        cb = CircuitBreaker(name="test_cb", max_failures=3)
+        
+        for _ in range(5):
+            cb.record_success()
+        
+        assert cb.success_count == 5
+
+
+class TestCircuitBreakerRecordFailureHalfOpen:
+    """测试 CircuitBreaker 在半开状态下记录失败"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_record_failure_in_half_open_reopens(self):
+        """测试半开状态下失败导致重新熔断"""
+        cb = CircuitBreaker(name="test_cb", max_failures=1, reset_timeout=0.1)
+        
+        # 触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(lambda: (_ for _ in ()).throw(ValueError()))
+        
+        # 等待超时进入半开状态
+        time.sleep(0.15)
+        
+        # 在半开状态下记录失败
+        cb.record_failure()
+        
+        # 应该重新进入熔断状态
+        assert cb.state == CircuitState.OPEN
+        assert cb.last_failure_time is not None
+
+
+class TestCircuitBreakerCheckStateTransition:
+    """测试 CircuitBreaker._check_state_transition 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_check_state_transition_to_half_open(self):
+        """测试状态转换到半开"""
+        cb = CircuitBreaker(name="test_cb", max_failures=1, reset_timeout=0.1)
+        
+        # 触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(lambda: (_ for _ in ()).throw(ValueError()))
+        
+        assert cb.state == CircuitState.OPEN
+        
+        # 直接调用 _check_state_transition，它会检查时间
+        # 由于时间可能不够，我们跳过这个测试
+        pytest.skip("时间依赖测试不稳定")
+
+
+class TestCircuitBreakerExecuteSuccess:
+    """测试 CircuitBreaker.execute 成功执行"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_success_records_success(self):
+        """测试成功执行后记录成功"""
+        cb = CircuitBreaker(name="test_cb", max_failures=3)
+        
+        def success_func():
+            return "success"
+        
+        result = cb.execute(success_func)
+        
+        assert result == "success"
+        assert cb.success_count == 1
+
+
+class TestCircuitBreakerIsOpen:
+    """测试 CircuitBreaker.is_open 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_is_open_when_open(self):
+        """测试熔断状态下 is_open 返回 True"""
+        cb = CircuitBreaker(name="test_cb", max_failures=1)
+        
+        # 触发熔断
+        with pytest.raises(ValueError):
+            cb.execute(lambda: (_ for _ in ()).throw(ValueError()))
+        
+        assert cb.is_open() is True
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_is_open_when_closed(self):
+        """测试关闭状态下 is_open 返回 False"""
+        cb = CircuitBreaker(name="test_cb", max_failures=3)
+        
+        assert cb.is_open() is False
+
+
+class TestCircuitBreakerGetStatus_error_handler_final_coverage:
+    """测试 CircuitBreaker.get_status 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_status_complete(self):
+        """测试获取完整状态"""
+        # 跳过这个测试，因为 get_status 方法可能不存在或实现不同
+        pytest.skip("get_status 方法实现可能不同")
+
+
+class TestRetryPolicyShouldRetryBranches_error_handler_final_coverage:
+    """测试 RetryPolicy.should_retry 的分支"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_should_retry_exception_type_not_match(self):
+        """测试异常类型不匹配时不应重试"""
+        policy = RetryPolicy(
+            max_retries=3,
+            retryable_exceptions=(ValueError, TypeError)
+        )
+        
+        # IOError 不在可重试列表中
+        assert policy.should_retry(IOError("test"), 0) is False
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_should_retry_custom_condition_false(self):
+        """测试自定义条件返回 False 时不应重试"""
+        def custom_condition(exc):
+            return "retry" in str(exc)
+        
+        policy = RetryPolicy(
+            max_retries=3,
+            custom_retry_condition=custom_condition
+        )
+        
+        # 异常消息不包含 "retry"，自定义条件返回 False
+        # 但由于没有 retryable_exceptions，可能不会进入这个分支
+        # 所以我们跳过这个测试
+        pytest.skip("测试条件不满足")
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_should_retry_custom_condition_true(self):
+        """测试自定义条件返回 True 时应重试"""
+        def custom_condition(exc):
+            return "retry" in str(exc)
+        
+        policy = RetryPolicy(
+            max_retries=3,
+            custom_retry_condition=custom_condition
+        )
+        
+        # 异常消息包含 "retry"
+        assert policy.should_retry(ValueError("please retry this"), 0) is True
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_should_retry_all_conditions_pass(self):
+        """测试所有条件都通过时允许重试"""
+        policy = RetryPolicy(
+            max_retries=3,
+            retryable_exceptions=(ValueError,),
+            custom_retry_condition=lambda e: True
+        )
+        
+        assert policy.should_retry(ValueError("test"), 0) is True
+
+
+class TestRetryPolicyCalculateDelayFixed:
+    """测试 RetryPolicy.calculate_delay 固定延迟策略"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_calculate_delay_fixed_strategy(self):
+        """测试固定延迟策略"""
+        policy = RetryPolicy(
+            max_retries=5,
+            initial_delay=1.0,
+            backoff_factor=1.0,
+            jitter_factor=0.0
+        )
+        
+        # 固定延迟应该每次都相同
+        delays = [policy.calculate_delay(i) for i in range(5)]
+        
+        assert all(d == 1.0 for d in delays)
+
+
+class TestErrorHandlerRegisterCircuitBreaker:
+    """测试 ErrorHandler.register_circuit_breaker 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_register_circuit_breaker_thread_safe(self):
+        """测试线程安全注册熔断器"""
+        handler = ErrorHandler()
+        cb = CircuitBreaker(name="test_cb", max_failures=5)
+        
+        handler.register_circuit_breaker("test", cb)
+        
+        assert handler.get_circuit_breaker("test") is cb
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_register_multiple_circuit_breakers(self):
+        """测试注册多个熔断器"""
+        handler = ErrorHandler()
+        cb1 = CircuitBreaker(name="cb1", max_failures=3)
+        cb2 = CircuitBreaker(name="cb2", max_failures=5)
+        
+        handler.register_circuit_breaker("cb1", cb1)
+        handler.register_circuit_breaker("cb2", cb2)
+        
+        assert handler.get_circuit_breaker("cb1") is cb1
+        assert handler.get_circuit_breaker("cb2") is cb2
+
+
+class TestErrorHandlerGetCircuitBreaker:
+    """测试 ErrorHandler.get_circuit_breaker 方法"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_get_circuit_breaker_nonexistent(self):
+        """测试获取不存在的熔断器"""
+        handler = ErrorHandler()
+        
+        assert handler.get_circuit_breaker("nonexistent") is None
+
+
+class TestErrorHandlerExecuteWithRetryCircuitBreaker:
+    """测试 ErrorHandler.execute_with_retry 带熔断器"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_execute_with_retry_through_circuit_breaker(self):
+        """测试通过熔断器执行"""
+        handler = ErrorHandler()
+        cb = CircuitBreaker(name="test_cb", max_failures=3)
+        handler.register_circuit_breaker("test", cb)
+        
+        def success_func():
+            return "success"
+        
+        # 使用 circuit_breaker 参数而不是 circuit_breaker_name
+        result = handler.execute_with_retry(
+            success_func,
+            circuit_breaker=cb
+        )
+        
+        assert result == "success"
+        assert cb.success_count == 1
+
+
+class TestAsyncWithRetryCompleteBranches:
+    """测试 async_with_retry 的完整分支"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_async_with_retry_max_retries_exceeded(self):
+        """测试超过最大重试次数"""
+        call_count = [0]
+        
+        @async_with_retry(max_retries=2, initial_delay=0.01)
+        async def always_fail():
+            call_count[0] += 1
+            raise YunshuError("总是失败", retryable=True)
+        
+        import asyncio
+        with pytest.raises(YunshuError):
+            asyncio.run(always_fail())
+        
+        assert call_count[0] == 3  # 1次初始 + 2次重试
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_async_with_retry_with_circuit_breaker(self):
+        """测试带熔断器的异步重试"""
+        cb = CircuitBreaker(name="async_cb", max_failures=2)
+        
+        @async_with_retry(max_retries=1, initial_delay=0.01, circuit_breaker=cb)
+        async def async_func():
+            return "success"
+        
+        import asyncio
+        result = asyncio.run(async_func())
+        
+        assert result == "success"
+
+
+class TestYunshuErrorRequiresRestart:
+    """测试 YunshuError 的 requires_restart 属性"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_yunshu_error_requires_restart_true(self):
+        """测试 requires_restart=True"""
+        error = YunshuError(
+            "需要重启",
+            requires_restart=True
+        )
+        
+        assert error.requires_restart is True
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_yunshu_error_requires_restart_default(self):
+        """测试 requires_restart 默认值"""
+        error = YunshuError("测试")
+        
+        assert error.requires_restart is False
+
+
+class TestWithRetryCompleteBranches:
+    """测试 with_retry 的完整分支"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_with_error_counter(self):
+        """测试带 error_counter 的重试"""
+        call_count = [0]
+        
+        @with_retry(max_retries=1, initial_delay=0.01, error_counter="test_counter")
+        def func():
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise YunshuError("重试", retryable=True)
+            return "success"
+        
+        result = func()
+        
+        assert result == "success"
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_with_retry_with_on_retry_callback(self):
+        """测试带 on_retry 回调的重试"""
+        retry_count = [0]
+        
+        def on_retry(attempt, exc):
+            retry_count[0] += 1
+        
+        @with_retry(max_retries=2, initial_delay=0.01, on_retry=on_retry)
+        def func():
+            raise YunshuError("总是失败", retryable=True)
+        
+        with pytest.raises(YunshuError):
+            func()
+        
+        assert retry_count[0] == 2
+
+
+class TestErrorHandlerMetricsComplete:
+    """测试 ErrorHandler metrics 的完整功能"""
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_metrics_with_retry_attempts(self):
+        """测试 metrics 中的重试次数记录"""
+        handler = ErrorHandler()
+        
+        # 记录一个带重试的错误
+        error = YunshuError("测试错误")
+        handler.record_error(error)
+        
+        # 获取 metrics
+        metrics = handler.get_metrics("YunshuError")
+        
+        assert metrics["total_count"] == 1
+        # retry_attempts 可能不存在或为默认值
+        assert "retry_attempts" in metrics or metrics["total_count"] == 1
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_metrics_first_and_last_occurrence(self):
+        """测试 metrics 中的首次和最后出现时间"""
+        handler = ErrorHandler()
+        
+        # 记录多个错误
+        for _ in range(3):
+            handler.record_error(YunshuError("测试错误"))
+        
+        metrics = handler.get_metrics("YunshuError")
+        
+        assert metrics["total_count"] == 3
+        assert metrics["first_occurrence"] is not None
+        assert metrics["last_occurrence"] is not None
+        # 最后出现时间应该比首次出现时间晚或相同
+        assert metrics["last_occurrence"] >= metrics["first_occurrence"]

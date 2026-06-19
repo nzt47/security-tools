@@ -165,6 +165,15 @@ BUILTIN_EXTENSIONS: Dict[str, List[Dict[str, Any]]] = {
             "args": ["-y", "@modelcontextprotocol/server-brave-search"],
             "builtin": True,
         },
+        {
+            "id": "multi-search-engine",
+            "name": "多引擎搜索 MCP",
+            "description": "Hermes/OpenClaw多引擎搜索技能，支持17个搜索引擎",
+            "protocol": "stdio",
+            "command": "python",
+            "args": ["mcp_services/multi_search_engine.py"],
+            "builtin": True,
+        },
     ],
     "channel": [
         {
