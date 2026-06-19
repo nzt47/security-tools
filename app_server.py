@@ -3792,6 +3792,40 @@ def api_schedules_history():
 
 
 # ════════════════════════════════════════════════════════════
+#  异步任务管理 API
+# ════════════════════════════════════════════════════════════
+
+from agent.async_executor import get_async_executor as _get_async_executor
+
+@app.route("/api/tasks", methods=["GET"])
+@log_request(show_response=False)
+def api_tasks_list():
+    """列出所有异步任务"""
+    executor = _get_async_executor()
+    return jsonify(executor.list_tasks())
+
+
+@app.route("/api/tasks/<task_id>", methods=["GET"])
+@log_request(show_response=False)
+def api_task_status(task_id):
+    """获取单个异步任务状态"""
+    executor = _get_async_executor()
+    return jsonify(executor.get_status(task_id))
+
+
+@app.route("/api/tasks/<task_id>/cancel", methods=["POST"])
+@require_token
+@log_request()
+def api_task_cancel(task_id):
+    """取消异步任务"""
+    executor = _get_async_executor()
+    result = executor.cancel(task_id)
+    if result.get("ok"):
+        return jsonify(result)
+    return jsonify(result), 400
+
+
+# ════════════════════════════════════════════════════════════
 #  HTML 界面
 # ════════════════════════════════════════════════════════════
 
