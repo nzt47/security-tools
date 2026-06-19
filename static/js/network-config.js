@@ -138,11 +138,11 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
 
   apiKeys = apiKeys || {};
   searchInstances = searchInstances || __searchInstances || [];
-  // 建立实例 ID -> 实例名 映射
+  // 建立实例 ID -> 实例数据 映射
   const instanceMap = {};
   searchInstances.forEach(inst => {
     const eid = inst.id || inst.name;
-    if (eid) instanceMap[eid] = inst.name || eid;
+    if (eid) instanceMap[eid] = inst;
   });
 
   const engineNames = {
@@ -161,19 +161,20 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
 
   priority.forEach(engine => {
     const isBuiltin = !!engineNames[engine];
-    const isInstance = !isBuiltin && !!instanceMap[engine];
+    const inst = !isBuiltin ? instanceMap[engine] : null;
+    const isInstance = !!inst;
     if (!isBuiltin && !isInstance) return;
 
-    const label = isBuiltin ? engineNames[engine] : `⚡ ${instanceMap[engine]}`;
+    const label = isBuiltin ? engineNames[engine] : `⚡ ${inst.name || engine}`;
     const item = document.createElement('div');
-    item.className = 'priority-item';
+    item.className = 'priority-item' + (inst && !inst.enabled ? ' disabled' : '');
     item.dataset.engine = engine;
 
     let html = `
       <span class="priority-handle">⋮⋮</span>
       <span class="priority-label">${label}</span>
       <label class="toggle-switch small">
-        <input type="checkbox" id="nc-engine-${engine}" checked onchange="onEngineToggle('${engine}', this.checked)">
+        <input type="checkbox" id="nc-engine-${engine}" ${inst ? (inst.enabled !== false ? 'checked' : '') : 'checked'} onchange="onEngineToggle('${engine}', this.checked)">
         <span class="toggle-slider"></span>
       </label>`;
 
@@ -186,6 +187,20 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
     if (engine === 'google') {
       const cxVal = apiKeys['google_cx'] || '';
       html += `<input type="text" class="api-key-inline cx" id="nc-api-google-cx" value="${cxVal}" placeholder="CX..." onchange="onNetworkConfigChange()">`;
+    }
+
+    // 自定义引擎：末尾加操作按钮
+    if (isInstance) {
+      const isDefault = inst.is_default || (engine === __networkConfigCache?.search?.default_engine);
+      html += `<span style="display:inline-flex;align-items:center;gap:2px;margin-left:auto">`;
+      if (isDefault) html += `<span class="default-badge" style="font-size:10px;padding:1px 6px">默认</span>`;
+      html += `<span style="font-size:11px;color:#8b949e;margin-right:4px">${inst.engine_type}</span>`;
+      html += `<button class="btn-xs" onclick="testSearchInstance('${engine}')" title="测试">▶</button>`;
+      html += `<button class="btn-xs" onclick="editSearchInstance('${engine}')" title="编辑">✏️</button>`;
+      html += `<button class="btn-xs danger" onclick="deleteSearchInstance('${engine}', '${escapeHtml(inst.name || '')}')" title="删除">🗑</button>`;
+      html += `</span>`;
+      // 下一行显示端点
+      html += `<div style="flex-basis:100%;font-size:11px;color:#8b949e;margin-top:2px;padding-left:24px">📍 ${escapeHtml(inst.api_endpoint || inst.engine_type)} · ⏱ ${inst.timeout || 30}s</div>`;
     }
 
     item.innerHTML = html;
@@ -376,6 +391,10 @@ function onNetworkConfigChange() {
 function onEngineToggle(engine, enabled) {
   __networkConfigDirty = true;
   console.log(`[网络配置] 搜索引擎 ${engine} ${enabled ? '已启用' : '已禁用'}`);
+  // 如果是自定义引擎实例，同时更新其后端状态
+  if (__searchInstances && __searchInstances.some(i => (i.id || i.name) === engine)) {
+    toggleSearchInstance(engine, enabled);
+  }
 }
 
 /**
