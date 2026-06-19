@@ -3622,6 +3622,26 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 return {"ok": False, "error": "请提供任务ID（task_id）"}
             return _async_exec.get_result(task_id)
 
+        @tools.register("cancel_task", "取消正在等待或运行中的异步任务。已完成的无法取消", schema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "任务 ID（由 submit_task 返回）"},
+            },
+            "required": ["task_id"],
+        })
+        def _cancel_task(**kwargs):
+            task_id = kwargs.get("task_id", "")
+            if not task_id:
+                return {"ok": False, "error": "请提供任务ID（task_id）"}
+            return _async_exec.cancel(task_id)
+
+        @tools.register("list_async_tasks", "列出所有异步任务（含已完成、运行中、等待中）", schema={
+            "type": "object",
+            "properties": {},
+        })
+        def _list_async_tasks(**kwargs):
+            return _async_exec.list_tasks()
+
         logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理、定时调度、异步任务）", len(tools.list_tools()))
 
     # ════════════════════════════════════════════════════════════════════════════════
