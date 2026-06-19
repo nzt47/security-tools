@@ -609,6 +609,13 @@ class NetworkConfigManager:
 
         logger.info("[网络配置] 搜索实例注册完成")
 
+        # 同步到 web_search 工具的 engine 参数 enum
+        try:
+            from agent.tools import sync_web_search_engines
+            sync_web_search_engines([], search_engine=search_engine)
+        except ImportError:
+            pass  # 工具模块不可用时跳过
+
     def reset(self) -> dict:
         """重置为默认配置"""
         self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)

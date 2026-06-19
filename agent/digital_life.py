@@ -1113,27 +1113,27 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             @self._planning_tools.register("check_health", "检查身体状态")
             def _check_health_tool(**kwargs):
                 readings = self.check_health()
-                return self.body.get_health_report()
+                return {"ok": True, "data": self.body.get_health_report()}
 
             @self._planning_tools.register("get_status", "获取完整状态")
             def _get_status_tool(**kwargs):
-                return self.get_status()
+                return {"ok": True, "data": self.get_status()}
 
             @self._planning_tools.register("search_memory", "搜索记忆")
             def _search_memory_tool(**kwargs):
                 query = kwargs.get("query", "")
                 if not query:
-                    return "请提供搜索关键词。"
-                return self._combined_search(query)
+                    return {"ok": False, "error": "请提供搜索关键词"}
+                return {"ok": True, "data": self._combined_search(query)}
 
             @self._planning_tools.register("get_sensor_summary", "获取传感器摘要")
             def _get_sensor_summary_tool(**kwargs):
-                return self.body.get_sensor_summary()
+                return {"ok": True, "data": self.body.get_sensor_summary()}
 
             @self._planning_tools.register("llm_chat", "进行对话")
             def _llm_chat_tool(**kwargs):
                 response_text = kwargs.get("response", "")
-                return response_text
+                return {"ok": True, "data": response_text}
 
             logger.info("规划工具注册完成: %s", self._planning_tools.list_tools())
 
@@ -1928,8 +1928,9 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         def _search_memory(**kwargs):
             query = kwargs.get("query", "")
             if not query:
-                return "请提供搜索关键词。"
-            return self._combined_search(query)
+                return {"ok": False, "error": "请提供搜索关键词"}
+            result = self._combined_search(query)
+            return {"ok": True, "data": result}
 
         @tools.register("remember", "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。", schema={
             "type": "object",
@@ -1945,7 +1946,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             content = kwargs.get("content", "")
             importance = kwargs.get("importance", "normal")
             if not key or not content:
-                return "请提供 key 和 content 参数。"
+                return {"ok": False, "error": "请提供 key 和 content 参数"}
 
             memory_text = f"[{key}] {content}"
             mem_id = None
@@ -1973,7 +1974,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             else:
                 backup_note = ""
 
-            return f"✅ 已记住「{key}」{backup_note}"
+            return {"ok": True, "data": f"✅ 已记住「{key}」{backup_note}", "mem_id": mem_id}
 
         @tools.register("get_sensor_summary", "查看所有传感器状态", schema={
             "type": "object",
@@ -1982,79 +1983,80 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         def _get_sensor_summary(**kwargs):
             return self.body.get_sensor_summary()
 
-        if self._v2_lifetrace:
-            @tools.register("search_lifetrace", "搜索我的记忆（使用 LifeTrace）", schema={
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "搜索关键词"},
-                },
-                "required": ["query"],
-            })
-            def _search_lifetrace(**kwargs):
-                query = kwargs.get("query", "")
-                if not query:
-                    return "请提供搜索关键词。"
-                try:
-                    results = self._memory_retriever.retrieve(query, limit=10)
-                    if not results:
-                        return f"没有找到与 '{query}' 相关的记忆。"
-                    return "\n".join(
-                        f"- {node.content[:100]}"
-                        for node in results
-                    )
-                except Exception as e:
-                    return f"搜索失败: {e}"
-
-            @tools.register("get_persona_info", "查看当前人格配置", schema={
-                "type": "object",
-                "properties": {},
-            })
-            def _get_persona_info(**kwargs):
-                if not self._v2_persona or not self._persona_model:
-                    return "Persona 系统未启用"
-                identity = self._persona_model.get_identity()
-                style = self._persona_model.get_expression_style()
-                return (
-                    f"## 人格信息\n\n"
-                    f"身份: {identity.get('identity')}\n"
-                    f"表达风格: {style}"
+        @tools.register("search_lifetrace", "搜索我的记忆（使用 LifeTrace）", schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "搜索关键词"},
+            },
+            "required": ["query"],
+        })
+        def _search_lifetrace(**kwargs):
+            if not self._v2_lifetrace or not self._memory_retriever:
+                return {"ok": False, "error": "LifeTrace 系统未启用，此工具不可用", "available": False}
+            query = kwargs.get("query", "")
+            if not query:
+                return {"ok": False, "error": "请提供搜索关键词"}
+            try:
+                results = self._memory_retriever.retrieve(query, limit=10)
+                if not results:
+                    return {"ok": True, "data": f"没有找到与 '{query}' 相关的记忆。", "count": 0}
+                lines = "\n".join(
+                    f"- {node.content[:100]}"
+                    for node in results
                 )
+                return {"ok": True, "data": lines, "count": len(results)}
+            except Exception as e:
+                return {"ok": False, "error": f"搜索失败: {e}"}
 
-            @tools.register("get_preferences", "查看学习到的用户偏好", schema={
-                "type": "object",
-                "properties": {},
-            })
-            def _get_preferences(**kwargs):
-                report = self.get_preferences_report()
-                if not report or not report.get("enabled"):
-                    return "人格蒸馏功能未启用"
-                prefs = report.get("preferences", {})
-                lines = ["## 学习到的用户偏好\n"]
-                
-                if prefs.get("expression_style"):
-                    style = prefs["expression_style"]
-                    lines.append("### 表达风格偏好")
-                    for k, v in style.items():
-                        lines.append("- %s: %.2f" % (k, v))
-                
-                if prefs.get("topic_interest"):
-                    topics = sorted(prefs["topic_interest"].items(), key=lambda x: -x[1])[:5]
-                    lines.append("\n### 话题兴趣度")
-                    for topic, score in topics:
-                        lines.append("- %s: %.2f" % (topic, score))
-                
-                lines.append("\n最后更新: %s" % report.get('extracted_at', '未知'))
-                return "\n".join(lines)
+        @tools.register("get_persona_info", "查看当前人格配置", schema={
+            "type": "object",
+            "properties": {},
+        })
+        def _get_persona_info(**kwargs):
+            if not self._v2_persona or not self._persona_model:
+                return {"ok": False, "error": "Persona 系统未启用，此工具不可用", "available": False}
+            identity = self._persona_model.get_identity()
+            style = self._persona_model.get_expression_style()
+            return {"ok": True, "data": {
+                "identity": identity.get("identity"),
+                "expression_style": style,
+            }}
 
-            @tools.register("trigger_distillation", "触发一次人格蒸馏学习", schema={
-                "type": "object",
-                "properties": {},
-            })
-            def _trigger_distillation(**kwargs):
-                if not self._v2_distillation:
-                    return "人格蒸馏功能未启用"
-                self._run_persona_distillation()
-                return "人格蒸馏已触发！"
+        @tools.register("get_preferences", "查看学习到的用户偏好", schema={
+            "type": "object",
+            "properties": {},
+        })
+        def _get_preferences(**kwargs):
+            report = self.get_preferences_report()
+            if not report or not report.get("enabled"):
+                return {"ok": False, "error": "人格蒸馏功能未启用，此工具不可用", "available": False}
+            prefs = report.get("preferences", {})
+            lines = ["## 学习到的用户偏好\n"]
+
+            if prefs.get("expression_style"):
+                style = prefs["expression_style"]
+                lines.append("### 表达风格偏好")
+                for k, v in style.items():
+                    lines.append("- %s: %.2f" % (k, v))
+
+            if prefs.get("topic_interest"):
+                topics = sorted(prefs["topic_interest"].items(), key=lambda x: -x[1])[:5]
+                lines.append("\n### 话题兴趣度")
+                for topic, score in topics:
+                    lines.append("- %s: %.2f" % (topic, score))
+
+            lines.append("\n最后更新: %s" % report.get('extracted_at', '未知'))
+            return {"ok": True, "data": "\n".join(lines)}
+
+        @tools.register("trigger_distillation", "触发一次人格蒸馏学习", schema={
+            "type": "object",
+            "properties": {},
+        })
+        def _trigger_distillation(**kwargs):
+            if not self._v2_distillation:
+                return {"ok": False, "error": "人格蒸馏功能未启用，此工具不可用", "available": False}
+            self._run_persona_distillation()
+            return {"ok": True, "data": "人格蒸馏已触发！"}
 
         # ════════════════════════════════════════════════════════════
         #  文件系统工具 — 云枢读写本地文件的能力
@@ -2157,6 +2159,21 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             root_path = kwargs.get("root_path", ".")
             if not pattern:
                 return {"ok": False, "error": "请提供搜索模式（pattern）"}
+            # 路径安全校验：防止路径遍历攻击
+            try:
+                from pathlib import Path
+                resolved = Path(root_path).resolve()
+                # 检查 pattern 是否包含路径穿越符
+                if ".." in pattern.split("/") or ".." in pattern.split("\\"):
+                    return {"ok": False, "error": "搜索模式包含不安全的路径穿越符（..），已拒绝"}
+                # 检查 root_path 是否在有效范围内
+                allowed_base = Path(".").resolve()
+                if not resolved.exists():
+                    return {"ok": False, "error": f"搜索路径不存在: {root_path}"}
+                if allowed_base not in resolved.parents and resolved != allowed_base:
+                    return {"ok": False, "error": "搜索路径超出工作目录范围，已拒绝"}
+            except Exception as e:
+                logger.warning("路径安全校验异常: %s", e)
             return search_files(pattern, root_path=root_path)
 
         # ════════════════════════════════════════════════════════════
@@ -2326,11 +2343,11 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             results = self._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
-        @tools.register("web_search", "搜索互联网信息。自动选择最佳引擎，按优先级（Tavily > Firecrawl > 搜狗 > 360搜索 > DuckDuckGo）依次尝试。不要指定 engine 参数，让系统自动选择。", schema={
-        @tools.register("web_search", "搜索互联网信息。系统自动按优先级选择最佳搜索引擎，不要指定引擎参数。", schema={
-"type": "object",
+        @tools.register("web_search", "搜索互联网信息。可指定搜索引擎名称，不指定则系统按优先级自动选择。", schema={
+            "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "搜索关键词"},
+                "engine": {"type": "string", "description": "搜索引擎名称（可选）。不指定则按优先级自动选择"},
                 "num_results": {"type": "integer", "description": "返回结果数，默认 10"},
                 "page": {"type": "integer", "description": "页码，默认 1"},
             },
@@ -2338,22 +2355,27 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         })
         def _web_search(**kwargs):
             query = kwargs.get("query", "")
+            engine = kwargs.get("engine", "")
             num_results = kwargs.get("num_results", 10)
             page = kwargs.get("page", 1)
             if not query:
                 return {"ok": False, "error": "请提供搜索关键词"}
-            result = self._web_search.search(query, num_results=min(num_results, 8), page=page)
-            result = self._web_search.search(query, engine=engine, num_results=min(num_results, 8), page=page)
+            # 根据 num_results 参数动态调整请求量，确保够用但不浪费
+            fetch_count = min((num_results or 10) + 2, 12)
+            result = self._web_search.search(query, engine=engine, num_results=fetch_count, page=page)
             if result.get("ok") and result.get("results"):
                 # 使用数据处理器过滤和评分
                 processed = self._web_processor.process(result["results"])
                 # 截断过长内容以控制 token 消耗
                 for item in processed:
-                    if len(item.get("snippet", "")) > 150:
-                        item["snippet"] = item["snippet"][:150] + "…"
+                    snippet_max = 300 if num_results and num_results >= 5 else 150
+                    if len(item.get("snippet", "")) > snippet_max:
+                        item["snippet"] = item["snippet"][:snippet_max] + "…"
                     if len(item.get("title", "")) > 80:
                         item["title"] = item["title"][:80] + "…"
-                result["results"] = processed[:3]  # 最多 3 条
+                # 按 token 估算控制返回量：每条平均约 200 token，上下文最多保留 4000 token
+                max_results_by_token = min(len(processed), 8)
+                result["results"] = processed[:max_results_by_token]
                 result["total_found"] = len(processed)
                 result["summary"] = DataProcessor.summarize_results(processed)
             # 确保返回给模型的内容不会过大
@@ -2698,45 +2720,38 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         })
         def _ext_list(**kwargs):
             ext_type = kwargs.get("type") or None
-            ext_type = kwargs.get("type") or None
             try:
-                # skill 类型：统一从 data/skills.json 读取（唯一数据源）
-                if not ext_type or ext_type == "skill":
-                    import json, os
-                    skill_states = {}
-                    sf = os.path.join(os.path.dirname(__file__), "..", "data", "skills.json")
-                    if os.path.exists(sf):
-                        with open(sf, "r", encoding="utf-8") as f:
-                            sd = json.load(f)
-                        for s in sd.get("skills", []):
-                            sid = s["id"]
-                            skill_states[sid] = {
-                                "name": s.get("name", sid),
-                                "enabled": s.get("enabled", True),
-                                "description": s.get("description", ""),
-                            }
-                    skills_result = []
-                    for sid, info in skill_states.items():
-                        skills_result.append({
-                            "ext_id": sid, "ext_type": "skill",
-                            "name": info["name"], "description": info["description"],
-                            "status": "enabled" if info["enabled"] else "disabled",
-                            "enabled": info["enabled"],
-                        })
-                    if ext_type == "skill":
-                        return {"ok": True, "type": "skill", "extensions": skills_result}
-                    # ext_type is None - also get other types
-                    _em = _make_ext_mgr()
-                    all_types = _em.get_installed_by_type()
-                    other_results = []
-                    for key in ["claude_skills", "mcps", "channels", "plugins"]:
-                        other_results.extend(all_types.get(key, []))
-                    return {"ok": True, "extensions": skills_result + other_results}
-                # �� skill �����߳���
                 _em = _make_ext_mgr()
                 if ext_type:
+                    # 非 skill 类型走扩展管理器，skill 类型也走扩展管理器（唯一数据源）
+                    if ext_type == "skill":
+                        skills = _em.get_installed_by_type().get("skills", [])
+                        formatted = []
+                        for s in skills:
+                            formatted.append({
+                                "ext_id": s["id"], "ext_type": "skill",
+                                "name": s.get("name", s["id"]),
+                                "description": s.get("description", ""),
+                                "status": "enabled" if s.get("enabled", True) else "disabled",
+                                "enabled": s.get("enabled", True),
+                            })
+                        return {"ok": True, "type": "skill", "extensions": formatted}
+                    # 非 skill 类型走扩展管理器
                     return {"ok": True, "type": ext_type, "extensions": _em.list_all(ext_type)}
-                return {"ok": True, "extensions": _em.get_installed_by_type()}
+                # ext_type 为 None — 列出全部
+                all_types = _em.get_installed_by_type()
+                all_extensions = []
+                for s in all_types.get("skills", []):
+                    all_extensions.append({
+                        "ext_id": s["id"], "ext_type": "skill",
+                        "name": s.get("name", s["id"]),
+                        "description": s.get("description", ""),
+                        "status": "enabled" if s.get("enabled", True) else "disabled",
+                        "enabled": s.get("enabled", True),
+                    })
+                for key in ["claude_skills", "mcp_services", "channels", "plugins"]:
+                    all_extensions.extend(all_types.get(key, []))
+                return {"ok": True, "extensions": all_extensions}
             except Exception as e:
                 return {"ok": False, "error": str(e)}
         @tools.register("ext_toggle", "启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。", schema={
