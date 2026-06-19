@@ -522,6 +522,128 @@ class SearchEngine:
             "engine": instance.get('name', 'custom'),
         }
 
+    # ── DuckDuckGo HTML 搜索（无需 API Key） ──────────────────────
+
+    def _search_duckduckgo(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+        result = self._http_client.get(
+            "https://html.duckduckgo.com/html/",
+            params={"q": query, "s": max(0, (page - 1) * num_results)},
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            timeout=self._timeout,
+        )
+        if not result.get("ok"):
+            return result
+        results = self._parse_duckduckgo_html(result.get("text", ""))
+        return {"ok": True, "results": results[:num_results], "total_estimate": max(len(results), num_results), "engine": "duckduckgo"}
+
+    @staticmethod
+    def _parse_duckduckgo_html(html: str) -> list:
+        from lxml import html as lxml_html
+        results = []
+        try:
+            tree = lxml_html.fromstring(html)
+            for item in tree.xpath('//div[contains(@class, "result")]'):
+                title_el = item.xpath('.//h2[contains(@class, "result__title")]/a')
+                if not title_el:
+                    continue
+                url_el = item.xpath('.//a[contains(@class, "result__a")]/@href')
+                snippet_el = item.xpath('.//a[contains(@class, "result__snippet")]')
+                results.append({
+                    "title": title_el[0].text_content().strip(),
+                    "url": url_el[0] if url_el else "",
+                    "snippet": snippet_el[0].text_content().strip() if snippet_el else "",
+                    "source": "duckduckgo",
+                })
+        except Exception as e:
+            logger.warning("解析 DuckDuckGo 失败: %s", e)
+            results = SearchEngine._parse_result_fallback(html)
+        return results
+
+    # ── 搜狗 HTML 搜索（无需 API Key，中文） ──────────────────────
+
+    def _search_sogou(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+        result = self._http_client.get(
+            "https://www.sogou.com/web",
+            params={"query": query, "page": page},
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept-Language": "zh-CN,zh;q=0.9"},
+            timeout=self._timeout,
+        )
+        if not result.get("ok"):
+            return result
+        results = self._parse_sogou_html(result.get("text", ""))
+        return {"ok": True, "results": results[:num_results], "total_estimate": max(len(results), num_results), "engine": "sogou"}
+
+    @staticmethod
+    def _parse_sogou_html(html: str) -> list:
+        from lxml import html as lxml_html
+        results = []
+        try:
+            tree = lxml_html.fromstring(html)
+            for item in tree.xpath('//div[contains(@class, "vrwrap")] | //div[contains(@class, "rb")]'):
+                title_link = item.xpath('.//h3[contains(@class, "vr-title")]/a | .//h3[@class="tit"]/a')
+                if not title_link:
+                    continue
+                href = title_link[0].get("href", "")
+                title = title_link[0].text_content().strip()
+                snippet_el = item.xpath('.//p[contains(@class, "str-info")] | .//div[contains(@class, "star-wiki")]')
+                if title and href:
+                    results.append({"title": title, "url": href, "snippet": snippet_el[0].text_content().strip() if snippet_el else "", "source": "sogou"})
+        except Exception as e:
+            logger.warning("解析搜狗失败: %s", e)
+            results = SearchEngine._parse_result_fallback(html)
+        return results
+
+    # ── 360 搜索 HTML 搜索（无需 API Key，中文） ──────────────────
+
+    def _search_so360(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+        pn = max(1, (page - 1) * 10 + 1)
+        result = self._http_client.get(
+            "https://www.so.com/s",
+            params={"q": query, "pn": pn},
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept-Language": "zh-CN,zh;q=0.9"},
+            timeout=self._timeout,
+        )
+        if not result.get("ok"):
+            return result
+        results = self._parse_so360_html(result.get("text", ""))
+        return {"ok": True, "results": results[:num_results], "total_estimate": max(len(results), num_results), "engine": "so360"}
+
+    @staticmethod
+    def _parse_so360_html(html: str) -> list:
+        from lxml import html as lxml_html
+        results = []
+        try:
+            tree = lxml_html.fromstring(html)
+            for item in tree.xpath('//li[contains(@class, "res-list")]'):
+                title_link = item.xpath('.//h3[contains(@class, "res-title")]/a')
+                if not title_link:
+                    continue
+                href = title_link[0].get("href", "")
+                title = title_link[0].text_content().strip()
+                snippet_el = item.xpath('.//p[contains(@class, "res-desc")]')
+                if title and href:
+                    results.append({"title": title, "url": href, "snippet": snippet_el[0].text_content().strip() if snippet_el else "", "source": "so360"})
+        except Exception as e:
+            logger.warning("解析 360 搜索失败: %s", e)
+            results = SearchEngine._parse_result_fallback(html)
+        return results
+
+    @staticmethod
+    def _parse_result_fallback(html: str) -> list:
+        """简易正则回退解析"""
+        results = []
+        for match in re.finditer(r'<a[^>]*href="(https?://[^"]+)"[^>]*>(.*?)</a>', html, re.DOTALL):
+            title = re.sub(r"<[^>]+>", "", match.group(2)).strip()
+            if title and len(title) > 2:
+                results.append({"title": title, "url": match.group(1), "snippet": "", "source": "fallback"})
+        return results[:20]
+
     # ── 批处理 ────────────────────────────────────────────────────
 
     def multi_search(self, queries: List[str], engine: str = "", **kwargs) -> List[dict]:
