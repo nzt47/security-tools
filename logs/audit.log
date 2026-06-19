@@ -370,3 +370,138 @@
 2026-06-08 01:01:56 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
 2026-06-08 01:01:56 [INFO] AUTHENTICATION | username=user | status=FAILED
 2026-06-08 01:01:56 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 11:45:53 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 11:45:53 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 11:48:23 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 11:48:23 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 11:48:42 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 11:48:42 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 11:50:41 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 11:50:41 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 11:55:56 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 11:55:56 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:03:01 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 12:03:01 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 12:03:01 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 12:03:01 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 12:03:01 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:03:01 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 12:03:01 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 12:03:25 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 12:03:25 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:13:18 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 12:13:18 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 12:13:18 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 12:13:18 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 12:13:18 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:13:18 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 12:13:18 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 12:13:36 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 12:13:36 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:16:30 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 12:16:30 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:19:08 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 12:19:08 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 12:21:16 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 12:21:16 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:14:25 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 13:14:25 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 13:14:25 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 13:14:25 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 13:14:25 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:14:25 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 13:14:25 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 13:14:38 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 13:14:38 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 13:14:38 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 13:14:38 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 13:14:38 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:14:38 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 13:14:38 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 13:56:02 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 13:56:02 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:58:30 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 13:58:30 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 13:58:30 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 13:58:30 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 13:58:30 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:58:30 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 13:58:30 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 13:59:08 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 13:59:08 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 13:59:08 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 13:59:08 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 13:59:08 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 13:59:08 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 13:59:08 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 14:07:37 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 14:07:37 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 14:07:37 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 14:07:37 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 14:07:37 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 14:07:37 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 14:07:37 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 14:11:17 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 14:11:17 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 14:11:17 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 14:11:17 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 14:11:17 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 14:11:17 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 14:11:17 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 14:13:07 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 14:13:07 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 14:23:12 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 14:23:12 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 14:23:56 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-17 14:23:56 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-17 18:31:37 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 18:31:37 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 18:31:37 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 18:31:37 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 18:31:37 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 18:31:37 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 18:31:37 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 18:31:55 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 18:31:55 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 18:31:55 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 18:31:55 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 18:31:55 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 18:31:55 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 18:31:55 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 18:33:08 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 18:33:08 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 18:33:08 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 18:33:08 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 18:33:08 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 18:33:08 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 18:33:08 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 18:33:32 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 18:33:32 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 18:33:32 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 18:33:32 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 18:33:32 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 18:33:32 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 18:33:32 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 19:17:19 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 19:17:19 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 19:17:19 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 19:17:19 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 19:17:19 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 19:17:19 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 19:17:19 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 19:51:28 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 19:51:28 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 19:51:28 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 19:51:28 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 19:51:28 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 19:51:28 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 19:51:28 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-17 19:51:40 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-17 19:51:40 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-17 19:51:40 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-17 19:51:40 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-17 19:51:40 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-17 19:51:40 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-17 19:51:40 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
+2026-06-18 18:51:17 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-18 18:51:17 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1

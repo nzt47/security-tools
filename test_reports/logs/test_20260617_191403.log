@@ -1,0 +1,55 @@
+2026-06-17 19:14:03,410 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 19:14:03,418 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 19:14:03,421 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 19:14:03,424 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 19:14:03,442 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 19:14:03,446 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 19:14:03,449 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 19:14:03,450 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 19:14:03,452 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 19:14:03,455 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 19:14:03,471 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 19:14:03,471 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 19:14:03,473 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 19:14:03,606 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 19:14:03,611 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 19:14:03,612 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:14:03,619 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 19:14:03,620 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 19:14:03,620 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 19:14:04,009 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-17 19:14:04,033 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_add_metad0\extensions.json
+2026-06-17 19:14:04,033 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 19:14:04,040 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_get_metad0\extensions.json
+2026-06-17 19:14:04,040 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 19:14:04,047 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_get_metad1\extensions.json
+2026-06-17 19:14:04,052 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_list_all0\extensions.json
+2026-06-17 19:14:04,053 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: skill1
+2026-06-17 19:14:04,053 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: mcp1
+2026-06-17 19:14:04,059 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_list_by_t0\extensions.json
+2026-06-17 19:14:04,059 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: skill1
+2026-06-17 19:14:04,060 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: mcp1
+2026-06-17 19:14:04,067 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_remove_me0\extensions.json
+2026-06-17 19:14:04,067 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 19:14:04,068 [    INFO] agent.extensions.store: [扩展存储] 已移除扩展: test_ext
+2026-06-17 19:14:04,073 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_remove_no0\extensions.json
+2026-06-17 19:14:04,079 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_update_st0\extensions.json
+2026-06-17 19:14:04,079 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 19:14:04,080 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: test_ext → enabled
+2026-06-17 19:14:04,085 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_update_co0\extensions.json
+2026-06-17 19:14:04,086 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext
+2026-06-17 19:14:04,087 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: test_ext → enabled
+2026-06-17 19:14:04,091 [    INFO] agent.extensions.store: [扩展存储] 已创建扩展数据文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-244\test_extension_store_clear_cac0\extensions.json
+2026-06-17 19:14:04,092 [    INFO] agent.extensions.store: [扩展存储] 已添加扩展: test_ext

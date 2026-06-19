@@ -74,6 +74,50 @@ from agent.monitoring.decorators import (
     monitored
 )
 
+# 性能日志模块
+from agent.monitoring.performance import (
+    ModuleInitRecord,
+    InitPerformanceTracker,
+    Timer,
+    log_module_load_time,
+    get_performance_recorder,
+    RuntimeSampler,
+    AlertConfig,
+    PerformanceAlertManager,
+    create_default_alert_callback,
+    get_alert_manager,
+    setup_performance_monitoring,
+    CacheEntry,
+    LLMCacheStats,
+    LLMCache,
+    AsyncSaveMonitor,
+    PerformanceLogger,
+    llm_cache,
+    async_save_monitor,
+    perf_logger,
+)
+
+# 搜索引擎性能监控模块
+from agent.monitoring.search import (
+    SearchPerformanceMonitor,
+    get_performance_monitor,
+    start_performance_monitor,
+    stop_performance_monitor,
+    run_manual_performance_check,
+    get_performance_monitor_status,
+    get_performance_history,
+    get_performance_summary,
+)
+
+# Prometheus 模块
+from agent.monitoring.prometheus import (
+    _PROMETHEUS_AVAILABLE,
+    _ERROR_HANDLER_AVAILABLE,
+    PrometheusMetricsExporter,
+    create_exporter_from_digital_life,
+    RetryablePrometheusOperation,
+)
+
 __all__ = [
     # 追踪相关
     'TraceContext',
@@ -81,7 +125,7 @@ __all__ = [
     'set_trace_id',
     'trace',
     'format_trace_log',
-    
+
     # 指标相关
     'MetricsCollector',
     'Metric',
@@ -89,7 +133,7 @@ __all__ = [
     'record_latency',
     'increment_counter',
     'get_all_metrics',
-    
+
     # 错误上报相关
     'ErrorReporter',
     'ErrorReport',
@@ -103,13 +147,32 @@ __all__ = [
     'SlackReporter',
     'EmailReporter',
     'FileReporter',
-    
+
     # 装饰器
     'monitor_latency',
     'monitor_counter',
     'monitor_both',
     'trace_operation',
-    'monitored'
+    'monitored',
+
+    # 性能日志
+    'ModuleInitRecord', 'InitPerformanceTracker', 'Timer',
+    'log_module_load_time', 'get_performance_recorder',
+    'RuntimeSampler', 'AlertConfig', 'PerformanceAlertManager',
+    'create_default_alert_callback', 'get_alert_manager', 'setup_performance_monitoring',
+    'CacheEntry', 'LLMCacheStats', 'LLMCache',
+    'AsyncSaveMonitor', 'PerformanceLogger',
+    'llm_cache', 'async_save_monitor', 'perf_logger',
+
+    # 搜索引擎性能监控
+    'SearchPerformanceMonitor',
+    'get_performance_monitor', 'start_performance_monitor', 'stop_performance_monitor',
+    'run_manual_performance_check', 'get_performance_monitor_status',
+    'get_performance_history', 'get_performance_summary',
+
+    # Prometheus
+    '_PROMETHEUS_AVAILABLE', '_ERROR_HANDLER_AVAILABLE',
+    'PrometheusMetricsExporter', 'create_exporter_from_digital_life', 'RetryablePrometheusOperation',
 ]
 
 __version__ = '1.1.0'

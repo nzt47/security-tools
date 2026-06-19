@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 # 全局工具注册表
 _registry: dict[str, dict] = {}
 
+# 操作追踪器（可选，由权限模块设置）
+_action_tracker = None
+
 
 class ToolError(Exception):
     """工具执行异常"""
@@ -66,6 +69,16 @@ def unregister(name: str):
         logger.info(f"工具注销: {name}")
 
 
+def set_action_tracker(tracker):
+    """设置操作追踪器（可选），用于记录工具调用历史
+
+    Args:
+        tracker: ActionTracker 实例，或 None 以清除追踪
+    """
+    global _action_tracker
+    _action_tracker = tracker
+
+
 def call(*args, **params) -> Any:
     """调用指定工具
 
@@ -91,13 +104,36 @@ def call(*args, **params) -> Any:
     tool = _registry.get(name)
     if not tool:
         raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")
+
+    # 操作追踪（可选）
+    if _action_tracker:
+        target = str(params.get("path", params.get("url", params.get("target", ""))))
+        _action_tracker.start_action(name, params, target)
+
     try:
         logger.info(f"调用工具: {name}, 参数: {params}")
         result = tool["handler"](**params)
         logger.info(f"工具返回: {name} → {str(result)[:200]}")
+
+        # 完成操作追踪
+        if _action_tracker:
+            _action_tracker.finish_action("completed", str(result)[:200])
+            if any(k in name for k in ["http", "fetch", "search", "api", "browse"]):
+                access_type = "network"
+            elif any(k in name for k in ["read", "write", "list", "delete", "rename", "copy"]):
+                access_type = "file"
+            else:
+                access_type = "sensor"
+            _action_tracker.log_access(access_type, target or name, name, "allowed")
+
         return result
     except Exception as e:
         logger.error(f"工具执行失败: {name} — {e}")
+
+        # 操作追踪失败
+        if _action_tracker:
+            _action_tracker.finish_action("failed", str(e)[:200])
+
         raise ToolError(f"工具 '{name}' 执行失败: {e}") from e
 
 

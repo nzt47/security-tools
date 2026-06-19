@@ -1,0 +1,74 @@
+2026-06-17 21:40:50,293 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 21:40:50,303 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 21:40:50,307 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 21:40:50,310 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 21:40:50,329 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 21:40:50,333 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 21:40:50,337 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 21:40:50,338 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 21:40:50,339 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 21:40:50,342 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 21:40:50,353 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 21:40:50,354 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 21:40:50,356 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 21:40:50,374 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 21:40:50,381 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 21:40:50,381 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,387 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,387 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 21:40:50,388 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 21:40:50,388 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 21:40:50,560 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 21:40:50,575 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 21:40:50,581 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 21:40:50,586 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 21:40:50,616 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 21:40:50,623 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 21:40:50,628 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 21:40:50,630 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 21:40:50,631 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 21:40:50,634 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 21:40:50,651 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 21:40:50,652 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 21:40:50,654 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 21:40:50,680 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 21:40:50,688 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 21:40:50,689 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 21:40:50,692 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 21:40:50,694 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:40:50,694 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 21:40:50,694 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 21:40:50,694 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 21:40:50,752 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,758 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,763 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,781 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,786 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,791 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,823 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,830 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,835 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,840 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,849 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-17 21:40:50,864 [    INFO] agent.web.scraper: Scraper 引擎已初始化

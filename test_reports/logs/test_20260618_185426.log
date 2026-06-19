@@ -1,0 +1,40 @@
+2026-06-18 18:54:26,302 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 18:54:26,305 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 18:54:26,307 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 18:54:26,317 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 18:54:26,321 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 18:54:26,325 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 18:54:26,343 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 18:54:26,347 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 18:54:26,348 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 18:54:26,350 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 18:54:26,364 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 18:54:26,364 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 18:54:26,366 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 18:54:26,491 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 18:54:26,495 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 18:54:26,496 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 18:54:26,502 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 18:54:26,502 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 18:54:26,503 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 18:54:26,503 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 18:54:26,536 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,544 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,547 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,550 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,554 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=3, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,557 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=0.1s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,761 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-18 18:54:26,761 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-18 18:54:26,764 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)

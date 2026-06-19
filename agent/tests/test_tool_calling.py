@@ -68,7 +68,7 @@ def test_chat_invokes_tool_and_returns():
 
 
 def test_chat_max_rounds_exceeded():
-    """超过最大轮次时返回最后一条回复"""
+    """超过最大轮次时返回工具执行摘要"""
     service = ToolCallingService(FakeLLMService(), max_rounds=2)
 
     round_num = [0]
@@ -85,7 +85,9 @@ def test_chat_max_rounds_exceeded():
     service._execute_safe = lambda name, args: {"ok": True}
 
     result = service.chat([{"role": "user", "content": "测试"}])
-    assert result == "（无法生成回复）"
+    # 当工具执行成功时，应该返回工具执行摘要而不是空回复
+    assert result != ""
+    assert "check_health" in result
 
 
 def test_execute_safe_catches_error():

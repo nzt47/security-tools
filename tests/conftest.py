@@ -13,6 +13,10 @@ import os
 import sys
 import json
 import pytest
+
+# ── Windows GBK 编码兼容：避免 emoji 日志吐乱码 ──
+# 注释：不要在这里 reconfig stdout/stderr，会导致 pytest 的 capture 模块冲突
+# 改用 PYTHONIOENCODING=utf-8 环境变量或直接在调用时设置
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional

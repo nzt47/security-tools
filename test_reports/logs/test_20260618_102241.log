@@ -1,0 +1,96 @@
+2026-06-18 10:22:41,534 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 10:22:41,534 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 10:22:41,540 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 10:22:41,544 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 10:22:41,552 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 10:22:41,554 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 10:22:41,573 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 10:22:41,574 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 10:22:41,574 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-18 10:22:41,574 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 10:22:41,593 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 10:22:41,593 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 10:22:41,594 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 10:22:41,720 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 10:22:41,725 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 10:22:41,725 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-18 10:22:41,732 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-18 10:22:41,733 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 10:22:42,246 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32
+2026-06-18 10:22:42,246 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32
+2026-06-18 10:22:42,246 [ WARNING] agent.system_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32
+2026-06-18 10:22:42,254 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_safe_resolve_path_normal0\test.txt
+2026-06-18 10:22:42,254 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_safe_resolve_path_normal0\test.txt
+2026-06-18 10:22:42,254 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_safe_resolve_path_normal0\test.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=/nonexistent/path/to/file.txt, encoding=utf-8, max_size_mb=10
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/to/file.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\to\file.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\to\file.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\nonexistent\path\to\file.txt
+2026-06-18 10:22:42,256 [ WARNING] agent.system_tools: [read_file] 文件不存在: safe_path=C:\nonexistent\path\to\file.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [read_file] 开始读取文件: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_read_file_normal0\test.txt, encoding=utf-8, max_size_mb=10
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_read_file_normal0\test.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_read_file_normal0\test.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_read_file_normal0\test.txt
+2026-06-18 10:22:42,256 [    INFO] agent.system_tools: [read_file] 路径安全解析成功: safe_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_read_file_normal0\test.txt
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 文件大小: 13 bytes
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 文件读取成功: raw_data_size=13
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 解码成功: encoding=utf-8, content_length=13
+2026-06-18 10:22:42,265 [    INFO] agent.system_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt, encoding=utf-8, content_length=12
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 内容大小: 12 bytes
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 检查目录: dir_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 目录创建/确认成功
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 开始写入文件内容
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 文件写入成功: safe_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_basic0\output.txt
+2026-06-18 10:22:42,267 [    INFO] agent.system_tools: [write_file] 写入完成: ok=True, size=12, backup=None
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [write_file] 开始写入文件: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_executable_ext0\test.exe, encoding=utf-8, content_length=4
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_executable_ext0\test.exe
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_executable_ext0\test.exe
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_executable_ext0\test.exe
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [write_file] 路径安全解析成功: safe_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_write_file_executable_ext0\test.exe
+2026-06-18 10:22:42,275 [ WARNING] agent.system_tools: [write_file] 禁止写入可执行文件类型: ext=.exe
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [list_directory] 开始列出目录: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0, show_hidden=False, max_items=500
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [list_directory] 路径安全解析成功: safe_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [list_directory] 开始遍历目录内容
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0\file1.txt
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_list_directory0\subdir
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o40777
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 文件属性: is_dir=True, is_link=False
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [_get_single_file_info] 文件信息获取完成: type=dir, size=0
+2026-06-18 10:22:42,275 [    INFO] agent.system_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-18 10:22:42,286 [    INFO] agent.system_tools: [search_files] 开始搜索文件: pattern=*.py, root_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_search_files0, max_results=200, ignore_case=True
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_search_files0
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_search_files0
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [safe_resolve_path] 路径解析完成，返回: C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_search_files0
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [search_files] 路径安全解析成功: safe_root=C:\Windows\Temp\pytest-of-AdminWT\pytest-260\test_search_files0
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [search_files] 开始遍历目录树
+2026-06-18 10:22:42,288 [    INFO] agent.system_tools: [search_files] 搜索完成: total_results=1, walked=2, truncated=False
+2026-06-18 10:22:42,349 [    INFO] agent.system_tools: 白名单新增: myapp.exe
+2026-06-18 10:22:42,350 [    INFO] agent.system_tools: 白名单移除: myapp.exe
+2026-06-18 10:22:42,355 [    INFO] agent.system_tools: 白名单新增: myapp.exe

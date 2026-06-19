@@ -177,7 +177,9 @@ class PermissionSystem:
                 self._log_permission(action, result, context)
                 return result
 
-        return PermissionResult(allowed=True)
+        result = PermissionResult(allowed=True)
+        self._log_permission(action, result, context)
+        return result
 
     def confirm_action(self, action_id: str) -> bool:
         """确认一个需要二次确认的操作

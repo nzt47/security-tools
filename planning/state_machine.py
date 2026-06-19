@@ -84,21 +84,46 @@ class PlanStateMachine:
 
         Raises:
             InvalidStateTransitionError: 如果转换无效
+            Exception: 其他未知异常
         """
-        if not self.can_transition(plan.state, new_state):
-            raise InvalidStateTransitionError(
-                f"无法从 {plan.state.value} 转换到 {new_state.value}"
-            )
-
         old_state = plan.state
-        plan.state = new_state
-        plan.updated_at = datetime.now()
+        
+        logger.info(f"------------------------------------------------------------")
+        logger.info(f"[状态转换] INFO: 计划ID: {plan.id[:8] if plan.id else '未设置'}")
+        logger.info(f"[状态转换] INFO: 当前状态: {old_state.value} ({self.STATE_DESCRIPTIONS.get(old_state, '未知')})")
+        logger.info(f"[状态转换] INFO: 目标状态: {new_state.value} ({self.STATE_DESCRIPTIONS.get(new_state, '未知')})")
+        
+        try:
+            if not self.can_transition(old_state, new_state):
+                error_msg = f"[状态转换] ERROR: 无效转换: {old_state.value} -> {new_state.value}"
+                logger.error(error_msg)
+                logger.error(f"[状态转换] ERROR: 允许的目标状态: {[s.value for s in self.VALID_TRANSITIONS.get(old_state, set())]}")
+                raise InvalidStateTransitionError(
+                    f"无法从 {old_state.value} 转换到 {new_state.value}"
+                )
 
-        self._record_transition(plan, old_state, new_state, reason)
-        self._trigger_hooks(plan, old_state, new_state)
+            plan.state = new_state
+            plan.updated_at = datetime.now()
 
-        logger.info(f"计划状态转换: {old_state.value} → {new_state.value}")
-        return True
+            self._record_transition(plan, old_state, new_state, reason)
+            self._trigger_hooks(plan, old_state, new_state)
+
+            logger.info(f"[状态转换] SUCCESS: 转换成功: {old_state.value} -> {new_state.value}")
+            if reason:
+                logger.info(f"[状态转换] INFO: 转换原因: {reason}")
+            logger.info(f"------------------------------------------------------------")
+            
+            return True
+            
+        except InvalidStateTransitionError:
+            # 重新抛出，这是预期的业务异常
+            raise
+        except Exception as e:
+            logger.error(f"[状态转换] ERROR: 未知异常: {type(e).__name__}")
+            logger.error(f"[状态转换] ERROR: 异常信息: {str(e)}")
+            import traceback
+            logger.error(f"[状态转换] ERROR: 堆栈跟踪:\n{traceback.format_exc()}")
+            raise
 
     def register_hook(self, from_state: PlanState, to_state: PlanState, callback: Callable):
         """注册状态转换钩子"""

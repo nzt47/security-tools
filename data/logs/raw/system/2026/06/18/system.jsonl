@@ -1,0 +1,12 @@
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 18856}, "timestamp": 1781766035.0651002}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 10684}, "timestamp": 1781766593.3116643}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 22156}, "timestamp": 1781766644.6520345}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 8280}, "timestamp": 1781766661.5128033}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 3796}, "timestamp": 1781771394.0892065}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 4732}, "timestamp": 1781772035.659841}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 17232}, "timestamp": 1781785728.3234172}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 2344}, "timestamp": 1781789380.9981356}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 14572}, "timestamp": 1781792399.4289775}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 26340}, "timestamp": 1781792413.9231632}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 3052}, "timestamp": 1781796840.3778572}
+{"event_type": "startup", "source": "app_server", "level": "info", "data": {"version": "1.0", "pid": 27684}, "timestamp": 1781796922.2814643}

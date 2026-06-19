@@ -49,6 +49,9 @@ def monitor_latency(metric_name: str):
             
             try:
                 result = func(*args, **kwargs)
+                # 成功时也记录延迟
+                duration = time.time() - start
+                collector.record_latency(metric_name, duration)
                 return result
             except Exception as e:
                 # 异常时也记录延迟

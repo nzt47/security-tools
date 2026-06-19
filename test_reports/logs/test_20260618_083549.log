@@ -1,0 +1,86 @@
+2026-06-18 08:35:49,548 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 08:35:49,550 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 08:35:49,550 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 08:35:49,577 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpk9wbnk59
+2026-06-18 08:35:49,577 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,577 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,584 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp96yre8mz
+2026-06-18 08:35:49,585 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,585 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,589 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmplavgiv4b
+2026-06-18 08:35:49,594 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,594 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,601 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpuzth2sm9
+2026-06-18 08:35:49,601 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,601 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,618 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 3
+2026-06-18 08:35:49,618 [    INFO] memory.vector_store.vector_store:    │  1. Python 面向对象编程...
+2026-06-18 08:35:49,618 [    INFO] memory.vector_store.vector_store:    │  2. Python 基础语法和数据类型...
+2026-06-18 08:35:49,618 [    INFO] memory.vector_store.vector_store:    │  3. Django REST Framework 教程...
+2026-06-18 08:35:49,618 [    INFO] memory.vector_store.vector_store:    └─ 返回: 3 条
+2026-06-18 08:35:49,624 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmplqtc1z2p
+2026-06-18 08:35:49,624 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,624 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,624 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 0
+2026-06-18 08:35:49,629 [    INFO] memory.vector_store.vector_store:    └─ 返回: 0 条
+2026-06-18 08:35:49,635 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpg8hrkkx7
+2026-06-18 08:35:49,635 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,635 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,639 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 2
+2026-06-18 08:35:49,639 [    INFO] memory.vector_store.vector_store:    │  1. Flask 教程...
+2026-06-18 08:35:49,639 [    INFO] memory.vector_store.vector_store:    │  2. Python 教程...
+2026-06-18 08:35:49,639 [    INFO] memory.vector_store.vector_store:    └─ 返回: 2 条
+2026-06-18 08:35:49,646 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpqoy1q0hc
+2026-06-18 08:35:49,646 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,646 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,671 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp2bnuz5a3
+2026-06-18 08:35:49,671 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,671 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,689 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp7g8yi46g
+2026-06-18 08:35:49,689 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,689 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,692 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp7g8yi46g
+2026-06-18 08:35:49,692 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,692 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 3
+2026-06-18 08:35:49,702 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp9ywpzqoh
+2026-06-18 08:35:49,702 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,702 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,710 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp9ywpzqoh
+2026-06-18 08:35:49,710 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,710 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 1
+2026-06-18 08:35:49,712 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:35:49,712 [    INFO] memory.vector_store.vector_store:    │  1. 持久化搜索测试...
+2026-06-18 08:35:49,712 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 08:35:49,719 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpv7r8y9b2
+2026-06-18 08:35:49,719 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,719 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,733 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp1xp57cj8
+2026-06-18 08:35:49,733 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,733 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,749 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpyveueu20
+2026-06-18 08:35:49,749 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,749 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,759 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpl_0c_7m6
+2026-06-18 08:35:49,759 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,759 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,764 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpsxowcod_
+2026-06-18 08:35:49,764 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,764 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,770 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 08:35:49,774 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpn6nycj7y
+2026-06-18 08:35:49,774 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,774 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,774 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 08:35:49,781 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Flask文档
+2026-06-18 08:35:49,783 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:35:49,783 [    INFO] memory.vector_store.vector_store:    │  1. Python 是一种高级编程语言...
+2026-06-18 08:35:49,783 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 08:35:49,790 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpxb0892_x
+2026-06-18 08:35:49,790 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,791 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,800 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp8nusvqqh
+2026-06-18 08:35:49,800 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-18 08:35:49,800 [    INFO] memory.vector_store.vector_store:    └─ 当前记忆数: 0
+2026-06-18 08:35:49,803 [    INFO] memory.vector_store.vector_store:    ├─ 匹配结果数: 1
+2026-06-18 08:35:49,804 [    INFO] memory.vector_store.vector_store:    │  1. 一些内容...
+2026-06-18 08:35:49,804 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条

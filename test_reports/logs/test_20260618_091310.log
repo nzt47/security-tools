@@ -1,0 +1,247 @@
+2026-06-18 09:13:10,983 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 09:13:10,986 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 09:13:10,988 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 09:13:11,072 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 09:13:11,077 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 09:13:11,079 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 09:13:11,092 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 09:13:11,096 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 09:13:11,097 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-18 09:13:11,097 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 09:13:11,113 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 09:13:11,113 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 09:13:11,113 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 09:13:11,231 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 09:13:11,236 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 09:13:11,236 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 09:13:11,243 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-18 09:13:11,244 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-18 09:13:11,244 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 09:13:11,302 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-18 09:13:11,304 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-18 09:13:11,305 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-18 09:13:11,305 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,305 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 09:13:11,319 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,319 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: pytest_test
+2026-06-18 09:13:11,319 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_pytest
+2026-06-18 09:13:11,319 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: pytest_test
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_pytest
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: kb_test
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: ./data/test_kb
+2026-06-18 09:13:11,329 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,348 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,348 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_init
+2026-06-18 09:13:11,348 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp0822yy6u
+2026-06-18 09:13:11,348 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,350 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,350 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_add
+2026-06-18 09:13:11,350 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpza6iysmw
+2026-06-18 09:13:11,350 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,361 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,361 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_multi_add
+2026-06-18 09:13:11,361 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpkoip49k4
+2026-06-18 09:13:11,361 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,373 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,373 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_search
+2026-06-18 09:13:11,373 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmptxn_jzs9
+2026-06-18 09:13:11,374 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,384 [    INFO] memory.vector_store.vector_store:    └─ 返回: 2 条
+2026-06-18 09:13:11,390 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,390 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_search_empty
+2026-06-18 09:13:11,390 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmphdhvnj_x
+2026-06-18 09:13:11,390 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,393 [    INFO] memory.vector_store.vector_store:    └─ 返回: 0 条
+2026-06-18 09:13:11,399 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,399 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_search_meta
+2026-06-18 09:13:11,399 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpb65ajbcv
+2026-06-18 09:13:11,399 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,405 [    INFO] memory.vector_store.vector_store:    └─ 返回: 2 条
+2026-06-18 09:13:11,410 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,410 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_recent
+2026-06-18 09:13:11,410 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpxi4dqz80
+2026-06-18 09:13:11,410 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,435 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,435 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_recent_less
+2026-06-18 09:13:11,435 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpl4o7nr54
+2026-06-18 09:13:11,435 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,447 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,447 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_persist
+2026-06-18 09:13:11,447 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpwykdjx6j
+2026-06-18 09:13:11,447 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,452 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,452 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_persist
+2026-06-18 09:13:11,456 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpwykdjx6j
+2026-06-18 09:13:11,456 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,460 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,460 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_persist_search
+2026-06-18 09:13:11,460 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpl_1o7eok
+2026-06-18 09:13:11,460 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,464 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,464 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_persist_search
+2026-06-18 09:13:11,464 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpl_1o7eok
+2026-06-18 09:13:11,464 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,466 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 09:13:11,472 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,472 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_clear
+2026-06-18 09:13:11,472 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp2l7z7n9_
+2026-06-18 09:13:11,472 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,482 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,482 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_clear_add
+2026-06-18 09:13:11,482 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmp6jgv1cks
+2026-06-18 09:13:11,482 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,496 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,496 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_stats
+2026-06-18 09:13:11,496 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpqco5ykkx
+2026-06-18 09:13:11,496 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,502 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,502 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_kb_init
+2026-06-18 09:13:11,502 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpdy35o0zo
+2026-06-18 09:13:11,502 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,511 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,511 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_kb_add
+2026-06-18 09:13:11,511 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpf0mrlphn
+2026-06-18 09:13:11,511 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,513 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 09:13:11,518 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,518 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_kb_query
+2026-06-18 09:13:11,518 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpd183fsl8
+2026-06-18 09:13:11,518 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,521 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Python官网
+2026-06-18 09:13:11,523 [    INFO] memory.vector_store.vector_store: [KnowledgeBase] 添加文档: Flask文档
+2026-06-18 09:13:11,523 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 09:13:11,530 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,530 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_empty_add
+2026-06-18 09:13:11,530 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpztrst4ed
+2026-06-18 09:13:11,530 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,538 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:13:11,539 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_empty_search
+2026-06-18 09:13:11,539 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpl2cxzxre
+2026-06-18 09:13:11,539 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:13:11,542 [    INFO] memory.vector_store.vector_store:    └─ 返回: 1 条
+2026-06-18 09:13:11,545 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test_key
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test_key
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test_key, default=None
+2026-06-18 09:13:11,546 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test_key
+2026-06-18 09:13:11,549 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,549 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,549 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,550 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=non_existent, default={'default': 42}
+2026-06-18 09:13:11,550 [ WARNING] core.storage: [InMemoryStorage.load] 键不存在: non_existent, 返回默认值
+2026-06-18 09:13:11,552 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key1
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key1
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage.delete] 开始删除: key=key1
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage.delete] 键存在，准备删除: key1
+2026-06-18 09:13:11,553 [    INFO] core.storage: [InMemoryStorage.delete] 删除成功: key1
+2026-06-18 09:13:11,556 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,556 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,556 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=key
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: key
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=key, default=None
+2026-06-18 09:13:11,557 [    INFO] core.storage: [InMemoryStorage.load] 键存在: key
+2026-06-18 09:13:11,560 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 09:13:11,561 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp_2ix10c7
+2026-06-18 09:13:11,561 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp_2ix10c7
+2026-06-18 09:13:11,561 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp_2ix10c7
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=test_key
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp_2ix10c7\test_key.json
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp_2ix10c7\test_key.json
+2026-06-18 09:13:11,562 [    INFO] core.storage: [JSONFileStorage.save] Saved: test_key
+2026-06-18 09:13:11,563 [    INFO] core.storage: [JSONFileStorage.load] 开始加载: key=test_key, default=None
+2026-06-18 09:13:11,563 [    INFO] core.storage: [JSONFileStorage.load] 文件存在，开始读取: C:\Windows\TEMP\tmp_2ix10c7\test_key.json
+2026-06-18 09:13:11,563 [    INFO] core.storage: [JSONFileStorage.load] 读取成功: C:\Windows\TEMP\tmp_2ix10c7\test_key.json
+2026-06-18 09:13:11,563 [    INFO] core.storage: [JSONFileStorage.load] Loaded: test_key
+2026-06-18 09:13:11,566 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 09:13:11,567 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp3w_li73o
+2026-06-18 09:13:11,567 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp3w_li73o
+2026-06-18 09:13:11,567 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 09:13:11,567 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp3w_li73o
+2026-06-18 09:13:11,567 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key1
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp3w_li73o\key1.json
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp3w_li73o\key1.json
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] Saved: key1
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key2
+2026-06-18 09:13:11,568 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp3w_li73o\key2.json
+2026-06-18 09:13:11,569 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp3w_li73o\key2.json
+2026-06-18 09:13:11,569 [    INFO] core.storage: [JSONFileStorage.save] Saved: key2
+2026-06-18 09:13:11,573 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 09:13:11,573 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmp8jg0nchx
+2026-06-18 09:13:11,573 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmp8jg0nchx
+2026-06-18 09:13:11,574 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 09:13:11,574 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmp8jg0nchx
+2026-06-18 09:13:11,574 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 09:13:11,574 [    INFO] core.storage: [JSONFileStorage.save] 开始保存: key=key
+2026-06-18 09:13:11,574 [    INFO] core.storage: [JSONFileStorage.save] 写入文件: C:\Windows\TEMP\tmp8jg0nchx\key.json
+2026-06-18 09:13:11,575 [    INFO] core.storage: [JSONFileStorage.save] 写入成功: C:\Windows\TEMP\tmp8jg0nchx\key.json
+2026-06-18 09:13:11,575 [    INFO] core.storage: [JSONFileStorage.save] Saved: key
+2026-06-18 09:13:11,575 [    INFO] core.storage: [JSONFileStorage.delete] 开始删除: key=key
+2026-06-18 09:13:11,575 [    INFO] core.storage: [JSONFileStorage.delete] 删除文件: C:\Windows\TEMP\tmp8jg0nchx\key.json
+2026-06-18 09:13:11,575 [    INFO] core.storage: [JSONFileStorage.delete] 删除成功
+2026-06-18 09:13:11,576 [    INFO] core.storage: [JSONFileStorage.delete] Deleted: key
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] 开始创建存储: type=memory, kwargs={}
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] 创建 InMemoryStorage
+2026-06-18 09:13:11,580 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,580 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,580 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] InMemoryStorage 创建完成
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] 开始创建存储: type=json, kwargs={'base_dir': 'C:\\Windows\\TEMP\\tmpp1o0mhfb'}
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] 创建 JSONFileStorage
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] __init__ 开始初始化
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] 基础目录: C:\Windows\TEMP\tmpp1o0mhfb
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] 确保目录存在: C:\Windows\TEMP\tmpp1o0mhfb
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] 目录创建/检查完成
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] JSONFileStorage initialized: C:\Windows\TEMP\tmpp1o0mhfb
+2026-06-18 09:13:11,580 [    INFO] core.storage: [JSONFileStorage] __init__ 初始化完成
+2026-06-18 09:13:11,580 [    INFO] core.storage: [create_storage] JSONFileStorage 创建完成
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage] __init__ 开始初始化
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage] InMemoryStorage initialized
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage] __init__ 初始化完成
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage.save] 开始保存: key=test
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage.save] 保存成功: test
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage.load] 开始加载: key=test, default=None
+2026-06-18 09:13:11,590 [    INFO] core.storage: [InMemoryStorage.load] 键存在: test
+2026-06-18 09:13:11,617 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,621 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 09:13:11,621 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用, 降级为 json
+2026-06-18 09:13:11,621 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,628 [ WARNING] agent.utils.serialization: [Serialization] cbor 不可用, 降级为 json
+2026-06-18 09:13:11,628 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,628 [ WARNING] agent.utils.serialization: [Serialization] 未知格式: unknown_format, 使用 json
+2026-06-18 09:13:11,632 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,632 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,638 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=True
+2026-06-18 09:13:11,643 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,643 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,648 [   ERROR] agent.utils.serialization: [Serialization] 加载失败: C:\Windows\TEMP\tmpqloclvwj, 错误: Expecting value: line 1 column 1 (char 0)
+2026-06-18 09:13:11,658 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 09:13:11,658 [    INFO] agent.utils.serialization: [Serialization] json: {'serialize_time_ms': 0.0, 'deserialize_time_ms': 0.0, 'size_bytes': 512, 'total_time_ms': 0.0}
+2026-06-18 09:13:11,658 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-18 09:13:11,663 [    INFO] agent.utils.serialization: [Serialization] pickle: {'serialize_time_ms': 0.501, 'deserialize_time_ms': 0.0, 'size_bytes': 405, 'total_time_ms': 0.501}

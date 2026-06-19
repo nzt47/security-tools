@@ -63,30 +63,12 @@ _DEFAULT_NETWORK_CONFIG = {
     # 搜索服务配置
     "search": {
         "enabled": True,
-        "default_engine": "duckduckgo",
+        "default_engine": "",
         "max_results": 10,
         "timeout": 30,
         "cache_ttl": 300,
-        "engine_priority": ["duckduckgo", "baidu", "sogou", "so360", "tavily", "firecrawl", "bing", "brave", "google"],
-        "engine_enabled": {
-            "duckduckgo": True,
-            "tavily": True,
-            "bing": True,
-            "google": True,
-            "brave": True,
-            "baidu": True,
-            "sogou": True,
-            "so360": True,
-        },
-    },
-    # 搜索引擎 API Key（敏感信息，加密存储）
-    "search_api_keys": {
-        "tavily": "",
-        "firecrawl": "",
-        "bing": "",
-        "google": "",
-        "google_cx": "",
-        "brave": "",
+        "engine_priority": ["duckduckgo"],
+        "engine_enabled": {},
     },
     # 搜索实例配置（新版）
     "search_instances": [],
@@ -249,17 +231,6 @@ class NetworkConfigManager:
                 'webhook_url': '',
             }
         
-        # 确保 search_api_keys 配置存在
-        if 'search_api_keys' not in self._cache:
-            self._cache['search_api_keys'] = {
-                'tavily': '',
-                'firecrawl': '',
-                'bing': '',
-                'google': '',
-                'google_cx': '',
-                'brave': '',
-            }
-
         # 确保 search_instances 配置存在
         if 'search_instances' not in self._cache:
             self._cache['search_instances'] = []
@@ -268,18 +239,6 @@ class NetworkConfigManager:
         for inst in self._cache.get('search_instances', []):
             if not inst.get('id'):
                 inst['id'] = str(uuid.uuid4())
-
-        # 确保搜索引擎启用状态包含新引擎
-        search_cfg = self._cache.get('search', {})
-        if 'engine_enabled' in search_cfg:
-            default_enabled = {
-                'duckduckgo': True, 'tavily': True, 'bing': True,
-                'google': True, 'brave': True,
-                'baidu': True, 'sogou': True, 'so360': True,
-            }
-            for engine, enabled in default_enabled.items():
-                if engine not in search_cfg['engine_enabled']:
-                    search_cfg['engine_enabled'][engine] = enabled
 
         # 确保 LLM 实例都有 ID
         for instance in self._cache.get('llm_instances', []):
@@ -340,15 +299,6 @@ class NetworkConfigManager:
             'error_reporting_webhook',
             config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
         )
-        
-        # 加载搜索引擎 API Key（加密存储）
-        search_api_keys = config.get('search_api_keys', {})
-        config['search_api_keys']['tavily'] = self._load_secure('search_tavily_key', search_api_keys.get('tavily', ''))
-        config['search_api_keys']['firecrawl'] = self._load_secure('search_firecrawl_key', search_api_keys.get('firecrawl', ''))
-        config['search_api_keys']['bing'] = self._load_secure('search_bing_key', search_api_keys.get('bing', ''))
-        config['search_api_keys']['google'] = self._load_secure('search_google_key', search_api_keys.get('google', ''))
-        config['search_api_keys']['google_cx'] = self._load_secure('search_google_cx', search_api_keys.get('google_cx', ''))
-        config['search_api_keys']['brave'] = self._load_secure('search_brave_key', search_api_keys.get('brave', ''))
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
@@ -377,12 +327,6 @@ class NetworkConfigManager:
         # 错误报告 Webhook 脱敏
         if safe_config['external_services']['error_reporting'].get('webhook_url'):
             safe_config['external_services']['error_reporting']['webhook_url'] = '***'
-        
-        # 搜索引擎 API Key 脱敏
-        for key in ['tavily', 'bing', 'google', 'brave']:
-            if safe_config['search_api_keys'].get(key):
-                value = safe_config['search_api_keys'][key]
-                safe_config['search_api_keys'][key] = '***' + value[-4:] if len(value) > 4 else '***'
 
         # LLM 实例 API Key 脱敏
         for instance in safe_config.get('llm_instances', []):
@@ -408,15 +352,6 @@ class NetworkConfigManager:
             'error_reporting_webhook',
             config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
         )
-        
-        # 加载搜索引擎 API Key（加密存储）
-        search_api_keys = config.get('search_api_keys', {})
-        config['search_api_keys']['tavily'] = self._load_secure('search_tavily_key', search_api_keys.get('tavily', ''))
-        config['search_api_keys']['firecrawl'] = self._load_secure('search_firecrawl_key', search_api_keys.get('firecrawl', ''))
-        config['search_api_keys']['bing'] = self._load_secure('search_bing_key', search_api_keys.get('bing', ''))
-        config['search_api_keys']['google'] = self._load_secure('search_google_key', search_api_keys.get('google', ''))
-        config['search_api_keys']['google_cx'] = self._load_secure('search_google_cx', search_api_keys.get('google_cx', ''))
-        config['search_api_keys']['brave'] = self._load_secure('search_brave_key', search_api_keys.get('brave', ''))
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
@@ -469,25 +404,6 @@ class NetworkConfigManager:
                     logger.info("[网络配置] Webhook URL 已加密保存")
                 elif webhook_url and webhook_url.startswith('***'):
                     logger.info("[网络配置] Webhook URL 未变更（脱敏值），跳过更新")
-
-        # 处理搜索引擎 API Key（敏感信息）
-        if 'search_api_keys' in updates:
-            key_mapping = {
-                'tavily': 'search_tavily_key',
-                'firecrawl': 'search_firecrawl_key',
-                'bing': 'search_bing_key',
-                'google': 'search_google_key',
-                'google_cx': 'search_google_cx',
-                'brave': 'search_brave_key',
-            }
-            for key_name, secure_key in key_mapping.items():
-                api_key = updates['search_api_keys'].get(key_name)
-                if api_key and api_key != '***' and not api_key.startswith('***'):
-                    logger.info(f"[网络配置] 检测到新的 {key_name} API Key，准备加密保存...")
-                    self._save_secure(secure_key, api_key)
-                    logger.info(f"[网络配置] {key_name} API Key 已加密保存")
-                elif api_key and api_key.startswith('***'):
-                    logger.info(f"[网络配置] {key_name} API Key 未变更（脱敏值），跳过更新")
 
         # 处理 LLM 实例
         if 'llm_instances' in updates:
@@ -607,39 +523,32 @@ class NetworkConfigManager:
         engine_type = instance.get('engine_type', 'custom')
         enabled = instance.get('enabled', True)
 
+        from functools import partial
         if engine_type == 'custom':
-            # 自定义引擎：注册通用 handler
-            from functools import partial
             handler = partial(search_engine._search_custom, instance)
-            search_engine.register_engine(
-                name=inst_id,
-                label=name,
-                handler=handler,
-                needs_key=bool(instance.get('api_key')),
-                description=f"自定义搜索引擎: {instance.get('api_endpoint', '')}",
-            )
         else:
-            # 内置引擎：已通过 _register_builtin_engines 注册，只需更新 API Key
-            if instance.get('api_key'):
-                search_engine._api_keys[engine_type] = instance['api_key']
+            # 内置引擎用专用 handler，回退到通用 handler
+            handler = getattr(search_engine, f'_search_{engine_type}', None)
+            if handler is None:
+                handler = partial(search_engine._search_custom, instance)
+
+        search_engine.register_engine(
+            name=inst_id,
+            label=name,
+            handler=handler,
+            needs_key=bool(instance.get('api_key')),
+            description=f"搜索引擎: {engine_type}",
+        )
 
         # 设置启用状态和默认引擎
-        if engine_type == 'custom':
-            search_engine.set_engine_enabled(inst_id, enabled)
-            if instance.get('is_default'):
-                search_engine.set_default_engine(inst_id)
-        else:
-            # 内置引擎用类型名注册，用 engine_type 作为标识
-            search_engine.set_engine_enabled(engine_type, enabled)
-            if instance.get('is_default'):
-                # 内置引擎已通过 _register_builtin_engines 注册，直接设置默认
-                search_engine.set_default_engine(engine_type)
+        search_engine.set_engine_enabled(inst_id, enabled)
+        if instance.get('is_default'):
+            search_engine.set_default_engine(inst_id)
 
     def apply_search_instances(self, search_engine=None):
         """将搜索实例注册到 SearchEngine
 
-        先清理已注册的自定义引擎，再根据配置重新注册所有实例，
-        最后更新优先级将自定义引擎排在前面。
+        先清理已注册的引擎，再根据配置重新注册所有实例。
 
         Args:
             search_engine: SearchEngine 实例
@@ -648,9 +557,16 @@ class NetworkConfigManager:
             return
         config = self.get_raw_config()
         instances = config.get('search_instances', [])
+
+        # 首次运行：将内置引擎填充为实例
+        if not instances:
+            instances = self._seed_builtin_search_instances(config)
+            config['search_instances'] = instances
+            self._save(config)
+
         logger.info("[网络配置] 开始注册 %d 个搜索实例...", len(instances))
 
-        # 先清理之前已注册的自定义引擎
+        # 先清理之前已注册的引擎
         for inst in instances:
             inst_id = inst.get('id', '')
             if inst_id in search_engine._engine_registry:
@@ -665,15 +581,15 @@ class NetworkConfigManager:
                 continue
             self._register_search_instance(inst, search_engine)
 
-        # 更新优先级：自定义引擎排在前面
-        custom_ids = [inst.get('id', '') for inst in instances if inst.get('id') and inst.get('enabled', True)]
-        if custom_ids:
+        # 更新优先级：实例按配置顺序排列
+        instance_ids = [inst.get('id', '') for inst in instances if inst.get('id') and inst.get('enabled', True)]
+        if instance_ids:
             priority = list(search_engine._engine_priority)
-            # 把自定义 ID 移到前面
-            for cid in custom_ids:
+            # 把实例 ID 移到前面
+            for cid in instance_ids:
                 if cid in priority:
                     priority.remove(cid)
-            priority = custom_ids + priority
+            priority = instance_ids + priority
             search_engine.set_engine_priority(priority)
 
         logger.info("[网络配置] 搜索实例注册完成")
@@ -1022,7 +938,6 @@ class NetworkConfigManager:
         logger.info("[网络配置] 应用实例类型: %s", type(app_instance))
         
         config = self.get_raw_config()
-        logger.info("[网络配置] 配置已加载，search_api_keys 存在: %s", 'search_api_keys' in config)
 
         # 应用到 HttpClient 配置
         try:
@@ -1044,24 +959,15 @@ class NetworkConfigManager:
         try:
             if app_instance and hasattr(app_instance, '_web_search'):
                 search_config = config['search']
-                search_api_keys = config['search_api_keys']
-                
+
                 # 更新搜索引擎配置
                 update_config = {
-                    'engine_priority': search_config.get('engine_priority', ['duckduckgo', 'tavily']),
+                    'engine_priority': search_config.get('engine_priority', ['duckduckgo']),
                     'engine_enabled': search_config.get('engine_enabled', {}),
                     'timeout': search_config.get('timeout', 30),
-                    'default_engine': search_config.get('default_engine', 'duckduckgo'),
+                    'default_engine': search_config.get('default_engine', ''),
                 }
-                
-                # 动态添加 API Keys（所有非空值）
-                for key_name, key_value in search_api_keys.items():
-                    if key_value:
-                        if key_name == 'google_cx':
-                            update_config['google_cx'] = key_value
-                        else:
-                            update_config[f'{key_name}_api_key'] = key_value
-                
+
                 app_instance._web_search.update_config(update_config)
                 logger.info("[网络配置] [即时生效] 搜索引擎配置已更新:")
                 logger.info(f"  - 默认引擎: {search_config.get('default_engine')}")
@@ -1155,34 +1061,15 @@ class NetworkConfigManager:
         """获取搜索引擎配置信息"""
         config = self.get_raw_config()
         search_config = config.get('search', {})
-        api_keys = config.get('search_api_keys', {})
-
-        # 检查 API Key 是否已配置（非空字符串）
-        def is_key_configured(key_name):
-            key_value = api_keys.get(key_name, '')
-            return bool(key_value and key_value.strip())
-
-        # 动态生成 api_keys 状态（基于 engine_priority 列表）
-        api_keys_status = {}
-        for engine in search_config.get('engine_priority', []):
-            if engine == 'google':
-                api_keys_status['google'] = is_key_configured('google')
-                api_keys_status['google_cx'] = is_key_configured('google_cx')
-            elif engine in api_keys:
-                api_keys_status[engine] = is_key_configured(engine)
-            # 无需 API Key 的引擎（duckduckgo, baidu, sogou, so360）自动标记为 True
-            if engine in ('duckduckgo', 'baidu', 'sogou', 'so360'):
-                engine_key = f'{engine}_configured'
-                api_keys_status[engine_key] = True
 
         return {
             'enabled': search_config.get('enabled', True),
-            'default_engine': search_config.get('default_engine', 'duckduckgo'),
+            'default_engine': search_config.get('default_engine', ''),
             'max_results': search_config.get('max_results', 10),
             'timeout': search_config.get('timeout', 30),
-            'engine_priority': search_config.get('engine_priority', ['duckduckgo', 'tavily']),
+            'engine_priority': search_config.get('engine_priority', ['duckduckgo']),
             'engine_enabled': search_config.get('engine_enabled', {}),
-            'api_keys': api_keys_status,
+            'api_keys': {},
         }
 
     def update_search_config(self, search_updates: dict) -> dict:
@@ -1212,13 +1099,6 @@ class NetworkConfigManager:
         if 'engine_enabled' in search_updates:
             updates['search'] = updates.get('search', {})
             updates['search']['engine_enabled'] = search_updates['engine_enabled']
-        
-        # 处理 API Key 更新
-        if 'api_keys' in search_updates:
-            updates['search_api_keys'] = updates.get('search_api_keys', {})
-            for key_name, value in search_updates['api_keys'].items():
-                if value and value != '***' and not value.startswith('***'):
-                    updates['search_api_keys'][key_name] = value
         
         # 执行更新
         if updates:

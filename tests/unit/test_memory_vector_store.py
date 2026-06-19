@@ -3,7 +3,7 @@ VectorStore 测试 - pytest 格式
 针对 agent/memory/vector_store.py 的测试用例
 """
 import pytest
-from agent.memory.vector_store import VectorStore, KnowledgeBase
+from memory.vector_store import VectorStore, KnowledgeBase
 
 
 class TestVectorStoreBasics:
@@ -33,14 +33,9 @@ class TestVectorStoreBasics:
     @pytest.mark.p1
     def test_vector_store_imports(self):
         """测试模块导入"""
-        import agent.memory.vector_store
-        assert agent.memory.vector_store is not None
+        import memory.vector_store
+        assert memory.vector_store is not None
 
-
-class TestVectorStoreFunctionality:
-    """测试 VectorStore 的核心功能"""
-    
-    @pytest.fixture
     def vector_store(self):
         """VectorStore 实例"""
         try:

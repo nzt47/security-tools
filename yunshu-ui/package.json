@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:flask": "npm run build && node -e \"const fs=require('fs'),path=require('path');const dist='dist',flaskStatic=path.join(__dirname,'..','static'),flaskTpl=path.join(__dirname,'..','templates');if(!fs.existsSync(flaskStatic))fs.mkdirSync(flaskStatic,{recursive:true});fs.cpSync(path.join(dist,'index.html'),path.join(flaskTpl,'yunshu.html'),{recursive:true});const assets=fs.readdirSync(path.join(dist,'assets'));assets.forEach(f=>fs.cpSync(path.join(dist,'assets',f),path.join(flaskStatic,'assets',f),{recursive:true}));console.log('✓ React 构建产物已复制到 Flask static/ 和 templates/');\"",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit"

@@ -486,7 +486,11 @@ class ToolCallingService:
 
             steps.append({"type": "text", "content": "（达到最大工具调用轮次）"})
             if on_step: on_step(steps[-1])
-            result = {"text": self._get_last_assistant_text(working_messages), "steps": steps}
+            final_text = self._get_last_assistant_text(working_messages)
+            if not final_text:
+                tool_summary = self._summarize_tool_steps(steps)
+                final_text = tool_summary or "（无法生成回复）"
+            result = {"text": final_text, "steps": steps}
             # 尝试从最后响应中提取 reasoning
             if response and hasattr(response, "reasoning_content") and response.reasoning_content:
                 result["reasoning"] = response.reasoning_content
@@ -794,8 +798,11 @@ class ToolCallingService:
         return truncated
 
 
-def _summarize_tool_result(tool_name: str, result: dict) -> str:
+def _summarize_tool_result(tool_name: str, result) -> str:
     """生成工具执行结果的简短摘要"""
+    # 防御：工具可能返回字符串而非 dict（如 _remember 校验失败）
+    if not isinstance(result, dict):
+        return str(result)[:200]
     if result.get("ok") is False:
         # 支持 error 和 message 两种键名（ExtensionManager 等使用 message）
         err_msg = result.get("error") or result.get("message") or ""
@@ -810,14 +817,19 @@ def _summarize_tool_result(tool_name: str, result: dict) -> str:
     if tool_name == "web_search":
         results_list = result.get("results", [])
         if results_list:
-            # 返回更有用的摘要：包含标题列表
-            titles = []
-            for r in results_list[:5]:  # 最多取5条
+            items = []
+            for r in results_list[:3]:  # 最多取3条
                 title = r.get("title", "")
+                snippet = r.get("snippet", "") or r.get("body", "") or ""
+                item_parts = []
                 if title:
-                    titles.append(title[:40])  # 标题截断到40字符
-            if titles:
-                return f"找到 {len(results_list)} 条结果: {' | '.join(titles)}"
+                    item_parts.append(title[:60])
+                if snippet:
+                    item_parts.append(snippet[:120])
+                if item_parts:
+                    items.append(" · ".join(item_parts))
+            if items:
+                return f"找到 {len(results_list)} 条结果:\n" + "\n---\n".join(items)
             return f"找到 {len(results_list)} 条结果"
         return "未找到相关结果"
     if tool_name == "web_get":

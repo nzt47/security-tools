@@ -1,0 +1,146 @@
+/* 流式思考块样式 — 仿 Claude Code 风格 */
+
+.thinking-block {
+  margin: 8px 0;
+  border: 1px solid var(--border-color, rgba(79, 209, 197, 0.2));
+  border-radius: var(--radius-md, 8px);
+  background: rgba(15, 15, 25, 0.6);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.thinking-block.streaming {
+  border-color: var(--mascot-thinking, #9f7aea);
+  box-shadow: 0 0 12px rgba(159, 122, 234, 0.15);
+}
+
+/* 头部按钮 */
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #a0aec0);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  user-select: none;
+}
+
+.thinking-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.thinking-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.thinking-block.streaming .thinking-icon {
+  animation: thinking-pulse 1.5s ease-in-out infinite;
+}
+
+.thinking-label {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.thinking-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted, #718096);
+}
+
+.thinking-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--mascot-thinking, #9f7aea);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: thinking-spin 0.8s linear infinite;
+}
+
+.thinking-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.thinking-chevron {
+  font-size: 11px;
+}
+
+/* 主体 — 可滚动 */
+.thinking-body {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.thinking-text {
+  margin: 0;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary, #a0aec0);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* 流式新内容闪烁提示 */
+.thinking-text:last-child {
+  animation: thinking-fade-in 0.3s ease-out;
+}
+
+/* 空状态占位（等待思考） */
+.thinking-placeholder {
+  display: flex;
+  gap: 4px;
+  padding: 12px 0;
+  justify-content: center;
+}
+
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--mascot-thinking, #9f7aea);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* 折叠状态 */
+.thinking-block.collapsed .thinking-body {
+  display: none;
+}
+
+/* 动画 */
+@keyframes thinking-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes thinking-fade-in {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}

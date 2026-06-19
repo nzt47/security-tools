@@ -136,6 +136,12 @@ class SafetyGuard:
         self._alert_history.append(alert)
         if len(self._alert_history) > self._max_alerts:
             self._alert_history = self._alert_history[-self._max_alerts:]
+        
+        for callback in _alert_callbacks:
+            try:
+                callback(alert)
+            except Exception as e:
+                logger.error(f"告警回调执行失败: {e}")
     
     def get_alerts(self, limit: int = 50) -> List[Dict]:
         """获取最近告警记录"""

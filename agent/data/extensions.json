@@ -4,56 +4,56 @@
       "ext_id": "self_reflection",
       "ext_type": "skill",
       "name": "自省反思",
-      "status": "enabled",
       "description": "每次交互后自动反思自身状态，不断成长",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "memory_summary",
       "ext_type": "skill",
       "name": "记忆摘要",
-      "status": "enabled",
       "description": "定期压缩历史对话为结构化摘要",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "emotion_expression",
       "ext_type": "skill",
       "name": "情感表达",
-      "status": "enabled",
       "description": "在对话中表达情感色彩，让回应更生动",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "proactive_suggestion",
       "ext_type": "skill",
       "name": "主动建议",
-      "status": "enabled",
       "description": "在适当时机主动提出建议和想法",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "context_aware",
       "ext_type": "skill",
       "name": "上下文感知",
-      "status": "enabled",
       "description": "感知对话上下文变化，自动调整回应策略",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "safety_guard",
       "ext_type": "skill",
       "name": "安全守护",
-      "status": "enabled",
       "description": "检测和过滤不安全的内容和操作",
+      "status": "enabled",
       "source": "builtin"
     },
     {
       "ext_id": "voice_interaction",
       "ext_type": "skill",
       "name": "语音交互",
-      "status": "enabled",
       "description": "通过语音与用户进行交互",
+      "status": "enabled",
       "source": "builtin"
     }
   ],

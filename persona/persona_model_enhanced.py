@@ -227,11 +227,62 @@ class PersonaModel:
     def update_expression_style(self, **kwargs):
         """更新表达风格"""
         layer2_data = self.persona["layers"]["layer2"]
+        changes = []
+        skipped = []
+        clipped = []
+        
         for key, value in kwargs.items():
-            if key in layer2_data and isinstance(layer2_data[key], (int, float)):
-                layer2_data[key] = max(0.0, min(1.0, float(value)))
-                logger.info(f"更新表达风格: {key} = {layer2_data[key]}")
+            if key in layer2_data:
+                if isinstance(layer2_data[key], (int, float)):
+                    old_value = layer2_data[key]
+                    
+                    # 尝试转换为数值
+                    try:
+                        new_value = float(value)
+                    except (ValueError, TypeError):
+                        skipped.append(f"{key}: {repr(value)} (无法转换为数值)")
+                        continue
+                    
+                    # 检查是否需要裁剪
+                    if new_value < 0.0 or new_value > 1.0:
+                        clipped_value = max(0.0, min(1.0, new_value))
+                        clipped.append(f"{key}: {new_value:.4f} -> {clipped_value:.4f} (裁剪)")
+                        layer2_data[key] = clipped_value
+                    else:
+                        layer2_data[key] = new_value
+                    
+                    change_amount = layer2_data[key] - old_value
+                    changes.append({
+                        "key": key,
+                        "old": old_value,
+                        "new": layer2_data[key],
+                        "change": change_amount,
+                        "percentage": (change_amount / (old_value if old_value != 0 else 1)) * 100
+                    })
+                else:
+                    skipped.append(f"{key} (非数值类型)")
+            else:
+                skipped.append(f"{key} (不存在的参数)")
+        
+        # 更新层对象
         self.layers["layer2"] = PersonaLayer("layer2", layer2_data)
+        
+        # 记录详细日志
+        if changes:
+            log_lines = ["[人格更新] 表达风格参数变化:"]
+            for change in changes:
+                direction = "↑" if change["change"] > 0 else "↓" if change["change"] < 0 else "→"
+                log_lines.append(
+                    f"  {change['key']}: {change['old']:.4f} {direction} {change['new']:.4f} "
+                    f"(Δ={change['change']:+.4f}, {change['percentage']:+.1f}%)"
+                )
+            if clipped:
+                log_lines.append(f"  [裁剪警告] {', '.join(clipped)}")
+            if skipped:
+                log_lines.append(f"  [跳过] {', '.join(skipped)}")
+            logger.info("\n".join(log_lines))
+        else:
+            logger.info("[人格更新] 无有效参数变化")
 
     def record_interaction(self):
         """记录交互次数"""

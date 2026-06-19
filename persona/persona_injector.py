@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, Any, Optional, List, Tuple
 
-from .persona_model import PersonaModel
+from .persona_model_enhanced import PersonaModel
 
 logger = logging.getLogger(__name__)
 

@@ -25,7 +25,7 @@ import time
 import hashlib
 import logging
 import threading
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -35,17 +35,40 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CacheEntry:
-    """缓存条目"""
+    """缓存条目 - 支持 LFU-K 混合淘汰策略"""
     prompt_hash: str
     response: str
     timestamp: float
     ttl_seconds: int
     hit_count: int = 0
     generation_time_ms: float = 0.0
+    last_access_time: float = field(default_factory=time.time)
+    frequency_score: float = 0.0  # 综合评分：考虑访问次数和访问时间
 
     def is_expired(self) -> bool:
         """检查是否过期"""
         return time.time() - self.timestamp > self.ttl_seconds
+
+    def update_access(self, lru_weight: float = 0.3, freq_weight: float = 0.7):
+        """更新访问状态和综合评分
+        
+        Args:
+            lru_weight: LRU 权重 (时间衰减因子)
+            freq_weight: 频率权重 (访问次数因子)
+        """
+        self.hit_count += 1
+        current_time = time.time()
+        time_diff = current_time - self.last_access_time
+        
+        # 更新时间差，避免除零
+        time_factor = 1.0 / (1.0 + time_diff)
+        
+        # 综合评分 = 频率分数 * 频率权重 + 时间分数 * LRU权重
+        self.frequency_score = (
+            self.hit_count * freq_weight + 
+            time_factor * lru_weight * 100
+        )
+        self.last_access_time = current_time
 
 
 @dataclass
@@ -96,6 +119,48 @@ class LLMResponseCache:
 
         logger.info(f"[LLMCache] 初始化完成，max_size={max_size}, ttl={ttl_seconds}s")
 
+    @property
+    def cache_size(self) -> int:
+        """获取当前缓存大小"""
+        with self._lock:
+            return len(self.cache)
+
+    def _select_eviction_candidate(self) -> str:
+        """使用 LFU-K 混合淘汰策略选择要淘汰的缓存条目
+        
+        综合考虑：
+        1. 访问频率（hit_count）- 频率越高越重要
+        2. 最后访问时间（last_access_time）- 时间越久越可能被淘汰
+        3. 综合评分（frequency_score）- 综合指标
+        
+        Returns:
+            要淘汰的缓存键
+        """
+        candidates = list(self.cache.keys())
+        if not candidates:
+            raise RuntimeError("缓存为空，无法执行淘汰")
+        
+        # 计算每个条目的淘汰优先级分数
+        # 分数越低越优先被淘汰
+        min_score = float('inf')
+        selected_key = candidates[0]
+        current_time = time.time()
+        
+        for key in candidates:
+            entry = self.cache[key]
+            
+            # 时间衰减因子：越久没访问，分数越低
+            time_decay = 1.0 / (1.0 + (current_time - entry.last_access_time) / 1000)
+            
+            # 淘汰优先级 = 综合评分 * 时间衰减
+            eviction_priority = entry.frequency_score * time_decay
+            
+            if eviction_priority < min_score:
+                min_score = eviction_priority
+                selected_key = key
+        
+        return selected_key
+
     def _hash_prompt(self, prompt: str) -> str:
         """对提示词进行哈希"""
         return hashlib.sha256(prompt.encode('utf-8')).hexdigest()
@@ -104,18 +169,18 @@ class LLMResponseCache:
         """分类提示词类型"""
         prompt_lower = prompt.lower()
 
-        # 问候语
-        greetings = ['hello', 'hi', '你好', '嗨', '早上好', '下午好', '晚上好', 'hello,', 'hi,']
-        if any(greeting in prompt_lower for greeting in greetings) or len(prompt) < 10:
-            return 'greeting'
+        # 帮助请求（优先级最高）
+        if any(kw in prompt_lower for kw in ['帮助', 'help me']):
+            return 'help_request'
 
         # 状态查询
         if any(kw in prompt_lower for kw in ['你好吗', '怎么样', '状态', 'status', 'health']):
             return 'status_query'
 
-        # 帮助请求
-        if any(kw in prompt_lower for kw in ['帮助', 'help', 'help me']):
-            return 'help_request'
+        # 问候语
+        greetings = ['hello', 'hi', '你好', '嗨', '早上好', '下午好', '晚上好', 'hello,', 'hi,']
+        if any(greeting in prompt_lower for greeting in greetings) or len(prompt) < 10:
+            return 'greeting'
 
         # 其他
         return 'other'
@@ -148,7 +213,8 @@ class LLMResponseCache:
                 logger.debug(f"[LLMCache] 已过期: {len(prompt)} chars")
                 return None
 
-            entry.hit_count += 1
+            # 使用 LFU-K 混合策略更新访问状态
+            entry.update_access()
             self.cache.move_to_end(prompt_hash)
 
             # 更新统计
@@ -196,10 +262,13 @@ class LLMResponseCache:
             else:
                 # 新条目
                 if len(self.cache) >= self.max_size:
-                    evicted_key, evicted_entry = self.cache.popitem(last=False)
+                    # 使用 LFU-K 混合淘汰策略选择要淘汰的条目
+                    evicted_key = self._select_eviction_candidate()
+                    evicted_entry = self.cache.pop(evicted_key)
                     self.total_evictions += 1
                     logger.info(
-                        f"[LLMCache] 🔄 淘汰: hits={evicted_entry.hit_count}"
+                        f"[LLMCache] 🔄 淘汰(LFU-K): hits={evicted_entry.hit_count}, "
+                        f"score={evicted_entry.frequency_score:.2f}"
                     )
 
                 entry = CacheEntry(
@@ -250,6 +319,7 @@ class AsyncSaveMonitor:
     """异步保存监控器
 
     特性：
+    - 使用 OrderedDict 提高查询效率
     - 追踪异步保存任务
     - 记录耗时和成功率
     - 详细的性能日志
@@ -257,7 +327,7 @@ class AsyncSaveMonitor:
 
     def __init__(self, max_records: int = 1000):
         self.max_records = max_records
-        self.records: list[AsyncSaveRecord] = []
+        self.records: OrderedDict[str, AsyncSaveRecord] = OrderedDict()  # 使用 OrderedDict 提高查询效率
         self._lock = threading.Lock()
         self._task_counter = 0
 
@@ -287,9 +357,11 @@ class AsyncSaveMonitor:
         )
 
         with self._lock:
-            self.records.append(record)
-            if len(self.records) > self.max_records:
-                self.records.pop(0)
+            # 使用 OrderedDict 按插入顺序存储，便于快速查找和顺序遍历
+            self.records[task_id] = record
+            # 保持记录数量限制
+            while len(self.records) > self.max_records:
+                self.records.popitem(last=False)  # 移除最早的记录
 
         logger.debug(f"[AsyncSave] ▶️ 开始: {task_id}")
         return task_id
@@ -304,34 +376,35 @@ class AsyncSaveMonitor:
             error: 错误信息（如果失败）
         """
         with self._lock:
-            for record in reversed(self.records):
-                if record.task_id == task_id:
-                    record.end_time = time.perf_counter()
-                    record.elapsed_ms = (record.end_time - record.start_time) * 1000
-                    record.success = success
-                    record.error = error
+            # 使用 OrderedDict 的直接键查找，O(1) 复杂度
+            if task_id not in self.records:
+                logger.warning(f"[AsyncSave] 任务未找到: {task_id}")
+                return
+            
+            record = self.records[task_id]
+            record.end_time = time.perf_counter()
+            record.elapsed_ms = (record.end_time - record.start_time) * 1000
+            record.success = success
+            record.error = error
 
-                    self.total_saves += 1
-                    if success:
-                        self.successful_saves += 1
-                        self.total_save_time_ms += record.elapsed_ms
-                    else:
-                        self.failed_saves += 1
+            self.total_saves += 1
+            if success:
+                self.successful_saves += 1
+                self.total_save_time_ms += record.elapsed_ms
+            else:
+                self.failed_saves += 1
 
-                    if success:
-                        logger.info(
-                            f"[AsyncSave] ✅ 完成: {task_id}, "
-                            f"time={record.elapsed_ms:.2f}ms"
-                        )
-                    else:
-                        logger.error(
-                            f"[AsyncSave] ❌ 失败: {task_id}, "
-                            f"error={error}, "
-                            f"time={record.elapsed_ms:.2f}ms"
-                        )
-                    return
-
-        logger.warning(f"[AsyncSave] 任务未找到: {task_id}")
+            if success:
+                logger.info(
+                    f"[AsyncSave] ✅ 完成: {task_id}, "
+                    f"time={record.elapsed_ms:.2f}ms"
+                )
+            else:
+                logger.error(
+                    f"[AsyncSave] ❌ 失败: {task_id}, "
+                    f"error={error}, "
+                    f"time={record.elapsed_ms:.2f}ms"
+                )
 
     def get_stats(self) -> Dict[str, Any]:
         """获取保存统计信息"""
@@ -353,8 +426,12 @@ class AsyncSaveMonitor:
         }
 
     def get_recent_records(self, n: int = 10) -> list[AsyncSaveRecord]:
-        """获取最近的保存记录"""
-        return self.records[-n:]
+        """获取最近的保存记录
+        
+        使用 OrderedDict 的有序性，返回最后 n 条记录
+        """
+        records_list = list(self.records.values())
+        return records_list[-n:] if len(records_list) > n else records_list
 
 
 # 全局实例

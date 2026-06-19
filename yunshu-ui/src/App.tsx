@@ -1,83 +1,205 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mascot } from './components/Mascot';
 import { ChatWindow, Message } from './components/Chat';
 import { StatusIndicator } from './components/Status';
 import { ToastContainer, ToastData } from './components/Status';
+import { useChatStream } from './hooks/useChatStream';
 import './styles/theme.css';
 import './App.css';
 
+const API_BASE = '';  // 同域，空字符串
+
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: '我是来自网天的云枢',
-      timestamp: new Date(),
-    },
-  ]);
+  // ─── 状态 ───
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [mood, setMood] = useState<'idle' | 'thinking' | 'happy' | 'excited'>('idle');
   const [toasts, setToasts] = useState<ToastData[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [systemStatus, setSystemStatus] = useState<string>('offline');
+
+  const { state, send, reset } = useChatStream(API_BASE);
+
+  // 防止重复触发的锁
+  const lastResponseRef = useRef('');
+
+  // ─── 初始化 ───
+  useEffect(() => {
+    const savedId = localStorage.getItem('yunshu_session_id') || '';
+    if (savedId) setSessionId(savedId);
+    loadSessions(savedId);
+    checkHealth();
+  }, []);
+
+  // ─── streaming 完成 → 添加 assistant 消息 ───
+  useEffect(() => {
+    // streaming 从 true→false 且有回复文本
+    if (!state.streaming && state.text && state.text !== lastResponseRef.current) {
+      lastResponseRef.current = state.text;
+      const newMsg: Message = {
+        id: `assistant-${Date.now()}`,
+        type: 'assistant',
+        content: state.text,
+        timestamp: new Date(),
+        reasoning: state.reasoning || undefined,
+        toolSteps: state.toolSteps.length > 0 ? state.toolSteps : undefined,
+      };
+      setMessages(prev => [...prev, newMsg]);
+      setMood('idle');
+    }
+    // 错误处理
+    if (!state.streaming && state.error) {
+      addToast('error', state.error);
+      setMood('idle');
+    }
+  }, [state.streaming]);
+
+  // ─── 会话切换 → 加载消息 ───
+  useEffect(() => {
+    if (sessionId) {
+      loadMessages(sessionId);
+    }
+  }, [sessionId]);
+
+  // ─── API ───
+
+  const loadSessions = async (activeId?: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions`);
+      const data = await res.json();
+      setSessions(data.sessions || []);
+      if (!activeId && data.current_id) {
+        setSessionId(data.current_id);
+        localStorage.setItem('yunshu_session_id', data.current_id);
+      }
+    } catch (e) {
+      console.error('加载会话列表失败:', e);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const loadMessages = async (sid: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions/${sid}/messages`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          // 会话可能已被删除
+          localStorage.removeItem('yunshu_session_id');
+          setSessionId('');
+        }
+        return;
+      }
+      const data = await res.json();
+      const msgs: Message[] = (data || []).map((msg: any, i: number) => ({
+        id: `msg-${i}-${msg.timestamp || Date.now()}`,
+        type: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content || '',
+        timestamp: new Date(msg.timestamp),
+        reasoning: msg.role === 'assistant' ? (msg.reasoning || undefined) : undefined,
+        toolSteps: msg.role === 'assistant' ? (msg.tool_steps || undefined) : undefined,
+      }));
+      setMessages(msgs);
+    } catch (e) {
+      console.error('加载消息失败:', e);
+    }
+  };
+
+  const checkHealth = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/health`);
+      if (res.ok) {
+        setSystemStatus('online');
+        // 再获取一次状态信息
+        fetch(`${API_BASE}/api/status`).then(r => r.json()).then(d => {
+          // 可以扩展更多状态
+        }).catch(() => {});
+      }
+    } catch {
+      setSystemStatus('offline');
+    }
+  };
+
+  // ─── 动作 ───
 
   const handleSendMessage = (message: string) => {
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
+    const userMsg: Message = {
+      id: `user-${Date.now()}`,
       type: 'user',
       content: message,
       timestamp: new Date(),
     };
-
-    setMessages((prev) => [...prev, newUserMessage]);
+    setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setMood('thinking');
+    send(message, sessionId);
+  };
 
-    // 模拟助手回复
-    setTimeout(() => {
-      const responses = [
-        '让我想想...这个问题很有趣！',
-        '好的，我明白了。让我帮你分析一下。',
-        '这是个很好的问题！让我来解答。',
-        '我理解了。你还有其他想了解的吗？',
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+  const handleNewSession = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: '新对话' }),
+      });
+      const session = await res.json();
+      const newId = session.id;
+      localStorage.setItem('yunshu_session_id', newId);
+      setSessionId(newId);
+      setMessages([]);
+      reset();
+      addToast('success', '已创建新会话');
+      loadSessions(newId);
+    } catch (e) {
+      addToast('error', '创建会话失败');
+    }
+  };
 
-      const newAssistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: randomResponse,
-        timestamp: new Date(),
-      };
+  const handleSwitchSession = async (sid: string) => {
+    if (sid === sessionId) return;
+    try {
+      await fetch(`${API_BASE}/api/sessions/current`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sid }),
+      });
+      localStorage.setItem('yunshu_session_id', sid);
+      setSessionId(sid);
+      reset();
+    } catch (e) {
+      addToast('error', '切换会话失败');
+    }
+  };
 
-      setMessages((prev) => [...prev, newAssistantMessage]);
-      setMood('idle');
-    }, 1500);
+  // ─── Toast ───
+
+  const addToast = (type: ToastData['type'], message: string) => {
+    const t: ToastData = { id: Date.now().toString(), type, message };
+    setToasts(prev => [...prev, t]);
+  };
+
+  const handleCloseToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   const handleMoodChange = (newMood: any) => {
     console.log('Mood changed:', newMood);
   };
 
-  const handleCloseToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  // ─── 当前会话 ───
+  const currentSession = sessions.find(s => s.id === sessionId);
 
-  const addToast = (type: ToastData['type'], message: string) => {
-    const newToast: ToastData = {
-      id: Date.now().toString(),
-      type,
-      message,
-    };
-    setToasts((prev) => [...prev, newToast]);
-  };
-
+  // ─── 渲染 ───
   return (
     <div className="app">
       <div className="app-container">
-        {/* 侧边栏 - Mascot 显示区 */}
+        {/* 侧边栏 */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <h1 className="app-title">云枢</h1>
-            <StatusIndicator status="online" size="small" />
+            <StatusIndicator status={systemStatus as any} size="small" />
           </div>
 
           <div className="mascot-wrapper">
@@ -102,34 +224,62 @@ const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="sidebar-actions">
-            <button
-              className="action-btn"
-              onClick={() => addToast('info', '这是一个提示消息')}
-            >
-              测试提示
-            </button>
-            <button
-              className="action-btn"
-              onClick={() => addToast('success', '操作成功！')}
-            >
-              测试成功
-            </button>
+          {/* 会话管理 */}
+          <div className="session-panel">
+            <div className="session-panel-header">
+              <span className="session-panel-title">会话</span>
+              <button
+                className="session-new-btn"
+                onClick={handleNewSession}
+                title="新建对话"
+                type="button"
+              >
+                ✚
+              </button>
+            </div>
+            <div className="session-list">
+              {loadingSessions ? (
+                <div className="session-list-status">加载中...</div>
+              ) : sessions.length === 0 ? (
+                <div className="session-list-status">暂无会话</div>
+              ) : (
+                sessions.map(s => (
+                  <div
+                    key={s.id}
+                    className={`session-item ${s.id === sessionId ? 'active' : ''}`}
+                    onClick={() => handleSwitchSession(s.id)}
+                  >
+                    <span className="session-item-title">{s.title}</span>
+                    <span className="session-item-date">
+                      {new Date(s.updated_at || s.created_at).toLocaleDateString('zh-CN')}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </aside>
 
-        {/* 主内容区 - 聊天窗口 */}
+        {/* 聊天区 */}
         <main className="main-content">
-          <ChatWindow
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-          />
+          {(() => {
+            // streaming 时追加 typing 占位消息
+            const displayMsgs = state.streaming
+              ? [...messages, { id: 'typing', type: 'assistant' as const, content: '', timestamp: new Date(), typing: true }]
+              : messages;
+            return (
+              <ChatWindow
+                messages={displayMsgs}
+                onSendMessage={handleSendMessage}
+                inputValue={inputValue}
+                onInputChange={setInputValue}
+                disabled={state.streaming}
+              />
+            );
+          })()}
         </main>
       </div>
 
-      {/* Toast 通知 */}
       <ToastContainer toasts={toasts} onClose={handleCloseToast} />
     </div>
   );

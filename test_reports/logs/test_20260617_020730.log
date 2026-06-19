@@ -1,0 +1,49 @@
+2026-06-17 02:07:31,138 [    INFO] lifetrace.memory_tree: 已加载记忆树 persist_tree，共 2 个节点
+2026-06-17 02:07:31,361 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,371 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,382 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,413 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,423 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,433 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,442 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,457 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,536 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,556 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,556 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 02:07:31,567 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,567 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 02:07:31,576 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,577 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 02:07:31,578 [   ERROR] lifetrace.trace_recorder: Chat callback error: 回调错误
+2026-06-17 02:07:31,587 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:31,602 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,294 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,295 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,303 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,303 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,318 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,319 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,334 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,334 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,343 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,343 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,452 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,452 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,461 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,462 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,500 [CRITICAL] agent.digital_life: [critical] 核心模块导入失败，程序无法启动: cannot import name 'BodySensor' from partially initialized module 'sensor' (most likely due to a circular import) (C:\Users\Administrator\agent\sensor\__init__.py)
+2026-06-17 02:07:43,829 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:43,829 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 初始化完成
+2026-06-17 02:07:43,830 [    INFO] lifetrace.enhanced_recorder: 窗口活动监控已禁用
+2026-06-17 02:07:43,830 [    INFO] lifetrace.enhanced_recorder: OCR 已禁用
+2026-06-17 02:07:43,831 [    INFO] lifetrace.enhanced_recorder: EnhancedTraceRecorder 已关闭
+2026-06-17 02:07:44,015 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:44,037 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,454 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,456 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,470 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,480 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,491 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,500 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,520 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 02:07:46,750 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成

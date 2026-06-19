@@ -184,6 +184,108 @@
   font-weight: 600;
 }
 
+/* ── 会话面板 ── */
+.session-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 240px;
+}
+
+.session-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.session-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.session-new-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-breathe);
+}
+
+.session-new-btn:hover {
+  background: var(--mascot-primary);
+  border-color: var(--mascot-primary);
+  color: #fff;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.session-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.session-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.session-list-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.session-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-breathe);
+  border: 1px solid transparent;
+}
+
+.session-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-color);
+}
+
+.session-item.active {
+  background: var(--bg-primary);
+  border-color: var(--mascot-primary);
+}
+
+.session-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-item-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 /* 主内容区 */
 .main-content {
   display: flex;

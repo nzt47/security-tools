@@ -630,3 +630,66 @@ def set_log_level(level: str, logger_name: Optional[str] = None) -> bool:
 def get_log_level(logger_name: Optional[str] = None) -> str:
     """便捷函数：获取日志级别"""
     return get_state_manager().get_log_level(logger_name)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  app_server 共享全局状态（从 server_state.py 迁入）
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class ServerState:
+    """app_server 全局状态容器"""
+
+    def __init__(self):
+        # ── DigitalLife 实例 ──
+        self.Yunshu = None
+
+        # ── 安全/权限 ──
+        self.safety_guard = None
+        self.permission_toggles = {}
+
+        # ── UI 管理器 ──
+        self.personality_mgr = None
+        self.skills_mgr = None
+        self.action_tracker = None
+
+        # ── 会话 ──
+        self.session_mgr = None
+
+        # ── 网络/工具 ──
+        self.http_client = None
+        self.scraper = None
+        self.search_engine = None
+        self.processor = None
+        self.crawler_controller = None
+        self.network_config_mgr = None
+
+        # ── 扩展 ──
+        self.extension_mgr = None
+        self.extension_market = None
+
+        # ── 传感器 ──
+        self.window_sensor = None
+        self.window_sensor_consented = False
+
+        # ── 工具 ──
+        self.tools = None
+        self.agent_tools = None
+
+        # ── 告警 ──
+        self.alert_queue = []
+
+        # ── 工作区 ──
+        self.workspace_path = None
+
+        # ── 对话缓存（向后兼容） ──
+        self.chat_history = []
+
+
+# 全局 ServerState 单例
+_server_state = ServerState()
+
+
+def get_server_state() -> ServerState:
+    """获取全局 ServerState 实例（app_server 各路由模块共享）"""
+    return _server_state
