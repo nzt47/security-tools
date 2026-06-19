@@ -5,6 +5,8 @@
 """
 
 import logging
+import time
+import uuid
 from typing import Callable, Any
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,14 @@ _action_tracker = None
 # 全局限流器（在 call() 中检查调用频率）
 from agent.rate_limiter import RateLimiter as _RateLimiter
 _rate_limiter = _RateLimiter()
+
+# ── Task 3.3: 注册表缓存 ──
+_registry_version = 0
+_list_tools_cache: dict = {"version": -1, "data": None}
+_get_tool_defs_cache: dict = {"version": -1, "data": None}
+
+# ── Task 3.4: 工具健康追踪 ──
+_tool_health: dict[str, dict] = {}
 
 
 class ToolError(Exception):
@@ -43,6 +53,7 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
         **kwargs: 额外元数据或 handler=func 直接传入函数
     """
     def _do_register(handler: Callable) -> Callable:
+        global _registry_version
         if name in _registry:
             logger.warning(f"工具 '{name}' 已存在，将被覆盖")
         entry = {
@@ -53,6 +64,7 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
         if schema:
             entry["schema"] = schema
         _registry[name] = entry
+        _registry_version += 1
         logger.info(f"工具注册: {name} — {description}")
         return handler
 
@@ -68,8 +80,10 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
 
 def unregister(name: str):
     """注销一个工具"""
+    global _registry_version
     if name in _registry:
         del _registry[name]
+        _registry_version += 1
         logger.info(f"工具注销: {name}")
 
 
@@ -81,6 +95,25 @@ def set_action_tracker(tracker):
     """
     global _action_tracker
     _action_tracker = tracker
+
+
+def _update_health(name: str, ok: bool, duration: float):
+    """更新工具健康状态"""
+    if name not in _tool_health:
+        _tool_health[name] = {
+            "last_call_time": None,
+            "last_ok": True,
+            "last_duration": 0.0,
+            "call_count": 0,
+            "error_count": 0,
+        }
+    h = _tool_health[name]
+    h["last_call_time"] = time.time()
+    h["last_ok"] = ok
+    h["last_duration"] = duration
+    h["call_count"] += 1
+    if not ok:
+        h["error_count"] += 1
 
 
 def call(*args, **params) -> Any:
@@ -100,6 +133,9 @@ def call(*args, **params) -> Any:
     Raises:
         ToolError: 工具不存在或执行失败
     """
+    # 生成追踪 ID
+    trace_id = uuid.uuid4().hex[:12]
+
     # 从 args 或 params 中提取工具名称，避免 name 关键字冲突
     name = args[0] if args else params.pop("name", None)
     if not name:
@@ -119,10 +155,39 @@ def call(*args, **params) -> Any:
         target = str(params.get("path", params.get("url", params.get("target", ""))))
         _action_tracker.start_action(name, params, target)
 
+    # 关键工具：额外追踪信息
+    if name == "web_search":
+        query_preview = str(params.get("query", ""))[:100]
+        engine = params.get("engine", "auto")
+        logger.info(f"[{trace_id}] 调用工具: {name}, 查询: {query_preview}, 引擎: {engine}")
+    elif name == "shell_execute":
+        cmd_preview = str(params.get("command", ""))[:100]
+        logger.info(f"[{trace_id}] 调用工具: {name}, 命令: {cmd_preview}")
+    else:
+        logger.info(f"[{trace_id}] 调用工具: {name}, 参数: {params}")
+
+    start = time.time()
     try:
-        logger.info(f"调用工具: {name}, 参数: {params}")
         result = tool["handler"](**params)
-        logger.info(f"工具返回: {name} → {str(result)[:200]}")
+        duration = time.time() - start
+        _update_health(name, True, duration)
+
+        # 关键工具：记录返回信息
+        if name == "web_search":
+            if isinstance(result, dict):
+                result_count = len(result.get("results", []))
+                logger.info(f"[{trace_id}] 工具返回: {name} → 结果数: {result_count}")
+            else:
+                logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
+        elif name == "shell_execute":
+            if isinstance(result, dict):
+                exit_code = result.get("returncode", result.get("code", "?"))
+                output_size = len(str(result.get("stdout", result.get("output", ""))))
+                logger.info(f"[{trace_id}] 工具返回: {name} → 退出码: {exit_code}, 输出大小: {output_size}")
+            else:
+                logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
+        else:
+            logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
 
         # 完成操作追踪
         if _action_tracker:
@@ -137,7 +202,9 @@ def call(*args, **params) -> Any:
 
         return result
     except Exception as e:
-        logger.error(f"工具执行失败: {name} — {e}")
+        duration = time.time() - start
+        _update_health(name, False, duration)
+        logger.error(f"[{trace_id}] 工具执行失败: {name} — {e}")
 
         # 操作追踪失败
         if _action_tracker:
@@ -147,15 +214,21 @@ def call(*args, **params) -> Any:
 
 
 def list_tools() -> list[dict]:
-    """列出所有已注册的工具"""
-    return [
-        {"name": t["name"], "description": t["description"]}
-        for t in _registry.values()
-    ]
+    """列出所有已注册的工具（带缓存）"""
+    global _list_tools_cache
+    if _list_tools_cache["version"] != _registry_version:
+        _list_tools_cache = {
+            "version": _registry_version,
+            "data": [
+                {"name": t["name"], "description": t["description"]}
+                for t in _registry.values()
+            ],
+        }
+    return _list_tools_cache["data"]
 
 
 def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
-    """获取工具定义的 OpenAI/Anthropic 格式列表
+    """获取工具定义的 OpenAI/Anthropic 格式列表（带缓存）
 
     Args:
         whitelist: 允许返回的工具名称列表，None 表示全部
@@ -163,6 +236,32 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     Returns:
         OpenAI-compatible tool definitions list
     """
+    # 无白名单时使用缓存
+    if whitelist is None:
+        global _get_tool_defs_cache
+        if _get_tool_defs_cache["version"] != _registry_version:
+            defs = []
+            for name, tool in _registry.items():
+                schema = tool.get("schema", {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": True,
+                })
+                defs.append({
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "description": tool["description"],
+                        "parameters": schema,
+                    }
+                })
+            _get_tool_defs_cache = {
+                "version": _registry_version,
+                "data": defs,
+            }
+        return _get_tool_defs_cache["data"]
+
+    # 有白名单时不使用缓存，实时计算
     defs = []
     for name, tool in _registry.items():
         if whitelist and name not in whitelist:
@@ -246,10 +345,71 @@ def sync_web_search_engines(engine_names: list[str], search_engine=None) -> bool
         f"搜索引擎名称（可选）。可用引擎: {', '.join(engine_names)}。"
         "不指定则按优先级自动选择"
     )
+    global _registry_version
+    _registry_version += 1
     logger.info(f"[工具] web_search 引擎 enum 已同步: {engine_names}")
     return True
 
 
+def get_health_status() -> dict:
+    """获取所有工具的健康状态
+
+    Returns:
+        dict: {
+            "tools": {tool_name: {last_call_time, last_ok, last_duration, call_count, error_count}},
+            "overall_score": int (0-100),
+            "total_tools": int,
+            "healthy_tools": int,
+        }
+    """
+    tools_health = dict(_tool_health)
+    total = len(tools_health)
+
+    if total == 0:
+        return {
+            "tools": {},
+            "overall_score": 100,
+            "total_tools": 0,
+            "healthy_tools": 0,
+        }
+
+    healthy_count = sum(1 for h in tools_health.values() if h["last_ok"])
+    # 计算整体评分: 基于健康工具比例和错误率
+    total_calls = sum(h["call_count"] for h in tools_health.values())
+    total_errors = sum(h["error_count"] for h in tools_health.values())
+
+    if total_calls == 0:
+        # 尚未有任何调用，返回完美评分
+        overall_score = 100
+    else:
+        error_rate = total_errors / total_calls
+        healthy_ratio = healthy_count / total
+        # 加权评分: 健康比例占 70%，错误率占 30%
+        overall_score = int(healthy_ratio * 70 + (1 - error_rate) * 30)
+        overall_score = max(0, min(100, overall_score))
+
+    return {
+        "tools": {
+            name: {
+                "last_call_time": h["last_call_time"],
+                "last_ok": h["last_ok"],
+                "last_duration": round(h["last_duration"], 4),
+                "call_count": h["call_count"],
+                "error_count": h["error_count"],
+            }
+            for name, h in tools_health.items()
+        },
+        "overall_score": overall_score,
+        "total_tools": total,
+        "healthy_tools": healthy_count,
+    }
+
+
 def clear():
     """清空工具注册表（主要用于测试）"""
+    global _registry_version, _list_tools_cache, _get_tool_defs_cache
     _registry.clear()
+    _registry_version += 1
+    _list_tools_cache = {"version": -1, "data": None}
+    _get_tool_defs_cache = {"version": -1, "data": None}
+    _tool_health.clear()
