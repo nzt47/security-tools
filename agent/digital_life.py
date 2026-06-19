@@ -3107,8 +3107,84 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             return {"ok": True, **result}
 
         # ════════════════════════════════════════════════════════════
-        #  软件管理工具 — 云枢搜索和安装软件的能力
+        #  数据处理工具 — 云枢查询/转换/验证 JSON 与 YAML 的能力
         # ════════════════════════════════════════════════════════════
+
+        from agent.data_process_tools import (
+            json_query, json_to_yaml, yaml_to_json,
+            json_validate, data_format_detect,
+        )
+
+        @tools.register("json_query", "使用 JSONPath 查询 JSON 数据。支持 $.key 属性访问、[n] 数组索引、[*] 通配、..key 递归搜索", schema={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "JSON 字符串或 Python 对象（dict/list）"},
+                "path": {"type": "string", "description": "JSONPath 表达式，如 $.store.book[0].title 或 $..author"},
+            },
+            "required": ["data", "path"],
+        })
+        def _json_query(**kwargs):
+            data = kwargs.get("data", "")
+            path = kwargs.get("path", "")
+            if not path:
+                return {"ok": False, "error": "请提供 JSONPath 查询表达式（path）"}
+            return json_query(data, path)
+
+        @tools.register("json_to_yaml", "将 JSON 字符串转换为 YAML 格式字符串", schema={
+            "type": "object",
+            "properties": {
+                "json_data": {"type": "string", "description": "JSON 格式字符串"},
+            },
+            "required": ["json_data"],
+        })
+        def _json_to_yaml(**kwargs):
+            json_data = kwargs.get("json_data", "")
+            if not json_data:
+                return {"ok": False, "error": "请提供 JSON 数据（json_data）"}
+            return json_to_yaml(json_data)
+
+        @tools.register("yaml_to_json", "将 YAML 字符串转换为 JSON 格式字符串", schema={
+            "type": "object",
+            "properties": {
+                "yaml_data": {"type": "string", "description": "YAML 格式字符串"},
+            },
+            "required": ["yaml_data"],
+        })
+        def _yaml_to_json(**kwargs):
+            yaml_data = kwargs.get("yaml_data", "")
+            if not yaml_data:
+                return {"ok": False, "error": "请提供 YAML 数据（yaml_data）"}
+            return yaml_to_json(yaml_data)
+
+        @tools.register("json_validate", "验证字符串是否为合法 JSON，返回验证结果和解析类型", schema={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "待验证的 JSON 字符串"},
+            },
+            "required": ["data"],
+        })
+        def _json_validate(**kwargs):
+            data = kwargs.get("data", "")
+            if not data:
+                return {"ok": True, "valid": False, "error": "数据为空"}
+            return json_validate(data)
+
+        @tools.register("data_format_detect", "自动检测字符串数据的格式类型（JSON/XML/YAML/CSV），返回格式名称和置信度", schema={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "待检测的字符串数据"},
+            },
+            "required": ["data"],
+        })
+        def _data_format_detect(**kwargs):
+            data = kwargs.get("data", "")
+            if not data:
+                return {"ok": False, "error": "请提供待检测的数据（data）"}
+            return data_format_detect(data)
+
+        # ════════════════════════════════════════════════════════════
+        #  软件管理工具 — 云枢搜索和安装软件的能力
+        # ════════════════════════════════════════════════════════
 
         # 初始化软件管理器
         if not hasattr(self, '_software_mgr'):
@@ -3258,7 +3334,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
 
             return self._software_mgr.uninstall(name, backend=backend)
 
-        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化）", len(tools.list_tools()))
+        logger.info("已注册 %d 个内置工具（含文件系统、互联网、进程管理、扩展管理、PDF处理、中文文本优化、数据处理）", len(tools.list_tools()))
 
     # ════════════════════════════════════════════════════════════════════════════════
     #  状态查询
