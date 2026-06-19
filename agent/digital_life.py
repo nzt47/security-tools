@@ -2238,6 +2238,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                    search_cfg.get("engine_priority", ["duckduckgo", "tavily"]))
         
         self._web_processor = DataProcessor()
+        self._web_aggregator = None  # 聚合搜索器，按需懒加载
         self._web_crawler = CrawlerController({
             "default_delay": scrape_cfg.get("delay_between_requests", 1.0),
             "respect_robots_txt": scrape_cfg.get("respect_robots_txt", True),
@@ -2343,13 +2344,14 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             results = self._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
-        @tools.register("web_search", "搜索互联网信息。可指定搜索引擎名称，不指定则系统按优先级自动选择。", schema={
+        @tools.register("web_search", "搜索互联网信息。支持单引擎搜索和多引擎聚合搜索（aggregate=True时并发调用2-3个引擎，结果去重评分排序）", schema={
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "搜索关键词"},
-                "engine": {"type": "string", "description": "搜索引擎名称（可选）。不指定则按优先级自动选择"},
+                "engine": {"type": "string", "description": "搜索引擎名称（可选）。不指定则按优先级自动选择。注意：aggregate=True 时此参数被忽略"},
                 "num_results": {"type": "integer", "description": "返回结果数，默认 10"},
-                "page": {"type": "integer", "description": "页码，默认 1"},
+                "page": {"type": "integer", "description": "页码，默认 1。注意：aggregate=True 时此参数被忽略"},
+                "aggregate": {"type": "boolean", "description": "是否启用多引擎聚合搜索模式。True 时并发调用 2-3 个搜索引擎，去重、评分、排序后返回最优结果，结果质量更高。默认 False"},
             },
             "required": ["query"],
         })
@@ -2358,8 +2360,34 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             engine = kwargs.get("engine", "")
             num_results = kwargs.get("num_results", 10)
             page = kwargs.get("page", 1)
+            aggregate = kwargs.get("aggregate", False)
             if not query:
                 return {"ok": False, "error": "请提供搜索关键词"}
+
+            # ── 聚合搜索模式 ──
+            if aggregate:
+                if self._web_aggregator is None:
+                    from agent.search_aggregator import SearchAggregator
+                    self._web_aggregator = SearchAggregator(self._web_search)
+                result = self._web_aggregator.aggregate_search(
+                    query, num_results=num_results, timeout=15.0
+                )
+                # 截断过长内容以控制 token 消耗
+                if result.get("ok") and result.get("results"):
+                    for item in result["results"]:
+                        snippet_max = 300 if num_results and num_results >= 5 else 150
+                        if len(item.get("snippet", "")) > snippet_max:
+                            item["snippet"] = item["snippet"][:snippet_max] + "…"
+                        if len(item.get("title", "")) > 80:
+                            item["title"] = item["title"][:80] + "…"
+                    # 按 token 估算控制返回量
+                    max_results_by_token = min(len(result["results"]), 8)
+                    result["results"] = result["results"][:max_results_by_token]
+                if isinstance(result, dict) and "results" in result:
+                    result["_truncated"] = len(result.get("results", []))
+                return result
+
+            # ── 单引擎搜索模式（原有逻辑） ──
             # 根据 num_results 参数动态调整请求量，确保够用但不浪费
             fetch_count = min((num_results or 10) + 2, 12)
             result = self._web_search.search(query, engine=engine, num_results=fetch_count, page=page)
