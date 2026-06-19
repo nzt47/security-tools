@@ -410,17 +410,17 @@ def json_validate(data: str) -> dict:
             error_msg = str(e)
             return {"ok": True, "valid": False, "error": f"JSON 格式无效: {error_msg}"}
 
-        # 确定解析后的类型
+        # 确定解析后的类型（bool 必须在 int/float 之前检查，因为 bool 是 int 的子类）
         if isinstance(obj, dict):
             parsed_type = "object"
         elif isinstance(obj, list):
             parsed_type = "array"
         elif isinstance(obj, str):
             parsed_type = "string"
-        elif isinstance(obj, (int, float)):
-            parsed_type = "number"
         elif isinstance(obj, bool):
             parsed_type = "boolean"
+        elif isinstance(obj, (int, float)):
+            parsed_type = "number"
         elif obj is None:
             parsed_type = "null"
         else:

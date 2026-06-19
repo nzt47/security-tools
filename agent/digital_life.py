@@ -2182,12 +2182,12 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
 
         from agent.compression_tools import compress, decompress
 
-        @tools.register("compress", "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理", schema={
+        @tools.register("compress", "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip", schema={
             "type": "object",
             "properties": {
-                "source_path": {"type": "string", "description": "源文件或目录路径（必填）"},
-                "output_path": {"type": "string", "description": "输出文件路径（可选，默认生成到源文件同目录）"},
-                "format": {"type": "string", "enum": ["zip", "tar.gz"], "description": "压缩格式，默认 zip"},
+                "source_path": {"type": "string", "description": "要压缩的源文件或目录路径（必填）"},
+                "output_path": {"type": "string", "description": "压缩输出路径（可选）。不指定则生成到源文件所在目录：源名.zip 或 源名.tar.gz"},
+                "format": {"type": "string", "enum": ["zip", "tar.gz"], "description": "压缩格式：zip（通用兼容性好）或 tar.gz（Linux 常用，压缩率稍高）。默认 zip"},
             },
             "required": ["source_path"],
         })
@@ -2220,12 +2220,12 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
 
         from agent.diff_tools import diff_files
 
-        @tools.register("diff_files", "比较两个文件的差异，返回 unified diff 格式（类似 git diff）。可统计新增、删除和变更行数", schema={
+        @tools.register("diff_files", "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB", schema={
             "type": "object",
             "properties": {
-                "path1": {"type": "string", "description": "第一个文件路径（必填）"},
-                "path2": {"type": "string", "description": "第二个文件路径（必填）"},
-                "context_lines": {"type": "integer", "description": "上下文行数，默认 3"},
+                "path1": {"type": "string", "description": "第一个文件路径（必填，作为对比基准）"},
+                "path2": {"type": "string", "description": "第二个文件路径（必填，作为对比目标）"},
+                "context_lines": {"type": "integer", "description": "差异上下文显示行数，默认 3。设为 0 只显示变更行，设为较大值显示更多上下文"},
             },
             "required": ["path1", "path2"],
         })
@@ -2407,14 +2407,14 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             results = self._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
-        @tools.register("web_search", "搜索互联网信息。支持单引擎搜索和多引擎聚合搜索（aggregate=True时并发调用2-3个引擎，结果去重评分排序）", schema={
+        @tools.register("web_search", "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）", schema={
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "搜索关键词"},
-                "engine": {"type": "string", "description": "搜索引擎名称（可选）。不指定则按优先级自动选择。注意：aggregate=True 时此参数被忽略"},
-                "num_results": {"type": "integer", "description": "返回结果数，默认 10"},
-                "page": {"type": "integer", "description": "页码，默认 1。注意：aggregate=True 时此参数被忽略"},
-                "aggregate": {"type": "boolean", "description": "是否启用多引擎聚合搜索模式。True 时并发调用 2-3 个搜索引擎，去重、评分、排序后返回最优结果，结果质量更高。默认 False"},
+                "query": {"type": "string", "description": "搜索关键词（必填）"},
+                "engine": {"type": "string", "description": "指定搜索引擎名称（可选）。不指定按优先级自动选择。注意：aggregate=true 时此参数被忽略"},
+                "num_results": {"type": "integer", "description": "期望返回的结果数量，默认 10，最大 50"},
+                "page": {"type": "integer", "description": "页码（仅单引擎模式有效），默认 1"},
+                "aggregate": {"type": "boolean", "description": "启用多引擎聚合搜索模式。true=并发多引擎去重评分排序（质量更高），false=单引擎快速搜索（默认）"},
             },
             "required": ["query"],
         })
@@ -3140,7 +3140,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             json_validate, data_format_detect,
         )
 
-        @tools.register("json_query", "使用 JSONPath 查询 JSON 数据。支持 $.key 属性访问、[n] 数组索引、[*] 通配、..key 递归搜索", schema={
+        @tools.register("json_query", "使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象", schema={
             "type": "object",
             "properties": {
                 "data": {"type": "string", "description": "JSON 字符串或 Python 对象（dict/list）"},
@@ -3194,10 +3194,10 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 return {"ok": True, "valid": False, "error": "数据为空"}
             return json_validate(data)
 
-        @tools.register("data_format_detect", "自动检测字符串数据的格式类型（JSON/XML/YAML/CSV），返回格式名称和置信度", schema={
+        @tools.register("data_format_detect", "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式", schema={
             "type": "object",
             "properties": {
-                "data": {"type": "string", "description": "待检测的字符串数据"},
+                "data": {"type": "string", "description": "待检测格式的字符串数据"},
             },
             "required": ["data"],
         })
@@ -3363,13 +3363,13 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         #  定时调度工具 — 创建/管理周期性任务
         # ════════════════════════════════════════════════════════════
 
-        @tools.register("schedule_task", "创建定时任务，按指定间隔或 cron 表达式周期性执行。至少提供 interval_minutes 或 cron_expr 之一", schema={
+        @tools.register("schedule_task", "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理", schema={
             "type": "object",
             "properties": {
-                "name": {"type": "string", "description": "任务名称"},
-                "interval_minutes": {"type": "integer", "description": "间隔分钟数"},
-                "cron_expr": {"type": "string", "description": "cron 表达式，5字段格式: 分 时 日 月 周。如 '*/5 * * * *' 每5分钟"},
-                "action": {"type": "string", "description": "操作描述，如 'run_shell_command'"},
+                "name": {"type": "string", "description": "任务名称（必填）"},
+                "interval_minutes": {"type": "integer", "description": "执行间隔（分钟）。如 5 表示每 5 分钟执行一次"},
+                "cron_expr": {"type": "string", "description": "cron 表达式（5字段 分 时 日 月 周）。如 0 9 * * * 表示每天9点，*/5 * * * * 每5分钟"},
+                "action": {"type": "string", "description": "任务操作描述，如 run_shell_command"},
                 "params": {"type": "object", "description": "执行参数，如 {\"command\": \"echo hello\"}"},
             },
             "required": ["name"],
@@ -3480,13 +3480,13 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             result_ttl=_executor_cfg.get("result_ttl", 3600),
         )
 
-        @tools.register("submit_task", "提交异步任务，在后台线程池中执行任意工具，立即返回任务ID。适用于耗时操作（如大型搜索、文件处理等），避免阻塞对话。", schema={
+        @tools.register("submit_task", "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果", schema={
             "type": "object",
             "properties": {
-                "name": {"type": "string", "description": "任务名称，便于识别（如 '搜索报告'）"},
-                "tool_name": {"type": "string", "description": "要异步调用的工具名称（如 web_search, read_file 等）"},
-                "params": {"type": "object", "description": "传递给工具的参数字典"},
-                "timeout": {"type": "integer", "description": "任务超时秒数（可选），不指定则不限时"},
+                "name": {"type": "string", "description": "任务名称，便于后续识别（如 '搜索Python教程'）"},
+                "tool_name": {"type": "string", "description": "要异步调用的工具名称，如 web_search、compress、execute_shell 等"},
+                "params": {"type": "object", "description": "传给工具的参数字典，如 {\"query\": \"Python 教程\", \"num_results\": 5}"},
+                "timeout": {"type": "integer", "description": "任务超时秒数（可选）。不设置则不限时"},
             },
             "required": ["name", "tool_name", "params"],
         })
@@ -3521,7 +3521,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 return {"ok": False, "error": "请提供任务ID（task_id）"}
             return _async_exec.get_status(task_id)
 
-        @tools.register("get_task_result", "获取异步任务的执行结果。任务完成后结果保留1小时，超时自动清理。如果任务尚未完成，返回当前状态和提示信息。", schema={
+        @tools.register("get_task_result", "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result", schema={
             "type": "object",
             "properties": {
                 "task_id": {"type": "string", "description": "任务 ID（由 submit_task 返回）"},
