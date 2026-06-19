@@ -53,6 +53,7 @@ def _parse_jsonpath(path: str) -> list:
     remaining = path[1:]
 
     # 正则一次匹配一个 token
+    # 四个分支按优先级：.. → . → [n|*] → 键名（不含 . [ ] 的字符序列）
     token_pattern = re.compile(
         r"""
         \.\.
@@ -61,7 +62,7 @@ def _parse_jsonpath(path: str) -> list:
         |
         \[(\d+|\*)\]
         |
-        ([^\\.\[\]]+)
+        ([^.\[\]]+)
         """,
         re.VERBOSE,
     )
@@ -474,11 +475,6 @@ def _is_yaml(data: str) -> tuple:
     stripped = data.strip()
     if not stripped:
         return (0.0, None)
-
-    # 快速排除：JSON 开头的不是 YAML
-    if stripped[0] in ("{", "[", '"'):
-        # YAML 也可能以这些字符开头（flow style），但概率较低
-        pass
 
     try:
         import yaml
