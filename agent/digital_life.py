@@ -471,6 +471,17 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         self._lifetrace_initialized = False
         self._persona_initialized = False
         self._distillation_initialized = False
+
+        # 懒加载：搜索引擎（在首次 web_search 调用时初始化）
+        self._web_search = None
+        self._web_search_lock = threading.Lock()
+        self._search_engine_config = None  # 保存配置供延迟初始化使用
+        self._engine_health: dict[str, bool] = {}  # 各引擎健康状态 (True=健康, False=不健康)
+        self._engine_retry_timer: float = 0  # 引擎重试定时器
+
+        # 懒加载：扩展管理器单例
+        self._ext_manager = None
+        self._ext_manager_lock = threading.Lock()
         
         # P5 日志：显示 V2 功能配置
         if self._v2_lifetrace:
@@ -1909,6 +1920,99 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         else:
             return self._build_offline_response(user_input)
 
+    # ── 搜索引擎延迟初始化 ────────────────────────────────────────────
+
+    def _get_web_search(self):
+        """获取搜索引擎实例（延迟初始化，线程安全）
+
+        首次访问时才创建 SearchEngine 实例，避免启动时因单个引擎不可用而整体降级。
+        使用双重检查锁定确保线程安全。
+        """
+        if self._web_search is None:
+            with self._web_search_lock:
+                if self._web_search is None:
+                    from agent.web import SearchEngine as _SE
+                    config = self._search_engine_config or {}
+                    se = _SE(config)
+                    se.set_http_client(self._web_http)
+                    self._web_search = se
+                    # 初始化引擎健康状态
+                    self._engine_health = {}
+                    for eng_info in se.get_available_engines():
+                        self._engine_health[eng_info["name"]] = True
+                    self._engine_retry_timer = time.time()
+                    logger.info("[搜索] SearchEngine 已延迟初始化 (引擎数: %d)", len(self._engine_health))
+        return self._web_search
+
+    def _check_engine_health(self):
+        """检查引擎健康状态，定期重试失败的引擎
+
+        每隔 5 分钟对所有标记为不健康的引擎进行重试。
+        如果搜索引擎尚未初始化，则跳过。
+        """
+        if self._web_search is None:
+            return
+        now = time.time()
+        if now - self._engine_retry_timer < 300:  # 5 分钟间隔
+            return
+        self._engine_retry_timer = now
+        se = self._web_search
+        # 重试不健康的引擎：检查它们现在是否可用
+        available = se.get_available_engines()
+        for eng_info in available:
+            name = eng_info["name"]
+            if not self._engine_health.get(name, True):
+                # 之前不健康的引擎，现在检查是否可以
+                if eng_info.get("configured", False) and eng_info.get("enabled", True):
+                    self._engine_health[name] = True
+                    logger.info("[搜索] 引擎 '%s' 已恢复健康", name)
+
+    def _mark_engine_unhealthy(self, engine_name: str):
+        """标记某个引擎为不健康状态"""
+        if engine_name:
+            self._engine_health[engine_name] = False
+            logger.warning("[搜索] 引擎 '%s' 标记为不健康，将在 5 分钟后重试", engine_name)
+
+    def _get_engine_health_status(self) -> dict:
+        """获取引擎健康状态摘要"""
+        if self._web_search is None:
+            return {"initialized": False, "engines": {}}
+        healthy = sum(1 for v in self._engine_health.values() if v)
+        unhealthy = sum(1 for v in self._engine_health.values() if not v)
+        return {
+            "initialized": True,
+            "total": len(self._engine_health),
+            "healthy": healthy,
+            "unhealthy": unhealthy,
+            "engines": dict(self._engine_health),
+        }
+
+    # ── 扩展管理器单例 ────────────────────────────────────────────────
+
+    def _get_ext_manager(self):
+        """获取扩展管理器实例（单例模式，线程安全）
+
+        使用双重检查锁定确保只创建一个实例。
+        替代旧的 _make_ext_mgr() 工厂函数。
+        """
+        if self._ext_manager is None:
+            with self._ext_manager_lock:
+                if self._ext_manager is None:
+                    try:
+                        from agent.extensions.manager import ExtensionManager
+                        from agent.network_config import NetworkConfigManager
+                        try:
+                            from config import _get_secure_manager
+                            ncm = NetworkConfigManager(secure_manager=_get_secure_manager())
+                        except Exception:
+                            ncm = NetworkConfigManager()
+                        self._ext_manager = ExtensionManager(network_config_mgr=ncm)
+                    except Exception:
+                        from agent.extensions.manager import ExtensionManager
+                        self._ext_manager = ExtensionManager()
+                    logger.info("[扩展] ExtensionManager 单例已初始化")
+        return self._ext_manager
+
     def _register_builtin_tools(self):
         """注册云枢的内置工具"""
         @tools.register("get_status", "获取我的完整状态", schema={
@@ -2294,9 +2398,9 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             "google_cx": search_api_keys.get("google_cx", ""),
             "brave_api_key": search_api_keys.get("brave", ""),
         }
-        self._web_search = SearchEngine(search_engine_config)
-        self._web_search.set_http_client(self._web_http)
-        logger.info("[ok] 搜索引擎已配置: 默认引擎=%s, 优先级=%s", 
+        self._search_engine_config = search_engine_config  # 保存配置供延迟初始化
+        self._web_search = None  # 延迟初始化，首次搜索时才创建
+        logger.info("[ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=%s, 优先级=%s",
                    search_cfg.get("default_engine", "duckduckgo"),
                    search_cfg.get("engine_priority", ["duckduckgo", "tavily"]))
         
@@ -2427,11 +2531,14 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             if not query:
                 return {"ok": False, "error": "请提供搜索关键词"}
 
+            # 定期检查引擎健康状态（每 5 分钟重试失败引擎）
+            self._check_engine_health()
+
             # ── 聚合搜索模式 ──
             if aggregate:
                 if self._web_aggregator is None:
                     from agent.search_aggregator import SearchAggregator
-                    self._web_aggregator = SearchAggregator(self._web_search)
+                    self._web_aggregator = SearchAggregator(self._get_web_search())
                 result = self._web_aggregator.aggregate_search(
                     query, num_results=num_results, timeout=15.0
                 )
@@ -2453,7 +2560,10 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             # ── 单引擎搜索模式（原有逻辑） ──
             # 根据 num_results 参数动态调整请求量，确保够用但不浪费
             fetch_count = min((num_results or 10) + 2, 12)
-            result = self._web_search.search(query, engine=engine, num_results=fetch_count, page=page)
+            result = self._get_web_search().search(query, engine=engine, num_results=fetch_count, page=page)
+            # 引擎健康追踪：如果搜索失败且指定了引擎，标记为不健康
+            if not result.get("ok") and engine:
+                self._mark_engine_unhealthy(engine)
             if result.get("ok") and result.get("results"):
                 # 使用数据处理器过滤和评分
                 processed = self._web_processor.process(result["results"])
@@ -2699,21 +2809,6 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         #  扩展管理工具（让云枢能自主安装 Skills / MCP / Channels / Plugins）
         # ════════════════════════════════════════════════════════════════════════════════
 
-        def _make_ext_mgr():
-            """创建带 NetworkConfigManager 的 ExtensionManager"""
-            try:
-                from agent.extensions.manager import ExtensionManager as _E
-                from agent.network_config import NetworkConfigManager as _N
-                try:
-                    from config import _get_secure_manager
-                    _ncm = _N(secure_manager=_get_secure_manager())
-                except Exception:
-                    _ncm = _N()
-                return _E(network_config_mgr=_ncm)
-            except Exception:
-                from agent.extensions.manager import ExtensionManager as _E
-                return _E()
-
         @tools.register("ext_install", "安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。", schema={
             "type": "object",
             "properties": {
@@ -2749,16 +2844,9 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             if not ext_type or not source:
                 return {"ok": False, "error": "请指定扩展类型和来源"}
 
-            # 懒加载扩展管理器
+            # 使用扩展管理器单例
             try:
-                from agent.extensions.manager import ExtensionManager as _ExtMgr
-                from agent.network_config import NetworkConfigManager as _NCM
-                try:
-                    from config import _get_secure_manager
-                    _ncm = _NCM(secure_manager=_get_secure_manager())
-                except Exception:
-                    _ncm = _NCM()
-                _em = _ExtMgr(network_config_mgr=_ncm)
+                _em = self._get_ext_manager()
                 result = _em.install(
                     ext_type, source,
                     name=kwargs.get("name", ""),
@@ -2795,7 +2883,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             ext_type = kwargs.get("type", "")
             ext_id = kwargs.get("id", "")
             try:
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 return _em.uninstall(ext_type, ext_id)
             except Exception as e:
                 return {"ok": False, "error": str(e)}
@@ -2813,7 +2901,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         def _ext_list(**kwargs):
             ext_type = kwargs.get("type") or None
             try:
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 if ext_type:
                     # 非 skill 类型走扩展管理器，skill 类型也走扩展管理器（唯一数据源）
                     if ext_type == "skill":
@@ -2870,7 +2958,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             ext_id = kwargs.get("id", "")
             enabled = kwargs.get("enabled")
             try:
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 return _em.toggle(ext_type, ext_id, enabled)
             except Exception as e:
                 return {"ok": False, "error": str(e)}
@@ -2894,7 +2982,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             ext_type = kwargs.get("type") or None
             try:
                 from agent.extensions.market import ExtensionMarket as _ExtMarket
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 _market = _ExtMarket()
 
                 installed = _em.discover_all()
@@ -2935,7 +3023,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             ext_id = kwargs.get("id", "")
             config = kwargs.get("config", {})
             try:
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 return _em.configure(ext_type, ext_id, config)
             except Exception as e:
                 return {"ok": False, "error": str(e)}
@@ -2967,7 +3055,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             message = kwargs.get("message", "")
             extra = {k: v for k, v in kwargs.items() if k not in ("channel_id", "message")}
             try:
-                _em = _make_ext_mgr()
+                _em = self._get_ext_manager()
                 return _em.send_channel_message(channel_id, message, **extra)
             except Exception as e:
                 return {"ok": False, "error": str(e)}
@@ -3572,6 +3660,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 "记忆摘要": self._memory.load_summary()[0][:100] if self._memory.load_summary() else "无",
                 "反思记录数": len(self._reflection_history),
             },
+            "搜索引擎": self._get_engine_health_status(),
         }
 
         if self._v2_lifetrace and self._trace_recorder:
