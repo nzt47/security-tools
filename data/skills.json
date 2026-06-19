@@ -1,13 +1,6 @@
 {
   "skills": [
     {
-      "id": "self_reflection",
-      "name": "自省反思",
-      "enabled": true,
-      "description": "每次交互后自动反思自身状态，不断成长",
-      "params": {}
-    },
-    {
       "id": "memory_summary",
       "name": "记忆摘要",
       "enabled": true,
@@ -47,6 +40,13 @@
       "name": "语音交互",
       "enabled": true,
       "description": "通过语音与用户进行交互",
+      "params": {}
+    },
+    {
+      "id": "github:user/repo",
+      "name": "自定义技能",
+      "enabled": true,
+      "description": "我的技能",
       "params": {}
     }
   ]

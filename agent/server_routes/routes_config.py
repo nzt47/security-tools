@@ -459,6 +459,9 @@ def register_routes(app, state):
                 # 从搜索引擎移除
                 if web_search:
                     web_search.remove_engine(instance_id)
+                    # 同步更新 web_search 工具的 engine enum
+                    from agent.tools import sync_web_search_engines
+                    sync_web_search_engines([], search_engine=web_search)
 
                 return jsonify({"ok": True})
             return jsonify({"ok": False, "error": "实例不存在"}), 404
