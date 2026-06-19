@@ -2374,6 +2374,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 )
                 # 截断过长内容以控制 token 消耗
                 if result.get("ok") and result.get("results"):
+                    pre_count = len(result["results"])
                     for item in result["results"]:
                         snippet_max = 300 if num_results and num_results >= 5 else 150
                         if len(item.get("snippet", "")) > snippet_max:
@@ -2383,8 +2384,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                     # 按 token 估算控制返回量
                     max_results_by_token = min(len(result["results"]), 8)
                     result["results"] = result["results"][:max_results_by_token]
-                if isinstance(result, dict) and "results" in result:
-                    result["_truncated"] = len(result.get("results", []))
+                    result["_was_truncated"] = pre_count > len(result["results"])
                 return result
 
             # ── 单引擎搜索模式（原有逻辑） ──
@@ -2408,7 +2408,8 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                 result["summary"] = DataProcessor.summarize_results(processed)
             # 确保返回给模型的内容不会过大
             if isinstance(result, dict) and "results" in result:
-                result["_truncated"] = len(result.get("results", []))
+                total_found = result.get("total_found", len(result.get("results", [])))
+                result["_was_truncated"] = total_found > len(result.get("results", []))
             return result
 
         @tools.register("web_clean_data", "清洗和结构化网页文本数据，去重、评分、去除跟踪参数", schema={
