@@ -2326,7 +2326,7 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
             results = self._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
             return {"ok": True, "url": url, "results": results, "count": len(results)}
 
-        @tools.register("web_search", "搜索互联网信息。默认自动选择最佳引擎（优先使用已配置 API Key 的高质量引擎）。建议不指定 engine 参数让系统自动选择。可选 engine: tavily(高质量/需Key/推荐), firecrawl(高质量/需Key), sogou(免Key/中文), baidu(百度/免Key/中文), so360(360搜索/免Key/中文)", schema={
+        @tools.register("web_search", "搜索互联网信息。默认自动选择最佳引擎。不建议指定 engine 参数让系统自动选择。可选 engine: duckduckgo(免Key/英文), sogou(免Key/中文), so360(360搜索/免Key/中文)", schema={
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "搜索关键词"},
