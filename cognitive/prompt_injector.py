@@ -23,9 +23,17 @@ class PromptInjector:
 
     def inject(self, sensor_data: list[dict]) -> str:
         """接收传感器数据，返回注入身体状态后的完整系统提示词"""
-        status_lines = self.translator.translate_all(sensor_data)
+        if sensor_data is None or not isinstance(sensor_data, list):
+            return self.template_mgr.render(
+                "default",
+                body_status="身体状态正常。",
+                task_guidance="状态良好，可以正常执行任务。",
+            )
+        
+        valid_data = [r for r in sensor_data if isinstance(r, dict)]
+        status_lines = self.translator.translate_all(valid_data)
         body_status = "\n".join(status_lines) if status_lines else "身体状态正常。"
-        alerts = self._get_alerts(sensor_data)
+        alerts = self._get_alerts(valid_data)
         task_guidance = self._generate_guidance(alerts)
         return self.template_mgr.render(
             "default",

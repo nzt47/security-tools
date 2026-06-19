@@ -1,0 +1,65 @@
+2026-06-17 18:13:16,715 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 18:13:16,722 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 18:13:16,725 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 18:13:16,728 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 18:13:16,750 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 18:13:16,753 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 18:13:16,756 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 18:13:16,758 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 18:13:16,759 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 18:13:16,762 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 18:13:16,773 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 18:13:16,774 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 18:13:16,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 18:13:16,793 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 18:13:16,799 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 18:13:16,800 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:16,806 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:16,806 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 18:13:16,807 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 18:13:16,807 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 18:13:16,807 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 18:13:16,807 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 18:13:16,808 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 18:13:16,808 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 18:13:16,808 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 18:13:16,808 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:16,809 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 18:13:16,809 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 18:13:16,809 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 18:13:16,950 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 18:13:16,962 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 18:13:16,967 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 18:13:16,972 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 18:13:16,999 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 18:13:17,004 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 18:13:17,008 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 18:13:17,010 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 18:13:17,011 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 18:13:17,016 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 18:13:17,033 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 18:13:17,035 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 18:13:17,037 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 18:13:17,061 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 18:13:17,071 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 18:13:17,072 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:17,075 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:17,075 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 18:13:17,076 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 18:13:17,076 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 18:13:17,076 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 18:13:17,077 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 18:13:17,077 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 18:13:17,077 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 18:13:17,077 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 18:13:17,078 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 18:13:17,078 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 18:13:17,079 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 18:13:17,079 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 18:13:17,113 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-17 18:13:17,188 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=3600s
+2026-06-17 18:13:17,200 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=1s

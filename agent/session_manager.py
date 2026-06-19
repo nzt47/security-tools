@@ -227,6 +227,17 @@ class SessionManager:
 
         return messages
 
+    def get_message_count(self, session_id: str) -> int:
+        """获取会话消息总数"""
+        msg_file = self._sessions_dir / session_id / "messages.jsonl"
+        if not msg_file.exists():
+            return 0
+        try:
+            with open(msg_file, "r", encoding="utf-8") as f:
+                return sum(1 for line in f if line.strip())
+        except OSError:
+            return 0
+
     def clear_messages(self, session_id: str) -> bool:
         """清空会话消息"""
         session_dir = self._sessions_dir / session_id

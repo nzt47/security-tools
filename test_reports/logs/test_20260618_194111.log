@@ -1,0 +1,91 @@
+2026-06-18 19:41:11,703 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 19:41:11,706 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 19:41:11,707 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 19:41:11,717 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 19:41:11,731 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 19:41:11,734 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 19:41:11,767 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 19:41:11,772 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 19:41:11,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 19:41:11,795 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 19:41:11,795 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 19:41:11,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 19:41:11,796 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 19:41:11,797 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 19:41:11,915 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 19:41:11,919 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 19:41:11,919 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 19:41:11,926 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 19:41:11,927 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 19:41:11,927 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 19:41:12,045 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:41:12,056 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 11.00ms (成功)
+2026-06-18 19:41:12,059 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:41:12,059 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (失败: test error)
+2026-06-18 19:41:12,076 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:41:12,087 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 10.95ms (成功)
+2026-06-18 19:41:12,087 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:41:12,107 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 20.58ms (成功)
+2026-06-18 19:41:12,110 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fast_module
+2026-06-18 19:41:12,122 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fast_module 初始化完成: 11.37ms (成功)
+2026-06-18 19:41:12,122 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: slow_module
+2026-06-18 19:41:12,182 [    INFO] agent.monitoring.performance: [性能追踪] 模块 slow_module 初始化完成: 60.45ms (成功)
+2026-06-18 19:41:12,188 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:41:12,200 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 11.28ms (成功)
+2026-06-18 19:41:12,200 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:41:12,211 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 11.12ms (成功)
+2026-06-18 19:41:12,217 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:41:12,217 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (成功)
+2026-06-18 19:41:12,225 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_0
+2026-06-18 19:41:12,225 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_1
+2026-06-18 19:41:12,227 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_2
+2026-06-18 19:41:12,227 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_3
+2026-06-18 19:41:12,227 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_4
+2026-06-18 19:41:12,237 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_1 初始化完成: 11.20ms (成功)
+2026-06-18 19:41:12,237 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_0 初始化完成: 12.17ms (成功)
+2026-06-18 19:41:12,237 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_2 初始化完成: 10.67ms (成功)
+2026-06-18 19:41:12,238 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_3 初始化完成: 10.59ms (成功)
+2026-06-18 19:41:12,239 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_4 初始化完成: 11.11ms (成功)
+2026-06-18 19:41:12,299 [    INFO] agent.monitoring.performance: [性能] 模块 test_module 加载完成，耗时: 123.450s
+2026-06-18 19:41:12,305 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: memory
+2026-06-18 19:41:12,317 [    INFO] agent.monitoring.performance: [性能追踪] 模块 memory 初始化完成: 12.03ms (成功)
+2026-06-18 19:41:12,317 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: llm
+2026-06-18 19:41:12,327 [    INFO] agent.monitoring.performance: [性能追踪] 模块 llm 初始化完成: 10.73ms (成功)
+2026-06-18 19:41:12,327 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: tools
+2026-06-18 19:41:12,338 [    INFO] agent.monitoring.performance: [性能追踪] 模块 tools 初始化完成: 10.48ms (成功)
+2026-06-18 19:41:12,338 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: ui
+2026-06-18 19:41:12,349 [    INFO] agent.monitoring.performance: [性能追踪] 模块 ui 初始化完成: 11.35ms (成功)
+2026-06-18 19:41:12,352 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: success_module
+2026-06-18 19:41:12,352 [    INFO] agent.monitoring.performance: [性能追踪] 模块 success_module 初始化完成: 0.00ms (成功)
+2026-06-18 19:41:12,352 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fail_module
+2026-06-18 19:41:12,352 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fail_module 初始化完成: 0.00ms (失败: failed)
+2026-06-18 19:41:12,430 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,434 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,437 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,440 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,443 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,448 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,452 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,456 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,459 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,463 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,466 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,469 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,470 [   ERROR] agent.error_handler: [error] unknown: test error
+Exception: test error
+2026-06-18 19:41:12,473 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:41:12,474 [   ERROR] agent.error_handler: [error] unknown: test error
+Exception: test error
+2026-06-18 19:41:12,477 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10

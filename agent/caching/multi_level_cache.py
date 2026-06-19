@@ -42,7 +42,7 @@ import json
 import hashlib
 import logging
 import threading
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, TypeVar
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -567,6 +567,86 @@ class MultiLevelCache:
     def get_l1_keys(self) -> list[str]:
         """获取L1缓存的所有key"""
         return self._l1_cache.get_keys()
+
+
+# ── 函数缓存装饰器（从 agent/utils/cache.py 迁移） ──
+
+F = TypeVar('F', bound=Callable[..., Any])
+
+
+def lru_cache_decorator(max_size: int = 100, ttl_seconds: Optional[int] = 3600):
+    """
+    函数级 LRU 缓存装饰器
+
+    使用 MultiLevelCache（仅 L1）缓存函数返回值，基于参数构建缓存键。
+
+    用法:
+        @lru_cache_decorator(max_size=50, ttl_seconds=60)
+        def expensive_func(param1, param2):
+            return result
+
+    Args:
+        max_size: 最大缓存条目数
+        ttl_seconds: 缓存过期时间（秒）
+    """
+    def decorator(func: F) -> F:
+        cache = MultiLevelCache(
+            l1_max_size=max_size,
+            l1_ttl=ttl_seconds or 3600,
+            l2_enabled=False,
+        )
+
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            key = str((args, tuple(sorted(kwargs.items()))))
+            cached = cache.get(key)
+            if cached is not None:
+                return cached
+            result = func(*args, **kwargs)
+            cache.set(key, result)
+            return result
+
+        wrapper.cache = cache  # type: ignore
+        return wrapper  # type: ignore
+
+    return decorator
+
+
+class QueryCache:
+    """查询缓存管理器
+
+    为向量存储等模块提供双缓存（search + recent）。
+    基于 MultiLevelCache 实现，仅 L1 内存层。
+    """
+
+    def __init__(self, max_size: int = 100, ttl_seconds: int = 300):
+        self._search_cache = MultiLevelCache(
+            l1_max_size=max_size, l1_ttl=ttl_seconds, l2_enabled=False,
+        )
+        self._recent_cache = MultiLevelCache(
+            l1_max_size=20, l1_ttl=60, l2_enabled=False,
+        )
+
+    def get_search(self, key: str):
+        return self._search_cache.get(key)
+
+    def set_search(self, key: str, value: Any, ttl: Optional[int] = None):
+        self._search_cache.set(key, value, ttl)
+
+    def get_recent(self, key: str):
+        return self._recent_cache.get(key)
+
+    def set_recent(self, key: str, value: Any, ttl: Optional[int] = None):
+        self._recent_cache.set(key, value, ttl)
+
+    def clear_all(self):
+        self._search_cache.clear()
+        self._recent_cache.clear()
+
+    def get_stats(self):
+        return {
+            "search": self._search_cache.get_stats(),
+            "recent": self._recent_cache.get_stats(),
+        }
 
 
 class CacheManager:

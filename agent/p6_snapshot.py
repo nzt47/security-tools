@@ -284,7 +284,9 @@ class StateSnapshotManager:
     def _generate_snapshot_id(self) -> str:
         """生成唯一快照ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"snap_{timestamp}"
+        # 添加微秒确保唯一性
+        microsecond = datetime.now().microsecond
+        return f"snap_{timestamp}_{microsecond}"
         
     def _get_snapshot_path(self, snapshot_id: str, is_incremental: bool = False) -> Path:
         """获取快照文件路径"""
@@ -477,6 +479,7 @@ class StateSnapshotManager:
                 logger.info(f"[P6] ├─ 使用指定快照ID: {snapshot_id}")
                 
             # 创建快照对象
+            # 注意：force=True 只影响是否绕过频率限制，不覆盖 incremental 参数
             snapshot = StateSnapshot(
                 snapshot_id=snapshot_id,
                 created_at=datetime.now(),
@@ -556,8 +559,9 @@ class StateSnapshotManager:
                 success=True,
                 snapshot_id=snapshot_id,
                 elapsed_ms=elapsed,
-                is_incremental=incremental,
+                is_incremental=snapshot.is_incremental,
                 space_saved_bytes=space_saved,
+                base_snapshot_id=snapshot.base_snapshot_id,
             )
             
         except Exception as e:
@@ -1148,7 +1152,7 @@ class StateSnapshotManager:
                             
                             # 提取快照ID
                             if filename.endswith(".snap.gz"):
-                                snapshot_id = filename[:-9]  # .snap.gz = 9 chars
+                                snapshot_id = filename[:-8]  # .snap.gz = 8 chars
                             else:
                                 snapshot_id = filename[:-5]  # .snap = 5 chars
                                 

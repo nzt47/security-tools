@@ -1,0 +1,29 @@
+2026-06-17 10:31:06,755 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,764 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,770 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,778 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,785 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,796 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,803 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,803 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.8
+2026-06-17 10:31:06,809 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,812 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.2
+2026-06-17 10:31:06,816 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,819 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.8
+2026-06-17 10:31:06,824 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,826 [    INFO] persona.persona_model_enhanced: 更新表达风格: humor = 0.8
+2026-06-17 10:31:06,834 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,834 [    INFO] persona.persona_model_enhanced: 更新表达风格: empathy = 0.8
+2026-06-17 10:31:06,844 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,851 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,858 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,865 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,872 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,880 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,885 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,892 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,898 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,899 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.9
+2026-06-17 10:31:06,906 [    INFO] persona.persona_model_enhanced: PersonaModel 初始化完成（增强版）
+2026-06-17 10:31:06,906 [    INFO] persona.persona_model_enhanced: 更新表达风格: tone = 0.9
+2026-06-17 10:31:06,906 [    INFO] persona.persona_model_enhanced: 更新表达风格: emotion = 0.8

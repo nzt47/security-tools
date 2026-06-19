@@ -146,7 +146,7 @@ class TaskDecomposer:
         """基于规则的任务分解(降级方案)"""
         logger.info("🔧 [规则分解] 开始基于关键词的任务分解")
 
-        separators = ["然后", "接着", "之后", "最后", "首先", "再"]
+        separators = ["首先", "然后", "接着", "之后", "最后", "再"]
 
         parts = [task]
         for sep in separators:
@@ -156,23 +156,22 @@ class TaskDecomposer:
             if len(new_parts) > len(parts):
                 logger.info(f"   使用分隔符 '{sep}' 分割任务")
                 parts = new_parts
-                break
 
         subtasks = []
-        for i, part in enumerate(parts):
-            part = part.strip()
-            if part:
-                subtask = {
-                    "id": f"step_{i + 1}",
-                    "description": part,
-                    "type": "atomic",
-                    "priority": 3,
-                    "dependencies": [f"step_{i}"] if i > 0 else [],
-                    "constraints": [],
-                    "estimated_steps": 1
-                }
-                subtasks.append(subtask)
-                logger.info(f"   子任务{i+1}: {part[:50]}...")
+        valid_parts = [part.strip() for part in parts if part.strip()]
+        
+        for idx, part in enumerate(valid_parts):
+            subtask = {
+                "id": f"step_{idx + 1}",
+                "description": part,
+                "type": "atomic",
+                "priority": 3,
+                "dependencies": [f"step_{idx}"] if idx > 0 else [],
+                "constraints": [],
+                "estimated_steps": 1
+            }
+            subtasks.append(subtask)
+            logger.info(f"   子任务{idx+1}: {part[:50]}...")
 
         logger.info(f"   规则分解完成，共 {len(subtasks)} 个子任务")
 

@@ -1,0 +1,179 @@
+2026-06-17 13:26:37,885 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 13:26:37,892 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 13:26:37,896 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 13:26:37,899 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 13:26:37,918 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 13:26:37,921 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 13:26:37,925 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 13:26:37,927 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 13:26:37,928 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 13:26:37,930 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 13:26:37,944 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 13:26:37,945 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 13:26:37,947 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 13:26:38,068 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 13:26:38,074 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 13:26:38,074 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:26:38,082 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:26:38,082 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 13:26:38,083 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 13:26:38,083 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 13:26:38,083 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 13:26:38,083 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 13:26:38,083 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 13:26:38,084 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 13:26:38,084 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 13:26:38,084 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 13:26:38,085 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 13:26:38,085 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 13:26:38,085 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 13:26:38,112 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-17 13:26:38,147 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,148 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp6xwsd2ci
+2026-06-17 13:26:38,148 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,153 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,154 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpdkmd2cyk
+2026-06-17 13:26:38,154 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,155 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-17 13:26:38,155 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-10 至 2026-06-17
+2026-06-17 13:26:38,155 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-17 13:26:38,160 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,161 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp3vvvm21o
+2026-06-17 13:26:38,161 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,161 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-17 13:26:38,161 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-10 至 2026-06-17
+2026-06-17 13:26:38,162 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,163 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-17 13:26:38,173 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 13:26:38,173 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 13:26:38,173 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 13:26:38,174 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:26:38,174 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:26:38,174 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-17 13:26:38,174 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:26:38,175 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:26:38,175 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:26:38,175 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:26:38,175 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-17 13:26:38,180 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,180 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpdo7judb0
+2026-06-17 13:26:38,181 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,181 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmpdo7judb0\weekly_report_2024-01-01.json
+2026-06-17 13:26:38,181 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmpdo7judb0\weekly_report_2024-01-01.json
+2026-06-17 13:26:38,186 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,187 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp01_2yn6o
+2026-06-17 13:26:38,187 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,187 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmp01_2yn6o\weekly_report_2024-01-01.text
+2026-06-17 13:26:38,188 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmp01_2yn6o\weekly_report_2024-01-01.text
+2026-06-17 13:26:38,193 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,194 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp7blma23c
+2026-06-17 13:26:38,194 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,194 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmp7blma23c\weekly_report_2024-01-01.html
+2026-06-17 13:26:38,195 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmp7blma23c\weekly_report_2024-01-01.html
+2026-06-17 13:26:38,199 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,200 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpwtiz54wl
+2026-06-17 13:26:38,200 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,204 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,205 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp8_r8d2l2
+2026-06-17 13:26:38,205 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,210 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,210 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp_xwah2mr
+2026-06-17 13:26:38,210 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,215 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,215 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpdcxem87u
+2026-06-17 13:26:38,215 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,220 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,220 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpijkadoxs
+2026-06-17 13:26:38,220 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,222 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,222 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-17 13:26:38,226 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,227 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpv0oyqzad
+2026-06-17 13:26:38,227 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,227 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,237 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 13:26:38,237 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 13:26:38,237 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 13:26:38,237 [   ERROR] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载失败: load error
+2026-06-17 13:26:38,242 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,243 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpey87e7hm
+2026-06-17 13:26:38,243 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,243 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=-1
+2026-06-17 13:26:38,244 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-03 至 2026-06-10
+2026-06-17 13:26:38,244 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,253 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 13:26:38,253 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 13:26:38,253 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 13:26:38,254 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:26:38,254 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:26:38,254 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-17 13:26:38,254 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:26:38,254 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:26:38,255 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:26:38,255 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:26:38,255 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-17 13:26:38,259 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,260 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmp9b8fhvc9
+2026-06-17 13:26:38,260 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,261 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmp9b8fhvc9\weekly_report_2024-01-01.json
+2026-06-17 13:26:38,261 [   ERROR] agent.weekly_report_generator: [WeeklyReportGenerator] 保存失败: permission denied
+2026-06-17 13:26:38,265 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,267 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,267 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,268 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmptxmhc8fe
+2026-06-17 13:26:38,268 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,268 [    INFO] agent.weekly_report_generator: 生成本周报告...
+2026-06-17 13:26:38,268 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-17 13:26:38,269 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-10 至 2026-06-17
+2026-06-17 13:26:38,269 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,278 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 13:26:38,278 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 13:26:38,278 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 13:26:38,279 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:26:38,279 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:26:38,279 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-17 13:26:38,279 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:26:38,279 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:26:38,280 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:26:38,280 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:26:38,280 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-17 13:26:38,280 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmptxmhc8fe\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,281 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmptxmhc8fe\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,281 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,283 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,283 [    INFO] agent.weekly_report_generator: 已保存 1 个文件:
+2026-06-17 13:26:38,284 [    INFO] agent.weekly_report_generator:   - C:\Windows\TEMP\tmptxmhc8fe\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,289 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,291 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,291 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 开始初始化
+2026-06-17 13:26:38,291 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmplogaiv_e
+2026-06-17 13:26:38,292 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] __init__ 初始化完成
+2026-06-17 13:26:38,292 [    INFO] agent.weekly_report_generator: 生成本周报告...
+2026-06-17 13:26:38,292 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 生成周报: offset=0
+2026-06-17 13:26:38,292 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 日期范围: 2026-06-10 至 2026-06-17
+2026-06-17 13:26:38,292 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 延迟加载 analytics
+2026-06-17 13:26:38,301 [    INFO] agent.memory.vector_store:    ├─ 持久化目录: ./data/memory
+2026-06-17 13:26:38,301 [    INFO] agent.memory.vector_store:    ├─ 存储类型: JSON Fallback
+2026-06-17 13:26:38,302 [    INFO] agent.memory.vector_store:    └─ 当前记忆数: 335
+2026-06-17 13:26:38,302 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 开始初始化
+2026-06-17 13:26:38,302 [    INFO] agent.data_analytics: [DataAnalytics] __init__ 初始化完成
+2026-06-17 13:26:38,302 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] analytics 加载成功
+2026-06-17 13:26:38,302 [    INFO] agent.data_analytics: [DataAnalytics] 分析事件趋势: 7 天
+2026-06-17 13:26:38,303 [    INFO] agent.data_analytics: [DataAnalytics] 检测异常: 阈值 2.0x
+2026-06-17 13:26:38,303 [    INFO] agent.data_analytics: [DataAnalytics] 分析用户行为
+2026-06-17 13:26:38,303 [    INFO] agent.data_analytics: [DataAnalytics] 用户行为分析完成
+2026-06-17 13:26:38,303 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报生成完成
+2026-06-17 13:26:38,304 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,304 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,305 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.text
+2026-06-17 13:26:38,306 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.text
+2026-06-17 13:26:38,306 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 保存周报: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.html
+2026-06-17 13:26:38,306 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 周报已保存: C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.html
+2026-06-17 13:26:38,306 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,308 [    INFO] agent.weekly_report_generator: ================================================================================
+2026-06-17 13:26:38,308 [    INFO] agent.weekly_report_generator: 已保存 3 个文件:
+2026-06-17 13:26:38,309 [    INFO] agent.weekly_report_generator:   - C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.json
+2026-06-17 13:26:38,309 [    INFO] agent.weekly_report_generator:   - C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.text
+2026-06-17 13:26:38,309 [    INFO] agent.weekly_report_generator:   - C:\Windows\TEMP\tmplogaiv_e\weekly_report_2026-06-10.html

@@ -7,6 +7,7 @@
 
 import asyncio
 import logging
+import traceback
 from typing import Dict, Any, Optional, List, Callable
 from datetime import datetime
 
@@ -16,6 +17,9 @@ from .models.record import ExecutionRecord
 
 # 使用 Phase 3 的统一注册表抽象
 from core.registry import SimpleRegistry
+
+# 导入错误处理类
+from agent.error_handler import RecoverableError
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +140,7 @@ class PlanExecutor:
         Returns:
             执行完成的计划
         """
-        if plan.state != PlanState.READY:
+        if plan.state not in (PlanState.READY, PlanState.EXECUTING):
             raise ValueError(f"计划状态不正确: {plan.state}")
 
         plan.state = PlanState.EXECUTING
@@ -253,20 +257,48 @@ class PlanExecutor:
         """执行工具调用"""
         tool = self.tool_registry.get(action.tool_name)
         if not tool:
+            logger.error(f"[工具调用] ERROR: 工具不存在: {action.tool_name}")
             return ActionResult.failure_result(f"工具不存在: {action.tool_name}")
 
+        logger.info(f"[工具调用] INFO: 开始执行: {action.tool_name}")
+        logger.debug(f"[工具调用] DEBUG: 参数: {action.tool_params}")
+        
         try:
+            timeout = self.config.get('tool_timeout', 30)
+            
             if asyncio.iscoroutinefunction(tool):
-                output = await tool(**action.tool_params)
+                try:
+                    output = await asyncio.wait_for(
+                        tool(**action.tool_params),
+                        timeout=timeout
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(f"[工具调用] TIMEOUT: {action.tool_name}")
+                    logger.error(f"[工具调用] TIMEOUT: 超时时间: {timeout}秒")
+                    logger.error(f"[工具调用] TIMEOUT: 参数: {action.tool_params}")
+                    return ActionResult.failure_result(
+                        f"工具调用超时: {action.tool_name} (超时时间: {timeout}秒)"
+                    )
             else:
                 output = tool(**action.tool_params)
 
+            logger.info(f"[工具调用] SUCCESS: {action.tool_name}")
+            logger.debug(f"[工具调用] DEBUG: 输出: {str(output)[:100]}..." if len(str(output)) > 100 else f"[工具调用] DEBUG: 输出: {output}")
+            
             return ActionResult.success_result(
                 output=output,
                 observation=f"工具{action.tool_name}执行成功",
                 state_changes=[f"{action.tool_name}已执行"]
             )
+        except RecoverableError as e:
+            logger.warning(f"[工具调用] WARNING: 可恢复错误: {action.tool_name}")
+            logger.warning(f"[工具调用] WARNING: 错误信息: {e}")
+            return ActionResult.failure_result(f"工具执行可恢复错误: {e}")
         except Exception as e:
+            logger.error(f"[工具调用] ERROR: 执行失败: {action.tool_name}")
+            logger.error(f"[工具调用] ERROR: 错误类型: {type(e).__name__}")
+            logger.error(f"[工具调用] ERROR: 错误信息: {str(e)}")
+            logger.error(f"[工具调用] ERROR: 堆栈跟踪:\n{traceback.format_exc()}")
             return ActionResult.failure_result(f"工具执行失败: {e}")
 
     async def _execute_llm_reasoning(self, action: Action) -> ActionResult:
@@ -287,7 +319,44 @@ class PlanExecutor:
 
     def _extract_params(self, task: Task) -> Dict[str, Any]:
         """从任务描述中提取参数"""
-        return {}
+        description = task.description
+        params = {}
+        
+        import re
+        
+        if "create_file" in description:
+            match = re.search(r'名为\s*["\']?([^"\']+)["\']?\s*的文件', description)
+            if match:
+                params['filename'] = match.group(1).strip()
+        
+        elif "write_file" in description:
+            match = re.search(r'写入\s*["\']?([^"\']+)["\']?\s*文件', description)
+            if match:
+                params['filename'] = match.group(1).strip()
+            params['content'] = "测试内容"
+        
+        elif "read_file" in description:
+            match = re.search(r'读取\s*["\']?([^"\']+)["\']?\s*文件', description)
+            if match:
+                params['filename'] = match.group(1).strip()
+        
+        elif "search" in description:
+            match = re.search(r'搜索\s*关于\s*["\']?([^"\']+)["\']?\s*的信息', description)
+            if match:
+                params['query'] = match.group(1).strip()
+            else:
+                match = re.search(r'搜索\s*["\']?([^"\']+)["\']?', description)
+                if match:
+                    params['query'] = match.group(1).strip()
+        
+        elif "send_email" in description:
+            match = re.search(r'通知\s*([^\s，,]+)', description)
+            if match:
+                params['to'] = match.group(1).strip()
+            params['subject'] = "任务完成通知"
+            params['body'] = "任务已成功完成"
+        
+        return params
 
     def _record_execution(self, plan: Plan, task: Task, result: ActionResult):
         """记录执行历史"""

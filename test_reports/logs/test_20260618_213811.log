@@ -1,0 +1,152 @@
+2026-06-18 21:38:11,472 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 21:38:11,475 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 21:38:11,476 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 21:38:11,486 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 21:38:11,500 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 21:38:11,503 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 21:38:11,530 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 21:38:11,538 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 21:38:11,543 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 21:38:11,566 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 21:38:11,568 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'VectorStore'
+2026-06-18 21:38:11,568 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'KnowledgeBase'
+2026-06-18 21:38:11,568 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 部分导入成功: 0/2
+2026-06-18 21:38:11,568 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 21:38:11,569 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 21:38:11,570 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 21:38:11,692 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 21:38:11,696 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 21:38:11,696 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 21:38:11,703 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 21:38:11,704 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 21:38:11,704 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 21:38:11,704 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:11,704 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 21:38:11,704 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 21:38:11,704 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 21:38:11,739 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,740 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,743 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,743 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,743 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: slow_module, level=CRITICAL, deps=[], has_async=False
+2026-06-18 21:38:11,817 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,818 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,818 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: async_module, level=IMPORTANT, deps=[], has_async=True
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_0, level=IMPORTANT, deps=[], has_async=False
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_1, level=IMPORTANT, deps=[], has_async=False
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_2, level=IMPORTANT, deps=[], has_async=False
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_3, level=IMPORTANT, deps=[], has_async=False
+2026-06-18 21:38:11,898 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 开始异步加载级别: IMPORTANT
+2026-06-18 21:38:11,962 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 级别 IMPORTANT 异步加载完成: 成功=4, 失败=0
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader_async: [AsyncLazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_0, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_1, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_2, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,967 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_3, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_4, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_5, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_6, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_7, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_8, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_9, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_10, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_11, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_12, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_13, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_14, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_15, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,968 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_16, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_17, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_18, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_19, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_20, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_21, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_22, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_23, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_24, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_25, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_26, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_27, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,969 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_28, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_29, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_30, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_31, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_32, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_33, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_34, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_35, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_36, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_37, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_38, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_39, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_40, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,970 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_41, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_42, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_43, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_44, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_45, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_46, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_47, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_48, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_49, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_50, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_51, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_52, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_53, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,971 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_54, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_55, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_56, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_57, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_58, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_59, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_60, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_61, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_62, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_63, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_64, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_65, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_66, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_67, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_68, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_69, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_70, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,972 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_71, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_72, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_73, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_74, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_75, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_76, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_77, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_78, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_79, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_80, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_81, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_82, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,973 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_83, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_84, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_85, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_86, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_87, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_88, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_89, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_90, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_91, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_92, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_93, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,974 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_94, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,975 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_95, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,975 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_96, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,975 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_97, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,975 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_98, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:11,975 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: module_99, level=OPTIONAL, deps=[], has_async=False

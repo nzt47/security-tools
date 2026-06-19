@@ -1,0 +1,13 @@
+2026-06-18 09:04:32,582 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 09:04:32,588 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 09:04:32,590 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 09:04:32,624 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:04:32,624 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_search
+2026-06-18 09:04:32,624 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpxpk85nc6
+2026-06-18 09:04:32,624 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:04:32,634 [    INFO] memory.vector_store.vector_store:    └─ 返回: 2 条
+2026-06-18 09:04:32,642 [    INFO] memory.vector_store.vector_store: [OK] 倒排索引已启用 (BM25)
+2026-06-18 09:04:32,642 [    INFO] memory.vector_store.vector_store: 向量存储初始化完成: test_search_meta
+2026-06-18 09:04:32,642 [    INFO] memory.vector_store.vector_store:    ├─ 持久化目录: C:\Windows\TEMP\tmpjhav4qbq
+2026-06-18 09:04:32,642 [    INFO] memory.vector_store.vector_store:    ├─ 存储类型: JSON + BM25
+2026-06-18 09:04:32,648 [    INFO] memory.vector_store.vector_store:    └─ 返回: 0 条

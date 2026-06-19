@@ -4,6 +4,7 @@
 - 日志系统配置（支持日志轮转）
 - 敏感信息自动脱敏
 - 权限操作审计日志
+- Windows GBK 编码兼容（emoji 自动替换）
 """
 
 import os
@@ -15,6 +16,94 @@ import logging.handlers
 import threading
 from datetime import datetime
 from typing import Optional, Callable, Any, Dict, Pattern, List
+
+# ─────────────────────────────────────────────────
+# Windows GBK 编码兼容性处理 - Emoji 替换
+# ─────────────────────────────────────────────────
+
+_EMOJI_MAP = {
+    '🚀': '[ROCKET]', '📋': '[LIST]', '🎛️': '[CONTROL]', '✅': '[OK]',
+    '❌': '[FAIL]', '⚠️': '[WARN]', '🔒': '[LOCK]', '🔓': '[UNLOCK]',
+    '📦': '[PACKAGE]', '🔄': '[RELOAD]', '📊': '[CHART]', '🔍': '[SEARCH]',
+    '💡': '[IDEA]', '🔥': '[FIRE]', '✨': '[STAR]', '🎉': '[PARTY]',
+    '👏': '[CLAP]', '👍': '[THUMBS_UP]', '💬': '[CHAT]', '⏳': '[WAIT]',
+    '⌛': '[TIME]', '📈': '[UP]', '📉': '[DOWN]', '🎯': '[TARGET]',
+    '💻': '[PC]', '📱': '[PHONE]', '🔧': '[TOOL]', '⚙️': '[SETTINGS]',
+    '🔌': '[PLUG]', '💾': '[SAVE]', '📝': '[EDIT]', '🔗': '[LINK]',
+    '💎': '[DIAMOND]', '🏆': '[TROPHY]', '🎮': '[GAME]', '👤': '[USER]',
+    '👥': '[USERS]', '👨‍💻': '[DEV]', '🤖': '[ROBOT]', '💀': '[SKULL]',
+    '💩': '[POO]', '👻': '[GHOST]', '🤝': '[HAND_SHAKE]', '👋': '[WAVE]',
+    '💪': '[MUSCLE]', '👀': '[EYES]', '💭': '[THINK]', '😀': '[SMILE]',
+    '😂': '[TEARS]', '😊': '[BLUSH]', '😍': '[HEART_EYES]', '🤔': '[THINKING]',
+    '🙄': '[EYE_ROLL]', '😴': '[SLEEPING]', '😎': '[COOL]', '🤓': '[NERD]',
+    '😕': '[CONFUSED]', '😟': '[WORRIED]', '😭': '[LOUDLY]', '😡': '[ANGRY]',
+    '🤬': '[SHOUTING]', '🎃': '[PUMPKIN]', '🎅': '[SANTA]', '🎆': '[FIREWORKS]',
+    '📌': '[PIN]', '📍': '[MAP_PIN]', '📧': '[EMAIL]', '📨': '[INBOX]',
+    '📤': '[OUTBOX]', '📥': '[INCOMING]', '📫': '[MAILBOX]', '✉️': '[LETTER]',
+    '🔖': '[LABEL]', '🏷️': '[TAG]', '💳': '[CREDIT_CARD]', '💰': '[MONEY_BAG]',
+    '🤑': '[MONEY_EYES]', '💸': '[MONEY_FLY]', '🧾': '[RECEIPT]', '🔏': '[LOCKED]',
+    '🔐': '[UNLOCKED]', '🔑': '[KEY]', '🕵️': '[DETECTIVE]', '📁': '[FOLDER]',
+    '📂': '[OPEN_FOLDER]', '📅': '[CALENDAR]', '📆': '[CALENDAR2]', '📚': '[BOOKS]',
+    '📓': '[NOTEBOOK]', '📰': '[NEWSPAPER]', '🗂️': '[FILE_CABINET]', '🛑': '[STOP]',
+    '🚫': '[NO]', '📶': '[SIGNAL]', '📳': '[VIBRATE]', '📴': '[OFF]',
+    '🖥️': '[MONITOR]', '🖨️': '[PRINTER]', '🖱️': '[MOUSE]', '⌨️': '[KEYBOARD]',
+    '🎫': '[TICKET]', '🎟️': '[TICKET2]', '🗳️': '[BALLOT]', '✏️': '[PENCIL]',
+    '✒️': '[PEN]', '🖋️': '[FOUNTAIN]', '🖌️': '[BRUSH]', '🖍️': '[CRAYON]',
+    '📇': '[CARD]', '📏': '[RULER]', '📐': '[PROTRACTOR]', '📕': '[BOOK_RED]',
+    '📖': '[BOOK_OPEN]', '📗': '[BOOK_GREEN]', '📘': '[BOOK_BLUE]', '📙': '[BOOK_YELLOW]',
+    '🔎': '[SEARCH2]', '🗝️': '[KEY2]', '👪': '[FAMILY]', '👨': '[MAN]',
+    '👩': '[WOMAN]', '👴': '[OLD_MAN]', '👵': '[OLD_WOMAN]', '👶': '[BABY]',
+    '👦': '[BOY]', '👧': '[GIRL]', '🏠': '[HOME]', '🏢': '[OFFICE]',
+    '🏭': '[FACTORY]', '🌍': '[GLOBE]', '🌎': '[GLOBE]', '🌏': '[GLOBE]',
+    '🗺️': '[MAP]', '🏔️': '[MOUNTAIN]', '🌊': '[WAVE]', '🌋': '[VOLCANO]',
+    '🌅': '[SUNRISE]', '🌙': '[MOON]', '☀️': '[SUN]', '🌈': '[RAINBOW]',
+    '❄️': '[SNOW]', '🍀': '[LUCKY]', '🌸': '[FLOWER]', '🌹': '[ROSE]',
+    '🌻': '[SUNFLOWER]', '🌲': '[TREE]', '🌳': '[TREE]', '🌴': '[PALM]',
+    '🍎': '[APPLE]', '🍊': '[ORANGE]', '🍋': '[LEMON]', '🍌': '[BANANA]',
+    '🍉': '[WATERMELON]', '🍇': '[GRAPES]', '🍓': '[STRAWBERRY]', '🍒': '[CHERRY]',
+    '🥝': '[KIWI]', '🍕': '[PIZZA]', '🍔': '[BURGER]', '🍟': '[FRIES]',
+    '🌭': '[HOTDOG]', '🥪': '[SANDWICH]', '🌮': '[TACO]', '🌯': '[BURRITO]',
+    '🍲': '[SOUP]', '🍜': '[NOODLES]', '🍝': '[PASTA]', '🦐': '[SHRIMP]',
+    '🦞': '[LOBSTER]', '🦀': '[CRAB]', '🐟': '[FISH]', '🦈': '[SHARK]',
+    '🐬': '[DOLPHIN]', '🐳': '[WHALE]', '🐢': '[TURTLE]', '🐍': '[SNAKE]',
+    '🦎': '[LIZARD]', '🦖': '[DINO]', '🐉': '[DRAGON]', '🐲': '[DRAGON]',
+    '🐊': '[CROCODILE]', '🐸': '[FROG]', '🐰': '[RABBIT]', '🐻': '[BEAR]',
+    '🐼': '[PANDA]', '🐨': '[KOALA]', '🐯': '[TIGER]', '🦁': '[LION]',
+    '🐮': '[COW]', '🐷': '[PIG]', '🐑': '[SHEEP]', '🐐': '[GOAT]',
+    '🐴': '[HORSE]', '🦄': '[UNICORN]', '🐝': '[BEE]', '🐞': '[BUG]',
+    '🦋': '[BUTTERFLY]', '🐌': '[SNAIL]', '🐛': '[WORM]', '🦟': '[MOSQUITO]',
+    '🐦': '[BIRD]', '🐤': '[CHICK]', '🐔': '[CHICKEN]', '🦆': '[DUCK]',
+    '🦅': '[EAGLE]', '🦉': '[OWL]', '🦇': '[BAT]', '🐧': '[PENGUIN]',
+    '🐿️': '[SQUIRREL]', '🦔': '[HOG]', '🧑‍🎄': '[CHRISTMAS]', '🦌': '[REINDEER]',
+    '🌟': '[STAR2]', '⭐': '[STAR]', '🌠': '[SHOOTING]', '💫': '[DIZZY_STARS]',
+    # 以下条目来自 agent/utils/safe_logger.py（合并）
+    '💽': '[FLOPPY]', '📀': '[DVD]', '🖲️': '[TRACKBALL]',
+    '📃': '[PAGE]', '📄': '[DOCUMENT]', '📑': '[DIVIDER]',
+}
+
+def _safe_log_message(message):
+    """安全处理日志消息，替换 emoji 避免 GBK 编码问题"""
+    if not isinstance(message, str):
+        return message
+    
+    for emoji, replacement in _EMOJI_MAP.items():
+        message = message.replace(emoji, replacement)
+    
+    return message
+
+
+class EmojiFilter(logging.Filter):
+    """日志过滤器 - 自动替换 emoji 字符"""
+    
+    def filter(self, record):
+        if record.msg is not None:
+            record.msg = _safe_log_message(record.msg)
+        if record.args:
+            record.args = tuple(
+                _safe_log_message(arg) if isinstance(arg, str) else arg
+                for arg in record.args
+            )
+        return True
 
 # ─────────────────────────────────────────────────
 # 日志轮转配置
@@ -164,6 +253,7 @@ def setup_agent_logging(
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
         console_handler.addFilter(SensitiveDataFilter())
+        console_handler.addFilter(EmojiFilter())
         root_logger.addHandler(console_handler)
 
     # 文件处理器（带轮转）
@@ -178,6 +268,7 @@ def setup_agent_logging(
         )
         file_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
         file_handler.addFilter(SensitiveDataFilter())
+        file_handler.addFilter(EmojiFilter())
         root_logger.addHandler(file_handler)
         logger = logging.getLogger("云枢.agent")
         logger.info(f"日志文件: {log_file}")
@@ -405,6 +496,10 @@ class SensitiveDataFilter(logging.Filter):
             for pattern in standalone_patterns:
                 result = pattern.sub('***', result)
             
+            # 处理邮箱地址
+            email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', re.IGNORECASE)
+            result = email_pattern.sub('***@***.com', result)
+            
             # 处理字段名=值形式的敏感信息
             field_patterns = [
                 (re.compile(r'(password|secret|token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="***"'),
@@ -457,8 +552,13 @@ class SensitiveDataFilter(logging.Filter):
             脱敏后的字典
         """
         result = {}
+        sensitive_keys = {'password', 'secret', 'token', 'api_key', 'api.key', 'secret_key', 'access_token'}
+        
         for key, value in data.items():
-            if isinstance(value, str):
+            # 如果键名是敏感的，直接替换值
+            if key.lower() in sensitive_keys or any(sensitive in key.lower() for sensitive in sensitive_keys):
+                result[key] = '***'
+            elif isinstance(value, str):
                 result[key] = self._sanitize(value)
             elif isinstance(value, dict):
                 result[key] = self._sanitize_dict(value)

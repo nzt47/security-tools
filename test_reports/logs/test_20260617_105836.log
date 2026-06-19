@@ -1,0 +1,19 @@
+2026-06-17 10:58:37,558 [    INFO] lifetrace.memory_tree: 已加载记忆树 persist_tree，共 2 个节点
+2026-06-17 10:58:37,571 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,581 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,592 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,621 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,631 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,643 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,654 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,669 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,747 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,769 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,769 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 10:58:37,782 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,782 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 10:58:37,795 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,796 [    INFO] lifetrace.trace_recorder: 注册回调: chat
+2026-06-17 10:58:37,798 [   ERROR] lifetrace.trace_recorder: Chat callback error: 回调错误
+2026-06-17 10:58:37,807 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成
+2026-06-17 10:58:37,828 [    INFO] lifetrace.trace_recorder: TraceRecorder 初始化完成

@@ -1,0 +1,129 @@
+2026-06-18 19:42:09,957 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 19:42:09,960 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 19:42:09,961 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 19:42:09,971 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 19:42:09,986 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 19:42:09,990 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 19:42:10,019 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 19:42:10,025 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 19:42:10,030 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 19:42:10,048 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 19:42:10,049 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 19:42:10,049 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 19:42:10,049 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 19:42:10,051 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 19:42:10,170 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 19:42:10,173 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 19:42:10,173 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 19:42:10,181 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 19:42:10,182 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 19:42:10,182 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 19:42:10,314 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:42:10,325 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 11.22ms (成功)
+2026-06-18 19:42:10,328 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:42:10,328 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (失败: test error)
+2026-06-18 19:42:10,345 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:42:10,357 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 12.13ms (成功)
+2026-06-18 19:42:10,357 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:42:10,378 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 20.87ms (成功)
+2026-06-18 19:42:10,381 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fast_module
+2026-06-18 19:42:10,392 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fast_module 初始化完成: 11.20ms (成功)
+2026-06-18 19:42:10,392 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: slow_module
+2026-06-18 19:42:10,452 [    INFO] agent.monitoring.performance: [性能追踪] 模块 slow_module 初始化完成: 60.24ms (成功)
+2026-06-18 19:42:10,456 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:42:10,467 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 10.80ms (成功)
+2026-06-18 19:42:10,467 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:42:10,478 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 11.04ms (成功)
+2026-06-18 19:42:10,484 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:42:10,484 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (成功)
+2026-06-18 19:42:10,490 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_0
+2026-06-18 19:42:10,490 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_1
+2026-06-18 19:42:10,491 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_2
+2026-06-18 19:42:10,492 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_3
+2026-06-18 19:42:10,492 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_4
+2026-06-18 19:42:10,501 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_0 初始化完成: 10.91ms (成功)
+2026-06-18 19:42:10,502 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_1 初始化完成: 12.24ms (成功)
+2026-06-18 19:42:10,502 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_2 初始化完成: 11.23ms (成功)
+2026-06-18 19:42:10,502 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_3 初始化完成: 11.23ms (成功)
+2026-06-18 19:42:10,503 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_4 初始化完成: 11.22ms (成功)
+2026-06-18 19:42:10,576 [    INFO] agent.monitoring.performance: [性能] 模块 test_module 加载完成，耗时: 123.450s
+2026-06-18 19:42:10,582 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: memory
+2026-06-18 19:42:10,593 [    INFO] agent.monitoring.performance: [性能追踪] 模块 memory 初始化完成: 11.12ms (成功)
+2026-06-18 19:42:10,593 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: llm
+2026-06-18 19:42:10,604 [    INFO] agent.monitoring.performance: [性能追踪] 模块 llm 初始化完成: 10.62ms (成功)
+2026-06-18 19:42:10,604 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: tools
+2026-06-18 19:42:10,614 [    INFO] agent.monitoring.performance: [性能追踪] 模块 tools 初始化完成: 10.57ms (成功)
+2026-06-18 19:42:10,614 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: ui
+2026-06-18 19:42:10,625 [    INFO] agent.monitoring.performance: [性能追踪] 模块 ui 初始化完成: 10.64ms (成功)
+2026-06-18 19:42:10,628 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: success_module
+2026-06-18 19:42:10,628 [    INFO] agent.monitoring.performance: [性能追踪] 模块 success_module 初始化完成: 0.00ms (成功)
+2026-06-18 19:42:10,628 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fail_module
+2026-06-18 19:42:10,629 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fail_module 初始化完成: 0.55ms (失败: failed)
+2026-06-18 19:42:10,696 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,699 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,703 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,706 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,710 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,713 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,716 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,719 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,722 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,726 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,729 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,733 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:10,736 [    INFO] agent.error_handler: Circuit breaker 'prometheus-exporter' initialized: max_failures=10
+2026-06-18 19:42:11,079 [    INFO] agent.monitoring.search: [性能监控] 已加载 22 条历史记录
+2026-06-18 19:42:11,079 [    INFO] agent.monitoring.search: [性能监控] 检测间隔已设置为 60 秒
+2026-06-18 19:42:11,082 [    INFO] agent.monitoring.search: [性能监控] 已加载 22 条历史记录
+2026-06-18 19:42:11,086 [    INFO] agent.monitoring.search: [性能监控] 已加载 22 条历史记录
+2026-06-18 19:42:11,089 [    INFO] agent.monitoring.search: [性能监控] 已加载 22 条历史记录
+2026-06-18 19:42:11,090 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,090 [    INFO] agent.monitoring.search: [性能监控] 开始第 23 次性能检测
+2026-06-18 19:42:11,090 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,090 [    INFO] agent.monitoring.search: [性能监控] 配置已应用
+2026-06-18 19:42:11,090 [ WARNING] agent.monitoring.search: [性能监控] Tavily 搜索失败: 未知错误
+2026-06-18 19:42:11,092 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,092 [    INFO] agent.monitoring.search: [性能监控] 第 23 次检测完成，状态: warning
+2026-06-18 19:42:11,092 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,150 [    INFO] agent.monitoring.search: [性能监控] 已加载 23 条历史记录
+2026-06-18 19:42:11,154 [    INFO] agent.monitoring.search: [性能监控] 已加载 23 条历史记录
+2026-06-18 19:42:11,154 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,154 [    INFO] agent.monitoring.search: [性能监控] 开始第 24 次性能检测
+2026-06-18 19:42:11,154 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:11,154 [    INFO] agent.monitoring.search: [性能监控] 已启动，检测间隔: 300 秒
+2026-06-18 19:42:13,264 [    INFO] agent.monitoring.search: [性能监控] 配置已应用
+2026-06-18 19:42:16,163 [    INFO] agent.monitoring.search: [性能监控] 已停止
+2026-06-18 19:42:16,276 [    INFO] agent.monitoring.search: [性能监控] 已加载 23 条历史记录
+2026-06-18 19:42:16,279 [    INFO] agent.monitoring.search: [性能监控] 检测间隔已设置为 60 秒
+2026-06-18 19:42:16,279 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:16,279 [    INFO] agent.monitoring.search: [性能监控] 已启动，检测间隔: 60 秒
+2026-06-18 19:42:16,279 [    INFO] agent.monitoring.search: [性能监控] 开始第 24 次性能检测
+2026-06-18 19:42:16,280 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:17,760 [    INFO] agent.monitoring.search: [性能监控] Tavily 搜索成功: 耗时=4.50s, 结果数=3
+2026-06-18 19:42:18,360 [    INFO] agent.monitoring.search: [性能监控] 配置已应用
+2026-06-18 19:42:19,843 [    INFO] agent.monitoring.search: [性能监控] TAVILY 统计: 平均=2.42s, 最小=2.42s, 最大=2.42s, 调用=1 次
+2026-06-18 19:42:19,845 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:19,845 [    INFO] agent.monitoring.search: [性能监控] 第 24 次检测完成，状态: ok
+2026-06-18 19:42:19,845 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:20,424 [    INFO] agent.monitoring.search: [性能监控] Tavily 搜索成功: 耗时=2.06s, 结果数=3
+2026-06-18 19:42:21,291 [    INFO] agent.monitoring.search: [性能监控] 已停止
+2026-06-18 19:42:21,298 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:21,298 [    INFO] agent.monitoring.search: [性能监控] 开始第 25 次性能检测
+2026-06-18 19:42:21,298 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:21,298 [    INFO] agent.monitoring.search: [性能监控] 配置已应用
+2026-06-18 19:42:21,298 [ WARNING] agent.monitoring.search: [性能监控] Tavily 搜索失败: 未知错误
+2026-06-18 19:42:21,300 [    INFO] agent.monitoring.search: ================================================================================
+2026-06-18 19:42:21,300 [    INFO] agent.monitoring.search: [性能监控] 第 25 次检测完成，状态: warning
+2026-06-18 19:42:21,300 [    INFO] agent.monitoring.search: ================================================================================

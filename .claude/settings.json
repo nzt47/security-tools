@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"c:\\\\Users\\\\Administrator\\\\agent\" && touch \".git/sdd/task-1-report.md\" && echo \"report file ready\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Administrator\\agent\\.git\\sdd"
+    ]
+  }
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云枢日志系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: #0f1923; color: #e0e6ed; line-height: 1.6;
+            padding: 20px;
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; padding-bottom: 16px;
+            border-bottom: 1px solid #1e3a5f;
+        }
+        .header h1 { font-size: 24px; color: #58a6ff; }
+        .header .status { font-size: 13px; color: #8b949e; }
+        .header .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .dot.green { background: #3fb950; }
+        .dot.yellow { background: #d29922; }
+        .dot.red { background: #f85149; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card {
+            background: #161b22; border: 1px solid #1e3a5f; border-radius: 8px;
+            padding: 16px; transition: border-color 0.2s;
+        }
+        .card:hover { border-color: #58a6ff; }
+        .card .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .card .value { font-size: 28px; font-weight: 600; color: #f0f6fc; }
+        .card .sub { font-size: 13px; color: #8b949e; margin-top: 4px; }
+        .card .value.warn { color: #d29922; }
+        .card .value.err { color: #f85149; }
+
+        .section { margin-bottom: 24px; }
+        .section h2 { font-size: 16px; color: #58a6ff; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #1e3a5f; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e3a5f; }
+        th { color: #8b949e; font-weight: 500; background: #0d1117; }
+        tr:hover td { background: #1c2128; }
+        .tag {
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: 11px; font-weight: 500;
+        }
+        .tag.high { background: #3d1f1e; color: #f85149; }
+        .tag.medium { background: #3d2e1e; color: #d29922; }
+        .tag.low { background: #1c3d1e; color: #3fb950; }
+        .tag.perf { background: #1c3d5e; color: #58a6ff; }
+        .tag.rel { background: #3d1e3d; color: #bc8cff; }
+        .tag.ux { background: #1c3d2e; color: #3fb950; }
+
+        .summary-box {
+            background: #0d1117; border: 1px solid #1e3a5f; border-radius: 8px;
+            padding: 16px; margin-bottom: 16px; font-size: 14px; color: #c9d1d9;
+        }
+
+        .tab-bar { display: flex; gap: 2px; margin-bottom: 16px; }
+        .tab-bar button {
+            background: #161b22; border: 1px solid #1e3a5f; border-bottom: none;
+            padding: 8px 20px; color: #8b949e; cursor: pointer; border-radius: 6px 6px 0 0;
+            font-size: 13px;
+        }
+        .tab-bar button.active { background: #0d1117; color: #58a6ff; font-weight: 500; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .refresh-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+        .refresh-bar select, .refresh-bar button {
+            background: #161b22; border: 1px solid #1e3a5f; color: #c9d1d9;
+            padding: 6px 12px; border-radius: 6px; font-size: 13px;
+        }
+        .refresh-bar button:hover { background: #1c2128; border-color: #58a6ff; cursor: pointer; }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>云枢日志系统</h1>
+            <div class="status" id="headerStatus">正在加载...</div>
+        </div>
+        <div class="refresh-bar">
+            <select id="hoursSelect">
+                <option value="1">最近 1 小时</option>
+                <option value="6">最近 6 小时</option>
+                <option value="24" selected>最近 24 小时</option>
+                <option value="72">最近 3 天</option>
+                <option value="168">最近 7 天</option>
+            </select>
+            <button onclick="refreshData()">刷新</button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="grid" id="statCards">
+        <div class="card"><div class="label">操作总数</div><div class="value" id="statTotal">--</div></div>
+        <div class="card"><div class="label">错误率</div><div class="value" id="statErrorRate">--</div><div class="sub" id="statErrorDetail"></div></div>
+        <div class="card"><div class="label">平均耗时</div><div class="value" id="statAvgDuration">--</div><div class="sub">P95: -- / P99: --</div></div>
+        <div class="card"><div class="label">内省周期</div><div class="value" id="statIntroCycle">--</div><div class="sub" id="statIntroLast">--</div></div>
+    </div>
+
+    <!-- 摘要 -->
+    <div class="summary-box" id="summaryBox">等待数据加载...</div>
+
+    <!-- Tab 栏 -->
+    <div class="tab-bar">
+        <button class="active" onclick="switchTab('insights')">洞察</button>
+        <button onclick="switchTab('actions')">行动建议</button>
+        <button onclick="switchTab('anomalies')">异常检测</button>
+        <button onclick="switchTab('patterns')">模式发现</button>
+        <button onclick="switchTab('rules')">规则触发</button>
+    </div>
+
+    <div id="tab-insights" class="tab-content active"></div>
+    <div id="tab-actions" class="tab-content"></div>
+    <div id="tab-anomalies" class="tab-content"></div>
+    <div id="tab-patterns" class="tab-content"></div>
+    <div id="tab-rules" class="tab-content"></div>
+
+    <script>
+        let currentHours = 24;
+
+        document.getElementById('hoursSelect').addEventListener('change', function() {
+            currentHours = parseInt(this.value);
+            refreshData();
+        });
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab-bar button[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(`tab-${name}`).classList.add('active');
+        }
+
+        function renderCards(data) {
+            const s = data.stats || {};
+            document.getElementById('statTotal').textContent = s.total_count || 0;
+
+            const errRate = (s.error_rate || 0) * 100;
+            const errEl = document.getElementById('statErrorRate');
+            errEl.textContent = errRate.toFixed(1) + '%';
+            errEl.className = 'value' + (errRate > 10 ? ' err' : errRate > 5 ? ' warn' : '');
+
+            const errDetail = s.by_level ? `错误: ${s.by_level.error || 0} / 告警: ${s.by_level.warning || 0}` : '';
+            document.getElementById('statErrorDetail').textContent = errDetail;
+
+            document.getElementById('statAvgDuration').textContent = (s.avg_duration_ms || 0).toFixed(0) + 'ms';
+            document.querySelector('#statAvgDuration + .sub').textContent =
+                `P95: ${(s.p95_duration_ms || 0).toFixed(0)}ms`;
+
+            const intro = data.introspection_status || {};
+            document.getElementById('statIntroCycle').textContent = intro.total_cycles || 0;
+            document.getElementById('statIntroLast').textContent = '上次: ' + (intro.last_run || '从未');
+        }
+
+        function renderSummary(data) {
+            document.getElementById('summaryBox').textContent = data.summary || '无摘要';
+        }
+
+        function renderTable(container, columns, rows) {
+            if (!rows || rows.length === 0) {
+                container.innerHTML = '<div style="color:#8b949e;padding:20px;text-align:center;">暂无数据</div>';
+                return;
+            }
+            let html = '<div class="table-wrap"><table><thead><tr>';
+            columns.forEach(c => { html += `<th>${c.label}</th>`; });
+            html += '</tr></thead><tbody>';
+            rows.forEach(r => {
+                html += '<tr>';
+                columns.forEach(c => {
+                    let val = r[c.key];
+                    if (c.render) val = c.render(val, r);
+                    html += `<td>${val !== undefined && val !== null ? val : '--'}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function renderRuleHits(hits) {
+            const cols = [
+                { label: '规则', key: 'rule' },
+                { label: '级别', key: 'severity', render: v => `<span class="tag ${v}">${v}</span>` },
+                { label: '指标', key: 'metric' },
+                { label: '当前值', key: 'value', render: v => typeof v === 'number' ? v.toFixed(2) : v },
+                { label: '阈值', key: 'threshold', render: v => typeof v === 'number' ? v.toFixed(2) : v },
+            ];
+            renderTable(document.getElementById('tab-rules'), cols, hits);
+        }
+
+        function renderAnomalies(anomalies) {
+            const cols = [
+                { label: '类型', key: 'type' },
+                { label: '级别', key: 'severity', render: v => `<span class="tag ${v}">${v}</span>` },
+                { label: '来源', key: 'source' },
+                { label: '值', key: 'value', render: v => typeof v === 'number' ? v.toFixed(2) : v },
+                { label: 'Z-Score', key: 'z_score', render: v => v ? v.toFixed(2) : '-' },
+            ];
+            renderTable(document.getElementById('tab-anomalies'), cols, anomalies);
+        }
+
+        function renderPatterns(patterns) {
+            const cols = [
+                { label: '类型', key: 'type' },
+                { label: '来源/操作', key: 'source', render: (v, r) => v || r.operation || '-' },
+                { label: '次数', key: 'count' },
+                { label: '占比', key: 'ratio', render: v => v ? (v * 100).toFixed(1) + '%' : '-' },
+            ];
+            renderTable(document.getElementById('tab-patterns'), cols, patterns);
+        }
+
+        function renderInsights(insights) {
+            const cols = [
+                { label: '类型', key: 'type', render: v => `<span class="tag low">${v}</span>` },
+                { label: '摘要', key: 'summary' },
+                { label: '置信度', key: 'confidence', render: v => (v * 100).toFixed(0) + '%' },
+                { label: '来源', key: 'source_analysis' },
+            ];
+            renderTable(document.getElementById('tab-insights'), cols, insights);
+        }
+
+        function renderActions(actions) {
+            const cols = [
+                { label: '优先级', key: 'priority', render: v => `<span class="tag ${v}">${v}</span>` },
+                { label: '分类', key: 'category', render: v => `<span class="tag ${v === 'performance' ? 'perf' : v === 'reliability' ? 'rel' : 'ux'}">${v}</span>` },
+                { label: '标题', key: 'title' },
+                { label: '影响', key: 'expected_impact' },
+                { label: '状态', key: 'status' },
+            ];
+            renderTable(document.getElementById('tab-actions'), cols, actions);
+        }
+
+        function refreshData() {
+            fetch(`/logs/dashboard/data?hours=${currentHours}`)
+                .then(r => r.json())
+                .then(data => {
+                    renderCards(data);
+                    renderSummary(data);
+
+                    document.getElementById('headerStatus').innerHTML =
+                        `<span class="dot green"></span>已连接 · ${new Date().toLocaleString('zh-CN')}`;
+
+                    renderInsights(data.recent_insights || []);
+                    renderActions(data.open_actions || []);
+                    renderRuleHits(data.rule_hits || []);
+                    renderAnomalies(data.anomalies || []);
+                    renderPatterns(data.patterns || []);
+                })
+                .catch(err => {
+                    document.getElementById('headerStatus').innerHTML =
+                        `<span class="dot red"></span>加载失败: ${err.message}`;
+                });
+        }
+
+        // 自动刷新
+        refreshData();
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>

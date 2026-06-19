@@ -249,9 +249,9 @@ def optimize_v2_initialization(V2Class):
 
 # 使用示例
 """
-from agent.digital_life_v2_optimized import DigitalLifeV2Optimized
+from agent.v2_performance_patch import optimize_v2_initialization
 
-# 使用优化版本
-v2 = DigitalLifeV2Optimized()
+V2Optimized = optimize_v2_initialization(DigitalLifeV2)
+v2 = V2Optimized(config)
 v2.start()  # 非核心模块在首次使用时自动加载
 """

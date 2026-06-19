@@ -1,0 +1,2 @@
+2026-06-17 10:30:02,409 [    INFO] persona.distillation_enhanced: 已应用偏好衰减 (factor=0.5)
+2026-06-17 10:30:02,418 [    INFO] persona.distillation_enhanced: 已应用偏好衰减 (factor=0.8)

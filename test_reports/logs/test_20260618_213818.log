@@ -1,0 +1,105 @@
+2026-06-18 21:38:18,693 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 21:38:18,696 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 21:38:18,697 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 21:38:18,707 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 21:38:18,721 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 21:38:18,724 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 21:38:18,751 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 21:38:18,758 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 21:38:18,764 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 21:38:18,783 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 21:38:18,784 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'VectorStore'
+2026-06-18 21:38:18,784 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'KnowledgeBase'
+2026-06-18 21:38:18,784 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 部分导入成功: 0/2
+2026-06-18 21:38:18,784 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 21:38:18,785 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 21:38:18,786 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 21:38:18,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 21:38:18,913 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 21:38:18,913 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:18,920 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:18,920 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 21:38:18,920 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 21:38:18,921 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 21:38:18,921 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 21:38:18,990 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:18,990 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器依赖管理
+2026-06-18 21:38:18,990 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器
+2026-06-18 21:38:18,991 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration:   - 懒加载器已初始化
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration: [步骤2] 定义测试模块和依赖
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration:   - 依赖模块加载函数已定义
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration:   - 主模块加载函数已定义
+2026-06-18 21:38:18,991 [    INFO] test_agent_integration: [步骤3] 注册模块（带依赖关系）
+2026-06-18 21:38:18,991 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dependency, level=CRITICAL, deps=[], has_async=False
+2026-06-18 21:38:18,992 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dependency'], has_async=False
+2026-06-18 21:38:18,992 [    INFO] test_agent_integration:   - 依赖模块 'dependency' 已注册 (CRITICAL级别)
+2026-06-18 21:38:18,992 [    INFO] test_agent_integration:   - 主模块 'main' 已注册 (IMPORTANT级别, 依赖: dependency)
+2026-06-18 21:38:18,992 [    INFO] test_agent_integration: [步骤4] 加载主模块（应自动加载依赖）
+2026-06-18 21:38:18,996 [    INFO] test_agent_integration:   - 主模块加载结果: main
+2026-06-18 21:38:18,996 [    INFO] test_agent_integration:   - 依赖加载次数: 1
+2026-06-18 21:38:18,996 [    INFO] test_agent_integration:   - 依赖自动加载验证通过
+2026-06-18 21:38:18,996 [    INFO] test_agent_integration: [集成测试] 懒加载器依赖管理测试通过
+2026-06-18 21:38:18,996 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,000 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,000 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器并行加载
+2026-06-18 21:38:19,000 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,000 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器（4个工作线程）
+2026-06-18 21:38:19,000 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:19,336 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,336 [    INFO] test_agent_integration: [集成测试] 开始测试全局懒加载器
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration: [步骤1] 获取全局懒加载器实例
+2026-06-18 21:38:19,337 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration:   - 第一次获取: 1450084199712
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration:   - 第二次获取: 1450084199712
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration:   - 验证通过: 全局懒加载器是单例
+2026-06-18 21:38:19,337 [    INFO] test_agent_integration: [步骤2] 在一个实例上注册模块
+2026-06-18 21:38:19,338 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_mod, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:19,338 [    INFO] test_agent_integration:   - 测试模块 'test_mod' 已注册
+2026-06-18 21:38:19,338 [    INFO] test_agent_integration: [步骤3] 在另一个实例上验证
+2026-06-18 21:38:19,338 [    INFO] test_agent_integration:   - 模块共享验证通过
+2026-06-18 21:38:19,338 [    INFO] test_agent_integration: [集成测试] 全局懒加载器测试通过
+2026-06-18 21:38:19,338 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,342 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,342 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器完整工作流
+2026-06-18 21:38:19,342 [    INFO] test_agent_integration: ============================================================
+2026-06-18 21:38:19,342 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器
+2026-06-18 21:38:19,342 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration:   - 懒加载器已初始化
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration: [步骤2] 注册不同级别的模块
+2026-06-18 21:38:19,343 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: critical_mod, level=CRITICAL, deps=[], has_async=False
+2026-06-18 21:38:19,343 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: important_mod, level=IMPORTANT, deps=[], has_async=False
+2026-06-18 21:38:19,343 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: optional_mod, level=OPTIONAL, deps=[], has_async=False
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration:   - CRITICAL级别模块已注册
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration:   - IMPORTANT级别模块已注册
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration:   - OPTIONAL级别模块已注册
+2026-06-18 21:38:19,343 [    INFO] test_agent_integration: [步骤3] 加载CRITICAL级别模块
+2026-06-18 21:38:19,343 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-18 21:38:19,345 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=1, 失败=0
+2026-06-18 21:38:19,345 [    INFO] test_agent_integration:   - CRITICAL模块加载成功: {'critical_mod': 'critical'}
+2026-06-18 21:38:19,345 [    INFO] test_agent_integration: [步骤4] 异步加载IMPORTANT级别模块
+2026-06-18 21:38:19,346 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: IMPORTANT
+2026-06-18 21:38:19,346 [    INFO] agent.lazy_loader: [LazyLoader] 异步加载级别: IMPORTANT
+2026-06-18 21:38:19,346 [    INFO] test_agent_integration:   - 异步加载已启动
+2026-06-18 21:38:19,347 [    INFO] agent.lazy_loader: [LazyLoader] 级别 IMPORTANT 加载完成: 成功=1, 失败=0
+2026-06-18 21:38:19,348 [    INFO] test_agent_integration: [步骤5] 等待异步加载完成
+2026-06-18 21:38:19,849 [    INFO] test_agent_integration: [步骤6] 按需加载OPTIONAL模块
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration:   - OPTIONAL模块加载成功: optional
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration: [步骤7] 验证加载状态
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration:   - 所有模块加载状态验证通过
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration: [步骤8] 检查统计信息
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration:   - 统计信息验证通过: {'total_attempts': 3, 'successful_loads': 3, 'failed_loads': 0, 'avg_load_time_ms': '0.00', 'loaded_levels': ['CRITICAL', 'IMPORTANT'], 'modules': {'critical_mod': {'level': 'CRITICAL', 'loaded': True, 'load_time_ms': '0.00', 'error': None}, 'important_mod': {'level': 'IMPORTANT', 'loaded': True, 'load_time_ms': '0.00', 'error': None}, 'optional_mod': {'level': 'OPTIONAL', 'loaded': True, 'load_time_ms': '0.00', 'error': None}}}
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration: [集成测试] 懒加载器完整工作流测试通过
+2026-06-18 21:38:19,851 [    INFO] test_agent_integration: ============================================================

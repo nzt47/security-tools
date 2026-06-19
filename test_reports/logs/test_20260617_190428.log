@@ -1,0 +1,157 @@
+2026-06-17 19:04:29,623 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 19:04:29,631 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 19:04:29,635 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 19:04:29,638 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 19:04:29,657 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 19:04:29,661 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 19:04:29,665 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 19:04:29,666 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 19:04:29,669 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 19:04:29,671 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 19:04:29,682 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 19:04:29,683 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 19:04:29,685 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 19:04:29,702 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 19:04:29,710 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 19:04:29,710 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 19:04:29,716 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,717 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 19:04:29,717 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 19:04:29,717 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 19:04:29,864 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 19:04:29,875 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 19:04:29,881 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 19:04:29,886 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 19:04:29,915 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 19:04:29,920 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 19:04:29,924 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 19:04:29,926 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 19:04:29,927 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 19:04:29,931 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 19:04:29,949 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 19:04:29,950 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 19:04:29,952 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 19:04:29,977 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-17 19:04:29,986 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 19:04:29,987 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 19:04:29,991 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 19:04:29,992 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-17 19:04:29,992 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 19:04:29,992 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 19:04:29,992 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-17 19:04:29,992 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-17 19:04:29,992 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 19:04:30,031 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-17 19:04:30,061 [    INFO] agent.utils.cache: [LRUCache] 加载缓存模块
+2026-06-17 19:04:30,079 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-17 19:04:30,080 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-17 19:04:30,082 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-17 19:04:30,082 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:30,082 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-17 19:04:30,659 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_init0\cache, max=10MB)
+2026-06-17 19:04:30,667 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_l1_hit0\cache, max=100MB)
+2026-06-17 19:04:30,675 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_l2_hit0\cache, max=100MB)
+2026-06-17 19:04:30,687 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_miss0\cache, max=100MB)
+2026-06-17 19:04:30,695 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_delete0\cache, max=100MB)
+2026-06-17 19:04:30,703 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_clear0\cache, max=100MB)
+2026-06-17 19:04:30,707 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 19:04:30,714 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_stats0\cache, max=100MB)
+2026-06-17 19:04:30,721 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-17 19:04:30,728 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_warmup0\cache, max=100MB)
+2026-06-17 19:04:30,728 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 开始缓存预热...
+2026-06-17 19:04:30,730 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热完成: 2 条数据
+2026-06-17 19:04:30,730 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热耗时: 0.00s
+2026-06-17 19:04:30,741 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_cache_manager_get_cache0\cache, max=100MB)
+2026-06-17 19:04:30,741 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: test_cache
+2026-06-17 19:04:30,748 [    INFO] agent.caching.multi_level_cache: [CacheManager] 删除缓存: test_cache
+2026-06-17 19:04:30,756 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_cache_manager_clear_all0\cache1, max=100MB)
+2026-06-17 19:04:30,756 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache1
+2026-06-17 19:04:30,757 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_cache_manager_clear_all0\cache2, max=100MB)
+2026-06-17 19:04:30,757 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache2
+2026-06-17 19:04:30,757 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 19:04:30,757 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 19:04:30,757 [    INFO] agent.caching.multi_level_cache: [CacheManager] 所有缓存已清空
+2026-06-17 19:04:30,784 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-243\test_multi_level_cache_thread_0\cache, max=100MB)
+2026-06-17 19:04:31,854 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 19:04:31,862 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:31,863 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:31,867 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=3600
+2026-06-17 19:04:31,867 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:31,872 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 19:04:31,873 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:31,878 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=3, ttl_seconds=3600
+2026-06-17 19:04:31,878 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:31,883 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=0.1
+2026-06-17 19:04:31,883 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,088 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 19:04:32,089 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,089 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 19:04:32,089 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 19:04:32,095 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 19:04:32,096 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,096 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 1, 'misses': 1, 'hit_rate': 50.0, 'expired_count': 0, 'total': 2}
+2026-06-17 19:04:32,104 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=3600
+2026-06-17 19:04:32,105 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,105 [    INFO] agent.utils.cache: [LRUCache] 重置统计信息
+2026-06-17 19:04:32,105 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 0, 'misses': 0, 'hit_rate': 0, 'expired_count': 0, 'total': 0}
+2026-06-17 19:04:32,124 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=300
+2026-06-17 19:04:32,125 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,132 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=3600
+2026-06-17 19:04:32,133 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,144 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=10, ttl_seconds=0.1
+2026-06-17 19:04:32,144 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,349 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,349 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,349 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,349 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 19:04:32,349 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,350 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 19:04:32,355 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,355 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,355 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,355 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 19:04:32,356 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,356 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 19:04:32,356 [    INFO] agent.utils.cache: [QueryCache] 清空所有缓存
+2026-06-17 19:04:32,357 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 19:04:32,357 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 19:04:32,357 [    INFO] agent.utils.cache: [LRUCache] 清空缓存
+2026-06-17 19:04:32,357 [    INFO] agent.utils.cache: [LRUCache] 缓存已清空
+2026-06-17 19:04:32,362 [    INFO] agent.utils.cache: [QueryCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,362 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=100, ttl_seconds=300
+2026-06-17 19:04:32,362 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,363 [    INFO] agent.utils.cache: [LRUCache] 初始化: max_size=20, ttl_seconds=60
+2026-06-17 19:04:32,363 [    INFO] agent.utils.cache: [LRUCache] 初始化完成
+2026-06-17 19:04:32,363 [    INFO] agent.utils.cache: [QueryCache] 初始化完成
+2026-06-17 19:04:32,363 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 1, 'max_size': 100, 'hits': 1, 'misses': 0, 'hit_rate': 100.0, 'expired_count': 0, 'total': 1}
+2026-06-17 19:04:32,363 [    INFO] agent.utils.cache: [LRUCache] 缓存统计: {'size': 0, 'max_size': 20, 'hits': 0, 'misses': 0, 'hit_rate': 0, 'expired_count': 0, 'total': 0}
+2026-06-17 19:04:32,419 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,423 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,428 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,433 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-17 19:04:32,437 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-17 19:04:32,444 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,454 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,472 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用, 降级为 json
+2026-06-17 19:04:32,472 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 19:04:32,478 [ WARNING] agent.utils.serialization: [Serialization] cbor 不可用, 降级为 json
+2026-06-17 19:04:32,478 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False

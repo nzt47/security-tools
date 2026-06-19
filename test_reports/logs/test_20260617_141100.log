@@ -1,0 +1,235 @@
+2026-06-17 14:11:00,941 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 14:11:00,949 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 14:11:00,954 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 14:11:00,954 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 14:11:00,974 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 14:11:00,979 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 14:11:00,982 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 14:11:00,982 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 14:11:00,984 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 14:11:00,986 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 14:11:01,000 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 14:11:01,000 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 14:11:01,002 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 14:11:01,124 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 14:11:01,128 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 14:11:01,128 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 14:11:01,136 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 14:11:01,196 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-17 14:11:01,283 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-17 14:11:01,357 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-17 14:11:01,577 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-17 14:11:01,811 [    INFO] agent.performance_logging: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-17 14:11:01,942 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-17 14:11:01,945 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-17 14:11:01,946 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-17 14:11:01,947 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-17 14:11:01,947 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-17 14:11:02,174 [    INFO] agent.utils.cache: [LRUCache] 加载缓存模块
+2026-06-17 14:11:02,257 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-17 14:11:02,324 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,328 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-17 14:11:02,331 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,334 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,337 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,340 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,345 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,349 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,353 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,356 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,359 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,362 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,365 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,368 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,370 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-17 14:11:02,872 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_init0\cache, max=10MB)
+2026-06-17 14:11:02,879 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_l1_hit0\cache, max=100MB)
+2026-06-17 14:11:02,884 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_l2_hit0\cache, max=100MB)
+2026-06-17 14:11:02,891 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_miss0\cache, max=100MB)
+2026-06-17 14:11:02,897 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_delete0\cache, max=100MB)
+2026-06-17 14:11:02,902 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_clear0\cache, max=100MB)
+2026-06-17 14:11:02,905 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 14:11:02,912 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_stats0\cache, max=100MB)
+2026-06-17 14:11:02,918 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-17 14:11:02,925 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_warmup0\cache, max=100MB)
+2026-06-17 14:11:02,926 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 开始缓存预热...
+2026-06-17 14:11:02,927 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热完成: 2 条数据
+2026-06-17 14:11:02,927 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热耗时: 0.00s
+2026-06-17 14:11:02,935 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_cache_manager_get_cache0\cache, max=100MB)
+2026-06-17 14:11:02,936 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: test_cache
+2026-06-17 14:11:02,940 [    INFO] agent.caching.multi_level_cache: [CacheManager] 删除缓存: test_cache
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_cache_manager_clear_all0\cache1, max=100MB)
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache1
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_cache_manager_clear_all0\cache2, max=100MB)
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache2
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 14:11:02,946 [    INFO] agent.caching.multi_level_cache: [CacheManager] 所有缓存已清空
+2026-06-17 14:11:02,964 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_multi_level_cache_thread_0\cache, max=100MB)
+2026-06-17 14:11:04,036 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-17 14:11:04,037 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,037 [    INFO] test_code_review: 开始测试: test_code_review_no_input
+2026-06-17 14:11:04,037 [    INFO] test_code_review: 调用 code_review() 无参数...
+2026-06-17 14:11:04,037 [    INFO] test_code_review: 返回结果: ok=True, available_dimensions=['安全', '性能', '可维护性', 'API兼容性', '测试']
+2026-06-17 14:11:04,037 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,037 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,042 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,043 [    INFO] test_code_review: 开始测试: test_code_review_empty_content
+2026-06-17 14:11:04,043 [    INFO] test_code_review: 调用 code_review() 空内容...
+2026-06-17 14:11:04,043 [    INFO] test_code_review: 返回结果: ok=False, error=审查内容为空，请提供待审查的 path 或 diff
+2026-06-17 14:11:04,043 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,043 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,046 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,046 [    INFO] test_code_review: 开始测试: test_code_review_security_dimension
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 测试代码:
+password = "secret123"
+api_key = "sk-abcdefghijklmnopqrstuvwxyz"
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 调用安全维度审查...
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 返回结果: ok=True
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 维度数量: 1
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 维度: 安全, 严重程度: CRITICAL
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 发现数量: 3
+2026-06-17 14:11:04,047 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,047 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,050 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,050 [    INFO] test_code_review: 开始测试: test_code_review_sql_injection_pattern
+2026-06-17 14:11:04,051 [    INFO] test_code_review: 测试代码: query = f"SELECT * FROM users WHERE id={user_id}"
+2026-06-17 14:11:04,051 [    INFO] test_code_review: 调用安全维度审查检测 SQL 注入...
+2026-06-17 14:11:04,051 [    INFO] test_code_review: 发现数量: 1
+2026-06-17 14:11:04,051 [    INFO] test_code_review:   发现 1: SQL注入风险: f-string 拼接 SQL 参数
+2026-06-17 14:11:04,051 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,051 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,054 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,054 [    INFO] test_code_review: 开始测试: test_code_review_xss_pattern
+2026-06-17 14:11:04,054 [    INFO] test_code_review: 测试代码: element.innerHTML = "<div>" + user_input + "</div>"
+2026-06-17 14:11:04,054 [    INFO] test_code_review: 调用安全维度审查检测 XSS...
+2026-06-17 14:11:04,054 [    INFO] test_code_review: 发现数量: 1
+2026-06-17 14:11:04,054 [    INFO] test_code_review:   发现 1: XSS风险: innerHTML 字符串拼接
+2026-06-17 14:11:04,055 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,055 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,058 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,058 [    INFO] test_code_review: 开始测试: test_code_review_command_injection
+2026-06-17 14:11:04,058 [    INFO] test_code_review: 测试代码: subprocess.run("ls " + path, shell=True)
+2026-06-17 14:11:04,058 [    INFO] test_code_review: 调用安全维度审查检测命令注入...
+2026-06-17 14:11:04,058 [    INFO] test_code_review: 发现数量: 1
+2026-06-17 14:11:04,058 [    INFO] test_code_review:   发现 1: 命令注入风险: shell=True 命令注入风险
+2026-06-17 14:11:04,058 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,058 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,061 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,061 [    INFO] test_code_review: 开始测试: test_code_review_performance_dimension
+2026-06-17 14:11:04,062 [    INFO] test_code_review: 测试代码:
+
+async def slow_function():
+    time.sleep(5)
+    requests.get("http://example.com")
+
+2026-06-17 14:11:04,062 [    INFO] test_code_review: 调用性能维度审查...
+2026-06-17 14:11:04,063 [    INFO] test_code_review: 维度: 性能
+2026-06-17 14:11:04,063 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,063 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,066 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,066 [    INFO] test_code_review: 开始测试: test_code_review_maintainability_dimension
+2026-06-17 14:11:04,066 [    INFO] test_code_review: 测试代码:
+
+# This is commented code
+# def old_function():
+#     return 42
+
+MAGIC_NUMBER = 42
+
+2026-06-17 14:11:04,066 [    INFO] test_code_review: 调用可维护性维度审查...
+2026-06-17 14:11:04,066 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,067 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,069 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,069 [    INFO] test_code_review: 开始测试: test_code_review_api_compatibility
+2026-06-17 14:11:04,069 [    INFO] test_code_review: 测试 diff:
+
+-def old_function():
++def new_function():
+    pass
+
+2026-06-17 14:11:04,069 [    INFO] test_code_review: 调用 API 兼容性维度审查...
+2026-06-17 14:11:04,070 [    INFO] test_code_review: 发现数量: 2
+2026-06-17 14:11:04,070 [    INFO] test_code_review:   发现 1: API兼容性: 函数 `old_function` 被移除（破坏性变更）
+2026-06-17 14:11:04,070 [    INFO] test_code_review:   发现 2: API兼容性: 函数签名变更（破坏性变更）
+2026-06-17 14:11:04,070 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,070 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,074 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,074 [    INFO] test_code_review: 开始测试: test_code_review_testing_dimension
+2026-06-17 14:11:04,074 [    INFO] test_code_review: 测试代码:
+
+def test_something():
+    assert 1 == 1
+    assert 2 == 2
+
+2026-06-17 14:11:04,074 [    INFO] test_code_review: 调用测试维度审查...
+2026-06-17 14:11:04,076 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,077 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,080 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,080 [    INFO] test_code_review: 开始测试: test_code_review_multiple_dimensions
+2026-06-17 14:11:04,080 [    INFO] test_code_review: 测试代码: password = "secret"
+2026-06-17 14:11:04,080 [    INFO] test_code_review: 调用多维度审查: 安全、性能、可维护性...
+2026-06-17 14:11:04,082 [    INFO] test_code_review: 维度数量: 3
+2026-06-17 14:11:04,082 [    INFO] test_code_review:   维度: 安全, 发现数: 1
+2026-06-17 14:11:04,082 [    INFO] test_code_review:   维度: 性能, 发现数: 0
+2026-06-17 14:11:04,082 [    INFO] test_code_review:   维度: 可维护性, 发现数: 0
+2026-06-17 14:11:04,082 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,082 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,085 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,085 [    INFO] test_code_review: 开始测试: test_code_review_unknown_dimension
+2026-06-17 14:11:04,085 [    INFO] test_code_review: 调用未知维度审查...
+2026-06-17 14:11:04,085 [    INFO] test_code_review: 维度: 未知维度, 严重程度: UNKNOWN
+2026-06-17 14:11:04,085 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,085 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,088 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,088 [    INFO] test_code_review: 开始测试: test_read_file_content_not_exists
+2026-06-17 14:11:04,088 [    INFO] test_code_review: 读取不存在的文件: /nonexistent/path/to/file.py
+2026-06-17 14:11:04,088 [    INFO] test_code_review: 返回内容: ''
+2026-06-17 14:11:04,088 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,089 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,093 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,094 [    INFO] test_code_review: 开始测试: test_read_file_content_exists
+2026-06-17 14:11:04,094 [    INFO] test_code_review: 创建测试文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-228\test_read_file_content_exists0\test.py
+2026-06-17 14:11:04,094 [    INFO] test_code_review: 读取内容: 'print('hello')'
+2026-06-17 14:11:04,095 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,095 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,098 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,098 [    INFO] test_code_review: 开始测试: test_iter_lines
+2026-06-17 14:11:04,098 [    INFO] test_code_review: 测试内容: 'line1
+line2
+line3'
+2026-06-17 14:11:04,098 [    INFO] test_code_review: 行列表: [(1, 'line1'), (2, 'line2'), (3, 'line3')]
+2026-06-17 14:11:04,098 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,098 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,102 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,102 [    INFO] test_code_review: 开始测试: test_make_finding
+2026-06-17 14:11:04,102 [    INFO] test_code_review: 创建发现: line=42, description='描述', suggestion='建议'
+2026-06-17 14:11:04,102 [    INFO] test_code_review: 发现: {'line': 42, 'description': '描述', 'suggestion': '建议'}
+2026-06-17 14:11:04,102 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,102 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,105 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,105 [    INFO] test_code_review: 开始测试: test_parse_python_ast_valid
+2026-06-17 14:11:04,105 [    INFO] test_code_review: 解析有效代码: 'x = 1'
+2026-06-17 14:11:04,105 [    INFO] test_code_review: AST: <ast.Module object at 0x0000023DFDBAC510>
+2026-06-17 14:11:04,105 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,106 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,108 [    INFO] test_code_review: ============================================================
+2026-06-17 14:11:04,109 [    INFO] test_code_review: 开始测试: test_parse_python_ast_invalid
+2026-06-17 14:11:04,109 [    INFO] test_code_review: 解析无效代码: 'def foo('
+2026-06-17 14:11:04,109 [    INFO] test_code_review: AST: None
+2026-06-17 14:11:04,109 [    INFO] test_code_review: 测试通过!
+2026-06-17 14:11:04,109 [    INFO] test_code_review: ============================================================

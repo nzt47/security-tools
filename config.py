@@ -135,6 +135,17 @@ class PlanningConfig(BaseModel):
     complexity_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="复杂度阈值")
 
 
+class LogSystemConfig(BaseModel):
+    """日志系统配置模型"""
+    enabled: bool = Field(default=True, description="启用日志系统")
+    db_path: str = Field(default="./data/logs/yunshu_logs.db", description="SQLite 数据库路径")
+    raw_log_dir: str = Field(default="./data/logs/raw", description="JSONL 原始日志目录")
+    retention_days: int = Field(default=90, ge=7, le=365, description="日志保留天数")
+    auto_introspection: bool = Field(default=True, description="启用自动内省分析")
+    introspection_interval: int = Field(default=1800, ge=300, le=86400, description="内省分析间隔（秒）")
+    idle_timeout: int = Field(default=300, ge=60, le=3600, description="空闲检测超时（秒）")
+
+
 class ConfigModel(BaseModel):
     """完整配置模型"""
     sensor: SensorConfig = Field(default_factory=SensorConfig)
@@ -146,6 +157,7 @@ class ConfigModel(BaseModel):
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     planning: PlanningConfig = Field(default_factory=PlanningConfig)
+    log_system: LogSystemConfig = Field(default_factory=LogSystemConfig)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

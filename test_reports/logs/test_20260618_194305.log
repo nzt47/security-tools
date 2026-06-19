@@ -1,0 +1,81 @@
+2026-06-18 19:43:06,379 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 19:43:06,382 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 19:43:06,383 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 19:43:06,393 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 19:43:06,406 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 19:43:06,409 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 19:43:06,438 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 19:43:06,443 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 19:43:06,446 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 19:43:06,466 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 19:43:06,466 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 19:43:06,466 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 19:43:06,467 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 19:43:06,468 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 19:43:06,586 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 19:43:06,590 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 19:43:06,590 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 19:43:06,597 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 19:43:06,597 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 19:43:06,698 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:43:06,709 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 11.11ms (成功)
+2026-06-18 19:43:06,712 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:43:06,712 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (失败: test error)
+2026-06-18 19:43:06,729 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:43:06,740 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 10.54ms (成功)
+2026-06-18 19:43:06,740 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:43:06,761 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 21.46ms (成功)
+2026-06-18 19:43:06,764 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fast_module
+2026-06-18 19:43:06,775 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fast_module 初始化完成: 10.82ms (成功)
+2026-06-18 19:43:06,775 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: slow_module
+2026-06-18 19:43:06,836 [    INFO] agent.monitoring.performance: [性能追踪] 模块 slow_module 初始化完成: 61.26ms (成功)
+2026-06-18 19:43:06,849 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:43:06,861 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 11.72ms (成功)
+2026-06-18 19:43:06,861 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module2
+2026-06-18 19:43:06,873 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module2 初始化完成: 11.55ms (成功)
+2026-06-18 19:43:06,876 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module1
+2026-06-18 19:43:06,876 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module1 初始化完成: 0.00ms (成功)
+2026-06-18 19:43:06,880 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_0
+2026-06-18 19:43:06,880 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_1
+2026-06-18 19:43:06,880 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_2
+2026-06-18 19:43:06,880 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_3
+2026-06-18 19:43:06,880 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: module_4
+2026-06-18 19:43:06,890 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_1 初始化完成: 10.48ms (成功)
+2026-06-18 19:43:06,890 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_0 初始化完成: 10.89ms (成功)
+2026-06-18 19:43:06,891 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_2 初始化完成: 11.00ms (成功)
+2026-06-18 19:43:06,891 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_4 初始化完成: 11.00ms (成功)
+2026-06-18 19:43:06,891 [    INFO] agent.monitoring.performance: [性能追踪] 模块 module_3 初始化完成: 11.00ms (成功)
+2026-06-18 19:43:06,963 [    INFO] agent.monitoring.performance: [性能] 模块 test_module 加载完成，耗时: 123.450s
+2026-06-18 19:43:06,970 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: memory
+2026-06-18 19:43:06,980 [    INFO] agent.monitoring.performance: [性能追踪] 模块 memory 初始化完成: 10.65ms (成功)
+2026-06-18 19:43:06,980 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: llm
+2026-06-18 19:43:06,991 [    INFO] agent.monitoring.performance: [性能追踪] 模块 llm 初始化完成: 10.58ms (成功)
+2026-06-18 19:43:06,991 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: tools
+2026-06-18 19:43:07,001 [    INFO] agent.monitoring.performance: [性能追踪] 模块 tools 初始化完成: 10.46ms (成功)
+2026-06-18 19:43:07,001 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: ui
+2026-06-18 19:43:07,012 [    INFO] agent.monitoring.performance: [性能追踪] 模块 ui 初始化完成: 11.00ms (成功)
+2026-06-18 19:43:07,016 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: success_module
+2026-06-18 19:43:07,016 [    INFO] agent.monitoring.performance: [性能追踪] 模块 success_module 初始化完成: 0.00ms (成功)
+2026-06-18 19:43:07,016 [    INFO] agent.monitoring.performance: [性能追踪] 开始初始化模块: fail_module
+2026-06-18 19:43:07,016 [    INFO] agent.monitoring.performance: [性能追踪] 模块 fail_module 初始化完成: 0.00ms (失败: failed)
+2026-06-18 19:43:07,095 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:43:07,095 [    INFO] agent.monitoring.search: [性能监控] 检测间隔已设置为 60 秒
+2026-06-18 19:43:07,099 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:43:07,102 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:43:07,109 [    INFO] agent.monitoring.search: [性能监控] 已加载 0 条历史记录
+2026-06-18 19:43:07,112 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录
+2026-06-18 19:43:07,120 [    INFO] agent.monitoring.search: [性能监控] 已加载 5 条历史记录
+2026-06-18 19:43:07,131 [    INFO] agent.monitoring.search: [性能监控] 已加载 24 条历史记录

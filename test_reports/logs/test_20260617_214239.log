@@ -1,0 +1,107 @@
+2026-06-17 21:42:39,864 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-17 21:42:39,877 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-17 21:42:39,881 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-17 21:42:39,884 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-17 21:42:39,905 [    INFO] agent.error_handler: Error handler initialized
+2026-06-17 21:42:39,909 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-17 21:42:39,913 [ WARNING] agent.memory.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-17 21:42:39,914 [ WARNING] agent.memory.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-17 21:42:39,915 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'agent.memory' 全部 2 个名称导入成功
+2026-06-17 21:42:39,918 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-17 21:42:39,931 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-17 21:42:39,932 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-17 21:42:39,933 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-17 21:42:40,075 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-17 21:42:40,080 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-17 21:42:40,080 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-17 21:42:40,088 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-17 21:42:40,089 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-17 21:42:40,089 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-17 21:42:40,089 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-17 21:42:40,815 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-17 21:42:40,817 [   ERROR] agent.error_handler: [error] unknown: test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 229, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-17 21:42:40,822 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 1/3): test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-17 21:42:40,823 [   ERROR] agent.error_handler: [error] unknown: test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-17 21:42:40,828 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 1/2): retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-17 21:42:40,830 [   ERROR] agent.error_handler: [error] unknown: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-17 21:42:40,830 [ WARNING] agent.monitoring.decorators: [trace123] 函数 test_func 将在 0.1 秒后重试 (尝试 1/2)
+2026-06-17 21:42:40,831 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 2/2): retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-17 21:42:40,832 [   ERROR] agent.error_handler: [error] unknown: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 292, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-17 21:42:40,832 [ WARNING] agent.monitoring.decorators: [trace123] 函数 test_func 将在 0.1 秒后重试 (尝试 2/2)
+2026-06-17 21:42:40,841 [   ERROR] agent.monitoring.decorators: [trace123] 捕获异常 ValueError: test error
+2026-06-17 21:42:40,874 [   ERROR] agent.monitoring.decorators: [trace123] 异步函数 test_func 执行失败: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 494, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-17 21:42:40,888 [   ERROR] agent.monitoring.decorators: [trace123] 异步函数 test_func 执行失败: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 494, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error

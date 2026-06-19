@@ -1,0 +1,36 @@
+2026-06-18 13:53:10,691 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 13:53:10,694 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 13:53:10,696 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 13:53:10,774 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 13:53:10,774 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 13:53:10,781 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 13:53:10,793 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 13:53:10,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 13:53:10,796 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 13:53:10,796 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 13:53:10,812 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 13:53:10,812 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 13:53:10,815 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 13:53:10,930 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 13:53:10,934 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 13:53:10,934 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 13:53:10,940 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 13:53:10,941 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 13:53:10,941 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 13:53:10,996 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-18 13:53:10,997 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-18 13:53:10,998 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-18 13:53:10,998 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-18 13:53:10,998 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False

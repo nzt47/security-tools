@@ -54,7 +54,7 @@ class WeeklyReportGenerator:
             logger.info("[WeeklyReportGenerator] 延迟加载 analytics")
             try:
                 from agent.data_analytics import DataAnalytics
-                from agent.memory.vector_store import VectorStore
+                from memory.vector_store import VectorStore
                 
                 vs = VectorStore(collection_name="agent_memory")
                 self._analytics = DataAnalytics(vector_store=vs)

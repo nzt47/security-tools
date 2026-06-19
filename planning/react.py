@@ -92,32 +92,50 @@ class ReActLoop:
         steps: List[ReActStep] = []
         start_time = datetime.now()
 
-        logger.info("="*60)
+        logger.info("══════════════════════════════════════════════════════════════════")
+        logger.info("🔄 [ReAct循环] =================================================")
         logger.info("🔄 [ReAct循环] 开始执行")
-        logger.info(f"   任务: {task[:100]}{'...' if len(task) > 100 else ''}")
-        logger.info(f"   最大迭代次数: {self.max_iterations}")
-        logger.info(f"   上下文键: {list(context.keys())}")
-        logger.info("="*60)
+        logger.info(f"🔄 [ReAct循环] 任务: {task[:100]}{'...' if len(task) > 100 else ''}")
+        logger.info(f"🔄 [ReAct循环] 最大迭代次数: {self.max_iterations}")
+        logger.info(f"🔄 [ReAct循环] 初始上下文键: {list(context.keys())}")
+        logger.info(f"🔄 [ReAct循环] 开始时间: {start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+        logger.info("══════════════════════════════════════════════════════════════════")
 
         for iteration in range(self.max_iterations):
-            logger.info("-"*60)
-            logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] 开始")
+            iter_start = datetime.now()
+            logger.info("──────────────────────────────────────────────────────────────────")
+            logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
+            logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
+            logger.info(f"🔁 [迭代 {iteration + 1}] 当前步骤数: {len(steps)}")
 
             try:
-                logger.info("   💭 步骤1: 思考阶段...")
+                logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                logger.info("   │ 💭 步骤1: 思考阶段                                      │")
+                logger.info("   └──────────────────────────────────────────────────────────┘")
                 thought = await self._think(task, context, steps)
-                logger.info(f"   ✅ 思考完成:")
-                logger.info(f"      推理: {thought.reasoning[:80]}...")
-                logger.info(f"      行动类型: {thought.action_type}")
+                logger.info(f"   ✅ 思考完成")
+                logger.info(f"      ├─ 推理: {thought.reasoning[:120]}{'...' if len(thought.reasoning) > 120 else ''}")
+                logger.info(f"      ├─ 行动类型: {thought.action_type}")
                 if thought.action:
-                    logger.info(f"      行动: {thought.action.description[:60]}")
-                logger.info(f"      置信度: {thought.confidence}")
+                    logger.info(f"      ├─ 行动: {thought.action.description[:80]}{'...' if len(thought.action.description) > 80 else ''}")
+                    if hasattr(thought.action, 'tool_name') and thought.action.tool_name:
+                        logger.info(f"      ├─ 工具名: {thought.action.tool_name}")
+                        if hasattr(thought.action, 'tool_params') and thought.action.tool_params:
+                            logger.info(f"      └─ 工具参数: {thought.action.tool_params}")
+                else:
+                    logger.info(f"      └─ 行动: (无)")
+                logger.info(f"      └─ 置信度: {thought.confidence:.2f}")
 
                 if thought.action_type == "finish":
                     duration = (datetime.now() - start_time).total_seconds() * 1000
-                    logger.info(f"   🎉 检测到完成信号，结束循环")
-                    logger.info(f"   执行时长: {duration:.2f}ms")
-                    logger.info("="*60)
+                    logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                    logger.info("   │ 🎉 检测到完成信号，结束循环                             │")
+                    logger.info("   └──────────────────────────────────────────────────────────┘")
+                    logger.info(f"   ✅ 任务已完成")
+                    logger.info(f"      ├─ 执行步数: {iteration + 1}")
+                    logger.info(f"      ├─ 总时长: {duration:.2f}ms")
+                    logger.info(f"      └─ 结果: {thought.result[:80]}{'...' if len(thought.result or '') > 80 else ''}")
+                    logger.info("══════════════════════════════════════════════════════════════════")
                     return ReActResult(
                         success=True,
                         result=thought.result or "任务完成",
@@ -126,17 +144,20 @@ class ReActLoop:
                         total_duration_ms=int(duration)
                     )
 
-                logger.info("   ⚡ 步骤2: 行动阶段...")
+                logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                logger.info("   │ ⚡ 步骤2: 行动阶段                                      │")
+                logger.info("   └──────────────────────────────────────────────────────────┘")
                 action_result = await self._act(thought, context)
-                logger.info(f"   ✅ 行动完成:")
-                logger.info(f"      成功: {action_result.success}")
+                logger.info(f"   ✅ 行动完成")
+                logger.info(f"      ├─ 成功: {'✅ 是' if action_result.success else '❌ 否'}")
                 if action_result.success:
-                    logger.info(f"      输出: {str(action_result.output)[:80]}")
+                    output_str = str(action_result.output)
+                    logger.info(f"      ├─ 输出: {output_str[:100]}{'...' if len(output_str) > 100 else ''}")
                 else:
-                    logger.info(f"      错误: {action_result.error}")
+                    logger.info(f"      ├─ 错误: {action_result.error[:100]}{'...' if len(action_result.error or '') > 100 else ''}")
 
                 observation = self._format_observation(action_result, thought)
-                logger.info(f"      观察: {observation[:100]}")
+                logger.info(f"      └─ 观察: {observation[:120]}{'...' if len(observation) > 120 else ''}")
 
                 step = ReActStep(
                     iteration=iteration,
@@ -146,20 +167,30 @@ class ReActLoop:
                     success=action_result.success
                 )
                 steps.append(step)
+                logger.info(f"   📝 步骤已记录: 迭代={iteration}, 成功={action_result.success}")
 
                 if self.reflector and action_result.success:
+                    logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                    logger.info("   │ 🧠 步骤3: 反思阶段                                      │")
+                    logger.info("   └──────────────────────────────────────────────────────────┘")
                     try:
-                        logger.info("   🧠 步骤3: 反思阶段...")
                         reflection = await self.reflector.step_reflect(task, action_result, context)
                         if reflection.adjustments:
-                            logger.info(f"   💡 反思建议: {reflection.adjustments}")
+                            logger.info(f"   💡 反思建议: {reflection.adjustments[:100]}{'...' if len(reflection.adjustments) > 100 else ''}")
                         else:
                             logger.info(f"   ✅ 反思通过，无调整建议")
                     except Exception as e:
                         logger.warning(f"   ⚠️ 反思执行失败: {e}")
+                else:
+                    logger.info(f"   ⏭️ 跳过反思阶段 (reflector={self.reflector is not None}, success={action_result.success})")
 
+                logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                logger.info("   │ 🔍 步骤4: 循环检测                                      │")
+                logger.info("   └──────────────────────────────────────────────────────────┘")
                 if self._detect_loop(steps):
-                    logger.warning("   ⚠️ 检测到执行循环")
+                    logger.warning("   ⚠️ ⚠️ ⚠️ 检测到执行循环！")
+                    logger.warning(f"      最近3个动作: {[s.action for s in steps[-3:]]}")
+                    logger.warning("      强制终止循环以避免无限循环")
                     break
 
                 if action_result.success:
@@ -167,10 +198,15 @@ class ReActLoop:
                     context[key] = action_result.output
                     logger.info(f"   💾 结果已缓存到上下文: {key}")
 
+                iter_duration = (datetime.now() - iter_start).total_seconds() * 1000
                 logger.info(f"   ✅ 迭代 {iteration + 1} 完成")
+                logger.info(f"      └─ 迭代时长: {iter_duration:.2f}ms")
 
             except Exception as e:
-                logger.error(f"   ❌ 迭代 {iteration + 1} 异常: {e}")
+                logger.error("   ┌──────────────────────────────────────────────────────────┐")
+                logger.error("   │ ❌ 迭代异常                                              │")
+                logger.error("   └──────────────────────────────────────────────────────────┘")
+                logger.error(f"   ❌ 迭代 {iteration + 1} 异常: {type(e).__name__}: {e}")
                 import traceback
                 logger.error(f"   堆栈跟踪:\n{traceback.format_exc()}")
                 steps.append(ReActStep(
@@ -183,10 +219,12 @@ class ReActLoop:
                 break
 
         duration = (datetime.now() - start_time).total_seconds() * 1000
-        logger.warning(f"⚠️ 达到最大迭代次数 {self.max_iterations}，任务未完成")
-        logger.info(f"   实际执行: {len(steps)} 步")
-        logger.info(f"   总时长: {duration:.2f}ms")
-        logger.info("="*60)
+        logger.warning("══════════════════════════════════════════════════════════════════")
+        logger.warning("⚠️ [ReAct循环] 达到最大迭代次数，任务未完成")
+        logger.info(f"⚠️ [ReAct循环] 实际执行步数: {len(steps)}")
+        logger.info(f"⚠️ [ReAct循环] 总时长: {duration:.2f}ms")
+        logger.info(f"⚠️ [ReAct循环] 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+        logger.warning("══════════════════════════════════════════════════════════════════")
         return ReActResult(
             success=False,
             result="达到最大迭代次数,任务未完成",

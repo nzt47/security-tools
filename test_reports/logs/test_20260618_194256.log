@@ -1,0 +1,47 @@
+2026-06-18 19:42:56,664 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-18 19:42:56,667 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-18 19:42:56,668 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-18 19:42:56,678 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-18 19:42:56,693 [    INFO] agent.error_handler: Error handler initialized
+2026-06-18 19:42:56,696 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-18 19:42:56,725 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-18 19:42:56,732 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-18 19:42:56,739 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-18 19:42:56,760 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-18 19:42:56,761 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 导入失败 (ImportError): No module named 'agent.memory'
+2026-06-18 19:42:56,761 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-18 19:42:56,761 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-18 19:42:56,763 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-18 19:42:56,915 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-18 19:42:56,920 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-18 19:42:56,920 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-18 19:42:56,928 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-18 19:42:56,928 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-18 19:42:57,003 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,009 [ WARNING] agent.monitoring.performance: [PerformanceAlert] 内存使用率过高: 90.0% (阈值: 85.0%)
+2026-06-18 19:42:57,017 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 90.0% (阈值: 80.0%)
+2026-06-18 19:42:57,017 [ WARNING] agent.monitoring.performance: [PerformanceAlert] 内存使用率过高: 95.0% (阈值: 85.0%)
+2026-06-18 19:42:57,021 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,025 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,178 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,181 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,184 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,187 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,188 [CRITICAL] agent.monitoring.performance: [PerformanceAlert] CPU 持续高负载: 连续 5 次采样超过阈值，平均值: 86.2%
+2026-06-18 19:42:57,191 [ WARNING] agent.monitoring.performance: [PerformanceAlert] 内存使用率过高: 90.0% (阈值: 85.0%)
+2026-06-18 19:42:57,191 [CRITICAL] agent.monitoring.performance: [PerformanceAlert] 内存持续高负载: 连续 4 次采样超过阈值，平均值: 91.2%
+2026-06-18 19:42:57,194 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
+2026-06-18 19:42:57,197 [ WARNING] agent.monitoring.performance: [PerformanceAlert] CPU 使用率过高: 85.0% (阈值: 80.0%)
