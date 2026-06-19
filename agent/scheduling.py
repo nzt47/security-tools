@@ -102,13 +102,6 @@ class Scheduler:
         """后台循环 — 周期性检查并执行到期任务"""
         logger.info("[调度系统] 调度循环开始")
 
-        # 使用 schedule 库的调度器
-        if self._schedule is not None:
-            try:
-                import schedule as _schedule_mod
-            except ImportError:
-                pass
-
         while self._running and not self._stop_event.is_set():
             try:
                 # schedule 库模式：运行 pending jobs
@@ -273,11 +266,12 @@ class Scheduler:
         """解析 cron 表达式并添加任务
 
         支持 5 字段格式: 分 时 日 月 周
+        简化实现：仅处理最常见的 cron 模式，复杂模式降级为每 60 分钟轮询。
         示例:
           "*/5 * * * *" → 每 5 分钟
           "0 9 * * 1"   → 每周一 9:00
           "0 0 * * *"   → 每天 0:00
-          "*/30 * * * *" → 每 30 分钟
+          "30 * * * *"  → 每小时 30 分
         """
         parts = cron_expr.strip().split()
         if len(parts) != 5:
@@ -285,64 +279,41 @@ class Scheduler:
 
         minute, hour, day, month, weekday = parts
 
-        # 使用 schedule.every() 链式构建
-        job = self._schedule.every()
+        # 模式 1: */N * * * * → 每 N 分钟
+        if minute.startswith("*/"):
+            if hour == "*" and day == "*" and month == "*" and weekday == "*":
+                interval = int(minute[2:])
+                return self._schedule.every(interval).minutes
 
-        # 分钟
-        if minute == "*":
-            pass  # 每分钟
-        elif minute.startswith("*/"):
-            interval = int(minute[2:])
-            job = job.minute
-            # schedule 的 every(X).minutes 会从整点开始计算
-            # 对于 */N 模式，用 every(N).minutes
-            # 简化处理：使用 every().minute + 自定义判断
-            job = self._schedule.every(interval).minutes
-            return job
-        else:
-            job = job.minute
-            # 具体分钟值使用 at() 方式
-            job = self._schedule.every()
-
-        # 构建 at 时间字符串
+        # 构建 at_time（仅当分钟和小时都是固定数字时）
         at_time = None
-        if hour != "*" and minute != "*" and not minute.startswith("*/"):
+        if minute.isdigit() and hour.isdigit():
             at_time = f"{hour.zfill(2)}:{minute.zfill(2)}"
 
-        # 日期和星期约束
-        if day != "*":
-            if at_time:
-                job = job.day.at(at_time)
-            else:
-                job = job.day
-        elif weekday != "*":
-            weekday_names = ["monday", "tuesday", "wednesday", "thursday",
-                            "friday", "saturday", "sunday"]
-            try:
-                wd = weekday_names[int(weekday)]
-            except (ValueError, IndexError):
-                wd = weekday
-            if at_time:
-                job = getattr(job, wd).at(at_time)
-            else:
-                job = getattr(job, wd)
-        elif month != "*":
-            # schedule 没有直接的 month 支持，降级为 daily
-            if at_time:
-                job = job.day.at(at_time)
-            else:
-                job = job.day
-        else:
-            # 只有时分约束
-            if at_time:
-                job = job.day.at(at_time)
-            elif minute != "*" and not minute.startswith("*/"):
-                # 仅分钟指定，每小时指定分钟执行
-                job = job.hour.at(f":{minute.zfill(2)}")
-            else:
-                job = job.minute
+        # 模式 2: M H * * * → 每天固定时间
+        if at_time and day == "*" and month == "*" and weekday == "*":
+            return self._schedule.every().day.at(at_time)
 
-        return job
+        # 模式 3: M * * * * → 每小时固定分钟
+        if minute.isdigit() and hour == "*" and day == "*" and month == "*" and weekday == "*":
+            return self._schedule.every().hour.at(f":{minute.zfill(2)}")
+
+        # 模式 4: M H * * W → 每周固定星期几的固定时间
+        weekday_names = ["monday", "tuesday", "wednesday", "thursday",
+                        "friday", "saturday", "sunday"]
+        if at_time and day == "*" and month == "*" and weekday.isdigit():
+            wd_idx = int(weekday)
+            if 0 <= wd_idx < 7:
+                wd = weekday_names[wd_idx]
+                return getattr(self._schedule.every(), wd).at(at_time)
+
+        # 模式 5: M H D * * → 每月固定日期固定时间
+        if at_time and month == "*" and weekday == "*" and day.isdigit():
+            return self._schedule.every().day.at(at_time)
+
+        # 不支持的复杂模式：降级为每 60 分钟轮询
+        logger.warning("[调度系统] 不支持的 cron 模式: %s，降级为每 60 分钟轮询", cron_expr)
+        return self._schedule.every(60).minutes
 
     def _unregister_from_schedule(self, task_id: str):
         """从 schedule 中取消任务"""

@@ -3744,9 +3744,6 @@ def api_schedules_create():
         return jsonify({"ok": False, "error": "必须提供 interval_minutes 或 cron_expr"}), 400
     if cron_expr.strip() and not _SchedCls.validate_cron_expr(cron_expr):
         return jsonify({"ok": False, "error": f"无效的 cron 表达式: {cron_expr}"}), 400
-    if interval_minutes > 0 and interval_minutes < 1:
-        return jsonify({"ok": False, "error": "interval_minutes 必须 >= 1"}), 400
-
     result = _sched.add_task(
         name=name, action=action, params=params,
         interval_minutes=interval_minutes, cron_expr=cron_expr, enabled=enabled,
