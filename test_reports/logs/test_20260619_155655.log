@@ -1,0 +1,107 @@
+2026-06-19 15:56:55,717 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-19 15:56:55,721 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-19 15:56:55,721 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-19 15:56:55,731 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-19 15:56:55,744 [    INFO] agent.error_handler: Error handler initialized
+2026-06-19 15:56:55,747 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-19 15:56:55,777 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-19 15:56:55,784 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-19 15:56:55,789 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-19 15:56:55,807 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-19 15:56:55,808 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'VectorStore'
+2026-06-19 15:56:55,808 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'KnowledgeBase'
+2026-06-19 15:56:55,808 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 部分导入成功: 0/2
+2026-06-19 15:56:55,808 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-19 15:56:55,808 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-19 15:56:55,811 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-19 15:56:55,828 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-19 15:56:55,832 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-19 15:56:55,832 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:55,842 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:55,842 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-19 15:56:55,842 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-19 15:56:55,842 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-19 15:56:55,842 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life:    总计: 6/8 模块加载成功
+2026-06-19 15:56:55,844 [ WARNING] agent.digital_life:    [WARN]  2 个可选模块未加载，相关功能将被禁用
+2026-06-19 15:56:55,844 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-19 15:56:55,990 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-19 15:56:55,994 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-19 15:56:55,995 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-19 15:56:56,012 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-19 15:56:56,031 [    INFO] agent.error_handler: Error handler initialized
+2026-06-19 15:56:56,036 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-19 15:56:56,090 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-19 15:56:56,102 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-19 15:56:56,107 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-19 15:56:56,136 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-19 15:56:56,138 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'VectorStore'
+2026-06-19 15:56:56,139 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 中不存在名称 'KnowledgeBase'
+2026-06-19 15:56:56,139 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 包 'agent.memory' 部分导入成功: 0/2
+2026-06-19 15:56:56,139 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-19 15:56:56,140 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-19 15:56:56,142 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-19 15:56:56,165 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-19 15:56:56,172 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-19 15:56:56,172 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:56,174 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:56,174 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-19 15:56:56,174 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [FAIL] vector_memory: 未加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life:    总计: 6/8 模块加载成功
+2026-06-19 15:56:56,177 [ WARNING] agent.digital_life:    [WARN]  2 个可选模块未加载，相关功能将被禁用
+2026-06-19 15:56:56,177 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-19 15:56:56,386 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-19 15:56:56,574 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,574 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-19 15:56:56,576 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-19 15:56:56,576 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-19 15:56:56,576 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-19 15:56:56,576 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-19 15:56:56,576 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,578 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,578 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] 应用实例: <test_network_config_integration.MockApp object at 0x000001975E9D6030>
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'test_network_config_integration.MockApp'>
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3
+2026-06-19 15:56:56,579 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用
+2026-06-19 15:56:56,579 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=***, model=gpt-4
+2026-06-19 15:56:56,579 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm (来源: legacy)...
+2026-06-19 15:56:56,579 [ WARNING] agent.network_config: [网络配置] 应用 LLM 配置失败: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\network_config.py", line 1063, in apply_to_app
+    result = app_instance.configure_llm(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+2026-06-19 15:56:56,581 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-19 15:56:56,581 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,586 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,586 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-19 15:56:56,588 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-19 15:56:56,980 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-19 15:56:57,445 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-19 15:56:57,543 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-19 15:56:58,614 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-19 15:56:58,619 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-19 15:56:58,623 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-19 15:56:58,623 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-19 15:56:58,623 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-19 15:57:01,591 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器

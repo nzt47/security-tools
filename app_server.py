@@ -2032,6 +2032,9 @@ def api_search_instance_delete(instance_id):
             _network_config_mgr._add_change_log('delete', 'search_instance', {'id': instance_id})
             if _web_search:
                 _web_search.remove_engine(instance_id)
+                # 同步更新 web_search 工具的 engine enum
+                from agent.tools import sync_web_search_engines
+                sync_web_search_engines([], search_engine=_web_search)
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except Exception as e:

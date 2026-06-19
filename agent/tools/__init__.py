@@ -193,6 +193,54 @@ def get_tool_schema(name: str) -> dict | None:
     })
 
 
+def sync_web_search_engines(engine_names: list[str], search_engine=None) -> bool:
+    """同步 web_search 工具的可用搜索引擎列表（动态更新 enum）
+
+    当搜索引擎新增/删除时调用，让 LLM 知道哪些引擎可以用。
+
+    Args:
+        engine_names: 可用的搜索引擎名称列表
+        search_engine: 可选的 SearchEngine 实例，传入后自动过滤不可用的引擎
+
+    Returns:
+        bool: 是否成功更新
+    """
+    tool = _registry.get("web_search")
+    if not tool:
+        logger.warning("[工具] web_search 工具未注册，无法同步引擎列表")
+        return False
+
+    # 如果传入了 SearchEngine 实例，过滤出真正可用的引擎
+    if search_engine is not None:
+        try:
+            available = search_engine.get_available_engines()
+            engine_names = [
+                e["name"] for e in available
+                if e.get("enabled", True)
+                and (not e.get("needs_key") or e.get("configured"))
+            ]
+        except Exception:
+            pass  # 回退到传入的 engine_names
+
+    if not engine_names:
+        engine_names = []  # 至少为空列表
+
+    schema = tool.get("schema", {})
+    props = schema.get("properties", {})
+    engine_prop = props.get("engine")
+    if engine_prop is None:
+        logger.warning("[工具] web_search 工具的 engine 参数不存在")
+        return False
+
+    engine_prop["enum"] = engine_names
+    engine_prop["description"] = (
+        f"搜索引擎名称（可选）。可用引擎: {', '.join(engine_names)}。"
+        "不指定则按优先级自动选择"
+    )
+    logger.info(f"[工具] web_search 引擎 enum 已同步: {engine_names}")
+    return True
+
+
 def clear():
     """清空工具注册表（主要用于测试）"""
     _registry.clear()
