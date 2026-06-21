@@ -2924,6 +2924,37 @@ def api_memory_update_summary():
 
 
 # ════════════════════════════════════════════════════════════
+#  向量记忆/语义搜索 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/vector/search", methods=["POST"])
+@require_token
+@log_request()
+def api_vector_search():
+    """语义搜索向量记忆"""
+    data = request.get_json() or {}
+    query = data.get("query", "").strip()
+    top_k = min(int(data.get("top_k", 5)), 50)
+    if not query:
+        return jsonify({"ok": False, "error": "查询内容不能为空"}), 400
+
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"ok": True, "results": [], "count": 0, "available": False})
+
+    try:
+        results = vs.search(query, top_k)
+        return jsonify({
+            "ok": True,
+            "results": [item.to_dict() for item in results],
+            "count": len(results),
+        })
+    except Exception as e:
+        logger.error("向量搜索失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
 #  窗口监控 API
 # ════════════════════════════════════════════════════════════
 
