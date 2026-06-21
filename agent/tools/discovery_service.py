@@ -15,6 +15,16 @@ class ToolDiscoveryService:
     def __init__(self, extension_manager=None, market=None):
         self._ext_mgr = extension_manager
         self._market = market
+        # MCP 连接管理器（延迟初始化）
+        self._mcp_connector = None
+
+    @property
+    def mcp(self):
+        """获取 MCP 连接管理器实例"""
+        if self._mcp_connector is None:
+            from agent.tools.mcp_connector import McpConnector
+            self._mcp_connector = McpConnector()
+        return self._mcp_connector
 
     def search_market(self, query: str, category: str = None) -> dict:
         """搜索扩展市场，返回可用工具列表
@@ -110,40 +120,143 @@ class ToolDiscoveryService:
     def scan_mcp_services(self, network_range: str = None) -> list[dict]:
         """扫描并注册已知 MCP 服务
 
+        扫描两种来源：
+        1. NetworkConfigManager 中配置的 MCP 服务（HTTP/STDIO）
+        2. 内置 MCP 服务模板
+
         Args:
-            network_range: 网络范围（可选，默认扫描配置的服务）
+            network_range: 网络范围（暂未使用，保留接口兼容）
 
         Returns:
             发现的 MCP 服务列表
         """
-        discovered = []
+        results = []
+        processed = set()
+
+        # 来源1: 从 NetworkConfigManager 获取已配置的服务
         try:
             if self._ext_mgr and hasattr(self._ext_mgr, '_network_config_mgr'):
                 ncm = self._ext_mgr._network_config_mgr
                 if ncm:
-                    config = ncm.get_config()
-                    mcp_services = config.get("mcp_services", {})
-                    for svc_id, svc_config in mcp_services.items():
-                        if svc_config.get("enabled", True):
-                            info = self._connect_and_register_mcp(svc_id, svc_config)
-                            if info:
-                                discovered.append(info)
-            logger.info(f"MCP 服务扫描完成: 发现 {len(discovered)} 个")
+                    # get_mcp_services() 返回 list[dict]，每个服务有 id/name/address/port/protocol
+                    services = ncm.get_mcp_services()
+                    for svc in services:
+                        svc_id = svc.get("id", "")
+                        if svc_id in processed:
+                            continue
+                        processed.add(svc_id)
+
+                        # 判断传输模式
+                        transport = svc.get("protocol", "http")
+                        name = svc.get("name", svc_id)
+
+                        if transport in ("http", "https", "sse"):
+                            result = self.mcp.connect_http(
+                                service_id=svc_id,
+                                name=name,
+                                address=svc.get("address", "127.0.0.1"),
+                                port=svc.get("port", 8080),
+                            )
+                        elif transport == "stdio":
+                            result = self.mcp.connect_stdio(
+                                service_id=svc_id,
+                                name=name,
+                                command=svc.get("command", "python"),
+                                args=svc.get("args", []),
+                            )
+                        else:
+                            result = {"ok": False, "error": f"不支持的传输模式: {transport}"}
+
+                        results.append({
+                            "id": svc_id,
+                            "name": name,
+                            "transport": transport,
+                            "ok": result.get("ok", False),
+                            "tools": result.get("tools", 0),
+                            "message": result.get("message") or result.get("error", ""),
+                        })
         except Exception as e:
-            logger.error(f"MCP 服务扫描失败: {e}")
-        return discovered
+            logger.error(f"[发现] 扫描 MCP 配置失败: {e}")
 
-    def _connect_and_register_mcp(self, svc_id: str, svc_config: dict) -> dict | None:
-        """连接 MCP 服务并注册其工具（占位，Phase 3 完整实现）"""
-        from agent import tools as _tools
+        # 来源2: 扫描内置 MCP 服务的安装状态
+        if not self._ext_mgr:
+            logger.info(f"[发现] MCP 服务扫描完成: {len(results)} 个")
+            return results
 
-        transport = svc_config.get("transport", "stdio")
-        command = svc_config.get("command", "")
-        args = svc_config.get("args", [])
+        try:
+            # 检查已安装的 MCP 服务（通过 ExtensionManager）
+            installed = self._ext_mgr.discover_all()
+            for mcp_svc in installed.get("mcp_services", []):
+                svc_id = mcp_svc.get("ext_id") or mcp_svc.get("id", "")
+                if svc_id in processed:
+                    continue
+                processed.add(svc_id)
 
-        # Phase 3: 此处对接 MCP 协议客户端，获取 list_tools 并注册
-        logger.info(f"MCP 服务已就绪: {svc_id} ({transport})")
-        return {"id": svc_id, "transport": transport, "status": "pending"}
+                # 检查是否已连接
+                conn = self.mcp.get_connection(svc_id)
+                if conn:
+                    results.append({
+                        "id": svc_id,
+                        "name": mcp_svc.get("name", svc_id),
+                        "transport": conn["transport"],
+                        "ok": True,
+                        "tools": conn["tools"],
+                        "message": "已连接",
+                    })
+                else:
+                    results.append({
+                        "id": svc_id,
+                        "name": mcp_svc.get("name", svc_id),
+                        "transport": mcp_svc.get("protocol", "http"),
+                        "ok": False,
+                        "tools": 0,
+                        "message": "未连接（使用 connect_mcp 工具连接）",
+                    })
+        except Exception as e:
+            logger.warning(f"[发现] 扫描已安装 MCP 失败: {e}")
+
+        logger.info(f"[发现] MCP 服务扫描完成: {len(results)} 个")
+        return results
+
+    def connect_mcp_service(self, service_id: str,
+                            transport: str = "stdio",
+                            command: str = "python",
+                            args: list[str] | None = None,
+                            address: str = "127.0.0.1",
+                            port: int = 8080) -> dict:
+        """连接一个 MCP 服务并注册其工具
+
+        Args:
+            service_id: 服务标识
+            transport: 传输模式 ("stdio" 或 "http")
+            command: STDIO 模式下的启动命令
+            args: STDIO 模式下的参数
+            address: HTTP 模式下的地址
+            port: HTTP 模式下的端口
+
+        Returns:
+            {"ok": bool, "message": str, "tools": int}
+        """
+        if transport == "stdio":
+            return self.mcp.connect_stdio(service_id, service_id, command, args or [])
+        elif transport == "http":
+            return self.mcp.connect_http(service_id, service_id, address, port)
+        return {"ok": False, "error": f"不支持的传输模式: {transport}"}
+
+    def disconnect_mcp_service(self, service_id: str) -> dict:
+        """断开一个 MCP 服务连接
+
+        Args:
+            service_id: 服务标识
+
+        Returns:
+            {"ok": bool, "message": str}
+        """
+        return self.mcp.disconnect(service_id)
+
+    def list_mcp_connections(self) -> list[dict]:
+        """列出所有活跃的 MCP 连接"""
+        return self.mcp.list_connections()
 
     def _guess_ext_type(self, tool_id: str) -> str:
         """根据 ID 猜测扩展类型"""
