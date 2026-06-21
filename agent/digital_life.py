@@ -485,7 +485,8 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
         # 懒加载：扩展管理器单例
         self._ext_manager = None
         self._ext_manager_lock = threading.Lock()
-        
+        # 工具发现服务（按需获取工具，懒加载）
+        self._discovery_service = None        
         # P5 日志：显示 V2 功能配置
         if self._v2_lifetrace:
             logger.info("[P5] LifeTrace 配置为懒加载模式，将在首次访问时初始化")
@@ -2026,6 +2027,23 @@ class DigitalLife(DigitalLifePersonaMixin, DigitalLifeStateMixin):
                         )
                     except Exception as _treg_e:
                         logger.warning(f"[扩展] 工具注册表桥接失败: {_treg_e}")
+
+                    # 初始化工具发现服务（按需获取工具）
+                    try:
+                        from agent.tools.discovery_service import ToolDiscoveryService
+                        from agent.extensions.market import ExtensionMarket
+                        self._discovery_service = ToolDiscoveryService(
+                            extension_manager=self._ext_manager,
+                            market=ExtensionMarket(),
+                        )
+                        # 连接发现服务到工具注册表（规则触发）
+                        from agent import tools as _treg2
+                        _treg2.set_discovery_service(self._discovery_service)
+                        logger.info("[扩展] 工具发现服务已初始化")
+                    except Exception as _disc_e:
+                        self._discovery_service = None
+                        logger.warning(f"[扩展] 工具发现服务初始化失败: {_disc_e}")
+
                     logger.info("[扩展] ExtensionManager 单例已初始化")
         return self._ext_manager
 

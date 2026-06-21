@@ -263,3 +263,97 @@ def register_all(dl):
             return _em.send_channel_message(channel_id, message, **extra)
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+    @_tools.register("market_search", "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。", schema={
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "搜索关键词，如'发送邮件'、'日期计算'、'天气预报'",
+            },
+            "category": {
+                "type": "string",
+                "enum": ["tool", "skill", "mcp", "plugin", ""],
+                "description": "过滤类别（留空搜索全部）",
+            },
+        },
+        "required": ["query"],
+    })
+    def _market_search(**kw):
+        query = kw.get("query", "")
+        category = kw.get("category") or None
+        try:
+            discovery = getattr(dl, '_discovery_service', None)
+            if discovery:
+                return discovery.search_market(query, category)
+            return {"ok": False, "error": "发现服务未初始化"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @_tools.register("install_tool", "从扩展市场安装工具。安装后工具立即可用，无需重启。", schema={
+        "type": "object",
+        "properties": {
+            "tool_id": {
+                "type": "string",
+                "description": "工具/扩展ID，如 'yunshu-email-plugin'",
+            },
+            "source": {
+                "type": "string",
+                "description": "安装来源（可选），如 'github:user/repo'",
+            },
+        },
+        "required": ["tool_id"],
+    })
+    def _install_tool(**kw):
+        tool_id = kw.get("tool_id", "")
+        source = kw.get("source")
+        try:
+            discovery = getattr(dl, '_discovery_service', None)
+            if discovery:
+                return discovery.install_and_register(tool_id, source)
+            return {"ok": False, "error": "发现服务未初始化"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @_tools.register("generate_tool", "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。", schema={
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "工具名称（字母数字下划线）",
+            },
+            "description": {
+                "type": "string",
+                "description": "工具描述",
+            },
+            "code": {
+                "type": "string",
+                "description": "Python 函数实现代码。函数签名应与工具名称一致，接收 **kwargs 参数",
+            },
+            "schema": {
+                "type": "object",
+                "description": "参数的 JSON Schema（可选，不提供时使用空 schema）",
+            },
+            "persist": {
+                "type": "boolean",
+                "description": "是否持久化保存到文件（默认 False，仅注册到内存）",
+            },
+        },
+        "required": ["name", "description", "code"],
+    })
+    def _generate_tool(**kw):
+        name = kw.get("name", "")
+        description = kw.get("description", "")
+        code = kw.get("code", "")
+        schema = kw.get("schema")
+        persist = kw.get("persist", False)
+        try:
+            from agent.tools.tool_generator import ToolGenEngine
+            engine = ToolGenEngine()
+            if persist:
+                ok = engine.generate_persistent(name, description, code, schema)
+            else:
+                ok = engine.generate_simple(name, description, code, schema)
+            return {"ok": ok, "name": name, "persisted": persist}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
