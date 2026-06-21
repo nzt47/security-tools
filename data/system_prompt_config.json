@@ -194,7 +194,7 @@
     "lifetrace": {
       "custom_content": "",
       "description": "从长期记忆中检索相关内容注入提示词（V2 功能，需安装 lifetrace 模块）",
-      "enabled": false,
+      "enabled": true,
       "extra_params": {
         "module_available": true
       },
@@ -346,7 +346,7 @@
     "distillation": {
       "configurable": false,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "200-500",
@@ -366,7 +366,7 @@
     "lifetrace": {
       "configurable": false,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "500-1500",
@@ -376,7 +376,7 @@
     "memory_context": {
       "configurable": true,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "1000-12000",
@@ -386,7 +386,7 @@
     "persona": {
       "configurable": false,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "1000-2000",
@@ -406,7 +406,7 @@
     "skill_instructions": {
       "configurable": false,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "300-800",
@@ -436,7 +436,7 @@
     "tool_status": {
       "configurable": false,
       "editable": false,
-      "enabled": true,
+      "enabled": false,
       "has_custom": false,
       "note": "",
       "range": "200-500",
@@ -466,11 +466,11 @@
   },
   "summary": {
     "base_template_tokens": 150,
-    "grand_total": 13700,
-    "savings_when_off": 3000,
-    "total_disabled_count": 1,
-    "total_enabled_tokens": 10700
+    "grand_total": 5050,
+    "savings_when_off": 11650,
+    "total_disabled_count": 7,
+    "total_enabled_tokens": 2050
   },
   "version": 2,
-  "_last_applied": 1782038024.939492
+  "_last_applied": 1782044741.089008
 }
