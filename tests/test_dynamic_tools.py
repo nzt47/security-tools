@@ -294,3 +294,141 @@ class TestPluginLifecycleHooks:
         finally:
             for n in names:
                 tools.unregister(n)
+
+
+class TestToolGenerator:
+    """测试 ToolGenEngine 工具自生成"""
+
+    def test_generate_simple_ok(self):
+        """能成功注册内联工具并可调用"""
+        from agent.tools.tool_generator import ToolGenEngine
+        engine = ToolGenEngine()
+        code = '''def greet(**kw):
+    name = kw.get("name", "world")
+    return {"ok": True, "message": f"Hello, {name}!"}
+'''
+        ok = engine.generate_simple("greet", "打招呼", code)
+        assert ok
+        try:
+            from agent import tools
+            tnames = [t["name"] for t in tools.list_tools()]
+            assert "greet" in tnames
+            result = tools.call("greet", name="测试")
+            assert result["ok"]
+            assert result["message"] == "Hello, 测试!"
+        finally:
+            tools.unregister("greet")
+
+    def test_generate_simple_syntax_error(self):
+        """语法错误的代码应被拒绝"""
+        from agent.tools.tool_generator import ToolGenEngine
+        engine = ToolGenEngine()
+        ok = engine.generate_simple("bad", "坏代码", "def broken(:**kw): pass")
+        assert not ok
+
+    def test_generate_simple_no_function(self):
+        """没有可调用函数的代码应被拒绝"""
+        from agent.tools.tool_generator import ToolGenEngine
+        engine = ToolGenEngine()
+        ok = engine.generate_simple("nope", "无函数", "x = 42")
+        assert not ok
+
+    def test_generate_simple_finds_first_callable(self):
+        """找不到命名函数时自动找第一个可调用对象"""
+        from agent.tools.tool_generator import ToolGenEngine
+        engine = ToolGenEngine()
+        code = '''def my_func(**kw):
+    return {"ok": True, "value": kw.get("x", 0)}
+'''
+        ok = engine.generate_simple("my_func", "自动找到的函数", code)
+        assert ok
+        try:
+            from agent import tools
+            result = tools.call("my_func", x=42)
+            assert result["ok"]
+            assert result["value"] == 42
+        finally:
+            tools.unregister("my_func")
+
+
+class TestDiscoveryService:
+    """测试 ToolDiscoveryService"""
+
+    def test_search_market_offline(self):
+        """离线时搜索市场应返回缓存结果（不崩溃）"""
+        from agent.tools.discovery_service import ToolDiscoveryService
+        ds = ToolDiscoveryService()
+        result = ds.search_market("test")
+        assert "ok" in result
+        assert "results" in result
+
+    def test_on_tool_not_found_no_discovery(self):
+        """找不到工具时应返回 acquired=False"""
+        from agent.tools.discovery_service import ToolDiscoveryService
+        ds = ToolDiscoveryService()
+        result = ds.on_tool_not_found("nonexistent_tool_xyz")
+        assert result["acquired"] is False
+        assert result["tool"] == "nonexistent_tool_xyz"
+
+    def test_install_and_register_no_manager(self):
+        """无扩展管理器时返回错误"""
+        from agent.tools.discovery_service import ToolDiscoveryService
+        ds = ToolDiscoveryService()
+        result = ds.install_and_register("test_tool")
+        assert result["ok"] is False
+        assert "未初始化" in result.get("error", "")
+
+
+class TestCallDiscoveryTrigger:
+    """测试 call() 的规则触发"""
+
+    def test_call_unknown_tool_raises(self):
+        """找不到且发现服务未设置时抛出 ToolError"""
+        from agent import tools
+        tools.set_discovery_service(None)
+        import pytest
+        with pytest.raises(Exception) as exc:
+            tools.call("_definitely_not_exists_999")
+        assert "未知工具" in str(exc.value) or "ToolError" in str(exc.value)
+
+    def test_call_with_discovery_service_set(self):
+        """设置了发现服务但找不到时仍应抛异常"""
+        from agent import tools
+        class FakeDiscovery:
+            def on_tool_not_found(self, name, params):
+                return {"acquired": False, "tool": name}
+        old = tools._discovery_service
+        tools.set_discovery_service(FakeDiscovery())
+        import pytest
+        try:
+            with pytest.raises(Exception) as exc:
+                tools.call("_fake_unknown_888")
+            assert "未知工具" in str(exc.value)
+        finally:
+            tools.set_discovery_service(old)
+
+    def test_call_with_discovery_acquires_tool(self):
+        """发现服务成功获取工具后应能正常调用"""
+        from agent import tools
+        # 先注册一个工具让发现服务"找到"
+        def dh(**kw): return {"ok": True}
+        tools.register("_existing_tool", "已有", schema={}, handler=dh)
+
+        class AcquiringDiscovery:
+            def __init__(self):
+                self.called = False
+            def on_tool_not_found(self, name, params):
+                self.called = True
+                return {"acquired": True, "tool": name}
+
+        discovery = AcquiringDiscovery()
+        old = tools._discovery_service
+        tools.set_discovery_service(discovery)
+        try:
+            # 调用存在工具不应触发发现
+            result = tools.call("_existing_tool")
+            assert result["ok"]
+            assert not discovery.called
+        finally:
+            tools.set_discovery_service(old)
+            tools.unregister("_existing_tool")

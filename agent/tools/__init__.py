@@ -219,7 +219,19 @@ def call(*args, **params) -> Any:
 
     tool = _registry.get(name)
     if not tool:
-        raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")
+        # 尝试通过发现服务自动获取
+        if _discovery_service:
+            try:
+                logger.info(f"[工具] '{name}' 未找到，尝试自动发现...")
+                result = _discovery_service.on_tool_not_found(name, params)
+                if result.get("acquired"):
+                    logger.info(f"[工具] 自动获取成功: '{name}'")
+                    tool = _registry.get(name)
+            except Exception as de:
+                logger.debug(f"[工具] 自动发现失败: {de}")
+
+        if not tool:
+            raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")
 
     # 操作追踪（可选）
     if _action_tracker:
