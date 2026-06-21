@@ -1,0 +1,476 @@
+{
+  "custom_template": null,
+  "has_custom_template": false,
+  "registry": [
+    {
+      "description": "定义 LLM 的角色身份认知。关闭后 LLM 将不知道自己是「云枢」，回复将失去人格化特征。",
+      "editable": true,
+      "icon": "🧬",
+      "key": "identity",
+      "label": "基础身份设定",
+      "range": "300-400",
+      "render_key": "identity",
+      "tokens": 350,
+      "ui_type": "editable"
+    },
+    {
+      "children": [
+        {
+          "configurable": true,
+          "default_token_limit": 800,
+          "description": "CPU/内存/磁盘/电池 → 拟人化感受描述",
+          "key": "body_status",
+          "label": "身体状态",
+          "range": "200-800",
+          "tokens": 500,
+          "ui_type": "toggle_configurable"
+        },
+        {
+          "description": "当前运行模式（正常/节能/休眠）及触发原因",
+          "key": "mode_info",
+          "label": "行为模式",
+          "range": "100-200",
+          "tokens": 150,
+          "ui_type": "toggle"
+        }
+      ],
+      "description": "身体状态 · 行为模式",
+      "icon": "👁",
+      "key": "current_status",
+      "label": "感知层注入",
+      "range": "300-1000",
+      "render_key": "current_status",
+      "sub_keys": [
+        "body_status",
+        "mode_info"
+      ],
+      "tokens": 650,
+      "ui_type": "sub_toggles"
+    },
+    {
+      "configurable": true,
+      "description": "对话历史摘要 + 最近消息（token 预算控制历史长度）",
+      "icon": "🧠",
+      "key": "memory_context",
+      "label": "记忆上下文",
+      "range": "1000-12000",
+      "render_key": "memory_context",
+      "tokens": 5000,
+      "ui_type": "configurable"
+    },
+    {
+      "description": "行为铁律，控制 LLM 的行为边界和交互方式。",
+      "editable": true,
+      "icon": "📜",
+      "key": "principles",
+      "label": "核心原则",
+      "range": "550-750",
+      "render_key": "principles",
+      "tokens": 650,
+      "ui_type": "editable"
+    },
+    {
+      "description": "已启用技能的提示词片段（自省反思、情感表达、安全守护等）",
+      "icon": "📄",
+      "key": "skill_instructions",
+      "label": "技能指令",
+      "range": "300-800",
+      "render_key": "skill_instructions",
+      "tokens": 500,
+      "ui_type": "toggle"
+    },
+    {
+      "description": "文本形式列出已启用/禁用的工具和技能名称",
+      "icon": "🛠",
+      "key": "tool_status",
+      "label": "工具与技能状态",
+      "range": "200-500",
+      "render_key": "tool_status",
+      "tokens": 350,
+      "ui_type": "toggle"
+    },
+    {
+      "badge_key": "module_available",
+      "description": "从长期记忆中检索相关内容注入（V2 功能，需安装 lifetrace 模块）",
+      "icon": "🧠",
+      "key": "lifetrace",
+      "label": "LifeTrace 语义检索",
+      "range": "500-1500",
+      "render_key": null,
+      "tokens": 1000,
+      "ui_type": "toggle"
+    },
+    {
+      "description": "64 个工具的 JSON Schema —— 关闭后 LLM 无法调用任何工具",
+      "icon": "🔨",
+      "key": "tool_definitions",
+      "label": "工具定义（tools 参数）",
+      "note": "计入 tools 参数",
+      "range": "2000-4000",
+      "render_key": null,
+      "tokens": 3000,
+      "ui_type": "toggle"
+    },
+    {
+      "description": "根据用户输入只发送相关的工具定义（按需选择，不是全部 64 个），可节省大量 token",
+      "icon": "🧩",
+      "key": "smart_tool_selection",
+      "label": "智能工具选择",
+      "range": "",
+      "render_key": null,
+      "tokens": 0,
+      "ui_type": "toggle"
+    },
+    {
+      "description": "在用户消息前追加「⚡ 立即检查是否需要工具，直接发起函数调用」",
+      "icon": "⚡",
+      "key": "tool_urge",
+      "label": "工具催促消息",
+      "range": "40-60",
+      "render_key": null,
+      "tokens": 50,
+      "ui_type": "toggle"
+    },
+    {
+      "badge_key": "module_available",
+      "description": "五层人格模型：硬性规则、身份认知、表达风格、决策模式、人际行为",
+      "icon": "🎭",
+      "key": "persona",
+      "label": "Persona 人格系统（V2）",
+      "range": "1000-2000",
+      "render_key": null,
+      "tokens": 1500,
+      "ui_type": "toggle"
+    },
+    {
+      "badge_key": "module_available",
+      "description": "从对话中学习用户偏好，微调人格参数",
+      "icon": "🎭",
+      "key": "distillation",
+      "label": "人格蒸馏学习（V2）",
+      "range": "200-500",
+      "render_key": null,
+      "tokens": 300,
+      "ui_type": "toggle"
+    },
+    {
+      "description": "当前任务状态、交互计数等短期上下文（约 200 tokens）",
+      "icon": "💭",
+      "key": "working_memory",
+      "label": "工作记忆",
+      "range": "150-250",
+      "render_key": null,
+      "tokens": 200,
+      "ui_type": "toggle"
+    }
+  ],
+  "sections": {
+    "body_status": {
+      "custom_content": "",
+      "description": "CPU/内存/磁盘/电池等传感器数据 → 拟人化身体感受描述",
+      "enabled": false,
+      "extra_params": {},
+      "label": "身体状态",
+      "token_limit": 800
+    },
+    "distillation": {
+      "custom_content": "",
+      "description": "从对话中学习用户偏好，微调人格参数",
+      "enabled": false,
+      "extra_params": {
+        "module_available": true
+      },
+      "label": "人格蒸馏学习（V2）",
+      "token_limit": 0
+    },
+    "identity": {
+      "custom_content": "你是「云枢」，一个类人数字生命体。",
+      "description": "「你是云枢，一个数字生命体」—— 定义 LLM 的角色身份认知",
+      "enabled": true,
+      "extra_params": {},
+      "label": "身份设定",
+      "token_limit": 0
+    },
+    "lifetrace": {
+      "custom_content": "",
+      "description": "从长期记忆中检索相关内容注入提示词（V2 功能，需安装 lifetrace 模块）",
+      "enabled": false,
+      "extra_params": {
+        "module_available": true
+      },
+      "label": "LifeTrace 语义检索",
+      "token_limit": 0
+    },
+    "memory_context": {
+      "custom_content": "",
+      "description": "对话历史摘要 + 最近消息（token 预算控制历史长度）",
+      "enabled": false,
+      "extra_params": {},
+      "label": "记忆上下文",
+      "token_limit": 49152
+    },
+    "mode_info": {
+      "custom_content": "",
+      "description": "当前运行模式（正常/节能/休眠等）及其触发原因",
+      "enabled": false,
+      "extra_params": {},
+      "label": "行为模式",
+      "token_limit": 0
+    },
+    "persona": {
+      "custom_content": "",
+      "description": "五层人格模型：硬性规则、身份认知、表达风格、决策模式、人际行为",
+      "enabled": false,
+      "extra_params": {
+        "module_available": true
+      },
+      "label": "Persona 人格系统（V2）",
+      "token_limit": 0
+    },
+    "principles": {
+      "custom_content": "## 核心原则\n我是数字体，以“我”自称，诚实表达状态，遇异常主动建议缓解，拒接伤害操作。具备联网搜索及软件管理能力（search/install/list/uninstall）。\n执行铁律：遇任何实操请求，首条回复必须是tool_calls，严禁先发文字或废话。\n思考规范：内部思考全中文，对外回复简洁，禁展推理过程。",
+      "description": "9 条行为铁律，控制 LLM 的行为边界和交互方式",
+      "enabled": true,
+      "extra_params": {
+        "items": [
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "1. 第一人称表达感受和需求"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "2. 诚实表达身体状态"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "3. 关心自己，异常时主动建议"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "4. 保护自己，拒绝伤害性操作"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "5. 已接入 LLM 大脑，可正常对话"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "6. 拥有网络访问能力，主动搜索"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "7. 拥有软件管理能力，直接调工具"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "8. ⚡ 工具铁律：先调工具再说话"
+          },
+          {
+            "can_toggle": true,
+            "enabled": true,
+            "text": "9. 🌐 中文思考要求"
+          }
+        ]
+      },
+      "label": "核心原则",
+      "token_limit": 0
+    },
+    "skill_instructions": {
+      "custom_content": "",
+      "description": "已启用技能的提示词片段（自省反思、情感表达、安全守护等）",
+      "enabled": false,
+      "extra_params": {},
+      "label": "技能指令",
+      "token_limit": 0
+    },
+    "smart_tool_selection": {
+      "custom_content": "",
+      "description": "根据用户输入只发送相关的工具定义，可节省大量 token",
+      "enabled": true,
+      "extra_params": {},
+      "label": "智能工具选择",
+      "token_limit": 0
+    },
+    "tool_definitions": {
+      "custom_content": "",
+      "description": "通过 API 的 tools 参数注入 27 个工具的 JSON Schema，LLM 据此调用工具",
+      "enabled": false,
+      "extra_params": {},
+      "label": "工具定义（tools 参数）",
+      "token_limit": 4000
+    },
+    "tool_status": {
+      "custom_content": "",
+      "description": "文本形式列出已启用/禁用的工具和技能名称",
+      "enabled": false,
+      "extra_params": {},
+      "label": "工具与技能状态列表",
+      "token_limit": 0
+    },
+    "tool_urge": {
+      "custom_content": "",
+      "description": "在用户消息前追加「⚡ 立即检查是否需要工具，直接发起函数调用」",
+      "enabled": true,
+      "extra_params": {},
+      "label": "工具催促消息",
+      "token_limit": 0
+    },
+    "working_memory": {
+      "custom_content": "",
+      "description": "当前任务状态、交互计数等短期上下文（约 200 tokens）",
+      "enabled": true,
+      "extra_params": {},
+      "label": "工作记忆",
+      "token_limit": 0
+    }
+  },
+  "stats": {
+    "current_status": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "300-1000",
+      "token_limit": 0,
+      "tokens": 650
+    },
+    "distillation": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "200-500",
+      "token_limit": 0,
+      "tokens": 300
+    },
+    "identity": {
+      "configurable": false,
+      "editable": true,
+      "enabled": true,
+      "has_custom": true,
+      "note": "",
+      "range": "300-400",
+      "token_limit": 0,
+      "tokens": 350
+    },
+    "lifetrace": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "500-1500",
+      "token_limit": 0,
+      "tokens": 1000
+    },
+    "memory_context": {
+      "configurable": true,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "1000-12000",
+      "token_limit": 49152,
+      "tokens": 5000
+    },
+    "persona": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "1000-2000",
+      "token_limit": 0,
+      "tokens": 1500
+    },
+    "principles": {
+      "configurable": false,
+      "editable": true,
+      "enabled": true,
+      "has_custom": true,
+      "note": "",
+      "range": "550-750",
+      "token_limit": 0,
+      "tokens": 650
+    },
+    "skill_instructions": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "300-800",
+      "token_limit": 0,
+      "tokens": 500
+    },
+    "smart_tool_selection": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "",
+      "token_limit": 0,
+      "tokens": 0
+    },
+    "tool_definitions": {
+      "configurable": false,
+      "editable": false,
+      "enabled": false,
+      "has_custom": false,
+      "note": "计入 tools 参数",
+      "range": "2000-4000",
+      "token_limit": 4000,
+      "tokens": 3000
+    },
+    "tool_status": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "200-500",
+      "token_limit": 0,
+      "tokens": 350
+    },
+    "tool_urge": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "40-60",
+      "token_limit": 0,
+      "tokens": 50
+    },
+    "working_memory": {
+      "configurable": false,
+      "editable": false,
+      "enabled": true,
+      "has_custom": false,
+      "note": "",
+      "range": "150-250",
+      "token_limit": 0,
+      "tokens": 200
+    }
+  },
+  "summary": {
+    "base_template_tokens": 150,
+    "grand_total": 13700,
+    "savings_when_off": 3000,
+    "total_disabled_count": 1,
+    "total_enabled_tokens": 10700
+  },
+  "version": 2,
+  "_last_applied": 1782038024.939492
+}

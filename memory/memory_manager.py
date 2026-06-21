@@ -557,12 +557,27 @@ class MemoryManager:
         """加载当前摘要"""
         return self._storage.load_summary()
 
+    @property
+    def compress_rounds(self) -> int:
+        """已压缩次数（从摘要版本号获取）"""
+        try:
+            summary = self._storage.load_summary()
+            return summary[1] if summary else 0
+        except Exception:
+            return 0
+
     def clear_memory(self):
         """清空记忆（保留摘要和黑匣子日志）"""
         self._storage.clear_messages()
         self._need_compress = False
         self._black_box.log("memory_cleared", {})
         logger.info("记忆已清空")
+
+    def clear_summary(self):
+        """清空长期摘要，重置版本号"""
+        self._storage.clear_summary()
+        self._black_box.log("summary_cleared", {})
+        logger.info("长期摘要已清空")
 
     def query_logs(self, **filters) -> list[dict]:
         """查询黑匣子日志（快捷入口）"""

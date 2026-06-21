@@ -53,11 +53,14 @@ _PLUGINS_DIR = Path(__file__).parent.parent / "data" / "extensions_packages" / "
 class PluginInstaller:
     """插件安装器 — 管理通用插件"""
 
-    def __init__(self, store: ExtensionStore):
+    def __init__(self, store: ExtensionStore,
+                 tool_register_fn=None, tool_unregister_fn=None):
         self._store = store
         self._engine = InstallEngine()
         # 已加载的插件实例
         self._loaded_plugins: Dict[str, Any] = {}
+        self._tool_register_fn = tool_register_fn
+        self._tool_unregister_fn = tool_unregister_fn
 
     # ── 插件管理 ──
 
@@ -249,6 +252,26 @@ class PluginInstaller:
                     plugin_instance.on_load(context)
                 self._loaded_plugins[plugin_id] = plugin_instance
 
+                # 注册插件提供的工具到全局工具表
+                if hasattr(plugin_instance, "get_tools") and self._tool_register_fn:
+                    try:
+                        tools_list = plugin_instance.get_tools()
+                        if tools_list:
+                            count = 0
+                            for tool_def in tools_list:
+                                self._tool_register_fn(
+                                    name=tool_def["name"],
+                                    description=tool_def.get("description", ""),
+                                    handler=tool_def["handler"],
+                                    schema=tool_def.get("schema"),
+                                    source="plugin",
+                                    source_id=plugin_id,
+                                )
+                                count += 1
+                            logger.info(f"[插件安装器] 插件 '{plugin_id}' 已注册 {count} 个工具")
+                    except Exception as e:
+                        logger.warning(f"[插件安装器] 插件 '{plugin_id}' 工具注册失败: {e}")
+
                 self._store.update_status(
                     ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ENABLED
                 )
@@ -276,6 +299,15 @@ class PluginInstaller:
                 instance.on_unload()
             except Exception as e:
                 logger.warning(f"[插件安装器] 插件卸载回调失败: {e}")
+
+        # 注销插件注册的工具
+        if self._tool_unregister_fn:
+            try:
+                removed = self._tool_unregister_fn(source="plugin", source_id=plugin_id)
+                if removed:
+                    logger.info(f"[插件安装器] 插件 '{plugin_id}' 已注销 {removed} 个工具")
+            except Exception as e:
+                logger.warning(f"[插件安装器] 插件 '{plugin_id}' 工具注销失败: {e}")
 
         self._store.update_status(
             ExtensionType.PLUGIN, plugin_id, ExtensionStatus.DISABLED

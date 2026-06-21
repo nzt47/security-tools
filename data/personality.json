@@ -4,7 +4,7 @@
     "tone": 0.01,
     "emotion": 0.01,
     "conciseness": 1,
-    "initiative": 0.1,
+    "initiative": 0.03,
     "humor": 0.01,
     "empathy": 0.01
   },

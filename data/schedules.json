@@ -1,0 +1,18 @@
+{
+  "updated_at": "2026-06-19T08:56:56.014811+00:00",
+  "tasks": [
+    {
+      "id": "task_f4316e3e892c",
+      "name": "test_pause",
+      "interval_minutes": 5,
+      "cron_expr": "",
+      "action": "",
+      "params": {},
+      "enabled": true,
+      "paused": false,
+      "created_at": "2026-06-19T08:56:56.014811+00:00",
+      "last_run": null,
+      "run_count": 0
+    }
+  ]
+}

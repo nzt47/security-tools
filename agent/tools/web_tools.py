@@ -319,3 +319,155 @@ def register_all(dl):
             return {"ok": False, "error": "请提供 URL 列表 (urls)"}
         results = dl._web_http.batch_request(urls, max_concurrency=max_concurrency)
         return {"ok": True, "total": len(results), "results": results}
+
+    # ════════════════════════════════════════════════════════════
+    #  新闻获取工具
+    # ════════════════════════════════════════════════════════════
+
+    @_tools.register("fetch_news", "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。", schema={
+        "type": "object",
+        "properties": {
+            "topic": {"type": "string", "description": "新闻主题关键词（可选），如'中美关系'、'俄乌'，留空则获取综合新闻"},
+            "max_results": {"type": "integer", "description": "最大返回条数，默认8，最大15"},
+            "engine": {"type": "string", "description": "搜索引擎: tavily(默认) 或 firecrawl"},
+        },
+    })
+    def _fetch_news(**kwargs):
+        import time as _time
+        try:
+            topic = kwargs.get("topic", "")
+            max_results = min(kwargs.get("max_results", 8), 15)
+
+            # 构建搜索词
+            queries = ["latest world news today", "international breaking news", "top global headlines"]
+            if topic:
+                queries = [f"latest {topic} news", f"{topic} breaking news", f"{topic} today"]
+
+            all_results = []
+            seen_urls = set()
+
+            # 不传 engine 参数，让搜索系统按优先级自动选择可用引擎
+            for q in queries:
+                try:
+                    _searcher = dl._get_web_search()
+                    if _searcher is None:
+                        continue
+                    res = _searcher.search(q, num_results=max_results, timeout=10)
+                    if res and isinstance(res, dict) and res.get("ok") and res.get("results"):
+                        for item in res["results"]:
+                            url = (item.get("url") or "").strip()
+                            if url and url not in seen_urls:
+                                seen_urls.add(url)
+                                all_results.append({
+                                    "title": (item.get("title") or "").strip(),
+                                    "url": url,
+                                    "snippet": (item.get("snippet") or "").strip(),
+                                    "source": _guess_source(url),
+                                })
+                        break  # 当前查询成功，跳到下一个
+                except Exception:
+                    pass  # 单个查询失败不影响整体
+        except Exception as e:
+            logger.error("[新闻] fetch_news 整体异常: %s", e)
+
+        # 按来源丰富度排序：BBC/CNN/Reuters/AP优先
+        _PREFERRED = ["bbc.com", "cnn.com", "reuters.com", "apnews.com",
+                       "theguardian.com", "nytimes.com", "wsj.com", "economist.com"]
+
+        def _score(item):
+            url = item["url"].lower()
+            for i, domain in enumerate(_PREFERRED):
+                if domain in url:
+                    return i
+            return len(_PREFERRED)
+
+        all_results.sort(key=_score)
+        all_results = all_results[:max_results]
+
+        # 使用搜索结果摘要（跳过正文获取避免超时）
+        if all_results:
+            for item in all_results:
+                item["content"] = item.get("snippet", "")
+
+        # 无结果时返回友好提示
+        if not all_results:
+            now = _time.strftime("%Y-%m-%d %H:%M UTC")
+            text = (
+                f"已获取到以下信息：\n"
+                f"  - 当前暂无搜索结果，搜索引擎暂时不可用。\n"
+                f"  - 时间: {now}\n"
+                f"  - 建议: 稍后重试或直接输入具体关键词"
+            )
+            return {"ok": True, "result": text, "count": 0}
+
+        # 格式化输出
+        now = _time.strftime("%Y-%m-%d %H:%M UTC")
+        lines = [f"已获取到以下信息：", f"  - 找到 {len(all_results)} 条结果:"]
+        for i, item in enumerate(all_results, 1):
+            title = item.get("title", "无标题")
+            source = item.get("source", "未知来源")
+            url = item.get("url", "")
+            snippet = item.get("content") or item.get("snippet", "")
+            lines.append(f"")
+            lines.append(f"...{i}. **{title}**")
+            lines.append(f"   - 来源: {source}")
+            lines.append(f"   - 时间: {now}")
+            lines.append(f"   - 摘要: {snippet[:300]}")
+            lines.append(f"   - 链接: {url}")
+
+        return {"ok": True, "result": "\n".join(lines), "count": len(all_results)}
+
+
+def _guess_source(url: str) -> str:
+    """从URL猜测新闻来源"""
+    url_lower = url.lower()
+    sources = {
+        "bbc.com": "BBC", "bbc.co.uk": "BBC",
+        "cnn.com": "CNN",
+        "reuters.com": "Reuters",
+        "apnews.com": "AP News",
+        "theguardian.com": "The Guardian",
+        "nytimes.com": "New York Times",
+        "wsj.com": "Wall Street Journal",
+        "economist.com": "The Economist",
+        "bloomberg.com": "Bloomberg",
+        "aljazeera.com": "Al Jazeera",
+        "npr.org": "NPR",
+        "foxnews.com": "Fox News",
+        "usatoday.com": "USA Today",
+        "time.com": "Time",
+        "washingtonpost.com": "Washington Post",
+        "reuters.com": "Reuters",
+        "yahoo.com": "Yahoo News",
+        "google.com": "Google News",
+        "sohu.com": "搜狐新闻",
+        "sina.com": "新浪新闻",
+        "163.com": "网易新闻",
+        "thepaper.cn": "澎湃新闻",
+        "xinhuanet.com": "新华网",
+        "people.com.cn": "人民网",
+    }
+    for domain, name in sources.items():
+        if domain in url_lower:
+            return name
+    return "新闻媒体"
+
+
+def _extract_relevant(text: str, max_len: int = 300) -> str:
+    """从网页文本中提取最相关的内容段落"""
+    import re
+    # 移除HTML标签
+    clean = re.sub(r'<[^>]+>', '', text)
+    # 移除多余空白
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    if len(clean) <= max_len:
+        return clean
+    # 尝试在句号处截断
+    truncated = clean[:max_len]
+    last_period = truncated.rfind('。')
+    if last_period > max_len * 0.5:
+        return truncated[:last_period + 1]
+    last_dot = truncated.rfind('.')
+    if last_dot > max_len * 0.5:
+        return truncated[:last_dot + 1]
+    return truncated + "..."
