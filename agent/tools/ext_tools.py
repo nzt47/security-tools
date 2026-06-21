@@ -357,3 +357,72 @@ def register_all(dl):
             return {"ok": ok, "name": name, "persisted": persist}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+    @_tools.register("scan_mcp", "扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。", schema={
+        "type": "object",
+        "properties": {},
+    })
+    def _scan_mcp(**kw):
+        try:
+            discovery = getattr(dl, '_discovery_service', None)
+            if discovery:
+                results = discovery.scan_mcp_services()
+                return {"ok": True, "services": results, "count": len(results)}
+            return {"ok": False, "error": "发现服务未初始化"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @_tools.register("connect_mcp", "手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。", schema={
+        "type": "object",
+        "properties": {
+            "service_id": {"type": "string", "description": "服务标识（唯一）"},
+            "transport": {
+                "type": "string",
+                "enum": ["stdio", "http"],
+                "description": "传输模式：stdio=本地进程, http=远程HTTP服务",
+            },
+            "command": {"type": "string", "description": "STDIO 模式：启动命令（如 python、node）"},
+            "args": {
+                "type": "array", "items": {"type": "string"},
+                "description": "STDIO 模式：命令参数列表",
+            },
+            "address": {"type": "string", "description": "HTTP 模式：服务地址"},
+            "port": {"type": "integer", "description": "HTTP 模式：服务端口"},
+        },
+        "required": ["service_id", "transport"],
+    })
+    def _connect_mcp(**kw):
+        service_id = kw.get("service_id", "")
+        transport = kw.get("transport", "stdio")
+        try:
+            discovery = getattr(dl, '_discovery_service', None)
+            if discovery:
+                result = discovery.connect_mcp_service(
+                    service_id=service_id,
+                    transport=transport,
+                    command=kw.get("command", "python"),
+                    args=kw.get("args", []),
+                    address=kw.get("address", "127.0.0.1"),
+                    port=kw.get("port", 8080),
+                )
+                return result
+            return {"ok": False, "error": "发现服务未初始化"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @_tools.register("disconnect_mcp", "断开一个 MCP 服务连接，注销其注册的工具。", schema={
+        "type": "object",
+        "properties": {
+            "service_id": {"type": "string", "description": "要断开的服务标识"},
+        },
+        "required": ["service_id"],
+    })
+    def _disconnect_mcp(**kw):
+        service_id = kw.get("service_id", "")
+        try:
+            discovery = getattr(dl, '_discovery_service', None)
+            if discovery:
+                return discovery.disconnect_mcp_service(service_id)
+            return {"ok": False, "error": "发现服务未初始化"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}

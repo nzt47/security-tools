@@ -432,3 +432,114 @@ class TestCallDiscoveryTrigger:
         finally:
             tools.set_discovery_service(old)
             tools.unregister("_existing_tool")
+
+
+class TestMcpConnector:
+    """测试 McpConnector 管理 MCP 连接"""
+
+    def test_initial_state(self):
+        """初始状态应无连接"""
+        from agent.tools.mcp_connector import McpConnector
+        mc = McpConnector()
+        assert mc.list_connections() == []
+
+    def test_disconnect_nonexistent(self):
+        """断开不存在的连接应返回错误"""
+        from agent.tools.mcp_connector import McpConnector
+        mc = McpConnector()
+        result = mc.disconnect("nonexistent")
+        assert result["ok"] is False
+        assert "不存在" in result.get("error", "")
+
+    def test_disconnect_all_empty(self):
+        """空状态断开所有应返回0"""
+        from agent.tools.mcp_connector import McpConnector
+        mc = McpConnector()
+        count = mc.disconnect_all()
+        assert count == 0
+
+    def test_http_tool_handler_created_and_callable(self):
+        """HTTP handler 创建后应可调用，发送失败时返回错误（非崩溃）"""
+        from agent.tools.mcp_connector import McpConnector
+        mc = McpConnector()
+        handler = mc._make_http_handler("http://127.0.0.1:1", "test_tool")
+        result = handler(x=1)
+        # 连接被拒绝是预期的（没有服务在那监听）
+        assert result["ok"] is False or "error" in result
+
+    def test_register_mcp_tools_via_discovery_service(self):
+        """通过 ToolDiscoveryService 的 MCP 属性应可获取 McpConnector"""
+        from agent.tools.discovery_service import ToolDiscoveryService
+        ds = ToolDiscoveryService()
+        assert ds.mcp is not None
+        assert hasattr(ds.mcp, 'list_connections')
+        assert hasattr(ds.mcp, 'connect_stdio')
+        assert hasattr(ds.mcp, 'connect_http')
+        assert hasattr(ds.mcp, 'disconnect')
+        assert ds.mcp.list_connections() == []
+
+
+class TestMcpRegisterUnregister:
+    """测试 MCP 工具注册到全局注册表"""
+
+    def setup_method(self):
+        from agent import tools
+        # 清理可能残留的 mcp 工具
+        tools.unregister_by_source("mcp")
+
+    def test_mcp_tool_can_be_registered(self):
+        """通过 register_dynamic 注册 MCP 工具应进入注册表"""
+        from agent import tools
+        def dh(**kw): return {"ok": True}
+        tools.register_dynamic("mcp_test_tool", "MCP工具测试",
+                               handler=dh, source="mcp", source_id="test_svc")
+        try:
+            tnames = [t["name"] for t in tools.list_tools()]
+            assert "mcp_test_tool" in tnames
+            # 验证来源
+            src = tools.list_tools_by_source("mcp")
+            assert any(t["name"] == "mcp_test_tool" for t in src)
+        finally:
+            tools.unregister("mcp_test_tool")
+
+    def test_mcp_tools_are_unregistered_by_source(self):
+        """按 mcp 来源注销应清理所有该来源的工具"""
+        from agent import tools
+        def dh(**kw): return {"ok": True}
+
+        tools.register_dynamic("mcp_a", "", handler=dh, source="mcp", source_id="svc1")
+        tools.register_dynamic("mcp_b", "", handler=dh, source="mcp", source_id="svc1")
+        tools.register_dynamic("mcp_c", "", handler=dh, source="mcp", source_id="svc2")
+
+        # 注销 svc1 的工具
+        removed = tools.unregister_by_source("mcp", source_id="svc1")
+        assert removed == 2
+        assert tools._registry.get("mcp_a") is None
+        assert tools._registry.get("mcp_b") is None
+        assert tools._registry.get("mcp_c") is not None  # svc2 的工具应保留
+
+        # 清理
+        tools.unregister("mcp_c")
+
+    def test_mcp_tool_lifecycle_through_discovery(self):
+        """完整 MCP 工具生命周期：扫描→断开→工具消失"""
+        from agent import tools
+        def dh(**kw): return {"ok": True}
+
+        # 模拟 MCP 服务注册工具
+        tools.register_dynamic("weather_mcp", "天气预报",
+                               handler=dh, source="mcp", source_id="weather_svc")
+        tools.register_dynamic("news_mcp", "新闻",
+                               handler=dh, source="mcp", source_id="weather_svc")
+
+        # 验证工具存在
+        assert "weather_mcp" in tools._registry
+        assert "news_mcp" in tools._registry
+
+        # 模拟断开：按来源注销
+        removed = tools.unregister_by_source("mcp", source_id="weather_svc")
+        assert removed == 2
+
+        # 验证工具不存在
+        assert "weather_mcp" not in tools._registry
+        assert "news_mcp" not in tools._registry
