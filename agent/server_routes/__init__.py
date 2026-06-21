@@ -55,3 +55,7 @@ def register_all_routes(app, state):
     # 扩展系统（原有，保持向后兼容）
     from .extensions import register_routes as reg_extensions
     reg_extensions(app, state)
+
+    # 系统身份提示词配置（组件级开关 + 参数配置）
+    from .routes_system_prompt import register_routes as reg_system_prompt
+    reg_system_prompt(app, state)

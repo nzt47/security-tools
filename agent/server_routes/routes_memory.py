@@ -76,6 +76,213 @@ def register_routes(app, state):
     def api_memory_delete_index(index):
         return jsonify({"ok": True})
 
+    @app.route("/api/memory/clear-summary", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_memory_clear_summary():
+        """清空长期摘要"""
+        try:
+            Yunshu._memory.clear_summary()
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/memory/summary", methods=["PUT"])
+    @require_token
+    @log_request()
+    def api_memory_update_summary():
+        """更新长期摘要内容"""
+        data = request.get_json() or {}
+        summary = data.get("summary", "").strip()
+        try:
+            old = Yunshu._memory.load_summary()
+            version = old[1] if old else 0
+            Yunshu._memory._storage.save_summary(summary, version + 1)
+            Yunshu._memory._black_box.log("summary_updated", {"version": version + 1, "length": len(summary)})
+            return jsonify({"ok": True, "version": version + 1})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  向量记忆
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/vector/stats")
+    @log_request(show_response=False)
+    def api_vector_stats():
+        """获取向量记忆统计"""
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"available": False})
+        stats = vs.get_stats()
+        stats["available"] = True
+        stats["total_memories"] = vs.count
+        return jsonify(stats)
+
+    @app.route("/api/vector/search", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_vector_search():
+        """语义搜索向量记忆"""
+        data = request.get_json() or {}
+        query = data.get("query", "").strip()
+        top_k = min(int(data.get("top_k", 5)), 50)
+        if not query:
+            return jsonify({"ok": False, "error": "查询内容不能为空"}), 400
+
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"available": False, "results": []}), 503
+
+        try:
+            results = vs.search(query, top_k)
+            return jsonify({
+                "ok": True,
+                "results": [item.to_dict() for item in results],
+                "count": len(results),
+            })
+        except Exception as e:
+            logger.error("向量搜索失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/vector/add", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_vector_add():
+        """添加单条向量记忆"""
+        data = request.get_json() or {}
+        content = data.get("content", "").strip()
+        if not content:
+            return jsonify({"ok": False, "error": "内容不能为空"}), 400
+
+        metadata = data.get("metadata", {})
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+        try:
+            item_id = vs.add(content, metadata)
+            return jsonify({"ok": True, "item_id": item_id})
+        except Exception as e:
+            logger.error("添加向量记忆失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/vector/batch_add", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_vector_batch_add():
+        """批量添加向量记忆"""
+        data = request.get_json() or {}
+        items = data.get("items", [])
+        if not items:
+            return jsonify({"ok": False, "error": "items 不能为空"}), 400
+
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+        try:
+            item_ids = vs.batch_add(items)
+            return jsonify({"ok": True, "item_ids": item_ids, "count": len(item_ids)})
+        except Exception as e:
+            logger.error("批量添加向量记忆失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/vector/item/<item_id>")
+    @log_request(show_response=False)
+    def api_vector_get_item(item_id):
+        """按 ID 获取记忆项"""
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"available": False}), 503
+
+        item = vs.get_by_id(item_id)
+        if not item:
+            return jsonify({"error": "未找到该记忆项"}), 404
+        return jsonify(item.to_dict())
+
+    @app.route("/api/vector/recent")
+    @log_request(show_response=False)
+    def api_vector_recent():
+        """获取最近的向量记忆"""
+        limit = min(int(request.args.get("limit", 20)), 100)
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"available": False, "items": []}), 503
+
+        try:
+            items = vs.get_recent(limit=limit)
+            return jsonify({
+                "items": [item.to_dict() for item in items],
+                "count": len(items),
+            })
+        except Exception as e:
+            logger.error("获取最近向量记忆失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/vector/clear", methods=["DELETE"])
+    @require_token
+    @log_request()
+    def api_vector_clear():
+        """清空向量记忆"""
+        vs = getattr(Yunshu, '_vector_memory', None)
+        if not vs:
+            return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+        try:
+            vs.clear()
+            return jsonify({"ok": True})
+        except Exception as e:
+            logger.error("清空向量记忆失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/knowledge/query", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_knowledge_query():
+        """知识库查询"""
+        data = request.get_json() or {}
+        question = data.get("question", "").strip()
+        top_k = min(int(data.get("top_k", 3)), 20)
+
+        if not question:
+            return jsonify({"ok": False, "error": "查询问题不能为空"}), 400
+
+        kb = getattr(Yunshu, '_knowledge_base', None)
+        if not kb:
+            return jsonify({"available": False, "error": "知识库未初始化"}), 503
+
+        try:
+            result = kb.query(question, top_k)
+            return jsonify({"ok": True, "result": result})
+        except Exception as e:
+            logger.error("知识库查询失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/knowledge/add", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_knowledge_add():
+        """添加知识文档"""
+        data = request.get_json() or {}
+        content = data.get("content", "").strip()
+        source = data.get("source", "manual")
+        tags = data.get("tags", [])
+
+        if not content:
+            return jsonify({"ok": False, "error": "内容不能为空"}), 400
+
+        kb = getattr(Yunshu, '_knowledge_base', None)
+        if not kb:
+            return jsonify({"ok": False, "error": "知识库未初始化"}), 503
+
+        try:
+            kb.add_document(content, source=source, tags=tags)
+            return jsonify({"ok": True})
+        except Exception as e:
+            logger.error("添加知识文档失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     # ═══════════════════════════════════════════════════
     #  窗口事件
     # ═══════════════════════════════════════════════════

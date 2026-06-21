@@ -80,6 +80,8 @@ class MemoryConfig(BaseModel):
     data_dir: str = Field(default="./data", description="数据目录")
     token_limit: int = Field(default=4096, ge=512, le=32768, description="Token 限制")
     compress_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="压缩阈值")
+    per_message_send_limit: int = Field(default=2048, ge=0, le=32768, description="单次发送 Token 上限")
+    per_message_recv_limit: int = Field(default=4096, ge=0, le=32768, description="单次接收 Token 上限")
     async_compress: AsyncCompressConfig = Field(default_factory=AsyncCompressConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     blackbox: BlackboxConfig = Field(default_factory=BlackboxConfig)
@@ -116,7 +118,7 @@ class SecurityConfig(BaseModel):
 
 class FeaturesConfig(BaseModel):
     """功能开关配置模型"""
-    v2_lifetrace: bool = Field(default=False, description="启用 LifeTrace")
+    v2_lifetrace: bool = Field(default=True, description="启用 LifeTrace")
     v2_persona: bool = Field(default=False, description="启用 Persona")
     v2_distillation: bool = Field(default=False, description="启用人格蒸馏")
     sandbox: bool = Field(default=False, description="启用 Python 沙盒")
@@ -439,6 +441,8 @@ class Config:
             "data_dir": "./data",
             "token_limit": 4096,
             "compress_threshold": 0.8,
+            "per_message_send_limit": 2048,
+            "per_message_recv_limit": 4096,
             "async_compress": {
                 "enabled": True,
                 "interval_seconds": 60,
@@ -466,7 +470,7 @@ class Config:
             "secure_config_file": ".secure_config.json",
         },
         "features": {
-            "v2_lifetrace": False,
+            "v2_lifetrace": True,
             "v2_persona": False,
             "v2_distillation": False,
             "sandbox": False,

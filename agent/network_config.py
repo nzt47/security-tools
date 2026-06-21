@@ -596,18 +596,51 @@ class NetworkConfigManager:
                 continue
             self._register_search_instance(inst, search_engine)
 
-        # 更新优先级：实例按配置顺序排列
-        instance_ids = [inst.get('id', '') for inst in instances if inst.get('id') and inst.get('enabled', True)]
-        if instance_ids:
-            priority = list(search_engine._engine_priority)
-            # 把实例 ID 移到前面
-            for cid in instance_ids:
-                if cid in priority:
-                    priority.remove(cid)
-            priority = instance_ids + priority
-            search_engine.set_engine_priority(priority)
+        # 构建有效的实例 ID 集合
+        valid_ids = {inst['id'] for inst in instances if inst.get('id') and inst.get('enabled', True)}
+        valid_names = {inst['name'] for inst in instances if inst.get('name') and inst.get('enabled', True)}
+        valid_types = {inst['engine_type'] for inst in instances if inst.get('engine_type') and inst.get('enabled', True)}
 
-        logger.info("[网络配置] 搜索实例注册完成")
+        # 清理并重建 engine_priority：移除过期条目，按当前实例更新
+        old_priority = config.get('search', {}).get('engine_priority', [])
+        new_priority = []
+        seen = set()
+        for entry in old_priority:
+            # 跳过已经在 new_priority 中的
+            if entry in seen:
+                continue
+            # 检查 entry 是否匹配某个实例
+            matched = False
+            for inst in instances:
+                inst_id = inst.get('id', '')
+                inst_name = inst.get('name', '')
+                inst_type = inst.get('engine_type', '')
+                if entry in (inst_id, inst_name, inst_type):
+                    # 用实例 ID 代替
+                    if inst_id and inst_id not in seen:
+                        new_priority.append(inst_id)
+                        seen.add(inst_id)
+                    matched = True
+                    break
+            if not matched and entry in valid_ids:
+                new_priority.append(entry)
+                seen.add(entry)
+            # 不匹配任何实例 → 过期条目，跳过
+
+        # 补充尚未在 priority 中的实例
+        for inst in instances:
+            inst_id = inst.get('id', '')
+            if inst_id and inst_id not in seen and inst.get('enabled', True):
+                new_priority.append(inst_id)
+                seen.add(inst_id)
+
+        config.setdefault('search', {})['engine_priority'] = new_priority
+        self._save(config)
+
+        # 更新 SearchEngine 的优先级
+        search_engine.set_engine_priority(new_priority)
+
+        logger.info("[网络配置] 搜索实例注册完成，优先级: %s", new_priority)
 
         # 同步到 web_search 工具的 engine 参数 enum
         try:
@@ -615,6 +648,30 @@ class NetworkConfigManager:
             sync_web_search_engines([], search_engine=search_engine)
         except ImportError:
             pass  # 工具模块不可用时跳过
+
+    def _seed_builtin_search_instances(self, config: dict) -> list:
+        """首次运行时，为内置搜索引擎创建搜索实例"""
+        import uuid
+        builtin_engines = {
+            "duckduckgo": {"name": "DuckDuckGo", "engine_type": "duckduckgo", "needs_key": False},
+            "sogou": {"name": "搜狗搜索", "engine_type": "sogou", "needs_key": False},
+            "so360": {"name": "360搜索", "engine_type": "so360", "needs_key": False},
+        }
+        instances = []
+        for eng_id, eng_info in builtin_engines.items():
+            instances.append({
+                "id": str(uuid.uuid4()),
+                "name": eng_info["name"],
+                "engine_type": eng_info["engine_type"],
+                "api_key": "",
+                "enabled": True,
+                "is_default": False,
+                "timeout": 30,
+                "created_at": datetime.datetime.now().isoformat(),
+                "updated_at": datetime.datetime.now().isoformat(),
+            })
+        logger.info("[网络配置] 已创建 %d 个内置搜索引擎实例", len(instances))
+        return instances
 
     def reset(self) -> dict:
         """重置为默认配置"""
@@ -979,7 +1036,7 @@ class NetworkConfigManager:
 
         # 应用到搜索引擎配置
         try:
-            if app_instance and hasattr(app_instance, '_web_search'):
+            if app_instance and hasattr(app_instance, '_web_search') and app_instance._web_search is not None:
                 search_config = config['search']
 
                 # 更新搜索引擎配置

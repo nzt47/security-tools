@@ -118,6 +118,22 @@ class Storage:
             logger.error(f"[Storage.load_summary] 加载失败: {e}")
             raise StorageError(f"读取摘要失败: {e}") from e
 
+    def clear_summary(self):
+        """清空摘要文件，重置版本号"""
+        logger.info("[Storage.clear_summary] 开始清空摘要")
+        try:
+            with self._write_lock:
+                if self.summary_file.exists():
+                    self.summary_file.write_text("", encoding="utf-8")
+                    logger.info("[Storage.clear_summary] 摘要文件已清空")
+                if self.version_file.exists():
+                    self.version_file.write_text("0", encoding="utf-8")
+                    logger.info("[Storage.clear_summary] 版本号已重置为 0")
+                logger.info("[Storage.clear_summary] 摘要清空成功")
+        except OSError as e:
+            logger.error(f"[Storage.clear_summary] 清空失败: {e}")
+            raise StorageError(f"清空摘要失败: {e}") from e
+
     def clear_messages(self):
         """清空消息历史（保留摘要文件，线程安全）"""
         logger.info("[Storage.clear_messages] 开始清空消息")

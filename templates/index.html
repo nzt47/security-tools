@@ -396,135 +396,6 @@
   margin-right: 3px;
 }
 
-/* ── 快捷开关栏 ── */
-.quick-toggle-bar {
-  border-top: 1px solid var(--border-color, #30363d);
-  background: var(--bg-secondary, #161b22);
-  user-select: none;
-}
-.quick-toggle-bar .qt-collapsed {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--text-muted, #8b949e);
-  transition: background 0.15s;
-}
-.quick-toggle-bar .qt-collapsed:hover {
-  background: var(--bg-hover, #1c2128);
-}
-.qt-summary-icon { font-size: 13px; }
-.qt-summary-text { flex: 1; }
-.qt-expand-icon { font-size: 10px; color: var(--text-muted, #484f58); }
-.qt-expanded {
-  max-height: 260px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border-color, #21262d);
-}
-.qt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  background: var(--bg-tertiary, #0d1117);
-  border-bottom: 1px solid var(--border-color, #21262d);
-}
-.qt-title { font-size: 12px; font-weight: 600; color: var(--text-primary, #c9d1d9); }
-.qt-close { cursor: pointer; font-size: 14px; color: var(--text-muted, #484f58); padding: 0 4px; }
-.qt-close:hover { color: var(--text-primary, #c9d1d9); }
-.qt-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border-color, #21262d);
-  padding: 0 16px;
-  background: var(--bg-tertiary, #0d1117);
-}
-.qt-tab {
-  padding: 6px 14px;
-  font-size: 11px;
-  color: var(--text-muted, #8b949e);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-}
-.qt-tab:hover { color: var(--text-primary, #c9d1d9); }
-.qt-tab.active {
-  color: var(--accent, #58a6ff);
-  border-bottom-color: var(--accent, #58a6ff);
-}
-.qt-search-box {
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--border-color, #21262d);
-}
-.qt-search {
-  width: 100%;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color, #30363d);
-  background: var(--bg-primary, #0d1117);
-  color: var(--text-primary, #c9d1d9);
-  font-size: 11px;
-  outline: none;
-  box-sizing: border-box;
-}
-.qt-search:focus { border-color: var(--accent, #58a6ff); }
-.qt-search::placeholder { color: var(--text-muted, #484f58); }
-.qt-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-.qt-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 16px;
-  font-size: 11px;
-  color: var(--text-secondary, #8b949e);
-  transition: background 0.1s;
-}
-.qt-item:hover {
-  background: var(--bg-hover, #1c2128);
-}
-.qt-item .qt-item-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.qt-item .qt-item-desc {
-  font-size: 10px;
-  color: var(--text-muted, #484f58);
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.qt-item .toggle-switch {
-  width: 28px;
-  height: 16px;
-  flex-shrink: 0;
-}
-.qt-item .toggle-switch .toggle-slider:before {
-  height: 10px;
-  width: 10px;
-  left: 3px;
-  bottom: 3px;
-}
-.qt-item .toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(12px);
-}
-.qt-item-type-icon { flex-shrink: 0; font-size: 12px; }
-.qt-empty {
-  padding: 16px;
-  text-align: center;
-  color: var(--text-muted, #484f58);
-  font-size: 11px;
-}
 /* 视图内帮助区域 */
 .view-help {
   margin-bottom: 12px;
@@ -540,6 +411,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/context-monitor.css') }}?v=20260621">
 </head>
 <body>
 <div id="app">
@@ -577,6 +449,8 @@
         <button class="nav-btn" data-view="skills"><span class="nav-icon">🔧</span><span class="nav-label">技能管理</span></button>
         <button class="nav-btn" data-view="tools"><span class="nav-icon">🛠</span><span class="nav-label">工具集成</span></button>
         <button class="nav-btn" data-view="personality"><span class="nav-icon">🎭</span><span class="nav-label">人格配置</span></button>
+        <button class="nav-btn" data-view="system-prompt"><span class="nav-icon">📝</span><span class="nav-label">身份提示词</span></button>
+        <button class="nav-btn" data-view="llm-monitor"><span class="nav-icon">📡</span><span class="nav-label">LLM通信</span></button>
         <button class="nav-btn" data-view="memory"><span class="nav-icon">🧠</span><span class="nav-label">记忆管理</span></button>
         <button class="nav-btn" data-view="network"><span class="nav-icon">🌐</span><span class="nav-label">网络配置</span></button>
         <button class="nav-btn" data-view="logs"><span class="nav-icon">📊</span><span class="nav-label">日志分析</span></button>
@@ -631,27 +505,151 @@
           </div>
           <div id="chat-messages"></div>
 
-          <!-- ═══ 快捷开关栏 ═══ -->
-          <div id="quick-toggle-bar" class="quick-toggle-bar" style="flex-shrink:0">
-            <div class="qt-collapsed" id="qt-collapsed" onclick="toggleQuickBar()">
-              <span class="qt-summary-icon">🔧</span>
-              <span class="qt-summary-text" id="qt-summary-text">加载中...</span>
-              <span class="qt-expand-icon">▾</span>
+          <!-- ═══ 上下文监视器 ═══ -->
+          <div id="context-monitor-bar" class="ctx-bar ctx-collapsed">
+            <div class="ctx-bar-collapsed" onclick="toggleContextMonitor()" title="点击展开上下文监视器">
+              <span class="ctx-icon">📊</span>
+              <span class="ctx-label">上下文</span>
+              <div class="ctx-progress-mini">
+                <div class="ctx-progress-fill" id="ctx-progress-fill" style="width:0%"></div>
+              </div>
+              <span class="ctx-percent" id="ctx-percent">0%</span>
+              <span class="ctx-detail" id="ctx-detail">0/4K</span>
+              <span class="ctx-spacer"></span>
+              <span class="ctx-btn" onclick="event.stopPropagation();toggleContextMonitor()" title="展开/折叠">−</span>
+              <span class="ctx-btn" onclick="event.stopPropagation();ctxSetSize('maximize')" title="最大化">□</span>
+              <span class="ctx-btn" onclick="event.stopPropagation();ctxSetSize('close')" title="折叠（始终显示进度条）">×</span>
             </div>
-            <div class="qt-expanded" id="qt-expanded" style="display:none" onmouseleave="autoHideQuickBar()">
-              <div class="qt-header">
-                <span class="qt-title">🔧 快捷开关</span>
-                <span class="qt-close" onclick="toggleQuickBar()">✕</span>
+            <div class="ctx-bar-expanded" id="ctx-expanded" style="display:none">
+              <div class="ctx-header">
+                <span>📊 上下文监视器</span>
+                <div class="ctx-header-btns">
+                  <span class="ctx-btn" onclick="toggleContextMonitor()" title="折叠">−</span>
+                  <span class="ctx-btn" onclick="ctxSetSize('maximize')" title="最大化">□</span>
+                  <span class="ctx-btn" onclick="ctxSetSize('close')" title="关闭">×</span>
+                </div>
               </div>
-              <div class="qt-tabs">
-                <span class="qt-tab active" data-qt-tab="all" onclick="switchQtTab('all')">全部</span>
-                <span class="qt-tab" data-qt-tab="tool" onclick="switchQtTab('tool')">工具</span>
-                <span class="qt-tab" data-qt-tab="skill" onclick="switchQtTab('skill')">技能</span>
+              <div class="ctx-body" id="ctx-body">
+                <!-- 状态概览 -->
+                <div class="ctx-section">
+                  <div class="ctx-status-row" id="ctx-status-row">
+                    <span class="ctx-status-indicator" id="ctx-status-dot">🟢</span>
+                    <span class="ctx-status-text" id="ctx-status-text">正常</span>
+                    <span class="ctx-status-divider">|</span>
+                    <span>压缩 <b id="ctx-compress-rounds">0</b> 次</span>
+                    <span class="ctx-status-divider">|</span>
+                    <span>阈值 <b>80%</b></span>
+                    <span class="ctx-status-divider">|</span>
+                    <span><b id="ctx-status-total-short">0</b>/<b id="ctx-status-limit-short">4K</b> tokens</span>
+                  </div>
+                </div>
+                <!-- 用量概览 -->
+                <div class="ctx-section">
+                  <div class="ctx-usage-row">
+                    <span class="ctx-usage-label">🔵 上下文占用</span>
+                    <div class="ctx-usage-bar">
+                      <div class="ctx-bar-track">
+                        <div class="ctx-bar-fill ctx-level-safe" id="ctx-bar-fill-main" style="width:0%"></div>
+                      </div>
+                    </div>
+                    <span class="ctx-usage-pct" id="ctx-usage-pct">0%</span>
+                  </div>
+                  <div class="ctx-usage-stats">
+                    <span>发送 ↑ <b id="ctx-send">0</b></span>
+                    <span>接收 ↓ <b id="ctx-recv">0</b></span>
+                    <span>总计 <b id="ctx-total">0</b></span>
+                    <span>| 消息 <b id="ctx-msgs-count">0</b> 条</span>
+                  </div>
+                  <div class="ctx-hint">📌 超过 80% 阈值时自动在后台压缩旧对话为摘要</div>
+                </div>
+                <!-- 控制面板 -->
+                <div class="ctx-section">
+                  <div class="ctx-slider-row">
+                    <label>最大 Token</label>
+                    <input type="range" min="512" max="32768" step="512" id="ctx-slider-limit" oninput="ctxSliderPreview(this, 'ctx-slider-limit-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-limit-val">4096</span>
+                  </div>
+                  <div class="ctx-hint ctx-hint-slider">滑动调整上下文窗口上限，超限的最旧消息会被丢弃</div>
+                  <div class="ctx-slider-row">
+                    <label>发送上限</label>
+                    <input type="range" min="0" max="8192" step="128" id="ctx-slider-send" oninput="ctxSliderPreview(this, 'ctx-slider-send-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-send-val">2048</span>
+                  </div>
+                  <div class="ctx-hint ctx-hint-slider">单次发送消息最大 token，超限截断</div>
+                  <div class="ctx-slider-row">
+                    <label>接收上限</label>
+                    <input type="range" min="0" max="8192" step="128" id="ctx-slider-recv" oninput="ctxSliderPreview(this, 'ctx-slider-recv-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-recv-val">4096</span>
+                  </div>
+                  <div class="ctx-hint ctx-hint-slider">单次回复最大 token，超限截断</div>
+                  <div class="ctx-actions">
+                    <button onclick="manualCompress()">🔄 手动压缩</button>
+                    <button onclick="resetContextStats()">📊 重置统计</button>
+                  </div>
+                </div>
+                <!-- ⚙️ 机制说明（可折叠） -->
+                <div class="ctx-section">
+                  <div class="ctx-help-toggle" onclick="ctxToggleHelp()">
+                    <span>⚙️ 机制说明</span>
+                    <span class="ctx-help-arrow" id="ctx-help-arrow">▶</span>
+                  </div>
+                  <div class="ctx-help-content" id="ctx-help-content" style="display:none">
+                    <p>云枢的上下文管理采用<b>多层次自动策略</b>，无需手动干预：</p>
+
+                    <div class="ctx-help-item">
+                      <div class="ctx-help-item-title">① 异步后台压缩</div>
+                      <div class="ctx-help-item-desc">
+                        每次对话后检查 token 总量。当使用率超过<b>阈值（80%）</b>时，
+                        在后台自动将旧对话压缩为摘要，保留关键决策和结论。
+                        当前已压缩 <b id="ctx-help-rounds">0</b> 次（摘要版本 v<span id="ctx-help-version">0</span>）。
+                      </div>
+                    </div>
+
+                    <div class="ctx-help-item">
+                      <div class="ctx-help-item-title">② 三级水位预警</div>
+                      <div class="ctx-help-item-desc">
+                        <span class="ctx-legend-dot" style="color:#3fb950">🟢</span> <b>&lt;60%</b> 正常 ·
+                        <span class="ctx-legend-dot" style="color:#d29922">🟡</span> <b>60%~80%</b> 接近阈值 ·
+                        <span class="ctx-legend-dot" style="color:#f85149">🔴</span> <b>&gt;95%</b> 即将溢出
+                        <br>达到 critical 时，云枢会在回复末尾提示创建新会话。
+                        <br>当前：<span id="ctx-help-status">🟢 正常</span>
+                      </div>
+                    </div>
+
+                    <div class="ctx-help-item">
+                      <div class="ctx-help-item-title">③ 摘要退化检测</div>
+                      <div class="ctx-help-item-desc">
+                        每次压缩都会损失部分细节。<b>压缩 ≥3 次</b>时摘要质量开始下降，
+                        <b>≥5 次</b>时退化明显，建议创建新会话继续对话。
+                        <br>当前：<span id="ctx-help-degrade">✓ 质量良好</span>
+                      </div>
+                    </div>
+
+                    <div class="ctx-help-item">
+                      <div class="ctx-help-item-title">④ System Prompt 预算保护</div>
+                      <div class="ctx-help-item-desc">
+                        System prompt 有 <b>10000 tokens</b> 的预算上限，
+                        超限时自动截断工具状态列表，保证核心指令完整。
+                      </div>
+                    </div>
+
+                    <div class="ctx-help-item">
+                      <div class="ctx-help-item-title">⑤ 主动丢弃</div>
+                      <div class="ctx-help-item-desc">
+                        即使压缩后仍超限，系统会从<b>最旧的非摘要消息</b>开始丢弃，
+                        直到满足 token_limit。
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 最近消息 -->
+                <div class="ctx-section ctx-section-msgs">
+                  <div class="ctx-msgs-header">📝 最近消息</div>
+                  <div id="ctx-recent-msgs" class="ctx-msgs-list">
+                    <div class="ctx-empty">等待消息...</div>
+                  </div>
+                </div>
               </div>
-              <div class="qt-search-box">
-                <input class="qt-search" id="qt-search" placeholder="搜索..." oninput="filterQuickBar()">
-              </div>
-              <div class="qt-list" id="qt-list"></div>
             </div>
           </div>
 
@@ -673,6 +671,7 @@
             <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="padding:8px 12px;border-radius:20px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:all 0.2s" title="切换语音输出模式">
               <span id="voice-toggle-icon">🔊</span>
             </button>
+            <button id="news-btn" onclick="fetchNews()" title="获取最新国际新闻" style="padding:8px 12px;border-radius:20px;border:none;background:#1f6feb;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap;margin-right:4px">📰 新闻</button>
             <button id="send-btn" style="padding:8px 20px;border-radius:20px;border:none;background:#238636;color:#fff;font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.2s">发送</button>
 <div id="ver" style="font-size:10px;color:#484f58;align-self:center;display:none">v3</div>
           </div>
@@ -931,12 +930,117 @@
         </div>
       </div>
 
-      <!-- 记忆管理视图 -->
+	  <!-- 系统身份提示词编辑视图 -->
+	  <div id="view-system-prompt" class="view">
+	    <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+	      <!-- 页面标题 -->
+	      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+	        <h3 style="font-size:16px;color:#c9d1d9;margin:0">📝 身份提示词配置</h3>
+	        <span id="sp-total-tokens" style="font-size:11px;color:var(--text-secondary);background:var(--bg-primary);padding:2px 10px;border-radius:10px;border:1px solid var(--border-color)"></span>
+	      </div>
+	      <p style="font-size:12px;color:#8b949e;margin-bottom:16px">
+	        精细控制每次 LLM 调用时注入的系统提示词各组件。关闭不用的组件可节省 Token 开销。
+	        <span style="color:var(--text-muted)">当前配置生成约 <strong id="sp-estimated-tokens">0</strong> tokens/次</span>
+	      </p>
+
+	      <!-- Token 节省统计条 -->
+	      <div id="sp-savings-bar" style="display:none;background:#1a2332;border:1px solid #30363d;border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:12px;color:#8b949e">
+	        <span>💡 已关闭 <strong id="sp-disabled-count">0</strong> 个组件，每轮对话节省约 <strong id="sp-savings-amount">0</strong> tokens</span>
+	      </div>
+
+	      <!-- 操作工具栏 -->
+	      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+	        <button class="btn-sm primary" onclick="spApplyConfig()">✅ 应用配置</button>
+	        <button class="btn-sm" onclick="spPreviewFull()">👁 预览完整提示词</button>
+	        <button class="btn-sm" onclick="spCheckSync()" title="检查当前运行模板与配置是否一致">🔄 同步状态</button>
+	        <button class="btn-sm" style="margin-left:auto;color:var(--danger);border-color:var(--danger)" onclick="spResetAll()">↺ 恢复默认</button>
+	      </div>
+
+		      	      <!-- ===== 组件区域（由注册表自动渲染） ===== -->
+	      <div id="sp-sections-container"></div>
+
+	      <!-- ===== 7. 完整提示词预览 ===== -->
+	      <div class="network-section" style="margin-top:4px">
+	        <div class="network-section-header skills-toggle-header" onclick="spToggleSectionBody(this)">
+	          <span class="section-icon">📄</span>
+	          <span class="section-title">完整提示词预览</span>
+	          <span class="skills-toggle-icon" style="margin-left:auto">▼</span>
+	        </div>
+	        <div class="network-section-body skills-body">
+	          <p style="font-size:11px;color:var(--text-secondary);margin:0 0 8px">
+	            以下是根据当前配置动态生成的系统提示词模板。占位符 <code style="font-size:10px;color:var(--accent)">{...}</code> 将在运行时由实际数据填充。
+	          </p>
+	          <pre id="sp-full-preview" style="padding:12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;font-size:11px;line-height:1.5;white-space:pre-wrap;color:var(--text-primary);max-height:400px;overflow-y:auto;font-family:Consolas,monospace">加载中...</pre>
+	        </div>
+	      </div>
+
+	      <!-- ===== 底部操作栏 ===== -->
+	      <div style="display:flex;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color)">
+	        <button class="btn-sm primary" onclick="spApplyConfig()" style="padding:6px 20px">✅ 应用配置并生效</button>
+	        <button class="btn-sm" onclick="spPreviewFull()">👁 刷新预览</button>
+	        <button class="btn-sm" onclick="spResetAll()" style="margin-left:auto;color:var(--danger);border-color:var(--danger)">↺ 恢复默认设置</button>
+	      </div>
+
+	    </div>
+	  </div>
+
+      	  <!-- LLM 通信监控视图 -->
+	  <div id="view-llm-monitor" class="view">
+	    <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+	      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+	        <h3 style="font-size:16px;color:#c9d1d9;margin:0">📡 LLM 通信监控</h3>
+	        <div style="display:flex;align-items:center;gap:8px">
+	          <span id="lm-stats-badge" style="font-size:11px;color:var(--text-secondary);background:var(--bg-primary);padding:2px 10px;border-radius:10px;border:1px solid var(--border-color)">加载中...</span>
+	          <label class="toggle-switch small" title="启用/禁用监控">
+	            <input type="checkbox" id="lm-enabled-toggle" checked onchange="lmToggleEnabled(this.checked)">
+	            <span class="toggle-slider"></span>
+	          </label>
+	        </div>
+	      </div>
+	      <p style="font-size:12px;color:#8b949e;margin-bottom:12px">
+	        查看每次 LLM 调用的完整收发内容。请求 = 发给 LLM 的全部消息 + 工具定义，响应 = LLM 的返回文本 + 工具调用。
+	        <span id="lm-recording-status" style="color:var(--success)">● 监控中</span>
+	      </p>
+	      <!-- 统计条 -->
+	      <div id="lm-stats-bar" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+	        <div class="lm-stat-box"><span class="lm-stat-num" id="lm-stat-total">0</span><span class="lm-stat-label">总调用</span></div>
+	        <div class="lm-stat-box"><span class="lm-stat-num" id="lm-stat-req-tok">0</span><span class="lm-stat-label">发送 Tokens</span></div>
+	        <div class="lm-stat-box"><span class="lm-stat-num" id="lm-stat-res-tok">0</span><span class="lm-stat-label">接收 Tokens</span></div>
+	        <div class="lm-stat-box"><span class="lm-stat-num" id="lm-stat-avg-ms">0</span><span class="lm-stat-label">平均耗时(ms)</span></div>
+	        <div class="lm-stat-box"><span class="lm-stat-num" id="lm-stat-cost">$0</span><span class="lm-stat-label">估算费用</span></div>
+	      </div>
+	      <!-- 工具栏 -->
+	      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+	        <button class="btn-sm" onclick="lmRefresh()">🔄 刷新</button>
+	        <button class="btn-sm danger" onclick="lmClear()">🗑 清除记录</button>
+	        <span style="font-size:11px;color:var(--text-muted);margin-left:auto">仅保留最近 <strong id="lm-max-records">500</strong> 条</span>
+	      </div>
+	      <!-- 过滤器 -->
+	      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+	        <span style="font-size:11px;color:var(--text-secondary)">筛选：</span>
+	        <select id="lm-source-filter" onchange="lmRefresh()" style="padding:3px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:11px">
+	          <option value="">全部来源</option>
+	          <option value="chat">chat（对话）</option>
+	          <option value="summarize">summarize（摘要）</option>
+	          <option value="tool_calling">tool_calling（工具调用）</option>
+	        </select>
+	        <input type="text" id="lm-search" placeholder="搜索消息内容..." style="padding:3px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:11px;width:160px" oninput="lmDelayedSearch()">
+	      </div>
+	      <!-- 记录列表 -->
+	      <div id="lm-records-list" style="font-size:11px;color:var(--text-muted);text-align:center;padding:40px">加载中...</div>
+	      <!-- 加载更多 -->
+	      <div id="lm-load-more" style="display:none;text-align:center;padding:10px">
+	        <button class="btn-sm" onclick="lmLoadMore()">加载更多</button>
+	      </div>
+	    </div>
+	  </div>
+<!-- 记忆管理视图 -->
       <div id="view-memory" class="view">
         <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
           <div class="memory-subtabs">
             <div class="memory-subtab active" data-memory-tab="memory" onclick="switchMemoryTab('memory')">📋 记忆</div>
             <div class="memory-subtab" data-memory-tab="window" onclick="switchMemoryTab('window')">🪟 窗口活动</div>
+            <div class="memory-subtab" data-memory-tab="vector" onclick="switchMemoryTab('vector')">🧠 向量记忆</div>
           </div>
           <div class="memory-panel active" id="memory-panel-content">
             <div id="memory-overview"></div>
@@ -959,6 +1063,78 @@
             <div class="window-panel-actions">
               <button class="btn-sm" onclick="showWindowConfig()">⚙ 监控参数</button>
               <button class="btn-sm danger" onclick="clearWindowEvents()">清空记录</button>
+            </div>
+          </div>
+          <!-- ═══ 向量记忆面板 ═══ -->
+          <div class="vector-panel" id="vector-panel-content">
+            <!-- 统计卡片 -->
+            <div id="vector-stats" style="display:flex;gap:6px;margin-bottom:10px">
+              <div class="view-card" style="flex:1;text-align:center;padding:8px">
+                <div class="cm-val" id="vector-count" style="font-size:18px;color:#c9d1d9">-</div>
+                <div class="cm-label" style="font-size:9px;color:#8b949e">记忆数</div>
+              </div>
+              <div class="view-card" style="flex:1;text-align:center;padding:8px">
+                <div class="cm-val" id="vector-type" style="font-size:12px;color:#58a6ff">-</div>
+                <div class="cm-label" style="font-size:9px;color:#8b949e">存储类型</div>
+              </div>
+              <div class="view-card" style="flex:1;text-align:center;padding:8px">
+                <div class="cm-val" id="vector-hit-rate" style="font-size:12px;color:#3fb950">-</div>
+                <div class="cm-label" style="font-size:9px;color:#8b949e">缓存命中</div>
+              </div>
+            </div>
+
+            <!-- 搜索区 -->
+            <div style="margin-bottom:10px">
+              <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+                <span style="font-size:11px;color:#8b949e;white-space:nowrap">🔍 语义搜索</span>
+                <input type="text" id="vector-search-input" placeholder="输入搜索内容..." style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:12px;outline:none" onkeydown="if(event.key==='Enter')vectorSearch()">
+                <select id="vector-topk" style="padding:4px 6px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:11px">
+                  <option value="3">3 条</option><option value="5" selected>5 条</option><option value="10">10 条</option><option value="20">20 条</option>
+                </select>
+                <button class="btn-sm primary" onclick="vectorSearch()" style="padding:4px 12px">搜索</button>
+              </div>
+              <div id="vector-search-results" style="font-size:11px;color:#8b949e;min-height:30px">
+                <div class="view-empty">输入关键词开始语义搜索</div>
+              </div>
+            </div>
+
+            <!-- 最近记忆列表 -->
+            <div style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:10px;color:#8b949e;font-weight:bold">📋 最近记忆</span>
+                <span style="font-size:10px;color:#8b949e" id="vector-total-label">共 0 条</span>
+              </div>
+              <div id="vector-recent-list" style="font-size:11px;color:#8b949e">
+                <div class="view-empty">加载中...</div>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="panel-actions" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn-sm primary" onclick="vectorShowAdd()">+ 添加记忆</button>
+              <button class="btn-sm" onclick="vectorShowBatchAdd()">📦 批量导入</button>
+              <button class="btn-sm danger" onclick="vectorClear()">🗑 清空</button>
+            </div>
+
+            <!-- 知识库查询（可折叠） -->
+            <div class="network-section" style="margin-top:10px">
+              <div class="network-section-header skills-toggle-header" onclick="vectorToggleKb(this)">
+                <span class="section-icon">📚</span>
+                <span class="section-title">知识库查询</span>
+                <span class="skills-toggle-icon" style="margin-left:auto">▼</span>
+              </div>
+              <div class="network-section-body skills-body" id="vector-kb-body" style="display:none">
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+                  <input type="text" id="vector-kb-input" placeholder="输入知识库查询问题..." style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:12px;outline:none" onkeydown="if(event.key==='Enter')knowledgeQuery()">
+                  <button class="btn-sm primary" onclick="knowledgeQuery()" style="padding:4px 12px">查询</button>
+                </div>
+                <div id="vector-kb-results" style="font-size:11px;color:#8b949e;min-height:24px">
+                  <div class="view-empty">展开查询知识库</div>
+                </div>
+                <div style="margin-top:6px">
+                  <button class="btn-sm" onclick="knowledgeShowAdd()">+ 添加文档</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="panel-actions" style="margin-top:8px">
@@ -1193,11 +1369,9 @@
                 <input type="checkbox" id="nc-mcp-enabled" onchange="toggleMcpEnabled(this.checked)">
                 <span class="toggle-slider"></span>
               </label>
+              <button class="btn-sm primary" style="margin-left:8px" onclick="showMcpServiceModal()">+ 添加服务</button>
             </div>
             <div class="network-section-body">
-              <div class="panel-actions" style="margin-bottom:12px">
-                <button class="btn-sm primary" onclick="showMcpServiceModal()">+ 添加服务</button>
-              </div>
               <div id="mcp-services-list" class="services-list"></div>
             </div>
           </div>
@@ -2348,6 +2522,102 @@
 
 .pipe-node{cursor:pointer;transition:transform .15s}
 .pipe-node:hover{transform:scale(1.08)}
+
+/* ── 关键词标签 ── */
+.kw-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:10px;background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-primary)}
+.kw-tag:hover{border-color:var(--accent)}
+.kw-text{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kw-edit{cursor:pointer;font-size:9px;color:var(--text-muted);padding:0 2px;opacity:0.5}
+.kw-del{cursor:pointer;font-size:12px;color:var(--danger);padding:0 2px;opacity:0.5;line-height:1}
+.kw-tag:hover .kw-edit,.kw-tag:hover .kw-del{opacity:1}
+
+
+/* ── LLM 通信监控视图 ── */
+.lm-stat-box{display:flex;flex-direction:column;align-items:center;padding:8px 14px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;min-width:80px}
+.lm-stat-num{font-size:16px;font-weight:700;color:var(--accent)}
+.lm-stat-label{font-size:9px;color:var(--text-muted);margin-top:2px}
+.lm-badge{display:inline-block;padding:0 6px;border-radius:3px;font-size:9px;font-weight:600;text-transform:lowercase}
+.lm-badge.chat{background:#1f6feb20;color:#58a6ff}
+.lm-badge.summarize{background:#3fb95020;color:#3fb950}
+.lm-badge.tool_calling{background:#bc8cff20;color:#bc8cff}
+.lm-record{transition:box-shadow .15s}
+.lm-record:hover{box-shadow:0 1px 6px rgba(0,0,0,.3)}
+.lm-record-header{transition:background .1s}
+.lm-record-header:hover{background:var(--bg-hover)}
+.lm-panel{margin:0}
+.lm-panel+.lm-panel{border-top:1px solid var(--border-color)}
+.lm-panel-header{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-tertiary);font-size:11px;color:var(--text-secondary)}
+.lm-panel-title{font-weight:600;color:var(--text-primary)}
+.lm-panel-body{padding:6px 10px;max-height:300px;overflow-y:auto;font-size:11px;line-height:1.5}
+.lm-msg{padding:4px 8px;margin-bottom:4px;border-left:2px solid var(--border-color);background:var(--bg-primary);border-radius:0 4px 4px 0}
+.lm-msg-system{border-left-color:var(--accent)}
+.lm-msg-user{border-left-color:var(--success)}
+.lm-msg-assistant{border-left-color:var(--text-primary)}
+.lm-msg-toolcall{border-left-color:var(--purple)}
+.lm-msg-reasoning{border-left-color:var(--warning)}
+.lm-role{display:inline-block;font-size:9px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;text-transform:lowercase;background:var(--bg-tertiary);padding:0 6px;border-radius:3px}
+.lm-content{word-break:break-word;white-space:pre-wrap}
+
+
+/* ── 身份提示词配置视图 ── */
+#view-system-prompt .sp-display-text {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+#view-system-prompt .sp-token-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+#view-system-prompt .sp-section-detail {
+  transition: opacity 0.15s;
+}
+#view-system-prompt .sp-section-detail[style*="display:none"] {
+  display: none !important;
+}
+#view-system-prompt .sp-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-color);
+  outline: none;
+  cursor: pointer;
+}
+#view-system-prompt .sp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-primary);
+  cursor: pointer;
+}
+#view-system-prompt .sp-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-primary);
+  cursor: pointer;
+}
+#view-system-prompt .sp-savings-bar {
+  background: #1a2332;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+#view-system-prompt .skills-body {
+  display: block;
+}
 </style>
 
 <script>
@@ -2770,9 +3040,7 @@ function refreshExtViews(steps) {
   let needsRefreshMcp = false;
   let needsRefreshChannel = false;
   let needsRefreshPlugin = false;
-  let refreshTimeout = 1500;
 
-  // 遍历 tool_call steps 记录参数
   const callArgs = {};
   for (const step of steps) {
     if (step.type === 'tool_call' && EXT_TOOLS.has(step.tool)) {
@@ -2785,24 +3053,14 @@ function refreshExtViews(steps) {
       else if (extType === 'mcp') needsRefreshMcp = true;
       else if (extType === 'channel') needsRefreshChannel = true;
       else if (extType === 'plugin') needsRefreshPlugin = true;
-      else {
-        // 不知道类型就全部刷新
-        needsRefreshSkills = needsRefreshMcp = needsRefreshChannel = needsRefreshPlugin = true;
-      }
+      else needsRefreshSkills = needsRefreshMcp = needsRefreshChannel = needsRefreshPlugin = true;
     }
   }
 
-  // 延迟执行刷新，等工具步骤渲染完
   setTimeout(() => {
-    if (needsRefreshSkills && typeof loadSkills === 'function') {
-      loadSkills();
-    }
-    if ((needsRefreshMcp || needsRefreshChannel || needsRefreshPlugin) && typeof loadNetworkConfig === 'function') {
-      loadNetworkConfig();
-    }
-    if (needsRefreshMcp && typeof loadMcpServices === 'function') {
-      loadMcpServices();
-    }
+    if (needsRefreshSkills && typeof loadSkills === 'function') loadSkills();
+    if ((needsRefreshMcp || needsRefreshChannel || needsRefreshPlugin) && typeof loadNetworkConfig === 'function') loadNetworkConfig();
+    if (needsRefreshMcp && typeof loadMcpServices === 'function') loadMcpServices();
   }, 1500);
 }
 
@@ -2935,6 +3193,8 @@ async function sendMessage() {
     }
     addMessage(displayText, 'Yunshu', data.mode_label);
     setMascotMood('happy');
+    // 上下文监视器及时刷新
+    if (typeof fetchContextStatus === 'function') fetchContextStatus();
   } catch(e) {
     if (e.name === 'AbortError') {
       // 用户手动中止，不显示错误
@@ -2954,6 +3214,29 @@ async function sendMessage() {
     _abortController = null;
     input.focus();
   }
+}
+
+async function fetchNews() {
+  const btn = document.getElementById('news-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 获取中...';
+  addMessage('📰 正在获取最新国际新闻...', 'Yunshu');
+  try {
+    const r = await fetch('/api/news?max=10', { timeout: 30 });
+    const d = await r.json();
+    if (d.ok) {
+      // 移除最后一条"获取中"消息
+      const msgs = document.getElementById('chat-messages');
+      if (msgs.lastChild) msgs.removeChild(msgs.lastChild);
+      addMessage(d.result, 'Yunshu');
+    } else {
+      addMessage('❌ 新闻获取失败: ' + (d.error || '未知错误'), 'Yunshu');
+    }
+  } catch(e) {
+    addMessage('❌ 新闻服务暂时不可用，请稍后重试', 'Yunshu');
+  }
+  btn.disabled = false;
+  btn.textContent = '📰 新闻';
 }
 
 async function stopChat() {
@@ -2995,6 +3278,8 @@ document.addEventListener('DOMContentLoaded', function() {
       fallbackCopy(text, btn);
     }
   });
+  // 初始化上下文监视器
+  initContextMonitor();
 });
 
 function addMessage(text, role, modeLabel, thinkingMode) {
@@ -3139,140 +3424,15 @@ document.getElementById('chat-input').addEventListener('input', function() {
 <script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/system-prompt.js') }}?v=20260620"></script>
+<script src="{{ url_for('static', filename='js/sidebar/llm-monitor.js') }}?v=20260620"></script>
 <script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260617"></script>
-<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260620"></script>
 <script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260617"></script>
 <script>
 // ═══════════════════════════════════════════════
-// 快捷开关栏
-// ═══════════════════════════════════════════════
-
-let _qtData = [];
-let _qtTab = 'all';
-
-async function loadQuickToggleBar() {
-  try {
-    const data = await app.get('/api/tools/status-batch');
-    _qtData = data;
-    renderQtCollapsed();
-    renderQtList();
-  } catch(e) {
-    document.getElementById('qt-summary-text').textContent = '加载失败';
-  }
-}
-
-function renderQtCollapsed() {
-  const tools = _qtData.filter(i => i.type === 'tool');
-  const skills = _qtData.filter(i => i.type === 'skill');
-  const tEnabled = tools.filter(i => i.enabled).length;
-  const sEnabled = skills.filter(i => i.enabled).length;
-  document.getElementById('qt-summary-text').textContent =
-    `工具 (${tEnabled}/${tools.length} 启用) · 技能 (${sEnabled}/${skills.length} 启用)  — 点击展开`;
-}
-
-let _qtAutoHideTimer = null;
-
-function toggleQuickBar() {
-  const el = document.getElementById('qt-expanded');
-  const collapsed = document.getElementById('qt-collapsed');
-  const isOpen = el.style.display !== 'none';
-  el.style.display = isOpen ? 'none' : 'flex';
-  collapsed.style.display = isOpen ? 'flex' : 'none';
-  if (!isOpen) {
-    loadQuickToggleBar();
-    if (_qtAutoHideTimer) { clearTimeout(_qtAutoHideTimer); _qtAutoHideTimer = null; }
-  }
-}
-
-function autoHideQuickBar() {
-  if (_qtAutoHideTimer) clearTimeout(_qtAutoHideTimer);
-  _qtAutoHideTimer = setTimeout(() => {
-    const el = document.getElementById('qt-expanded');
-    const collapsed = document.getElementById('qt-collapsed');
-    if (el) el.style.display = 'none';
-    if (collapsed) collapsed.style.display = 'flex';
-    _qtAutoHideTimer = null;
-  }, 300);
-}
-
-function switchQtTab(tab) {
-  _qtTab = tab;
-  document.querySelectorAll('.qt-tab').forEach(t => t.classList.toggle('active', t.dataset.qtTab === tab));
-  renderQtList();
-}
-
-function filterQuickBar() {
-  renderQtList();
-}
-
-function renderQtList() {
-  const list = document.getElementById('qt-list');
-  const q = (document.getElementById('qt-search').value || '').toLowerCase().trim();
-  let items = _qtData;
-  if (_qtTab === 'tool') items = items.filter(i => i.type === 'tool');
-  else if (_qtTab === 'skill') items = items.filter(i => i.type === 'skill');
-  if (q) items = items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
-  if (!items.length) {
-    list.innerHTML = '<div class="qt-empty">无匹配项</div>';
-    return;
-  }
-  list.innerHTML = items.map(i => {
-    const typeIcon = i.type === 'tool' ? '🔧' : '🔌';
-    const isEnabled = i.enabled !== false;
-    if (i.type === 'tool') {
-      return `<div class="qt-item">
-        <span class="qt-item-type-icon">${typeIcon}</span>
-        <span class="qt-item-name">${app.escapeHtml(i.name)}</span>
-        <span class="qt-item-desc">${app.escapeHtml(i.description || '')}</span>
-        <label class="toggle-switch">
-          <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="qtToggleTool('${i.name}', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>`;
-    }
-    return `<div class="qt-item">
-      <span class="qt-item-type-icon">${typeIcon}</span>
-      <span class="qt-item-name">${app.escapeHtml(i.name)}</span>
-      <span class="qt-item-desc">${app.escapeHtml(i.description || '')}</span>
-      <label class="toggle-switch">
-        <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="qtToggleSkill('${i.id}')">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>`;
-  }).join('');
-}
-
-async function qtToggleTool(name, enabled) {
-  try {
-    const r = await app.post('/api/tools/toggle', { name, enabled });
-    if (r.ok) {
-      app.showToast(enabled ? `「${name}」已启用` : `「${name}」已禁用`);
-      loadQuickToggleBar();
-    }
-  } catch(e) {
-    app.showToast('操作失败', 'error');
-  }
-}
-
-async function qtToggleSkill(id) {
-  try {
-    const r = await app.post('/api/skills/toggle', { id });
-    if (r.ok) {
-      app.showToast(r.enabled ? '已启用' : '已禁用');
-      loadQuickToggleBar();
-    }
-  } catch(e) {
-    app.showToast('操作失败', 'error');
-  }
-}
-
-// 初始加载快捷开关栏
-loadQuickToggleBar();
-</script>
-<script>
-// ════════════════════════════════════════════════════════════
 // 对话风格配置
 // ════════════════════════════════════════════════════════════
 
@@ -3479,6 +3639,281 @@ function updatePreview() {
 }
 
 // ════════════════════════════════════════════════════════════
+// 上下文监视器 — 聊天区底部
+// ════════════════════════════════════════════════════════════
+
+let _ctxPollTimer = null;
+let _ctxExpanded = false;
+let _ctxDebounceTimer = null;
+
+/** 初始化上下文监视器 */
+function initContextMonitor() {
+  // 每次页面加载默认显示折叠状态（进度条始终可见）
+  try {
+    const saved = JSON.parse(localStorage.getItem('yunshu_ctx_monitor') || '{}');
+    _ctxExpanded = saved.expanded || false;
+  } catch { _ctxExpanded = false; }
+
+  const bar = document.getElementById('context-monitor-bar');
+  if (!bar) return;
+
+  if (_ctxExpanded) {
+    bar.classList.remove('ctx-collapsed');
+    bar.classList.add('ctx-expanded');
+    document.getElementById('ctx-expanded').style.display = 'flex';
+  }
+
+  // 恢复帮助面板状态
+  ctxRestoreHelpState();
+  // 首次拉数据
+  fetchContextStatus();
+  if (_ctxPollTimer) clearInterval(_ctxPollTimer);
+  _ctxPollTimer = setInterval(fetchContextStatus, 3000);
+}
+
+/** 切换展开/折叠 */
+function toggleContextMonitor() {
+  const bar = document.getElementById('context-monitor-bar');
+  if (!bar) return;
+  _ctxExpanded = !_ctxExpanded;
+  const expanded = document.getElementById('ctx-expanded');
+  if (_ctxExpanded) {
+    bar.classList.remove('ctx-collapsed');
+    bar.classList.add('ctx-expanded');
+    expanded.style.display = 'flex';
+    fetchContextStatus();
+  } else {
+    bar.classList.remove('ctx-expanded');
+    bar.classList.add('ctx-collapsed');
+    expanded.style.display = 'none';
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem('yunshu_ctx_monitor') || '{}');
+    saved.expanded = _ctxExpanded;
+    localStorage.setItem('yunshu_ctx_monitor', JSON.stringify(saved));
+  } catch {}
+}
+
+/** 设置窗口大小 */
+function ctxSetSize(mode) {
+  const bar = document.getElementById('context-monitor-bar');
+  if (!bar) return;
+  if (mode === 'close') {
+    // 折叠并记住偏好（不永久隐藏，进度条始终可见）
+    _ctxExpanded = false;
+    const expanded = document.getElementById('ctx-expanded');
+    if (expanded) expanded.style.display = 'none';
+    bar.classList.remove('ctx-expanded');
+    bar.classList.add('ctx-collapsed');
+    try {
+      const saved = JSON.parse(localStorage.getItem('yunshu_ctx_monitor') || '{}');
+      saved.expanded = false;
+      localStorage.setItem('yunshu_ctx_monitor', JSON.stringify(saved));
+    } catch {}
+    return;
+  }
+  if (mode === 'maximize') {
+    if (!_ctxExpanded) toggleContextMonitor();
+    bar.style.maxHeight = '400px';
+    const chatView = document.getElementById('view-chat');
+    if (chatView) {
+      const rect = chatView.getBoundingClientRect();
+      const inputArea = document.getElementById('chat-input-area');
+      if (inputArea) {
+        const inputRect = inputArea.getBoundingClientRect();
+        bar.style.maxHeight = Math.min(inputRect.top - rect.top - 60, 400) + 'px';
+      }
+    }
+  }
+}
+
+/** 获取上下文状态 */
+async function fetchContextStatus() {
+  try {
+    const res = await fetch('/api/context/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    updateContextUI(data);
+  } catch (e) { /* 静默 */ }
+}
+
+/** 更新 UI */
+function updateContextUI(data) {
+  const pct = data.percentage || 0;
+  const limit = data.token_limit || 4096;
+  const total = data.current_tokens || 0;
+  const rounds = data.compress_rounds || 0;
+  const statusLevel = data.status_level || 'ok';
+  const fmtNum = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
+  const fmtPct = pct.toFixed(0);
+  let level = 'safe';
+  if (pct >= 80) level = 'danger';
+  else if (pct >= 60) level = 'warn';
+
+  // ── 状态概览 ──
+  const statusMap = {
+    ok: { dot: '🟢', text: '正常' },
+    info: { dot: '🔵', text: '接近阈值' },
+    warning: { dot: '🟡', text: '接近阈值' },
+    critical: { dot: '🔴', text: '即将溢出' },
+  };
+  const st = statusMap[statusLevel] || statusMap.ok;
+  const s = (id) => document.getElementById(id);
+  const setText = (id, val) => { const el = s(id); if (el) el.textContent = val; };
+
+  setText('ctx-status-dot', st.dot);
+  setText('ctx-status-text', st.text);
+  setText('ctx-status-total-short', fmtNum(total));
+  setText('ctx-status-limit-short', fmtNum(limit));
+
+  // 压缩次数
+  setText('ctx-compress-rounds', rounds);
+  setText('ctx-help-rounds', rounds);
+  setText('ctx-help-version', rounds);
+
+  // 退化状态
+  const degradeEl = s('ctx-help-degrade');
+  if (degradeEl) {
+    if (rounds >= 5) degradeEl.innerHTML = '🔴 退化明显，建议创建新会话';
+    else if (rounds >= 3) degradeEl.innerHTML = '🟡 质量开始下降，准备换会话';
+    else degradeEl.innerHTML = '🟢 质量良好';
+  }
+
+  // 帮助面板中的状态
+  const helpStatus = s('ctx-help-status');
+  if (helpStatus) {
+    if (statusLevel === 'critical') helpStatus.innerHTML = '🔴 即将溢出（>95%）';
+    else if (statusLevel === 'warning') helpStatus.innerHTML = '🟡 接近阈值（>80%）';
+    else if (statusLevel === 'info') helpStatus.innerHTML = '🔵 接近阈值（>60%）';
+    else helpStatus.innerHTML = '🟢 正常（<60%）';
+  }
+
+  // 迷你进度条
+  const fillMini = s('ctx-progress-fill');
+  if (fillMini) {
+    fillMini.style.width = Math.min(pct, 100) + '%';
+    fillMini.className = 'ctx-progress-fill' + (level === 'danger' ? ' ctx-danger' : level === 'warn' ? ' ctx-warn' : '');
+  }
+  setText('ctx-percent', fmtPct + '%');
+  setText('ctx-detail', fmtNum(total) + '/' + fmtNum(limit));
+
+  // 大进度条
+  const fillMain = s('ctx-bar-fill-main');
+  if (fillMain) {
+    fillMain.style.width = Math.min(pct, 100) + '%';
+    fillMain.className = 'ctx-bar-fill ctx-level-' + level;
+  }
+  setText('ctx-usage-pct', fmtPct + '%');
+
+  // 统计
+  setText('ctx-send', fmtNum(data.send_tokens || 0));
+  setText('ctx-recv', fmtNum(data.recv_tokens || 0));
+  setText('ctx-total', fmtNum(total));
+  setText('ctx-msgs-count', data.messages_count || 0);
+
+  // 滑块（未聚焦时同步）
+  const sl = s('ctx-slider-limit');
+  if (sl && !sl.matches(':focus')) { sl.value = limit; s('ctx-slider-limit-val').textContent = limit; }
+  const ss = s('ctx-slider-send');
+  if (ss && !ss.matches(':focus')) { ss.value = data.per_message_send_limit || 2048; s('ctx-slider-send-val').textContent = data.per_message_send_limit || 2048; }
+  const sr = s('ctx-slider-recv');
+  if (sr && !sr.matches(':focus')) { sr.value = data.per_message_recv_limit || 4096; s('ctx-slider-recv-val').textContent = data.per_message_recv_limit || 4096; }
+
+  // 最近消息
+  const msgsList = s('ctx-recent-msgs');
+  if (!msgsList) return;
+  const recent = data.recent_messages || [];
+  if (!recent.length) { msgsList.innerHTML = '<div class="ctx-empty">暂无消息记录</div>'; return; }
+  msgsList.innerHTML = recent.map(msg => {
+    const role = msg.role === 'user' ? '↑ 你' : '↓ 云枢';
+    const rc = msg.role === 'user' ? 'user' : 'assistant';
+    const preview = (msg.content_preview || '').substring(0, 50);
+    return '<div class="ctx-msg-item"><span class="ctx-msg-role ' + rc + '">' + role + '</span><span class="ctx-msg-preview">' + app.escapeHtml(preview) + '</span><span class="ctx-msg-tokens">' + fmtNum(msg.tokens || 0) + '</span></div>';
+  }).join('');
+}
+
+/** 滑块预览 */
+function ctxSliderPreview(input, valId) { document.getElementById(valId).textContent = input.value; }
+
+/** 保存配置（节流） */
+function ctxSaveConfig() {
+  if (_ctxDebounceTimer) clearTimeout(_ctxDebounceTimer);
+  _ctxDebounceTimer = setTimeout(async () => {
+    const limit = parseInt(document.getElementById('ctx-slider-limit').value) || 4096;
+    const send = parseInt(document.getElementById('ctx-slider-send').value) || 2048;
+    const recv = parseInt(document.getElementById('ctx-slider-recv').value) || 4096;
+    try {
+      const res = await fetch('/api/context/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token_limit: limit, per_message_send_limit: send, per_message_recv_limit: recv }),
+      });
+      if (res.ok) fetchContextStatus();
+    } catch (e) { /* 静默 */ }
+  }, 300);
+}
+
+/** 手动压缩 */
+async function manualCompress() {
+  try {
+    const res = await fetch('/api/context/compress', { method: 'POST' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.ok) {
+      showCtxNotice('✅ 压缩完成，释放 ' + (data.freed_tokens || 0) + ' tokens', '#3fb950');
+      fetchContextStatus();
+    }
+  } catch (e) { /* 静默 */ }
+}
+
+/** 重置统计 */
+function resetContextStats() {
+  fetchContextStatus();
+  showCtxNotice('📊 统计已刷新', '#8b949e');
+}
+
+/** 显示临时通知 */
+function showCtxNotice(text, color) {
+  const bar = document.getElementById('context-monitor-bar');
+  if (!bar) return;
+  const notice = document.createElement('div');
+  notice.style.cssText = 'padding:2px 12px;font-size:10px;color:' + color + ';background:#161b22;border-top:1px solid #30363d';
+  notice.textContent = text;
+  bar.parentNode.insertBefore(notice, bar.nextSibling);
+  setTimeout(() => { if (notice.parentNode) notice.remove(); }, 3000);
+}
+
+/** 切换机制说明面板 */
+function ctxToggleHelp() {
+  const content = document.getElementById('ctx-help-content');
+  const arrow = document.getElementById('ctx-help-arrow');
+  if (!content || !arrow) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▶' : '▼';
+  // 持久化偏好
+  try {
+    const saved = JSON.parse(localStorage.getItem('yunshu_ctx_monitor') || '{}');
+    saved.helpOpen = !isOpen;
+    localStorage.setItem('yunshu_ctx_monitor', JSON.stringify(saved));
+  } catch {}
+}
+
+/** 初始化时恢复帮助面板状态 */
+function ctxRestoreHelpState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('yunshu_ctx_monitor') || '{}');
+    if (saved.helpOpen) {
+      const content = document.getElementById('ctx-help-content');
+      const arrow = document.getElementById('ctx-help-arrow');
+      if (content && arrow) {
+        content.style.display = 'block';
+        arrow.textContent = '▼';
+      }
+    }
+  } catch {}
+}
+
+// ════════════════════════════════════════════════════════════
 // 内侧历史问话列表
 // ════════════════════════════════════════════════════════════
 
@@ -3672,6 +4107,8 @@ app.registerView('panorama', { keepAlive: true });
 app.registerView('skills', { load: loadSkills, keepAlive: true });
 app.registerView('tools', { load: loadTools, keepAlive: true });
 app.registerView('personality', { load: loadPersonality, keepAlive: true });
+app.registerView('system-prompt', { load: loadSystemPrompt, keepAlive: true });
+app.registerView('llm-monitor', { load: loadLLMMonitor, keepAlive: true });
 app.registerView('memory', { load: loadMemory, keepAlive: true });
 app.registerView('network', { load: loadNetworkConfig, keepAlive: true });
 app.registerView('logs', { keepAlive: true });

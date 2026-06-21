@@ -130,11 +130,13 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
 
   apiKeys = apiKeys || {};
   searchInstances = searchInstances || __searchInstances || [];
-  // 建立实例 ID -> 实例数据 映射
+  // 建立实例 ID/名称/类型 -> 实例数据 映射（兼容新旧数据格式）
   const instanceMap = {};
   searchInstances.forEach(inst => {
     const eid = inst.id || inst.name;
     if (eid) instanceMap[eid] = inst;
+    if (inst.name && inst.name !== eid) instanceMap[inst.name] = inst;
+    if (inst.engine_type && inst.engine_type !== inst.name) instanceMap[inst.engine_type] = inst;
   });
 
   list.innerHTML = '';
@@ -250,6 +252,7 @@ function stopDrag() {
   }
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
+  __networkConfigDirty = true;
 }
 
 /**
@@ -798,6 +801,7 @@ function renderLlmInstances(instances) {
             <span class="toggle-slider"></span>
           </label>
           <button class="btn-xs" onclick="editLlmInstance('${id}')" title="编辑">✏️</button>
+          <button class="btn-xs" onclick="testLlmInstance('${id}')" title="测试连接">▶</button>
           <button class="btn-xs danger" onclick="deleteLlmInstance('${id}', '${escapeHtml(instance.name)}')" title="删除">🗑</button>
         </div>
       </div>
@@ -1045,6 +1049,29 @@ async function setDefaultLlmInstance(instanceId) {
     }
   } catch (e) {
     alert('操作失败: ' + e.message);
+  }
+}
+
+async function testLlmInstance(instanceId) {
+  const btn = event.target;
+  const origText = btn.textContent;
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    const result = await apiFetch(`/api/llm/instances/${instanceId}/test`, {
+      method: 'POST',
+    });
+    const data = await result.json();
+    if (data.ok) {
+      alert(`✓ 连接成功！\n\n提供商: ${data.provider}\n模型: ${data.model}\n响应时间: ${data.elapsed}秒\n响应: ${data.response || ''}`);
+    } else {
+      alert('✗ 连接失败: ' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('✗ 请求失败: ' + e.message);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
   }
 }
 
@@ -1337,7 +1364,17 @@ async function loadSearchInstances() {
 function refreshPriorityWithInstances() {
   if (!__networkConfigCache) return;
   const priority = __networkConfigCache.search.engine_priority || [];
+
+  // 收集已在 priority 中的所有标识（ID、名称、类型）
   const existingIds = new Set(priority);
+  const seen = new Set(priority);
+
+  // 将名称和类型也计入已存在
+  (__searchInstances || []).forEach(inst => {
+    if (inst.name && seen.has(inst.name)) existingIds.add(inst.id);
+    if (inst.engine_type && seen.has(inst.engine_type)) existingIds.add(inst.id);
+  });
+
   let changed = false;
   (__searchInstances || []).forEach(inst => {
     const eid = inst.id || inst.name;
@@ -1347,6 +1384,7 @@ function refreshPriorityWithInstances() {
       changed = true;
     }
   });
+
   renderSearchEnginePriority(
     priority,
     {},
