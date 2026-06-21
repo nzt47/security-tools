@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_319_20260621122721",
+  "content": "今有什么与中国有关的国际新闻？",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 4,
+    "timestamp": "2026-06-21T04:27:21.525658+00:00"
+  },
+  "created_at": "2026-06-21T12:27:21.525658",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

@@ -182,6 +182,67 @@ def register_routes(app, state):
         _set_tool_state(tool_name, enabled)
         return jsonify({"ok": True, "name": tool_name, "enabled": enabled})
 
+
+    # ═══════════════════════════════════════════════════
+    #  工具分类 & 路由关键词 API
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/tools/categories", methods=["GET"])
+    @log_request(show_response=False)
+    def api_tools_categories():
+        from ..tool_router import get_categorized_tools, get_keywords
+        return jsonify({
+            "categories": get_categorized_tools(),
+            "keywords": get_keywords(),
+        })
+
+    @app.route("/api/tools/keywords", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_tools_keywords_add():
+        data = request.get_json() or {}
+        category = data.get("category", "")
+        keyword = data.get("keyword", "").strip()
+        if not category or not keyword:
+            return jsonify({"ok": False, "error": "缺少 category 或 keyword"}), 400
+        from ..tool_router import add_keyword
+        ok = add_keyword(category, keyword)
+        return jsonify({"ok": ok})
+
+    @app.route("/api/tools/keywords", methods=["DELETE"])
+    @require_token
+    @log_request()
+    def api_tools_keywords_remove():
+        data = request.get_json() or {}
+        category = data.get("category", "")
+        keyword = data.get("keyword", "").strip()
+        if not category or not keyword:
+            return jsonify({"ok": False, "error": "缺少 category 或 keyword"}), 400
+        from ..tool_router import remove_keyword
+        ok = remove_keyword(category, keyword)
+        return jsonify({"ok": ok})
+
+    @app.route("/api/tools/keywords/update", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_tools_keywords_update():
+        data = request.get_json() or {}
+        category = data.get("category", "")
+        old_kw = data.get("old_keyword", "").strip()
+        new_kw = data.get("new_keyword", "").strip()
+        if not category or not old_kw or not new_kw:
+            return jsonify({"ok": False, "error": "缺少必要参数"}), 400
+        from ..tool_router import update_keyword
+        ok = update_keyword(category, old_kw, new_kw)
+        return jsonify({"ok": ok})
+
+    @app.route("/api/tools/keywords/reset", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_tools_keywords_reset():
+        from ..tool_router import reset_keywords
+        ok = reset_keywords()
+        return jsonify({"ok": ok})
     @app.route("/api/tools/status-batch", methods=["GET"])
     @log_request(show_response=False)
     def api_tools_status_batch():

@@ -118,6 +118,8 @@
 .window-panel.active { display: block; }
 .memory-panel { display: none; }
 .memory-panel.active { display: block; }
+.vector-panel { display: none; }
+.vector-panel.active { display: block; }
 
 /* ── 窗口监控 ── */
 .window-status-bar {

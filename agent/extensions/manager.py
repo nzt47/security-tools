@@ -49,6 +49,10 @@ class ExtensionManager:
         # 类型安装器
         self._installers: Dict[ExtensionType, Any] = {}
 
+        # 工具注册回调（由数字生命设置，用于插件自动注册工具）
+        self._tool_register_fn = None
+        self._tool_unregister_fn = None
+
     def _get_installer(self, ext_type: ExtensionType):
         """获取或创建指定类型的安装器"""
         if ext_type not in self._installers:
@@ -60,7 +64,11 @@ class ExtensionManager:
             elif ext_type == ExtensionType.CHANNEL:
                 self._installers[ext_type] = ChannelInstaller(self._store)
             elif ext_type == ExtensionType.PLUGIN:
-                self._installers[ext_type] = PluginInstaller(self._store)
+                self._installers[ext_type] = PluginInstaller(
+                    self._store,
+                    tool_register_fn=self._tool_register_fn,
+                    tool_unregister_fn=self._tool_unregister_fn,
+                )
 
         return self._installers[ext_type]
 
@@ -310,6 +318,28 @@ class ExtensionManager:
         channel_inst = self._get_installer(ExtensionType.CHANNEL)
         success, msg = channel_inst.send_message(channel_id, message, **kwargs)
         return {"ok": success, "message": msg}
+
+    # ════════════════════════════════════════════════════════════
+    # 工具注册表桥接
+    # ════════════════════════════════════════════════════════════
+
+    def connect_tool_registry(self, register_fn, unregister_fn):
+        """连接工具注册表，使插件安装/卸载时自动注册/注销工具
+
+        Args:
+            register_fn: 注册回调
+                signature: (name, description, handler, schema, source, source_id)
+            unregister_fn: 注销回调
+                signature: (source, source_id)
+        """
+        self._tool_register_fn = register_fn
+        self._tool_unregister_fn = unregister_fn
+        # 如果 PluginInstaller 已创建，立即传递回调
+        plugin_inst = self._installers.get(ExtensionType.PLUGIN)
+        if plugin_inst:
+            plugin_inst._tool_register_fn = register_fn
+            plugin_inst._tool_unregister_fn = unregister_fn
+        logger.info("[扩展管理器] 工具注册表已连接")
 
     # ════════════════════════════════════════════════════════════
     # 生命周期

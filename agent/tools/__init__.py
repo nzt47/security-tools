@@ -29,6 +29,16 @@ _get_tool_defs_cache: dict = {"version": -1, "data": None}
 # ── Task 3.4: 工具健康追踪 ──
 _tool_health: dict[str, dict] = {}
 
+# 工具来源枚举
+SOURCE_BUILTIN = "builtin"    # 内置工具（8 个模块注册）
+SOURCE_PLUGIN = "plugin"      # 插件系统提供
+SOURCE_MCP = "mcp"           # MCP 服务提供
+SOURCE_GENERATED = "generated"  # LLM 自生成
+SOURCE_MARKET = "market"     # 从扩展市场安装
+
+# 可选：工具发现服务实例（由 DigitalLife 通过 set_discovery_service 设置）
+_discovery_service = None
+
 
 class ToolError(Exception):
     """工具执行异常"""
@@ -87,6 +97,55 @@ def unregister(name: str):
         logger.info(f"工具注销: {name}")
 
 
+def register_dynamic(name: str, description: str = "",
+                     handler: Callable = None, schema: dict | None = None,
+                     source: str = "dynamic", source_id: str | None = None) -> Callable:
+    """注册动态获取的工具到全局注册表（带来源元数据）
+
+    与 register() 的区别在于记录来源信息，支持后续按来源批量管理。
+    若名称与已有工具冲突，自动添加数字后缀。
+
+    Args:
+        name: 工具名称
+        description: 工具描述
+        handler: 处理函数
+        schema: JSON Schema
+        source: 来源（SOURCE_BUILTIN / SOURCE_PLUGIN / SOURCE_MCP /
+                SOURCE_GENERATED / SOURCE_MARKET）
+        source_id: 来源标识符（如插件 ID）
+
+    Returns:
+        实际注册的处理函数（名称冲突时可能有别名）
+    """
+    global _registry_version
+
+    # 处理名称冲突：如果已存在，加数字后缀
+    final_name = name
+    suffix = 1
+    while final_name in _registry:
+        suffix += 1
+        final_name = f"{name}_{suffix}"
+
+    if final_name != name:
+        logger.warning(f"工具 '{name}' 已存在，以 '{final_name}' 注册")
+
+    entry = {
+        "name": final_name,
+        "description": description,
+        "handler": handler,
+        "source": source,
+        "source_id": source_id,
+        "dynamic": source != SOURCE_BUILTIN,
+        "registered_at": time.time(),
+    }
+    if schema:
+        entry["schema"] = schema
+    _registry[final_name] = entry
+    _registry_version += 1
+    logger.info(f"动态工具注册: {final_name} (来源: {source}, ID: {source_id})")
+    return handler
+
+
 def set_action_tracker(tracker):
     """设置操作追踪器（可选），用于记录工具调用历史
 
@@ -95,6 +154,18 @@ def set_action_tracker(tracker):
     """
     global _action_tracker
     _action_tracker = tracker
+
+
+def set_discovery_service(service):
+    """设置工具发现服务实例
+
+    由 DigitalLife 在初始化时设置，用于 call() 中找不到工具时自动触发发现流程。
+
+    Args:
+        service: ToolDiscoveryService 实例，或 None 以清除
+    """
+    global _discovery_service
+    _discovery_service = service
 
 
 def _update_health(name: str, ok: bool, duration: float):
@@ -225,6 +296,48 @@ def list_tools() -> list[dict]:
             ],
         }
     return _list_tools_cache["data"]
+
+
+def list_tools_by_source(source: str) -> list[dict]:
+    """按来源列出工具
+
+    Args:
+        source: 来源标识（如 SOURCE_PLUGIN）
+
+    Returns:
+        匹配的工具列表
+    """
+    return [
+        {"name": t["name"], "description": t["description"]}
+        for t in _registry.values()
+        if t.get("source") == source
+    ]
+
+
+def unregister_by_source(source: str, source_id: str | None = None) -> int:
+    """按来源注销工具组
+
+    用于插件卸载/MCP 断连时批量清理。
+
+    Args:
+        source: 来源标识
+        source_id: 来源标识符（可选，指定则只注销特定来源实例的工具）
+
+    Returns:
+        注销的工具数量
+    """
+    global _registry_version
+    to_remove = [
+        name for name, t in _registry.items()
+        if t.get("source") == source
+        and (source_id is None or t.get("source_id") == source_id)
+    ]
+    for name in to_remove:
+        del _registry[name]
+    if to_remove:
+        _registry_version += 1
+        logger.info(f"按来源注销 {len(to_remove)} 个工具: source={source}, source_id={source_id}")
+    return len(to_remove)
 
 
 def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:

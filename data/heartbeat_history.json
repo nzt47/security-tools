@@ -1,12 +1,12 @@
 {
   "latest": {
-    "timestamp": "2026-06-19T01:35:53.339696",
+    "timestamp": "2026-06-20T13:32:14.349898",
     "status": "healthy",
     "checks": {
       "system": {
         "status": "ok",
         "cpu": 0.0,
-        "memory": 78.9
+        "memory": 62.3
       },
       "llm": {
         "status": "ok",
@@ -25,7 +25,7 @@
       },
       "threads": {
         "status": "ok",
-        "total": 12,
+        "total": 11,
         "alive": [
           "task-scheduler"
         ]
@@ -192,6 +192,13 @@
       "status": "healthy",
       "cpu": 0.0,
       "memory": 78.9,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-20T13:32:14.349898",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 62.3,
       "llm_latency_ms": 0
     }
   ]

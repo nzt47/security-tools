@@ -23,6 +23,10 @@ import secrets
 import concurrent.futures
 import time
 import sys
+import urllib.request as _ur
+import urllib.parse as _up
+import json as _js
+import requests as _http  # 注意：Flask 的 request 对象会覆盖 requests 模块，用 _http 别名
 
 # 修复 Windows 控制台编码，避免中文日志乱码
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -65,12 +69,20 @@ from agent.system_tools import (
 )
 from agent.web import HttpClient, Scraper, SearchEngine, DataProcessor, CrawlerController, BrowserAgent
 from agent.session_manager import SessionManager
+from agent.log_system.dashboard import register_log_system
 
 logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
+
+# 注册日志系统蓝图（/logs/dashboard 页面 + REST API）
+try:
+    register_log_system(app)
+    logger.info("[启动] 日志系统仪表盘与 API 路由已注册")
+except Exception as e:
+    logger.warning(f"[启动] 日志系统注册失败: {e}")
 
 # ════════════════════════════════════════════════════════════
 # Prometheus 监控初始化
@@ -436,6 +448,9 @@ _web_search.set_http_client(_web_http)
 _web_processor = DataProcessor()
 _web_crawler = CrawlerController({"default_delay": 1.0})
 logger.info("Web 工具模块已初始化")
+
+# 让 DigitalLife 复用全局搜索引擎（避免延迟初始化后缺少搜索实例注册）
+_Yunshu._web_search = _web_search
 
 # 告警通知回调：将告警存入内存队列供前端轮询
 _alert_queue = []  # 最多保留 100 条
@@ -874,6 +889,20 @@ def api_chat():
         print(log)
     print("="*80 + "\n")
 
+    # 计算本次消息的 token 用量
+    _ctx_counter = _get_token_counter()
+    _input_tokens = _ctx_counter.count(user_input)
+    _output_tokens = _ctx_counter.count(response)
+
+    # 计算会话累计 token（快速估算，仅统计 content 字段）
+    _session_id_ctx = _get_current_session_id()
+    _all_msgs = _session_mgr.get_messages(_session_id_ctx, limit=0)
+    _session_total = sum(
+        _ctx_counter.count((m.get("content") or ""))
+        for m in _all_msgs
+    )
+    _token_limit = _cfg.get("memory", "token_limit", default=4096)
+
     return jsonify({
         "response": response,
         "mode": _Yunshu.get_behavior_mode().value,
@@ -890,7 +919,94 @@ def api_chat():
             "voice_synthesis": voice_time,
         },
         "voice_result": voice_result,
+        "context": {
+            "input_tokens": _input_tokens,
+            "output_tokens": _output_tokens,
+            "session_total_tokens": _session_total,
+            "token_limit": _token_limit,
+            "percentage": round(_session_total / _token_limit * 100, 1) if _token_limit > 0 else 0,
+        },
     })
+
+
+_DS_KEY = "sk-ddf2d09a74fc4c9fafb89a906f0f45a3"
+_DS_URL = "https://api.deepseek.com/chat/completions"
+
+
+@app.route("/api/news", methods=["GET"])
+def api_news():
+    """新闻直通接口 — 搜索+翻译+格式化，绕过 LLM"""
+    import time as _time
+    topic = request.args.get("topic", "")
+    max_results = min(int(request.args.get("max", 8)), 15)
+
+    try:
+        _searcher = _Yunshu._get_web_search()
+        if not _searcher:
+            return jsonify({"ok": False, "error": "搜索引擎不可用"})
+
+        queries = ["latest world news today", "international breaking news"]
+        if topic:
+            queries = [f"latest {topic} news", f"{topic} today"]
+
+        all_results = []
+        seen = set()
+        # 通过 SearchEngine 搜索获取新闻标题和摘要
+        for q in queries:
+            try:
+                res = _searcher.search(q, num_results=max_results, timeout=12)
+                if res and isinstance(res, dict) and res.get("ok") and res.get("results"):
+                    for item in res["results"]:
+                        url = (item.get("url") or "").strip()
+                        if url and url not in seen:
+                            seen.add(url)
+                            all_results.append({
+                                "title": (item.get("title") or "").strip(),
+                                "url": url,
+                                "source": _guess_source(url),
+                                "content": (item.get("content") or item.get("snippet", "") or "").strip(),
+                            })
+            except Exception:
+                pass
+            if len(all_results) >= max_results:
+                break
+
+        if not all_results:
+            return jsonify({"ok": True, "result": f"已获取到以下信息：\n  - 当前暂无搜索结果\n  - 时间: {_time.strftime('%Y-%m-%d %H:%M UTC')}", "count": 0})
+
+        # 排序：权威媒体优先
+        _PREFERRED = ["bbc.com", "cnn.com", "reuters.com", "apnews.com",
+                       "theguardian.com", "nytimes.com", "wsj.com"]
+        all_results.sort(key=lambda x: next((i for i, d in enumerate(_PREFERRED) if d in x["url"].lower()), len(_PREFERRED)))
+        all_results = all_results[:max_results]
+
+        now = _time.strftime("%Y-%m-%d %H:%M UTC")
+        lines = [f"已获取到以下信息：", f"  - 找到 {len(all_results)} 条结果:"]
+        for i, item in enumerate(all_results, 1):
+            _detail = item.get("content", "")[:600]
+            lines.append(f"")
+            lines.append(f"...{i}. **{item['title']}**")
+            lines.append(f"   - 来源: {item['source']}")
+            lines.append(f"   - 时间: {now}")
+            lines.append(f"   - 详情: {_detail}")
+            lines.append(f"   - 链接: {item['url']}")
+
+        return jsonify({"ok": True, "result": "\n".join(lines), "count": len(all_results)})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+def _guess_source(url):
+    url = url.lower()
+    sources = {"bbc.com":"BBC","cnn.com":"CNN","reuters.com":"Reuters","apnews.com":"AP News",
+               "theguardian.com":"The Guardian","nytimes.com":"New York Times","wsj.com":"WSJ",
+               "bloomberg.com":"Bloomberg","aljazeera.com":"Al Jazeera","npr.org":"NPR",
+               "foxnews.com":"Fox News","economist.com":"The Economist","sohu.com":"搜狐",
+               "sina.com":"新浪","163.com":"网易","thepaper.cn":"澎湃","xinhuanet.com":"新华网"}
+    for k, v in sources.items():
+        if k in url: return v
+    return "新闻媒体"
 
 
 # ════════════════════════════════════════════════════════════
@@ -1050,6 +1166,144 @@ def api_config():
         _session_mgr.clear_messages(_get_current_session_id())
         _CHAT_HISTORY.clear()
     return jsonify(result)
+
+
+# ════════════════════════════════════════════════════════════
+#  上下文监视器 API
+# ════════════════════════════════════════════════════════════
+
+_token_counter_imported = None
+def _get_token_counter():
+    global _token_counter_imported
+    if _token_counter_imported is None:
+        from memory.token_counter import TokenCounter
+        _token_counter_imported = TokenCounter()
+    return _token_counter_imported
+
+
+@app.route("/api/context/status")
+@log_request(show_response=False)
+def api_context_status():
+    """获取当前上下文使用状态"""
+    session_id = _get_current_session_id()
+    messages = _session_mgr.get_messages(session_id, limit=0)  # 全部消息
+
+    counter = _get_token_counter()
+    send_tokens = 0
+    recv_tokens = 0
+    recent = []
+
+    for msg in messages:
+        content = msg.get("content", "") or ""
+        tokens = counter.count(content)
+        role = msg.get("role", "")
+        if role == "user":
+            send_tokens += tokens
+        elif role == "assistant":
+            recv_tokens += tokens
+        recent.append({
+            "role": role,
+            "tokens": tokens,
+            "content_preview": content[:60],
+        })
+
+    # 只保留最近 10 条用于展示
+    recent = recent[-10:]
+
+    total = send_tokens + recv_tokens
+    limit = _cfg.get("memory", "token_limit", default=4096)
+    pct = round(total / limit * 100, 1) if limit > 0 else 0
+
+    # 压缩次数
+    compress_rounds = 0
+    try:
+        compress_rounds = getattr(_Yunshu._memory, 'compress_rounds', 0)
+        if callable(compress_rounds):
+            compress_rounds = compress_rounds()
+    except Exception:
+        pass
+
+    # 上下文状态级别
+    compress_warn = compress_rounds >= 3
+    compress_crit = compress_rounds >= 5
+    pct_warn = pct >= 80 or pct >= 60
+    pct_crit = pct >= 95
+    if pct_crit or compress_crit:
+        status_level = "critical"
+    elif pct >= 80 or compress_warn:
+        status_level = "warning"
+    elif pct >= 60:
+        status_level = "info"
+    else:
+        status_level = "ok"
+
+    return jsonify({
+        "current_tokens": total,
+        "token_limit": limit,
+        "percentage": pct,
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=2048),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=4096),
+        "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
+        "compress_rounds": compress_rounds,
+        "status_level": status_level,
+        "send_tokens": send_tokens,
+        "recv_tokens": recv_tokens,
+        "messages_count": len(messages),
+        "recent_messages": recent,
+    })
+
+
+@app.route("/api/context/config", methods=["POST"])
+@require_token
+def api_context_config():
+    """更新上下文控制参数"""
+    data = request.get_json() or {}
+    changed = []
+
+    if "token_limit" in data:
+        val = int(data["token_limit"])
+        val = max(512, min(32768, val))
+        _cfg.set(val, "memory", "token_limit")
+        changed.append("token_limit")
+
+    if "per_message_send_limit" in data:
+        val = int(data["per_message_send_limit"])
+        val = max(0, min(32768, val))
+        _cfg.set(val, "memory", "per_message_send_limit")
+        changed.append("per_message_send_limit")
+
+    if "per_message_recv_limit" in data:
+        val = int(data["per_message_recv_limit"])
+        val = max(0, min(32768, val))
+        _cfg.set(val, "memory", "per_message_recv_limit")
+        changed.append("per_message_recv_limit")
+
+    if changed:
+        logger.info(f"上下文配置已更新: {', '.join(changed)}")
+
+    return jsonify({
+        "ok": True,
+        "changed": changed,
+        "token_limit": _cfg.get("memory", "token_limit", default=4096),
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=2048),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=4096),
+    })
+
+
+@app.route("/api/context/compress", methods=["POST"])
+@require_token
+def api_context_compress():
+    """手动触发上下文压缩"""
+    try:
+        result = _Yunshu._memory.compress()
+        return jsonify({
+            "ok": True,
+            "freed_tokens": result.get("freed", 0),
+            "current_tokens": result.get("current", 0),
+        })
+    except Exception as e:
+        logger.warning(f"手动压缩失败: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -1338,6 +1592,117 @@ def api_personality_reset():
 
 
 # ════════════════════════════════════════════════════════════
+#  系统身份提示词 API
+# ════════════════════════════════════════════════════════════
+
+from agent.system_prompt_manager import get_template, save_template, reset_template, has_custom_template, get_placeholder_descriptions, DEFAULT_TEMPLATE
+
+@app.route("/api/system-prompt", methods=["GET"])
+@log_request(show_response=False)
+def api_system_prompt_get():
+    """获取系统提示词模板及预览信息"""
+    template = get_template()
+    placeholders = get_placeholder_descriptions()
+
+    # 生成预览：尝试代入示例值
+    try:
+        preview = template.format(
+            current_date=datetime.datetime.now().strftime("%Y年%m月%d日"),
+            body_status="🟢 CPU: 32°C | 内存: 45% | 磁盘: 128G/512G | 电池: 充电中",
+            mode_name="对话",
+            mode_description="日常交流模式",
+            memory_context="（暂无记忆内容）",
+            tool_status="web_search: 启用 | file_read: 启用 | ...",
+            skill_instructions="",
+        )
+    except KeyError:
+        preview = "（模板包含未知占位符，请检查语法）"
+    except Exception as e:
+        preview = f"（渲染错误: {e}）"
+
+    return jsonify({
+        "template": template,
+        "is_custom": has_custom_template(),
+        "is_default": not has_custom_template(),
+        "placeholders": placeholders,
+        "preview": preview,
+    })
+
+
+@app.route("/api/system-prompt", methods=["POST"])
+@require_token
+@log_request()
+def api_system_prompt_save():
+    """保存自定义系统提示词模板"""
+    data = request.get_json() or {}
+    content = data.get("content", "")
+
+    if not content or not content.strip():
+        return jsonify({"ok": False, "error": "内容不能为空"}), 400
+
+    # 验证占位符正确性
+    try:
+        content.format(
+            current_date="测试",
+            body_status="测试",
+            mode_name="测试",
+            mode_description="测试",
+            memory_context="测试",
+            tool_status="测试",
+            skill_instructions="",
+        )
+    except KeyError as e:
+        return jsonify({
+            "ok": False,
+            "error": f"模板中包含未知占位符: {e}。可用占位符: {', '.join(get_placeholder_descriptions().keys())}"
+        }), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"模板语法错误: {e}"}), 400
+
+    success = save_template(content)
+    if success:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": "保存失败"}), 500
+
+
+@app.route("/api/system-prompt/reset", methods=["POST"])
+@require_token
+@log_request()
+def api_system_prompt_reset():
+    """重置系统提示词为默认"""
+    success = reset_template()
+    if success:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": "重置失败"}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  系统提示词配置管理（组件级开关 + 参数配置）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_system_prompt import register_routes as reg_system_prompt_config
+    reg_system_prompt_config(app, lambda: None)  # state 不需要，用 lambda 代替
+except Exception as e:
+    logger.error("加载系统提示词配置路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  LLM 通信监控（收发看板）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_llm_monitor import register_routes as reg_llm_monitor
+    reg_llm_monitor(app, lambda: None)
+    # 安装 LLM 调用拦截钩子
+    from agent.llm_monitor import install_hooks
+    install_hooks()
+    logger.info("LLM 通信监控已启动")
+except Exception as e:
+    logger.error("加载 LLM 监控路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 
@@ -1522,6 +1887,14 @@ try:
     _network_config_mgr = NetworkConfigManager(secure_manager=_get_secure_manager())
 except Exception:
     _network_config_mgr = NetworkConfigManager()
+
+# ── 启动时自动将搜索实例注册到全局搜索引擎 ──
+try:
+    _network_config_mgr.apply_search_instances(_web_search)
+    _Yunshu._web_search = _web_search
+    logger.info("[启动] 搜索实例已自动注册到全局搜索引擎")
+except Exception as e:
+    logger.warning("[启动] 搜索实例注册失败（可在网络配置面板手动应用）: %s", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1815,6 +2188,11 @@ def api_apply_network_config():
                 update_config[f'{key_name}_api_key' if key_name != 'google_cx' else 'google_cx'] = search_api_keys[key_name]
         
         _web_search.update_config(update_config)
+
+        # 注册搜索实例到全局引擎
+        _network_config_mgr.apply_search_instances(_web_search)
+        # 同步 DigitalLife 的搜索引擎实例
+        _Yunshu._web_search = _web_search
         logger.info("[网络配置] 已同时应用到全局搜索引擎实例")
         
         # 返回搜索引擎配置状态供前端验证
@@ -1925,6 +2303,54 @@ def api_llm_instance_set_default(instance_id):
             return jsonify({"ok": True, "message": "已设置为默认实例"})
         return jsonify({"ok": False, "error": "操作失败"}), 500
     except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/llm/instances/<string:instance_id>/test", methods=["POST"])
+@require_token
+@log_request()
+def api_llm_instance_test(instance_id):
+    """测试 LLM 实例连接"""
+    try:
+        config = _network_config_mgr.get_raw_config()
+        inst = next((i for i in config.get('llm_instances', []) if i.get('id') == instance_id), None)
+        if not inst:
+            return jsonify({"ok": False, "error": "实例不存在"}), 404
+
+        provider = inst.get('provider', 'openai')
+        api_key = inst.get('api_key', '')
+        model = inst.get('model', 'gpt-4')
+        base_url = inst.get('api_endpoint', '') or None
+        timeout = inst.get('timeout', 30)
+
+        if not api_key:
+            return jsonify({"ok": False, "error": "API Key 未配置"})
+
+        try:
+            from memory.llm_service import LLMService
+            llm = LLMService(
+                provider=provider, api_key=api_key,
+                model=model, base_url=base_url,
+                timeout=timeout,
+            )
+            import time
+            t0 = time.time()
+            resp = llm.chat(
+                messages=[{"role": "user", "content": "回复'OK'"}],
+                max_tokens=10, temperature=0.1,
+            )
+            elapsed = round(time.time() - t0, 2)
+            return jsonify({
+                "ok": True,
+                "elapsed": elapsed,
+                "model": model,
+                "provider": provider,
+                "response": (resp or '')[:100],
+            })
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"连接失败: {e}"})
+    except Exception as e:
+        logger.error("[LLM 实例] 测试失败: %s", e, exc_info=True)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2246,6 +2672,69 @@ def api_tools_toggle():
     _set_tool_state(tool_name, enabled)
     return jsonify({"ok": True, "name": tool_name, "enabled": enabled})
 
+
+# ════════════════════════════════════════════════════════════
+#  工具分类 & 路由关键词 API
+# ════════════════════════════════════════════════════════════
+
+@app.route("/api/tools/categories", methods=["GET"])
+@log_request(show_response=False)
+def api_tools_categories():
+    from agent.tool_router import get_categorized_tools, get_keywords
+    return jsonify({
+        "categories": get_categorized_tools(),
+        "keywords": get_keywords(),
+    })
+
+@app.route("/api/tools/keywords", methods=["POST"])
+@require_token
+@log_request()
+def api_tools_keywords_add():
+    data = request.get_json() or {}
+    category = data.get("category", "")
+    keyword = data.get("keyword", "").strip()
+    if not category or not keyword:
+        return jsonify({"ok": False, "error": "缺少 category 或 keyword"}), 400
+    from agent.tool_router import add_keyword
+    ok = add_keyword(category, keyword)
+    return jsonify({"ok": ok})
+
+@app.route("/api/tools/keywords", methods=["DELETE"])
+@require_token
+@log_request()
+def api_tools_keywords_remove():
+    data = request.get_json() or {}
+    category = data.get("category", "")
+    keyword = data.get("keyword", "").strip()
+    if not category or not keyword:
+        return jsonify({"ok": False, "error": "缺少 category 或 keyword"}), 400
+    from agent.tool_router import remove_keyword
+    ok = remove_keyword(category, keyword)
+    return jsonify({"ok": ok})
+
+@app.route("/api/tools/keywords/update", methods=["POST"])
+@require_token
+@log_request()
+def api_tools_keywords_update():
+    data = request.get_json() or {}
+    category = data.get("category", "")
+    old_kw = data.get("old_keyword", "").strip()
+    new_kw = data.get("new_keyword", "").strip()
+    if not category or not old_kw or not new_kw:
+        return jsonify({"ok": False, "error": "缺少必要参数"}), 400
+    from agent.tool_router import update_keyword
+    ok = update_keyword(category, old_kw, new_kw)
+    return jsonify({"ok": ok})
+
+@app.route("/api/tools/keywords/reset", methods=["POST"])
+@require_token
+@log_request()
+def api_tools_keywords_reset():
+    from agent.tool_router import reset_keywords
+    ok = reset_keywords()
+    return jsonify({"ok": ok})
+
+
 @app.route("/api/tools/health")
 @log_request(show_response=False)
 def api_tools_health():
@@ -2403,6 +2892,35 @@ def api_memory_delete_index(index):
     """删除指定索引的记忆"""
     # 标记删除操作已接收（简化实现）
     return jsonify({"ok": True})
+
+
+@app.route("/api/memory/clear-summary", methods=["POST"])
+@require_token
+@log_request()
+def api_memory_clear_summary():
+    """清空长期摘要"""
+    try:
+        _Yunshu._memory.clear_summary()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/memory/summary", methods=["PUT"])
+@require_token
+@log_request()
+def api_memory_update_summary():
+    """更新长期摘要内容"""
+    data = request.get_json() or {}
+    summary = data.get("summary", "").strip()
+    try:
+        old = _Yunshu._memory.load_summary()
+        version = old[1] if old else 0
+        _Yunshu._memory._storage.save_summary(summary, version + 1)
+        _Yunshu._memory._black_box.log("summary_updated", {"version": version + 1, "length": len(summary)})
+        return jsonify({"ok": True, "version": version + 1})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -4052,5 +4570,7 @@ if __name__ == "__main__":
         print(f"[启动] 搜索引擎性能监控启动失败: {e}")
     
     webbrowser.open("http://127.0.0.1:5678")
-    # Windows 使用 threaded=True 启用多线程处理并发
-    app.run(host="127.0.0.1", port=5678, debug=False, threaded=True)
+    # 使用 Waitress 生产级 WSGI 服务器（替代 Flask 内置开发服务器）
+    # 多线程 + 纯 Python，Windows 原生兼容
+    from waitress import serve
+    serve(app, host="127.0.0.1", port=5678, threads=8)

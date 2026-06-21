@@ -3,8 +3,8 @@
     {
       "ext_id": "self_reflection",
       "ext_type": "skill",
-      "name": "自省反思",
-      "description": "每次交互后自动反思自身状态，不断成长",
+      "name": "self_reflection",
+      "description": "",
       "status": "enabled",
       "source": "builtin"
     },
@@ -53,7 +53,7 @@
       "ext_type": "skill",
       "name": "语音交互",
       "description": "通过语音与用户进行交互",
-      "status": "enabled",
+      "status": "disabled",
       "source": "builtin"
     }
   ],
