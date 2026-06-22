@@ -1,0 +1,33 @@
+# 记忆提供商路由配置
+default_provider: holographic
+
+providers:
+  holographic:
+    enabled: true
+    type: local
+    db_path: ./data/memory.db
+
+  mem0:
+    enabled: true
+    type: cloud
+    # api_key: 从环境变量 MEM0_API_KEY 读取
+
+  hindsight:
+    enabled: false
+    type: cloud
+
+  honcho:
+    enabled: false
+    type: cloud
+
+  openviking:
+    enabled: false
+    type: cloud
+
+  retaindb:
+    enabled: false
+    type: cloud
+
+  supermemory:
+    enabled: false
+    type: cloud
