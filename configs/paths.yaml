@@ -1,0 +1,17 @@
+# 路径与权限配置
+workspace:
+  root: ./workspace
+  allowed_parents:
+    - "."
+    - ./agent
+    - ./data
+
+protected_paths:
+  - /etc
+  - /boot
+  - /proc
+  - /sys
+  - C:\Windows
+  - C:\Program Files
+
+temp_dir: ./cache/tmp
