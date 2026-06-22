@@ -27,48 +27,12 @@ import logging
 import threading
 from typing import Optional, Dict, Any
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from agent.caching.multi_level_cache import MultiLevelCache
+
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class CacheEntry:
-    """缓存条目 - 支持 LFU-K 混合淘汰策略"""
-    prompt_hash: str
-    response: str
-    timestamp: float
-    ttl_seconds: int
-    hit_count: int = 0
-    generation_time_ms: float = 0.0
-    last_access_time: float = field(default_factory=time.time)
-    frequency_score: float = 0.0  # 综合评分：考虑访问次数和访问时间
-
-    def is_expired(self) -> bool:
-        """检查是否过期"""
-        return time.time() - self.timestamp > self.ttl_seconds
-
-    def update_access(self, lru_weight: float = 0.3, freq_weight: float = 0.7):
-        """更新访问状态和综合评分
-        
-        Args:
-            lru_weight: LRU 权重 (时间衰减因子)
-            freq_weight: 频率权重 (访问次数因子)
-        """
-        self.hit_count += 1
-        current_time = time.time()
-        time_diff = current_time - self.last_access_time
-        
-        # 更新时间差，避免除零
-        time_factor = 1.0 / (1.0 + time_diff)
-        
-        # 综合评分 = 频率分数 * 频率权重 + 时间分数 * LRU权重
-        self.frequency_score = (
-            self.hit_count * freq_weight + 
-            time_factor * lru_weight * 100
-        )
-        self.last_access_time = current_time
 
 
 @dataclass
@@ -87,7 +51,7 @@ class LLMResponseCache:
     """LLM 响应缓存
 
     特性：
-    - LRU 淘汰策略
+    - LRU 淘汰策略（基于 MultiLevelCache）
     - TTL 过期机制
     - 按提示词类型分类（问候语、状态查询、帮助请求）
     - 详细的性能统计
@@ -103,8 +67,12 @@ class LLMResponseCache:
         """
         self.max_size = max_size
         self.default_ttl = ttl_seconds
-        self.cache: OrderedDict[str, CacheEntry] = OrderedDict()
+        # 使用 MultiLevelCache 作为底层存储（仅 L1 内存层）
+        self._cache = MultiLevelCache(l1_max_size=max_size, l1_ttl=ttl_seconds, l2_enabled=False)
         self._lock = threading.Lock()
+
+        # 用于区分"键不存在"和"键已过期/被淘汰"的追踪集合
+        self._known_hashes: set = set()
 
         # 统计信息
         self.total_hits = 0
@@ -122,44 +90,7 @@ class LLMResponseCache:
     @property
     def cache_size(self) -> int:
         """获取当前缓存大小"""
-        with self._lock:
-            return len(self.cache)
-
-    def _select_eviction_candidate(self) -> str:
-        """使用 LFU-K 混合淘汰策略选择要淘汰的缓存条目
-        
-        综合考虑：
-        1. 访问频率（hit_count）- 频率越高越重要
-        2. 最后访问时间（last_access_time）- 时间越久越可能被淘汰
-        3. 综合评分（frequency_score）- 综合指标
-        
-        Returns:
-            要淘汰的缓存键
-        """
-        candidates = list(self.cache.keys())
-        if not candidates:
-            raise RuntimeError("缓存为空，无法执行淘汰")
-        
-        # 计算每个条目的淘汰优先级分数
-        # 分数越低越优先被淘汰
-        min_score = float('inf')
-        selected_key = candidates[0]
-        current_time = time.time()
-        
-        for key in candidates:
-            entry = self.cache[key]
-            
-            # 时间衰减因子：越久没访问，分数越低
-            time_decay = 1.0 / (1.0 + (current_time - entry.last_access_time) / 1000)
-            
-            # 淘汰优先级 = 综合评分 * 时间衰减
-            eviction_priority = entry.frequency_score * time_decay
-            
-            if eviction_priority < min_score:
-                min_score = eviction_priority
-                selected_key = key
-        
-        return selected_key
+        return self._cache.get_stats().get('l1_size', 0)
 
     def _hash_prompt(self, prompt: str) -> str:
         """对提示词进行哈希"""
@@ -199,25 +130,23 @@ class LLMResponseCache:
         prompt_hash = self._hash_prompt(prompt)
 
         with self._lock:
-            if prompt_hash not in self.cache:
+            # 先检查是否在已知集合中（区分"不存在"和"已过期"）
+            if prompt_hash not in self._known_hashes:
                 self.total_misses += 1
                 logger.debug(f"[LLMCache] 未命中: {len(prompt)} chars")
                 return None
 
-            entry = self.cache[prompt_hash]
-
-            if entry.is_expired():
-                del self.cache[prompt_hash]
+            # 从 MultiLevelCache 获取（内部处理过期检查）
+            result = self._cache.get(prompt_hash)
+            if result is None:
+                # 键在 _known_hashes 中但缓存返回 None → 已过期
+                self._known_hashes.discard(prompt_hash)
                 self.total_misses += 1
                 self.total_evictions += 1
                 logger.debug(f"[LLMCache] 已过期: {len(prompt)} chars")
                 return None
 
-            # 使用 LFU-K 混合策略更新访问状态
-            entry.update_access()
-            self.cache.move_to_end(prompt_hash)
-
-            # 更新统计
+            # 命中：更新按类型统计
             self.total_hits += 1
             hit_type = self._classify_prompt(prompt)
             self.hits_by_type[hit_type] = self.hits_by_type.get(hit_type, 0) + 1
@@ -227,11 +156,10 @@ class LLMResponseCache:
 
             logger.info(
                 f"[LLMCache] ✅ 命中: type={hit_type}, "
-                f"hits={entry.hit_count}, "
                 f"time={elapsed_ms:.2f}ms"
             )
 
-            return entry.response
+            return result
 
     def put(self, prompt: str, response: str, ttl_seconds: Optional[int] = None):
         """
@@ -247,38 +175,23 @@ class LLMResponseCache:
         ttl = ttl_seconds or self.default_ttl
 
         with self._lock:
-            # 如果已存在，更新
-            if prompt_hash in self.cache:
-                self.cache.move_to_end(prompt_hash)
-                old_entry = self.cache[prompt_hash]
-                entry = CacheEntry(
-                    prompt_hash=prompt_hash,
-                    response=response,
-                    timestamp=time.time(),
-                    ttl_seconds=ttl,
-                    hit_count=old_entry.hit_count,
-                    generation_time_ms=old_entry.generation_time_ms
-                )
-            else:
-                # 新条目
-                if len(self.cache) >= self.max_size:
-                    # 使用 LFU-K 混合淘汰策略选择要淘汰的条目
-                    evicted_key = self._select_eviction_candidate()
-                    evicted_entry = self.cache.pop(evicted_key)
+            was_known = prompt_hash in self._known_hashes
+            had_eviction = False
+
+            if not was_known:
+                # 检查缓存是否已满，若是则 set 会触发 LRU 淘汰
+                if self._cache.get_stats()['l1_size'] >= self.max_size:
                     self.total_evictions += 1
-                    logger.info(
-                        f"[LLMCache] 🔄 淘汰(LFU-K): hits={evicted_entry.hit_count}, "
-                        f"score={evicted_entry.frequency_score:.2f}"
-                    )
+                    had_eviction = True
 
-                entry = CacheEntry(
-                    prompt_hash=prompt_hash,
-                    response=response,
-                    timestamp=time.time(),
-                    ttl_seconds=ttl
-                )
+            # 先写入缓存（LRU 淘汰在此发生）
+            self._cache.set(prompt_hash, response, ttl_seconds=ttl)
 
-            self.cache[prompt_hash] = entry
+            # 淘汰发生后同步 _known_hashes，移除已被 LRU 淘汰的键
+            if had_eviction:
+                self._known_hashes &= set(self._cache.get_l1_keys())
+
+            self._known_hashes.add(prompt_hash)
             self.total_puts += 1
 
             elapsed_ms = (time.perf_counter() - start_time) * 1000
@@ -297,13 +210,15 @@ class LLMResponseCache:
         hit_rate = self.total_hits / total_requests * 100 if total_requests > 0 else 0.0
         avg_hit_time = self.total_hit_time_ms / self.total_hits if self.total_hits > 0 else 0.0
 
+        cache_size = self._cache.get_stats().get('l1_size', 0)
+
         return {
             'total_hits': self.total_hits,
             'total_misses': self.total_misses,
             'total_puts': self.total_puts,
             'total_evictions': self.total_evictions,
             'hit_rate': f"{hit_rate:.1f}%",
-            'cache_size': len(self.cache),
+            'cache_size': cache_size,
             'avg_hit_time_ms': f"{avg_hit_time:.2f}",
             'hits_by_type': self.hits_by_type.copy()
         }
@@ -311,7 +226,8 @@ class LLMResponseCache:
     def clear(self):
         """清空缓存"""
         with self._lock:
-            self.cache.clear()
+            self._cache.clear()
+            self._known_hashes.clear()
             logger.info("[LLMCache] 🗑️ 缓存已清空")
 
 
