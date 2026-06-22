@@ -286,14 +286,14 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife(config=config)
 
@@ -311,16 +311,16 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._LIFETRACE_AVAILABLE', False), \
-             patch('agent.digital_life._PERSONA_AVAILABLE', False):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._LIFETRACE_AVAILABLE', False), \
+             patch('agent.orchestrator.lifecycle_manager._PERSONA_AVAILABLE', False):
 
             with caplog.at_level(logging.WARNING):
                 digital_life = DigitalLife(config=config)
@@ -330,14 +330,14 @@ class TestDigitalLifeInitializationComprehensive:
 
     def test_module_availability_check(self, caplog):
         """测试模块可用性检查"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             with caplog.at_level(logging.INFO):
                 digital_life = DigitalLife()
@@ -346,14 +346,14 @@ class TestDigitalLifeInitializationComprehensive:
 
     def test_empty_config_initialization(self):
         """测试空配置初始化"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife(config={})
 
@@ -362,14 +362,14 @@ class TestDigitalLifeInitializationComprehensive:
 
     def test_default_health_check_interval(self):
         """测试默认健康检查间隔"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
 
@@ -385,14 +385,14 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor') as mock_body, \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor') as mock_body, \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife(config=config)
             mock_body.assert_called_once()
@@ -407,28 +407,28 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife(config=config)
             assert digital_life._health_check_interval == 60
 
     def test_init_with_default_config(self):
         """测试使用默认配置初始化 DigitalLife"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
             assert digital_life is not None
@@ -447,14 +447,14 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife(config=custom_config)
             assert digital_life is not None
@@ -469,16 +469,16 @@ class TestDigitalLifeInitializationComprehensive:
             }
         }
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._LIFETRACE_AVAILABLE', False), \
-             patch('agent.digital_life._PERSONA_AVAILABLE', False):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._LIFETRACE_AVAILABLE', False), \
+             patch('agent.orchestrator.lifecycle_manager._PERSONA_AVAILABLE', False):
 
             digital_life = DigitalLife(config=config)
             assert digital_life._v2_lifetrace is False
@@ -488,15 +488,15 @@ class TestDigitalLifeInitializationComprehensive:
         """测试规划引擎禁用"""
         config = {'planning': {'enabled': False}}
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._PLANNING_AVAILABLE', True):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._PLANNING_AVAILABLE', True):
 
             digital_life = DigitalLife(config=config)
             assert digital_life._planning_enabled is False
@@ -510,18 +510,18 @@ class TestDigitalLifePlanningEngine:
         """测试规划引擎可用时初始化"""
         config = {'planning': {'enabled': True, 'max_iterations': 20}}
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager') as mock_memory, \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._PLANNING_AVAILABLE', True), \
-             patch('agent.digital_life.ToolRegistry'), \
-             patch('agent.digital_life.PlanningCore'), \
-             patch('agent.digital_life.ReActLoop'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager') as mock_memory, \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._PLANNING_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.ToolRegistry'), \
+             patch('agent.orchestrator.lifecycle_manager.PlanningCore'), \
+             patch('agent.orchestrator.lifecycle_manager.ReActLoop'):
 
             mock_memory.return_value._llm_service = MagicMock()
             digital_life = DigitalLife(config=config)
@@ -532,30 +532,30 @@ class TestDigitalLifePlanningEngine:
         """测试配置中禁用规划引擎"""
         config = {'planning': {'enabled': False}}
 
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._PLANNING_AVAILABLE', True):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._PLANNING_AVAILABLE', True):
 
             digital_life = DigitalLife(config=config)
             assert digital_life._planning_enabled is False
 
     def test_planning_engine_unavailable(self):
         """测试规划引擎不可用"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._PLANNING_AVAILABLE', False):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._PLANNING_AVAILABLE', False):
 
             digital_life = DigitalLife()
 
@@ -570,14 +570,14 @@ class TestDigitalLifeLazyLoading:
 
     def test_ensure_lifetrace_disabled(self):
         """测试 Lifetrace 禁用时返回 False"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
             digital_life._v2_lifetrace = False
@@ -587,14 +587,14 @@ class TestDigitalLifeLazyLoading:
 
     def test_ensure_lifetrace_already_initialized(self):
         """测试 Lifetrace 已初始化时返回 True"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
             digital_life._v2_lifetrace = True
@@ -610,32 +610,32 @@ class TestDigitalLifeOptionalSystemsComprehensive:
 
     def test_ocr_sensor_initialization(self):
         """测试 OCR 传感器初始化"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._OCR_AVAILABLE', True), \
-             patch('agent.digital_life.OcrSensor') as mock_ocr:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.OcrSensor') as mock_ocr:
 
             DigitalLife()
             mock_ocr.assert_called_once()
 
     def test_ocr_sensor_failure(self):
         """测试 OCR 传感器初始化失败"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._OCR_AVAILABLE', True), \
-             patch('agent.digital_life.OcrSensor') as mock_ocr:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.OcrSensor') as mock_ocr:
 
             mock_ocr.side_effect = Exception("OCR engine not found")
             digital_life = DigitalLife()
@@ -647,16 +647,16 @@ class TestDigitalLifeOptionalSystemsComprehensive:
 
     def test_vector_memory_initialization_failure(self):
         """测试向量记忆初始化失败"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._MEMORY_AVAILABLE', True), \
-             patch('agent.digital_life.VectorStore') as mock_vector_store:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.VectorStore') as mock_vector_store:
 
             mock_vector_store.side_effect = Exception("Connection failed")
             digital_life = DigitalLife()
@@ -666,32 +666,32 @@ class TestDigitalLifeOptionalSystemsComprehensive:
 
     def test_error_reporting_initialization(self):
         """测试错误上报系统初始化"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._MONITORING_AVAILABLE', True), \
-             patch('agent.digital_life.get_error_reporter') as mock_reporter:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.get_error_reporter') as mock_reporter:
 
             DigitalLife()
             mock_reporter.assert_called_once()
 
     def test_voice_manager_initialization_failure(self):
         """测试语音管理器初始化失败"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._VOICE_AVAILABLE', True), \
-             patch('agent.digital_life.VoiceManager') as mock_voice:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.VoiceManager') as mock_voice:
 
             mock_voice.side_effect = Exception("TTSEngine not found")
             digital_life = DigitalLife()
@@ -700,16 +700,16 @@ class TestDigitalLifeOptionalSystemsComprehensive:
 
     def test_p6_snapshot_initialization(self):
         """测试 P6 快照管理器初始化"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'), \
-             patch('agent.digital_life._P6_SNAPSHOT_AVAILABLE', True), \
-             patch('agent.digital_life.StateSnapshotManager') as mock_snapshot:
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'), \
+             patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', True), \
+             patch('agent.orchestrator.lifecycle_manager.StateSnapshotManager') as mock_snapshot:
 
             DigitalLife()
             mock_snapshot.assert_called_once()
@@ -721,14 +721,14 @@ class TestDigitalLifeLazyLoadingFlags:
 
     def test_lazy_loading_flags_initial_state(self):
         """测试懒加载标志初始状态"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
 
@@ -743,14 +743,14 @@ class TestDigitalLifeReflectionHistory:
 
     def test_add_reflection(self):
         """测试添加反思记录"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
 
@@ -766,14 +766,14 @@ class TestDigitalLifeReflectionHistory:
 
     def test_interaction_count_initial(self):
         """测试交互计数初始值"""
-        with patch('agent.digital_life.BodySensor'), \
-             patch('agent.digital_life.BehaviorController'), \
-             patch('agent.digital_life.PermissionSystem'), \
-             patch('agent.digital_life.MemoryManager'), \
-             patch('agent.digital_life.PromptInjector'), \
-             patch('agent.digital_life.PromptConfig'), \
-             patch('agent.digital_life.get_safety_monitor'), \
-             patch('agent.digital_life.tools'):
+        with patch('agent.orchestrator.lifecycle_manager.BodySensor'), \
+             patch('agent.orchestrator.lifecycle_manager.BehaviorController'), \
+             patch('agent.orchestrator.lifecycle_manager.PermissionSystem'), \
+             patch('agent.orchestrator.lifecycle_manager.MemoryManager'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptInjector'), \
+             patch('agent.orchestrator.lifecycle_manager.PromptConfig'), \
+             patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'), \
+             patch('agent.orchestrator.lifecycle_manager.tools'):
 
             digital_life = DigitalLife()
             assert digital_life._interaction_count == 0
@@ -995,7 +995,7 @@ class TestChatV2Flow:
         digital_life._v2_persona = False
         digital_life._call_llm_v2.return_value = "Response"
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._chat_v2(digital_life, "Hello")
 
         assert result == "Response"
@@ -1013,7 +1013,7 @@ class TestChatV2Flow:
         digital_life._v2_persona = False
         digital_life._build_reject_response.return_value = "Rejected response"
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._chat_v2(digital_life, "Hello")
 
         assert result == "Rejected response"
@@ -1029,8 +1029,8 @@ class TestChatMethodComplete:
         digital_life._running = False
         digital_life._interaction_count = 0
 
-        with patch('agent.digital_life.logger'):
-            with patch('agent.digital_life._MONITORING_AVAILABLE', False):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
+            with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
                 result = DigitalLife._chat_impl(digital_life, "Hello")
 
         assert result == "我还没有被唤醒。请先调用 start() 让我醒来。"
@@ -1044,8 +1044,8 @@ class TestChatMethodComplete:
         digital_life._chat_v2 = MagicMock(return_value="V2 Response")
         digital_life._interaction_count = 0
 
-        with patch('agent.digital_life._MONITORING_AVAILABLE', False):
-            with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
+            with patch('agent.orchestrator.lifecycle_manager.logger'):
                 result = DigitalLife._chat_impl(digital_life, "Hello")
 
         assert result == "V2 Response"
@@ -1062,8 +1062,8 @@ class TestChatMethodComplete:
         digital_life._chat_with_planning = MagicMock(return_value="Planning Response")
         digital_life._interaction_count = 0
 
-        with patch('agent.digital_life._MONITORING_AVAILABLE', False):
-            with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
+            with patch('agent.orchestrator.lifecycle_manager.logger'):
                 result = DigitalLife._chat_impl(digital_life, "Complex task")
 
         assert result == "Planning Response"
@@ -1079,8 +1079,8 @@ class TestChatMethodComplete:
         digital_life._process_user_input = MagicMock(return_value="Direct Response")
         digital_life._interaction_count = 0
 
-        with patch('agent.digital_life._MONITORING_AVAILABLE', False):
-            with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
+            with patch('agent.orchestrator.lifecycle_manager.logger'):
                 result = DigitalLife._chat_impl(digital_life, "Simple question")
 
         assert result == "Direct Response"
@@ -1095,8 +1095,8 @@ class TestChatMethodComplete:
         digital_life._process_user_input = MagicMock(return_value="Response")
         digital_life._interaction_count = 5
 
-        with patch('agent.digital_life._MONITORING_AVAILABLE', False):
-            with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
+            with patch('agent.orchestrator.lifecycle_manager.logger'):
                 DigitalLife._chat_impl(digital_life, "Hello")
 
         assert digital_life._interaction_count == 6
@@ -1239,7 +1239,7 @@ class TestCallLLMComplete:
         digital_life._vector_memory = MagicMock()
         digital_life._memory = MockMemory()
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._call_llm(digital_life, "Question", "Body status")
         assert "Response" in result
 
@@ -1262,7 +1262,7 @@ class TestCallLLMComplete:
         mock_memory.get_context.side_effect = Exception("Memory error")
         digital_life._memory = mock_memory
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._call_llm(digital_life, "Question", "Body status")
         assert "Response" in result
 
@@ -1327,7 +1327,7 @@ class TestNeedsPlanning:
         digital_life._complexity_threshold = 0.5
         complex_input = "请帮我分析这个问题并制定一个详细的计划来解决"
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._needs_planning(digital_life, complex_input)
 
         assert result is True
@@ -1338,7 +1338,7 @@ class TestNeedsPlanning:
         digital_life._complexity_threshold = 0.5
         simple_input = "你好"
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._needs_planning(digital_life, simple_input)
 
         assert result is False
@@ -1349,7 +1349,7 @@ class TestNeedsPlanning:
         digital_life._complexity_threshold = 0.5
         action_input = "请检查系统状态并创建报告"
 
-        with patch('agent.digital_life.logger'):
+        with patch('agent.orchestrator.lifecycle_manager.logger'):
             result = DigitalLife._needs_planning(digital_life, action_input)
 
         assert result is True
@@ -1377,8 +1377,8 @@ class TestSafetyMonitorIntegration:
 
     def test_safety_monitor_initialized(self, minimal_config):
         """测试安全监控器初始化"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor') as mock_safety:
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor') as mock_safety:
                 mock_safety.return_value = MagicMock()
                 dl = DigitalLife(config=minimal_config)
 
@@ -1387,16 +1387,16 @@ class TestSafetyMonitorIntegration:
 
     def test_safety_monitor_not_available(self, minimal_config):
         """测试安全监控器不可用时的降级处理"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor', return_value=None):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor', return_value=None):
                 dl = DigitalLife(config=minimal_config)
 
                 assert not hasattr(dl, '_safety_monitor') or dl._safety_monitor is None
 
     def test_safety_monitor_check_text(self, minimal_config):
         """测试安全文本检查功能"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor') as mock_safety:
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor') as mock_safety:
                 mock_monitor = MagicMock()
                 mock_monitor.check_text.return_value = {"level": "safe"}
                 mock_safety.return_value = mock_monitor
@@ -1409,8 +1409,8 @@ class TestSafetyMonitorIntegration:
 
     def test_safety_monitor_check_critical(self, minimal_config):
         """测试检测到危险内容"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor') as mock_safety:
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor') as mock_safety:
                 mock_monitor = MagicMock()
                 mock_monitor.check_text.return_value = {
                     "level": "critical",
@@ -1430,8 +1430,8 @@ class TestToolRegistration:
 
     def test_register_builtin_tools_called(self, minimal_config):
         """测试内置工具注册方法被调用"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
                 with patch.object(DigitalLife, '_register_builtin_tools') as mock_register:
                     dl = DigitalLife(config=minimal_config)
                     mock_register.assert_called_once()
@@ -1440,9 +1440,9 @@ class TestToolRegistration:
         """测试规划工具注册"""
         minimal_config["enable_planning"] = True
 
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
-                with patch('agent.digital_life.PlanningCore'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
+                with patch('agent.orchestrator.lifecycle_manager.PlanningCore'):
                     dl = DigitalLife(config=minimal_config)
 
                     assert hasattr(dl, '_planning_tools')
@@ -1451,9 +1451,9 @@ class TestToolRegistration:
         """测试规划工具注册失败的处理"""
         minimal_config["enable_planning"] = True
 
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
-                with patch('agent.digital_life.ToolRegistry') as mock_registry:
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
+                with patch('agent.orchestrator.lifecycle_manager.ToolRegistry') as mock_registry:
                     mock_registry.return_value = None
                     dl = DigitalLife(config=minimal_config)
 
@@ -1466,8 +1466,8 @@ class TestPermissionSystemIntegration:
 
     def test_permission_system_initialized(self, minimal_config):
         """测试权限系统初始化"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
                 dl = DigitalLife(config=minimal_config)
 
                 assert hasattr(dl, '_permission')
@@ -1475,8 +1475,8 @@ class TestPermissionSystemIntegration:
 
     def test_permission_check_action(self, minimal_config):
         """测试权限检查操作"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
                 dl = DigitalLife(config=minimal_config)
 
                 mock_perm = Mock()
@@ -1494,8 +1494,8 @@ class TestSecurityMonitoring:
 
     def test_check_health_method(self, minimal_config):
         """测试检查健康状态方法"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
                 dl = DigitalLife(config=minimal_config)
 
                 result = dl.check_health()
@@ -1504,8 +1504,8 @@ class TestSecurityMonitoring:
 
     def test_get_status_method(self, minimal_config):
         """测试获取状态方法"""
-        with patch('agent.digital_life.MemoryManager'):
-            with patch('agent.digital_life.get_safety_monitor'):
+        with patch('agent.orchestrator.lifecycle_manager.MemoryManager'):
+            with patch('agent.orchestrator.lifecycle_manager.get_safety_monitor'):
                 dl = DigitalLife(config=minimal_config)
 
                 result = dl.get_status()
