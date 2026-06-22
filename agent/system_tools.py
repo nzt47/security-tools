@@ -32,6 +32,7 @@ from agent.tools.file_tools import (
     read_file, write_file, list_directory, get_file_info, search_files,
     PROTECTED_SYSTEM_DIRS_WIN, ALLOWED_WIN_SUBDIRS, PROTECTED_SYSTEM_DIRS_UNIX,
     BLOCKED_WRITE_EXTENSIONS, DEFAULT_MAX_READ_SIZE, DEFAULT_MAX_WRITE_SIZE,
+    _guess_mime_type, _get_single_file_info,
 )
 from agent.tools.workspace_tools import (
     WORKSPACE_DIR, init_workspace, list_workspace, write_workspace, delete_workspace,
@@ -47,6 +48,7 @@ from agent.tools.process_tools import (
 )
 from agent.tools.task_tools import (
     list_scheduled_tasks, create_scheduled_task, delete_scheduled_task, toggle_scheduled_task,
+    SCHEDULED_TASKS_FILE, _load_tasks, _save_tasks,
 )
 from agent.tools.shell_tools import (
     execute_shell, _detect_shell, _truncate_output,

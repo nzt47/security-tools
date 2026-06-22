@@ -348,32 +348,55 @@ class RetryablePrometheusOperation:
 # SafeFileReader Prometheus 指标
 # ============================================================================
 
-yunshu_safe_file_reader_errors_total = Counter(
+def _safe_counter(name, doc, labels):
+    try:
+        return Counter(name, doc, labels)
+    except ValueError:
+        from prometheus_client import REGISTRY as _R
+        base = name[:-6] if name.endswith('_total') else name
+        return _R._names_to_collectors[base]
+
+def _safe_histogram(name, doc, labels, buckets=None):
+    kwargs = {"buckets": buckets} if buckets else {}
+    try:
+        return Histogram(name, doc, labels, **kwargs)
+    except ValueError:
+        from prometheus_client import REGISTRY as _R
+        return _R._names_to_collectors[name]
+
+yunshu_safe_file_reader_errors_total = _safe_counter(
     'yunshu_safe_file_reader_errors_total',
     'SafeFileReader 错误总数',
     ['error_type', 'file_path']
 )
 
-yunshu_safe_file_reader_encoding_fallbacks_total = Counter(
+yunshu_safe_file_reader_encoding_fallbacks_total = _safe_counter(
     'yunshu_safe_file_reader_encoding_fallbacks_total',
     'SafeFileReader 编码降级次数',
     ['file_path']
 )
 
-yunshu_safe_file_reader_read_duration_seconds = Histogram(
+yunshu_safe_file_reader_read_duration_seconds = _safe_histogram(
     'yunshu_safe_file_reader_read_duration_seconds',
     'SafeFileReader 读取耗时',
     ['file_path'],
-    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
 )
 
-yunshu_safe_file_reader_loaded_history_count = Gauge(
+def _safe_gauge(name, doc, labels):
+    try:
+        return Gauge(name, doc, labels)
+    except ValueError:
+        from prometheus_client import REGISTRY as _R
+        return _R._names_to_collectors[name]
+
+yunshu_safe_file_reader_loaded_history_count = _safe_gauge(
     'yunshu_safe_file_reader_loaded_history_count',
     'SafeFileReader 加载的历史对话数',
     ['file_path']
 )
 
-yunshu_safe_file_reader_invalid_ratio = Gauge(
+yunshu_safe_file_reader_invalid_ratio = _safe_gauge(
     'yunshu_safe_file_reader_invalid_ratio',
     'SafeFileReader 无效行比例',
     ['file_path']
