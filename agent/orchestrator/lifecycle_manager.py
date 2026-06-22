@@ -214,7 +214,16 @@ class LifecycleManager:
         # ── 8. 规划引擎 ──
         self._initialize_planning_engine()
 
-        # ── 9. 分身系统：Subagent 生命周期管理（P4 新特性）──
+        # ── 9. 工作流引擎：本地确定性规则匹配（0 Token 消耗）──
+        #    在 LLM 调用之前优先尝试匹配本地工作流规则
+        from agent.workflow_engine.engine import WorkflowEngine
+        from agent.workflow_engine.builtin_rules import register_builtin_rules
+        self._workflow_engine = WorkflowEngine()
+        register_builtin_rules(self._workflow_engine.registry)
+        logger.info("[ok] 工作流引擎（WorkflowEngine）已激活，规则数: %d",
+                    self._workflow_engine.registry.count())
+
+        # ── 10. 分身系统：Subagent 生命周期管理（P4 新特性）──
         subagent_cfg = self._config.get("subagent", {})
         self._subagent_mgr = None
         if subagent_cfg.get("enabled", True):
