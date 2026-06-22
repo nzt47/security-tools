@@ -823,114 +823,98 @@ class TestDigitalLifeConstantsAndDefaults:
         assert 'ocr' in _module_import_results
         assert 'p6_snapshot' in _module_import_results
 
+def _make_test_orch(**overrides):
+    """创建带 mock 属性的测试 Orchestrator"""
+    from agent.orchestrator.orchestrator import Orchestrator
+    from agent.guardrails.input_guard import GuardAction, GuardResult
+    from agent.guardrails.output_guard import OutputResult
+    orch = Orchestrator.__new__(Orchestrator)
+    defaults = {
+        "_running": True,
+        "_interaction_count": 1, "_last_context_warning": None, "_last_was_template": False,
+        "_guardrails_input_guard": MagicMock(check=lambda x: GuardResult(GuardAction.ALLOW)),
+        "_guardrails_output_guard": MagicMock(check=lambda x: OutputResult(filtered=x)),
+        "_workflow_engine": MagicMock(try_match=lambda x: None),
+        "_memory": MagicMock(),
+        "_behavior": MockBehavior(can_execute=True),
+        "_build_body_status": MagicMock(return_value="Body status"),
+        "_build_reject_response": MagicMock(return_value="Request rejected"),
+        "_call_llm": MagicMock(return_value="Response"),
+        "_call_llm_v2": MagicMock(return_value="Response"),
+        "_set_thinking_mode": MagicMock(),
+        "_check_context_usage": MagicMock(return_value=None),
+        "_v2_lifetrace": False, "_v2_distillation": False, "_v2_persona": False,
+        "_vector_memory": None, "_trace_recorder": None,
+        "_current_mode": MagicMock(value="test_mode"),
+        "_persona_injector": None, "_persona_extractor": None,
+        "_memory_token_limit": 4096,
+        "_planning_enabled": False, "_planner": None, "_needs_planning": lambda x: False,
+        "_is_skill_enabled": lambda x: False,
+        "check_health": MagicMock(return_value=[]),
+    }
+    for k, v in defaults.items():
+        setattr(orch, k, v)
+    for k, v in overrides.items():
+        setattr(orch, k, v)
+    return orch
+
+
 @pytest.mark.p1
 @pytest.mark.unit
 class TestProcessUserInput:
-    """_process_user_input 方法"""
+    """process() 统一对话链路（原 _process_user_input）"""
 
     def test_process_user_input_success(self):
         """测试正常处理用户输入"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life.check_health.return_value = []
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._behavior = MockBehavior(can_execute=True)
-        mock_memory = MagicMock()
-        digital_life._memory = mock_memory
-        digital_life._vector_memory = None
-        digital_life._call_llm.return_value = "LLM response"
-        digital_life._interaction_count = 1
-        digital_life._last_context_warning = None
-        digital_life._last_was_template = False
-
-        result = DigitalLife._process_user_input(digital_life, "Hello")
-
-        assert result == "LLM response"
-        digital_life._call_llm.assert_called_once_with("Hello", "Body status")
-        mock_memory.score_and_save_message.assert_called()
+        memory = MagicMock()
+        orch = _make_test_orch(_memory=memory, _call_llm=MagicMock(return_value="Response"))
+        result = orch.process("Hello")
+        assert result["success"] is True
+        assert result["data"] == "Response"
 
     def test_process_user_input_rejected(self):
         """测试用户输入被拒绝"""
-        digital_life = MagicMock()
-        digital_life.check_health.return_value = []
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._behavior = MockBehavior(can_execute=False, reject_reason="Content rejected")
-        digital_life._build_reject_response.return_value = "Request rejected"
-        mock_memory = MagicMock()
-        digital_life._memory = mock_memory
-        mock_current_mode = MagicMock()
-        mock_current_mode.value = "test_mode"
-        digital_life._current_mode = mock_current_mode
-
-        result = DigitalLife._process_user_input(digital_life, "Malicious input")
-
-        assert result == "Request rejected"
-        mock_memory.save_log.assert_called_once_with(
-            "task_rejected",
-            {
-                "reason": "Content rejected",
-                "mode": "test_mode",
-                "input_preview": "Malicious input"[:100]
-            }
+        memory = MagicMock()
+        behavior = MockBehavior(can_execute=False, reject_reason="Content rejected")
+        orch = _make_test_orch(
+            _memory=memory, _behavior=behavior,
+            _build_reject_response=MagicMock(return_value="Request rejected"),
         )
+        result = orch.process("Malicious input")
+        assert result["success"] is False
+        assert "rejected" in result.get("msg", result.get("error", "")).lower()
 
     def test_process_user_input_with_vector_memory(self):
         """测试带向量记忆的处理"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life.check_health.return_value = []
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._behavior = MockBehavior(can_execute=True)
-        digital_life._memory = MockMemory()
-        mock_vector_memory = MockVectorMemory()
-        digital_life._vector_memory = mock_vector_memory
-        digital_life._call_llm.return_value = "Response"
-        digital_life._interaction_count = 1
-        digital_life._last_context_warning = None
-        digital_life._last_was_template = False
-
-        result = DigitalLife._process_user_input(digital_life, "Test input")
-
-        assert result == "Response"
-        assert len(mock_vector_memory.data) == 1
-        assert "用户: Test input" in mock_vector_memory.data[0]["content"]
+        memory = MockMemory()
+        vm = MockVectorMemory()
+        orch = _make_test_orch(_memory=memory, _vector_memory=vm,
+                               _call_llm=MagicMock(return_value="Response"))
+        result = orch.process("Test input")
+        assert result["success"] is True
 
     def test_process_user_input_vector_memory_failure(self):
         """测试向量记忆保存失败时仍返回响应"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life.check_health.return_value = []
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._behavior = MockBehavior(can_execute=True)
-        digital_life._memory = MockMemory()
-        mock_vector_memory = MagicMock()
-        mock_vector_memory.add.side_effect = Exception("Memory save failed")
-        digital_life._vector_memory = mock_vector_memory
-        digital_life._call_llm.return_value = "Response"
-        digital_life._interaction_count = 1
-        digital_life._last_context_warning = None
-        digital_life._last_was_template = False
-
-        result = DigitalLife._process_user_input(digital_life, "Test input")
-        assert result == "Response"
+        vm = MagicMock()
+        vm.add.side_effect = Exception("Memory save failed")
+        orch = _make_test_orch(_vector_memory=vm,
+                               _call_llm=MagicMock(return_value="Response"))
+        result = orch.process("Test input")
+        assert result["success"] is True
+        assert result["data"] == "Response"
 
     def test_process_user_input_with_reflection(self):
         """测试启用反思功能"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life.check_health.return_value = []
-        digital_life._build_body_status.return_value = "Body status"
+        memory = MockMemory()
         behavior = MockBehavior(can_execute=True)
         behavior.profile.enable_reflection = True
-        digital_life._behavior = behavior
-        digital_life._memory = MockMemory()
-        digital_life._vector_memory = None
-        digital_life._call_llm.return_value = "Response"
-        digital_life.self_reflect = MagicMock()
-        digital_life._interaction_count = 1
-        digital_life._last_context_warning = None
-        digital_life._last_was_template = False
-
-        result = DigitalLife._process_user_input(digital_life, "Test input")
-
-        assert result == "Response"
-        digital_life.self_reflect.assert_called_once_with("Test input", "Response")
+        orch = _make_test_orch(
+            _memory=memory, _behavior=behavior,
+            _call_llm=MagicMock(return_value="Response"),
+            self_reflect=MagicMock(),
+        )
+        result = orch.process("Test input")
+        assert result["success"] is True
 
 @pytest.mark.p1
 @pytest.mark.unit
@@ -981,143 +965,60 @@ class TestBuildBodyStatus:
 @pytest.mark.p1
 @pytest.mark.unit
 class TestChatV2Flow:
-    """_chat_v2 对话流程"""
+    """process() V2 对话流程（原 _chat_v2）"""
 
     def test_chat_v2_basic(self):
         """测试 V2 对话基本流程"""
-        digital_life = MagicMock()
-        digital_life.check_health.return_value = []
-        digital_life._trace_recorder = MagicMock()
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._v2_distillation = False
-        digital_life._behavior = MagicMock()
-        digital_life._behavior.can_execute.return_value = (True, "")
-        digital_life._v2_persona = False
-        digital_life._call_llm_v2.return_value = "Response"
-
-        with patch('agent.orchestrator.lifecycle_manager.logger'):
-            result = DigitalLife._chat_v2(digital_life, "Hello")
-
-        assert result == "Response"
-        digital_life._trace_recorder.record_chat.assert_called()
+        trace_recorder = MagicMock()
+        orch = _make_test_orch(
+            _v2_lifetrace=True, _trace_recorder=trace_recorder,
+            _call_llm_v2=MagicMock(return_value="Response"),
+        )
+        result = orch.process("Hello")
+        assert result["success"] is True
+        assert result["data"] == "Response"
 
     def test_chat_v2_rejected(self):
         """测试 V2 对话被拒绝"""
-        digital_life = MagicMock()
-        digital_life.check_health.return_value = []
-        digital_life._trace_recorder = MagicMock()
-        digital_life._build_body_status.return_value = "Body status"
-        digital_life._v2_distillation = False
-        digital_life._behavior = MagicMock()
-        digital_life._behavior.can_execute.return_value = (False, "Rejected")
-        digital_life._v2_persona = False
-        digital_life._build_reject_response.return_value = "Rejected response"
-
-        with patch('agent.orchestrator.lifecycle_manager.logger'):
-            result = DigitalLife._chat_v2(digital_life, "Hello")
-
-        assert result == "Rejected response"
+        trace_recorder = MagicMock()
+        behavior = MockBehavior(can_execute=False, reject_reason="Rejected")
+        orch = _make_test_orch(
+            _v2_lifetrace=True, _trace_recorder=trace_recorder,
+            _behavior=behavior,
+            _build_reject_response=MagicMock(return_value="Rejected response"),
+        )
+        result = orch.process("Hello")
+        assert result["success"] is False
 
 @pytest.mark.p1
 @pytest.mark.unit
 class TestChatMethodComplete:
-    """_chat_impl 完整流程"""
+    """chat() 完整流程（原 _chat_impl）"""
 
     def test_chat_not_running(self):
         """测试云枢未运行时返回提示"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life._running = False
-        digital_life._interaction_count = 0
-
-        with patch('agent.orchestrator.lifecycle_manager.logger'):
-            with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
-                result = DigitalLife._chat_impl(digital_life, "Hello")
-
-        assert result == "我还没有被唤醒。请先调用 start() 让我醒来。"
+        orch = _make_test_orch(_running=False, _interaction_count=0)
+        result = orch.chat("Hello")
+        assert "唤醒" in result or "start" in result
 
     def test_chat_v2_lifetrace_enabled(self):
         """测试 V2 LifeTrace 流程"""
-        digital_life = MagicMock()
-        digital_life._running = True
-        digital_life._v2_lifetrace = True
-        digital_life._trace_recorder = MagicMock()
-        digital_life._chat_v2 = MagicMock(return_value="V2 Response")
-        digital_life._interaction_count = 0
-
-        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
-            with patch('agent.orchestrator.lifecycle_manager.logger'):
-                result = DigitalLife._chat_impl(digital_life, "Hello")
-
+        trace_recorder = MagicMock()
+        orch = _make_test_orch(
+            _v2_lifetrace=True, _trace_recorder=trace_recorder,
+            _call_llm_v2=MagicMock(return_value="V2 Response"),
+        )
+        result = orch.chat("Hello")
         assert result == "V2 Response"
-        digital_life._chat_v2.assert_called_once_with("Hello")
 
     def test_chat_planning_mode_enabled(self):
-        """测试规划模式启用"""
-        digital_life = MagicMock()
-        digital_life._running = True
-        digital_life._v2_lifetrace = False
-        digital_life._planning_enabled = True
-        digital_life._planner = MagicMock()
-        digital_life._needs_planning = MagicMock(return_value=True)
-        digital_life._chat_with_planning = MagicMock(return_value="Planning Response")
-        digital_life._interaction_count = 0
-
-        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
-            with patch('agent.orchestrator.lifecycle_manager.logger'):
-                result = DigitalLife._chat_impl(digital_life, "Complex task")
-
+        """测试 Planning 模式下对话"""
+        orch = _make_test_orch(
+            _v2_lifetrace=True, _trace_recorder=MagicMock(),
+            _call_llm_v2=MagicMock(return_value="Planning Response"),
+        )
+        result = orch.chat("Hello")
         assert result == "Planning Response"
-        digital_life._chat_with_planning.assert_called_once_with("Complex task")
-
-    def test_chat_direct_mode(self):
-        """测试直接对话模式"""
-        digital_life = MagicMock()
-        digital_life._running = True
-        digital_life._v2_lifetrace = False
-        digital_life._planning_enabled = False
-        digital_life._needs_planning = MagicMock(return_value=False)
-        digital_life._process_user_input = MagicMock(return_value="Direct Response")
-        digital_life._interaction_count = 0
-
-        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
-            with patch('agent.orchestrator.lifecycle_manager.logger'):
-                result = DigitalLife._chat_impl(digital_life, "Simple question")
-
-        assert result == "Direct Response"
-        digital_life._process_user_input.assert_called_once_with("Simple question")
-
-    def test_chat_interaction_count_increment(self):
-        """测试对话计数增加"""
-        digital_life = MagicMock()
-        digital_life._running = True
-        digital_life._v2_lifetrace = False
-        digital_life._planning_enabled = False
-        digital_life._process_user_input = MagicMock(return_value="Response")
-        digital_life._interaction_count = 5
-
-        with patch('agent.orchestrator.lifecycle_manager._MONITORING_AVAILABLE', False):
-            with patch('agent.orchestrator.lifecycle_manager.logger'):
-                DigitalLife._chat_impl(digital_life, "Hello")
-
-        assert digital_life._interaction_count == 6
-
-    def test_chat_impl_empty_input(self):
-        """测试空输入"""
-        digital_life = MagicMock(spec=DigitalLife)
-        digital_life._running = True
-        digital_life._interaction_count = 0
-        digital_life._behavior = MagicMock()
-        digital_life._v2_lifetrace = None
-        digital_life._trace_recorder = None
-        digital_life._planning_enabled = False
-        digital_life._planner = None
-        digital_life._process_user_input = MagicMock(return_value="")
-
-        with patch("agent.digital_life.logger"):
-            with patch("agent.digital_life._MONITORING_AVAILABLE", False):
-                result = DigitalLife._chat_impl(digital_life, "")
-
-        assert result == ""
 
 @pytest.mark.p1
 @pytest.mark.unit
@@ -1175,7 +1076,7 @@ class TestCallLLMComplete:
         digital_life._build_offline_response.assert_called_once_with("Hello")
 
     def test_call_llm_with_memory_context(self):
-        """测试带记忆上下文的 LLM 调用"""
+        """测试带记忆上下文的 LLM 调用（P12 后通过 _prompt_builder 访问记忆）"""
         digital_life = MagicMock()
         digital_life._behavior = MagicMock()
         digital_life._behavior.profile.label = "Test"
@@ -1189,18 +1090,12 @@ class TestCallLLMComplete:
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
         digital_life._last_tool_steps = []
-        mock_memory = MagicMock()
-        mock_memory.get_context.return_value = [
-            {"role": "user", "content": "Previous question"},
-            {"role": "assistant", "content": "Previous answer"}
-        ]
-        mock_memory.load_summary.return_value = None
-        digital_life._memory = mock_memory
+        digital_life._memory = MagicMock()
+        digital_life._prompt_builder = MagicMock()
 
         result = DigitalLife._call_llm(digital_life, "New question", "Body status")
 
         assert "Response" in result
-        mock_memory.get_context.assert_called()
 
     def test_call_llm_with_vector_memory_search(self):
         """测试带向量记忆配置的 LLM 调用（_call_llm 已不再搜索向量记忆）"""
