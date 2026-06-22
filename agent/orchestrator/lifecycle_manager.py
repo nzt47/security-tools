@@ -214,6 +214,19 @@ class LifecycleManager:
         # ── 8. 规划引擎 ──
         self._initialize_planning_engine()
 
+        # ── 9. 分身系统：Subagent 生命周期管理（P4 新特性）──
+        subagent_cfg = self._config.get("subagent", {})
+        self._subagent_mgr = None
+        if subagent_cfg.get("enabled", True):
+            from agent.subagent.lifecycle import SubagentLifecycleManager
+            self._subagent_mgr = SubagentLifecycleManager(
+                max_subagents=subagent_cfg.get("max_subagents", 20),
+            )
+            logger.info("[ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: %d",
+                        self._subagent_mgr._max_subagents)
+        else:
+            logger.info("[skip] 分身系统未启用（subagent.enabled=False）")
+
         # ── 运行状态 ──
         self._running = False
         self._current_mode = BehaviorMode.NORMAL
