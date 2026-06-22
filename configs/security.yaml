@@ -1,0 +1,23 @@
+# 安全护栏配置
+input_guard:
+  enabled: true
+  max_input_length: 100000
+  injection_detection: true
+
+output_guard:
+  enabled: true
+  pii_detection: true
+  mask_phone: true
+  mask_email: true
+  mask_api_key: true
+
+command_guard:
+  enabled: true
+  blocked_patterns:
+    - "rm -rf /"
+    - "format"
+    - "dd if="
+  allowed_commands:
+    - "git status"
+    - "git log"
+    - "pip list"
