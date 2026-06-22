@@ -59,3 +59,7 @@ def register_all_routes(app, state):
     # 系统身份提示词配置（组件级开关 + 参数配置）
     from .routes_system_prompt import register_routes as reg_system_prompt
     reg_system_prompt(app, state)
+
+    # 分身管理（P4 Subagent Lifecycle）
+    from .routes_subagent import register_routes as reg_subagent
+    reg_subagent(app, state)
