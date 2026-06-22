@@ -33,6 +33,10 @@ from utils.file_reader import (
     _metrics_duration,
 )
 
+# 导入完成后恢复 sys.path，避免影响后续测试收集
+if sys.path[0] == PROJECT_ROOT:
+    sys.path.pop(0)
+
 TEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_alert_data")
 os.makedirs(TEST_DIR, exist_ok=True)
 

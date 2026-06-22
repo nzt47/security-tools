@@ -34,42 +34,50 @@ logger = logging.getLogger(__name__)
 # Prometheus 指标（可选，如果 prometheus_client 未安装则跳过）
 try:
     from prometheus_client import Counter, Histogram, Gauge
+    from prometheus_client import REGISTRY as _REG
     _PROMETHEUS_AVAILABLE = True
-    
+
+    def _safe_metric(cls, name, *args, **kwargs):
+        """安全创建或复用已注册的 Prometheus 指标"""
+        # Counter 的内部名称去掉 _total 后缀，Histogram/Gauge 保持原名
+        registry_name = name
+        if cls is Counter and name.endswith('_total'):
+            registry_name = name[:-6]
+        try:
+            return cls(name, *args, **kwargs)
+        except ValueError:
+            # 已存在同名指标，返回已有实例
+            return _REG._names_to_collectors[registry_name]
+
     # 错误计数器
-    _metrics_errors = Counter(
-        'yunshu_safe_file_reader_errors_total',
-        'SafeFileReader 错误总数',
-        ['error_type', 'file_path']
+    _metrics_errors = _safe_metric(
+        Counter, 'yunshu_safe_file_reader_errors_total',
+        'SafeFileReader 错误总数', ['error_type', 'file_path'],
     )
-    
+
     # 编码降级计数器
-    _metrics_fallbacks = Counter(
-        'yunshu_safe_file_reader_encoding_fallbacks_total',
-        'SafeFileReader 编码降级次数',
-        ['from_encoding', 'to_encoding', 'file_path']
+    _metrics_fallbacks = _safe_metric(
+        Counter, 'yunshu_safe_file_reader_encoding_fallbacks_total',
+        'SafeFileReader 编码降级次数', ['from_encoding', 'to_encoding', 'file_path'],
     )
-    
+
     # 读取耗时直方图
-    _metrics_duration = Histogram(
-        'yunshu_safe_file_reader_read_duration_seconds',
-        'SafeFileReader 读取耗时',
-        ['file_path'],
-        buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    _metrics_duration = _safe_metric(
+        Histogram, 'yunshu_safe_file_reader_read_duration_seconds',
+        'SafeFileReader 读取耗时', ['file_path'],
+        buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
     )
-    
+
     # 历史加载计数
-    _metrics_history_count = Gauge(
-        'yunshu_safe_file_reader_loaded_history_count',
-        'SafeFileReader 加载的历史对话数',
-        ['file_path']
+    _metrics_history_count = _safe_metric(
+        Gauge, 'yunshu_safe_file_reader_loaded_history_count',
+        'SafeFileReader 加载的历史对话数', ['file_path'],
     )
-    
+
     # 无效行比例
-    _metrics_invalid_ratio = Gauge(
-        'yunshu_safe_file_reader_invalid_ratio',
-        'SafeFileReader 无效行比例',
-        ['file_path']
+    _metrics_invalid_ratio = _safe_metric(
+        Gauge, 'yunshu_safe_file_reader_invalid_ratio',
+        'SafeFileReader 无效行比例', ['file_path'],
     )
 except ImportError:
     _PROMETHEUS_AVAILABLE = False
