@@ -29,8 +29,9 @@ class ResponseBuilder:
         return Response(success=False, error=error, msg=msg)
 
     @staticmethod
-    def rejection(reason: str = "") -> Response:
-        return Response(success=False, error=reason, msg="rejected")
+    def rejection(reason: str = "", mode: str = "") -> Response:
+        return Response(success=False, error=reason, msg="rejected",
+                        metadata={"mode": mode})
 
     @staticmethod
     def guard_blocked(reason: str = "", pattern: str = "") -> Response:
