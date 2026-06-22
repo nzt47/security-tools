@@ -1023,6 +1023,140 @@ class Orchestrator:
         return self._last_context_warning
 
     # ════════════════════════════════════════════════════════════════════
+    #  分身管理（P4 Subagent Lifecycle）
+    # ════════════════════════════════════════════════════════════════════
+
+    def create_subagent(self, config) -> object:
+        """创建一个新分身
+
+        分身是一个独立容器，包含选配的 LLM、记忆提供商、工具集和独立上下文。
+
+        Args:
+            config: SubagentConfig 实例或等价的 dict
+
+        Returns:
+            创建好的 SubagentContainer
+        """
+        if not self._subagent_mgr:
+            raise RuntimeError("分身系统未启用，请设置 subagent.enabled=True")
+
+        from agent.subagent.container import SubagentConfig
+
+        if isinstance(config, dict):
+            config = SubagentConfig(**config)
+        elif not isinstance(config, SubagentConfig):
+            raise TypeError(f"config 必须是 SubagentConfig 或 dict，收到: {type(config).__name__}")
+
+        start = time.time()
+        container = self._subagent_mgr.create(config)
+        elapsed = (time.time() - start) * 1000
+        logger.info("[Subagent:%s] 创建完成 (%.1fms)", container.id, elapsed)
+        return container
+
+    def destroy_subagent(self, name: str) -> dict:
+        """销毁指定分身
+
+        Args:
+            name: 分身名称
+
+        Returns:
+            清理报告（包含记忆增量）
+        """
+        if not self._subagent_mgr:
+            raise RuntimeError("分身系统未启用")
+
+        container = self._subagent_mgr.get(name)
+        if not container:
+            raise ValueError(f"分身不存在: {name}")
+
+        report = self._subagent_mgr.destroy(container)
+
+        # 如果分身有记忆变更，持久化到对应记忆提供商
+        if report.get("memory_delta_keys"):
+            logger.info("[Subagent:%s] 记忆增量待持久化: %s",
+                        container.id, report["memory_delta_keys"])
+            # TODO(P4.1): 通过 MemoryRouter 持久化 memory_delta
+
+        return report
+
+    def hot_reload_subagent(self, name: str, new_config: dict):
+        """热更新分身配置
+
+        运行时替换分身的 LLM、记忆、工具或权限配置。
+        下一次 execute() 自动使用新配置。
+
+        Args:
+            name: 分身名称
+            new_config: 新配置（dict 格式，与 SubagentConfig 字段一致）
+        """
+        if not self._subagent_mgr:
+            raise RuntimeError("分身系统未启用")
+
+        container = self._subagent_mgr.get(name)
+        if not container:
+            raise ValueError(f"分身不存在: {name}")
+
+        from agent.subagent.container import SubagentConfig
+
+        if isinstance(new_config, dict):
+            new_config_obj = SubagentConfig(**new_config)
+        else:
+            new_config_obj = new_config
+
+        self._subagent_mgr.hot_reload(container, new_config_obj)
+        logger.info("[Orchestrator] 分身热更新完成: %s", name)
+
+    def list_subagents(self) -> list[dict]:
+        """列出所有活跃分身的状态
+
+        Returns:
+            分身状态字典列表
+        """
+        if not self._subagent_mgr:
+            return []
+        return [sa.get_status() for sa in self._subagent_mgr.list()]
+
+    def get_subagent(self, name: str) -> Optional[dict]:
+        """获取指定分身的详细状态
+
+        Args:
+            name: 分身名称
+
+        Returns:
+            分身状态字典，不存在返回 None
+        """
+        if not self._subagent_mgr:
+            return None
+        container = self._subagent_mgr.get(name)
+        return container.get_status() if container else None
+
+    def execute_subagent(self, name: str, task: str) -> dict:
+        """在指定分身中执行任务
+
+        Args:
+            name: 分身名称
+            task: 任务描述
+
+        Returns:
+            ExecutionResult 的字典表示
+        """
+        if not self._subagent_mgr:
+            raise RuntimeError("分身系统未启用")
+
+        container = self._subagent_mgr.get(name)
+        if not container:
+            raise ValueError(f"分身不存在: {name}")
+
+        result = container.execute(task)
+        return {
+            "output": result.output,
+            "trace_id": result.trace_id,
+            "error": result.error,
+            "duration_ms": round(result.duration_ms, 1),
+            "timestamp": result.timestamp,
+        }
+
+    # ════════════════════════════════════════════════════════════════════
     #  状态查询
     # ════════════════════════════════════════════════════════════════════
 
@@ -1061,6 +1195,7 @@ class Orchestrator:
                 "反思记录数": len(self._reflection_history),
             },
             "搜索引擎": self._get_engine_health_status(),
+            "分身": self._subagent_mgr.get_stats() if self._subagent_mgr else {"active_count": 0},
         }
 
         if self._v2_lifetrace and self._trace_recorder:
