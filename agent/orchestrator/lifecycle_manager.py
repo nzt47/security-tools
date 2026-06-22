@@ -716,7 +716,7 @@ class LifecycleManager:
     def _register_builtin_tools(self):
         """注册所有内置工具（模块化加载）"""
         from agent.tools.core_tools import register_all as reg_core
-        from agent.tools.file_tools import register_all as reg_file
+        from agent.tools.file_tools_reg import register_all as reg_file
         from agent.tools.web_tools import register_all as reg_web
         from agent.tools.ext_tools import register_all as reg_ext
         from agent.tools.pdf_tools import register_all as reg_pdf
