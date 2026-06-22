@@ -1,10 +1,11 @@
 """Orchestrator — 云枢主编排器
 
 职责:
-- 消息路由与对话闭环（chat → _chat_impl → _process_user_input）
+- P12 统一对话链路（chat → process → 感知→认知→行动→反思）
 - LLM 调用与工具调用协调（_call_llm / _call_llm_v2）
 - 结果聚合与反思记录
 - 状态查询与多模态功能入口
+- 4 套旧实现已合并为统一 process() 方法
 
 依赖:
 - LifecycleManager: 提供 _memory、_llm、_behavior 等已初始化组件
@@ -31,6 +32,9 @@ from agent.digital_life import (
 
 from agent.guardrails.input_guard import InputGuard, GuardAction
 from agent.guardrails.output_guard import OutputGuard
+from agent.observability.subscriber import trace_store, TraceSpan
+from agent.orchestrator.message_handler import MessageHandler
+from agent.orchestrator.response_builder import ResponseBuilder, Response
 
 logger = logging.getLogger(__name__)
 
@@ -75,40 +79,54 @@ class Orchestrator:
     # ════════════════════════════════════════════════════════════════════
 
     def chat(self, user_input: str) -> str:
-        """与云枢对话——完整的感知-认知-行动闭环
+        """与云枢对话——P12 统一入口
 
-        这是与云枢交互的唯一入口。
-        每次对话都经历：感知身体 → 智能判断(是否规划) → 执行 → 反思记录
+        这是与云枢交互的唯一外部入口。
+        内部统一由 process() 处理完整的感知-认知-行动-反思闭环。
 
         Args:
             user_input: 用户说给云枢的话
 
         Returns:
-            云枢的回复
+            云枢的回复文本
         """
-        if _MONITORING_AVAILABLE:
-            with TraceContext("DigitalLife", "chat") as ctx:
-                return self._chat_impl(user_input)
-        return self._chat_impl(user_input)
+        result = self.process(user_input)
+        if isinstance(result, dict):
+            return result.get("response", "") or result.get("data", "") or ""
+        return str(result)
 
-    def _chat_impl(self, user_input: str) -> str:
-        """实际对话实现"""
-        logger.info("=" * 70)
+    def process(self, user_input: str, **kwargs) -> dict:
+        """P12 统一对话处理链路
+
+        整合之前 4 套 chat 实现（_chat_impl / _chat_v2 / _chat_with_planning / _process_user_input）
+        为一条统一链路：InputGuard → WorkflowEngine → 感知+行为能力 → 意图路由+模板 → LLM → OutputGuard → 反思 → 记忆
+
+        Args:
+            user_input: 用户输入
+            **kwargs: 扩展参数（planning_mode, body_status 等）
+
+        Returns:
+            标准响应字典 {"success": bool, "response": str, "error": str, "metadata": dict}
+        """
         trace_id = get_trace_id() if _MONITORING_AVAILABLE else None
-        logger.info("[%s] [Orchestrator.chat] 收到对话请求", trace_id)
-
-        input_preview = user_input[:100]
-        if len(user_input) > 100:
-            input_preview += "..."
+        logger.info("=" * 70)
+        logger.info("[%s] [Orchestrator.process] 收到对话请求", trace_id)
+        input_preview = user_input[:100] + ("..." if len(user_input) > 100 else "")
         logger.info("   用户输入: %s", input_preview)
         logger.info("   对话次数: %d", self._interaction_count + 1)
         logger.info("=" * 70)
 
         if not self._running:
             logger.warning("云枢未运行，返回提示")
-            return "我还没有被唤醒。请先调用 start() 让我醒来。"
+            return ResponseBuilder.success(
+                "我还没有被唤醒。请先调用 start() 让我醒来。"
+            ).to_dict()
 
         self._interaction_count += 1
+
+        # ── Trace: 开始记录 ──
+        if trace_id:
+            trace_store.start_trace(trace_id, user_input)
 
         if _MONITORING_AVAILABLE:
             collector = get_metrics_collector()
@@ -121,42 +139,164 @@ class Orchestrator:
             logger.info("[上下文] %s（%.1f%%）", self._last_context_warning["message"],
                         self._last_context_warning["pct"])
 
-        # V2 增强处理
+        # ── 第零步：InputGuard 输入安全检查 ──
+        guard_result = self._input_guard.check(user_input)
+        if guard_result.action == GuardAction.BLOCK:
+            logger.warning(
+                "[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）",
+                guard_result.reason, guard_result.matched_pattern,
+            )
+            if trace_id:
+                trace_store.end_trace(trace_id, guard_result.reason, status="blocked")
+            return ResponseBuilder.guard_blocked(
+                guard_result.reason, guard_result.matched_pattern
+            ).to_dict()
+
+        # ── 第一步：Workflow Engine 匹配（0 Token 消耗）──
+        ts_wf = time.time()
+        workflow_result = self._workflow_engine.try_match(user_input)
+        if workflow_result.matched:
+            logger.info("[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms",
+                        workflow_result.intent, workflow_result.confidence,
+                        workflow_result.execution_time_ms)
+            self._memory.score_and_save_message("user", user_input)
+            self._memory.score_and_save_message("assistant", workflow_result.output)
+            if trace_id:
+                trace_store.end_trace(trace_id, workflow_result.output)
+            return ResponseBuilder.workflow_result(
+                workflow_result.output, workflow_result.intent, workflow_result.confidence
+            ).to_dict()
+        if trace_id:
+            trace_store.add_span(trace_id, TraceSpan(
+                span_id=f"{trace_id}_workflow",
+                operation="workflow_match",
+                start_time=ts_wf, end_time=time.time(),
+                duration_ms=(time.time() - ts_wf) * 1000,
+                status="no_match",
+            ))
+
+        # ── 第二步：感知 + 行为能力检查 ──
+        readings = self.check_health()
+        body_status = self._build_body_status(readings)
+
+        # V2: LifeTrace 记录用户输入
         if self._v2_lifetrace and self._trace_recorder:
-            return self._chat_v2(user_input)
+            timestamp = datetime.now(timezone.utc).isoformat()
+            self._trace_recorder.record_chat(
+                role="user", content=user_input,
+                metadata={"interaction_id": self._interaction_count, "timestamp": timestamp},
+            )
 
-        # 原有处理逻辑
-        if self._planning_enabled and self._planner and self._needs_planning(user_input):
-            logger.info("[%s] [路由] 复杂度评估: 启用规划模式", trace_id)
-            if _MONITORING_AVAILABLE:
-                collector.increment_counter("count.digital_life.chat.planning_mode")
-            return self._chat_with_planning(user_input)
+        # V2: 人格蒸馏增量更新
+        if self._v2_distillation and self._persona_extractor:
+            ts = datetime.now(timezone.utc).isoformat()
+            self._persona_extractor.update_incremental({
+                "role": "user", "content": user_input, "timestamp": ts,
+            })
 
-        logger.info("[路由] 复杂度评估: 直接模式")
-        logger.info("[路由] 执行流程: 感知 → 认知 → 行动 → 反思")
+        # 行为能力 + Persona 双重拒绝检查
+        can_execute, reject_reason = self._behavior.can_execute(user_input)
+        if self._v2_persona and self._persona_injector:
+            persona_reject, persona_reason = self._persona_injector.should_refuse_task(user_input)
+            if persona_reject and not can_execute:
+                reject_reason = f"{reject_reason}；{persona_reason}"
+            elif persona_reject:
+                can_execute, reject_reason = False, persona_reason
 
+        if not can_execute:
+            response = self._build_reject_response(reject_reason, readings)
+            self._memory.save_log("task_rejected", {
+                "reason": reject_reason,
+                "mode": self._current_mode.value,
+                "input_preview": user_input[:100],
+            })
+            if self._v2_lifetrace and self._trace_recorder:
+                self._trace_recorder.record_chat(
+                    role="assistant", content=response,
+                    metadata={"rejected": True, "reason": reject_reason},
+                )
+            if trace_id:
+                trace_store.end_trace(trace_id, response)
+            return ResponseBuilder.rejection(
+                reject_reason, self._current_mode.value
+            ).to_dict()
+
+        # ── 第三步：意图路由 + 模板匹配（零 LLM 消耗）──
         try:
-            result = self._process_user_input(user_input)
-            logger.info("[OK] 对话处理完成")
+            from agent.response_workflows import (
+                IntentRouter, ResponseTemplates, Confidence,
+            )
+            intent, confidence = IntentRouter.classify(user_input)
+            logger.info("[路由] 意图=%s, 置信度=%s", intent, confidence)
 
-            if _MONITORING_AVAILABLE:
-                collector.increment_counter("count.digital_life.chat.success")
+            is_follow_up = MessageHandler.is_follow_up({
+                'last_was_template': getattr(self, '_last_was_template', False),
+                'confidence': confidence,
+            })
+            dissatisfaction = MessageHandler.detect_dissatisfaction(user_input)
+            if dissatisfaction:
+                logger.info("[路由] 检测到用户不满/纠正，降级到 LLM")
+                is_follow_up = True
+            if is_follow_up:
+                logger.info("[路由] 检测到模板后追问，降级到 LLM")
+                self._last_was_template = False
 
-            return result
+            if not is_follow_up:
+                template_response = ResponseTemplates.for_intent(
+                    intent, confidence=confidence,
+                    hour=datetime.now().hour,
+                )
+                if template_response:
+                    logger.info("[路由] 使用本地模板，跳过 LLM 调用")
+                    self._set_thinking_mode("instinct")
+                    response = template_response
+                    self._last_was_template = True
+                    self._last_context_warning = None
+                    self._memory.score_and_save_message("user", user_input)
+                    self._memory.score_and_save_message("assistant", response)
+                    try:
+                        self._memory.infer_working_memory(user_input, response)
+                    except Exception:
+                        pass
+                    logger.info("[路由] 模板回复完成 (#%d)", self._interaction_count)
+                    if trace_id:
+                        trace_store.add_span(trace_id, TraceSpan(
+                            span_id=f"{trace_id}_template",
+                            operation="template_reply",
+                            status="success",
+                            metadata={"intent": intent,
+                                      "confidence": confidence.name},
+                        ))
+                        trace_store.end_trace(trace_id, response)
+                    return ResponseBuilder.success(response).to_dict()
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.debug("[路由] 路由失败，降级到 LLM: %s", e)
+        self._last_was_template = False
+
+        # ── 第四步：LLM 调用 ──
+        ts_llm = time.time()
+        try:
+            if self._v2_lifetrace and self._trace_recorder:
+                # V2 路径：Persona 系统 + ToolCallingService
+                response = self._call_llm_v2(user_input, body_status)
+            else:
+                # 标准路径
+                response = self._call_llm(user_input, body_status)
         except Exception as e:
             logger.error("[FAIL] 对话处理异常: %s", e)
             tb_str = __import__('traceback').format_exc()
             logger.error("堆栈:\n%s", tb_str)
-
+            if trace_id:
+                trace_store.end_trace(trace_id, str(e)[:200], status="error")
             if _MONITORING_AVAILABLE:
                 collector.increment_counter("count.digital_life.chat.error")
                 collector.increment_counter("count.digital_life.error.total")
-
                 if self._error_reporter:
                     try:
                         self._error_reporter.report_error(
-                            error=e,
-                            level=AlertLevel.ERROR,
+                            error=e, level=AlertLevel.ERROR,
                             context={
                                 'user_input': user_input[:200],
                                 'trace_id': trace_id,
@@ -167,124 +307,123 @@ class Orchestrator:
                         logger.info("[%s] [OK] 错误已自动上报", trace_id)
                     except Exception as report_error:
                         logger.warning("[%s] 错误上报失败: %s", trace_id, report_error)
+            return ResponseBuilder.error(
+                "抱歉，处理您的请求时遇到了问题：%s" % e
+            ).to_dict()
+        llm_duration_ms = (time.time() - ts_llm) * 1000
 
-            return "抱歉，处理您的请求时遇到了问题：%s" % str(e)
+        # 规划模式：追加 Planner 状态信息
+        planning_mode = kwargs.get("planning_mode", False) or \
+            (self._planning_enabled and self._planner and self._needs_planning(user_input))
+        if planning_mode and self._planner:
+            try:
+                stats = self._planner.get_stats()
+                if stats and stats.get("registered_tools"):
+                    registered_tools = stats["registered_tools"]
+                    response += "\n\n（规划引擎已就绪，可用工具: %s）" % registered_tools
+            except Exception:
+                pass
 
-    def _chat_v2(self, user_input: str) -> str:
-        """V2 增强对话流程（集成 LifeTrace 和 Persona）"""
-        logger.info("[V2] 使用 V2 增强流程处理对话...")
-
-        # 1. 感知
-        readings = self.check_health()
-
-        # 2. 记录用户输入到 LifeTrace
-        timestamp = datetime.now(timezone.utc).isoformat()
-        self._trace_recorder.record_chat(
-            role="user",
-            content=user_input,
-            metadata={"interaction_id": self._interaction_count, "timestamp": timestamp},
-        )
-
-        # 3. 构建身体状态
-        body_status = self._build_body_status(readings)
-
-        # 4. 人格蒸馏增量更新
-        if self._v2_distillation and self._persona_extractor:
-            self._persona_extractor.update_incremental({
-                "role": "user",
-                "content": user_input,
-                "timestamp": timestamp,
-            })
-
-        # 5. 判断是否拒绝
-        can_execute, reject_reason = self._behavior.can_execute(user_input)
-
-        if self._v2_persona and self._persona_injector:
-            persona_reject, persona_reason = self._persona_injector.should_refuse_task(user_input)
-            if persona_reject and not can_execute:
-                reject_reason = f"{reject_reason}；{persona_reason}"
-            elif persona_reject:
-                can_execute = False
-                reject_reason = persona_reason
-
-        if not can_execute:
-            response = self._build_reject_response(reject_reason, readings)
-            self._trace_recorder.record_chat(
-                role="assistant",
-                content=response,
-                metadata={"rejected": True, "reason": reject_reason},
+        # ── 第五步：OutputGuard 输出安全检查（PII 遮盖）──
+        output_result = self._output_guard.check(response)
+        if output_result.modified:
+            logger.info(
+                "[Guard] 🔒 输出已过滤，遮盖字段: %s",
+                ", ".join(output_result.redacted_fields),
             )
-            return response
+            response = output_result.filtered
 
-        # 6. 调用 LLM
-        response = self._call_llm_v2(user_input, body_status)
+        # Trace: 记录 LLM 调用 Span
+        if trace_id:
+            trace_store.add_span(trace_id, TraceSpan(
+                span_id=f"{trace_id}_llm",
+                operation="llm_call",
+                start_time=ts_llm, end_time=time.time(),
+                duration_ms=llm_duration_ms,
+                status="success",
+                metadata={"redacted_fields": list(output_result.redacted_fields)
+                          if output_result.modified else []},
+            ))
 
-        # 7. 反思（受技能开关控制）
+        # ── 第六步：认知循环——反思 ──
         if self._behavior.profile.enable_reflection:
             if self._is_skill_enabled("self_reflection"):
                 self.self_reflect(user_input, response)
+            else:
+                logger.debug("[SkillGate] self_reflection 已禁用，跳过")
 
-        # 8. 人格蒸馏批量学习
+        # ── 第七步：记忆保存 ──
+        self._memory.score_and_save_message("user", user_input)
+        self._memory.score_and_save_message("assistant", response)
+        try:
+            self._memory.infer_working_memory(user_input, response)
+        except Exception as e:
+            logger.debug("[WM] 工作记忆更新失败: %s", e)
+
+        # 向量记忆保存
+        if self._vector_memory:
+            try:
+                memory_content = f"用户: {user_input}\n云枢: {response}"
+                item_id = self._vector_memory.add(
+                    content=memory_content,
+                    metadata={
+                        "type": "conversation",
+                        "interaction": self._interaction_count,
+                    },
+                )
+                logger.info("[记忆] 向量记忆已保存: %s", item_id)
+            except Exception as e:
+                logger.error("[FAIL] 保存向量记忆失败: %s", e)
+
+        # V2: LifeTrace 记录响应
+        if self._v2_lifetrace and self._trace_recorder:
+            self._trace_recorder.record_chat(
+                role="assistant", content=response,
+                metadata={"interaction_id": self._interaction_count},
+            )
+
+        # V2: 人格蒸馏批量学习
         if self._v2_distillation and self._persona_extractor and \
            self._interaction_count % self._distillation_interval == 0:
             self._run_persona_distillation()
 
-        # 9. 记录响应到 LifeTrace
-        self._trace_recorder.record_chat(
-            role="assistant",
-            content=response,
-            metadata={"interaction_id": self._interaction_count},
-        )
-
-        # 10. 兼容旧系统
+        # 兼容旧系统
         self._memory.add_message("user", user_input)
         self._memory.add_message("assistant", response)
 
-        return response
-
-    def _chat_with_planning(self, user_input: str) -> str:
-        """使用规划引擎处理复杂任务"""
-        logger.info("[规划模式] 开始处理复杂任务")
-        logger.info("-" * 70)
-
-        try:
-            logger.info("[规划] 步骤1: 检查身体状态...")
-            readings = self.check_health()
-            logger.info("   身体状态已获取: %d 项", len(readings))
-
-            response = self._process_user_input(user_input)
-
-            if self._planner:
-                logger.info("[规划] 步骤2: 获取规划引擎状态...")
-                stats = self._planner.get_stats()
-                if stats and stats.get("registered_tools"):
-                    registered_tools = stats["registered_tools"]
-                    logger.info("   可用工具: %s", registered_tools)
-                    response += "\n\n（规划引擎已就绪，可用工具: %s）" % registered_tools
-
-            logger.info("[OK] 规划模式处理完成")
-            return response
-
-        except Exception as e:
-            logger.error("[FAIL] 规划模式失败: %s", e)
-            tb_str = __import__('traceback').format_exc()
-            logger.error("堆栈:\n%s", tb_str)
-
-            if _MONITORING_AVAILABLE and self._error_reporter:
-                trace_id = get_trace_id()
-                self._error_reporter.report_error(
-                    error=e,
-                    level=AlertLevel.WARNING,
-                    context={
-                        'user_input': user_input[:200],
-                        'trace_id': trace_id,
-                        'interaction_count': self._interaction_count,
-                        'mode': 'planning',
-                    },
+        # 上下文快满时追加切换建议
+        if self._last_context_warning and self._last_context_warning["level"] == "critical":
+            carry_summary = ""
+            try:
+                summary_data = self._memory.load_summary()
+                if summary_data:
+                    carry_summary = summary_data[0][:2000]
+            except Exception:
+                pass
+            if not carry_summary:
+                carry_summary = (
+                    f"本次对话共 {self._interaction_count} 轮，"
+                    f"最新用户提问：{user_input[:200]}"
                 )
+            self._last_context_warning["summary"] = carry_summary
+            response += (
+                "\n\n---\n💡 **当前会话上下文即将耗尽**"
+                f"（已使用 {self._last_context_warning['pct']:.0f}%）。"
+                "\n点击下方「创建新会话」按钮，我会携带之前的记忆继续对话。"
+            )
 
-        logger.warning("[WARN] 规划模式异常，降级为直接模式")
-        return self._process_user_input(user_input)
+        # ── Trace: 结束记录 ──
+        if trace_id:
+            trace_store.end_trace(trace_id, response)
+
+        if _MONITORING_AVAILABLE:
+            collector.increment_counter("count.digital_life.chat.success")
+
+        return ResponseBuilder.success(response).to_dict()
+
+    # (以下废弃方法已在 P12 统一链路中删除:
+    #  _chat_v2, _chat_with_planning, _process_user_input)
+    #  所有功能已合并到 process() 方法中
 
     # ════════════════════════════════════════════════════════════════════
     #  健康检查
@@ -314,158 +453,6 @@ class Orchestrator:
     def get_behavior_mode(self):
         """获取我当前的行为模式"""
         return self._current_mode
-
-    # ════════════════════════════════════════════════════════════════════
-    #  用户输入处理
-    # ════════════════════════════════════════════════════════════════════
-
-    def _process_user_input(self, user_input: str) -> str:
-        """处理用户输入的内部闭环（含本地工作流路由 + Guardrails 安全护栏）"""
-        # ── 第零步：InputGuard 输入安全检查 ──
-        #    在一切处理之前检测提示词注入和恶意输入
-        guard_result = self._input_guard.check(user_input)
-        if guard_result.action == GuardAction.BLOCK:
-            logger.warning(
-                "[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）",
-                guard_result.reason, guard_result.matched_pattern,
-            )
-            return "输入被安全护栏拦截: %s。请调整您的输入后重试。" % guard_result.reason
-
-        # ── 第一步：尝试 Workflow Engine 匹配（0 Token 消耗）──
-        #    在 LLM 调用之前优先匹配本地确定性规则
-        workflow_result = self._workflow_engine.try_match(user_input)
-        if workflow_result.matched:
-            logger.info("[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms",
-                        workflow_result.intent, workflow_result.confidence,
-                        workflow_result.execution_time_ms)
-            self._memory.score_and_save_message("user", user_input)
-            self._memory.score_and_save_message("assistant", workflow_result.output)
-            return workflow_result.output
-
-        readings = self.check_health()
-        body_status = self._build_body_status(readings)
-
-        can_execute, reject_reason = self._behavior.can_execute(user_input)
-        if not can_execute:
-            response = self._build_reject_response(reject_reason, readings)
-            self._memory.save_log("task_rejected", {
-                "reason": reject_reason,
-                "mode": self._current_mode.value,
-                "input_preview": user_input[:100],
-            })
-            return response
-
-        # ── 工作流路由：意图分类 → 模板匹配（零 LLM）──
-        try:
-            from agent.response_workflows import (
-                IntentRouter, ResponseTemplates, Confidence,
-            )
-            intent, confidence = IntentRouter.classify(user_input)
-            logger.info("[路由] 意图=%s, 置信度=%s", intent, confidence)
-
-            is_follow_up = getattr(self, '_last_was_template', False) and confidence != Confidence.HIGH
-
-            dissatisfaction = bool(_re.search(
-                r'(不是|不对|没听懂|不理解|我问的|我说的是|换个|换一种|不是这个|重新|重来|算了)',
-                user_input,
-            ))
-            if dissatisfaction:
-                logger.info("[路由] 检测到用户不满/纠正，降级到 LLM")
-                is_follow_up = True
-            if is_follow_up:
-                logger.info("[路由] 检测到模板后追问，降级到 LLM")
-                self._last_was_template = False
-
-            if not is_follow_up:
-                template_response = ResponseTemplates.for_intent(
-                    intent, confidence=confidence,
-                    hour=datetime.now().hour,
-                )
-                if template_response:
-                    logger.info("[路由] 使用本地模板，跳过 LLM 调用")
-                    self._set_thinking_mode("instinct")
-                    response = template_response
-                    self._last_was_template = True
-                    self._last_context_warning = None
-                    self._interaction_count += 1
-                    self._memory.score_and_save_message("user", user_input)
-                    self._memory.score_and_save_message("assistant", response)
-                    try:
-                        self._memory.infer_working_memory(user_input, response)
-                    except Exception:
-                        pass
-                    logger.info("[路由] 模板回复完成 (#%d)", self._interaction_count)
-                    return response
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.debug("[路由] 路由失败，降级到 LLM: %s", e)
-
-        self._last_was_template = False
-
-        response = self._call_llm(user_input, body_status)
-
-        # ── OutputGuard 输出安全检查（PII 遮盖）──
-        #    "遮盖不阻塞"——PII 遮盖后继续返回
-        output_result = self._output_guard.check(response)
-        if output_result.modified:
-            logger.info(
-                "[Guard] 🔒 输出已过滤，遮盖字段: %s",
-                ", ".join(output_result.redacted_fields),
-            )
-            response = output_result.filtered
-
-        # 上下文快满时追加切换建议
-        if self._last_context_warning and self._last_context_warning["level"] == "critical":
-            carry_summary = ""
-            try:
-                summary_data = self._memory.load_summary()
-                if summary_data:
-                    carry_summary = summary_data[0][:2000]
-            except Exception:
-                pass
-            if not carry_summary:
-                carry_summary = (
-                    f"本次对话共 {self._interaction_count} 轮，"
-                    f"最新用户提问：{user_input[:200]}"
-                )
-            self._last_context_warning["summary"] = carry_summary
-            response += (
-                "\n\n---\n💡 **当前会话上下文即将耗尽**"
-                f"（已使用 {self._last_context_warning['pct']:.0f}%）。"
-                "\n点击下方「创建新会话」按钮，我会携带之前的记忆继续对话。"
-            )
-
-        if self._behavior.profile.enable_reflection:
-            if self._is_skill_enabled("self_reflection"):
-                self.self_reflect(user_input, response)
-            else:
-                logger.debug("[SkillGate] self_reflection 已禁用，跳过")
-
-        self._memory.score_and_save_message("user", user_input)
-        self._memory.score_and_save_message("assistant", response)
-
-        try:
-            self._memory.infer_working_memory(user_input, response)
-        except Exception as e:
-            logger.debug("[WM] 工作记忆更新失败: %s", e)
-
-        # 向量记忆保存
-        if self._vector_memory:
-            try:
-                memory_content = f"用户: {user_input}\n云枢: {response}"
-                item_id = self._vector_memory.add(
-                    content=memory_content,
-                    metadata={
-                        "type": "conversation",
-                        "interaction": self._interaction_count,
-                    },
-                )
-                logger.info("[记忆] 向量记忆已保存: %s", item_id)
-            except Exception as e:
-                logger.error("[FAIL] 保存向量记忆失败: %s", e)
-
-        return response
 
     def _check_context_usage(self) -> Optional[dict]:
         """检查上下文使用率和压缩退化程度，返回警告信息
@@ -1081,328 +1068,102 @@ class Orchestrator:
         return self._last_context_warning
 
     # ════════════════════════════════════════════════════════════════════
-    #  分身管理（P4 Subagent Lifecycle）
+    #  子模块访问器（懒加载）
     # ════════════════════════════════════════════════════════════════════
 
-    def create_subagent(self, config) -> object:
-        """创建一个新分身
+    @property
+    def subagent(self):
+        """分身管理器——分身完整生命周期管理"""
+        attr = '_subagent_mgr_proxy'
+        if not hasattr(self, attr):
+            from .subagent_manager import SubagentManager
+            object.__setattr__(self, attr, SubagentManager(self))
+        return getattr(self, attr)
 
-        分身是一个独立容器，包含选配的 LLM、记忆提供商、工具集和独立上下文。
+    @property
+    def voice(self):
+        """语音/视觉多模态模块"""
+        attr = '_voice_vision_proxy'
+        if not hasattr(self, attr):
+            from .voice_vision import VoiceVision
+            object.__setattr__(self, attr, VoiceVision(self))
+        return getattr(self, attr)
 
-        Args:
-            config: SubagentConfig 实例或等价的 dict
+    @property
+    def status(self):
+        """状态报告模块"""
+        attr = '_status_reporter_proxy'
+        if not hasattr(self, attr):
+            from .status_reporter import StatusReporter
+            object.__setattr__(self, attr, StatusReporter(self))
+        return getattr(self, attr)
 
-        Returns:
-            创建好的 SubagentContainer
-        """
-        if not self._subagent_mgr:
-            raise RuntimeError("分身系统未启用，请设置 subagent.enabled=True")
+    # ════════════════════════════════════════════════════════════════════
+    #  代理方法（向后兼容）
+    # ════════════════════════════════════════════════════════════════════
 
-        from agent.subagent.container import SubagentConfig
+    # -- Subagent 代理 --
 
-        if isinstance(config, dict):
-            config = SubagentConfig(**config)
-        elif not isinstance(config, SubagentConfig):
-            raise TypeError(f"config 必须是 SubagentConfig 或 dict，收到: {type(config).__name__}")
+    def create_subagent(self, config):
+        """创建一个新分身（代理至 SubagentManager）"""
+        return self.subagent.create(config)
 
-        start = time.time()
-        container = self._subagent_mgr.create(config)
-        elapsed = (time.time() - start) * 1000
-        logger.info("[Subagent:%s] 创建完成 (%.1fms)", container.id, elapsed)
-        return container
-
-    def destroy_subagent(self, name: str) -> dict:
-        """销毁指定分身
-
-        Args:
-            name: 分身名称
-
-        Returns:
-            清理报告（包含记忆增量）
-        """
-        if not self._subagent_mgr:
-            raise RuntimeError("分身系统未启用")
-
-        container = self._subagent_mgr.get(name)
-        if not container:
-            raise ValueError(f"分身不存在: {name}")
-
-        report = self._subagent_mgr.destroy(container)
-
-        # 如果分身有记忆变更，持久化到对应记忆提供商
-        if report.get("memory_delta_keys"):
-            logger.info("[Subagent:%s] 记忆增量待持久化: %s",
-                        container.id, report["memory_delta_keys"])
-            # TODO(P4.1): 通过 MemoryRouter 持久化 memory_delta
-
-        return report
+    def destroy_subagent(self, name: str):
+        """销毁指定分身（代理至 SubagentManager）"""
+        return self.subagent.destroy(name)
 
     def hot_reload_subagent(self, name: str, new_config: dict):
-        """热更新分身配置
+        """热更新分身配置（代理至 SubagentManager）"""
+        return self.subagent.hot_reload(name, new_config)
 
-        运行时替换分身的 LLM、记忆、工具或权限配置。
-        下一次 execute() 自动使用新配置。
+    def list_subagents(self):
+        """列出所有活跃分身（代理至 SubagentManager）"""
+        return self.subagent.list()
 
-        Args:
-            name: 分身名称
-            new_config: 新配置（dict 格式，与 SubagentConfig 字段一致）
-        """
-        if not self._subagent_mgr:
-            raise RuntimeError("分身系统未启用")
+    def get_subagent(self, name: str):
+        """获取指定分身状态（代理至 SubagentManager）"""
+        return self.subagent.get(name)
 
-        container = self._subagent_mgr.get(name)
-        if not container:
-            raise ValueError(f"分身不存在: {name}")
+    def execute_subagent(self, name: str, task: str):
+        """在分身中执行任务（代理至 SubagentManager）"""
+        return self.subagent.execute(name, task)
 
-        from agent.subagent.container import SubagentConfig
-
-        if isinstance(new_config, dict):
-            new_config_obj = SubagentConfig(**new_config)
-        else:
-            new_config_obj = new_config
-
-        self._subagent_mgr.hot_reload(container, new_config_obj)
-        logger.info("[Orchestrator] 分身热更新完成: %s", name)
-
-    def list_subagents(self) -> list[dict]:
-        """列出所有活跃分身的状态
-
-        Returns:
-            分身状态字典列表
-        """
-        if not self._subagent_mgr:
-            return []
-        return [sa.get_status() for sa in self._subagent_mgr.list()]
-
-    def get_subagent(self, name: str) -> Optional[dict]:
-        """获取指定分身的详细状态
-
-        Args:
-            name: 分身名称
-
-        Returns:
-            分身状态字典，不存在返回 None
-        """
-        if not self._subagent_mgr:
-            return None
-        container = self._subagent_mgr.get(name)
-        return container.get_status() if container else None
-
-    def execute_subagent(self, name: str, task: str) -> dict:
-        """在指定分身中执行任务
-
-        Args:
-            name: 分身名称
-            task: 任务描述
-
-        Returns:
-            ExecutionResult 的字典表示
-        """
-        if not self._subagent_mgr:
-            raise RuntimeError("分身系统未启用")
-
-        container = self._subagent_mgr.get(name)
-        if not container:
-            raise ValueError(f"分身不存在: {name}")
-
-        result = container.execute(task)
-        return {
-            "output": result.output,
-            "trace_id": result.trace_id,
-            "error": result.error,
-            "duration_ms": round(result.duration_ms, 1),
-            "timestamp": result.timestamp,
-        }
-
-    # ════════════════════════════════════════════════════════════════════
-    #  状态查询
-    # ════════════════════════════════════════════════════════════════════
-
-    def get_status(self) -> dict:
-        """获取云枢的完整状态报告"""
-        from agent import tools
-
-        readings = self.body.collect_quick()
-        profile = self._behavior.profile
-
-        status = {
-            "云枢": {
-                "版本": "2.0" if self._v2_lifetrace else "1.0",
-                "会话": self._session_id,
-                "运行中": self._running,
-                "交互次数": self._interaction_count,
-            },
-            "行为模式": {
-                "当前模式": self._current_mode.value,
-                "模式名称": profile.label,
-                "模式描述": profile.description,
-                "可接受任务": profile.can_accept_tasks,
-                "启用反思": profile.enable_reflection,
-            },
-            "身体状态": {
-                str(r.sensor_name): {
-                    "值": f"{r.value}{r.unit}",
-                    "严重程度": r.severity,
-                    "描述": r.description,
-                }
-                for r in readings
-            },
-            "系统": {
-                "工具数量": len(tools.list_tools()),
-                "记忆摘要": self._memory.load_summary()[0][:100] if self._memory.load_summary() else "无",
-                "反思记录数": len(self._reflection_history),
-            },
-            "搜索引擎": self._get_engine_health_status(),
-            "分身": self._subagent_mgr.get_stats() if self._subagent_mgr else {"active_count": 0},
-        }
-
-        if self._v2_lifetrace and self._trace_recorder:
-            lifetrace_stats = self._trace_recorder.get_statistics()
-            status["LifeTrace"] = {
-                "源节点数": lifetrace_stats.get("source_nodes", 0),
-                "主题节点数": lifetrace_stats.get("topic_nodes", 0),
-                "主题列表": lifetrace_stats.get("topics", []),
-            }
-
-        if self._v2_persona and self._persona_model:
-            status["Persona"] = {
-                "人格ID": self._persona_model.persona.get("persona_id"),
-                "版本": self._persona_model.persona.get("version"),
-            }
-
-        if self._v2_distillation and self._persona_extractor:
-            preferences_report = self._persona_extractor.export_preferences()
-            preferences = preferences_report.get("preferences", {})
-            status["人格蒸馏"] = {
-                "启用": True,
-                "学习间隔": self._distillation_interval,
-                "话题兴趣": list(preferences.get("topic_interest", {}).keys())[:5],
-                "最后更新": preferences.get("last_updated", "未知"),
-            }
-
-        return status
-
-    def get_status_text(self) -> str:
-        """获取人类可读的状态描述"""
-        profile = self._behavior.profile
-        health = self.body.get_health_report()
-
-        v2_info = ""
-        if self._v2_lifetrace:
-            v2_info = " (V2增强版)"
-
-        return (
-            f"* 云枢{v2_info}状态\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"会话: {self._session_id}\n"
-            f"运行中: {'是' if self._running else '否'}\n"
-            f"交互次数: {self._interaction_count}\n"
-            f"行为模式: {profile.label}\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"{health}"
-        )
-
-    # ════════════════════════════════════════════════════════════════════
-    #  多模态功能
-    # ════════════════════════════════════════════════════════════════════
+    # -- 语音/视觉代理 --
 
     def speak(self, text: str, save_to_file: bool = False):
-        """语音合成"""
-        if not self._voice_manager:
-            return {"ok": False, "error": "语音功能未启用"}
-        if not self._is_skill_enabled("voice_interaction"):
-            return {"ok": False, "error": "语音交互技能已禁用"}
-
-        try:
-            logger.info("[语音] 准备说话: %s...", text[:50])
-            result = self._voice_manager.speak(text, save_to_file)
-            return {"ok": result.success, "text": text, "audio_path": result.audio_path}
-        except Exception as e:
-            logger.error("[FAIL] 语音合成失败: %s", e)
-            return {"ok": False, "error": str(e)}
+        """语音合成（代理至 VoiceVision）"""
+        return self.voice.speak(text, save_to_file)
 
     def listen(self, duration: int = 5):
-        """语音识别"""
-        if not self._voice_manager:
-            return {"ok": False, "error": "语音功能未启用"}
-
-        try:
-            logger.info("[语音] 开始录音 (%d秒)...", duration)
-            result = self._voice_manager.listen(duration)
-            return {"ok": result.success, "text": result.text}
-        except Exception as e:
-            logger.error("[FAIL] 语音识别失败: %s", e)
-            return {"ok": False, "error": str(e)}
+        """语音识别（代理至 VoiceVision）"""
+        return self.voice.listen(duration)
 
     def voice_chat(self, duration: int = 5, speak_response: bool = True):
-        """语音对话"""
-        logger.info("[语音] 启动语音对话模式...")
+        """语音对话（代理至 VoiceVision）"""
+        return self.voice.voice_chat(duration, speak_response)
 
-        listen_result = self.listen(duration)
-        if not listen_result.get("ok"):
-            if speak_response:
-                self.speak("抱歉，我没有听清您在说什么。")
-            return {"ok": False, "error": listen_result.get("error"),
-                    "text": None, "response": None}
+    def look_at_screen(self, region=None):
+        """观察屏幕（代理至 VoiceVision）"""
+        return self.voice.look_at_screen(region)
 
-        user_input = listen_result.get("text", "")
-        if not user_input or not user_input.strip():
-            if speak_response:
-                self.speak("抱歉，我没有听到任何声音。")
-            return {"ok": False, "error": "没有听到内容",
-                    "text": user_input, "response": None}
+    def get_voice_status(self):
+        """获取语音功能状态（代理至 VoiceVision）"""
+        return self.voice.get_voice_status()
 
-        logger.info("[语音] 语音输入: %s", user_input)
-        response = self.chat(user_input)
+    def get_multimodal_status(self):
+        """获取多模态功能总状态（代理至 VoiceVision）"""
+        return self.voice.get_multimodal_status()
 
-        if speak_response:
-            self.speak(response)
+    # -- 状态报告代理 --
 
-        return {"ok": True, "text": user_input, "response": response}
+    def get_status(self):
+        """获取完整状态报告（代理至 StatusReporter）"""
+        return self.status.get_status()
 
-    def look_at_screen(self, region: Optional[tuple] = None):
-        """观察屏幕内容"""
-        if not self._ocr_sensor:
-            return {"ok": False, "error": "OCR功能未启用"}
+    def get_status_text(self):
+        """获取人类可读状态描述（代理至 StatusReporter）"""
+        return self.status.get_status_text()
 
-        try:
-            reading = self._ocr_sensor.capture_and_ocr(region)
-            ocr_text = "\n".join(
-                "[%s] %s" % (r.data.get('position', '?'), r.data.get('text', ''))
-                for r in reading.data
-            )
-            return {
-                "ok": True,
-                "reading": reading.to_dict() if hasattr(reading, 'to_dict') else {},
-                "text": ocr_text[:5000],
-            }
-        except Exception as e:
-            logger.error("[FAIL] OCR失败: %s", e)
-            return {"ok": False, "error": str(e)}
-
-    def get_voice_status(self) -> dict:
-        """获取语音功能状态"""
-        if not self._voice_manager:
-            return {"enabled": False, "available": False}
-
-        try:
-            status = self._voice_manager.get_status()
-            return {
-                "enabled": True,
-                "available": True,
-                "tts": status.get("tts_available", False),
-                "stt": status.get("stt_available", False),
-                "tts_engines": status.get("tts_engines", []),
-            }
-        except Exception as e:
-            return {"enabled": True, "available": False, "error": str(e)}
-
-    def get_multimodal_status(self) -> dict:
-        """获取多模态功能总状态"""
-        return {
-            "voice": self.get_voice_status(),
-            "ocr": {
-                "enabled": self._ocr_sensor is not None,
-                "available": self._ocr_sensor is not None,
-            },
-        }
+    def check_health(self):
+        """健康检查（代理至 StatusReporter）"""
+        return self.status.check_health()
