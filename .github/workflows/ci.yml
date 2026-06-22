@@ -138,9 +138,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --maxfail=5 \
-            -m "not slow" \
-            --ignore=tests/unit/test_safe_file_reader_alerts.py \
-            --ignore=tests/unit/test_system_tools_core.py
+            -m "not slow"
 
       - name: 运行新模块专项测试
         run: |
