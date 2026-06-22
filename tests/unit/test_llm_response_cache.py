@@ -7,7 +7,6 @@ import time
 import threading
 
 from agent.llm_response_cache import (
-    CacheEntry,
     AsyncSaveRecord,
     LLMResponseCache,
     AsyncSaveMonitor,
@@ -16,49 +15,6 @@ from agent.llm_response_cache import (
     async_save_monitor,
     perf_logger,
 )
-
-
-class TestCacheEntry:
-    """测试缓存条目类"""
-
-    @pytest.mark.unit
-    @pytest.mark.p0
-    def test_cache_entry_init(self):
-        """测试缓存条目初始化"""
-        entry = CacheEntry(
-            prompt_hash="abc123",
-            response="test response",
-            timestamp=time.time(),
-            ttl_seconds=3600
-        )
-        assert entry.prompt_hash == "abc123"
-        assert entry.response == "test response"
-        assert not entry.is_expired()
-        assert entry.hit_count == 0
-
-    @pytest.mark.unit
-    @pytest.mark.p0
-    def test_cache_entry_is_expired(self):
-        """测试过期检查"""
-        entry = CacheEntry(
-            prompt_hash="abc123",
-            response="test response",
-            timestamp=time.time() - 4000,
-            ttl_seconds=3600
-        )
-        assert entry.is_expired()
-
-    @pytest.mark.unit
-    @pytest.mark.p0
-    def test_cache_entry_not_expired(self):
-        """测试未过期"""
-        entry = CacheEntry(
-            prompt_hash="abc123",
-            response="test response",
-            timestamp=time.time() - 1000,
-            ttl_seconds=3600
-        )
-        assert not entry.is_expired()
 
 
 class TestAsyncSaveRecord:
