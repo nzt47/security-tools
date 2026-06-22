@@ -29,6 +29,9 @@ from agent.digital_life import (
     LLMServiceError,
 )
 
+from agent.guardrails.input_guard import InputGuard, GuardAction
+from agent.guardrails.output_guard import OutputGuard
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +44,31 @@ class Orchestrator:
     - _tool_calling_service, _model_router
     - _v2_lifetrace, _v2_persona, _v2_distillation
     - body, _injector
+
+    Guardrails 安全护栏:
+    - _input_guard: 输入护栏——检测提示词注入
+    - _output_guard: 输出护栏——PII 遮盖
     """
+
+    # ════════════════════════════════════════════════════════════════════
+    #  Guardrails 安全护栏（懒加载属性）
+    # ════════════════════════════════════════════════════════════════════
+
+    @property
+    def _input_guard(self) -> InputGuard:
+        """输入护栏——懒加载"""
+        attr = '_guardrails_input_guard'
+        if not hasattr(self, attr):
+            setattr(self, attr, InputGuard())
+        return getattr(self, attr)
+
+    @property
+    def _output_guard(self) -> OutputGuard:
+        """输出护栏——懒加载"""
+        attr = '_guardrails_output_guard'
+        if not hasattr(self, attr):
+            setattr(self, attr, OutputGuard())
+        return getattr(self, attr)
 
     # ════════════════════════════════════════════════════════════════════
     #  核心闭环：感知 → 认知 → 行动 → 反思
@@ -293,7 +320,28 @@ class Orchestrator:
     # ════════════════════════════════════════════════════════════════════
 
     def _process_user_input(self, user_input: str) -> str:
-        """处理用户输入的内部闭环（含本地工作流路由）"""
+        """处理用户输入的内部闭环（含本地工作流路由 + Guardrails 安全护栏）"""
+        # ── 第零步：InputGuard 输入安全检查 ──
+        #    在一切处理之前检测提示词注入和恶意输入
+        guard_result = self._input_guard.check(user_input)
+        if guard_result.action == GuardAction.BLOCK:
+            logger.warning(
+                "[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）",
+                guard_result.reason, guard_result.matched_pattern,
+            )
+            return "输入被安全护栏拦截: %s。请调整您的输入后重试。" % guard_result.reason
+
+        # ── 第一步：尝试 Workflow Engine 匹配（0 Token 消耗）──
+        #    在 LLM 调用之前优先匹配本地确定性规则
+        workflow_result = self._workflow_engine.try_match(user_input)
+        if workflow_result.matched:
+            logger.info("[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms",
+                        workflow_result.intent, workflow_result.confidence,
+                        workflow_result.execution_time_ms)
+            self._memory.score_and_save_message("user", user_input)
+            self._memory.score_and_save_message("assistant", workflow_result.output)
+            return workflow_result.output
+
         readings = self.check_health()
         body_status = self._build_body_status(readings)
 
@@ -356,6 +404,16 @@ class Orchestrator:
         self._last_was_template = False
 
         response = self._call_llm(user_input, body_status)
+
+        # ── OutputGuard 输出安全检查（PII 遮盖）──
+        #    "遮盖不阻塞"——PII 遮盖后继续返回
+        output_result = self._output_guard.check(response)
+        if output_result.modified:
+            logger.info(
+                "[Guard] 🔒 输出已过滤，遮盖字段: %s",
+                ", ".join(output_result.redacted_fields),
+            )
+            response = output_result.filtered
 
         # 上下文快满时追加切换建议
         if self._last_context_warning and self._last_context_warning["level"] == "critical":
