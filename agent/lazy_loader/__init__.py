@@ -128,6 +128,7 @@ class LazyModuleLoader:
         """
         self.modules: Dict[str, ModuleInfo] = {}
         self.stats = LoadStats()
+        self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.loaded_levels: Set[LoadLevel] = set()
         self.loading_levels: Set[LoadLevel] = set()
