@@ -39,7 +39,10 @@ class WorkflowEngine:
             try:
                 if rule.match_fn(text):
                     output = rule.execute_fn(text)
-                    logger.info("[WorkflowEngine] 规则匹配: %s → %s", rule.name, output[:60])
+                    try:
+                        logger.info("[WorkflowEngine] 规则匹配: %s → %s", rule.name, output[:60])
+                    except Exception:
+                        pass  # 日志异常不应影响匹配结果（Windows GBK 编码问题）
                     return WorkflowResult(
                         matched=True,
                         rule_name=rule.name,
