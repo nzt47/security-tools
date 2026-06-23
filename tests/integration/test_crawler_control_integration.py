@@ -68,6 +68,7 @@ class TestProxyIntegration:
 class TestRobotsTxtIntegration:
     """robots.txt 合规检查集成测试"""
 
+    @pytest.mark.skip_ci
     def test_can_fetch_real_website(self):
         """测试真实网站的 robots.txt 合规"""
         controller = CrawlerController(config={"respect_robots": True})
