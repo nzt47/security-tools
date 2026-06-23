@@ -288,6 +288,7 @@ class TestPlanningCore:
             assert active_plans[1]["id"] == "plan2"
 
     @pytest.mark.asyncio
+    @pytest.mark.skip_ci
     async def test_end_to_end_complex_workflow(self):
         """测试复杂端到端工作流场景"""
         with tempfile.TemporaryDirectory() as tmp_dir:

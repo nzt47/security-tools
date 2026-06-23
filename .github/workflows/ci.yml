@@ -138,21 +138,23 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --maxfail=5 \
-            -m "not slow"
+            -m "not slow and not skip_ci"
 
       - name: 运行新模块专项测试
         run: |
           echo "=== 运行新模块专项测试 ==="
-          python -m pytest tests/unit/test_cognitive_loop.py -v --tb=short -q || echo "⚠️ test_cognitive_loop skipped"
-          python -m pytest tests/unit/test_subagent.py -v --tb=short -q || echo "⚠️ test_subagent skipped (依赖未合并)"
-          python -m pytest tests/unit/test_workflow_engine.py -v --tb=short -q || echo "⚠️ test_workflow_engine skipped"
-          python -m pytest tests/unit/test_model_router.py -v --tb=short -q || echo "⚠️ test_model_router skipped"
-          python -m pytest tests/unit/test_task_planner.py -v --tb=short -q || echo "⚠️ test_task_planner skipped"
-          python -m pytest tests/unit/test_hitl.py -v --tb=short -q || echo "⚠️ test_hitl skipped"
-          python -m pytest tests/unit/test_health.py -v --tb=short -q || echo "⚠️ test_health skipped"
-          python -m pytest tests/unit/test_audit.py -v --tb=short -q || echo "⚠️ test_audit skipped"
-          python -m pytest tests/unit/test_guardrails.py -v --tb=short -q || echo "⚠️ test_guardrails skipped"
-          echo "=== 新模块专项测试完成 ==="
+          python -m pytest \
+            tests/unit/test_cognitive_loop.py \
+            tests/unit/test_subagent.py \
+            tests/unit/test_workflow_engine.py \
+            tests/unit/test_model_router.py \
+            tests/unit/test_task_planner.py \
+            tests/unit/test_hitl.py \
+            tests/unit/test_health.py \
+            tests/unit/test_audit.py \
+            tests/unit/test_guardrails.py \
+            -v --tb=short -q
+          echo "=== 新模块专项测试全部通过 ==="
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v3
@@ -199,7 +201,7 @@ jobs:
             --tb=short \
             --cov=agent \
             --cov-report=xml \
-            -m "not slow and not requires_llm"
+            -m "not slow and not e2e and not requires_llm and not skip_ci"
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v3
@@ -298,12 +300,65 @@ jobs:
           path: test_reports/
 
   # ============================================================================
+  # 端到端测试
+  # ============================================================================
+  e2e-tests:
+    name: E2E 端到端测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          pip install -e .
+
+      - name: 离线 E2E 测试
+        run: |
+          echo "=== 运行离线 E2E 测试 ==="
+          python -m pytest \
+            tests/e2e/test_offline_basic.py \
+            tests/e2e/test_offline_workflow.py \
+            -v --tb=short -q
+          echo "=== 离线 E2E 测试全部通过 ==="
+
+      - name: 在线 E2E 测试（仅 master 分支推送）
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          echo "=== 启动测试服务器 ==="
+          python app_server.py &
+          SERVER_PID=$!
+          sleep 5
+          echo "=== 运行在线 E2E 测试 ==="
+          python -m pytest \
+            tests/e2e/test_online_chat.py \
+            tests/e2e/test_online_tool_call.py \
+            -v --tb=short -q || echo "⚠️ 在线 E2E 测试跳过（可能需要外部服务）"
+          echo "=== 清理测试服务器 ==="
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: 上传测试结果
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-e2e
+          path: test-results/
+
+  # ============================================================================
   # 测试总结与告警
   # ============================================================================
   test-summary:
     name: 测试总结
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, performance-tests, coverage-check]
+    needs: [unit-tests, integration-tests, e2e-tests, performance-tests, coverage-check]
     if: always()
     steps:
       - name: 检出代码

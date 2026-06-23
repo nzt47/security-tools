@@ -494,19 +494,19 @@ class SensitiveDataFilter(logging.Filter):
             ]
             
             for pattern in standalone_patterns:
-                result = pattern.sub('***', result)
+                result = pattern.sub('[REDACTED]', result)
             
             # 处理邮箱地址
             email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', re.IGNORECASE)
-            result = email_pattern.sub('***@***.com', result)
+            result = email_pattern.sub('[REDACTED]@[REDACTED].com', result)
             
             # 处理字段名=值形式的敏感信息
             field_patterns = [
-                (re.compile(r'(password|secret|token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="***"'),
-                (re.compile(r'(password|secret|token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "***"'),
-                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="***"'),
-                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "***"'),
-                (re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*([^&]*)', re.IGNORECASE), r'\1\2=***'),
+                (re.compile(r'(password|secret|token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
+                (re.compile(r'(password|secret|token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
+                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
+                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
+                (re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*([^&]*)', re.IGNORECASE), r'\1\2=[REDACTED]'),
             ]
             
             for pattern, replacement in field_patterns:
@@ -557,7 +557,7 @@ class SensitiveDataFilter(logging.Filter):
         for key, value in data.items():
             # 如果键名是敏感的，直接替换值
             if key.lower() in sensitive_keys or any(sensitive in key.lower() for sensitive in sensitive_keys):
-                result[key] = '***'
+                result[key] = '[REDACTED]'
             elif isinstance(value, str):
                 result[key] = self._sanitize(value)
             elif isinstance(value, dict):
