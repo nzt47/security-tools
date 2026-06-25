@@ -1,9 +1,9 @@
 {
   "report_type": "daily",
-  "generated_at": "2026-06-25T19:10:47.222699",
+  "generated_at": "2026-06-25T19:19:26.877709",
   "period": {
     "start": "2026-06-25T00:00:00",
-    "end": "2026-06-25T19:10:47.221697"
+    "end": "2026-06-25T19:19:26.876709"
   },
   "summary": {
     "overall_status": "FAIL",
