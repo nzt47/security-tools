@@ -1,0 +1,81 @@
+# 云枢录制规则（已清理）
+#
+# 维护说明：
+#   - 所有录制规则必须基于 /metrics 端点实际暴露的指标
+#   - 已修复依赖大小写不匹配或未注册指标的录制规则
+#   - yunshu_memory_mb_used 录制规则从 alerts.yml 迁移至本文件
+#
+# 历史清理记录：2026-06-25 修复 8 条录制规则，移除 2 条无替代方案的录制规则
+
+groups:
+  - name: yunshu_recording_rules
+    interval: 30s
+    rules:
+      - record: yunshu:error_rate:5m
+        # 修复说明：原依赖未注册的 yunshu_error_total / yunshu_interaction_total
+        # 改用 prometheus_flask_exporter 暴露的 yunshu_http_request_total 计算 5xx 错误率
+        expr: |
+          sum(rate(yunshu_http_request_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(yunshu_http_request_total[5m])), 1e-9)
+
+      - record: yunshu:latency_p50:5m
+        # 修复说明：原依赖未注册的 yunshu_interaction_duration_duration_seconds
+        # 改用 prometheus_flask_exporter 暴露的 yunshu_http_request_duration_seconds
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          )
+
+      - record: yunshu:latency_p95:5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          )
+
+      - record: yunshu:latency_p99:5m
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          )
+
+      - record: yunshu:requests_per_second:5m
+        # 修复说明：原依赖未注册的 yunshu_interaction_total
+        # 改用 yunshu_http_request_total 按 status 维度统计
+        expr: sum(rate(yunshu_http_request_total[5m])) by (status)
+
+      - record: yunshu:memory_usage_percent
+        # 修复说明：原依赖未注册的 yunshu_memory_count / yunshu_memory_limit
+        # 直接转发 app_server.py 暴露的 yunshu_memory_usage_percent Gauge（psutil 0-100 范围）
+        expr: yunshu_memory_usage_percent
+
+      - record: yunshu_memory_mb_used
+        # 迁移说明：从 alerts.yml 迁移至本文件，使用 process_resident_memory_bytes 计算 RSS 内存占用
+        expr: process_resident_memory_bytes{job="yunshu-app"} / 1024 / 1024
+
+      - record: yunshu:llm_calls_per_hour:1h
+        # 修复说明：原 yunshu:token_usage:1h 依赖未暴露的 yunshu_token_usage_total
+        # 改用 yunshu_llm_calls_total 按 provider 和 model 维度统计每小时调用次数
+        expr: sum(increase(yunshu_llm_calls_total[1h])) by (provider, model)
+
+      - record: yunshu:tool_call_success_rate:5m
+        # 修复说明：app_server.py 的 yunshu_tool_calls_total（复数）未实际埋点
+        # 改用 business_metrics.py 通过 /api/business/prometheus 暴露的 yunshu_tool_call_total（单数）
+        # 注意：label 名为 success（非 status），值为 Python 风格 "True"/"False"
+        expr: |
+          sum(rate(yunshu_tool_call_total{success="True"}[5m])) by (tool_name)
+          /
+          clamp_min(sum(rate(yunshu_tool_call_total[5m])) by (tool_name), 1e-9)
+
+      - record: yunshu:uptime_percent:24h
+        # 保留说明：依赖 Prometheus 内置 up 指标，工作正常
+        expr: avg_over_time(up{job="yunshu-app"}[24h]) * 100
+
+      - record: yunshu:security_blocks:1h
+        # 修复说明：原 yunshu:alert_count:1h 依赖未注册的 yunshu_alert_total（label 用 severity，但实际是 level）
+        # 改用 yunshu_security_blocks_total 按 level 和 rule 维度统计
+        expr: sum(increase(yunshu_security_blocks_total[1h])) by (level, rule)
+
+      # 已删除的录制规则（无可用替代指标）：
+      # - yunshu:active_users:5m  (原依赖 yunshu_user_activity_total，无替代)
+      # - yunshu:cost_per_hour    (原依赖 yunshu_cost_total，无替代)

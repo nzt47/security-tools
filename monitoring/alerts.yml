@@ -1,213 +1,246 @@
+# 云枢告警规则（已清理）
+#
+# 维护说明：
+#   - 所有告警规则必须基于 /metrics 端点实际暴露的指标
+#   - 实际暴露的 yunshu_* 指标由 app_server.py 注册到 prometheus_client 默认注册表
+#   - 已删除依赖未部署组件（cAdvisor / node_exporter / Alertmanager）的告警
+#   - 已删除依赖未暴露业务指标（yunshu_health_score / yunshu_*_deployment_* / yunshu_ci_*）的告警
+#   - yunshu_memory_mb_used 录制规则已移至 recording_rules.yml
+#
+# 历史清理记录：2026-06-25 移除 22 条无效告警，修复 8 条告警 PromQL
+
 groups:
-  - name: yunshu_alerts
+  - name: yunshu_service_health
     interval: 30s
     rules:
-      # ==================== 错误率告警 ====================
-      - alert: HighErrorRate
-        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "高错误率检测 - {{ $labels.instance }}"
-          description: "应用 {{ $labels.instance }} 的错误率超过 10% (当前值：{{ $value | humanizePercentage }})"
-          
-      - alert: VeryHighErrorRate
-        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.5
-        for: 2m
-        labels:
-          severity: emergency
-        annotations:
-          summary: "严重错误率 - {{ $labels.instance }}"
-          description: "应用 {{ $labels.instance }} 的错误率超过 50% (当前值：{{ $value | humanizePercentage }})"
-      
-      # ==================== 延迟告警 ====================
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "高延迟检测"
-          description: "95 分位响应时间超过 5 秒 (当前值：{{ $value | humanizeDuration }})"
-          
-      - alert: VeryHighLatency
-        expr: histogram_quantile(0.99, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 10
-        for: 3m
-        labels:
-          severity: critical
-        annotations:
-          summary: "严重延迟检测"
-          description: "99 分位响应时间超过 10 秒 (当前值：{{ $value | humanizeDuration }})"
-      
-      # ==================== 安全告警 ====================
-      - alert: SecurityAttack
-        expr: sum(rate(yunshu_security_blocks_total[5m])) > 10
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "安全攻击检测"
-          description: "检测到频繁的安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
-          
-      - alert: CriticalSecurityAttack
-        expr: sum(rate(yunshu_security_blocks_total{level="critical"}[5m])) > 5
+      - alert: YunshuServiceDown
+        expr: up{job="yunshu-app"} == 0
         for: 1m
         labels:
           severity: critical
+          category: availability
+          service: yunshu
         annotations:
-          summary: "严重安全攻击检测"
-          description: "检测到频繁的严重级别安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
-      
-      # ==================== 系统资源告警 ====================
-      - alert: HighCPUUsage
-        expr: yunshu_cpu_usage_percent > 80
+          summary: "云枢服务不可用"
+          description: "服务实例 {{ $labels.instance }} 已停止运行超过 1 分钟"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#服务不可用"
+          impact: "用户无法使用云枢服务"
+          action: "检查容器状态，查看应用日志，必要时重启服务"
+
+      - alert: YunshuServiceRestart
+        # 修复说明：原 yunshu_service_restart_total 指标未暴露，改用 up 指标在 1 小时内的状态重置次数
+        expr: resets(up{job="yunshu-app"}[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          category: availability
+          service: yunshu
+        annotations:
+          summary: "服务频繁重启"
+          description: "过去 1 小时服务发生 {{ $value | printf \"%.0f\" }} 次状态重置"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#服务频繁重启"
+          impact: "服务可用性受影响"
+          action: "检查崩溃日志，分析重启原因"
+
+  - name: yunshu_http_errors
+    interval: 30s
+    rules:
+      - alert: YunshuHighErrorRate
+        # 修复说明：原 yunshu:error_rate:5m 录制规则依赖未注册的 yunshu_error_total
+        # 改用 prometheus_flask_exporter 暴露的 yunshu_http_request_total 直接计算 5xx 错误率
+        expr: |
+          sum(rate(yunshu_http_request_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(yunshu_http_request_total[5m])), 1e-9)
+          > 0.05
         for: 5m
         labels:
           severity: warning
+          category: errors
+          service: yunshu
         annotations:
-          summary: "CPU 使用率过高"
-          description: "CPU 使用率超过 80% (当前值：{{ $value | humanize }}%)"
-          
-      - alert: VeryHighCPUUsage
-        expr: yunshu_cpu_usage_percent > 95
-        for: 2m
+          summary: "HTTP 5xx 错误率过高"
+          description: "过去 5 分钟 5xx 错误率为 {{ $value | printf \"%.2f\" }}，超过阈值 5%"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#错误率过高"
+          impact: "用户体验下降"
+          action: "查看错误日志，分析错误类型，定位问题模块"
+
+      - alert: YunshuCriticalHTTPErrors
+        # 修复说明：原 YunshuCriticalErrors 依赖未注册的 yunshu_error_total
+        # 改用 yunshu_http_request_total 检测 1 分钟内 5xx 错误爆发
+        expr: sum(increase(yunshu_http_request_total{status=~"5.."}[1m])) > 10
+        for: 1m
         labels:
           severity: critical
+          category: errors
+          service: yunshu
         annotations:
-          summary: "CPU 使用率严重过高"
-          description: "CPU 使用率超过 95% (当前值：{{ $value | humanize }}%)"
-          
-      - alert: HighMemoryUsage
-        expr: yunshu_memory_usage_percent > 80
+          summary: "HTTP 5xx 错误爆发"
+          description: "过去 1 分钟发生 {{ $value | printf \"%.0f\" }} 次 5xx 错误"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#严重错误"
+          impact: "核心功能可能受影响"
+          action: "立即查看错误堆栈，评估影响范围"
+
+  - name: yunshu_latency
+    interval: 30s
+    rules:
+      - alert: YunshuHighLatencyP99
+        # 修复说明：原 yunshu:latency_p99:5m 录制规则依赖未注册的 yunshu_interaction_duration_duration_seconds
+        # 改用 prometheus_flask_exporter 暴露的 yunshu_http_request_duration_seconds_bucket 直接计算
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 3
         for: 5m
         labels:
           severity: warning
+          category: performance
+          service: yunshu
+        annotations:
+          summary: "P99 响应时间过高"
+          description: "P99 响应时间为 {{ $value | printf \"%.2f\" }} 秒，超过阈值 3 秒"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#响应时间过高"
+          impact: "用户体验下降"
+          action: "分析性能瓶颈，检查数据库查询、外部 API 调用"
+
+      - alert: YunshuHighLatencyP95
+        # 修复说明：同 YunshuHighLatencyP99，使用实际暴露的 histogram 指标
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: info
+          category: performance
+          service: yunshu
+        annotations:
+          summary: "P95 响应缓慢"
+          description: "P95 响应时间为 {{ $value | printf \"%.2f\" }} 秒"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#响应缓慢"
+          impact: "部分用户体验下降"
+          action: "监控性能趋势，排查慢查询"
+
+  - name: yunshu_resources
+    interval: 30s
+    rules:
+      - alert: YunshuHighMemoryUsage
+        # 修复说明：原 yunshu:memory_usage_percent 录制规则依赖未注册的 yunshu_memory_count / yunshu_memory_limit
+        # 改用 app_server.py 直接暴露的 yunshu_memory_usage_percent Gauge（psutil 0-100 范围）
+        expr: yunshu_memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+          service: yunshu
         annotations:
           summary: "内存使用率过高"
-          description: "内存使用率超过 80% (当前值：{{ $value | humanize }}%)"
-          
-      - alert: VeryHighMemoryUsage
-        expr: yunshu_memory_usage_percent > 95
-        for: 2m
+          description: "内存使用率为 {{ $value | printf \"%.2f\" }}%，超过 85%"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#内存使用率过高"
+          impact: "可能导致 OOM，服务中断"
+          action: "检查内存泄漏，考虑增加内存或优化内存使用"
+
+      - alert: YunshuHighCPUUsage
+        # 修复说明：原 PromQL 计算方式不准确（仅适用单核 CPU）
+        # 改用 app_server.py 直接暴露的 yunshu_cpu_usage_percent Gauge（psutil 0-100 范围）
+        expr: yunshu_cpu_usage_percent > 80
+        for: 10m
         labels:
-          severity: critical
+          severity: warning
+          category: resources
+          service: yunshu
         annotations:
-          summary: "内存使用率严重过高"
-          description: "内存使用率超过 95% (当前值：{{ $value | humanize }}%)"
-      
-      # ==================== 对话系统告警 ====================
-      - alert: HighConversationErrorRate
-        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.2
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率超过 80% 持续 10 分钟"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#CPU使用率过高"
+          impact: "响应延迟增加"
+          action: "分析 CPU 热点，优化算法或增加实例"
+
+  - name: yunshu_business
+    interval: 30s
+    rules:
+      - alert: YunshuLLMCallSpike
+        # 修复说明：原 YunshuTokenUsageHigh 依赖未暴露的 yunshu:cost_per_hour
+        # 改用 yunshu_llm_calls_total 检测 LLM 调用频率异常（每小时调用超过 1000 次）
+        expr: sum(increase(yunshu_llm_calls_total[1h])) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          category: cost
+          service: yunshu
+        annotations:
+          summary: "LLM 调用频率过高"
+          description: "过去 1 小时 LLM 调用 {{ $value | printf \"%.0f\" }} 次，超过 1000 次"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#Token消耗过高"
+          impact: "运营成本增加"
+          action: "分析使用模式，优化 Prompt 长度，考虑缓存策略"
+
+      - alert: YunshuToolFailureRate
+        # 修复说明：app_server.py 的 yunshu_tool_calls_total（复数）未实际埋点
+        # 改用 business_metrics.py 通过 /api/business/prometheus 暴露的 yunshu_tool_call_total（单数）
+        # 注意：label 名为 success（非 status），值为 Python 风格 "True"/"False"
+        expr: |
+          1 - (
+            sum(rate(yunshu_tool_call_total{success="True"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_tool_call_total[5m])), 1e-9)
+          ) > 0.1
         for: 5m
         labels:
           severity: warning
+          category: quality
+          service: yunshu
         annotations:
-          summary: "对话系统错误率过高"
-          description: "对话异常率超过 20% (当前值：{{ $value | humanizePercentage }})"
-      
-      # ==================== 服务可用性告警 ====================
-      - alert: YunshuDown
-        expr: up{job="yunshu"} == 0
+          summary: "工具调用失败率过高"
+          description: "工具调用失败率超过 10%"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#工具调用失败"
+          impact: "用户任务完成率下降"
+          action: "检查工具实现，排查外部依赖"
+
+  - name: yunshu_security
+    interval: 30s
+    rules:
+      - alert: YunshuSecurityBlockCritical
+        # 修复说明：原 YunshuSecurityAlertCritical 依赖未注册的 yunshu_alert_total
+        # 改用 app_server.py 直接暴露的 yunshu_security_blocks_total{level="critical"}
+        expr: sum(increase(yunshu_security_blocks_total{level="critical"}[5m])) > 0
         for: 1m
         labels:
           severity: critical
+          category: security
+          service: yunshu
         annotations:
-          summary: "Yunshu 服务不可用"
-          description: "Yunshu 服务已停止响应超过 1 分钟"
-          
-      - alert: PrometheusTargetMissing
-        expr: up == 0
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Prometheus 目标丢失"
-          description: "监控目标 {{ $labels.job }} 不可用"
+          summary: "严重安全拦截"
+          description: "过去 5 分钟检测到 {{ $value | printf \"%.0f\" }} 次严重安全拦截"
+          runbook_url: "docs/handover/EMERGENCY_PLAN.md#安全事件"
+          impact: "系统安全可能受威胁"
+          action: "立即调查告警来源，启动安全响应流程"
 
-      # ==================== SafeFileReader 告警 ====================
-      # 文件读取失败
-      - alert: SafeFileReaderFileNotFound
-        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_not_found"}[5m]) > 0
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "SafeFileReader 文件不存在"
-          description: "检测到文件读取失败，文件不存在: {{ $labels.file_path }}"
-
-      - alert: SafeFileReaderFileTooLarge
-        expr: increase(yunshu_safe_file_reader_errors_total{error_type="file_too_large"}[5m]) > 0
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "SafeFileReader 文件过大被拒绝"
-          description: "文件大小超过限制: {{ $labels.file_path }}"
-
-      # 编码异常
-      - alert: SafeFileReaderEncodingFallback
-        expr: increase(yunshu_safe_file_reader_encoding_fallbacks_total[5m]) > 0
-        for: 1m
-        labels:
-          severity: info
-        annotations:
-          summary: "SafeFileReader 编码降级"
-          description: "UTF-8 读取失败，已降级到备用编码: {{ $labels.file_path }}"
-
-      - alert: SafeFileReaderAllEncodingsFailed
-        expr: increase(yunshu_safe_file_reader_errors_total{error_type="encoding_failed"}[5m]) > 0
-        for: 1m
+  - name: yunshu_monitoring
+    interval: 30s
+    rules:
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 5m
         labels:
           severity: critical
+          category: monitoring
         annotations:
-          summary: "SafeFileReader 编码完全失败"
-          description: "所有编码尝试均失败，文件无法读取: {{ $labels.file_path }}"
+          summary: "Prometheus 不可用"
+          description: "Prometheus 实例已停止运行超过 5 分钟"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#Prometheus不可用"
+          impact: "监控系统失效，无法检测其他告警"
+          action: "检查 Prometheus 状态，查看日志"
 
-      # 数据质量
-      - alert: SafeFileReaderHighInvalidRatio
-        expr: yunshu_safe_file_reader_invalid_ratio > 0.1
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
         for: 5m
         labels:
           severity: warning
+          category: monitoring
         annotations:
-          summary: "SafeFileReader 无效行比例过高"
-          description: "无效行比例超过 10% (当前值: {{ $value | humanizePercentage }}, 文件: {{ $labels.file_path }})"
-
-      - alert: SafeFileReaderConsecutiveParseFailures
-        expr: increase(yunshu_safe_file_reader_errors_total{error_type="json_parse_failed"}[5m]) > 10
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "SafeFileReader 连续 JSON 解析失败"
-          description: "5 分钟内超过 10 行 JSON 解析失败，文件可能已损坏: {{ $labels.file_path }}"
-
-      # 历史加载
-      - alert: SafeFileReaderHistoryLoadFailed
-        expr: increase(yunshu_safe_file_reader_errors_total{error_type="history_load_failed"}[5m]) > 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "历史记忆加载失败"
-          description: "服务启动时无法加载历史对话，可能导致用户看不到历史记录"
-
-      - alert: SafeFileReaderHistoryLoadEmpty
-        expr: yunshu_safe_file_reader_loaded_history_count == 0
-        for: 2m
-        labels:
-          severity: info
-        annotations:
-          summary: "历史记忆加载为空"
-          description: "历史文件加载完成但无有效历史，可能是首次运行或文件为空"
-
-      # 性能
-      - alert: SafeFileReaderSlowRead
-        expr: histogram_quantile(0.95, rate(yunshu_safe_file_reader_read_duration_seconds_bucket[5m])) > 5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "SafeFileReader 文件读取缓慢"
-          description: "95 分位读取时间超过 5 秒 (当前值: {{ $value | humanizeDuration }})"
+          summary: "Grafana 不可用"
+          description: "Grafana 实例已停止运行超过 5 分钟"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#Grafana不可用"
+          impact: "可视化仪表盘不可用"
+          action: "检查 Grafana 状态，查看日志"

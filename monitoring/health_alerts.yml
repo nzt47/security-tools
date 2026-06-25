@@ -1,0 +1,251 @@
+# 云枢系统健康度 - 告警规则
+# 基于健康度评分体系的告警配置
+
+groups:
+  - name: yunshu_health_overall
+    interval: 60s
+    rules:
+      - alert: YunshuHealthCritical
+        expr: yunshu:health:overall_score < 30
+        for: 2m
+        labels:
+          severity: critical
+          category: health
+          service: yunshu
+        annotations:
+          summary: "🔴 系统健康度严重告警"
+          description: "系统综合健康度为 {{ $value | printf \"%.1f\" }} 分，低于危险阈值 30 分"
+          runbook_url: "docs/handover/HEALTH_RUNBOOK.md#健康度严重告警"
+          impact: "系统处于危险状态，核心功能可能不可用"
+          action: "立即查看仪表盘，定位问题模块，启动应急响应流程"
+
+      - alert: YunshuHealthWarning
+        expr: yunshu:health:overall_score < 50 and yunshu:health:overall_score >= 30
+        for: 5m
+        labels:
+          severity: warning
+          category: health
+          service: yunshu
+        annotations:
+          summary: "⚠️ 系统健康度警告"
+          description: "系统综合健康度为 {{ $value | printf \"%.1f\" }} 分，低于警告阈值 50 分"
+          runbook_url: "docs/handover/HEALTH_RUNBOOK.md#健康度警告"
+          impact: "系统状态不佳，多项指标异常，用户体验可能下降"
+          action: "检查各维度健康度，定位薄弱环节，制定优化计划"
+
+      - alert: YunshuHealthDropping
+        expr: |
+          yunshu:health:overall_score
+          <
+          avg_over_time(yunshu:health:overall_score[1h]) - 15
+        for: 5m
+        labels:
+          severity: warning
+          category: health
+          service: yunshu
+        annotations:
+          summary: "📉 健康度快速下降"
+          description: "当前健康度比过去1小时平均值下降超过15分"
+          runbook_url: "docs/handover/HEALTH_RUNBOOK.md#健康度快速下降"
+          impact: "系统状态正在恶化，需要及时干预"
+          action: "检查近期变更，分析下降原因，必要时回滚"
+
+  - name: yunshu_health_dimension_stability
+    interval: 60s
+    rules:
+      - alert: YunshuStabilityCritical
+        expr: yunshu:health:dimension:stability_score < 30
+        for: 2m
+        labels:
+          severity: critical
+          category: health
+          dimension: stability
+        annotations:
+          summary: "🔴 稳定性维度严重告警"
+          description: "稳定性健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "系统稳定性严重不足，频繁出错或崩溃"
+          action: "检查错误率和崩溃次数，定位根本原因"
+
+      - alert: YunshuStabilityLow
+        expr: yunshu:health:dimension:stability_score < 50 and yunshu:health:dimension:stability_score >= 30
+        for: 10m
+        labels:
+          severity: warning
+          category: health
+          dimension: stability
+        annotations:
+          summary: "⚠️ 稳定性偏低"
+          description: "稳定性健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "系统稳定性不佳，用户可能遇到错误"
+          action: "分析错误日志，排查近期变更"
+
+  - name: yunshu_health_dimension_performance
+    interval: 60s
+    rules:
+      - alert: YunshuPerformanceCritical
+        expr: yunshu:health:dimension:performance_score < 30
+        for: 5m
+        labels:
+          severity: critical
+          category: health
+          dimension: performance
+        annotations:
+          summary: "🔴 性能维度严重告警"
+          description: "性能健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "系统性能严重下降，响应极慢"
+          action: "检查资源使用情况，分析性能瓶颈"
+
+      - alert: YunshuPerformanceLow
+        expr: yunshu:health:dimension:performance_score < 50 and yunshu:health:dimension:performance_score >= 30
+        for: 15m
+        labels:
+          severity: warning
+          category: health
+          dimension: performance
+        annotations:
+          summary: "⚠️ 性能偏低"
+          description: "性能健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "系统响应变慢，用户体验下降"
+          action: "分析慢查询，优化资源配置"
+
+  - name: yunshu_health_dimension_quality
+    interval: 60s
+    rules:
+      - alert: YunshuQualityCritical
+        expr: yunshu:health:dimension:quality_score < 30
+        for: 10m
+        labels:
+          severity: critical
+          category: health
+          dimension: quality
+        annotations:
+          summary: "🔴 输出质量严重告警"
+          description: "质量健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "输出质量严重下降，大量幻觉或错误"
+          action: "检查Schema通过率和Critic评分，必要时降级模型"
+
+      - alert: YunshuQualityLow
+        expr: yunshu:health:dimension:quality_score < 50 and yunshu:health:dimension:quality_score >= 30
+        for: 30m
+        labels:
+          severity: warning
+          category: health
+          dimension: quality
+        annotations:
+          summary: "⚠️ 输出质量偏低"
+          description: "质量健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "输出质量下降，用户满意度可能降低"
+          action: "分析低分案例，优化Prompt和工具调用"
+
+  - name: yunshu_health_dimension_efficiency
+    interval: 60s
+    rules:
+      - alert: YunshuEfficiencyLow
+        expr: yunshu:health:dimension:efficiency_score < 50
+        for: 30m
+        labels:
+          severity: warning
+          category: health
+          dimension: efficiency
+        annotations:
+          summary: "⚠️ 运行效率偏低"
+          description: "效率健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "运行成本偏高，资源利用率低"
+          action: "优化缓存策略，提升Token使用效率"
+
+  - name: yunshu_health_dimension_availability
+    interval: 60s
+    rules:
+      - alert: YunshuAvailabilityCritical
+        expr: yunshu:health:dimension:availability_score < 30
+        for: 2m
+        labels:
+          severity: critical
+          category: health
+          dimension: availability
+        annotations:
+          summary: "🔴 可用性严重告警"
+          description: "可用性健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "服务可用性严重不足，大量用户无法访问"
+          action: "立即检查服务状态，启动灾备方案"
+
+      - alert: YunshuAvailabilityLow
+        expr: yunshu:health:dimension:availability_score < 65 and yunshu:health:dimension:availability_score >= 30
+        for: 10m
+        labels:
+          severity: warning
+          category: health
+          dimension: availability
+        annotations:
+          summary: "⚠️ 可用性偏低"
+          description: "可用性健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "服务可用性下降，部分用户可能遇到问题"
+          action: "检查依赖服务，考虑扩容或降级"
+
+  - name: yunshu_health_dimension_security
+    interval: 60s
+    rules:
+      - alert: YunshuSecurityCritical
+        expr: yunshu:health:dimension:security_score < 30
+        for: 1m
+        labels:
+          severity: critical
+          category: health
+          dimension: security
+        annotations:
+          summary: "🔴 安全维度严重告警"
+          description: "安全健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "系统面临严重安全威胁"
+          action: "立即启动安全应急响应，调查安全事件"
+
+      - alert: YunshuSecurityWarning
+        expr: yunshu:health:dimension:security_score < 50 and yunshu:health:dimension:security_score >= 30
+        for: 5m
+        labels:
+          severity: warning
+          category: health
+          dimension: security
+        annotations:
+          summary: "⚠️ 安全告警"
+          description: "安全健康度为 {{ $value | printf \"%.1f\" }} 分"
+          impact: "检测到安全异常，需要关注"
+          action: "检查安全告警，调查异常来源"
+
+  - name: yunshu_health_slo
+    interval: 60s
+    rules:
+      - alert: YunshuSLOErrorBudgetBurnRateHigh
+        expr: |
+          (
+            1 - yunshu:health:availability:uptime
+          )
+          >
+          0.001 * 14.4
+        for: 1h
+        labels:
+          severity: warning
+          category: slo
+          service: yunshu
+        annotations:
+          summary: "⚠️ SLO 错误预算消耗过快（1小时窗口）"
+          description: "错误预算消耗速率超过 14.4 倍（1小时窗口）"
+          impact: "如果持续下去，本月 SLO 将无法达成"
+          action: "分析错误来源，优先修复高影响问题"
+
+      - alert: YunshuSLOErrorBudgetBurnCritical
+        expr: |
+          (
+            1 - yunshu:health:availability:uptime
+          )
+          >
+          0.001 * 6
+        for: 6h
+        labels:
+          severity: critical
+          category: slo
+          service: yunshu
+        annotations:
+          summary: "🔴 SLO 错误预算严重消耗（6小时窗口）"
+          description: "错误预算消耗速率超过 6 倍（6小时窗口）"
+          impact: "SLO 即将告破，需要立即采取行动"
+          action: "立即启动事故响应，降低错误率"
