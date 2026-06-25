@@ -1,0 +1,491 @@
+# 云枢系统健康度 - 记录规则（已修复指标依赖）
+#
+# 维护说明：
+#   - 所有录制规则基于 /metrics 和 /api/business/prometheus 端点实际暴露的指标
+#   - 已修复依赖未注册/大小写不匹配/未暴露指标的录制规则
+#   - 对于无替代指标的维度，使用 `or on() vector(默认值)` 提供默认值，保证 overall_score 计算不中断
+#
+# 实际可用指标：
+#   /metrics 端点（app_server.py + prometheus_flask_exporter）：
+#     - yunshu_http_request_total{status, method}
+#     - yunshu_http_request_duration_seconds_bucket
+#     - yunshu_security_blocks_total{rule, level, category}
+#     - yunshu_llm_calls_total{provider, model, status}  (status: success/error)
+#     - yunshu_cpu_usage_percent / yunshu_memory_usage_percent (0-100)
+#     - up{job="yunshu-app"}
+#   /api/business/prometheus 端点（business_metrics.py）：
+#     - yunshu_interaction_total{interaction_type, model, success}  (success: True/False)
+#     - yunshu_tool_call_total{tool_name, tool_category, success}   (success: True/False)
+#     - yunshu_task_total{task_type, complexity, status}            (status: success/failed/pending)
+#     - yunshu_memory_search_total{memory_type, search_method, hit} (hit: True/False)
+#
+# 历史清理记录：2026-06-25 修复全部 6 个维度的录制规则，替换 18 个不存在的指标引用
+
+groups:
+  - name: yunshu_health_stability
+    interval: 30s
+    rules:
+      - record: yunshu:health:stability:error_rate
+        # 修复：yunshu_error_total / yunshu_request_total → yunshu_http_request_total
+        expr: |
+          (
+            sum(rate(yunshu_http_request_total{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_http_request_total[5m])), 1e-9)
+          ) or on() vector(0)
+        labels:
+          dimension: stability
+          indicator: error_rate
+
+      - record: yunshu:health:stability:crash_count
+        # 修复：yunshu_service_restart_total → resets(up[1h])
+        expr: resets(up{job="yunshu-app"}[1h]) or on() vector(0)
+        labels:
+          dimension: stability
+          indicator: crash_count
+
+      # 已移除 error_spike：子查询语法兼容性问题，且不影响 overall_score 计算
+
+  - name: yunshu_health_performance
+    interval: 30s
+    rules:
+      - record: yunshu:health:performance:p99_latency
+        # 修复：yunshu_request_duration_seconds_bucket → yunshu_http_request_duration_seconds_bucket
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          ) or on() vector(0)
+        labels:
+          dimension: performance
+          indicator: p99_latency
+
+      - record: yunshu:health:performance:p95_latency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+          ) or on() vector(0)
+        labels:
+          dimension: performance
+          indicator: p95_latency
+
+      - record: yunshu:health:performance:throughput
+        # 修复：yunshu_request_total → yunshu_http_request_total
+        expr: sum(rate(yunshu_http_request_total[5m])) or on() vector(0)
+        labels:
+          dimension: performance
+          indicator: throughput
+
+      - record: yunshu:health:performance:cpu_usage
+        # 修复：process_cpu_seconds_total 计算不准确 → 直接用 yunshu_cpu_usage_percent（归一化到 0-1）
+        expr: yunshu_cpu_usage_percent / 100 or on() vector(0)
+        labels:
+          dimension: performance
+          indicator: cpu_usage
+
+      - record: yunshu:health:performance:memory_usage
+        # 修复：process_resident_memory_bytes / machine_memory_bytes → yunshu_memory_usage_percent（归一化到 0-1）
+        expr: yunshu_memory_usage_percent / 100 or on() vector(0)
+        labels:
+          dimension: performance
+          indicator: memory_usage
+
+      # 已移除 latency_spike：子查询语法兼容性问题，且不影响 overall_score 计算
+
+  - name: yunshu_health_quality
+    interval: 30s
+    rules:
+      - record: yunshu:health:quality:task_success_rate
+        # 修复：yunshu_task_success_total / yunshu_task_total → yunshu_task_total{status="success"} / yunshu_task_total
+        # 数据源：business_metrics.py 通过 /api/business/prometheus 暴露
+        expr: |
+          (
+            sum(rate(yunshu_task_total{status="success"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_task_total[5m])), 1e-9)
+          ) or on() vector(1)
+        labels:
+          dimension: quality
+          indicator: task_success_rate
+
+      - record: yunshu:health:quality:tool_success_rate
+        # 修复：yunshu_tool_call_success_total / yunshu_tool_call_total → yunshu_tool_call_total{success="True"} / yunshu_tool_call_total
+        # 注意：business_metrics 中 label 名为 success（非 status），值为 Python 风格 "True"
+        expr: |
+          (
+            sum(rate(yunshu_tool_call_total{success="True"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_tool_call_total[5m])), 1e-9)
+          ) or on() vector(1)
+        labels:
+          dimension: quality
+          indicator: tool_success_rate
+
+      - record: yunshu:health:quality:interaction_success_rate
+        # 新增：替代原 schema_pass_rate 和 critic_score（无对应指标）
+        # 数据源：business_metrics.py 的 yunshu_interaction_total{success="True"}
+        expr: |
+          (
+            sum(rate(yunshu_interaction_total{success="True"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_interaction_total[5m])), 1e-9)
+          ) or on() vector(1)
+        labels:
+          dimension: quality
+          indicator: interaction_success_rate
+
+  - name: yunshu_health_efficiency
+    interval: 30s
+    rules:
+      - record: yunshu:health:efficiency:llm_success_rate
+        # 新增：替代原 token_efficiency_ratio（无对应指标）
+        # 用 LLM 调用成功率作为效率代理指标
+        expr: |
+          (
+            sum(rate(yunshu_llm_calls_total{status="success"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_llm_calls_total[5m])), 1e-9)
+          ) or on() vector(1)
+        labels:
+          dimension: efficiency
+          indicator: llm_success_rate
+
+      - record: yunshu:health:efficiency:memory_hit_rate
+        # 新增：替代原 cache_hit_rate（无 cache 指标）
+        # 用记忆搜索命中率作为效率代理指标
+        # 注意：label 名为 hit，值为 Python 风格 "True"
+        expr: |
+          (
+            sum(rate(yunshu_memory_search_total{hit="True"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_memory_search_total[5m])), 1e-9)
+          ) or on() vector(1)
+        labels:
+          dimension: efficiency
+          indicator: memory_hit_rate
+
+  - name: yunshu_health_availability
+    interval: 30s
+    rules:
+      - record: yunshu:health:availability:uptime
+        # 保留：依赖 Prometheus 内置 up 指标
+        expr: avg_over_time(up{job="yunshu-app"}[1h]) or on() vector(1)
+        labels:
+          dimension: availability
+          indicator: uptime
+
+      - record: yunshu:health:availability:service_health
+        # 修复：up{job=~"yunshu-.*"} → up{job=~"yunshu.*"}（实际 job 名为 yunshu-app）
+        expr: |
+          (
+            sum(up{job=~"yunshu.*"})
+            /
+            count(up{job=~"yunshu.*"})
+          ) or on() vector(1)
+        labels:
+          dimension: availability
+          indicator: service_health
+
+  - name: yunshu_health_security
+    interval: 30s
+    rules:
+      - record: yunshu:health:security:alert_count
+        # 修复：yunshu_security_alert_total → yunshu_security_blocks_total{level=~"critical|warning"}
+        # 注意：label 名为 level（非 severity），值为 critical/warning/unknown
+        expr: sum(increase(yunshu_security_blocks_total{level=~"critical|warning"}[1h])) or on() vector(0)
+        labels:
+          dimension: security
+          indicator: security_alerts
+
+  - name: yunshu_health_overall
+    interval: 60s
+    rules:
+      - record: yunshu:health:overall_score
+        # 修复说明：
+        # - 稳定性：error_rate 基于 HTTP 5xx（原 yunshu_error_total）
+        # - 性能：p99_latency 基于 yunshu_http_request_duration_seconds（原 yunshu_request_duration_seconds）
+        # - 质量：用 task_success_rate + tool_success_rate + interaction_success_rate 替代 schema_pass_rate
+        # - 效率：用 llm_success_rate + memory_hit_rate 替代 token_efficiency + cache_hit_rate
+        # - 可用性：保留 uptime（依赖 up 指标）
+        # - 安全：alert_count 基于 yunshu_security_blocks_total（原 yunshu_security_alert_total）
+        expr: |
+          (
+            # 稳定性 (20%) - 使用 bool 关键字避免空向量，sum() 去掉 label 便于跨维度相加
+            0.20 * sum(
+              100 * (yunshu:health:stability:error_rate <= bool 0.01)
+              + 90 * (yunshu:health:stability:error_rate > bool 0.01) * (yunshu:health:stability:error_rate <= bool 0.03)
+              + 70 * (yunshu:health:stability:error_rate > bool 0.03) * (yunshu:health:stability:error_rate <= bool 0.05)
+              + 50 * (yunshu:health:stability:error_rate > bool 0.05) * (yunshu:health:stability:error_rate <= bool 0.10)
+              + 20 * (yunshu:health:stability:error_rate > bool 0.10)
+            )
+            +
+            # 性能 (15%)
+            0.15 * sum(
+              100 * (yunshu:health:performance:p99_latency <= bool 1)
+              + 85 * (yunshu:health:performance:p99_latency > bool 1) * (yunshu:health:performance:p99_latency <= bool 2)
+              + 70 * (yunshu:health:performance:p99_latency > bool 2) * (yunshu:health:performance:p99_latency <= bool 3)
+              + 50 * (yunshu:health:performance:p99_latency > bool 3) * (yunshu:health:performance:p99_latency <= bool 5)
+              + 30 * (yunshu:health:performance:p99_latency > bool 5)
+            )
+            +
+            # 质量 (20%) - 用任务/工具/交互成功率综合计算，乘法替代 and
+            # 修复1：中间规则带 indicator label，向量乘法需 ignoring(indicator) 才能匹配
+            # 修复2：使用互斥条件 (1 - 高阈值标志) 避免多个分支同时匹配导致分数超 100
+            # 修复3：用 sum() 去掉 label 便于跨维度相加
+            0.20 * sum(
+              100 * (
+                (yunshu:health:quality:task_success_rate >= bool 0.99)
+                * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.99)
+                * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.99)
+              )
+              + 90 * (
+                (yunshu:health:quality:task_success_rate >= bool 0.95)
+                * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.95)
+                * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.95)
+                * (1 - (
+                    (yunshu:health:quality:task_success_rate >= bool 0.99)
+                    * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.99)
+                    * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.99)
+                  ))
+              )
+              + 70 * (
+                (yunshu:health:quality:task_success_rate >= bool 0.90)
+                * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.90)
+                * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.90)
+                * (1 - (
+                    (yunshu:health:quality:task_success_rate >= bool 0.95)
+                    * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.95)
+                    * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.95)
+                  ))
+              )
+              + 50 * (
+                (yunshu:health:quality:task_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.80)
+                * (1 - (
+                    (yunshu:health:quality:task_success_rate >= bool 0.90)
+                    * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.90)
+                    * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.90)
+                  ))
+              )
+              + 20 * (
+                1 - (
+                  (yunshu:health:quality:task_success_rate >= bool 0.80)
+                  * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.80)
+                  * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.80)
+                )
+              )
+            )
+            +
+            # 效率 (15%) - 用 LLM 成功率 + 记忆命中率综合计算
+            # 修复1：中间规则带 indicator label，向量乘法需 ignoring(indicator) 才能匹配
+            # 修复2：使用互斥条件 (1 - 高阈值标志) 避免多个分支同时匹配导致分数超 100
+            # 修复3：用 sum() 去掉 label 便于跨维度相加
+            0.15 * sum(
+              100 * (
+                (yunshu:health:efficiency:llm_success_rate >= bool 0.99)
+                * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.80)
+              )
+              + 85 * (
+                (yunshu:health:efficiency:llm_success_rate >= bool 0.95)
+                * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.60)
+                * (1 - (
+                    (yunshu:health:efficiency:llm_success_rate >= bool 0.99)
+                    * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.80)
+                  ))
+              )
+              + 65 * (
+                (yunshu:health:efficiency:llm_success_rate >= bool 0.90)
+                * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.40)
+                * (1 - (
+                    (yunshu:health:efficiency:llm_success_rate >= bool 0.95)
+                    * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.60)
+                  ))
+              )
+              + 45 * (
+                (yunshu:health:efficiency:llm_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.20)
+                * (1 - (
+                    (yunshu:health:efficiency:llm_success_rate >= bool 0.90)
+                    * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.40)
+                  ))
+              )
+              + 25 * (
+                1 - (
+                  (yunshu:health:efficiency:llm_success_rate >= bool 0.80)
+                  * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.20)
+                )
+              )
+            )
+            +
+            # 可用性 (20%)
+            0.20 * sum(
+              100 * (yunshu:health:availability:uptime >= bool 0.999)
+              + 95 * (yunshu:health:availability:uptime >= bool 0.995) * (yunshu:health:availability:uptime < bool 0.999)
+              + 85 * (yunshu:health:availability:uptime >= bool 0.99) * (yunshu:health:availability:uptime < bool 0.995)
+              + 65 * (yunshu:health:availability:uptime >= bool 0.95) * (yunshu:health:availability:uptime < bool 0.99)
+              + 30 * (yunshu:health:availability:uptime < bool 0.95)
+            )
+            +
+            # 安全 (10%)
+            0.10 * sum(
+              100 * (yunshu:health:security:alert_count == bool 0)
+              + 70 * (yunshu:health:security:alert_count > bool 0) * (yunshu:health:security:alert_count <= bool 2)
+              + 40 * (yunshu:health:security:alert_count > bool 2) * (yunshu:health:security:alert_count <= bool 5)
+              + 10 * (yunshu:health:security:alert_count > bool 5)
+            )
+          )
+        labels:
+          type: overall
+
+  - name: yunshu_health_dimension_scores
+    interval: 60s
+    rules:
+      - record: yunshu:health:dimension:stability_score
+        # 修复：使用 bool 关键字让比较返回 0/1，避免过滤模式导致空向量
+        # 原表达式：100 * (error_rate <= 0.01) + 90 * (error_rate > 0.01 and error_rate <= 0.03) + ...
+        # 问题：比较运算符默认过滤模式，条件不满足返回空向量，0 + 空 = 空
+        # 修复：100 * (error_rate <= bool 0.01) + 90 * (error_rate > bool 0.01) * (error_rate <= bool 0.03) + ...
+        expr: |
+          (
+            100 * (yunshu:health:stability:error_rate <= bool 0.01)
+            + 90 * (yunshu:health:stability:error_rate > bool 0.01) * (yunshu:health:stability:error_rate <= bool 0.03)
+            + 70 * (yunshu:health:stability:error_rate > bool 0.03) * (yunshu:health:stability:error_rate <= bool 0.05)
+            + 50 * (yunshu:health:stability:error_rate > bool 0.05) * (yunshu:health:stability:error_rate <= bool 0.10)
+            + 20 * (yunshu:health:stability:error_rate > bool 0.10)
+          )
+        labels:
+          dimension: stability
+
+      - record: yunshu:health:dimension:performance_score
+        expr: |
+          (
+            100 * (yunshu:health:performance:p99_latency <= bool 1)
+            + 85 * (yunshu:health:performance:p99_latency > bool 1) * (yunshu:health:performance:p99_latency <= bool 2)
+            + 70 * (yunshu:health:performance:p99_latency > bool 2) * (yunshu:health:performance:p99_latency <= bool 3)
+            + 50 * (yunshu:health:performance:p99_latency > bool 3) * (yunshu:health:performance:p99_latency <= bool 5)
+            + 30 * (yunshu:health:performance:p99_latency > bool 5)
+          )
+        labels:
+          dimension: performance
+
+      - record: yunshu:health:dimension:quality_score
+        # 修复：用 task/tool/interaction 成功率综合计算（原 schema_pass_rate）
+        # 使用 bool 关键字 + 乘法替代 and，确保所有分支返回值
+        # 修复1：中间规则带 indicator label，向量乘法需 ignoring(indicator) 才能匹配
+        # 修复2：使用互斥条件 (1 - 高阈值标志) 避免多个分支同时匹配导致分数超 100
+        expr: |
+          (
+            # all_99: 三个都 >= 0.99
+            100 * (
+              (yunshu:health:quality:task_success_rate >= bool 0.99)
+              * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.99)
+              * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.99)
+            )
+            + 90 * (
+              (yunshu:health:quality:task_success_rate >= bool 0.95)
+              * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.95)
+              * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.95)
+              * (1 - (
+                  (yunshu:health:quality:task_success_rate >= bool 0.99)
+                  * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.99)
+                  * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.99)
+                ))
+            )
+            + 70 * (
+              (yunshu:health:quality:task_success_rate >= bool 0.90)
+              * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.90)
+              * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.90)
+              * (1 - (
+                  (yunshu:health:quality:task_success_rate >= bool 0.95)
+                  * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.95)
+                  * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.95)
+                ))
+            )
+            + 50 * (
+              (yunshu:health:quality:task_success_rate >= bool 0.80)
+              * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.80)
+              * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.80)
+              * (1 - (
+                  (yunshu:health:quality:task_success_rate >= bool 0.90)
+                  * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.90)
+                  * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.90)
+                ))
+            )
+            + 20 * (
+              1 - (
+                (yunshu:health:quality:task_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:quality:tool_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:quality:interaction_success_rate >= bool 0.80)
+              )
+            )
+          )
+        labels:
+          dimension: quality
+
+      - record: yunshu:health:dimension:efficiency_score
+        # 修复：用 LLM 成功率 + 记忆命中率综合计算（原 cache_hit_rate）
+        # 使用 bool 关键字 + 乘法替代 and，确保所有分支返回值
+        # 修复1：中间规则带 indicator label，向量乘法需 ignoring(indicator) 才能匹配
+        # 修复2：使用互斥条件 (1 - 高阈值标志) 避免多个分支同时匹配导致分数超 100
+        expr: |
+          (
+            100 * (
+              (yunshu:health:efficiency:llm_success_rate >= bool 0.99)
+              * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.80)
+            )
+            + 85 * (
+              (yunshu:health:efficiency:llm_success_rate >= bool 0.95)
+              * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.60)
+              * (1 - (
+                  (yunshu:health:efficiency:llm_success_rate >= bool 0.99)
+                  * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.80)
+                ))
+            )
+            + 65 * (
+              (yunshu:health:efficiency:llm_success_rate >= bool 0.90)
+              * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.40)
+              * (1 - (
+                  (yunshu:health:efficiency:llm_success_rate >= bool 0.95)
+                  * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.60)
+                ))
+            )
+            + 45 * (
+              (yunshu:health:efficiency:llm_success_rate >= bool 0.80)
+              * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.20)
+              * (1 - (
+                  (yunshu:health:efficiency:llm_success_rate >= bool 0.90)
+                  * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.40)
+                ))
+            )
+            + 25 * (
+              1 - (
+                (yunshu:health:efficiency:llm_success_rate >= bool 0.80)
+                * ignoring(indicator) (yunshu:health:efficiency:memory_hit_rate >= bool 0.20)
+              )
+            )
+          )
+        labels:
+          dimension: efficiency
+
+      - record: yunshu:health:dimension:availability_score
+        expr: |
+          (
+            100 * (yunshu:health:availability:uptime >= bool 0.999)
+            + 95 * (yunshu:health:availability:uptime >= bool 0.995) * (yunshu:health:availability:uptime < bool 0.999)
+            + 85 * (yunshu:health:availability:uptime >= bool 0.99) * (yunshu:health:availability:uptime < bool 0.995)
+            + 65 * (yunshu:health:availability:uptime >= bool 0.95) * (yunshu:health:availability:uptime < bool 0.99)
+            + 30 * (yunshu:health:availability:uptime < bool 0.95)
+          )
+        labels:
+          dimension: availability
+
+      - record: yunshu:health:dimension:security_score
+        expr: |
+          (
+            100 * (yunshu:health:security:alert_count == bool 0)
+            + 70 * (yunshu:health:security:alert_count > bool 0) * (yunshu:health:security:alert_count <= bool 2)
+            + 40 * (yunshu:health:security:alert_count > bool 2) * (yunshu:health:security:alert_count <= bool 5)
+            + 10 * (yunshu:health:security:alert_count > bool 5)
+          )
+        labels:
+          dimension: security
