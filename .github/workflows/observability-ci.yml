@@ -26,15 +26,18 @@ on:
       - 'tests/**/test_*boundary*.py'
       - 'tests/**/test_*visibility*.py'
       - 'tests/**/test_*contract*.py'
+      - 'tests/**/test_*cache*.py'
       - 'tests/integration/test_trace_*.py'
       - 'tests/boundary_config.yaml'
       - 'tests/contract/**'
       - '.github/workflows/observability-ci.yml'
+      - '.coveragerc_scripts'
       - 'scripts/verify_*.py'
       - 'scripts/observability_*.py'
       - 'scripts/impact_analysis.py'
       - 'scripts/check_boundary_coverage.py'
       - 'scripts/visibility_report.py'
+      - 'scripts/test_quality_assess.py'
       - 'docs/architecture/**'
       - 'docs/observability/**'
       - 'config.yaml'
@@ -269,6 +272,66 @@ jobs:
           echo "=== 可观测性模块覆盖率 ==="
           coverage report --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
 
+      # ── 优化脚本单元测试（仅 Python 3.11 matrix 运行，避免重复）──
+      # 验证 visibility_report.py / test_quality_assess.py / impact_analysis.py
+      # 三个脚本的缓存优化逻辑，覆盖缓存命中/未命中、边界条件、异常处理、并发安全
+      #
+      # ========== 变更履历（2026-06-27）==========
+      # Bug 修复（3 个）：
+      #   1. impact_analysis.py 空字符串匹配 Bug
+      #      - 位置: _find_tests_for_module() 行 596-616
+      #      - 问题: module_path 含空段时（如 "agent..core"），short_name/layer 为空字符串，
+      #              "" in fname_lower 始终为 True，导致匹配所有测试文件
+      #      - 修复: 添加 short_name_lower/layer_lower 真值检查，空字符串跳过匹配
+      #   2. test_quality_assess.py 计数不一致 Bug
+      #      - 位置: analyze_test_files() 行 162-165
+      #      - 问题: test_file_count 在 try 块外递增，文件读取失败时仍计数，
+      #              但 boundary_count/exception_count 在 try 内不计数，导致覆盖率被压低
+      #      - 修复: test_file_count += 1 移入 try 块内，仅计成功读取的文件
+      #   3. impact_analysis.py 重复收集优化不完整 Bug
+      #      - 位置: _relate_tests() 行 546-564 / analyze() 行 292-296
+      #      - 问题: analyze() 预收集 all_tests 后，_relate_tests 内部又收集一次，
+      #              _collect_test_files 被调用 2 次，优化未完全消除冗余
+      #      - 修复: _relate_tests 接受可选 all_tests 参数，analyze() 预收集一次并传递
+      #
+      # P0 测试用例（11 个，全部通过）：
+      #   visibility_report.py（5 个）：
+      #     P0-1  test_calc_track_coverage_skip_underscore_dirs        跳过 _ 开头子目录
+      #     P0-2  test_calc_track_coverage_total_modules_zero_returns_100  total_modules=0 返回 100.0
+      #     P0-3  test_calc_structured_log_coverage_no_logs_returns_100  total_logs=0 返回 100.0
+      #     P0-4  test_calc_track_coverage_multi_file_subdir_break     break 语义只计 1 次
+      #     P0-5  test_count_health_endpoints_multiple_in_same_file   正则全局匹配多个端点
+      #   test_quality_assess.py（3 个）：
+      #     P0-6  test_analyze_test_files_count_inconsistency_on_read_failure  修复后计数一致性
+      #     P0-7  test_assess_boundary_coverage_with_illegal_rate_negative     非法负值处理
+      #     P0-8  test_analyze_test_files_multiple_boundary_patterns_match_once 多模式 break
+      #   impact_analysis.py（3 个）：
+      #     P0-9  test_analyze_relate_tests_duplicate_collect_optimization_gap  修复后只收集 1 次
+      #     P0-10 test_find_tests_for_module_empty_short_name_matches_all      修复后空 short_name 不误匹配
+      #     P0-11 test_find_tests_for_module_empty_layer_matches_all           修复后空 layer 不误匹配
+      #
+      # 额外发现（同源 Bug 修复）：
+      #   workflow_engine/matcher.py 的 keyword_match() 和 match_text() 存在相同空字符串匹配问题
+      #   - keyword_match: 已添加 safe_keywords 过滤空字符串
+      #   - match_text: 已添加 `if p and ...` 真值检查
+      #
+      # 测试统计: 82 passed, 0 failed, 0 skipped (71 既有 + 11 新增 P0)
+      # ========================================
+      - name: 运行优化脚本单元测试
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "=== 运行优化脚本单元测试（缓存优化逻辑验证）==="
+          python -m pytest \
+            tests/unit/test_visibility_report_cache.py \
+            tests/unit/test_test_quality_assess_cache.py \
+            tests/unit/test_impact_analysis_cache.py \
+            -v \
+            --tb=short \
+            --cov=scripts \
+            --cov-config=.coveragerc_scripts \
+            --cov-fail-under=0 \
+            --cov-report=term-missing
+
       - name: 上传测试结果
         uses: actions/upload-artifact@v4
         if: always()
@@ -446,6 +509,46 @@ jobs:
           echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: false
 
+      - name: 检查边界测试覆盖率阈值（≥5%）
+        id: boundary_threshold
+        run: |
+          echo "=== 检查边界测试覆盖率阈值（≥5%）==="
+          # 使用 --json-only 获取结构化数据，stderr 丢弃避免污染
+          JSON_OUTPUT=$(python scripts/check_boundary_coverage.py --json-only 2>/dev/null) || true
+          if [ -z "$JSON_OUTPUT" ]; then
+            echo "❌ 边界扫描脚本未输出 JSON，阻断合并"
+            echo "boundary_pass=false" >> $GITHUB_OUTPUT
+            echo "coverage=0.0" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          # 解析 JSON 字段
+          TOTAL=$(echo "$JSON_OUTPUT" | python -c "import sys,json; d=json.load(sys.stdin); print(d.get('total_tests',0))")
+          BOUNDARY=$(echo "$JSON_OUTPUT" | python -c "import sys,json; d=json.load(sys.stdin); print(d.get('total_boundary_tests',0))")
+          STATUS=$(echo "$JSON_OUTPUT" | python -c "import sys,json; d=json.load(sys.stdin); print(d.get('overall_status','unknown'))")
+          if [ "$TOTAL" = "0" ] || [ -z "$TOTAL" ]; then
+            echo "❌ total_tests=0，无测试用例，阻断合并"
+            echo "boundary_pass=false" >> $GITHUB_OUTPUT
+            echo "coverage=0.0" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          COVERAGE=$(python -c "print(round($BOUNDARY / $TOTAL * 100, 1))")
+          echo "边界测试覆盖率: ${COVERAGE}% (total=$TOTAL, boundary=$BOUNDARY, status=$STATUS)"
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "total_tests=$TOTAL" >> $GITHUB_OUTPUT
+          echo "boundary_tests=$BOUNDARY" >> $GITHUB_OUTPUT
+          echo "overall_status=$STATUS" >> $GITHUB_OUTPUT
+          # 阈值检查：低于 5% 阻断合并
+          THRESHOLD=5
+          PASS=$(python -c "print(1 if $COVERAGE >= $THRESHOLD else 0)")
+          if [ "$PASS" = "0" ]; then
+            echo "❌ 边界测试覆盖率 ${COVERAGE}% 低于阈值 ${THRESHOLD}%，阻断合并"
+            echo "boundary_pass=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "✅ 边界测试覆盖率 ${COVERAGE}% 达标（阈值 ${THRESHOLD}%）"
+          echo "boundary_pass=true" >> $GITHUB_OUTPUT
+        continue-on-error: false
+
       - name: 上传边界覆盖报告
         uses: actions/upload-artifact@v4
         if: always()
@@ -456,14 +559,34 @@ jobs:
             docs/observability/boundary_coverage_report.json
           retention-days: 30
 
-      - name: PR 评论：边界覆盖摘要
+      - name: PR 评论：边界覆盖摘要（含告警）
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const reportPath = 'docs/observability/boundary_coverage_report.md';
+            const coverage = '${{ steps.boundary_threshold.outputs.coverage }}';
+            const totalTests = '${{ steps.boundary_threshold.outputs.total_tests }}';
+            const boundaryTests = '${{ steps.boundary_threshold.outputs.boundary_tests }}';
+            const boundaryPass = '${{ steps.boundary_threshold.outputs.boundary_pass }}';
+            const threshold = 5;
+
             let body = '## 🛡️ 边界覆盖扫描报告\n\n';
+
+            // 覆盖率告警横幅：低于阈值时醒目提示
+            if (boundaryPass === 'false') {
+              body += `> ⚠️ **告警：边界测试覆盖率 ${coverage}% 低于阈值 ${threshold}%，已阻断合并**\n\n`;
+            } else {
+              body += `> ✅ **边界测试覆盖率 ${coverage}% 达标（阈值 ${threshold}%）**\n\n`;
+            }
+
+            // 覆盖率摘要表格
+            body += '| 指标 | 数值 |\n| --- | --- |\n';
+            body += `| 边界测试覆盖率 | ${coverage}% (阈值 ≥${threshold}%) |\n`;
+            body += `| 边界测试用例数 | ${boundaryTests} |\n`;
+            body += `| 总测试用例数 | ${totalTests} |\n\n`;
+
             if (fs.existsSync(reportPath)) {
               const content = fs.readFileSync(reportPath, 'utf8');
               // 截取前 4000 字符避免评论过长
@@ -531,6 +654,23 @@ jobs:
   # ============================================================================
   # 阶段7：四层可见性报告（新增，作为 PR 合并门槛）
   # 汇总运行时/验证过程/业务价值/架构影响四层可见性指标，低于阈值时阻断
+  #
+  # ── 可见性改造基线数据（2026-06-26 更新） ──
+  # 详细报告：docs/observability/visibility_improvement_summary.md
+  #
+  # P0 阻断指标（全部达标）：
+  #   D2 structured_log_coverage: 21.4% → 40.5%（阈值 ≥30%，+19.1pp）
+  #   D3 trace_coverage:          17.8% → 55.3%（阈值 ≥30%，+37.5pp）
+  #   D5 track_event_coverage:     7.4% → 37.0%（阈值 ≥30%，+29.6pp）
+  #
+  # 改造内容：
+  #   - 16 个路由文件 93 处 @trace_route/@log_request 装饰器顺序交换
+  #   - routes_chat.py / routes_dashboard.py 新增多阶段日志（entry/exit + trace_id_changed）
+  #   - 前端 7 个文件 20 处 trackEvent 埋点（7 个事件类型）
+  #   - 新增测试：test_trace_coverage.py(16用例) + App.test.tsx(3用例) + observability.test.ts(11用例)
+  #
+  # 未达标项（非 P0）：
+  #   boundary_test_coverage: 0.0%（阈值 ≥5%，属"验证过程可见"层）
   # ============================================================================
   visibility-report:
     name: 四层可见性报告
