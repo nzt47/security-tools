@@ -73,7 +73,7 @@ def _safe_import(module_name: str, import_func, fallback_value: Any = None) -> T
             None
         )
     """
-    logger.debug("[模块导入] 📦 开始导入模块: %s", module_name)
+    logger.debug("[模块导入] 开始导入模块: %s", module_name)
     try:
         result = import_func()
         logger.info("[模块导入] [OK] [成功] %s 模块已加载", module_name)
@@ -114,7 +114,7 @@ def _safe_import_from(package: str, *names: str) -> Tuple[Dict[str, Any], bool]:
     """
     results = {}
     all_success = True
-    logger.debug("[模块导入] 📦 开始从包 '%s' 导入 %d 个名称: %s", package, len(names), ", ".join(names))
+    logger.debug("[模块导入] 开始从包 '%s' 导入 %d 个名称: %s", package, len(names), ", ".join(names))
     
     try:
         module = __import__(package, fromlist=names)
@@ -295,7 +295,7 @@ def _report_module_import_status():
     total_count = len(_module_import_results)
     
     logger.info("\n%s", "═" * 80)
-    logger.info("📦 模块导入状态汇总")
+    logger.info("[模块导入] 模块导入状态汇总")
     logger.info("%s", "═" * 80)
     
     for module, success in _module_import_results.items():
