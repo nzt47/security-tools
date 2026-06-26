@@ -8,12 +8,18 @@ from typing import Callable, List, Pattern
 
 
 def keyword_match(keywords: List[str], case_sensitive: bool = False) -> Callable[[str], bool]:
-    """关键词匹配——输入包含任一关键词即匹配"""
+    """关键词匹配——输入包含任一关键词即匹配
+
+    防御性修复：过滤空字符串关键词，避免 "" in text 始终为 True 导致匹配所有文本。
+    与 impact_analysis.py 的 _find_tests_for_module 空字符串匹配 Bug 同源。
+    """
+    # 过滤空字符串与空白关键词，防止 "" in text 始终返回 True
+    safe_keywords = [kw for kw in keywords if kw and kw.strip()]
     if case_sensitive:
         def _match(text: str) -> bool:
-            return any(kw in text for kw in keywords)
+            return any(kw in text for kw in safe_keywords)
     else:
-        keys_lower = [k.lower() for k in keywords]
+        keys_lower = [k.lower() for k in safe_keywords]
         def _match(text: str) -> bool:
             t = text.lower()
             return any(kw in t for kw in keys_lower)
@@ -47,6 +53,7 @@ class RuleMatcher:
                 if p(text):
                     return True
             elif isinstance(p, str):
-                if p.lower() in text.lower():
+                # 防御性修复：跳过空字符串，避免 "" in text 始终为 True 导致匹配所有文本
+                if p and p.lower() in text.lower():
                     return True
         return False
