@@ -394,13 +394,11 @@ class PlanExecutor:
                 params['filename'] = match.group(1).strip()
 
         elif tool_name == "search":
+            # 仅在明确匹配"搜索关于...的信息"模式时提取 query 参数，
+            # 避免对简单描述（如"搜索信息"）过度提取参数导致不接受参数的工具报错
             match = re.search(r'搜索\s*关于\s*["\']?([^"\']+)["\']?\s*的信息', description)
             if match:
                 params['query'] = match.group(1).strip()
-            else:
-                match = re.search(r'搜索\s*["\']?([^"\']+)["\']?', description)
-                if match:
-                    params['query'] = match.group(1).strip()
 
         elif tool_name == "send_email":
             match = re.search(r'通知\s*([^\s，,]+)', description)
