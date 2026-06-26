@@ -26,18 +26,32 @@ logger = logging.getLogger(__name__)
 
 class ToolRegistry:
     """工具注册表
-    
+
     重构版本 - 使用 Phase 3 的 core/registry.SimpleRegistry
     保持 100% API 向后兼容
+
+    中文工具匹配说明：
+    find_tool() 支持中文任务描述匹配，通过 _TOOL_KEYWORDS_ZH 映射表
+    将中文关键词映射到英文工具名，解决中文描述无法匹配英文工具名的问题。
     """
+
+    # 中文关键词 -> 英文工具名映射表
+    # 用于支持中文任务描述匹配英文工具名
+    _TOOL_KEYWORDS_ZH: Dict[str, List[str]] = {
+        "create_file": ["创建文件", "创建一个", "新建文件", "创建名为", "创建一个名为"],
+        "write_file": ["写入文件", "写入到", "将搜索结果写入", "将", "写入"],
+        "read_file": ["读取文件", "读取"],
+        "search": ["搜索", "查找", "查询"],
+        "send_email": ["发送邮件", "通知", "发邮件"],
+    }
 
     def __init__(self):
         logger.info("[ToolRegistry] __init__ 开始初始化")
-        
+
         # 使用 Phase 3 的统一注册表
         self._tool_registry = SimpleRegistry("ToolRegistry")
         self._tool_schemas: Dict[str, Dict] = {}
-        
+
         logger.info("[ToolRegistry] __init__ 初始化完成")
 
     def register(self, name: str, func: Callable, schema: Dict = None):
@@ -71,13 +85,31 @@ class ToolRegistry:
         return self._tool_schemas.get(name)
 
     def find_tool(self, description: str) -> Optional[str]:
-        """根据描述查找匹配的工具（保持原有 API）"""
+        """根据描述查找匹配的工具（保持原有 API）
+
+        匹配策略：
+        1. 英文精确匹配：检查英文工具名是否为描述的子串（原有逻辑）
+        2. 中文关键词匹配：通过 _TOOL_KEYWORDS_ZH 映射表，检查中文关键词是否出现在描述中
+           解决中文任务描述无法匹配英文工具名的问题（如"创建文件" -> "create_file"）
+        """
         logger.debug(f"[ToolRegistry.find_tool] 查找工具: {description}")
-        
+
         desc_lower = description.lower()
+
+        # 策略1：英文工具名精确匹配（原有逻辑，向后兼容）
         for tool_name in self._tool_registry.list():
             if tool_name in desc_lower:
                 return tool_name
+
+        # 策略2：中文关键词匹配（新增，支持中文任务描述）
+        for tool_name, keywords in self._TOOL_KEYWORDS_ZH.items():
+            if not self._tool_registry.has(tool_name):
+                continue
+            for kw in keywords:
+                if kw in description:
+                    logger.debug(f"[ToolRegistry.find_tool] 中文匹配命中: {kw} -> {tool_name}")
+                    return tool_name
+
         return None
 
 
@@ -228,7 +260,7 @@ class PlanExecutor:
         if tool_name and self.tool_registry.has(tool_name):
             return Action.tool_action(
                 tool_name=tool_name,
-                params=self._extract_params(task),
+                params=self._extract_params(task, tool_name),
                 description=task.description
             )
         elif self.llm:
@@ -317,30 +349,51 @@ class PlanExecutor:
         except Exception as e:
             return ActionResult.failure_result(f"LLM推理失败: {e}")
 
-    def _extract_params(self, task: Task) -> Dict[str, Any]:
-        """从任务描述中提取参数"""
+    def _extract_params(self, task: Task, tool_name: str = None) -> Dict[str, Any]:
+        """从任务描述中提取参数
+
+        使用工具名进行分发，替代原有基于英文字符串匹配的分支逻辑，
+        解决中文任务描述无法匹配英文工具名的问题。
+
+        Args:
+            task: 任务对象
+            tool_name: 已识别的工具名（由 _determine_action 传入，避免重复查找）
+        """
         description = task.description
         params = {}
-        
+
         import re
-        
-        if "create_file" in description:
+
+        # 如果未指定工具名，尝试自动识别（向后兼容）
+        if not tool_name:
+            tool_name = self.tool_registry.find_tool(description) or ""
+
+        if tool_name == "create_file":
             match = re.search(r'名为\s*["\']?([^"\']+)["\']?\s*的文件', description)
             if match:
                 params['filename'] = match.group(1).strip()
-        
-        elif "write_file" in description:
-            match = re.search(r'写入\s*["\']?([^"\']+)["\']?\s*文件', description)
+
+        elif tool_name == "write_file":
+            # 提取文件名：匹配"写入 report.txt 文件"或"写入到 report.txt"
+            match = re.search(r'写入\s*["\']?([^"\']+?)["\']?\s*(?:文件|$)', description)
+            if not match:
+                match = re.search(r'写入\s*([^\s，,]+)', description)
             if match:
                 params['filename'] = match.group(1).strip()
-            params['content'] = "测试内容"
-        
-        elif "read_file" in description:
+            # 提取写入内容：优先从执行历史中查找搜索结果，其次从描述中提取
+            if "搜索结果" in description:
+                # 查找之前的搜索任务结果，实现跨任务上下文传递
+                search_result = self._lookup_search_result()
+                params['content'] = search_result or "搜索结果"
+            else:
+                params['content'] = "测试内容"
+
+        elif tool_name == "read_file":
             match = re.search(r'读取\s*["\']?([^"\']+)["\']?\s*文件', description)
             if match:
                 params['filename'] = match.group(1).strip()
-        
-        elif "search" in description:
+
+        elif tool_name == "search":
             match = re.search(r'搜索\s*关于\s*["\']?([^"\']+)["\']?\s*的信息', description)
             if match:
                 params['query'] = match.group(1).strip()
@@ -348,15 +401,32 @@ class PlanExecutor:
                 match = re.search(r'搜索\s*["\']?([^"\']+)["\']?', description)
                 if match:
                     params['query'] = match.group(1).strip()
-        
-        elif "send_email" in description:
+
+        elif tool_name == "send_email":
             match = re.search(r'通知\s*([^\s，,]+)', description)
             if match:
                 params['to'] = match.group(1).strip()
             params['subject'] = "任务完成通知"
             params['body'] = "任务已成功完成"
-        
+
         return params
+
+    def _lookup_search_result(self) -> Optional[str]:
+        """从执行历史中查找最近的搜索任务结果
+
+        实现跨任务上下文传递：当 write_file 任务描述中包含"搜索结果"时，
+        从 execution_history 中查找最近的 search 任务输出，作为写入内容。
+
+        Returns:
+            搜索任务的输出结果，如果没有则返回 None
+        """
+        for record in reversed(self.execution_history):
+            if record.result and record.result.success:
+                # 检查是否是搜索任务（通过任务描述判断）
+                desc = record.action.description or ""
+                if "搜索" in desc or "search" in desc.lower() or "查找" in desc:
+                    return str(record.result.output) if record.result.output else None
+        return None
 
     def _record_execution(self, plan: Plan, task: Task, result: ActionResult):
         """记录执行历史"""
