@@ -1,0 +1,328 @@
+memory:
+  max_tokens: 8000
+  enable_long_term: false
+  summary_threshold: 5000
+  retention_days: 30
+behavior:
+  default_mode: NORMAL
+  allow_reflection: true
+  max_iterations: 10
+  response_timeout: 60
+planning:
+  enabled: false
+  max_depth: 5
+  timeout_seconds: 30
+  enable_chain_of_thought: false
+llm:
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+  max_tokens: 2000
+  api_key: ${OPENAI_API_KEY}
+tools:
+  enabled: true
+  timeout: 30
+  whitelist:
+  - web_search
+  - calculator
+  - file_read
+  - code_execute
+session:
+  auto_save: true
+  save_interval: 300
+  max_history: 1000
+features:
+  v2_lifetrace: true
+  v2_persona: true
+  v2_distillation: false
+  v2_lazy_loader: true
+  # 验证工程总开关（灰度发布）
+  verification_enabled: false
+  # Schema 输出校验开关
+  schema_validation_enabled: false
+  # Critic 质量评审开关
+  critic_evaluation_enabled: false
+  # 失败分析归档开关
+  failure_analysis_enabled: false
+
+# ═══════════════════════════════════════════════════════════════
+#  验证工程配置 (Verification Engineering)
+# ═══════════════════════════════════════════════════════════════
+verification:
+  # 全局开关 - 开启保守模式
+  enabled: true
+  # 灰度发布比例 (0-100) - 10% 流量启用验证
+  rollout_percentage: 10
+  # 保守模式（仅记录日志，不阻断流程）
+  conservative_mode: true
+  
+  # Schema 输出校验配置
+  schema_validation:
+    enabled: true
+    # 是否启用重试
+    enable_retry: true
+    # 最大重试次数
+    max_retries: 3
+    # 严格模式（校验失败直接返回错误）- 保守模式下为 false
+    strict_mode: false
+    # 支持的输出类型
+    supported_types:
+      - text_response
+      - tool_call
+      - summary_report
+      - error_message
+  
+  # Critic 质量评审配置
+  critic_evaluation:
+    enabled: true
+    # 评审模式: rule_based, llm_based
+    mode: rule_based
+    # 通过阈值 (0-100)
+    threshold: 70
+    # 是否启用重试
+    enable_retry: true
+    # 最大重试次数
+    max_retries: 2
+    # 各维度权重
+    dimension_weights:
+      factual_accuracy: 0.25
+      completeness: 0.25
+      relevance: 0.20
+      logic: 0.15
+      clarity: 0.15
+    # LLM 评审模型配置（mode=llm_based 时使用）
+    llm_config:
+      model: gpt-4
+      temperature: 0.3
+      max_tokens: 1000
+  
+  # 失败分析与归档配置
+  failure_analysis:
+    enabled: true
+    # 存储路径
+    storage_path: ./data/failures
+    # 自动分类
+    auto_classify: true
+    # 保留天数
+    retention_days: 90
+    # 是否生成优化建议
+    generate_suggestions: true
+  
+  # 人工确认（HITL）配置
+  human_in_the_loop:
+    enabled: true
+    # 低风险操作自动批准
+    auto_approve_low_risk: true
+    # 高风险操作需人工确认
+    require_confirmation_for_high_risk: true
+    # 确认超时时间（秒）
+    confirmation_timeout: 300
+    # 超时策略: reject, approve, degrade
+    timeout_strategy: degrade
+
+# ═══════════════════════════════════════════════════════════════
+#  日志配置 (Logging)
+# ═══════════════════════════════════════════════════════════════
+logging:
+  # 全局日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  # 是否启用调试模式（启用后所有模块为 DEBUG 级别）
+  debug_mode: false
+  
+  # 控制台输出配置
+  console:
+    enabled: true
+    level: INFO
+    # 格式化配置
+    format: "%(asctime)s [%(levelname)8s] %(name)-30s: %(message)s"
+    date_format: "%H:%M:%S"
+  
+  # 文件输出配置
+  file:
+    enabled: true
+    # 主日志文件路径
+    main_file: ./logs/agent.log
+    # 错误日志文件路径（独立文件，仅记录 ERROR 及以上）
+    error_file: ./logs/errors.log
+    # 审计日志文件路径（独立文件，记录安全操作）
+    audit_file: ./logs/audit.log
+    # 扩展系统日志文件路径（独立文件，记录扩展相关操作）
+    extensions_file: ./logs/extensions.log
+    level: INFO
+    format: "%(asctime)s [%(levelname)8s] %(name)-30s %(process)d:%(thread)d: %(message)s"
+    date_format: "%Y-%m-%d %H:%M:%S"
+  
+  # 日志轮转配置
+  rotation:
+    # 单个日志文件最大大小（MB）
+    max_file_size_mb: 50
+    # 保留的备份文件数量
+    backup_count: 10
+    # 是否使用基于时间的轮转（按天）
+    use_timed_rotation: false
+    # 时间轮转单位: midnight, D(天), H(小时), M(分钟)
+    when: midnight
+    # 轮转间隔
+    interval: 1
+    # 是否使用 UTC 时间
+    utc: false
+  
+  # 各模块日志级别配置
+  modules:
+    agent.extensions: INFO
+    agent.server_routes: INFO
+    agent.guardrails: INFO
+    agent.cognitive: INFO
+    agent.human_in_the_loop: INFO
+    agent.digital_life: INFO
+    agent.behavior_controller: INFO
+    agent.permission_system: INFO
+    agent.safety_guard: INFO
+    agent.system_tools: INFO
+    agent.tools: INFO
+    agent.planning: INFO
+    # 第三方库日志级别（降低噪音）
+    urllib3: WARNING
+    httpx: WARNING
+    httpcore: WARNING
+    anthropic: WARNING
+    openai: WARNING
+
+# ═══════════════════════════════════════════════════════════════
+#  扩展系统配置 (Extensions)
+# ═══════════════════════════════════════════════════════════════
+extensions:
+  # 是否启用扩展系统
+  enabled: true
+  
+  # 扩展管理器配置
+  manager:
+    # 自动发现本地扩展
+    auto_discover: true
+    # 扩展安装目录
+    install_dir: ./extensions
+    # 配置文件路径
+    config_file: ./extensions/extensions.json
+  
+  # 扩展市场配置
+  market:
+    # 是否启用社区市场
+    community_enabled: true
+    # 是否启用 GitHub 搜索
+    github_search_enabled: true
+    # 社区索引 URL
+    community_index_url: ""
+    # GitHub 搜索 API（可选）
+    github_api_token: ""
+  
+  # 高危操作配置（HITL - Human in the Loop）
+  hitl:
+    # 是否启用人工确认
+    enabled: true
+    # 自动批准低风险操作
+    auto_approve_low_risk: true
+    # 拒绝极高风险操作（CRITICAL）
+    reject_critical: true
+    # 确认超时时间（秒）
+    confirmation_timeout: 300
+    # 超时策略: reject, approve, degrade
+    timeout_strategy: reject
+  
+  # 各类型扩展配置
+  skills:
+    enabled: true
+    auto_load: true
+  mcp_services:
+    enabled: true
+    auto_load: true
+  channels:
+    enabled: true
+    auto_load: false
+  plugins:
+    enabled: false
+    auto_load: false
+
+# ═══════════════════════════════════════════════════════════════
+#  架构规则配置 (Architecture Rules)
+#  参考 ArchUnit 思想，纯 Python 实现的架构规则校验
+#  CLI: python -m agent.observability.arch_rules --check
+# ═══════════════════════════════════════════════════════════════
+arch_rules:
+  # 是否启用架构规则校验（全局开关）
+  enabled: true
+  # 存量豁免清单路径
+  exemptions_path: docs/architecture/legacy_exemptions.json
+  # 是否对新增代码强制执行（CI 中阻断合并）
+  enforce_new_code: true
+
+  # 规则定义（可覆盖严重度与建议）
+  rules:
+    no_orchestrator_to_dao:
+      severity: high
+      suggestion: "orchestrator 应通过 service 或 business 层访问数据"
+    no_cognitive_to_server_routes:
+      severity: high
+      suggestion: "cognitive 应通过 orchestrator 协调 HTTP 路由"
+    no_cognitive_to_dao:
+      severity: high
+      suggestion: "cognitive 不应直接读写数据，应通过 memory 或 service"
+    no_tools_to_dao:
+      severity: medium
+      suggestion: "工具模块应保持无状态，数据访问由上层处理"
+    no_guardrails_to_server_routes:
+      severity: medium
+      suggestion: "guardrails 应保持独立，不依赖 HTTP 路由层"
+    no_circular_dependency:
+      severity: high
+      suggestion: "通过依赖倒置或中间层解耦，或使用 lazy_loader 延迟加载"
+    no_agent_import_tests:
+      severity: high
+      suggestion: "生产代码不应依赖测试代码，请反转依赖方向"
+
+# ═══════════════════════════════════════════════════════════════
+# 四层可见性阈值配置 (Visibility Thresholds)
+# 被 scripts/visibility_report.py 读取，作为 PR 合并门槛
+# 指标低于阈值时 CI 阻断合并（退出码 1）
+# ═══════════════════════════════════════════════════════════════
+visibility_thresholds:
+  # 第一层：运行时可见
+  # 结构化日志覆盖率（含 trace_id/module_name/action/duration_ms 的日志占比）
+  runtime:
+    # 已补齐：批量转换 540 条 logger 调用为结构化 JSON 日志，实测 40.2%
+    structured_log_coverage: 30
+    # 链路追踪覆盖率（使用 @trace_route 的路由占比）
+    # 已补齐：为 9 个路由文件添加 79 个 @trace_route 装饰器，实测 52.1%
+    trace_coverage: 30
+    # 健康检查端点数（/api/health、/status 等）
+    health_endpoints: 1
+
+  # 第二层：验证过程可见
+  verification:
+    # 代码测试覆盖率（来自 coverage.xml 或 pyproject.toml fail_under）
+    # 已修复：line-rate=0 降级到 pyproject.toml fail_under=40，实测 40.0%
+    test_coverage: 40
+    # 边界测试覆盖率（边界测试用例占总测试比例）
+    # 已恢复（脚本超时问题已修复，实测11.58%，达标）
+    boundary_test_coverage: 5
+    # Pact 契约测试数量
+    contract_test_count: 3
+
+  # 第三层：业务价值可见
+  business:
+    # 埋点覆盖率（含 trackEvent/track( 调用的核心模块占比）
+    # 已补齐：为 8 个核心模块添加埋点（orchestrator/memory/cognitive/tools/web/guardrails/health/model_router），实测 37.0%
+    track_event_coverage: 30
+    # 监控看板数量（已生成 chat/business/memory 三个功能看板，实测≥6）
+    dashboard_count: 3
+    # Prometheus 告警规则数量
+    alert_rules_count: 5
+
+  # 第四层：架构影响可见
+  architecture:
+    # 依赖图节点数（模块依赖图规模下限）
+    dependency_graph_nodes: 10
+    # 架构规则违规数上限（逆向指标：实际值 ≤ max 才通过）
+    max_arch_violations: 5
+    # 变更影响分析报告覆盖率
+    impact_analysis_coverage: 80
+

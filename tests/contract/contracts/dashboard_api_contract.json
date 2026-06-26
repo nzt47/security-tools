@@ -1,0 +1,211 @@
+{
+  "name": "dashboard_api",
+  "consumer": "yunshu_frontend",
+  "provider": "yunshu_backend",
+  "version": "1.0.0",
+  "description": "仪表盘契约：质量监控数据接口",
+  "interactions": [
+    {
+      "description": "获取质量监控数据 - 返回质量指标",
+      "request": {
+        "method": "GET",
+        "path": "/api/dashboard/quality",
+        "headers": {},
+        "query": {
+          "time_range": "today"
+        },
+        "body_fields": []
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "total_requests",
+            "type": "integer",
+            "required": true,
+            "description": "总请求数",
+            "minimum": 0
+          },
+          {
+            "name": "success_count",
+            "type": "integer",
+            "required": true,
+            "description": "成功数",
+            "minimum": 0
+          },
+          {
+            "name": "error_count",
+            "type": "integer",
+            "required": true,
+            "description": "错误数",
+            "minimum": 0
+          },
+          {
+            "name": "success_rate",
+            "type": "number",
+            "required": true,
+            "description": "成功率",
+            "minimum": 0,
+            "maximum": 100
+          },
+          {
+            "name": "avg_response_time",
+            "type": "number",
+            "required": false,
+            "description": "平均响应时间(ms)",
+            "minimum": 0
+          },
+          {
+            "name": "p95_response_time",
+            "type": "number",
+            "required": false,
+            "description": "P95 响应时间(ms)",
+            "minimum": 0
+          },
+          {
+            "name": "p99_response_time",
+            "type": "number",
+            "required": false,
+            "description": "P99 响应时间(ms)",
+            "minimum": 0
+          },
+          {
+            "name": "time_range",
+            "type": "object",
+            "required": true,
+            "description": "时间范围",
+            "properties": [
+              {
+                "name": "start",
+                "type": "number",
+                "required": true,
+                "description": "开始时间戳"
+              },
+              {
+                "name": "end",
+                "type": "number",
+                "required": true,
+                "description": "结束时间戳"
+              }
+            ]
+          },
+          {
+            "name": "error_breakdown",
+            "type": "object",
+            "required": false,
+            "description": "错误分类统计"
+          }
+        ],
+        "example": {
+          "total_requests": 1000,
+          "success_count": 950,
+          "error_count": 50,
+          "success_rate": 95.0,
+          "avg_response_time": 123.45,
+          "p95_response_time": 300.0,
+          "p99_response_time": 500.0,
+          "time_range": {
+            "start": 1719360000.0,
+            "end": 1719446400.0
+          },
+          "error_breakdown": {
+            "timeout": 30,
+            "validation": 20
+          }
+        }
+      }
+    },
+    {
+      "description": "获取追踪数据列表 - 返回追踪记录",
+      "request": {
+        "method": "GET",
+        "path": "/api/dashboard/traces",
+        "headers": {},
+        "query": {
+          "limit": "20"
+        },
+        "body_fields": []
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "total",
+            "type": "integer",
+            "required": true,
+            "description": "追踪总数",
+            "minimum": 0
+          },
+          {
+            "name": "traces",
+            "type": "array",
+            "required": true,
+            "description": "追踪记录数组",
+            "items": {
+              "name": "trace",
+              "type": "object",
+              "required": true,
+              "description": "单个追踪记录",
+              "properties": [
+                {
+                  "name": "trace_id",
+                  "type": "string",
+                  "required": true,
+                  "description": ""
+                },
+                {
+                  "name": "service",
+                  "type": "string",
+                  "required": true,
+                  "description": ""
+                },
+                {
+                  "name": "operation",
+                  "type": "string",
+                  "required": true,
+                  "description": ""
+                },
+                {
+                  "name": "duration_ms",
+                  "type": "number",
+                  "required": true,
+                  "description": "",
+                  "minimum": 0
+                },
+                {
+                  "name": "status",
+                  "type": "string",
+                  "required": true,
+                  "description": "",
+                  "enum": [
+                    "success",
+                    "error"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "example": {
+          "total": 1,
+          "traces": [
+            {
+              "trace_id": "abc123",
+              "service": "chat",
+              "operation": "api.chat",
+              "duration_ms": 123.45,
+              "status": "success"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "generated_at": "2026-06-27T01:12:01.998684"
+}

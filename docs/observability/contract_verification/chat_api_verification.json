@@ -1,0 +1,32 @@
+{
+  "contract_name": "chat_api",
+  "timestamp": "2026-06-26T13:01:11.536353",
+  "trace_id": "d6e051f28d184cd9",
+  "total_interactions": 3,
+  "passed": 0,
+  "failed": 3,
+  "overall_passed": false,
+  "results": [
+    {
+      "interaction": "正常对话请求 - 返回响应文本与模式信息",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/chat [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 210.21,
+      "actual_status": null
+    },
+    {
+      "interaction": "空消息请求 - 返回 400 错误",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/chat [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 2.2,
+      "actual_status": null
+    },
+    {
+      "interaction": "安全拦截请求 - 返回 403 阻断",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/chat [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 1.7,
+      "actual_status": null
+    }
+  ]
+}

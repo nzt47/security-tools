@@ -584,8 +584,16 @@ class ImpactAnalyzer:
 
         Returns:
             匹配的测试文件相对路径列表
+
+        跨平台兼容：
+            module_path 支持点分隔（agent.core.sub）、反斜杠（agent\\core\\sub）、
+            正斜杠（agent/core/sub）以及混合分隔符（agent\\core/sub）。
+            归一化时统一转换为点分隔，避免 Windows/Linux 路径差异导致匹配失败。
         """
-        parts = module_path.split(".")
+        # 跨平台路径分隔符归一化：将 \ 和 / 统一替换为 .
+        # 注意：必须先处理反斜杠再处理正斜杠，避免在 Windows 上重复替换
+        normalized_path = module_path.replace("\\", ".").replace("/", ".")
+        parts = normalized_path.split(".")
         if len(parts) < 2:
             return []
 

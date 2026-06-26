@@ -1,0 +1,37 @@
+{
+  "consumer": {
+    "name": "yunshu_frontend"
+  },
+  "provider": {
+    "name": "yunshu_backend"
+  },
+  "interactions": [
+    {
+      "description": "获取身体状态读数 - 返回读数数组",
+      "request": {
+        "method": "GET",
+        "path": "/api/health",
+        "headers": {},
+        "query": null,
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "_root": []
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "2.0.0"
+    },
+    "contract-version": "1.0.0",
+    "description": "健康检查契约：返回身体状态读数数组",
+    "generated_at": "2026-06-27T01:12:01.996684"
+  }
+}

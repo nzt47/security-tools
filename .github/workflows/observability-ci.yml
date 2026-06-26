@@ -652,7 +652,79 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # 阶段7：四层可见性报告（新增，作为 PR 合并门槛）
+  # 阶段7：全项目测试覆盖率（新增）
+  # 运行全量测试生成完整 coverage.xml，供 visibility-report job 消费
+  # 替代原"coverage.xml 缺失时降级到 pyproject.toml fail_under"的权宜方案
+  #
+  # 设计要点：
+  #   - 不设 --cov-fail-under：本 job 仅负责生成 coverage.xml，覆盖率阻断
+  #     由 visibility-report job 的 test_coverage 指标阈值（40%）统一负责
+  #   - 同时测量 agent/ 和 scripts/ 两个源目录，确保 scripts/test_quality_assess.py
+  #     等以 test_ 开头的脚本模块也被纳入全项目覆盖率统计
+  #   - 上传 coverage.xml 为 artifact（full-coverage-report），visibility-report
+  #     job 下载后直接读取真实 line-rate，不再降级
+  # ============================================================================
+  full-project-tests:
+    name: 全项目测试覆盖率
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          pip install prometheus-client opentelemetry-api opentelemetry-sdk
+          pip install -e .
+
+      - name: 运行全量测试并生成覆盖率报告
+        run: |
+          echo "=== 运行全量测试（agent + scripts）==="
+          # --cov=agent --cov=scripts：同时测量两个源目录
+          # --cov-report=xml：生成 coverage.xml 供 visibility-report 消费
+          # --cov-report=term-missing：控制台显示未覆盖行号便于排查
+          # 不设 --cov-fail-under：阻断交由 visibility-report 的 test_coverage 阈值
+          python -m pytest tests/ \
+            --cov=agent \
+            --cov=scripts \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --tb=short
+
+      - name: 校验 coverage.xml 有效性
+        run: |
+          echo "=== 校验 coverage.xml ==="
+          if [ ! -f coverage.xml ]; then
+            echo "❌ coverage.xml 未生成，全项目测试可能失败"
+            exit 1
+          fi
+          LINE_RATE=$(python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(r.attrib.get('line-rate', '0'))")
+          echo "全项目 line-rate: $LINE_RATE"
+          # line-rate=0 通常表示测试未覆盖任何行（异常状态），需告警但不阻断
+          # 阻断由 visibility-report 的 test_coverage 阈值（40%）负责
+          if [ "$LINE_RATE" = "0" ]; then
+            echo "⚠️ coverage.xml line-rate=0，可能测试未执行或未覆盖任何行"
+          fi
+
+      - name: 上传全项目覆盖率报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-coverage-report
+          path: |
+            coverage.xml
+            .coverage
+          retention-days: 30
+
+  # ============================================================================
+  # 阶段8：四层可见性报告（新增，作为 PR 合并门槛）
   # 汇总运行时/验证过程/业务价值/架构影响四层可见性指标，低于阈值时阻断
   #
   # ── 可见性改造基线数据（2026-06-26 更新） ──
@@ -675,7 +747,7 @@ jobs:
   visibility-report:
     name: 四层可见性报告
     runs-on: ubuntu-latest
-    needs: [boundary-coverage-check, contract-test, observability-unit-tests]
+    needs: [boundary-coverage-check, contract-test, observability-unit-tests, full-project-tests]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -691,21 +763,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml
 
-      # coverage.xml 已不再从 observability-unit-tests 下载
-      # 原因：observability-unit-tests 仅测可观测性子模块，其 coverage.xml 为部分覆盖（≈19.7%），
-      #       低于全项目 40% 阈值，会导致 test_coverage 指标误判失败。
-      # 当前方案：visibility_report.py 检测到 coverage.xml 缺失时，降级读取 pyproject.toml
-      #           的 fail_under=40 作为基线，与全项目覆盖率阈值语义一致。
-      # 后续优化：可新增 full-project-tests job 运行全量测试生成完整 coverage.xml。
-      - name: 确认 coverage.xml 状态
+      # ── 下载全项目覆盖率 artifact（来自 full-project-tests job）──
+      # 替代原"coverage.xml 缺失时降级到 pyproject.toml fail_under"的权宜方案
+      # visibility_report.py 现直接读取真实 line-rate，不再降级
+      - name: 下载全项目覆盖率报告
+        uses: actions/download-artifact@v4
+        with:
+          name: full-coverage-report
+          path: .
+
+      - name: 校验 coverage.xml 真实覆盖率
         run: |
-          echo "=== 确认 coverage.xml 是否就位 ==="
-          if [ -f coverage.xml ]; then
-            echo "✅ coverage.xml 已就位（本地遗留或手动生成）"
-            python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
-          else
-            echo "⚠️ coverage.xml 未就位，visibility_report.py 将降级到 pyproject.toml fail_under=40"
+          echo "=== 校验 coverage.xml（来自 full-project-tests artifact）==="
+          if [ ! -f coverage.xml ]; then
+            echo "❌ coverage.xml 未从 artifact 下载到位，visibility-report 无法使用真实覆盖率"
+            echo "   请检查 full-project-tests job 是否成功执行并上传 artifact"
+            exit 1
           fi
+          LINE_RATE=$(python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(r.attrib.get('line-rate', '0'))")
+          COVERAGE_PERCENT=$(python -c "print(round(float('$LINE_RATE') * 100, 1))")
+          echo "✅ coverage.xml 已就位，真实 line-rate=$LINE_RATE (${COVERAGE_PERCENT}%)"
+          echo "   visibility_report.py 将直接使用此真实覆盖率，不再降级到 pyproject.toml"
 
       - name: 生成四层可见性报告
         id: visibility

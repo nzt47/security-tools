@@ -1,0 +1,65 @@
+{
+  "consumer": {
+    "name": "yunshu_frontend"
+  },
+  "provider": {
+    "name": "yunshu_backend"
+  },
+  "interactions": [
+    {
+      "description": "获取质量监控数据 - 返回质量指标",
+      "request": {
+        "method": "GET",
+        "path": "/api/dashboard/quality",
+        "headers": {},
+        "query": {
+          "time_range": "today"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "total_requests": 0,
+          "success_count": 0,
+          "error_count": 0,
+          "success_rate": 0.0,
+          "time_range": {}
+        }
+      }
+    },
+    {
+      "description": "获取追踪数据列表 - 返回追踪记录",
+      "request": {
+        "method": "GET",
+        "path": "/api/dashboard/traces",
+        "headers": {},
+        "query": {
+          "limit": "20"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "total": 0,
+          "traces": []
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "2.0.0"
+    },
+    "contract-version": "1.0.0",
+    "description": "仪表盘契约：质量监控数据接口",
+    "generated_at": "2026-06-27T01:12:01.997684"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "name": "health_api",
+  "consumer": "yunshu_frontend",
+  "provider": "yunshu_backend",
+  "version": "1.0.0",
+  "description": "健康检查契约：返回身体状态读数数组",
+  "interactions": [
+    {
+      "description": "获取身体状态读数 - 返回读数数组",
+      "request": {
+        "method": "GET",
+        "path": "/api/health",
+        "headers": {},
+        "query": {},
+        "body_fields": []
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "_root",
+            "type": "array",
+            "required": true,
+            "description": "身体状态读数数组（根级数组）",
+            "items": {
+              "name": "reading",
+              "type": "object",
+              "required": true,
+              "description": "单个身体状态读数",
+              "properties": [
+                {
+                  "name": "sensor_name",
+                  "type": "string",
+                  "required": true,
+                  "description": "传感器名称"
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "description": "读数描述"
+                },
+                {
+                  "name": "severity",
+                  "type": "string",
+                  "required": true,
+                  "description": "严重程度",
+                  "enum": [
+                    "normal",
+                    "warning",
+                    "critical"
+                  ]
+                },
+                {
+                  "name": "value",
+                  "type": "number",
+                  "required": false,
+                  "description": "读数值"
+                },
+                {
+                  "name": "unit",
+                  "type": "string",
+                  "required": false,
+                  "description": "单位"
+                },
+                {
+                  "name": "timestamp",
+                  "type": "string",
+                  "required": false,
+                  "description": "时间戳"
+                }
+              ]
+            }
+          }
+        ],
+        "example": [
+          {
+            "sensor_name": "heart_rate",
+            "description": "心率",
+            "severity": "normal",
+            "value": 72,
+            "unit": "bpm",
+            "timestamp": "2026-06-26T10:00:00"
+          }
+        ]
+      }
+    }
+  ],
+  "generated_at": "2026-06-27T01:12:01.996684"
+}

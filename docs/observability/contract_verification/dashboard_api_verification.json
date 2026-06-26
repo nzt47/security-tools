@@ -1,0 +1,25 @@
+{
+  "contract_name": "dashboard_api",
+  "timestamp": "2026-06-26T13:01:11.545650",
+  "trace_id": "1dd52ff26975439b",
+  "total_interactions": 2,
+  "passed": 0,
+  "failed": 2,
+  "overall_passed": false,
+  "results": [
+    {
+      "interaction": "获取质量监控数据 - 返回质量指标",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/dashboard/quality?time_range=today [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 2.45,
+      "actual_status": null
+    },
+    {
+      "interaction": "获取追踪数据列表 - 返回追踪记录",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/dashboard/traces?limit=20 [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 2.34,
+      "actual_status": null
+    }
+  ]
+}

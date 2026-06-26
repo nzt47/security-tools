@@ -1,0 +1,187 @@
+# ═══════════════════════════════════════════════════════════════
+#  边界覆盖配置 (Boundary Coverage Configuration)
+#  用途：scripts/check_boundary_coverage.py 的输入基准
+#  规则：识别测试函数名中的边界关键词，按模块统计覆盖率
+# ═══════════════════════════════════════════════════════════════
+
+# 全局配置
+global:
+  # 边界关键词（测试函数名包含以下任一关键词即认定为边界测试）
+  # 9 大类边界场景关键词，覆盖功能/数据/并发/资源四大维度
+  keywords:
+    boundary:    # 边界值测试
+      - boundary
+      - edge
+      - limit
+    empty:       # 空值/空容器
+      - empty
+      - blank
+      - missing
+    timeout:     # 超时/异步边界
+      - timeout
+      - deadline
+      - async
+    'null':      # None/null 处理（YAML 保留字需加引号）
+      - null
+      - none
+      - nil
+    invalid:     # 非法输入
+      - invalid
+      - illegal
+      - malformed
+    overflow:    # 上溢/超长
+      - overflow
+      - too_long
+      - huge
+    underflow:   # 下溢/过短
+      - underflow
+      - too_short
+      - tiny
+    extreme:     # 极值
+      - extreme
+      - max
+      - min
+      - zero
+  # 模块根目录（agent/ 下子目录被视为业务模块）
+  module_root: agent
+  # 测试根目录
+  test_root: tests
+  # 存量模块豁免（仅标记"建议补充"，不阻断 CI）
+  legacy_exempt: false
+
+# 各模块必须覆盖的边界场景清单
+# module_name -> 必须覆盖的边界类型 + 最低测试数
+modules:
+  # ── 核心运行时模块 ──
+  core:
+    required_scenes:
+      - empty        # 空输入
+      - timeout      # 超时
+      - invalid      # 非法配置
+      - null         # None 配置
+    min_tests: 4
+    description: 核心调度与状态机
+  cognitive:
+    required_scenes:
+      - empty
+      - timeout
+      - invalid
+    min_tests: 3
+    description: 认知循环与决策
+  orchestrator:
+    required_scenes:
+      - timeout
+      - invalid
+      - extreme
+    min_tests: 3
+    description: 任务编排
+
+  # ── 容错与稳定性模块 ──
+  circuit_breaker:
+    required_scenes:
+      - boundary     # 状态切换边界
+      - timeout
+      - extreme      # 错误率极值
+    min_tests: 3
+    description: 熔断器
+  rate_limiter:
+    required_scenes:
+      - boundary
+      - overflow     # 令牌桶溢出
+      - extreme
+    min_tests: 3
+    description: 限流器
+  graceful_degrade:
+    required_scenes:
+      - timeout
+      - invalid
+      - null
+    min_tests: 3
+    description: 优雅降级
+  disaster_recovery:
+    required_scenes:
+      - timeout
+      - empty
+      - extreme
+    min_tests: 3
+    description: 容灾恢复
+
+  # ── 数据与存储模块 ──
+  memory:
+    required_scenes:
+      - empty        # 空记忆
+      - overflow     # 超长输入
+      - null
+      - invalid      # 损坏数据
+    min_tests: 4
+    description: 记忆系统
+  health:
+    required_scenes:
+      - empty
+      - invalid
+      - extreme      # 极端健康度
+    min_tests: 3
+    description: 健康评估
+
+  # ── 工具与扩展模块 ──
+  tools:
+    required_scenes:
+      - timeout
+      - invalid
+      - empty
+    min_tests: 3
+    description: 工具调用
+  extensions:
+    required_scenes:
+      - invalid
+      - empty
+    min_tests: 2
+    description: 扩展系统
+
+  # ── 安全与权限模块 ──
+  guardrails:
+    required_scenes:
+      - invalid      # 注入攻击
+      - overflow     # 超长 payload
+      - extreme
+    min_tests: 3
+    description: 安全守护
+  permission_system:
+    required_scenes:
+      - invalid
+      - null
+      - boundary
+    min_tests: 3
+    description: 权限系统
+
+  # ── 配置与可观测性 ──
+  config:
+    required_scenes:
+      - empty
+      - invalid
+      - null
+    min_tests: 3
+    description: 配置加载与校验
+  monitoring:
+    required_scenes:
+      - timeout
+      - empty
+    min_tests: 2
+    description: 监控埋点
+  observability:
+    required_scenes:
+      - empty
+      - invalid
+    min_tests: 2
+    description: 可观测性工具
+
+# CI 阻断策略
+ci_policy:
+  # 新增代码模块强制要求边界测试（无边界测试则阻断合并）
+  enforce_new_modules: true
+  # 存量模块边界测试数低于阈值时标记"建议补充"，不阻断
+  legacy_strategy: warn
+  # 报告输出路径
+  report_path: docs/observability/boundary_coverage_report.md
+  # JSON 报告路径（供 CI 解析）
+  json_report_path: docs/observability/boundary_coverage_report.json

@@ -1,0 +1,88 @@
+{
+  "consumer": {
+    "name": "yunshu_frontend"
+  },
+  "provider": {
+    "name": "yunshu_backend"
+  },
+  "interactions": [
+    {
+      "description": "正常对话请求 - 返回响应文本与模式信息",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": null,
+        "body": {
+          "message": "sample"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "response": "sample",
+          "mode": "normal",
+          "mode_label": "sample",
+          "logs": [],
+          "timing": {}
+        }
+      }
+    },
+    {
+      "description": "空消息请求 - 返回 400 错误",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": null,
+        "body": {
+          "message": "sample"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "sample"
+        }
+      }
+    },
+    {
+      "description": "安全拦截请求 - 返回 403 阻断",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": null,
+        "body": {
+          "message": "sample"
+        }
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "response": "sample",
+          "blocked": true,
+          "mode": "normal",
+          "safety": {}
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "2.0.0"
+    },
+    "contract-version": "1.0.0",
+    "description": "对话接口契约：处理用户消息并返回响应",
+    "generated_at": "2026-06-27T01:12:01.994674"
+  }
+}
