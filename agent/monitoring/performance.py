@@ -7,13 +7,19 @@
 """
 
 import hashlib
+import json
 import time
 import threading
 import logging
+import uuid
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass, field
 from collections import OrderedDict, deque
 from datetime import datetime, timezone
+
+# 结构化日志必需：get_trace_id() 提供上下文追踪 ID
+# set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +61,13 @@ class InitPerformanceTracker:
             name=module_name,
             start_time=time.time()
         )
-        logger.info("[性能追踪] 开始初始化模块: %s", module_name)
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "module_init_start",
+            "duration_ms": 0,
+            "target_module": module_name,
+        }, ensure_ascii=False))
 
     def finish_module(self, module_name: str, success: bool = True, error: str = ""):
         """完成某个模块的初始化追踪"""
@@ -65,7 +77,15 @@ class InitPerformanceTracker:
             record.success = success
             record.error = error
             status = "成功" if success else f"失败: {error}"
-            logger.info("[性能追踪] 模块 %s 初始化完成: %.2fms (%s)", module_name, record.duration_ms, status)
+            logger.info(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "performance",
+                "action": "module_init_complete",
+                "duration_ms": record.duration_ms,
+                "target_module": module_name,
+                "success": success,
+                "status": status,
+            }, ensure_ascii=False))
 
     def get_total_time(self) -> float:
         """获取总初始化时间（毫秒）"""
@@ -150,12 +170,26 @@ class Timer:
         """上下文管理器出口"""
         self.stop()
         if self.name:
-            logger.debug("[Timer] %s 耗时: %.3fs", self.name, self.elapsed)
+            logger.debug(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "performance",
+                "action": "timer_elapsed",
+                "duration_ms": self.elapsed * 1000,
+                "timer_name": self.name,
+                "elapsed_seconds": self.elapsed,
+            }, ensure_ascii=False))
 
 
 def log_module_load_time(module_name: str, elapsed_time: float):
     """记录模块加载时间"""
-    logger.info("[性能] 模块 %s 加载完成，耗时: %.3fs", module_name, elapsed_time)
+    logger.info(json.dumps({
+        "trace_id": get_trace_id(),
+        "module_name": "performance",
+        "action": "module_loaded",
+        "duration_ms": elapsed_time * 1000,
+        "target_module": module_name,
+        "elapsed_seconds": elapsed_time,
+    }, ensure_ascii=False))
 
 
 def get_performance_recorder():
@@ -185,6 +219,8 @@ class RuntimeSampler:
         self._sampling = False
         self._sampler_thread: Optional[threading.Thread] = None
         self._callbacks: List[Callable] = []
+        # 后台线程专属 trace_id（ContextVar 不自动继承到子线程，需手动设置）
+        self._sampler_trace_id = f"perf-sampler-{uuid.uuid4().hex[:16]}"
 
     def add_alert_callback(self, callback: Callable[[Dict], None]):
         """添加告警回调函数"""
@@ -197,17 +233,30 @@ class RuntimeSampler:
         self._sampling = True
         self._sampler_thread = threading.Thread(target=self._sample_loop, daemon=True)
         self._sampler_thread.start()
-        logger.info("[RuntimeSampler] 采样器已启动，间隔: %.1fs", self.sample_interval)
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "sampler_start",
+            "duration_ms": 0,
+            "sample_interval_s": self.sample_interval,
+        }, ensure_ascii=False))
 
     def stop(self):
         """停止采样"""
         self._sampling = False
         if self._sampler_thread:
             self._sampler_thread.join(timeout=2.0)
-        logger.info("[RuntimeSampler] 采样器已停止")
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "sampler_stop",
+            "duration_ms": 0,
+        }, ensure_ascii=False))
 
     def _sample_loop(self):
         """采样循环"""
+        # 后台线程入口：设置专属 trace_id，确保日志可追踪
+        set_trace_id(self._sampler_trace_id)
         while self._sampling:
             sample = self._collect_sample()
             with self._lock:
@@ -216,7 +265,13 @@ class RuntimeSampler:
                 try:
                     callback(sample)
                 except Exception as e:
-                    logger.error("[RuntimeSampler] 告警回调失败: %s", e)
+                    logger.error(json.dumps({
+                        "trace_id": get_trace_id(),
+                        "module_name": "performance",
+                        "action": "sampler_callback_error",
+                        "duration_ms": 0,
+                        "error": str(e),
+                    }, ensure_ascii=False))
             time.sleep(self.sample_interval)
 
     def _collect_sample(self) -> Dict:
@@ -388,22 +443,50 @@ class PerformanceAlertManager:
             if level == 'critical':
                 logger.critical("[PerformanceAlert] %s", message)
             elif level == 'warning':
-                logger.warning("[PerformanceAlert] %s", message)
+                logger.warning(json.dumps({
+                    "trace_id": get_trace_id(),
+                    "module_name": "performance",
+                    "action": "alert_warning",
+                    "duration_ms": 0,
+                    "alert_level": level,
+                    "message": message,
+                }, ensure_ascii=False))
             else:
-                logger.info("[PerformanceAlert] %s", message)
+                logger.info(json.dumps({
+                    "trace_id": get_trace_id(),
+                    "module_name": "performance",
+                    "action": "alert_info",
+                    "duration_ms": 0,
+                    "alert_level": level,
+                    "message": message,
+                }, ensure_ascii=False))
         if self.config.enable_callback:
             alert_type = alert.get('alert_type', '')
             for callback in self._alert_callbacks:
                 try:
                     callback(alert_type, alert)
                 except Exception as e:
-                    logger.error("[PerformanceAlert] 告警回调失败: %s", e)
+                    logger.error(json.dumps({
+                        "trace_id": get_trace_id(),
+                        "module_name": "performance",
+                        "action": "alert_callback_error",
+                        "duration_ms": 0,
+                        "alert_type": alert_type,
+                        "error": str(e),
+                    }, ensure_ascii=False))
 
 
 def create_default_alert_callback() -> Callable[[str, Dict], None]:
     """创建默认告警回调函数"""
     def default_callback(alert_type: str, alert: Dict):
-        logger.info("[AlertCallback] 告警已触发: %s - %s", alert_type, alert.get('message', ''))
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "alert_triggered",
+            "duration_ms": 0,
+            "alert_type": alert_type,
+            "message": alert.get('message', ''),
+        }, ensure_ascii=False))
     return default_callback
 
 
@@ -431,7 +514,13 @@ def setup_performance_monitoring(
 
     sampler.add_alert_callback(alert_check_callback)
     alert_manager.add_alert_callback(create_default_alert_callback())
-    logger.info("[PerformanceMonitoring] 性能监控系统已配置，采样间隔: %.1fs", sample_interval)
+    logger.info(json.dumps({
+        "trace_id": get_trace_id(),
+        "module_name": "performance",
+        "action": "system_configured",
+        "duration_ms": 0,
+        "sample_interval_s": sample_interval,
+    }, ensure_ascii=False))
     return sampler, alert_manager
 
 
@@ -512,7 +601,14 @@ class LLMCache:
         self.cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self.stats = LLMCacheStats()
         self.hits_by_pattern: dict[str, int] = {}
-        logger.info("[LLM Cache] 初始化完成: max_size=%d, ttl=%ds", max_size, ttl_seconds)
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "llm_cache_init",
+            "duration_ms": 0,
+            "max_size": max_size,
+            "ttl_seconds": ttl_seconds,
+        }, ensure_ascii=False))
 
     def _hash_prompt(self, prompt: str) -> str:
         return hashlib.sha256(prompt.encode('utf-8')).hexdigest()
@@ -579,7 +675,13 @@ class LLMCache:
     def clear(self):
         size = len(self.cache)
         self.cache.clear()
-        logger.info("[LLM Cache] 清空缓存: %d 条目", size)
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "llm_cache_clear",
+            "duration_ms": 0,
+            "cleared_size": size,
+        }, ensure_ascii=False))
 
     def get_stats(self) -> dict:
         return self.stats.to_dict()
@@ -656,8 +758,14 @@ class PerformanceLogger:
         self.records.append(record)
         if len(self.records) > self.max_records:
             self.records.pop(0)
-        logger.info("[Perf] %s: %.2fms%s", operation, elapsed_ms,
-                    f" | {metadata}" if metadata else "")
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "performance",
+            "action": "perf_operation",
+            "duration_ms": elapsed_ms,
+            "operation": operation,
+            "metadata": metadata or {},
+        }, ensure_ascii=False))
 
     def get_stats(self, operation: Optional[str] = None) -> dict:
         if operation:

@@ -374,11 +374,16 @@ class MetricCollector:
         """读取测试覆盖率
 
         解析优先级：
-          1. coverage.xml 的 line-rate（真实覆盖率，由 CI artifact 传递）
-          2. pyproject.toml 的 [tool.coverage.report] fail_under（配置基线）
-          3. 0.0（明确日志告警，不静默返回）
+          1. coverage.xml 的 line-rate（真实覆盖率）
+             - CI 环境：由 full-project-tests job 生成并通过 artifact 传递，
+                        visibility-report job 下载后放置于项目根目录，直接读取真实 line-rate
+             - 本地环境：需手动执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成
+          2. pyproject.toml 的 [tool.coverage.report] fail_under（仅本地兜底基线）
+             - 注意：此降级路径在 CI 中不应触发（CI 总能从 artifact 拿到 coverage.xml）
+             - 仅用于本地运行时 coverage.xml 缺失的兜底，避免直接返回 0.0 影响判断
+          3. 0.0（明确 error 日志告警，不静默返回）
 
-        异常处理：所有降级路径均输出结构化 error 日志，便于排查 artifact 传递问题。
+        异常处理：所有降级路径均输出结构化日志，便于排查 artifact 传递问题。
         """
         # ── 优先从 coverage.xml 读取真实 line-rate ──
         coverage_xml = self.project_root / "coverage.xml"
@@ -388,8 +393,18 @@ class MetricCollector:
                 tree = ET.parse(coverage_xml)
                 root = tree.getroot()
                 line_rate = float(root.attrib.get("line-rate", "0"))
-                # line-rate=0 通常是空报告或生成失败，视为无效数据降级处理
+                # line-rate=0 通常是空报告或生成失败，视为无效数据进入降级路径
                 if line_rate > 0:
+                    logger.info(json.dumps({
+                        "trace_id": _trace_id(),
+                        "module_name": "visibility_report",
+                        "action": "read_test_coverage.success",
+                        "duration_ms": 0,
+                        "path": str(coverage_xml),
+                        "line_rate": line_rate,
+                        "coverage_percent": round(line_rate * 100, 1),
+                        "source": "full-project-tests artifact (CI) 或本地生成",
+                    }, ensure_ascii=False))
                     return round(line_rate * 100, 1)
                 logger.warning(json.dumps({
                     "trace_id": _trace_id(),
@@ -398,7 +413,7 @@ class MetricCollector:
                     "duration_ms": 0,
                     "path": str(coverage_xml),
                     "line_rate": line_rate,
-                    "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，降级到 pyproject.toml",
+                    "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，进入本地兜底降级",
                 }, ensure_ascii=False))
             except (ValueError, OSError, ET.ParseError) as e:
                 # 解析失败：明确记录错误，而非静默吞掉
@@ -410,20 +425,27 @@ class MetricCollector:
                     "duration_ms": 0,
                     "path": str(coverage_xml),
                     "error": f"{type(e).__name__}: {e}",
-                    "reason": "coverage.xml 解析失败，降级到 pyproject.toml",
+                    "reason": "coverage.xml 解析失败，进入本地兜底降级",
                 }, ensure_ascii=False))
         else:
-            # 文件不存在：CI artifact 未传递，明确告警
+            # 文件不存在
+            # CI 环境：不应发生，full-project-tests job 应已通过 artifact 提供 coverage.xml
+            #          若发生则说明 artifact 下载失败，需排查 visibility-report job 的下载步骤
+            # 本地环境：常见情况，降级到 pyproject.toml fail_under 作为基线
             logger.error(json.dumps({
                 "trace_id": _trace_id(),
                 "module_name": "visibility_report",
                 "action": "read_test_coverage.missing_xml",
                 "duration_ms": 0,
                 "path": str(coverage_xml),
-                "reason": "coverage.xml 不存在，请检查 CI 中 observability-unit-tests 是否上传 coverage-report artifact 且 visibility-report 已下载",
+                "reason": "coverage.xml 不存在",
+                "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录",
+                "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml",
             }, ensure_ascii=False))
 
-        # ── 降级：从 pyproject.toml 读取 fail_under（配置的覆盖率下限作为基线）──
+        # ── 本地兜底降级：从 pyproject.toml 读取 fail_under ──
+        # 注意：此路径在 CI 中不应触发（CI 总能从 artifact 拿到 coverage.xml）
+        # 仅用于本地运行时 coverage.xml 缺失的兜底，避免直接返回 0.0
         pyproject = self.project_root / "pyproject.toml"
         if pyproject.exists():
             try:
@@ -438,7 +460,8 @@ class MetricCollector:
                         "action": "read_test_coverage.fallback_pyproject",
                         "duration_ms": 0,
                         "baseline": baseline,
-                        "reason": "降级使用 pyproject.toml fail_under 作为基线，非真实覆盖率",
+                        "reason": "降级使用 pyproject.toml fail_under 作为基线（本地兜底，非真实覆盖率）",
+                        "ci_note": "CI 中此降级不应触发，请检查 full-project-tests artifact 是否正确下载",
                     }, ensure_ascii=False))
                     return baseline
                 logger.error(json.dumps({
@@ -465,7 +488,7 @@ class MetricCollector:
                 "action": "read_test_coverage.pyproject_missing",
                 "duration_ms": 0,
                 "path": str(pyproject),
-                "reason": "pyproject.toml 不存在，无法降级",
+                "reason": "pyproject.toml 不存在，无法本地兜底降级",
             }, ensure_ascii=False))
 
         return 0.0

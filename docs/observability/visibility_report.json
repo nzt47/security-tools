@@ -1,32 +1,37 @@
 {
-  "trace_id": "ed82d63e384644c2",
-  "timestamp": "2026-06-27T00:23:55.570921",
-  "duration_ms": 2752.16,
-  "overall_status": "pass",
-  "threshold_violations": [],
+  "trace_id": "1105c4c53c3b49fc",
+  "timestamp": "2026-06-27T01:01:05.634402",
+  "duration_ms": 2011.09,
+  "overall_status": "fail",
+  "threshold_violations": [
+    "运行时可见.structured_log_coverage: 实际=6.9%, 阈值=30%",
+    "运行时可见.trace_coverage: 实际=0.0%, 阈值=30%",
+    "验证过程可见.contract_test_count: 实际=0个, 阈值=3个",
+    "业务价值可见.track_event_coverage: 实际=4.3%, 阈值=30%"
+  ],
   "error": null,
   "layers": [
     {
       "layer_name": "运行时可见",
       "description": "结构化日志、链路追踪、健康检查端点",
-      "overall_passed": true,
+      "overall_passed": false,
       "metrics": [
         {
           "name": "structured_log_coverage",
-          "value": 40.6,
+          "value": 6.9,
           "threshold": 30,
           "unit": "%",
           "description": "包含 trace_id/module_name/action/duration_ms 的日志占比",
-          "passed": true,
+          "passed": false,
           "details": {}
         },
         {
           "name": "trace_coverage",
-          "value": 55.3,
+          "value": 0.0,
           "threshold": 30,
           "unit": "%",
           "description": "使用 @trace_route 或 TraceContext 的路由占比",
-          "passed": true,
+          "passed": false,
           "details": {}
         },
         {
@@ -43,7 +48,7 @@
     {
       "layer_name": "验证过程可见",
       "description": "测试覆盖率、边界测试、契约测试",
-      "overall_passed": true,
+      "overall_passed": false,
       "metrics": [
         {
           "name": "test_coverage",
@@ -56,7 +61,7 @@
         },
         {
           "name": "boundary_test_coverage",
-          "value": 11.8,
+          "value": 12.2,
           "threshold": 5,
           "unit": "%",
           "description": "边界测试用例占总测试比例",
@@ -65,11 +70,11 @@
         },
         {
           "name": "contract_test_count",
-          "value": 3,
+          "value": 0,
           "threshold": 3,
           "unit": "个",
           "description": "Pact 契约测试数量",
-          "passed": true,
+          "passed": false,
           "details": {}
         }
       ]
@@ -77,15 +82,15 @@
     {
       "layer_name": "业务价值可见",
       "description": "埋点覆盖率、看板数、告警规则数",
-      "overall_passed": true,
+      "overall_passed": false,
       "metrics": [
         {
           "name": "track_event_coverage",
-          "value": 37.0,
+          "value": 4.3,
           "threshold": 30,
           "unit": "%",
           "description": "包含 trackEvent/track( 调用的核心模块占比",
-          "passed": true,
+          "passed": false,
           "details": {}
         },
         {
@@ -99,7 +104,7 @@
         },
         {
           "name": "alert_rules_count",
-          "value": 21,
+          "value": 13,
           "threshold": 5,
           "unit": "条",
           "description": "Prometheus 告警规则数量",

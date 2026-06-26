@@ -1,0 +1,307 @@
+{
+  "name": "chat_api",
+  "consumer": "yunshu_frontend",
+  "provider": "yunshu_backend",
+  "version": "1.0.0",
+  "description": "对话接口契约：处理用户消息并返回响应",
+  "interactions": [
+    {
+      "description": "正常对话请求 - 返回响应文本与模式信息",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": {},
+        "body_fields": [
+          {
+            "name": "message",
+            "type": "string",
+            "required": true,
+            "description": "用户输入消息",
+            "min_length": 1,
+            "max_length": 10000
+          },
+          {
+            "name": "voice",
+            "type": "boolean",
+            "required": false,
+            "description": "是否启用语音合成"
+          },
+          {
+            "name": "session",
+            "type": "string",
+            "required": false,
+            "description": "会话 ID（可选）"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "response",
+            "type": "string",
+            "required": true,
+            "description": "对话响应文本"
+          },
+          {
+            "name": "mode",
+            "type": "string",
+            "required": true,
+            "description": "行为模式",
+            "enum": [
+              "normal",
+              "focus",
+              "creative",
+              "study",
+              "rest"
+            ]
+          },
+          {
+            "name": "mode_label",
+            "type": "string",
+            "required": true,
+            "description": "模式标签"
+          },
+          {
+            "name": "logs",
+            "type": "array",
+            "required": true,
+            "description": "处理日志数组",
+            "items": {
+              "name": "log_entry",
+              "type": "string",
+              "required": true,
+              "description": "日志条目"
+            }
+          },
+          {
+            "name": "timing",
+            "type": "object",
+            "required": true,
+            "description": "耗时统计",
+            "properties": [
+              {
+                "name": "total",
+                "type": "number",
+                "required": true,
+                "description": "总耗时(ms)"
+              },
+              {
+                "name": "safety_check",
+                "type": "number",
+                "required": true,
+                "description": "安全检查耗时(ms)"
+              },
+              {
+                "name": "chat_processing",
+                "type": "number",
+                "required": true,
+                "description": "对话处理耗时(ms)"
+              }
+            ]
+          },
+          {
+            "name": "health",
+            "type": "array",
+            "required": false,
+            "description": "身体状态读数",
+            "items": {
+              "name": "reading",
+              "type": "object",
+              "required": true,
+              "description": "身体状态读数",
+              "properties": [
+                {
+                  "name": "sensor_name",
+                  "type": "string",
+                  "required": true,
+                  "description": ""
+                },
+                {
+                  "name": "severity",
+                  "type": "string",
+                  "required": true,
+                  "description": "",
+                  "enum": [
+                    "normal",
+                    "warning",
+                    "critical"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "llm_state",
+            "type": "object",
+            "required": false,
+            "description": "LLM 配置状态",
+            "properties": [
+              {
+                "name": "configured",
+                "type": "boolean",
+                "required": true,
+                "description": ""
+              },
+              {
+                "name": "provider",
+                "type": "string",
+                "required": true,
+                "description": ""
+              },
+              {
+                "name": "api_key_set",
+                "type": "boolean",
+                "required": true,
+                "description": ""
+              }
+            ]
+          }
+        ],
+        "example": {
+          "response": "您好，我是云枢。",
+          "mode": "normal",
+          "mode_label": "正常模式",
+          "logs": [
+            "[START] 收到对话请求"
+          ],
+          "timing": {
+            "total": 123.45,
+            "safety_check": 1.2,
+            "chat_processing": 100.0
+          },
+          "health": [],
+          "llm_state": {
+            "configured": true,
+            "provider": "openai",
+            "api_key_set": true
+          }
+        }
+      }
+    },
+    {
+      "description": "空消息请求 - 返回 400 错误",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": {},
+        "body_fields": [
+          {
+            "name": "message",
+            "type": "string",
+            "required": true,
+            "description": "空消息"
+          }
+        ]
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "description": "错误信息"
+          }
+        ],
+        "example": {
+          "error": "消息不能为空"
+        }
+      }
+    },
+    {
+      "description": "安全拦截请求 - 返回 403 阻断",
+      "request": {
+        "method": "POST",
+        "path": "/api/chat",
+        "headers": {},
+        "query": {},
+        "body_fields": [
+          {
+            "name": "message",
+            "type": "string",
+            "required": true,
+            "description": "含危险操作的消息",
+            "min_length": 1
+          }
+        ]
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body_fields": [
+          {
+            "name": "response",
+            "type": "string",
+            "required": true,
+            "description": "拦截提示"
+          },
+          {
+            "name": "blocked",
+            "type": "boolean",
+            "required": true,
+            "description": "是否阻断"
+          },
+          {
+            "name": "mode",
+            "type": "string",
+            "required": true,
+            "description": "",
+            "enum": [
+              "normal",
+              "focus",
+              "creative",
+              "study",
+              "rest"
+            ]
+          },
+          {
+            "name": "safety",
+            "type": "object",
+            "required": true,
+            "description": "安全检查结果",
+            "properties": [
+              {
+                "name": "level",
+                "type": "string",
+                "required": true,
+                "description": "",
+                "enum": [
+                  "safe",
+                  "warning",
+                  "critical"
+                ]
+              },
+              {
+                "name": "safe",
+                "type": "boolean",
+                "required": true,
+                "description": ""
+              }
+            ]
+          }
+        ],
+        "example": {
+          "response": "⚠️ 安全警告：检测到危险操作！",
+          "blocked": true,
+          "mode": "normal",
+          "safety": {
+            "level": "critical",
+            "safe": false
+          }
+        }
+      }
+    }
+  ],
+  "generated_at": "2026-06-27T01:12:01.995674"
+}

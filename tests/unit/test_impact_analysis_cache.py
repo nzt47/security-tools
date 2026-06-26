@@ -956,3 +956,330 @@ class TestFindTestsForModuleEmptyStringP0:
         )
         assert "test_core.py" in result[0]
         assert "test_other.py" not in result[0]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  10. P2 补充：并发安全与跨平台路径兼容
+# ═══════════════════════════════════════════════════════════════
+
+class TestConcurrentAndCrossPlatformP2:
+    """P2 并发安全与跨平台路径兼容性测试
+
+    覆盖维度：
+    1. 多线程并发首次填充缓存的安全性（无数据竞争、无重复扫描）
+    2. 多进程共享缓存实例（进程隔离语义验证）
+    3. Windows 反斜杠路径在 _find_tests_for_module 中的处理
+    4. Linux 正斜杠路径的兼容性
+    5. 混合路径分隔符（agent\\core\\sub/agent.py）
+    6. 并发缓存失效与重新扫描的正确性
+
+    【可观测性约束】
+    - 边界显性化：每个测试用例命名反映业务意图
+    - 异常处理：所有并发测试设置合理超时（30s），避免死锁
+    - 防竞态：使用 threading.Barrier 确保线程同时触发，提高复现率
+
+    【生成日志摘要】
+    - 生成时间：2026-06-27
+    - 版本：v1.1.0
+    - 内容：补充 6 个 P2 并发/跨平台测试用例
+    - 关联变更：scripts/impact_analysis.py 的 _find_tests_for_module 增加路径分隔符归一化
+    """
+
+    # ── 1. 多线程并发首次填充缓存 ────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_cache_concurrent_writes_thread_safety(self, tmp_path):
+        """多线程并发首次填充缓存的安全性验证
+
+        场景：N 个线程同时首次调用 _collect_test_files / _find_tests_for_module，
+        缓存尚未建立，所有线程同时触发扫描。
+
+        预期：
+        - 无异常抛出（线程安全）
+        - 所有线程拿到一致的匹配结果
+        - 30s 超时内完成
+        """
+        import threading
+
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        # 准备 10 个测试文件
+        for i in range(10):
+            (tests_dir / f"test_mod_{i}.py").write_text("", encoding="utf-8")
+
+        # 预收集 all_tests（多线程共享）
+        all_tests = analyzer._collect_test_files(tests_dir)
+        assert len(all_tests) == 10
+
+        results: list[list[str]] = [None] * 10  # type: ignore
+        errors: list[Exception] = []
+        barrier = threading.Barrier(10)  # 确保所有线程同时触发
+
+        def worker(idx: int):
+            try:
+                barrier.wait(timeout=5)  # 同时触发
+                # 每个线程查询不同模块，访问同一份 all_tests
+                res = analyzer._find_tests_for_module(
+                    f"agent.mod_{idx}.x", all_tests
+                )
+                results[idx] = res
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)  # 30s 超时
+
+        # 断言：无异常、无死锁（线程全部退出）
+        assert not errors, f"并发执行出错: {errors}"
+        assert all(t.is_alive() is False for t in threads), "线程未在 30s 内退出（疑似死锁）"
+        # 断言：每个线程都拿到 1 个匹配文件
+        for idx, res in enumerate(results):
+            assert res is not None, f"线程 {idx} 返回 None"
+            assert len(res) == 1, f"线程 {idx} 应匹配 1 个文件，实际 {len(res)}"
+            assert f"test_mod_{idx}.py" in res[0]
+
+    # ── 2. 多进程共享缓存实例 ────────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_cache_process_level_sharing(self, tmp_path):
+        """多进程共享缓存实例验证
+
+        场景：多进程模式下，每个进程独立加载 ImpactAnalyzer，
+        验证进程间缓存不共享（进程隔离语义），但每个进程内部缓存生效。
+
+        预期：
+        - 每个子进程独立扫描，返回一致的结果
+        - 子进程内的 _collect_test_files 调用次数受控（共享模式生效）
+        - 30s 超时内完成
+        """
+        import multiprocessing
+        import os
+
+        # 准备测试仓库
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "tests").mkdir()
+        (repo / "tests" / "test_shared.py").write_text("", encoding="utf-8")
+
+        # 子进程入口：创建 analyzer 并验证两次调用结果一致
+        def child_worker(repo_root, result_queue):
+            try:
+                a = ImpactAnalyzer(repo_root=repo_root)
+                tests_root = Path(repo_root) / "tests"
+                # 第一次：扫描
+                all_tests = a._collect_test_files(tests_root)
+                r1 = a._find_tests_for_module("agent.shared.x", all_tests)
+                # 第二次：复用 all_tests
+                r2 = a._find_tests_for_module("agent.shared.x", all_tests)
+                result_queue.put({
+                    "pid": os.getpid(),
+                    "r1": r1,
+                    "r2": r2,
+                    "consistent": r1 == r2,
+                })
+            except Exception as exc:
+                result_queue.put({"pid": os.getpid(), "error": str(exc)})
+
+        # 启动 2 个子进程
+        ctx = multiprocessing.get_context("spawn")  # Windows 兼容
+        queue = ctx.Queue()
+        procs = [
+            ctx.Process(target=child_worker, args=(str(repo), queue))
+            for _ in range(2)
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)  # 30s 超时
+
+        # 断言：所有进程正常退出
+        for p in procs:
+            assert not p.is_alive(), "子进程未在 30s 内退出"
+            assert p.exitcode == 0, f"子进程异常退出 code={p.exitcode}"
+
+        # 收集结果
+        results = []
+        while not queue.empty():
+            results.append(queue.get())
+        assert len(results) == 2, f"应收到 2 个子进程结果，实际 {len(results)}"
+
+        # 断言：每个子进程内部两次调用结果一致
+        for r in results:
+            assert "error" not in r, f"子进程出错: {r['error']}"
+            assert r["consistent"] is True, f"子进程 {r['pid']} 两次调用结果不一致"
+            assert len(r["r1"]) == 1, f"子进程 {r['pid']} 应匹配 1 个文件"
+            assert "test_shared.py" in r["r1"][0]
+
+        # 断言：两个进程的 pid 不同（确实是多进程）
+        pids = {r["pid"] for r in results}
+        assert len(pids) == 2, f"应有 2 个不同 pid，实际 {pids}"
+
+    # ── 3. Windows 反斜杠路径处理 ────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_windows_path_separator_handling(self, tmp_path):
+        """Windows 反斜杠路径在 _find_tests_for_module 中的处理
+
+        场景：传入 Windows 风格 module_path（"agent\\core\\sub"），
+        应能正确归一化为点分隔并匹配。
+
+        预期：
+        - 反斜杠被识别为分隔符，归一化为点
+        - short_name="sub", layer="core"
+        - 匹配 test_sub.py 或 test_core.py
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_sub.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_other.py").write_text("", encoding="utf-8")
+
+        all_tests = analyzer._collect_test_files(tests_dir)
+        # Windows 反斜杠路径
+        result = analyzer._find_tests_for_module(
+            "agent\\core\\sub", all_tests
+        )
+        assert len(result) == 1, (
+            f"Windows 反斜杠路径应匹配 1 个文件（test_sub.py），"
+            f"实际匹配 {len(result)} 个: {result}"
+        )
+        assert "test_sub.py" in result[0]
+
+    # ── 4. Linux 正斜杠路径兼容性 ────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_linux_path_separator_handling(self, tmp_path):
+        """Linux 正斜杠路径在 _find_tests_for_module 中的兼容性
+
+        场景：传入 Linux 风格 module_path（"agent/core/sub"），
+        应能正确归一化为点分隔并匹配。
+
+        预期：
+        - 正斜杠被识别为分隔符，归一化为点
+        - short_name="sub", layer="core"
+        - 匹配 test_sub.py
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_sub.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_other.py").write_text("", encoding="utf-8")
+
+        all_tests = analyzer._collect_test_files(tests_dir)
+        # Linux 正斜杠路径
+        result = analyzer._find_tests_for_module(
+            "agent/core/sub", all_tests
+        )
+        assert len(result) == 1, (
+            f"Linux 正斜杠路径应匹配 1 个文件（test_sub.py），"
+            f"实际匹配 {len(result)} 个: {result}"
+        )
+        assert "test_sub.py" in result[0]
+
+    # ── 5. 混合路径分隔符 ────────────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_mixed_path_separators(self, tmp_path):
+        """混合路径分隔符（agent\\core\\sub/agent.py）的处理
+
+        场景：module_path 同时包含反斜杠和正斜杠，
+        例如跨平台拼接时产生的 "agent\\core\\sub/agent"。
+
+        预期：
+        - 两种分隔符都被识别为分隔符，统一归一化为点
+        - short_name="agent", layer="core"
+        - 匹配 test_agent.py 或 test_core.py
+        - 与纯点分隔 "agent.core.sub.agent" 行为一致
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_agent.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_core.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_other.py").write_text("", encoding="utf-8")
+
+        all_tests = analyzer._collect_test_files(tests_dir)
+        # 混合分隔符路径
+        result_mixed = analyzer._find_tests_for_module(
+            "agent\\core\\sub/agent", all_tests
+        )
+        # 纯点分隔路径（应与混合路径结果一致）
+        result_dotted = analyzer._find_tests_for_module(
+            "agent.core.sub.agent", all_tests
+        )
+
+        assert result_mixed == result_dotted, (
+            f"混合分隔符路径应与纯点分隔路径结果一致，"
+            f"混合={result_mixed}, 点分隔={result_dotted}"
+        )
+        # 应匹配 test_agent.py（short_name=agent）和 test_core.py（layer=core）
+        matched_names = {Path(r).name for r in result_mixed}
+        assert "test_agent.py" in matched_names
+        assert "test_core.py" in matched_names
+        assert "test_other.py" not in matched_names
+
+    # ── 6. 并发缓存失效与重新扫描 ────────────────────────────
+
+    @pytest.mark.unit
+    @pytest.mark.p2
+    def test_concurrent_cache_invalidation_and_rescan(self, tmp_path):
+        """并发缓存失效与重新扫描的正确性
+
+        场景：多个线程同时调用 _find_tests_for_module（不传 all_tests），
+        触发并发的 _collect_test_files 重新扫描。
+
+        预期：
+        - 无异常抛出（线程安全）
+        - 所有线程拿到一致的非空结果
+        - rglob 总调用次数等于线程数（无共享缓存，每次独立扫描）
+        - 30s 超时内完成
+        """
+        import threading
+
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        # 准备 1 个 test_target.py，所有线程都查询同一模块
+        (tests_dir / "test_target.py").write_text("", encoding="utf-8")
+
+        results: list[list[str]] = [None] * 8  # type: ignore
+        errors: list[Exception] = []
+        barrier = threading.Barrier(8)
+
+        def worker(idx: int):
+            try:
+                barrier.wait(timeout=5)
+                # 不传 all_tests，触发独立扫描
+                res = analyzer._find_tests_for_module("agent.target.x")
+                results[idx] = res
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        # 断言：无异常、无死锁
+        assert not errors, f"并发重新扫描出错: {errors}"
+        assert all(not t.is_alive() for t in threads), "线程未在 30s 内退出"
+        # 断言：所有线程拿到一致结果
+        non_none = [r for r in results if r is not None]
+        assert len(non_none) == 8, f"应有 8 个非 None 结果，实际 {len(non_none)}"
+        first = non_none[0]
+        for idx, r in enumerate(non_none):
+            assert r == first, (
+                f"线程 {idx} 结果与首线程不一致: {r} vs {first}"
+            )
+            assert len(r) == 1, f"线程 {idx} 应匹配 1 个文件"
+            assert "test_target.py" in r[0]

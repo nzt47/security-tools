@@ -1,0 +1,18 @@
+{
+  "contract_name": "health_api",
+  "timestamp": "2026-06-26T13:01:11.539864",
+  "trace_id": "a01f538e4d314c97",
+  "total_interactions": 1,
+  "passed": 0,
+  "failed": 1,
+  "overall_passed": false,
+  "results": [
+    {
+      "interaction": "获取身体状态读数 - 返回读数数组",
+      "passed": false,
+      "error": "InvalidURL: Failed to parse: http://localhost:99999/api/health [error_code=PROVIDER_VERIFY_ERROR]",
+      "duration_ms": 2.52,
+      "actual_status": null
+    }
+  ]
+}
