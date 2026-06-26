@@ -144,7 +144,7 @@ class TestSafeImportComprehensive:
         with caplog.at_level(logging.DEBUG):
             _safe_import('test_debug', lambda: __import__('math'), None)
 
-        assert '[模块导入] 📦 开始导入模块' in caplog.text
+        assert '[模块导入] 开始导入模块' in caplog.text
         assert '[模块导入] [OK] [成功]' in caplog.text
 
     def test_safe_import_warning_logging_on_import_error(self, caplog):
