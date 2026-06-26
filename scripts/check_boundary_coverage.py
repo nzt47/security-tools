@@ -40,6 +40,19 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
+# ── Windows 编码修复 ──
+# Windows 默认 stdout/stderr 使用 GBK 编码，输出 emoji（✅/⚠️/❌）时会触发
+# 'gbk' codec can't encode character '\u26a0' 异常，导致子进程 returncode=2
+# visibility_report.py 判定 returncode 非 0/1 为异常，降级返回 0.0%
+# 修复：强制 stdout/stderr 使用 UTF-8 编码，errors='replace' 确保不崩溃
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, OSError):
+        # Python < 3.7 或重定向环境无 reconfigure 方法，降级忽略
+        pass
+
 # ── 日志配置（结构化 JSON 输出） ──
 logger = logging.getLogger("boundary_coverage")
 
