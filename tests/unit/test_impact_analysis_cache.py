@@ -49,6 +49,33 @@ from agent.observability.dependency_graph import (  # noqa: E402
 )
 
 
+# ── 模块级函数：供多进程 spawn 模式 pickle（Windows 兼容）────────
+def _cache_process_child_worker(repo_root, result_queue):
+    """子进程入口：验证进程内部缓存一致性
+
+    Windows multiprocessing spawn 模式要求 target 函数可 pickle，
+    因此必须定义在模块级而非嵌套在测试方法内。
+    """
+    import os
+    from pathlib import Path
+    try:
+        a = ImpactAnalyzer(repo_root=repo_root)
+        tests_root = Path(repo_root) / "tests"
+        # 第一次：扫描
+        all_tests = a._collect_test_files(tests_root)
+        r1 = a._find_tests_for_module("agent.shared.x", all_tests)
+        # 第二次：复用 all_tests
+        r2 = a._find_tests_for_module("agent.shared.x", all_tests)
+        result_queue.put({
+            "pid": os.getpid(),
+            "r1": r1,
+            "r2": r2,
+            "consistent": r1 == r2,
+        })
+    except Exception as exc:
+        result_queue.put({"pid": os.getpid(), "error": str(exc)})
+
+
 # ═══════════════════════════════════════════════════════════════
 #  1. _find_tests_for_module 接收 all_tests 缓存命中
 # ═══════════════════════════════════════════════════════════════
@@ -1067,30 +1094,11 @@ class TestConcurrentAndCrossPlatformP2:
         (repo / "tests").mkdir()
         (repo / "tests" / "test_shared.py").write_text("", encoding="utf-8")
 
-        # 子进程入口：创建 analyzer 并验证两次调用结果一致
-        def child_worker(repo_root, result_queue):
-            try:
-                a = ImpactAnalyzer(repo_root=repo_root)
-                tests_root = Path(repo_root) / "tests"
-                # 第一次：扫描
-                all_tests = a._collect_test_files(tests_root)
-                r1 = a._find_tests_for_module("agent.shared.x", all_tests)
-                # 第二次：复用 all_tests
-                r2 = a._find_tests_for_module("agent.shared.x", all_tests)
-                result_queue.put({
-                    "pid": os.getpid(),
-                    "r1": r1,
-                    "r2": r2,
-                    "consistent": r1 == r2,
-                })
-            except Exception as exc:
-                result_queue.put({"pid": os.getpid(), "error": str(exc)})
-
-        # 启动 2 个子进程
+        # 启动 2 个子进程（使用模块级函数，Windows spawn 兼容）
         ctx = multiprocessing.get_context("spawn")  # Windows 兼容
         queue = ctx.Queue()
         procs = [
-            ctx.Process(target=child_worker, args=(str(repo), queue))
+            ctx.Process(target=_cache_process_child_worker, args=(str(repo), queue))
             for _ in range(2)
         ]
         for p in procs:
