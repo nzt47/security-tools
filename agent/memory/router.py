@@ -18,13 +18,26 @@
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Tuple, Any, List
 
 from agent.memory.base import MemoryInterface, MemoryResult
 from agent.memory.adapters.holographic_adapter import HolographicAdapter
 from agent.memory.adapters.mem0_adapter import Mem0Adapter
 
+# 延迟导入敏感数据过滤器，避免循环依赖
+# SensitiveDataFilter 来自 agent.utils.sensitive_data_filter（统一实现）
+# 通过 agent.memory.filter 兼容层导入（向后兼容别名）
 logger = logging.getLogger(__name__)
+
+
+def _get_sensitive_filter():
+    """延迟获取敏感数据过滤器实例（避免循环依赖）
+
+    Returns:
+        SensitiveDataFilter 实例
+    """
+    from agent.memory.filter import SensitiveDataFilter
+    return SensitiveDataFilter()
 
 
 class MemoryRouter:
@@ -58,6 +71,14 @@ class MemoryRouter:
         self._adapters: dict[str, MemoryInterface] = {}
         self._default: MemoryInterface = default_adapter or HolographicAdapter()
         self._cache_layer = None
+
+        # 敏感信息过滤配置（默认禁用，需显式开启）
+        # _sensitive_filter_enabled: 启用敏感信息检测
+        # _memory_boundary_enabled: 启用内存边界约束（检测到敏感信息时阻止写入）
+        # _sensitive_filter: SensitiveDataFilter 实例（延迟初始化）
+        self._sensitive_filter_enabled = False
+        self._memory_boundary_enabled = False
+        self._sensitive_filter = None
 
         logger.info("[MemoryRouter] 初始化完成，默认适配器: %s", self._default.__class__.__name__)
 
@@ -163,6 +184,61 @@ class MemoryRouter:
         self._cache_layer = None
         logger.info("[MemoryRouter] 缓存层已移除")
 
+    # ── 敏感信息过滤 ──
+
+    def _filter_sensitive_info(self, content: Any) -> Tuple[bool, Any, List]:
+        """检测并过滤敏感信息
+
+        当 _sensitive_filter_enabled 为 False 时，直接返回原内容（不检测）。
+        当启用时，使用 SensitiveDataFilter 检测内容中的敏感信息。
+
+        Args:
+            content: 待检测的内容（支持 str、dict、list 等类型）
+
+        Returns:
+            tuple: (has_sensitive, filtered_content, patterns)
+                - has_sensitive: bool, 是否检测到敏感信息
+                - filtered_content: Any, 过滤/脱敏后的内容
+                - patterns: list, 匹配的敏感模式列表（SensitiveMatch 对象）
+        """
+        # 未启用过滤时，直接返回原内容
+        if not self._sensitive_filter_enabled:
+            return (False, content, [])
+
+        # 延迟初始化敏感过滤器
+        if self._sensitive_filter is None:
+            self._sensitive_filter = _get_sensitive_filter()
+
+        # 使用 detect 方法检测敏感信息
+        result = self._sensitive_filter.detect(content)
+        has_sensitive = not result.allowed
+        patterns = result.violations if result.violations else []
+
+        if has_sensitive:
+            # 检测到敏感信息，进行脱敏处理
+            # 优先使用 sanitized_content，其次使用 mask 方法
+            if result.sanitized_content is not None:
+                filtered = result.sanitized_content
+            else:
+                try:
+                    filtered = self._sensitive_filter.mask(str(content))
+                except Exception:
+                    filtered = str(content)
+
+            # 测试期望 "[REDACTED]" 标记，将 ******** 替换为 [REDACTED]
+            # SensitiveDataFilter 使用 "********" 作为默认脱敏值
+            if isinstance(filtered, str) and "[REDACTED]" not in filtered:
+                filtered = filtered.replace("********", "[REDACTED]")
+            logger.debug(
+                "[MemoryRouter] 检测到敏感信息，已脱敏: %d 个违规项",
+                len(patterns),
+            )
+        else:
+            # 无敏感信息，返回原内容
+            filtered = content
+
+        return (has_sensitive, filtered, patterns)
+
     # ── 便捷方法（路由 + 执行） ──
 
     async def save(
@@ -172,7 +248,22 @@ class MemoryRouter:
         metadata: Optional[dict] = None,
         task_type: str = "local_privacy",
     ) -> bool:
-        """路由到适配器执行 save"""
+        """路由到适配器执行 save
+
+        当 _memory_boundary_enabled 和 _sensitive_filter_enabled 均启用时，
+        会先检测数据中的敏感信息。如果检测到敏感信息，将阻止写入并返回 False。
+        """
+        # 边界约束检查：启用时检测敏感信息并阻止写入
+        if self._memory_boundary_enabled and self._sensitive_filter_enabled:
+            has_sensitive, _, _ = self._filter_sensitive_info(data)
+            if has_sensitive:
+                logger.warning(
+                    "[MemoryRouter] 边界约束拦截敏感数据写入: key=%s, task_type=%s",
+                    key,
+                    task_type,
+                )
+                return False
+
         adapter = self.route(task_type)
         return await adapter.save(key, data, metadata)
 
@@ -227,4 +318,6 @@ class MemoryRouter:
             "adapters": self.list_adapters(),
             "route_map": dict(self.ROUTE_MAP),
             "cache_layer": self._cache_layer is not None,
+            "boundary_enabled": self._memory_boundary_enabled,
+            "sensitive_filter_enabled": self._sensitive_filter_enabled,
         }
