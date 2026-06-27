@@ -731,3 +731,306 @@ class TestCountHealthEndpointsP0Boundaries:
         assert count == 3, (
             f"单文件含 3 个健康端点应计数为 3，实际 {count}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════
+#  10. P1 补充：缓存重置/非目录/跨行匹配/iterdir/relative_to/性能
+# ═══════════════════════════════════════════════════════════════
+
+class TestCacheResetAndRescanP1:
+    """缓存重置与重新扫描的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 1.3 节 P1）：
+    - 缓存被显式重置为 None 后能否重新扫描
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_cache_reset_to_none_then_rescan(self, tmp_path):
+        """P1-1: 缓存被显式重置为 None 后应能重新扫描
+
+        场景：首次扫描后，外部代码将 _file_content_cache 重置为 None
+        （如刷新场景），再次调用应重新扫描并填充新内容。
+
+        预期：
+        - 重置后缓存为 None
+        - 再次调用 _scan_agent_files 应触发 rglob
+        - 缓存被重新填充，内容反映最新文件系统状态
+        """
+        agent_dir = tmp_path / "agent"
+        agent_dir.mkdir()
+        (agent_dir / "v1.py").write_text("# v1\n", encoding="utf-8")
+
+        collector = MetricCollector(tmp_path, {})
+        first_result = collector._scan_agent_files()
+        assert len(first_result) == 1
+        assert collector._file_content_cache is not None
+
+        # 模拟缓存失效场景：新增文件 + 重置缓存
+        (agent_dir / "v2.py").write_text("# v2\n", encoding="utf-8")
+        collector._file_content_cache = None  # 显式重置
+
+        # 监控 rglob 调用，但执行真实逻辑（用 spy 而非空 mock）
+        real_rglob = Path.rglob
+
+        def rglob_spy(self, pattern):
+            return real_rglob(self, pattern)
+
+        with patch.object(
+            Path, "rglob", autospec=True, side_effect=rglob_spy
+        ) as mock_rglob:
+            second_result = collector._scan_agent_files()
+            # 重置后应再次调用 rglob
+            assert mock_rglob.call_count == 1, (
+                f"缓存重置为 None 后应重新调用 rglob，"
+                f"实际调用 {mock_rglob.call_count} 次"
+            )
+
+        # 新缓存应包含新增的 v2.py
+        assert len(second_result) == 2
+        assert (agent_dir / "v1.py") in second_result
+        assert (agent_dir / "v2.py") in second_result
+
+
+class TestAgentDirIsFileNotDirectoryP1:
+    """agent_dir 是文件而非目录时的 P1 级边界条件覆盖
+
+    覆盖缺口：agent_dir.exists() 为 True 但 rglob 在文件上抛异常
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_agent_dir_is_file_not_directory(self, tmp_path):
+        """P1-2: agent_dir 是文件而非目录时的 rglob 行为
+
+        场景：tmp_path/agent 是一个文件（非目录），
+        agent_dir.exists() 返回 True，但 rglob 在文件上行为平台相关：
+        - POSIX 上通常抛 ValueError/NotADirectoryError
+        - Windows 上返回空迭代器（不抛异常）
+
+        预期（兼容两种平台行为）：
+        - 要么抛出 ValueError/NotADirectoryError/OSError
+        - 要么返回空字典（Windows 行为）
+        - 缓存应被填充（None 或空字典），避免后续重复触发
+        """
+        # 创建 agent 作为文件而非目录
+        agent_file = tmp_path / "agent"
+        agent_file.write_text("I am a file, not a directory\n", encoding="utf-8")
+
+        collector = MetricCollector(tmp_path, {})
+
+        # agent_dir.exists() 为 True（文件也存在）
+        agent_dir = tmp_path / "agent"
+        assert agent_dir.exists()
+
+        # 兼容两种平台行为：抛异常 或 返回空字典
+        try:
+            result = collector._scan_agent_files()
+            # Windows 行为：rglob 在文件上返回空迭代器，结果为空字典
+            assert result == {}, (
+                f"agent 是文件时，Windows 上应返回空字典，实际 {result}"
+            )
+            # 缓存应被填充为空字典，避免后续重复扫描
+            assert collector._file_content_cache == {}
+        except (ValueError, NotADirectoryError, OSError):
+            # POSIX 行为：rglob 在文件上抛异常
+            # 缓存可能未填充（异常在填充前抛出），这是可接受的
+            pass
+
+
+class TestStructuredLogCoverageMultilineP1:
+    """结构化日志覆盖率跨行匹配的 P1 级边界条件覆盖
+
+    覆盖缺口：re.DOTALL 模式跨行匹配 trace_id
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_structured_log_coverage_multiline_trace_id(self, tmp_path):
+        """P1-3: re.DOTALL 模式跨行匹配 trace_id
+
+        场景：logger.info 调用跨多行，trace_id 出现在第二行，
+        re.DOTALL 模式应能让 . 匹配换行符，正确识别为结构化日志。
+
+        预期：
+        - 跨行 logger 调用含 trace_id 应被识别为结构化日志
+        - 覆盖率应反映跨行匹配的正确性
+        """
+        agent_dir = tmp_path / "agent"
+        agent_dir.mkdir()
+        # 构造跨多行的 logger.info 调用，trace_id 在第二行
+        (agent_dir / "mod.py").write_text(
+            'logger.info(\n'
+            '    json.dumps({"trace_id": "abc123", "msg": "cross-line"})\n'
+            ')\n'
+            'logger.debug("plain single line")\n',
+            encoding="utf-8",
+        )
+
+        collector = MetricCollector(tmp_path, {})
+        coverage = collector._calc_structured_log_coverage()
+
+        # 2 条 logger 调用：1 条跨行含 trace_id（结构化），1 条普通（非结构化）
+        # re.DOTALL 应让跨行调用被正确匹配为结构化
+        # 覆盖率 = 1/2 * 100 = 50.0
+        assert coverage == 50.0, (
+            f"re.DOTALL 应跨行匹配 trace_id，覆盖率应为 50.0，"
+            f"实际 {coverage}。若为 0.0 说明 DOTALL 未生效"
+        )
+
+
+class TestCalcTrackCoverageIterdirFilesP1:
+    """_calc_track_coverage 中 iterdir 返回文件的 P1 级边界条件覆盖
+
+    覆盖缺口：iterdir 返回非目录文件时的处理
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_calc_track_coverage_iterdir_returns_files(self, tmp_path):
+        """P1-4: iterdir 返回非目录文件时应被跳过，不计入 total_modules
+
+        场景：agent/ 下既有文件（如 top.py）又有子目录，
+        iterdir 会返回文件和目录，文件应被 is_dir() 检查跳过。
+
+        预期：
+        - 顶层文件 top.py 不计入 total_modules
+        - 只有子目录计入 total_modules
+        - 覆盖行 737: if not sub_dir.is_dir() 跳过逻辑
+        """
+        agent_dir = tmp_path / "agent"
+        agent_dir.mkdir()
+        # 顶层文件（应被跳过）
+        (agent_dir / "top_level_file.py").write_text(
+            "trackEvent('x', {})", encoding="utf-8"
+        )
+        # 子目录（应被计入）
+        (agent_dir / "module_a").mkdir()
+        (agent_dir / "module_a" / "mod.py").write_text(
+            "print('no tracking')", encoding="utf-8"
+        )
+
+        collector = MetricCollector(tmp_path, {})
+        coverage = collector._calc_track_coverage()
+
+        # total_modules 应为 1（只有 module_a，top_level_file.py 被跳过）
+        # tracked_modules 为 0（module_a 无埋点）
+        # coverage = 0/1 * 100 = 0.0
+        assert coverage == 0.0, (
+            f"顶层文件应被 is_dir() 跳过，total_modules=1，"
+            f"coverage 应为 0.0，实际 {coverage}"
+        )
+
+
+class TestCalcTrackCoverageRelativeToValueErrorP1:
+    """_calc_track_coverage 中 relative_to 抛 ValueError 的 P1 级边界条件覆盖
+
+    覆盖缺口：py_file.relative_to 抛 ValueError 时跳过
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_calc_track_coverage_relative_to_value_error(self, tmp_path):
+        """P1-5: py_file.relative_to 抛 ValueError 时应跳过该文件
+
+        场景：file_cache 中包含不属于当前 sub_dir 的文件，
+        py_file.relative_to(sub_dir) 抛 ValueError，应 continue 跳过。
+
+        预期：
+        - 顶层文件 agent/top.py 不属于 agent/module_a，relative_to 抛 ValueError
+        - top.py 不影响 module_a 的埋点统计
+        - 覆盖行 745-747: try/except ValueError 跳过逻辑
+        """
+        agent_dir = tmp_path / "agent"
+        agent_dir.mkdir()
+        # 顶层文件（不属于任何子目录，relative_to 会抛 ValueError）
+        (agent_dir / "top.py").write_text(
+            "trackEvent('top', {})", encoding="utf-8"
+        )
+        # 子目录 module_a 下的文件（不含埋点）
+        (agent_dir / "module_a").mkdir()
+        (agent_dir / "module_a" / "mod.py").write_text(
+            "print('no tracking')", encoding="utf-8"
+        )
+
+        collector = MetricCollector(tmp_path, {})
+        coverage = collector._calc_track_coverage()
+
+        # 遍历 module_a 时：
+        # - top.py.relative_to(module_a) 抛 ValueError，跳过（不含埋点，不影响）
+        # - module_a/mod.py.relative_to(module_a) 成功，检查内容（无埋点）
+        # total_modules=1（module_a），tracked_modules=0
+        # coverage = 0/1 * 100 = 0.0
+        # top.py 的埋点不被计入（因为不属于任何子目录）
+        assert coverage == 0.0, (
+            f"relative_to ValueError 应跳过 top.py，"
+            f"module_a 无埋点，coverage 应为 0.0，实际 {coverage}"
+        )
+
+
+class TestLargeAgentDirPerformanceP1:
+    """50+ 文件性能验证的 P1 级边界条件覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_large_agent_dir_50_plus_files_performance(self, tmp_path):
+        """P1-6: 50+ 文件场景下三个采集方法的性能验证
+
+        场景：agent/ 下有 60 个 .py 文件，验证缓存生效后
+        三个采集方法（_calc_structured_log_coverage /
+        _count_health_endpoints / _calc_track_coverage）联合调用
+        在合理时间内完成（< 5 秒）。
+
+        预期：
+        - 60 个文件全部被缓存
+        - 三个方法联合调用耗时 < 5 秒
+        - rglob 只调用 1 次（缓存生效）
+        """
+        import time
+
+        agent_dir = tmp_path / "agent"
+        agent_dir.mkdir()
+        # 创建 60 个文件，每个含结构化日志、健康端点、埋点
+        for i in range(60):
+            (agent_dir / f"mod_{i:03d}.py").write_text(
+                f'logger.info(json.dumps({{"trace_id": "{i}", "action": "test"}}))\n'
+                f'@app.route("/health")\n'
+                f'def h_{i}(): return "ok"\n'
+                f'trackEvent("event_{i}", {{}})\n',
+                encoding="utf-8",
+            )
+
+        collector = MetricCollector(tmp_path, {})
+
+        # 监控 rglob 调用次数，但执行真实逻辑（用 spy 而非空 mock）
+        # autospec=True 的空 mock 会返回 MagicMock 不可迭代，导致扫描结果为空
+        # side_effect=rglob_spy 让 mock 执行真实 rglob 逻辑，仅监控调用次数
+        real_rglob = Path.rglob
+
+        def rglob_spy(self, pattern):
+            return real_rglob(self, pattern)
+
+        with patch.object(
+            Path, "rglob", autospec=True, side_effect=rglob_spy
+        ) as mock_rglob:
+            t0 = time.perf_counter()
+            log_cov = collector._calc_structured_log_coverage()
+            health_count = collector._count_health_endpoints()
+            track_cov = collector._calc_track_coverage()
+            elapsed = time.perf_counter() - t0
+            rglob_calls = mock_rglob.call_count
+
+        # 性能断言：< 5 秒
+        assert elapsed < 5.0, (
+            f"60 个文件三个方法联合调用应 < 5 秒，实际 {elapsed:.3f} 秒"
+        )
+        # 缓存生效：rglob 只调用 1 次
+        assert rglob_calls == 1, (
+            f"60 个文件缓存生效后 rglob 应只调用 1 次，"
+            f"实际 {rglob_calls} 次"
+        )
+        # 结果正确性验证
+        assert log_cov == 100.0  # 所有 logger 调用都含 trace_id
+        assert health_count == 60  # 60 个健康端点
+        # track_cov: agent/ 下无子目录，total_modules=0，返回 100.0
+        assert track_cov == 100.0
