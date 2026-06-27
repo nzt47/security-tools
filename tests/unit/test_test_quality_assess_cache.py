@@ -774,3 +774,314 @@ class TestAnalyzeTestFilesP0Boundaries:
         )
         assert result["test_file_count"] == 1
         assert result["boundary_coverage_rate"] == 1.0
+
+
+# ═══════════════════════════════════════════════════════════════
+#  10. P1 补充：空文件/纯注释/失败计数/不一致边界/目录缺失/空 analysis
+# ═══════════════════════════════════════════════════════════════
+
+class TestAnalyzeTestFilesEmptyAndCommentsP1:
+    """analyze_test_files 空文件与纯注释的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 2.3 节 P1）：
+    - 空文件（0 字节）处理
+    - 只含注释不含 def test_ 的文件
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_analyze_test_files_empty_file_zero_bytes(self, tmp_path):
+        """P1-7: 空文件（0 字节）应被正常处理，不计入 total_tests
+
+        场景：test_empty.py 是 0 字节文件，read() 返回空字符串，
+        re.findall 在空字符串上返回空列表。
+
+        预期：
+        - 不抛异常
+        - test_file_count = 1（空文件仍被计入文件数）
+        - total_tests = 0（空文件无 def test_）
+        - boundary_coverage_files = 0（空文件不匹配任何模式）
+        """
+        test_dir = tmp_path / "tests"
+        test_dir.mkdir()
+        # 创建 0 字节空文件
+        empty_file = test_dir / "test_empty.py"
+        empty_file.write_text("", encoding="utf-8")
+        # 验证确实是 0 字节
+        assert empty_file.stat().st_size == 0
+
+        assessor = TestQualityAssessor()
+        result = assessor.analyze_test_files(test_dir)
+
+        # 空文件应被正常处理
+        assert result["test_file_count"] == 1, (
+            f"空文件应计入 test_file_count，实际 {result['test_file_count']}"
+        )
+        assert result["total_tests"] == 0, (
+            f"空文件无 def test_，total_tests 应为 0，"
+            f"实际 {result['total_tests']}"
+        )
+        assert result["boundary_coverage_files"] == 0, (
+            f"空文件不匹配任何 BOUNDARY_PATTERNS，"
+            f"boundary_coverage_files 应为 0，"
+            f"实际 {result['boundary_coverage_files']}"
+        )
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_analyze_test_files_comments_only_no_test_functions(self, tmp_path):
+        """P1-8: 只含注释不含 def test_ 的文件处理
+
+        场景：test_comments.py 只含注释行，不含任何 def test_ 定义，
+        但注释中可能含 boundary 关键词（如 None/empty）。
+
+        预期：
+        - test_file_count = 1（文件被读取成功）
+        - total_tests = 0（无 def test_ 定义）
+        - boundary_coverage_files 取决于注释是否含边界关键词
+        """
+        test_dir = tmp_path / "tests"
+        test_dir.mkdir()
+        # 只含注释的文件，注释中含边界关键词
+        (test_dir / "test_comments.py").write_text(
+            "# This file has no test functions\n"
+            "# It only contains comments about None and empty\n"
+            "# boundary cases are documented here\n",
+            encoding="utf-8",
+        )
+
+        assessor = TestQualityAssessor()
+        result = assessor.analyze_test_files(test_dir)
+
+        # 文件被成功读取
+        assert result["test_file_count"] == 1, (
+            f"纯注释文件应计入 test_file_count，"
+            f"实际 {result['test_file_count']}"
+        )
+        # 无 def test_ 定义
+        assert result["total_tests"] == 0, (
+            f"纯注释文件无 def test_，total_tests 应为 0，"
+            f"实际 {result['total_tests']}"
+        )
+        # 注释含 None/empty/boundary 关键词，应匹配 BOUNDARY_PATTERNS
+        # 注：BOUNDARY_PATTERNS 对整个 content 匹配，不区分注释与代码
+        assert result["boundary_coverage_files"] == 1, (
+            f"注释含边界关键词应匹配 BOUNDARY_PATTERNS，"
+            f"boundary_coverage_files 应为 1，"
+            f"实际 {result['boundary_coverage_files']}"
+        )
+
+
+class TestAnalyzeTestFilesTotalTestsOnFailureP1:
+    """文件读取失败时 total_tests 不递增的 P1 级边界条件覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_analyze_test_files_total_tests_not_incremented_on_failure(
+        self, tmp_path
+    ):
+        """P1-9: 文件读取失败时 total_tests 不应递增（修复后验证）
+
+        场景：构造 2 个文件：
+        - test_normal.py：正常文件，含 5 个 def test_ 定义
+        - test_fail.py：将模拟读取失败（可能含 def test_，但因读取失败不计入）
+
+        修复后：total_tests += 在 try 块内，失败文件不计入
+
+        预期：
+        - total_tests = 5（只计正常文件的 def test_ 数）
+        - test_file_count = 1（只计成功读取的文件）
+        """
+        test_dir = tmp_path / "tests"
+        test_dir.mkdir()
+        # 正常文件：含 5 个 def test_ 定义
+        (test_dir / "test_normal.py").write_text(
+            "def test_case_1(): pass\n"
+            "def test_case_2(): pass\n"
+            "def test_case_3(): pass\n"
+            "def test_case_4(): pass\n"
+            "def test_case_5(): pass\n",
+            encoding="utf-8",
+        )
+        # 失败文件：含 3 个 def test_，但会模拟读取失败
+        (test_dir / "test_fail.py").write_text(
+            "def test_fail_1(): pass\n"
+            "def test_fail_2(): pass\n"
+            "def test_fail_3(): pass\n",
+            encoding="utf-8",
+        )
+
+        assessor = TestQualityAssessor()
+
+        # mock open 对 test_fail.py 抛 OSError
+        import builtins
+        original_open = builtins.open
+
+        def mock_open(file, *args, **kwargs):
+            if "test_fail.py" in str(file):
+                raise OSError("模拟读取失败")
+            return original_open(file, *args, **kwargs)
+
+        with patch("builtins.open", side_effect=mock_open):
+            result = assessor.analyze_test_files(test_dir)
+
+        # 修复后：total_tests 只计成功读取文件的 def test_ 数
+        # test_normal.py 有 5 个 def test_，test_fail.py 读取失败不计入
+        assert result["total_tests"] == 5, (
+            f"修复后 total_tests 应为 5（只计 test_normal.py 的 def test_），"
+            f"实际 {result['total_tests']}。"
+            f"若为 8 说明失败文件的 def test_ 被错误计入"
+        )
+        # test_file_count 也只计成功读取的文件
+        assert result["test_file_count"] == 1, (
+            f"test_file_count 应为 1（只计成功读取的文件），"
+            f"实际 {result['test_file_count']}"
+        )
+
+
+class TestAssessBoundaryCoverageInconsistentBoundaryP1:
+    """boundary_files > test_file_count 不一致边界的 P1 级覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_assess_boundary_coverage_boundary_files_greater_than_total(
+        self, tmp_path
+    ):
+        """P1-10: boundary_coverage_files > test_file_count 时不一致边界处理
+
+        场景：构造非法 analysis：
+        - test_file_count = 3
+        - boundary_coverage_files = 5（大于文件总数，数据不一致）
+
+        当前实现不校验一致性，直接用 boundary_coverage_rate 计算 score。
+
+        预期：
+        - 不抛异常
+        - score = boundary_coverage_rate * 100
+        - 明确记录此不一致行为，便于后续评估是否需要增加校验
+        """
+        assessor = TestQualityAssessor()
+        test_dir = tmp_path / "tests"
+        test_dir.mkdir()
+
+        # 构造不一致 analysis：boundary_files > test_file_count
+        inconsistent_analysis = {
+            "test_file_count": 3,
+            "total_tests": 10,
+            "boundary_coverage_files": 5,  # 大于 test_file_count（不一致）
+            "exception_coverage_files": 2,
+            "boundary_coverage_rate": 5 / 3,  # 1.666...（大于 1.0，非法）
+            "exception_coverage_rate": 2 / 3,
+        }
+
+        dim = assessor.assess_boundary_coverage(test_dir, inconsistent_analysis)
+
+        # 当前实现不校验一致性，直接计算 score
+        # score = boundary_coverage_rate * 100 = 5/3 * 100 = 166.666...
+        # 注意：assess_boundary_coverage 中 score 未被 round
+        expected_score = 5 / 3 * 100
+        assert dim.score == expected_score, (
+            f"不一致 analysis 应直接计算 score={expected_score}，"
+            f"实际 {dim.score}。当前实现不校验 boundary_files > test_file_count"
+        )
+        # details 应反映不一致的数据
+        details_text = " ".join(dim.details)
+        assert "5/3" in details_text, (
+            f"details 应包含 '5/3'（boundary_files/test_file_count），"
+            f"实际 {details_text}"
+        )
+
+
+class TestGenerateReportMissingAndEmptyTestsP1:
+    """generate_report 在 tests 目录缺失/空 analysis 时的 P1 级边界覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_generate_report_tests_dir_not_exists(self, tmp_path, monkeypatch):
+        """P1-11: tests 目录不存在时 generate_report 应优雅降级
+
+        场景：工作目录下无 tests 目录，generate_report 调用
+        analyze_test_files(Path('tests'))，rglob 在不存在目录上返回空。
+
+        预期：
+        - 不抛异常
+        - 生成报告包含 test_file_count=0 的维度
+        - 边界/异常覆盖率均为 0
+        """
+        # 切换到无 tests 目录的临时目录
+        monkeypatch.chdir(tmp_path)
+        # 确认 tests 目录不存在
+        assert not (tmp_path / "tests").exists()
+        # 占位 business_metrics.py 避免 _check_metrics_coverage 失败
+        (tmp_path / "agent").mkdir()
+        (tmp_path / "agent" / "monitoring").mkdir()
+        (tmp_path / "agent" / "monitoring" / "business_metrics.py").write_text(
+            "# placeholder\n", encoding="utf-8"
+        )
+
+        assessor = TestQualityAssessor()
+        # 不应抛异常
+        report = assessor.generate_report(coverage_rate=0.0)
+
+        # 报告应正常生成
+        assert "summary" in report
+        assert "dimensions" in report
+        # 边界/异常覆盖率维度应为 0（无测试文件）
+        boundary_dim = next(
+            d for d in report["dimensions"] if d["name"] == "边界条件覆盖"
+        )
+        assert boundary_dim["score"] == 0.0, (
+            f"tests 目录不存在时边界覆盖率应为 0.0，"
+            f"实际 {boundary_dim['score']}"
+        )
+        # details 应反映 0 文件
+        details_text = " ".join(boundary_dim["details"])
+        assert "0/0" in details_text or "0" in details_text
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_generate_report_empty_tests_analysis(self, tmp_path, monkeypatch):
+        """P1-12: tests_analysis 为空（test_file_count=0）时的边界处理
+
+        场景：tests 目录存在但为空，analyze_test_files 返回
+        test_file_count=0 的 analysis，generate_report 应处理除零情况。
+
+        预期：
+        - 不抛除零异常
+        - boundary_coverage_rate=0 时 score=0.0
+        - 分析结果中 0/0 由 `if test_file_count > 0 else 0` 保护
+        """
+        monkeypatch.chdir(tmp_path)
+        test_dir = tmp_path / "tests"
+        test_dir.mkdir()  # 空目录
+        (tmp_path / "agent").mkdir()
+        (tmp_path / "agent" / "monitoring").mkdir()
+        (tmp_path / "agent" / "monitoring" / "business_metrics.py").write_text(
+            "# placeholder\n", encoding="utf-8"
+        )
+
+        assessor = TestQualityAssessor()
+        # 先验证 analyze_test_files 对空目录的处理
+        analysis = assessor.analyze_test_files(test_dir)
+        assert analysis["test_file_count"] == 0
+        assert analysis["boundary_coverage_rate"] == 0  # 除零保护
+        assert analysis["exception_coverage_rate"] == 0
+
+        # generate_report 应正常处理空 analysis
+        report = assessor.generate_report(coverage_rate=0.0)
+
+        # 边界覆盖率维度应为 0.0
+        boundary_dim = next(
+            d for d in report["dimensions"] if d["name"] == "边界条件覆盖"
+        )
+        assert boundary_dim["score"] == 0.0
+        # 注意：asdict() 保留 Enum 对象，不转换为 .value
+        # 因此 boundary_dim["level"] 是 QualityLevel.POOR 而非 "poor"
+        assert boundary_dim["level"] == QualityLevel.POOR
+
+        # 异常处理覆盖率维度也应为 0.0
+        exception_dim = next(
+            d for d in report["dimensions"] if d["name"] == "异常处理覆盖"
+        )
+        assert exception_dim["score"] == 0.0
+        assert exception_dim["level"] == QualityLevel.POOR

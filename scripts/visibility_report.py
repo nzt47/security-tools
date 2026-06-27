@@ -31,11 +31,13 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -338,14 +340,14 @@ class MetricCollector:
         )
         v_thresholds = self.thresholds.get("verification", {})
 
-        # 1. 测试覆盖率（从 coverage.xml 或 pyproject.toml 读取）
+        # 1. 测试覆盖率（从 coverage.xml 读取真实 line-rate，不再降级到 pyproject.toml）
         test_coverage = self._read_test_coverage()
         layer.add_metric(Metric(
             name="test_coverage",
             value=test_coverage,
             threshold=v_thresholds.get("test_coverage", 40),
             unit="%",
-            description="代码测试覆盖率（来自 coverage.xml 或 pyproject.toml）",
+            description="代码测试覆盖率（来自 coverage.xml 真实 line-rate）",
         ))
 
         # 2. 边界测试覆盖率（运行边界扫描脚本）
@@ -368,130 +370,88 @@ class MetricCollector:
             description="Pact 契约测试数量",
         ))
 
+        # 4. 异常处理覆盖率（核心业务模块中含 try/except/raise 的文件占比）
+        # 呼应"边界显性化"原则：可能失败的分支必须显式处理异常或抛出带业务错误码的 Error
+        exception_coverage = self._calc_exception_coverage()
+        layer.add_metric(Metric(
+            name="exception_coverage",
+            value=exception_coverage,
+            threshold=v_thresholds.get("exception_coverage", 60),
+            unit="%",
+            description="含 try/except/raise 异常处理的核心模块占比",
+        ))
+
         return layer
 
     def _read_test_coverage(self) -> float:
         """读取测试覆盖率
 
-        解析优先级：
-          1. coverage.xml 的 line-rate（真实覆盖率）
-             - CI 环境：由 full-project-tests job 生成并通过 artifact 传递，
-                        visibility-report job 下载后放置于项目根目录，直接读取真实 line-rate
-             - 本地环境：需手动执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成
-          2. pyproject.toml 的 [tool.coverage.report] fail_under（仅本地兜底基线）
-             - 注意：此降级路径在 CI 中不应触发（CI 总能从 artifact 拿到 coverage.xml）
-             - 仅用于本地运行时 coverage.xml 缺失的兜底，避免直接返回 0.0 影响判断
-          3. 0.0（明确 error 日志告警，不静默返回）
+        数据源：coverage.xml 的 line-rate（真实覆盖率）
+        - CI 环境：由 full-project-tests job 生成，通过 full-coverage-report artifact 传递，
+                  visibility-report job 下载后放置于项目根目录
+        - 本地环境：需手动执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成
 
-        异常处理：所有降级路径均输出结构化日志，便于排查 artifact 传递问题。
+        不再降级：coverage.xml 缺失或无效时直接返回 0.0 并输出 error 日志，
+                  不再读取 pyproject.toml fail_under 作为基线。
+                  原因：用配置基线（如 40%）掩盖真实覆盖率缺失会导致指标失真，
+                  CI 中 coverage.xml 由 full-project-tests artifact 保证就位，
+                  本地缺失即为真实问题，应显式暴露而非降级掩盖。
         """
-        # ── 优先从 coverage.xml 读取真实 line-rate ──
         coverage_xml = self.project_root / "coverage.xml"
-        if coverage_xml.exists():
-            import xml.etree.ElementTree as ET
-            try:
-                tree = ET.parse(coverage_xml)
-                root = tree.getroot()
-                line_rate = float(root.attrib.get("line-rate", "0"))
-                # line-rate=0 通常是空报告或生成失败，视为无效数据进入降级路径
-                if line_rate > 0:
-                    logger.info(json.dumps({
-                        "trace_id": _trace_id(),
-                        "module_name": "visibility_report",
-                        "action": "read_test_coverage.success",
-                        "duration_ms": 0,
-                        "path": str(coverage_xml),
-                        "line_rate": line_rate,
-                        "coverage_percent": round(line_rate * 100, 1),
-                        "source": "full-project-tests artifact (CI) 或本地生成",
-                    }, ensure_ascii=False))
-                    return round(line_rate * 100, 1)
-                logger.warning(json.dumps({
-                    "trace_id": _trace_id(),
-                    "module_name": "visibility_report",
-                    "action": "read_test_coverage.invalid_xml",
-                    "duration_ms": 0,
-                    "path": str(coverage_xml),
-                    "line_rate": line_rate,
-                    "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，进入本地兜底降级",
-                }, ensure_ascii=False))
-            except (ValueError, OSError, ET.ParseError) as e:
-                # 解析失败：明确记录错误，而非静默吞掉
-                # ET.ParseError 继承自 SyntaxError，不被 ValueError/OSError 覆盖，需显式捕获
-                logger.error(json.dumps({
-                    "trace_id": _trace_id(),
-                    "module_name": "visibility_report",
-                    "action": "read_test_coverage.parse_failed",
-                    "duration_ms": 0,
-                    "path": str(coverage_xml),
-                    "error": f"{type(e).__name__}: {e}",
-                    "reason": "coverage.xml 解析失败，进入本地兜底降级",
-                }, ensure_ascii=False))
-        else:
-            # 文件不存在
-            # CI 环境：不应发生，full-project-tests job 应已通过 artifact 提供 coverage.xml
-            #          若发生则说明 artifact 下载失败，需排查 visibility-report job 的下载步骤
-            # 本地环境：常见情况，降级到 pyproject.toml fail_under 作为基线
+        if not coverage_xml.exists():
+            # coverage.xml 不存在：CI 中不应发生（artifact 保证就位），本地需手动生成
             logger.error(json.dumps({
                 "trace_id": _trace_id(),
                 "module_name": "visibility_report",
                 "action": "read_test_coverage.missing_xml",
                 "duration_ms": 0,
                 "path": str(coverage_xml),
-                "reason": "coverage.xml 不存在",
+                "reason": "coverage.xml 不存在，返回 0.0",
                 "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录",
                 "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml",
             }, ensure_ascii=False))
+            return 0.0
 
-        # ── 本地兜底降级：从 pyproject.toml 读取 fail_under ──
-        # 注意：此路径在 CI 中不应触发（CI 总能从 artifact 拿到 coverage.xml）
-        # 仅用于本地运行时 coverage.xml 缺失的兜底，避免直接返回 0.0
-        pyproject = self.project_root / "pyproject.toml"
-        if pyproject.exists():
-            try:
-                content = pyproject.read_text(encoding="utf-8")
-                # 匹配 [tool.coverage.report] 段下的 fail_under
-                match = re.search(r'fail_under\s*=\s*(\d+(?:\.\d+)?)', content)
-                if match:
-                    baseline = float(match.group(1))
-                    logger.warning(json.dumps({
-                        "trace_id": _trace_id(),
-                        "module_name": "visibility_report",
-                        "action": "read_test_coverage.fallback_pyproject",
-                        "duration_ms": 0,
-                        "baseline": baseline,
-                        "reason": "降级使用 pyproject.toml fail_under 作为基线（本地兜底，非真实覆盖率）",
-                        "ci_note": "CI 中此降级不应触发，请检查 full-project-tests artifact 是否正确下载",
-                    }, ensure_ascii=False))
-                    return baseline
-                logger.error(json.dumps({
+        import xml.etree.ElementTree as ET
+        try:
+            tree = ET.parse(coverage_xml)
+            root = tree.getroot()
+            line_rate = float(root.attrib.get("line-rate", "0"))
+            if line_rate > 0:
+                logger.info(json.dumps({
                     "trace_id": _trace_id(),
                     "module_name": "visibility_report",
-                    "action": "read_test_coverage.fail_under_not_found",
+                    "action": "read_test_coverage.success",
                     "duration_ms": 0,
-                    "path": str(pyproject),
-                    "reason": "pyproject.toml 中未找到 fail_under 配置",
+                    "path": str(coverage_xml),
+                    "line_rate": line_rate,
+                    "coverage_percent": round(line_rate * 100, 1),
+                    "source": "full-project-tests artifact (CI) 或本地生成",
                 }, ensure_ascii=False))
-            except OSError as e:
-                logger.error(json.dumps({
-                    "trace_id": _trace_id(),
-                    "module_name": "visibility_report",
-                    "action": "read_test_coverage.pyproject_read_failed",
-                    "duration_ms": 0,
-                    "path": str(pyproject),
-                    "error": f"{type(e).__name__}: {e}",
-                }, ensure_ascii=False))
-        else:
+                return round(line_rate * 100, 1)
+            # line-rate=0 通常是空报告或生成失败，视为无效数据
+            logger.warning(json.dumps({
+                "trace_id": _trace_id(),
+                "module_name": "visibility_report",
+                "action": "read_test_coverage.invalid_xml",
+                "duration_ms": 0,
+                "path": str(coverage_xml),
+                "line_rate": line_rate,
+                "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0",
+            }, ensure_ascii=False))
+            return 0.0
+        except (ValueError, OSError, ET.ParseError) as e:
+            # ET.ParseError 继承自 SyntaxError，不被 ValueError/OSError 覆盖，需显式捕获
             logger.error(json.dumps({
                 "trace_id": _trace_id(),
                 "module_name": "visibility_report",
-                "action": "read_test_coverage.pyproject_missing",
+                "action": "read_test_coverage.parse_failed",
                 "duration_ms": 0,
-                "path": str(pyproject),
-                "reason": "pyproject.toml 不存在，无法本地兜底降级",
+                "path": str(coverage_xml),
+                "error": f"{type(e).__name__}: {e}",
+                "reason": "coverage.xml 解析失败，返回 0.0",
             }, ensure_ascii=False))
-
-        return 0.0
+            return 0.0
 
     def _calc_boundary_coverage(self) -> float:
         """计算边界测试覆盖率
@@ -693,6 +653,78 @@ class MetricCollector:
             "hint": "请创建 tests/contract/contracts/ 并放置 *_contract.json 契约文件",
         }, ensure_ascii=False))
         return 0
+
+    def _calc_exception_coverage(self) -> float:
+        """计算异常处理覆盖率
+
+        定义：核心业务模块（agent/ 目录）中包含异常处理（try/except 或 raise）的
+        .py 文件占比。呼应"边界显性化"原则——可能失败的分支必须显式处理异常
+        或抛出带业务错误码的 Error，而非静默返回 null。
+
+        数据源：AST 解析 agent/ 目录下所有 .py 文件
+        判定标准：文件中存在 ast.Try 或 ast.Raise 节点即视为"已处理异常"
+
+        异常处理：AST 解析失败时记录错误日志并跳过该文件，不计入分母
+        """
+        trace_id = _trace_id()
+        t0 = time.time()
+        agent_dir = self.project_root / "agent"
+        if not agent_dir.exists():
+            logger.warning(json.dumps({
+                "trace_id": trace_id,
+                "module_name": "visibility_report",
+                "action": "calc_exception_coverage.dir_missing",
+                "duration_ms": round((time.time() - t0) * 1000, 2),
+                "path": str(agent_dir),
+                "reason": "agent/ 目录不存在，返回 0.0",
+            }, ensure_ascii=False))
+            return 0.0
+
+        total_files = 0
+        handled_files = 0
+        skipped_files: List[str] = []
+        for py_file in agent_dir.rglob("*.py"):
+            # 跳过 __init__.py 等 dunder 文件
+            if py_file.name.startswith("__"):
+                continue
+            total_files += 1
+            try:
+                source = py_file.read_text(encoding="utf-8")
+                tree = ast.parse(source, filename=str(py_file))
+                # 遍历 AST，检查是否包含异常处理节点
+                has_exception_handling = any(
+                    isinstance(node, (ast.Try, ast.Raise))
+                    for node in ast.walk(tree)
+                )
+                if has_exception_handling:
+                    handled_files += 1
+            except (SyntaxError, OSError, UnicodeDecodeError) as e:
+                # 解析失败：记录错误并跳过，不计入分母
+                skipped_files.append(str(py_file))
+                total_files -= 1
+                logger.warning(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "visibility_report",
+                    "action": "calc_exception_coverage.parse_failed",
+                    "duration_ms": 0,
+                    "path": str(py_file),
+                    "error": f"{type(e).__name__}: {e}",
+                    "reason": "AST 解析失败，跳过该文件",
+                }, ensure_ascii=False))
+
+        coverage = round(handled_files / total_files * 100, 1) if total_files else 0.0
+        elapsed_ms = round((time.time() - t0) * 1000, 2)
+        logger.info(json.dumps({
+            "trace_id": trace_id,
+            "module_name": "visibility_report",
+            "action": "calc_exception_coverage.success",
+            "duration_ms": elapsed_ms,
+            "total_files": total_files,
+            "handled_files": handled_files,
+            "skipped_files": len(skipped_files),
+            "coverage_percent": coverage,
+        }, ensure_ascii=False))
+        return coverage
 
     # ── 第三层：业务价值可见 ──
     def _collect_business_layer(self) -> LayerReport:
@@ -1019,6 +1051,345 @@ class ReportGenerator:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  Prometheus 指标导出
+# ═══════════════════════════════════════════════════════════════
+
+# 指标命名规范：yunshu_<模块>_<动作>（遵循项目硬约束）
+# 所有 gauge 指标必须包含 success 标签（项目规范），visibility 上下文中：
+#   success="true"  → 该指标 passed=True（达到阈值）
+#   success="false" → 该指标 passed=False（未达标）
+# 总体状态使用单独 gauge（yunshu_visibility_overall_status）以 0/1/2 编码。
+
+_VIS_METRIC_PREFIX = "yunshu_visibility"
+
+# 层级名称 → Prometheus label value（英文小写下划线，便于 PromQL 查询）
+_LAYER_LABEL_MAP = {
+    "运行时可见": "runtime",
+    "验证过程可见": "verification",
+    "业务价值可见": "business",
+    "架构影响可见": "architecture",
+}
+
+# 逆向指标（值越小越好）：导出时 success 标签取反映阈值的语义
+# 例如 arch_rule_violations：passed=True 当 violations ≤ max_violations
+_INVERSE_METRICS = {"arch_rule_violations"}
+
+
+def export_to_prometheus(report: VisibilityReport) -> str:
+    """将四层可见性报告导出为 Prometheus exposition 格式文本
+
+    输出指标清单（所有指标均为 gauge 类型）：
+      - yunshu_visibility_overall_status{status}  总体状态（0=pass, 1=fail, 2=degraded）
+      - yunshu_visibility_threshold_violations_total  阈值违规项总数
+      - yunshu_visibility_layer_passed{layer, success}  各层是否达标（0/1）
+      - yunshu_visibility_runtime_structured_log_coverage{success}
+      - yunshu_visibility_runtime_trace_coverage{success}
+      - yunshu_visibility_runtime_health_endpoints{success}
+      - yunshu_visibility_verification_test_coverage{success}
+      - yunshu_visibility_verification_boundary_test_coverage{success}
+      - yunshu_visibility_verification_contract_test_count{success}
+      - yunshu_visibility_business_track_event_coverage{success}
+      - yunshu_visibility_business_dashboard_count{success}
+      - yunshu_visibility_business_alert_rules_count{success}
+      - yunshu_visibility_architecture_dependency_graph_nodes{success}
+      - yunshu_visibility_architecture_dependency_graph_edges{success}
+      - yunshu_visibility_architecture_rule_violations{success}
+      - yunshu_visibility_architecture_impact_analysis_coverage{success}
+      - yunshu_visibility_report_duration_seconds  报告生成耗时
+      - yunshu_visibility_up  服务存活探针（恒为 1）
+
+    Args:
+        report: 已生成的 VisibilityReport 对象
+
+    Returns:
+        Prometheus 文本格式字符串，可直接通过 /metrics 端点暴露
+    """
+    trace_id = _trace_id()
+    t0 = time.time()
+    lines: List[str] = []
+    timestamp_ms = int(time.time() * 1000)
+
+    # ── 总体状态指标 ──
+    status_code = {"pass": 0, "fail": 1, "degraded": 2}.get(report.overall_status, 2)
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_overall_status Overall visibility status (0=pass, 1=fail, 2=degraded)")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_overall_status gauge")
+    lines.append(
+        f'{_VIS_METRIC_PREFIX}_overall_status{{status="{report.overall_status}"}} {status_code} {timestamp_ms}'
+    )
+
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_threshold_violations_total Total number of threshold violations")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_threshold_violations_total gauge")
+    lines.append(
+        f"{_VIS_METRIC_PREFIX}_threshold_violations_total {len(report.threshold_violations)} {timestamp_ms}"
+    )
+
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_report_duration_seconds Visibility report generation duration in seconds")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_report_duration_seconds gauge")
+    lines.append(
+        f"{_VIS_METRIC_PREFIX}_report_duration_seconds {report.duration_ms / 1000.0:.4f} {timestamp_ms}"
+    )
+
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_up Visibility exporter liveness probe")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_up gauge")
+    lines.append(f"{_VIS_METRIC_PREFIX}_up 1 {timestamp_ms}")
+
+    # ── 各层达标状态 ──
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_layer_passed Whether a visibility layer passed its threshold (0/1)")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_layer_passed gauge")
+    for layer in report.layers:
+        layer_label = _LAYER_LABEL_MAP.get(layer.layer_name, layer.layer_name)
+        passed_int = 1 if layer.overall_passed else 0
+        success_label = "true" if layer.overall_passed else "false"
+        lines.append(
+            f'{_VIS_METRIC_PREFIX}_layer_passed{{layer="{layer_label}",success="{success_label}"}} {passed_int} {timestamp_ms}'
+        )
+
+    # ── 各层明细指标 ──
+    # 同一指标名可能出现多次（不同 layer 下的同名 metric 会被分别导出），
+    # 这里通过 layer 标签区分，保证 PromQL 可按层聚合。
+    seen_metric_help: set = set()
+    for layer in report.layers:
+        layer_label = _LAYER_LABEL_MAP.get(layer.layer_name, layer.layer_name)
+        for m in layer.metrics:
+            # 指标名规范化：runtime_structured_log_coverage 等
+            prom_name = f"{_VIS_METRIC_PREFIX}_{layer_label}_{m.name}"
+            if prom_name not in seen_metric_help:
+                lines.append(f"# HELP {prom_name} {m.description or m.name}")
+                lines.append(f"# TYPE {prom_name} gauge")
+                seen_metric_help.add(prom_name)
+            success_label = "true" if m.passed else "false"
+            # 数值规范化：确保输出为浮点数
+            try:
+                value = float(m.value)
+            except (TypeError, ValueError):
+                logger.warning(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "visibility_report",
+                    "action": "export_prometheus.invalid_value",
+                    "duration_ms": round((time.time() - t0) * 1000, 2),
+                    "metric": m.name,
+                    "raw_value": m.value,
+                    "reason": "指标值无法转为 float，跳过该指标",
+                }, ensure_ascii=False))
+                continue
+            lines.append(
+                f'{prom_name}{{layer="{layer_label}",success="{success_label}"}} {value} {timestamp_ms}'
+            )
+
+    elapsed_ms = round((time.time() - t0) * 1000, 2)
+    logger.info(json.dumps({
+        "trace_id": trace_id,
+        "module_name": "visibility_report",
+        "action": "export_prometheus.success",
+        "duration_ms": elapsed_ms,
+        "lines": len(lines),
+        "metrics_count": len(seen_metric_help),
+        "overall_status": report.overall_status,
+    }, ensure_ascii=False))
+    return "\n".join(lines) + "\n"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Prometheus HTTP 指标服务
+# ═══════════════════════════════════════════════════════════════
+
+class _VisibilityMetricsState:
+    """指标服务共享状态
+
+    持有最近一次报告快照与互斥锁，支持后台线程定期刷新、HTTP handler 即时读取。
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._snapshot: str = ""
+        self._report_status: str = "degraded"
+        self._last_update: float = 0.0
+        self._error: Optional[str] = None
+
+    def update(self, prometheus_text: str, status: str, error: Optional[str] = None) -> None:
+        with self._lock:
+            self._snapshot = prometheus_text
+            self._report_status = status
+            self._error = error
+            self._last_update = time.time()
+
+    def snapshot(self) -> Tuple[str, str, Optional[str], float]:
+        with self._lock:
+            return self._snapshot, self._report_status, self._error, self._last_update
+
+
+def _build_prometheus_handler(state: "_VisibilityMetricsState") -> type:
+    """构造绑定到共享状态的 HTTP handler 类"""
+
+    class _MetricsHandler(BaseHTTPRequestHandler):
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+            # 抑制默认 access log，避免污染 stdout
+            pass
+
+        def do_GET(self) -> None:  # noqa: N802
+            trace_id = _trace_id()
+            t0 = time.time()
+            if self.path in ("/metrics", "/metrics/"):
+                snapshot, status, error, last_update = state.snapshot()
+                if not snapshot:
+                    # 尚未生成首份报告：返回降级指标
+                    timestamp_ms = int(time.time() * 1000)
+                    body = (
+                        f"# HELP {_VIS_METRIC_PREFIX}_up Visibility exporter liveness probe\n"
+                        f"# TYPE {_VIS_METRIC_PREFIX}_up gauge\n"
+                        f"{_VIS_METRIC_PREFIX}_up 1 {timestamp_ms}\n"
+                        f"# HELP {_VIS_METRIC_PREFIX}_overall_status Overall visibility status (0=pass, 1=fail, 2=degraded)\n"
+                        f"# TYPE {_VIS_METRIC_PREFIX}_overall_status gauge\n"
+                        f'{_VIS_METRIC_PREFIX}_overall_status{{status="degraded"}} 2 {timestamp_ms}\n'
+                    )
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(body.encode("utf-8"))
+                    logger.info(json.dumps({
+                        "trace_id": trace_id,
+                        "module_name": "visibility_report",
+                        "action": "metrics_endpoint.empty_snapshot",
+                        "duration_ms": round((time.time() - t0) * 1000, 2),
+                        "reason": "首份报告尚未生成，返回降级指标",
+                    }, ensure_ascii=False))
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(snapshot.encode("utf-8"))
+                logger.info(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "visibility_report",
+                    "action": "metrics_endpoint.served",
+                    "duration_ms": round((time.time() - t0) * 1000, 2),
+                    "status": status,
+                    "snapshot_age_sec": round(time.time() - last_update, 2),
+                    "error": error,
+                }, ensure_ascii=False))
+            elif self.path in ("/health", "/status", "/"):
+                # 健康检查端点（遵循可观测性约束：必须暴露依赖连接状态）
+                _, status, error, last_update = state.snapshot()
+                payload = {
+                    "ok": True,
+                    "status": status,
+                    "last_update": datetime.fromtimestamp(last_update).isoformat() if last_update else None,
+                    "error": error,
+                }
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+    return _MetricsHandler
+
+
+def serve_metrics(
+    port: int,
+    refresh_interval: int,
+    project_root: Path,
+    thresholds: Dict[str, Any],
+    host: str = "0.0.0.0",
+) -> int:
+    """启动 Prometheus 指标 HTTP 服务
+
+    定期重新采集指标并刷新共享快照；暴露：
+      - GET /metrics  → Prometheus exposition 文本
+      - GET /health   → 健康检查 JSON
+
+    Args:
+        port: 监听端口（默认 9101）
+        refresh_interval: 报告刷新间隔（秒，默认 300）
+        project_root: 项目根目录
+        thresholds: 可见性阈值配置
+        host: 绑定地址
+
+    Returns:
+        进程退出码（0=正常退出，1=端口占用/初始化失败）
+    """
+    trace_id = _trace_id()
+    state = _VisibilityMetricsState()
+
+    def _refresh_loop() -> None:
+        """后台刷新线程：周期性重新采集指标"""
+        thread_trace = _trace_id()
+        while True:
+            t0 = time.time()
+            try:
+                report = generate_report(project_root, thresholds)
+                prom_text = export_to_prometheus(report)
+                state.update(prom_text, report.overall_status, error=None)
+                logger.info(json.dumps({
+                    "trace_id": thread_trace,
+                    "module_name": "visibility_report",
+                    "action": "serve_metrics.refresh.success",
+                    "duration_ms": round((time.time() - t0) * 1000, 2),
+                    "overall_status": report.overall_status,
+                    "next_refresh_sec": refresh_interval,
+                }, ensure_ascii=False))
+            except Exception as e:
+                # 边界显性化：捕获异常并写入 state.error，不静默吞掉
+                logger.error(json.dumps({
+                    "trace_id": thread_trace,
+                    "module_name": "visibility_report",
+                    "action": "serve_metrics.refresh.failed",
+                    "duration_ms": round((time.time() - t0) * 1000, 2),
+                    "error": f"{type(e).__name__}: {e}",
+                    "stack": traceback.format_exc(),
+                }, ensure_ascii=False))
+                state.update("", "degraded", error=f"{type(e).__name__}: {e}")
+            time.sleep(max(refresh_interval, 10))
+
+    # 启动后台刷新线程（daemon=True，主进程退出时自动终止）
+    refresh_thread = threading.Thread(target=_refresh_loop, name="visibility-refresh", daemon=True)
+    refresh_thread.start()
+
+    # 启动 HTTP 服务
+    handler_cls = _build_prometheus_handler(state)
+    try:
+        server = HTTPServer((host, port), handler_cls)
+    except OSError as e:
+        logger.error(json.dumps({
+            "trace_id": trace_id,
+            "module_name": "visibility_report",
+            "action": "serve_metrics.bind_failed",
+            "duration_ms": 0,
+            "host": host,
+            "port": port,
+            "error": f"{type(e).__name__}: {e}",
+            "reason": "端口占用或绑定失败",
+        }, ensure_ascii=False))
+        return 1
+
+    logger.info(json.dumps({
+        "trace_id": trace_id,
+        "module_name": "visibility_report",
+        "action": "serve_metrics.started",
+        "duration_ms": 0,
+        "host": host,
+        "port": port,
+        "refresh_interval_sec": refresh_interval,
+        "endpoints": ["/metrics", "/health"],
+    }, ensure_ascii=False))
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        logger.info(json.dumps({
+            "trace_id": trace_id,
+            "module_name": "visibility_report",
+            "action": "serve_metrics.shutdown",
+            "duration_ms": 0,
+            "reason": "收到 KeyboardInterrupt，正在关闭",
+        }, ensure_ascii=False))
+        server.shutdown()
+    return 0
+
+
+# ═══════════════════════════════════════════════════════════════
 #  降级报告
 # ═══════════════════════════════════════════════════════════════
 
@@ -1147,6 +1518,38 @@ def main(argv=None) -> int:
         action="store_true",
         help="仅输出 JSON 到 stdout",
     )
+    parser.add_argument(
+        "--export-metrics",
+        action="store_true",
+        help="输出 Prometheus exposition 格式指标到 stdout（用于 node/textfile 或一次性采集）",
+    )
+    parser.add_argument(
+        "--metrics-output", "-m",
+        default=None,
+        help="Prometheus 指标输出文件路径（默认随 --export-metrics 输出到 stdout）",
+    )
+    parser.add_argument(
+        "--serve-metrics",
+        action="store_true",
+        help="启动 HTTP 指标服务（暴露 /metrics 与 /health 端点供 Prometheus 抓取）",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=9101,
+        help="指标 HTTP 服务端口（默认 9101，仅 --serve-metrics 时生效）",
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="指标 HTTP 服务绑定地址（默认 0.0.0.0，仅 --serve-metrics 时生效）",
+    )
+    parser.add_argument(
+        "--refresh-interval",
+        type=int,
+        default=300,
+        help="指标刷新间隔（秒，默认 300，仅 --serve-metrics 时生效）",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args(argv)
 
@@ -1154,6 +1557,48 @@ def main(argv=None) -> int:
 
     config_path = Path(args.config)
     thresholds = load_thresholds(config_path)
+
+    # ── 模式 1：HTTP 指标服务（最长生命周期，优先处理）──
+    if args.serve_metrics:
+        return serve_metrics(
+            port=args.port,
+            refresh_interval=args.refresh_interval,
+            project_root=PROJECT_ROOT,
+            thresholds=thresholds,
+            host=args.host,
+        )
+
+    # ── 模式 2：一次性 Prometheus 指标导出 ──
+    if args.export_metrics:
+        try:
+            report = generate_report(PROJECT_ROOT, thresholds)
+            prom_text = export_to_prometheus(report)
+            if args.metrics_output:
+                output_path = Path(args.metrics_output)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(prom_text, encoding="utf-8")
+                logger.info(f"Prometheus 指标已写入: {output_path}")
+            else:
+                # 输出到 stdout（注意：不要混入日志，否则污染 textfile collector）
+                sys.stdout.write(prom_text)
+            return 0 if report.overall_status == "pass" else 1
+        except Exception as e:
+            logger.error(f"Prometheus 指标导出异常: {e}", exc_info=True)
+            # 边界显性化：导出失败时输出降级指标，保证 /metrics 不空
+            timestamp_ms = int(time.time() * 1000)
+            degraded_text = (
+                f"# HELP {_VIS_METRIC_PREFIX}_up Visibility exporter liveness probe\n"
+                f"# TYPE {_VIS_METRIC_PREFIX}_up gauge\n"
+                f"{_VIS_METRIC_PREFIX}_up 1 {timestamp_ms}\n"
+                f"# HELP {_VIS_METRIC_PREFIX}_overall_status Overall visibility status (0=pass, 1=fail, 2=degraded)\n"
+                f"# TYPE {_VIS_METRIC_PREFIX}_overall_status gauge\n"
+                f'{_VIS_METRIC_PREFIX}_overall_status{{status="degraded"}} 2 {timestamp_ms}\n'
+            )
+            if args.metrics_output:
+                Path(args.metrics_output).write_text(degraded_text, encoding="utf-8")
+            else:
+                sys.stdout.write(degraded_text)
+            return 2
 
     # 输出路径
     if args.output:
