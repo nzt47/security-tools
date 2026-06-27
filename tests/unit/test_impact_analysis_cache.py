@@ -27,7 +27,9 @@ impact_analysis.py 缓存优化单元测试
 
 from __future__ import annotations
 
+import os
 import sys
+import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -1291,3 +1293,302 @@ class TestConcurrentAndCrossPlatformP2:
             )
             assert len(r) == 1, f"线程 {idx} 应匹配 1 个文件"
             assert "test_target.py" in r[0]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  11. P1 补充：深层嵌套/符号链接/权限拒绝/大 diff 性能/预收集一致性
+# ═══════════════════════════════════════════════════════════════
+
+class TestFindTestsForModuleDeepNestedP1:
+    """深层嵌套模块路径的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1）：
+    - 深层嵌套模块路径（agent.core.sub.deep）的匹配
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_find_tests_for_module_deep_nested_module_path(self, tmp_path):
+        """P1-13: 深层嵌套模块路径（agent.core.sub.deep）的匹配
+
+        场景：module_path = "agent.core.sub.deep"
+        - parts = ['agent', 'core', 'sub', 'deep']
+        - short_name = 'deep'（parts[-1]）
+        - layer = 'core'（parts[1]）
+
+        预期：
+        - 应匹配 test_deep.py（short_name=deep）
+        - 应匹配 test_core.py（layer=core）
+        - 不匹配 test_other.py
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_deep.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_core.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_other.py").write_text("", encoding="utf-8")
+
+        all_tests = list(tests_dir.rglob("test_*.py"))
+        result = analyzer._find_tests_for_module(
+            "agent.core.sub.deep", all_tests
+        )
+
+        # 应匹配 test_deep.py（short_name=deep）和 test_core.py（layer=core）
+        assert len(result) == 2, (
+            f"深层嵌套路径应匹配 2 个文件（test_deep + test_core），"
+            f"实际 {len(result)}: {result}"
+        )
+        matched_names = {Path(r).name for r in result}
+        assert "test_deep.py" in matched_names
+        assert "test_core.py" in matched_names
+        assert "test_other.py" not in matched_names
+
+
+class TestCollectTestFilesSymlinkP1:
+    """符号链接测试文件处理的 P1 级边界条件覆盖
+
+    覆盖缺口：符号链接测试文件的处理
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_collect_test_files_symlink_resolution(self, tmp_path):
+        """P1-14: 符号链接测试文件的处理
+
+        场景：测试目录中存在指向其他测试文件的符号链接，
+        _collect_test_files 使用 rglob，应能跟随符号链接收集到。
+
+        Windows 兼容：os.symlink 需要管理员权限，若创建失败则验证降级行为。
+
+        预期：
+        - 符号链接创建成功：rglob 跟随符号链接，收集到真实文件 + 符号链接
+        - 符号链接创建失败（Windows 无管理员权限）：仅收集真实文件
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+
+        # 真实测试文件
+        real_file = tests_dir / "test_real.py"
+        real_file.write_text("", encoding="utf-8")
+
+        # 尝试创建符号链接（Windows 需要管理员权限）
+        symlink_file = tests_dir / "test_symlink.py"
+        symlink_created = False
+        try:
+            os.symlink(real_file, symlink_file)
+            symlink_created = True
+        except (OSError, NotImplementedError, PermissionError):
+            # Windows 无管理员权限或平台不支持符号链接
+            symlink_created = False
+
+        result = analyzer._collect_test_files(tests_dir)
+        names = {p.name for p in result}
+
+        if symlink_created:
+            # 符号链接创建成功：rglob 应跟随符号链接收集到两个文件
+            assert "test_real.py" in names
+            assert "test_symlink.py" in names
+            assert len(result) == 2, (
+                f"符号链接创建成功时应收集到 2 个文件，实际 {len(result)}"
+            )
+        else:
+            # Windows 无管理员权限：仅收集真实文件（降级行为）
+            # 明确记录：符号链接创建失败，仅收集真实文件
+            assert "test_real.py" in names
+            assert len(result) == 1, (
+                f"符号链接创建失败时应仅收集 1 个真实文件，实际 {len(result)}"
+            )
+
+
+class TestFindTestsForModulePermissionDeniedP1:
+    """权限拒绝读取测试文件的 P1 级边界条件覆盖
+
+    覆盖缺口：权限拒绝读取测试文件时的行为
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_find_tests_for_module_permission_denied(self, tmp_path):
+        """P1-15: 权限拒绝读取测试文件时不影响匹配
+
+        场景：测试文件存在但无读取权限，_find_tests_for_module 只读
+        文件名（stem），不读内容，所以权限拒绝不影响匹配。
+
+        Windows 兼容：os.chmod 在 Windows 上效果有限，用 mock 模拟
+        Path.read_text 抛 PermissionError，验证 _find_tests_for_module
+        不依赖文件内容读取。
+
+        预期：
+        - 即使 read_text 抛 PermissionError，_find_tests_for_module 仍能匹配
+        - 因为它只读 stem，不读内容
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        # 创建测试文件
+        target_file = tests_dir / "test_target.py"
+        target_file.write_text("", encoding="utf-8")
+
+        # 预收集 all_tests
+        all_tests = list(tests_dir.rglob("test_*.py"))
+
+        # 模拟权限拒绝：mock Path.read_text 抛 PermissionError
+        # 但 _find_tests_for_module 不调用 read_text，只读 stem
+        # 所以权限拒绝不影响匹配
+        with patch.object(
+            Path, "read_text", side_effect=PermissionError("权限拒绝")
+        ):
+            result = analyzer._find_tests_for_module(
+                "agent.target.x", all_tests
+            )
+
+        # 即使 read_text 抛 PermissionError，_find_tests_for_module 仍能匹配
+        # 因为它只读 stem，不读内容
+        assert len(result) == 1, (
+            f"权限拒绝不应影响 _find_tests_for_module 匹配，"
+            f"应匹配 1 个文件，实际 {len(result)}"
+        )
+        assert "test_target.py" in result[0]
+
+
+class TestAnalyzeLargeDiffPerformanceP1:
+    """50+ 变更文件性能验证的 P1 级边界条件覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_analyze_with_large_diff_50_files(self, tmp_path):
+        """P1-16: 50+ 变更文件的性能验证
+
+        场景：mock _get_changed_files 返回 50 个 ChangedFile，
+        验证 analyze() 在合理时间内完成（< 5 秒）。
+
+        预期：
+        - 50 个变更文件全部处理完成
+        - analyze() 耗时 < 5 秒
+        - recommended_tests 应匹配到对应的测试文件
+        - _collect_test_files 只调用 1 次（预收集优化生效）
+        """
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "agent").mkdir()
+        (repo / "agent" / "__init__.py").write_text("", encoding="utf-8")
+        (repo / "tests").mkdir()
+        # 创建 50 个测试文件
+        for i in range(50):
+            (repo / "tests" / f"test_mod_{i:03d}.py").write_text(
+                "", encoding="utf-8"
+            )
+
+        # 构造 50 个变更文件
+        changed_files = [
+            ChangedFile(
+                path=f"agent/mod_{i:03d}.py",
+                status="M",
+                module_path=f"agent.mod_{i:03d}",
+            )
+            for i in range(50)
+        ]
+
+        analyzer = ImpactAnalyzer(
+            repo_root=str(repo),
+            root_dir="agent",
+            tests_dir="tests",
+        )
+
+        with patch.object(
+            analyzer, "_get_changed_files", return_value=changed_files
+        ), patch.object(
+            analyzer, "_find_impacted_modules", return_value=[]
+        ), patch.object(
+            analyzer, "_relate_tests", return_value=[]
+        ), patch(
+            "scripts.impact_analysis.DependencyGraphBuilder"
+        ) as mock_builder_cls:
+            mock_builder = MagicMock()
+            mock_builder.edges = []
+            mock_builder.nodes = {}
+            mock_builder_cls.return_value = mock_builder
+
+            # 监控 _collect_test_files 调用次数
+            with patch.object(
+                analyzer,
+                "_collect_test_files",
+                wraps=analyzer._collect_test_files,
+            ) as mock_collect:
+                t0 = time.perf_counter()
+                report = analyzer.analyze()
+                elapsed = time.perf_counter() - t0
+
+        # 性能断言：< 5 秒
+        assert elapsed < 5.0, (
+            f"50 个变更文件 analyze() 应 < 5 秒，实际 {elapsed:.3f} 秒"
+        )
+        # 报告应包含所有变更文件
+        assert len(report.changed_files) == 50
+        # _collect_test_files 只调用 1 次（预收集优化生效）
+        # 注：_relate_tests 被 mock，不触发 _collect_test_files
+        assert mock_collect.call_count == 1, (
+            f"50 个变更文件预收集应只触发 1 次 _collect_test_files，"
+            f"实际 {mock_collect.call_count} 次"
+        )
+        # recommended_tests 应匹配到 50 个测试文件
+        # 每个 mod_XXX 匹配 test_mod_XXX.py（short_name=mod_XXX）
+        assert len(report.recommended_tests) == 50, (
+            f"50 个变更文件应匹配 50 个测试文件，"
+            f"实际 {len(report.recommended_tests)}"
+        )
+
+
+class TestRelateTestsPreCollectedConsistencyP1:
+    """预收集 all_tests 一致性验证的 P1 级边界条件覆盖"""
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_relate_tests_with_precollected_all_tests_consistency(self, tmp_path):
+        """P1-17: 预收集 all_tests 传入 _relate_tests 与不传入的一致性验证
+
+        场景：构造受影响模块列表，分别用：
+        - 模式 1：传入预收集的 all_tests
+        - 模式 2：不传 all_tests（_relate_tests 内部收集）
+
+        预期：两种模式产出相同的 related_tests
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_orchestrator.py").write_text("", encoding="utf-8")
+        (tests_dir / "test_other.py").write_text("", encoding="utf-8")
+
+        # 预收集 all_tests
+        all_tests = analyzer._collect_test_files(tests_dir)
+
+        # 构造受影响模块的工厂函数（每次生成新实例，避免状态污染）
+        def make_impacted():
+            return [
+                ImpactedModule(
+                    module_path="agent.orchestrator.core",
+                    impact_type="upstream",
+                    impact_chain="agent.orchestrator.core → agent.changed",
+                    risk_level="low",
+                )
+            ]
+
+        # 模式 1：传入预收集的 all_tests
+        impacted1 = make_impacted()
+        analyzer._relate_tests(impacted1, all_tests)
+        result_with_precollected = impacted1[0].related_tests
+
+        # 模式 2：不传 all_tests（内部收集）
+        impacted2 = make_impacted()
+        analyzer._relate_tests(impacted2)  # 不传 all_tests
+        result_without_precollected = impacted2[0].related_tests
+
+        # 两种模式应产出相同结果
+        assert result_with_precollected == result_without_precollected, (
+            f"预收集与内部收集应产出相同结果，"
+            f"预收集={result_with_precollected}，"
+            f"内部收集={result_without_precollected}"
+        )
+        assert len(result_with_precollected) == 1
+        assert "test_orchestrator.py" in result_with_precollected[0]
