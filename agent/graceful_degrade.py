@@ -187,6 +187,17 @@ class GracefulDegrade:
         Returns:
             (is_valid, result_or_text)
         """
+        # 短路检查：若 schema_validator 已处于降级状态，直接返回纯文本，
+        # 不再调用验证器（避免降级期间仍调用不可用的依赖）
+        if self.is_degraded("schema_validator"):
+            self._log_action("schema_degrade_short_circuit", {
+                "component": "schema_validator",
+                "level": self.get_state("schema_validator").level.value,
+            })
+            if isinstance(data, str):
+                return False, data
+            return False, str(data)
+
         # 第一级：标准验证（最多重试 3 次）
         for attempt in range(3):
             try:

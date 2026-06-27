@@ -167,8 +167,8 @@ class DisasterRecovery:
                 )
 
             try:
-                # 创建带时间戳的备份
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # 创建带时间戳的备份（使用微秒精度，避免同一秒内备份互相覆盖）
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                 backup_file = state.backup_path / f"{timestamp}.bak"
                 backup_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -249,7 +249,7 @@ class DisasterRecovery:
                 if state.path.exists() and self.auto_repair:
                     corrupted_archive = state.backup_path / "corrupted"
                     corrupted_archive.mkdir(parents=True, exist_ok=True)
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                     if state.path.is_file():
                         shutil.move(
                             str(state.path),
