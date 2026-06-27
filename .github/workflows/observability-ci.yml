@@ -776,7 +776,7 @@ jobs:
   # 阶段 1（当前）：exception_coverage 达标(71.6%>70%)，其余指标渐进提升
   #   - structured_log: 26.5% → 目标50%（需补齐600+ logger为JSON格式）
   #   - trace_coverage: 16.7% → 目标50%（需为72个路由添加@trace_route）
-  #   - test_coverage: 40.0% → 目标55%（需CI生成真实coverage.xml）
+  #   - test_coverage: 0.6% → 目标55%（降级逻辑已移除，需大幅补齐测试覆盖）
   #   - boundary_test_coverage: 12.2% → 目标70%（需新增边界测试）
   #   - exception_coverage: 71.6% → 目标70%（已达标✅）
   # 阶段 2（计划）：补齐结构化日志/链路追踪后，提升到阶段 2 目标
