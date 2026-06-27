@@ -730,12 +730,22 @@ jobs:
       - name: 运行全项目测试并生成 coverage.xml
         run: |
           echo "=== 运行全项目测试 ==="
+          # --cov=agent --cov=scripts：同时测量 agent 和 scripts 两个源目录
+          # --cov-report=xml：生成 coverage.xml 供 visibility-report job 消费
+          # --maxfail=0：覆盖 pytest.ini 的 --maxfail=10，避免 collection errors 过早停止
+          #   原因：pytest.ini 配置了 --maxfail=10，全项目测试中若有测试文件 import 失败
+          #         （如依赖外部服务），会在 10 个 errors 后停止，导致 coverage.xml line-rate=0
+          # --continue-on-collection-errors：部分测试文件 collection 失败时仍继续执行其他测试
+          # --cov-fail-under=0：不因覆盖率低而失败，阻断交由 visibility-report 的 test_coverage 阈值
+          # 注意：不使用 --cov-config=.coveragerc_scripts，因为该配置的 omit 包含 agent/*
+          #       会排除 agent 目录下所有文件，与全项目覆盖率目标冲突
           python -m pytest tests/ \
             --cov=agent \
             --cov=scripts \
-            --cov-config=.coveragerc_scripts \
             --cov-report=xml \
             --cov-report=term-missing \
+            --maxfail=0 \
+            --continue-on-collection-errors \
             --cov-fail-under=0 \
             -q \
             --tb=short
