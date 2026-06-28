@@ -12,6 +12,7 @@ from agent.system_tools import (
     get_whitelist_detail, add_whitelist_entry, remove_whitelist_entry,
     PROCESS_WHITELIST, WORKSPACE_DIR,
 )
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/workspace")
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_workspace_list():
         path = request.args.get("path", "")
@@ -36,6 +38,7 @@ def register_routes(app, state):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/workspace/write", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_workspace_write():
@@ -54,6 +57,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 403
 
     @app.route("/api/workspace/delete", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_workspace_delete():
@@ -68,6 +72,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 403
 
     @app.route("/api/workspace/info")
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_workspace_info():
         total_size = 0
@@ -91,6 +96,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/filesystem/read", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_filesystem_read():
@@ -110,6 +116,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/filesystem/write", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_filesystem_write():
@@ -126,6 +133,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/filesystem/list", methods=["GET"])
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_filesystem_list():
         path = request.args.get("path", ".")
@@ -134,6 +142,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/filesystem/info", methods=["GET"])
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_filesystem_info():
         path = request.args.get("path", "")
@@ -142,6 +151,7 @@ def register_routes(app, state):
         return jsonify(get_file_info(path))
 
     @app.route("/api/filesystem/search", methods=["GET"])
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_filesystem_search():
         pattern = request.args.get("pattern", "")
@@ -155,6 +165,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/sandbox/run", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_sandbox_run():
@@ -193,6 +204,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/browser/navigate", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_browser_navigate():
@@ -203,6 +215,7 @@ def register_routes(app, state):
         return jsonify(browser_navigate(url))
 
     @app.route("/api/browser/screenshot")
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_browser_screenshot():
@@ -210,6 +223,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/browser/close", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_browser_close():
@@ -221,16 +235,19 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/process/list")
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_process_list():
         return jsonify({"processes": list_processes()})
 
     @app.route("/api/process/whitelist")
+    @trace_route("Workspace")
     @log_request(show_response=False)
     def api_process_whitelist():
         return jsonify(get_whitelist_detail())
 
     @app.route("/api/process/whitelist/add", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_process_whitelist_add():
@@ -239,6 +256,7 @@ def register_routes(app, state):
         return jsonify(add_whitelist_entry(program))
 
     @app.route("/api/process/whitelist/remove", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_process_whitelist_remove():
@@ -247,6 +265,7 @@ def register_routes(app, state):
         return jsonify(remove_whitelist_entry(program))
 
     @app.route("/api/process/start", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_process_start():
@@ -258,6 +277,7 @@ def register_routes(app, state):
         return jsonify(start_process(program, args))
 
     @app.route("/api/process/stop", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_process_stop():
@@ -272,12 +292,14 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/clipboard")
+    @trace_route("Workspace")
     @require_token
     @log_request(show_response=False)
     def api_clipboard_get():
         return jsonify(get_clipboard())
 
     @app.route("/api/clipboard", methods=["POST"])
+    @trace_route("Workspace")
     @require_token
     @log_request()
     def api_clipboard_set():

@@ -6,6 +6,7 @@ import datetime as dt
 import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/voice/listen", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_voice_listen():
@@ -152,6 +154,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/voice/status")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_voice_status():
         try:
@@ -172,6 +175,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/chat", methods=["POST"])
+    @trace_route("Chat")
     def api_chat():
         start_time = time.time()
 
@@ -322,6 +326,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/web/get", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_get():
@@ -337,6 +342,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/web/post", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_post():
@@ -353,6 +359,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/web/xpath", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_xpath():
@@ -374,6 +381,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "results": results, "count": len(results)})
 
     @app.route("/api/web/css", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_css():
@@ -396,6 +404,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "results": results, "count": len(results)})
 
     @app.route("/api/web/search", methods=["GET"])
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_search():
         query = request.args.get("query", "")
@@ -412,6 +421,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/web/clean", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_clean():
@@ -432,6 +442,7 @@ def register_routes(app, state):
         return jsonify({"ok": False, "error": "请提供 text 或 items"}), 400
 
     @app.route("/api/web/download", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_download():
@@ -443,6 +454,7 @@ def register_routes(app, state):
         return jsonify(web_http.download(url, filepath))
 
     @app.route("/api/web/stats")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_stats():
         return jsonify({
@@ -453,6 +465,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/web/search/status")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_search_status():
         try:
