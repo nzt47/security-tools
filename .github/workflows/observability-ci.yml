@@ -832,6 +832,45 @@ jobs:
             echo "⚠️ coverage.xml 未就位，visibility_report.py 将返回 0.0 并输出 error 日志（不再降级到 pyproject.toml fail_under）"
           fi
 
+      # ── 回归检查：防止 _read_test_coverage 降级逻辑被意外回滚 ──
+      # 原理：临时移走 coverage.xml，调用 _read_test_coverage()，
+      #       验证返回 0.0（非降级）而非 40.0（pyproject.toml fail_under 降级值）。
+      # 如果返回 40.0，说明降级逻辑又回来了，检查失败，阻断合并。
+      - name: 回归检查 - coverage.xml 缺失时不降级
+        run: |
+          echo "=== 回归检查：_read_test_coverage 不应降级到 pyproject.toml fail_under ==="
+          # 临时移走 coverage.xml（如果存在）
+          if [ -f coverage.xml ]; then
+            mv coverage.xml coverage.xml.bak
+            echo "coverage.xml 已临时移走"
+          fi
+          # 调用 _read_test_coverage，捕获返回值（stderr 日志不干扰）
+          RESULT=$(python -c "
+          import sys; sys.path.insert(0, 'scripts')
+          from visibility_report import MetricCollector
+          from pathlib import Path
+          mc = MetricCollector(Path('.'), {})
+          v = mc._read_test_coverage()
+          print(v)
+          " 2>/dev/null)
+          echo "_read_test_coverage 返回值: $RESULT"
+          # 恢复 coverage.xml
+          if [ -f coverage.xml.bak ]; then
+            mv coverage.xml.bak coverage.xml
+            echo "coverage.xml 已恢复"
+          fi
+          # 验证：缺失时必须返回 0.0，不能是 40.0（降级值）
+          if [ "$RESULT" = "40.0" ] || [ "$RESULT" = "40" ]; then
+            echo "❌ 回归失败：coverage.xml 缺失时返回 40.0，说明降级逻辑又回来了"
+            echo "   请检查 scripts/visibility_report.py 的 _read_test_coverage 方法是否被意外回滚"
+            exit 1
+          elif [ "$RESULT" = "0.0" ] || [ "$RESULT" = "0" ]; then
+            echo "✅ 回归通过：coverage.xml 缺失时返回 0.0（不降级到 pyproject.toml）"
+          else
+            echo "⚠️ 异常返回值：$RESULT（期望 0.0），请检查 _read_test_coverage 实现"
+            exit 1
+          fi
+
       - name: 生成四层可见性报告
         id: visibility
         run: |
