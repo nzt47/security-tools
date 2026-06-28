@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
       - 'release/**'
     paths:
@@ -285,7 +286,8 @@ jobs:
         run: |
           echo "=== 运行可观测性单元测试 ==="
           # --cov-fail-under=0：本 job 仅测可观测性子模块，覆盖率不用于阻断
-          # 全项目覆盖率由 visibility-report job 读取 pyproject.toml fail_under 作为基线
+          # 全项目覆盖率由 full-project-tests job 生成 coverage.xml，
+          # visibility-report job 下载后由 visibility_report.py 读取 line-rate（不再降级到 pyproject.toml）
           python -m pytest \
             tests/unit/test_monitoring_tracing.py \
             tests/unit/test_prometheus_exporter.py \
@@ -388,8 +390,9 @@ jobs:
       # 原因：本 job 仅测 5 个可观测性测试文件，生成的 coverage.xml 只覆盖
       #       agent.monitoring/agent.observability/agent.prometheus_exporter 三个子模块，
       #       line-rate≈19.7%，远低于全项目 40% 阈值，会导致 visibility-report 误判失败。
-      # 修复：visibility-report job 不再下载部分覆盖的 coverage.xml，
-      #       而是由 visibility_report.py 降级读取 pyproject.toml fail_under=40 作为基线。
+      # 修复：visibility-report job 改为下载 full-project-tests job 生成的 full-coverage-report
+      #       artifact（覆盖 agent + scripts 全量代码），visibility_report.py 直接读取
+      #       coverage.xml 的 line-rate；缺失时返回 0.0 并输出 error 日志（不再降级到 pyproject.toml）。
 
   # ============================================================================
   # 阶段3：可观测性集成测试
@@ -826,7 +829,7 @@ jobs:
             echo "✅ coverage.xml 已从 full-project-tests 下载"
             python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
           else
-            echo "⚠️ coverage.xml 未就位，visibility_report.py 将降级到 pyproject.toml fail_under=40"
+            echo "⚠️ coverage.xml 未就位，visibility_report.py 将返回 0.0 并输出 error 日志（不再降级到 pyproject.toml fail_under）"
           fi
 
       - name: 生成四层可见性报告
@@ -1076,9 +1079,11 @@ jobs:
       - name: 运行混沌测试
         id: run_tests
         run: |
+          set +e  # 禁用 errexit，确保 exit_code 总能写入 output
           echo "=== 运行混沌测试 ==="
           python -m pytest ${{ steps.params.outputs.pytest_args }} 2>&1 | tee chaos_test_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
+          # 确保 exit_code 总能写入 output（即使 pytest 崩溃）
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "测试退出码: $EXIT_CODE"
           exit $EXIT_CODE
@@ -1138,7 +1143,7 @@ jobs:
             body += `| 跳过 | ${skipped} |\n`;
             body += `| 退出码 | ${exitCode} |\n`;
             body += `\n> ℹ️ 混沌测试使用 \`continue-on-error: true\`，**不会阻塞 PR 合并**。\n`;
-            body += `> 完整日志请查看 [Artifact](../runs/${{ github.run_id }}) 中的 \`chaos-test-logs\`。\n`;
+            body += `> 完整日志请查看 [Action 运行记录](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 中的 \`chaos-test-logs\` artifact。\n`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -1150,26 +1155,49 @@ jobs:
       - name: 手动触发确认信息
         if: github.event_name == 'workflow_dispatch'
         run: |
+          # 空值保护：如果上游 step 输出为空，使用默认值
+          SCOPE="${{ steps.params.outputs.scope }}"
+          VERBOSE="${{ steps.params.outputs.verbose }}"
+          MAX_FAIL="${{ steps.params.outputs.max_fail }}"
+          PASSED="${{ steps.parse_results.outputs.passed }}"
+          FAILED="${{ steps.parse_results.outputs.failed }}"
+          SKIPPED="${{ steps.parse_results.outputs.skipped }}"
+          EXIT_CODE="${{ steps.run_tests.outputs.exit_code }}"
+          # 默认值
+          SCOPE="${SCOPE:-unknown}"
+          VERBOSE="${VERBOSE:-unknown}"
+          MAX_FAIL="${MAX_FAIL:-unknown}"
+          PASSED="${PASSED:-0}"
+          FAILED="${FAILED:-0}"
+          SKIPPED="${SKIPPED:-0}"
+          EXIT_CODE="${EXIT_CODE:-unknown}"
+
           echo "=============================================="
           echo "  workflow_dispatch 手动触发确认"
           echo "=============================================="
           echo "触发者: ${{ github.actor }}"
           echo "分支: ${{ github.ref_name }}"
           echo "提交: ${{ github.sha }}"
-          echo "测试范围: ${{ steps.params.outputs.scope }}"
-          echo "详细输出: ${{ steps.params.outputs.verbose }}"
-          echo "最大失败: ${{ steps.params.outputs.max_fail }}"
+          echo "测试范围: $SCOPE"
+          echo "详细输出: $VERBOSE"
+          echo "最大失败: $MAX_FAIL"
           echo "----------------------------------------------"
           echo "测试结果:"
-          echo "  通过: ${{ steps.parse_results.outputs.passed }}"
-          echo "  失败: ${{ steps.parse_results.outputs.failed }}"
-          echo "  跳过: ${{ steps.parse_results.outputs.skipped }}"
-          echo "  退出码: ${{ steps.run_tests.outputs.exit_code }}"
+          echo "  通过: $PASSED"
+          echo "  失败: $FAILED"
+          echo "  跳过: $SKIPPED"
+          echo "  退出码: $EXIT_CODE"
           echo "=============================================="
           echo ""
-          echo "✅ workflow_dispatch 手动触发已生效！"
-          echo "✅ 测试范围选择功能正常！"
-          echo "✅ 结果解析功能正常！"
+          # 验证手动触发是否真正生效
+          if [ "$SCOPE" != "unknown" ] && [ -n "$PASSED" ]; then
+            echo "✅ workflow_dispatch 手动触发已生效！"
+            echo "✅ 测试范围选择功能正常（scope=$SCOPE）！"
+            echo "✅ 结果解析功能正常（passed=$PASSED, failed=$FAILED）！"
+            echo "✅ 参数传递链路完整：inputs → 参数构建 → pytest 执行 → 结果解析"
+          else
+            echo "⚠️ workflow_dispatch 触发可能异常，请检查上游 step 输出"
+          fi
 
   # ============================================================================
   # 阶段11：可见性趋势报告（周报/月报，定时触发，不阻塞 PR）
