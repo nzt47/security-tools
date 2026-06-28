@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 import time
+import json
+import uuid
 import logging
 import threading
 import traceback
@@ -31,6 +33,11 @@ R = TypeVar('R')
 F = TypeVar('F', bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+
+def _trace_id() -> str:
+    """生成 trace_id（结构化日志用）"""
+    return uuid.uuid4().hex[:16]
 
 
 class ErrorSeverity(Enum):
@@ -229,7 +236,7 @@ class CircuitBreaker:
         self.half_open_start: Optional[datetime] = None
         self._lock = threading.Lock()
         
-        logger.info(f"Circuit breaker '{name}' initialized: max_failures={max_failures}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": name, "max_failures": max_failures}, ensure_ascii=False))
 
     def _can_reset(self) -> bool:
         """检查是否可以重置断路器"""
@@ -252,7 +259,7 @@ class CircuitBreaker:
                 # 半开状态成功，恢复到闭合
                 self.state = CircuitState.CLOSED
                 self.failure_count = 0
-                logger.info(f"Circuit breaker '{self.name}': recovered to CLOSED state")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.recovered", "duration_ms": 0, "name": self.name, "state": "CLOSED"}, ensure_ascii=False))
             elif self.state == CircuitState.CLOSED:
                 # 正常状态，重置失败计数
                 self.failure_count = 0
@@ -266,16 +273,12 @@ class CircuitBreaker:
             if self.state == CircuitState.CLOSED:
                 if self.failure_count >= self.max_failures:
                     self.state = CircuitState.OPEN
-                    logger.warning(
-                        f"Circuit breaker '{self.name}': OPENED after {self.failure_count} failures"
-                    )
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": self.name, "failure_count": self.failure_count}, ensure_ascii=False))
             elif self.state == CircuitState.HALF_OPEN:
                 # 半开状态失败，重新断开
                 self.state = CircuitState.OPEN
                 self.last_failure_time = datetime.now()
-                logger.warning(
-                    f"Circuit breaker '{self.name}': reopened after failure in half-open state"
-                )
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.reopened", "duration_ms": 0, "name": self.name, "state": "OPEN"}, ensure_ascii=False))
 
     def execute(self, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R:
         """执行函数，受断路器保护"""
@@ -284,7 +287,7 @@ class CircuitBreaker:
                 if self._can_half_open():
                     self.state = CircuitState.HALF_OPEN
                     self.half_open_start = datetime.now()
-                    logger.info(f"Circuit breaker '{self.name}': transitioning to HALF_OPEN")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": self.name, "state": "HALF_OPEN"}, ensure_ascii=False))
                 else:
                     raise CriticalError(
                         f"Circuit breaker '{self.name}' is OPEN",

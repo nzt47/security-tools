@@ -147,10 +147,7 @@ class SnapshotFrequencyController:
         if elapsed >= self.min_interval_seconds:
             return True
 
-        logger.debug(
-            f"[P6] 快照保存过于频繁，上次保存于 {elapsed:.1f}秒前，"
-            f"最小间隔 {self.min_interval_seconds}秒"
-        )
+        logger.debug(json.dumps({"trace_id": str(uuid.uuid4())[:8], "module_name": "p6_snapshot", "action": "snapshot.frequency_rejected", "duration_ms": 0, "elapsed_seconds": round(elapsed, 1), "min_interval_seconds": self.min_interval_seconds}, ensure_ascii=False))
         return False
 
     def on_save_success(self):
