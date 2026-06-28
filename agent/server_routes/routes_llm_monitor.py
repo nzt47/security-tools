@@ -5,6 +5,7 @@
 
 import logging
 from flask import jsonify, request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/llm-monitor/records", methods=["GET"])
+    @trace_route("LLMMonitor")
     def api_llm_monitor_records():
         """获取 LLM 通信记录列表（倒序）"""
         try:
@@ -51,6 +53,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/llm-monitor/records/<record_id>", methods=["GET"])
+    @trace_route("LLMMonitor")
     def api_llm_monitor_record_detail(record_id):
         """获取单条 LLM 通信记录详情"""
         try:
@@ -68,6 +71,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/llm-monitor/stats", methods=["GET"])
+    @trace_route("LLMMonitor")
     def api_llm_monitor_stats():
         """获取 LLM 通信统计概览"""
         try:
@@ -88,6 +92,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/llm-monitor/toggle", methods=["POST"])
+    @trace_route("LLMMonitor")
     def api_llm_monitor_toggle():
         """启用或禁用监控"""
         try:
@@ -100,6 +105,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm-monitor/clear", methods=["POST"])
+    @trace_route("LLMMonitor")
     def api_llm_monitor_clear():
         """清除所有记录"""
         try:

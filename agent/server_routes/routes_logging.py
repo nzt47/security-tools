@@ -53,6 +53,7 @@ from agent.monitoring.prometheus import (
 )
 from agent.health.assessor import health_assessor
 from agent.tools import list_tools
+from agent.server_routes.tracing_decorator import trace_route
 from agent.monitoring.sensitive_data_filter import (
     filter_sensitive_data, 
     filter_dict,
@@ -112,28 +113,6 @@ def _save_alert_rules(rules):
     except Exception as e:
         logger.error(f"保存告警规则失败: {e}")
         return False
-
-
-def trace_route(service_name="API"):
-    """追踪路由装饰器
-    
-    自动为 API 路由添加追踪上下文，确保完整的链路追踪。
-    
-    Args:
-        service_name: 服务名称，用于追踪标识
-    
-    Returns:
-        装饰后的函数
-    """
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            operation = func.__name__.replace("api_", "").replace("_", ".")
-            with TraceContext(service_name, operation):
-                return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
 
 
 def _get_tool_summary():
