@@ -348,7 +348,33 @@ class RetryablePrometheusOperation:
 # SafeFileReader Prometheus 指标
 # ============================================================================
 
+# 降级实现：当 prometheus_client 不可用时使用 noop 对象，避免 NameError
+class _NoopMetric:
+    """prometheus_client 不可用时的 noop 降级基类"""
+    def __init__(self, *args, **kwargs):
+        pass
+    def labels(self, *args, **kwargs):
+        return self
+
+class _NoopCounter(_NoopMetric):
+    """Counter 降级实现"""
+    def inc(self, *args, **kwargs):
+        pass
+
+class _NoopHistogram(_NoopMetric):
+    """Histogram 降级实现"""
+    def observe(self, *args, **kwargs):
+        pass
+
+class _NoopGauge(_NoopMetric):
+    """Gauge 降级实现"""
+    def set(self, *args, **kwargs):
+        pass
+
 def _safe_counter(name, doc, labels):
+    # 降级处理：prometheus_client 不可用时返回 noop 对象
+    if not _PROMETHEUS_AVAILABLE:
+        return _NoopCounter()
     try:
         return Counter(name, doc, labels)
     except ValueError:
@@ -357,6 +383,9 @@ def _safe_counter(name, doc, labels):
         return _R._names_to_collectors[base]
 
 def _safe_histogram(name, doc, labels, buckets=None):
+    # 降级处理：prometheus_client 不可用时返回 noop 对象
+    if not _PROMETHEUS_AVAILABLE:
+        return _NoopHistogram()
     kwargs = {"buckets": buckets} if buckets else {}
     try:
         return Histogram(name, doc, labels, **kwargs)
@@ -384,6 +413,9 @@ yunshu_safe_file_reader_read_duration_seconds = _safe_histogram(
 )
 
 def _safe_gauge(name, doc, labels):
+    # 降级处理：prometheus_client 不可用时返回 noop 对象，避免 NameError 崩溃
+    if not _PROMETHEUS_AVAILABLE:
+        return _NoopGauge()
     try:
         return Gauge(name, doc, labels)
     except ValueError:

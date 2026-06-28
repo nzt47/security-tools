@@ -22,11 +22,13 @@ import time
 import subprocess
 import threading
 import os
+import uuid
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-from agent.monitoring.tracing import get_trace_id
+# set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 try:
     from agent.error_handler import get_error_handler
@@ -837,6 +839,8 @@ class SelfHealer:
 
     def _health_check_loop(self):
         """健康检查循环"""
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        set_trace_id(self._healer_trace_id)
         while self._running:
             try:
                 # 尝试恢复熔断器

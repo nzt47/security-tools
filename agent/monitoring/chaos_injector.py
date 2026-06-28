@@ -32,12 +32,14 @@ import time
 import random
 import threading
 import logging
+import uuid
 import gc
 import functools
 from typing import Dict, Optional, Callable, Any, List
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +113,13 @@ class ChaosInjector:
         self._memory_pressure_thread: Optional[threading.Thread] = None
         self._memory_pressure_stop_event = threading.Event()
         self._memory_hold_list: List[bytearray] = []
-        
+
         # 初始化默认配置
         for fault_type in FaultType:
             self._fault_configs[fault_type] = FaultConfig(fault_type=fault_type)
+
+        # 后台故障注入线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._chaos_trace_id = f"chaos-injector-{uuid.uuid4().hex[:16]}"
     
     def _check_probability(self, config: FaultConfig) -> bool:
         """检查是否应该触发故障（基于概率）"""
@@ -268,6 +273,7 @@ class ChaosInjector:
             if duration_ms:
                 def memory_maintainer():
                     """内存维护线程，保持内存占用直到超时"""
+                    set_trace_id(self._chaos_trace_id)
                     start = time.time()
                     while not self._memory_pressure_stop_event.is_set():
                         if (time.time() - start) * 1000 >= duration_ms:
@@ -323,6 +329,7 @@ class ChaosInjector:
             if duration_ms:
                 def cleanup_monitor():
                     """监控并清理CPU压力进程"""
+                    set_trace_id(self._chaos_trace_id)
                     time.sleep(duration_ms / 1000.0 + 1)
                     for p in processes:
                         if p.is_alive():

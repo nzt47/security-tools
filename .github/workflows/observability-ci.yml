@@ -48,6 +48,8 @@ on:
   schedule:
     - cron: '0 3 * * *'  # 每天凌晨3点运行完整可观测性验证
     - cron: '0 2 * * *'  # 每天凌晨2点运行混沌测试
+    - cron: '0 4 * * 1'  # 每周一凌晨4点生成可见性趋势周报
+    - cron: '0 4 1 * *'  # 每月1日凌晨4点生成可见性趋势月报
 
   # 手动触发：支持选择测试范围和详细程度
   workflow_dispatch:
@@ -71,6 +73,15 @@ on:
         required: false
         default: '0'
         type: string
+      trend_period:
+        description: '可见性趋势报告周期（仅影响 visibility-trend-report job，其他 job 不受影响）'
+        required: false
+        default: 'skip'
+        type: choice
+        options:
+          - skip
+          - weekly
+          - monthly
 
 env:
   PYTHON_VERSION: '3.11'
@@ -1159,3 +1170,89 @@ jobs:
           echo "✅ workflow_dispatch 手动触发已生效！"
           echo "✅ 测试范围选择功能正常！"
           echo "✅ 结果解析功能正常！"
+
+  # ============================================================================
+  # 阶段11：可见性趋势报告（周报/月报，定时触发，不阻塞 PR）
+  # - 触发条件：schedule cron 或 workflow_dispatch 手动选择 trend_period
+  # - 报告周期：schedule 触发时按日期判断（1号→月报，其他→周报）；
+  #             workflow_dispatch 时使用 inputs.trend_period
+  # - 失败不阻塞：continue-on-error + if: always() 保证后续步骤执行
+  # ============================================================================
+  visibility-trend-report:
+    name: 可见性趋势报告
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.trend_period != 'skip')
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 确定报告周期
+        id: period
+        run: |
+          # 优先使用 workflow_dispatch 手动选择的周期
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PERIOD="${{ inputs.trend_period }}"
+          elif [ "$(date +%d)" = "01" ]; then
+            # 每月1日的 cron 触发 → monthly
+            PERIOD="monthly"
+          else
+            # 每周一的 cron 触发 → weekly
+            PERIOD="weekly"
+          fi
+          echo "period=$PERIOD" >> $GITHUB_OUTPUT
+          echo "报告周期: $PERIOD"
+
+      - name: 创建输出目录
+        run: mkdir -p docs/observability/trends/
+
+      - name: 生成可见性趋势报告
+        id: generate
+        run: |
+          python scripts/generate_visibility_trend.py \
+            --prometheus-url "${{ secrets.PROMETHEUS_URL }}" \
+            --period ${{ steps.period.outputs.period }} \
+            --output docs/observability/trends/ \
+            --non-interactive
+        continue-on-error: true  # 不阻塞工作流，趋势报告失败不影响其他任务
+
+      - name: 上传趋势报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visibility-trend-${{ steps.period.outputs.period }}-${{ github.run_id }}
+          path: docs/observability/trends/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 提交趋势报告到仓库
+        if: github.event_name == 'schedule' && steps.generate.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/observability/trends/ || true
+          if git diff --staged --quiet; then
+            echo "无趋势报告变更，跳过提交"
+          else
+            git commit -m "docs(observability): 自动生成 ${{ steps.period.outputs.period }} 可见性趋势报告 [skip ci]"
+            git push
+          fi
+
+      - name: 生成摘要
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "  可见性趋势报告生成完成"
+          echo "=============================================="
+          echo "触发方式: ${{ github.event_name }}"
+          echo "报告周期: ${{ steps.period.outputs.period }}"
+          echo "生成状态: ${{ steps.generate.outcome }}"
+          echo "输出目录: docs/observability/trends/"
+          echo "=============================================="
