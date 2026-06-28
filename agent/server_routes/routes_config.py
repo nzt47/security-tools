@@ -1,3 +1,4 @@
+# MARKER: THIS IS THE CURRENT FILE VERSION - 2026-06-27
 """配置 & 网络配置 & LLM & MCP API 路由"""
 import uuid
 import datetime
@@ -270,6 +271,74 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": "操作失败"}), 500
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/llm/instances/<string:instance_id>/test", methods=["POST"])
+    @require_token
+    @log_request()
+    def api_llm_instance_test(instance_id):
+        """测试 LLM 实例连通性"""
+        import sys as _sys
+        _sys.stderr.reconfigure(encoding='utf-8')
+        print('[DEBUG] api_llm_instance_test CALLED with', instance_id, flush=True)
+        import time as _time
+        _start = _time.time()
+        try:
+            config = ncm.get_raw_config()
+            instances = config.get('llm_instances', [])
+            inst = None
+            for i in instances:
+                if i.get('id') == instance_id:
+                    inst = i
+                    break
+            if not inst:
+                return jsonify({"ok": False, "error": "实例不存在"}), 404
+
+            provider = inst.get('provider', 'openai')
+            model = inst.get('model', 'gpt-4')
+            api_key = inst.get('api_key', '')
+            base_url = inst.get('api_endpoint', '')
+
+            if not api_key:
+                return jsonify({"ok": False, "error": "API Key 为空，请先配置"})
+
+            # Debug: check the actual key
+            _key_preview = api_key[:10] + '...' + api_key[-6:] if len(api_key) > 16 else api_key
+            _key_len = len(api_key)
+            _key_first_byte = ord(api_key[0]) if api_key else 0
+
+            # Simple direct API test first
+            import urllib.request, json as _json
+            _body = _json.dumps({
+                'model': model,
+                'messages': [{'role': 'user', 'content': 'OK'}],
+                'max_tokens': 10,
+            }).encode()
+            _req = urllib.request.Request(
+                f'{base_url}/v1/chat/completions',
+                data=_body,
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                method='POST')
+            _resp = urllib.request.urlopen(_req, timeout=15)
+            _result = _json.loads(_resp.read())
+            _text = _result['choices'][0]['message']['content'].strip()
+            _elapsed = round(_time.time() - _start, 2)
+            return jsonify({
+                "ok": True, "provider": provider, "model": model,
+                "elapsed": _elapsed, "response": _text[:200],
+                "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte},
+            })
+        except urllib.error.HTTPError as _httpe:
+            _elapsed = round(_time.time() - _start, 2)
+            _err_body = _httpe.read().decode('utf-8')[:200] if hasattr(_httpe, 'read') else ''
+            return jsonify({"ok": False, "error": f"HTTP {_httpe.code}: {_err_body}", "elapsed": _elapsed,
+                           "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte}}), 500
+        except Exception as e:
+            _elapsed = round(_time.time() - _start, 2)
+            return jsonify({"ok": False, "error": str(e), "elapsed": _elapsed,
+                           "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte}}), 500
 
     # ═══════════════════════════════════════════════════
     #  MCP 服务管理

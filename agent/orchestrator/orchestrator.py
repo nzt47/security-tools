@@ -155,7 +155,7 @@ class Orchestrator:
         # ── 第一步：Workflow Engine 匹配（0 Token 消耗）──
         ts_wf = time.time()
         workflow_result = self._workflow_engine.try_match(user_input)
-        if workflow_result.matched:
+        if workflow_result is not None and workflow_result.matched:
             logger.info("[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms",
                         workflow_result.intent, workflow_result.confidence,
                         workflow_result.execution_time_ms)
@@ -163,9 +163,7 @@ class Orchestrator:
             self._memory.score_and_save_message("assistant", workflow_result.output)
             if trace_id:
                 trace_store.end_trace(trace_id, workflow_result.output)
-            return ResponseBuilder.workflow_result(
-                workflow_result.output, workflow_result.intent, workflow_result.confidence
-            ).to_dict()
+            return ResponseBuilder.workflow_result(workflow_result.output).to_dict()
         if trace_id:
             trace_store.add_span(trace_id, TraceSpan(
                 span_id=f"{trace_id}_workflow",

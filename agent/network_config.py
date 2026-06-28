@@ -1103,7 +1103,7 @@ class NetworkConfigManager:
 
                 if selected:
                     provider = selected.get('provider') or provider
-                    api_key = selected.get('api_key') or api_key
+                    api_key = (selected.get('api_key') or api_key).strip()
                     model = selected.get('model') or model
                     base_url = selected.get('api_endpoint') or base_url
                     logger.info("[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s",

@@ -675,7 +675,7 @@ function validateNetworkConfig(config) {
     errors.push('网络超时应在 1-300 秒之间');
   }
 
-  if (config.network.proxy_enabled && config.network.proxy_url) {
+  if (config.network.proxy_enabled && config.network.proxy_url && !config.network.proxy_url.startsWith('***')) {
     try {
       new URL(config.network.proxy_url);
     } catch {
@@ -683,7 +683,7 @@ function validateNetworkConfig(config) {
     }
   }
 
-  if (config.external_services.error_reporting.enabled && config.external_services.error_reporting.webhook_url) {
+  if (config.external_services.error_reporting.enabled && config.external_services.error_reporting.webhook_url && !config.external_services.error_reporting.webhook_url.startsWith('***')) {
     try {
       new URL(config.external_services.error_reporting.webhook_url);
     } catch {
