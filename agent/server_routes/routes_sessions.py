@@ -2,6 +2,7 @@
 import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request, _API_TOKEN_ENABLED
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def register_routes(app, state):
     # ── 会话列表 ──
 
     @app.route("/api/sessions", methods=["GET"])
+    @trace_route("Sessions")
     def api_sessions_list():
         sessions = session_mgr.list_sessions()
         current_id = session_mgr.get_current_id()
@@ -33,6 +35,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/sessions", methods=["POST"])
+    @trace_route("Sessions")
     def api_sessions_create():
         data = request.get_json() or {}
         title = data.get("title", "")
@@ -41,6 +44,7 @@ def register_routes(app, state):
         return jsonify(session), 201
 
     @app.route("/api/sessions/<session_id>", methods=["DELETE"])
+    @trace_route("Sessions")
     @require_token
     def api_sessions_delete(session_id):
         if session_mgr.delete_session(session_id):
@@ -50,6 +54,7 @@ def register_routes(app, state):
         return jsonify({"error": "会话不存在"}), 404
 
     @app.route("/api/sessions/<session_id>/rename", methods=["PUT"])
+    @trace_route("Sessions")
     @require_token
     def api_sessions_rename(session_id):
         data = request.get_json() or {}
@@ -61,6 +66,7 @@ def register_routes(app, state):
         return jsonify({"error": "会话不存在"}), 404
 
     @app.route("/api/sessions/current", methods=["POST"])
+    @trace_route("Sessions")
     @require_token
     def api_sessions_set_current():
         data = request.get_json() or {}
@@ -84,6 +90,7 @@ def register_routes(app, state):
         return jsonify({"error": "会话不存在"}), 404
 
     @app.route("/api/sessions/<session_id>/messages", methods=["GET"])
+    @trace_route("Sessions")
     def api_sessions_messages(session_id):
         limit = request.args.get("limit", 50, type=int)
         messages = session_mgr.get_messages(session_id, limit=limit)
@@ -92,6 +99,7 @@ def register_routes(app, state):
     # ── 历史记录 ──
 
     @app.route("/api/history")
+    @trace_route("Sessions")
     @log_request(show_response=False)
     def api_history():
         session_id = request.args.get("session") or _get_current_session_id(session_mgr)
@@ -113,6 +121,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/clear", methods=["POST"])
+    @trace_route("Sessions")
     @require_token
     @log_request()
     def api_clear():
@@ -122,11 +131,13 @@ def register_routes(app, state):
         return jsonify({"ok": True})
 
     @app.route("/api/auth/token-check")
+    @trace_route("Sessions")
     @log_request(show_response=False)
     def api_auth_token_check():
         return jsonify({"enabled": _API_TOKEN_ENABLED, "valid": True})
 
     @app.route("/api/history/search")
+    @trace_route("Sessions")
     @log_request(show_response=False)
     def api_history_search():
         q = request.args.get("q", "").strip().lower()
@@ -143,6 +154,7 @@ def register_routes(app, state):
         return jsonify(results)
 
     @app.route("/api/history/<int:index>", methods=["DELETE"])
+    @trace_route("Sessions")
     @require_token
     @log_request()
     def api_history_delete(index):

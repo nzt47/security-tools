@@ -24,6 +24,7 @@ from agent.server_auth import require_token, log_request
 from agent.monitoring.tracing import get_trace_id, TraceContext
 from agent.monitoring.metrics import get_metrics_collector
 from agent.health.assessor import health_assessor
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -58,19 +59,6 @@ def _log_api_request(api_name, params=None, status="success", error=None):
         log_data["error"] = str(error)
     
     logger.info(json.dumps(log_data))
-
-
-def trace_route(service_name="Dashboard"):
-    """追踪路由装饰器"""
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            operation = func.__name__.replace("api_", "").replace("_", ".")
-            with TraceContext(service_name, operation):
-                return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
 
 
 def _parse_time_range(time_range):

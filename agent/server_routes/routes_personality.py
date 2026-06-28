@@ -2,6 +2,7 @@
 import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +13,13 @@ def register_routes(app, state):
     personality_mgr = state.personality_mgr
 
     @app.route("/api/personality", methods=["GET"])
+    @trace_route("Personality")
     @log_request(show_response=False)
     def api_personality_get():
         return jsonify(personality_mgr.get())
 
     @app.route("/api/personality/params", methods=["POST"])
+    @trace_route("Personality")
     @require_token
     @log_request()
     def api_personality_params():
@@ -26,6 +29,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/personality/profile", methods=["POST"])
+    @trace_route("Personality")
     @require_token
     @log_request()
     def api_personality_profile():
@@ -35,6 +39,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/personality/reset", methods=["POST"])
+    @trace_route("Personality")
     @require_token
     @log_request()
     def api_personality_reset():
