@@ -32,12 +32,14 @@ import threading
 import time
 import tracemalloc
 import traceback
+import uuid
 from collections import deque
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from agent.monitoring.tracing import get_trace_id
+# set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +175,8 @@ class ResourceMonitor:
         # tracemalloc 启动状态（幂等）
         self._tracemalloc_started = False
         self._init_tracemalloc()
+        # 后台采样线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._monitor_trace_id = f"resource-monitor-{uuid.uuid4().hex[:16]}"
 
         # 持久化配置（跨重启趋势分析）
         self._persist_enabled = bool(self._get_config("persist_enabled", True))
@@ -455,6 +459,8 @@ class ResourceMonitor:
 
     def _sample_loop(self) -> None:
         """周期采样循环"""
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        set_trace_id(self._monitor_trace_id)
         while not self._stop_event.is_set():
             try:
                 self._do_sample()
