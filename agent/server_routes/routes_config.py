@@ -3,6 +3,7 @@
 import uuid
 import datetime
 import logging
+import json
 from typing import List
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
@@ -10,6 +11,11 @@ from agent.network_config import _DEFAULT_SEARCH_INSTANCE
 from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 # 已知的内置搜索引擎类型
@@ -157,7 +163,7 @@ def register_routes(app, state):
     @log_request()
     def api_apply_network_config():
         try:
-            logger.info("[网络配置] 手动触发配置应用...")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_config", "action": "log", "msg": "[网络配置] 手动触发配置应用..."}, ensure_ascii=False))
             ncm.apply_to_app(Yunshu)
 
             config = ncm.get_raw_config()
@@ -177,7 +183,7 @@ def register_routes(app, state):
 
             if web_search:
                 web_search.update_config(update_config)
-                logger.info("[网络配置] 已同时应用到全局搜索引擎实例")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_config", "action": "log", "msg": "[网络配置] 已同时应用到全局搜索引擎实例"}, ensure_ascii=False))
 
             search_config_status = ncm.get_search_engines()
             return jsonify({
