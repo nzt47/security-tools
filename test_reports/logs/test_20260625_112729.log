@@ -1,0 +1,653 @@
+2026-06-25 11:27:30,163 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 11:27:30,166 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 11:27:30,167 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 11:27:30,295 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 11:27:30,310 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 11:27:30,312 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 11:27:30,350 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:27:30,351 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,351 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 11:27:30,352 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 11:27:30,360 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 11:27:30,365 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 11:27:30,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 11:27:30,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 11:27:30,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 11:27:30,383 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 11:27:30,384 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 11:27:30,510 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 11:27:30,515 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 11:27:30,515 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 11:27:30,522 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 11:27:30,523 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:27:30,523 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 11:27:30,523 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 11:27:30,523 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 11:27:30,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,537 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:30,571 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,572 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 11:27:30,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,572 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:30,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,673 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,673 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,673 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Service unavailable"}
+2026-06-25 11:27:30,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,774 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Service unavailable"}
+2026-06-25 11:27:30,875 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,875 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,876 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Service unavailable"}
+2026-06-25 11:27:30,876 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,877 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,877 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Service unavailable"}
+2026-06-25 11:27:30,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,980 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Service unavailable"}
+2026-06-25 11:27:30,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "cache_only", "reason": "\u4f7f\u7528\u7f13\u5b58\u7ed3\u679c\uff0c\u964d\u7ea7\u7ea7\u522b: emergency"}
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "cache_only", "reason": "\u4f7f\u7528\u7f13\u5b58\u7ed3\u679c\uff0c\u964d\u7ea7\u7ea7\u522b: emergency"}
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "cache_only", "reason": "\u4f7f\u7528\u7f13\u5b58\u7ed3\u679c\uff0c\u964d\u7ea7\u7ea7\u522b: emergency"}
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:30,983 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "cache_only", "reason": "\u4f7f\u7528\u7f13\u5b58\u7ed3\u679c\uff0c\u964d\u7ea7\u7ea7\u522b: emergency"}
+2026-06-25 11:27:30,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,285 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:31,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,386 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,487 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,487 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,488 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,590 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,590 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,691 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,792 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,792 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,792 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,894 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,894 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,894 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,895 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:31,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,997 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,997 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:31,997 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,098 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,200 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,200 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,301 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,301 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,301 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,402 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,503 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,503 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,504 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,604 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,604 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,605 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,706 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,807 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,807 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,807 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,807 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,808 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,808 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:32,808 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,909 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,909 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:32,909 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,010 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,010 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,010 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,111 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,111 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,212 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,212 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,212 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,313 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,313 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,313 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,414 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,415 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,415 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,515 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,515 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,515 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,616 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,616 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,616 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,717 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,717 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,819 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,819 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,819 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:33,919 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,919 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:33,919 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,020 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,020 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,020 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,021 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,122 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,122 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,122 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,223 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,223 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,223 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,323 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,323 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,323 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,323 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,323 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,323 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 11:27:34,327 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,327 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:34,327 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,327 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,327 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,328 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,328 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,328 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,337 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,338 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 11:27:34,338 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,338 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 11:27:34,338 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,338 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 11:27:34,338 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,338 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 11:27:34,339 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:34,339 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 3, "failures": 3, "failure_rate": 1.0}
+2026-06-25 11:27:35,840 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,840 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 11:27:35,840 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,840 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,840 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-25 11:27:35,841 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,844 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,844 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:35,844 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,946 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,946 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:35,946 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,047 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,047 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,047 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,148 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,148 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,148 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,148 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,148 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,148 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,148 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,249 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,350 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,350 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,350 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,451 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,451 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,451 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,452 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,452 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,452 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,452 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,553 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,553 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,553 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,654 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,654 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,655 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,756 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,756 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,858 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,858 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,858 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:36,959 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,959 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:36,959 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,060 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,060 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,161 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,161 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,161 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,262 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,363 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,363 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,363 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,363 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,363 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,364 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:37,364 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:37,464 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,030 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,030 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,131 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,131 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,131 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,232 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,232 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,334 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,334 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,334 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,434 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,434 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,434 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,535 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,536 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,536 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,637 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,637 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,637 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,739 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,847 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,848 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,849 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,849 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,850 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,850 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 11:27:38,928 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,928 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 60.0, "state": "closed"}
+2026-06-25 11:27:38,929 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,930 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:38,930 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,930 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 11:27:38,931 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,931 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 11:27:38,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,932 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 11:27:38,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,932 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 3, "failures": 3, "failure_rate": 1.0}
+2026-06-25 11:27:38,933 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,933 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "reset", "duration_ms": 0, "name": "default"}
+2026-06-25 11:27:38,933 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:38,934 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "reset", "duration_ms": 0}
+2026-06-25 11:27:38,934 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,029 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,029 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,034 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,271 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-25 11:27:39,437 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,438 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,438 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,438 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockAdapter
+2026-06-25 11:27:39,440 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059440", "module_name": "memory_router", "action": "save_enter", "key": "key_0_0", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,442 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059442", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,443 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059440", "module_name": "memory_router", "action": "save_exit", "key": "key_0_0", "success": true, "adapter_class": "MockAdapter", "duration_ms": 3.32}
+2026-06-25 11:27:39,443 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059443", "module_name": "memory_router", "action": "save_enter", "key": "key_1_0", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,443 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059443", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,444 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059443", "module_name": "memory_router", "action": "save_exit", "key": "key_1_0", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,444 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059444", "module_name": "memory_router", "action": "save_enter", "key": "key_2_0", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,445 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059445", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,445 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059444", "module_name": "memory_router", "action": "save_exit", "key": "key_2_0", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,445 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059445", "module_name": "memory_router", "action": "save_enter", "key": "key_3_0", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,445 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059445", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,445 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059445", "module_name": "memory_router", "action": "save_exit", "key": "key_3_0", "success": true, "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059446", "module_name": "memory_router", "action": "save_enter", "key": "key_4_0", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059446", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059446", "module_name": "memory_router", "action": "save_exit", "key": "key_4_0", "success": true, "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059446", "module_name": "memory_router", "action": "search_enter", "query_length": 5, "query_preview": "value", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059446", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,446 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059446", "module_name": "memory_router", "action": "search_enter", "query_length": 5, "query_preview": "value", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059447", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059447", "module_name": "memory_router", "action": "search_enter", "query_length": 5, "query_preview": "value", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059447", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059447", "module_name": "memory_router", "action": "save_enter", "key": "key_0_1", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059447", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059447", "module_name": "memory_router", "action": "save_exit", "key": "key_0_1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,447 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059447", "module_name": "memory_router", "action": "save_enter", "key": "key_2_1", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059448", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059447", "module_name": "memory_router", "action": "save_exit", "key": "key_2_1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059448", "module_name": "memory_router", "action": "save_enter", "key": "key_4_1", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059448", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059448", "module_name": "memory_router", "action": "save_exit", "key": "key_4_1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,448 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059448", "module_name": "memory_router", "action": "save_enter", "key": "key_1_1", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,449 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059449", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,449 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059448", "module_name": "memory_router", "action": "save_exit", "key": "key_1_1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,449 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059449", "module_name": "memory_router", "action": "save_enter", "key": "key_3_1", "data_type": "str", "data_size": 9, "task_type": "local_privacy"}
+2026-06-25 11:27:39,449 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059449", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,451 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059449", "module_name": "memory_router", "action": "save_exit", "key": "key_3_1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 2.2}
+2026-06-25 11:27:39,537 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,539 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,544 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,544 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,544 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,544 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockAdapter
+2026-06-25 11:27:39,544 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059544", "module_name": "memory_router", "action": "save_enter", "key": "test_key", "data_type": "str", "data_size": 12, "task_type": "local_privacy"}
+2026-06-25 11:27:39,544 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059544", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,545 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059544", "module_name": "memory_router", "action": "save_exit", "key": "test_key", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,545 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059545", "module_name": "memory_router", "action": "search_enter", "query_length": 4, "query_preview": "test", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,545 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059545", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,587 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,590 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,594 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,594 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,594 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,594 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockAdapter
+2026-06-25 11:27:39,594 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059594", "module_name": "memory_router", "action": "save_enter", "key": "key1", "data_type": "str", "data_size": 12, "task_type": "local_privacy"}
+2026-06-25 11:27:39,595 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059595", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "MockAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,595 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059594", "module_name": "memory_router", "action": "save_exit", "key": "key1", "success": true, "adapter_class": "MockAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,618 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,620 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,624 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,624 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,624 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,624 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = PersistentAdapter
+2026-06-25 11:27:39,624 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059624", "module_name": "memory_router", "action": "save_enter", "key": "persist_key", "data_type": "str", "data_size": 13, "task_type": "local_privacy"}
+2026-06-25 11:27:39,625 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059625", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "PersistentAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,625 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059624", "module_name": "memory_router", "action": "save_exit", "key": "persist_key", "success": true, "adapter_class": "PersistentAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,625 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,627 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,629 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,630 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,630 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,630 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = PersistentAdapter
+2026-06-25 11:27:39,630 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059630", "module_name": "memory_router", "action": "search_enter", "query_length": 7, "query_preview": "persist", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,630 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059630", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "PersistentAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,667 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,669 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,675 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,676 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,676 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,676 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = CapacityLimitedAdapter
+2026-06-25 11:27:39,676 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059676", "module_name": "memory_router", "action": "save_enter", "key": "key_0", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,677 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059677", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,677 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059676", "module_name": "memory_router", "action": "save_exit", "key": "key_0", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,677 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059677", "module_name": "memory_router", "action": "save_enter", "key": "key_1", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,678 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059678", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,678 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059677", "module_name": "memory_router", "action": "save_exit", "key": "key_1", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,678 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059678", "module_name": "memory_router", "action": "save_enter", "key": "key_2", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,678 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059678", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,678 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059678", "module_name": "memory_router", "action": "save_exit", "key": "key_2", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,679 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059679", "module_name": "memory_router", "action": "save_enter", "key": "key_3", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,679 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059679", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,680 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059679", "module_name": "memory_router", "action": "save_exit", "key": "key_3", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,680 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059680", "module_name": "memory_router", "action": "save_enter", "key": "key_4", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,681 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059681", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,681 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059680", "module_name": "memory_router", "action": "save_exit", "key": "key_4", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,681 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059681", "module_name": "memory_router", "action": "save_enter", "key": "key_5", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,683 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059683", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,684 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059681", "module_name": "memory_router", "action": "save_exit", "key": "key_5", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 3.0}
+2026-06-25 11:27:39,684 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059684", "module_name": "memory_router", "action": "save_enter", "key": "key_6", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,685 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059685", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,685 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059684", "module_name": "memory_router", "action": "save_exit", "key": "key_6", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,685 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059685", "module_name": "memory_router", "action": "save_enter", "key": "key_7", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,686 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059686", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,686 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059685", "module_name": "memory_router", "action": "save_exit", "key": "key_7", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,686 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059686", "module_name": "memory_router", "action": "save_enter", "key": "key_8", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,687 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059687", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,687 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059686", "module_name": "memory_router", "action": "save_exit", "key": "key_8", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,687 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059687", "module_name": "memory_router", "action": "save_enter", "key": "key_9", "data_type": "str", "data_size": 7, "task_type": "local_privacy"}
+2026-06-25 11:27:39,688 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059688", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,689 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059687", "module_name": "memory_router", "action": "save_exit", "key": "key_9", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,689 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059689", "module_name": "memory_router", "action": "save_enter", "key": "key_10", "data_type": "str", "data_size": 8, "task_type": "local_privacy"}
+2026-06-25 11:27:39,690 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059689", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,690 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059689", "module_name": "memory_router", "action": "save_exit", "key": "key_10", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,691 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059691", "module_name": "memory_router", "action": "save_enter", "key": "key_11", "data_type": "str", "data_size": 8, "task_type": "local_privacy"}
+2026-06-25 11:27:39,692 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059692", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,692 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059691", "module_name": "memory_router", "action": "save_exit", "key": "key_11", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.53}
+2026-06-25 11:27:39,693 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059693", "module_name": "memory_router", "action": "save_enter", "key": "key_12", "data_type": "str", "data_size": 8, "task_type": "local_privacy"}
+2026-06-25 11:27:39,693 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059693", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,694 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059693", "module_name": "memory_router", "action": "save_exit", "key": "key_12", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,694 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059694", "module_name": "memory_router", "action": "save_enter", "key": "key_13", "data_type": "str", "data_size": 8, "task_type": "local_privacy"}
+2026-06-25 11:27:39,695 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059694", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,695 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059694", "module_name": "memory_router", "action": "save_exit", "key": "key_13", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,695 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059695", "module_name": "memory_router", "action": "save_enter", "key": "key_14", "data_type": "str", "data_size": 8, "task_type": "local_privacy"}
+2026-06-25 11:27:39,696 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059696", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,696 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059695", "module_name": "memory_router", "action": "save_exit", "key": "key_14", "success": true, "adapter_class": "CapacityLimitedAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,696 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059696", "module_name": "memory_router", "action": "search_enter", "query_length": 5, "query_preview": "value", "top_k": 20, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,696 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059696", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "CapacityLimitedAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,735 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 11:27:39,738 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-25 11:27:39,741 [    INFO] config: [配置校验] 配置校验通过
+2026-06-25 11:27:39,741 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = ScoredAdapter
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059742", "module_name": "memory_router", "action": "save_enter", "key": "key_0", "data_type": "str", "data_size": 14, "task_type": "local_privacy"}
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059742", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059742", "module_name": "memory_router", "action": "save_exit", "key": "key_0", "success": true, "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,742 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059742", "module_name": "memory_router", "action": "save_enter", "key": "key_1", "data_type": "str", "data_size": 14, "task_type": "local_privacy"}
+2026-06-25 11:27:39,743 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059742", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,743 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059742", "module_name": "memory_router", "action": "save_exit", "key": "key_1", "success": true, "adapter_class": "ScoredAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,743 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059743", "module_name": "memory_router", "action": "save_enter", "key": "key_2", "data_type": "str", "data_size": 14, "task_type": "local_privacy"}
+2026-06-25 11:27:39,743 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059743", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,744 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059743", "module_name": "memory_router", "action": "save_exit", "key": "key_2", "success": true, "adapter_class": "ScoredAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,744 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059744", "module_name": "memory_router", "action": "save_enter", "key": "key_3", "data_type": "str", "data_size": 14, "task_type": "local_privacy"}
+2026-06-25 11:27:39,744 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059744", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,744 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059744", "module_name": "memory_router", "action": "save_exit", "key": "key_3", "success": true, "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,744 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059744", "module_name": "memory_router", "action": "save_enter", "key": "key_4", "data_type": "str", "data_size": 14, "task_type": "local_privacy"}
+2026-06-25 11:27:39,745 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059744", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,745 [    INFO] agent.memory.router: {"trace_id": "mem_save_1782358059744", "module_name": "memory_router", "action": "save_exit", "key": "key_4", "success": true, "adapter_class": "ScoredAdapter", "duration_ms": 1.0}
+2026-06-25 11:27:39,745 [    INFO] agent.memory.router: {"trace_id": "mem_search_1782358059745", "module_name": "memory_router", "action": "search_enter", "query_length": 6, "query_preview": "search", "top_k": 5, "task_type": "local_privacy", "cache_enabled": false}
+2026-06-25 11:27:39,745 [    INFO] agent.memory.router: {"trace_id": "mem_route_1782358059745", "module_name": "memory_router", "action": "route_hit", "task_type": "local_privacy", "adapter_name": "holographic", "adapter_class": "ScoredAdapter", "duration_ms": 0.0}
+2026-06-25 11:27:39,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,785 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 11:27:39,786 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,786 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpcvesehzc\\backups", "auto_recover": true}}
+2026-06-25 11:27:39,786 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,786 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "config"}
+2026-06-25 11:27:39,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,789 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_112739", "type": "full", "files": ["config"], "size_bytes": 212}
+2026-06-25 11:27:39,790 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,790 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260625_112739", "restored_files": ["config"]}
+2026-06-25 11:27:39,790 [ WARNING] agent.disaster_recovery: [DisasterRecovery] 容灾恢复埋点失败: BusinessMetricsCollector.record_disaster_recovery() got an unexpected keyword argument 'backup_type'
+2026-06-25 11:27:39,798 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,798 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpxp1t876e\\backups", "auto_recover": true}}
+2026-06-25 11:27:39,799 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,799 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "messages"}
+2026-06-25 11:27:39,800 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,800 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,801 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_112739", "type": "full", "files": ["messages"], "size_bytes": 894}
+2026-06-25 11:27:39,802 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,803 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260625_112739", "restored_files": ["messages"]}
+2026-06-25 11:27:39,803 [ WARNING] agent.disaster_recovery: [DisasterRecovery] 容灾恢复埋点失败: BusinessMetricsCollector.record_disaster_recovery() got an unexpected keyword argument 'backup_type'
+2026-06-25 11:27:39,824 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,824 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 11:27:39,967 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,967 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpopd9jdoy\\backups", "auto_recover": true}}
+2026-06-25 11:27:39,967 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,967 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "service"}
+2026-06-25 11:27:39,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,969 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_112739", "type": "full", "files": ["service"], "size_bytes": 217}
+2026-06-25 11:27:39,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,970 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpopd9jdoy\\backups", "auto_recover": true}}
+2026-06-25 11:27:39,970 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,970 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "service"}
+2026-06-25 11:27:39,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,971 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u5c1d\u8bd5\u81ea\u52a8\u6062\u590d\u5907\u4efd backup_20260625_112739"}
+2026-06-25 11:27:39,972 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,972 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_112739", "restored_files": ["service"]}
+2026-06-25 11:27:39,972 [ WARNING] agent.disaster_recovery: [DisasterRecovery] 容灾恢复埋点失败: BusinessMetricsCollector.record_disaster_recovery() got an unexpected keyword argument 'backup_type'
+2026-06-25 11:27:39,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,978 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:27:39,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,978 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 11:27:39,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:39,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,079 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,079 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,079 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,180 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,282 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,283 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,384 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,385 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,385 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,486 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,486 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,486 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,587 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,587 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,588 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,588 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,589 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,590 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,591 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,591 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,691 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,793 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,794 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,794 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,895 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,896 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:40,896 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,896 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,997 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,997 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:40,997 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,099 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,099 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,100 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,200 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,200 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,302 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,302 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,302 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,404 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,505 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,506 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-25 11:27:41,506 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,512 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 1, "max_backups": 10, "backup_dir": "C:\\Windows\\TEMP\\tmpgi09d8fu\\backups", "auto_recover": true}}
+2026-06-25 11:27:41,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,513 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test_data"}
+2026-06-25 11:27:41,516 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,517 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,517 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 3.63, "backup_id": "backup_20260625_112741", "type": "incremental", "files": ["test_data"], "size_bytes": 170}
+2026-06-25 11:27:41,519 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,519 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,519 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_112741", "type": "incremental", "files": ["test_data"], "size_bytes": 299}
+2026-06-25 11:27:41,521 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,521 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,522 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.06, "backup_id": "backup_20260625_112741", "type": "incremental", "files": ["test_data"], "size_bytes": 432}
+2026-06-25 11:27:41,523 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,523 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:27:41,524 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_112741", "type": "incremental", "files": ["test_data"], "size_bytes": 572}

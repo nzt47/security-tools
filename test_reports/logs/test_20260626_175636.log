@@ -1,0 +1,27 @@
+2026-06-26 17:56:36,507 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_return_empty_dict_0\nonexistent.yaml，使用默认阈值
+2026-06-26 17:56:36,518 [    INFO] visibility_report: {"trace_id": "01c3c0ff57084854", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T17:56:36.518714"}
+2026-06-26 17:56:36,519 [    INFO] visibility_report: {"trace_id": "01c3c0ff57084854", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 0.57, "overall_status": "pass", "violations_count": 0}
+2026-06-26 17:56:36,523 [    INFO] visibility_report: {"trace_id": "189f72556e6b46bc", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T17:56:36.523727"}
+2026-06-26 17:56:36,524 [    INFO] visibility_report: {"trace_id": "189f72556e6b46bc", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 0.52, "overall_status": "fail", "violations_count": 1}
+2026-06-26 17:56:36,558 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_exit_zero_when_all0\report.md
+2026-06-26 17:56:36,558 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_exit_zero_when_all0\report.json
+2026-06-26 17:56:36,569 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_exit_one_when_thre0\report.md
+2026-06-26 17:56:36,569 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_exit_one_when_thre0\report.json
+2026-06-26 17:56:36,578 [   ERROR] visibility_report:   - L.m: 实际=10, 阈值=80
+2026-06-26 17:56:36,585 [   ERROR] visibility_report: 报告生成异常: boom
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\visibility_report.py", line 884, in main
+    report = generate_report(PROJECT_ROOT, thresholds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+2026-06-26 17:56:36,587 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_exit_two_when_exce0\degraded.md
+2026-06-26 17:56:36,600 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_should_write_degraded_rep0\degraded\report.md
+2026-06-26 17:56:36,606 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-425\test_degraded_report_should_cr0\deep\nested\path\report.md

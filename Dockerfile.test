@@ -1,0 +1,44 @@
+"""Dockerfile for Integration Testing
+
+Usage:
+  docker build -f Dockerfile.test -t yunshu-integration-test .
+  docker run --rm yunshu-integration-test
+
+Or with custom test selection:
+  docker run --rm yunshu-integration-test pytest tests/integration/test_circuit_breaker_degrade_flow.py -v
+"""
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt requirements-dev.txt ./
+
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY . .
+
+RUN pip install --no-cache-dir -e .
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN python -c "from agent.circuit_breaker import CircuitBreaker; print('CircuitBreaker imported successfully')"
+RUN python -c "from agent.memory.router import MemoryRouter; print('MemoryRouter imported successfully')"
+RUN python -c "from agent.disaster_recovery import DisasterRecovery; print('DisasterRecovery imported successfully')"
+RUN python -c "from agent.rate_limiter import RateLimiter; print('RateLimiter imported successfully')"
+RUN python -c "from agent.tool_calling import ToolCallingService; print('ToolCallingService imported successfully')"
+
+RUN mkdir -p /app/test_results
+
+VOLUME /app/test_results
+
+ENTRYPOINT ["python", "-m", "pytest", "tests/integration/", "-v", "--tb=short", "--timeout=60"]

@@ -1,0 +1,102 @@
+[
+  {
+    "test_name": "fast_sampler",
+    "timestamp": 1782308102.6634784,
+    "description": "快速采样器采样决策性能",
+    "iterations": 100000,
+    "elapsed_ms": 187.88909912109375,
+    "cpu_ms": 187.5,
+    "ops_per_sec": 532228.8545092784,
+    "avg_latency_ms": 0.0018788909912109376
+  },
+  {
+    "test_name": "adaptive_sampler",
+    "timestamp": 1782308102.8663423,
+    "description": "自适应采样器采样决策性能",
+    "iterations": 100000,
+    "elapsed_ms": 200.88720321655273,
+    "cpu_ms": 203.125,
+    "ops_per_sec": 497791.78762423125,
+    "avg_latency_ms": 0.0020088720321655273
+  },
+  {
+    "test_name": "lock_free_counter",
+    "timestamp": 1782308102.8791745,
+    "description": "无锁计数器递增性能",
+    "iterations": 100000,
+    "elapsed_ms": 12.832164764404297,
+    "cpu_ms": 15.625,
+    "ops_per_sec": 7792917.394374047,
+    "avg_latency_ms": 0.00012832164764404298
+  },
+  {
+    "test_name": "lock_free_histogram",
+    "timestamp": 1782308102.9422889,
+    "description": "无锁直方图记录性能",
+    "iterations": 50000,
+    "elapsed_ms": 62.11400032043457,
+    "cpu_ms": 62.5,
+    "ops_per_sec": 804971.4998560599,
+    "avg_latency_ms": 0.0012422800064086914
+  },
+  {
+    "test_name": "memory_cache",
+    "timestamp": 1782308105.2183933,
+    "description": "内存高效缓存读写性能",
+    "iterations": 50000,
+    "elapsed_ms": 2275.073766708374,
+    "cpu_ms": 2281.25,
+    "ops_per_sec": 21977.309365375473,
+    "avg_latency_ms": 0.04550147533416748
+  },
+  {
+    "test_name": "circuit_breaker",
+    "timestamp": 1782308105.2657115,
+    "description": "熔断器状态检查性能",
+    "iterations": 50000,
+    "elapsed_ms": 46.26917839050293,
+    "cpu_ms": 46.875,
+    "ops_per_sec": 1080632.9772707364,
+    "avg_latency_ms": 0.0009253835678100586
+  },
+  {
+    "test_name": "batch_log_writer",
+    "timestamp": 1782308105.2735808,
+    "description": "批量日志写入器性能",
+    "iterations": 10000,
+    "elapsed_ms": 6.869077682495117,
+    "cpu_ms": 0.0,
+    "ops_per_sec": 1455799.5210162785,
+    "avg_latency_ms": 0.0006869077682495117
+  },
+  {
+    "test_name": "metrics_collector",
+    "timestamp": 1782308105.3273106,
+    "description": "优化指标收集器性能",
+    "iterations": 50000,
+    "elapsed_ms": 52.73151397705078,
+    "cpu_ms": 62.5,
+    "ops_per_sec": 948199.5912683342,
+    "avg_latency_ms": 0.0010546302795410155
+  },
+  {
+    "test_name": "concurrent_sampling",
+    "timestamp": 1782308105.5197058,
+    "description": "8线程并发采样性能",
+    "iterations": 80000,
+    "elapsed_ms": 191.3928985595703,
+    "ops_per_sec": 417988.34022621956,
+    "avg_latency_ms": 0.002392411231994629,
+    "threads": 8
+  },
+  {
+    "test_name": "optimized_manager",
+    "timestamp": 1782308105.6407118,
+    "description": "优化可观测性管理器综合性能",
+    "iterations": 20000,
+    "elapsed_ms": 120.03564834594727,
+    "cpu_ms": 125.0,
+    "ops_per_sec": 166617.16977909135,
+    "avg_latency_ms": 0.006001782417297363
+  }
+]

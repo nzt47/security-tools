@@ -1,0 +1,92 @@
+2026-06-24 21:46:25,500 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 21:46:25,503 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 21:46:25,504 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 21:46:25,604 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 21:46:25,618 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 21:46:25,622 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 21:46:25,656 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 21:46:25,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,658 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:25,659 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 21:46:25,665 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 21:46:25,670 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 21:46:25,688 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 21:46:25,688 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 21:46:25,689 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 21:46:25,689 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 21:46:25,691 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 21:46:25,823 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 21:46:25,828 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 21:46:25,828 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:25,835 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 21:46:25,836 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:25,837 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 21:46:25,837 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 21:46:25,837 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 21:46:25,925 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,926 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:25,926 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,926 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "global", "allowed": false, "reason": "global_rate_limit_exceeded"}
+2026-06-24 21:46:25,931 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,931 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:25,931 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,931 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 2, "refill_rate": 0.1}
+2026-06-24 21:46:25,931 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,953 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,957 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,957 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:25,957 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,957 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "user/user123", "capacity": 1, "refill_rate": 0.1}
+2026-06-24 21:46:25,958 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,958 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,958 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "user", "user_id": "user123", "allowed": false, "reason": "user_rate_limit_exceeded"}
+2026-06-24 21:46:25,962 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,962 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 2, "strategy": "reject"}
+2026-06-24 21:46:25,962 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,963 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,963 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,963 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "concurrent", "allowed": false, "reason": "max_concurrent_exceeded"}
+2026-06-24 21:46:25,964 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,967 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,968 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 1, "strategy": "queue"}
+2026-06-24 21:46:25,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:25,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,274 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:26,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,275 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 5, "refill_rate": 1.0}
+2026-06-24 21:46:26,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,275 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "user/user123", "capacity": 2, "refill_rate": 0.5}
+2026-06-24 21:46:26,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,276 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "user", "user_id": "user123", "allowed": false, "reason": "user_rate_limit_exceeded"}
+2026-06-24 21:46:26,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,280 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,281 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 1, "strategy": "reject"}
+2026-06-24 21:46:26,281 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,284 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,285 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:26,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,285 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 1, "refill_rate": 1.0}
+2026-06-24 21:46:26,286 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,289 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,289 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:26,289 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,289 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 1, "refill_rate": 0.1}
+2026-06-24 21:46:26,289 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,290 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:26,290 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "reset", "duration_ms": 0}
+2026-06-24 21:46:26,290 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None

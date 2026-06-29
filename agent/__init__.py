@@ -105,3 +105,4 @@ from memory import VectorStore, MemoryItem, KnowledgeBase
 __all__ += ["VectorStore", "MemoryItem", "KnowledgeBase"]
 
 __version__ = "2.0.0"
+# test

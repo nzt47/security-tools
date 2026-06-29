@@ -1,0 +1,21 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.0, pluggy-1.6.0
+rootdir: C:\Users\Administrator\agent
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.13.0, cov-7.1.0
+collected 4274 items / 33 errors
+
+tests\chaos\test_circuit_breaker_chaos.py ........                       [  0%]
+tests\chaos\test_connection_pool_chaos.py ssssssssssss                   [  0%]
+tests\chaos\test_cpu_stress_chaos.py sssssssssss                         [  0%]
+tests\chaos\test_degrade_chaos.py ..........                             [  0%]
+tests\chaos\test_disaster_recovery_chaos.py ..........                   [  1%]
+tests\chaos\test_disk_io_chaos.py sssssssssssssss                        [  1%]
+tests\chaos\test_memory_pressure_chaos.py ssssssssss                     [  1%]
+tests\chaos\test_message_loss_chaos.py sssssssssssssss                   [  2%]
+tests\chaos\test_network_latency_chaos.py ssssssssssssssssss             [  2%]
+tests\chaos\test_rate_limiter_chaos.py ........                          [  2%]
+tests\contract\test_contracts.py ..............................          [  3%]
+tests\e2e\test_offline_basic.py ....                                     [  3%]
+tests\e2e\test_offline_workflow.py ...                                   [  3%]
+tests\e2e\test_online_chat.py 

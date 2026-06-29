@@ -1,0 +1,66 @@
+2026-06-26 19:35:57,072 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 19:35:57,076 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 19:35:57,077 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 19:35:57,234 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 19:35:57,258 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 19:35:57,262 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 19:35:57,320 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 19:35:57,323 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 19:35:57,323 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 19:35:57,325 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 19:35:57,335 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 19:35:57,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 19:35:57,370 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 19:35:57,370 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 19:35:57,370 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 19:35:57,372 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 19:35:57,374 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 19:35:57,744 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 19:35:57,769 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 19:35:57,769 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 19:35:57,782 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 19:35:57,783 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 19:35:57,825 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 19:35:57,825 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 19:35:57,941 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 19:35:57,941 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-26 19:35:57,941 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 19:35:57,941 [    INFO] agent.monitoring.tracing: [Tracing] 使用配置文件中的采样器: ALWAYS_ON
+2026-06-26 19:35:57,941 [    INFO] agent.monitoring.tracing: [Tracing] 调试模式：强制使用 ALWAYS_ON 采样器
+2026-06-26 19:35:57,942 [    INFO] agent.monitoring.tracing: [Tracing] 创建 TracerProvider，采样器: StaticSampler
+2026-06-26 19:35:57,943 [    INFO] agent.monitoring.tracing: [Tracing] 配置导出器 - 类型: CONSOLE, 端点: , 协议: GRPC
+2026-06-26 19:35:57,943 [    INFO] agent.monitoring.tracing: [Tracing] 创建 ConsoleSpanExporter
+2026-06-26 19:35:57,943 [    INFO] agent.monitoring.tracing: [Tracing] 已添加 Span Processor: CONSOLE
+2026-06-26 19:35:57,944 [    INFO] agent.monitoring.tracing: [Tracing] 设置全局 TracerProvider...
+2026-06-26 19:35:57,944 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 初始化成功，Tracer: <opentelemetry.sdk.trace.Tracer object at 0x0000020B7FDD2DB0>
+2026-06-26 19:35:57,946 [    INFO] agent.monitoring.tracing: [Tracing] 导出器配置:
+2026-06-26 19:35:57,946 [    INFO] agent.monitoring.tracing:    类型: CONSOLE
+2026-06-26 19:35:57,946 [    INFO] agent.monitoring.tracing:    端点: 
+2026-06-26 19:35:57,946 [    INFO] agent.monitoring.tracing:    协议: GRPC
+2026-06-26 19:35:57,946 [    INFO] agent.monitoring.tracing:    已启用: CONSOLE
+2026-06-26 19:35:57,952 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: e59c17d39f9640d0
+2026-06-26 19:35:57,959 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 19:35:57,959 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x0000020B7FDD2DB0>
+2026-06-26 19:35:57,962 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 19:35:57,962 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x0000020B7FDD2DB0>
+2026-06-26 19:35:57,965 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 19:35:57,965 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x0000020B7FDD2DB0>
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'TestService', 'operation': 'handler.with.args'}, trace_id=00916c08bbdc424f
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 1.61}, trace_id=00916c08bbdc424f
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-26 19:35:57,968 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span

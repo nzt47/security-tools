@@ -1,0 +1,75 @@
+2026-06-29 09:38:52,747 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 09:38:52,751 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 09:38:52,753 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 09:38:52,764 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 09:38:52,779 [    INFO] agent.error_handler: {"trace_id": "4614ab2d80504dba", "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}
+2026-06-29 09:38:52,782 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 09:38:52,816 [    INFO] agent.digital_life: {"trace_id": "unknown", "module_name": "digital_life", "action": "log", "msg": "[ok] 核心模块全部加载成功"}
+2026-06-29 09:38:52,823 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 09:38:52,827 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 09:38:52,844 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 09:38:52,845 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 09:38:52,845 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 09:38:52,846 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "[ok] 错误报告配置已加载"}
+2026-06-29 09:38:52,848 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 09:38:52,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 09:38:52,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 09:38:52,982 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 09:38:52,982 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "[模块导入] 模块导入状态汇总"}
+2026-06-29 09:38:52,982 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "════════════════════════════════════════════════════════════════════════════════"}
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "   [OK] 所有可选模块加载成功"}
+2026-06-29 09:38:52,983 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 09:38:53,425 [    INFO] agent.monitoring.business_metrics: {"trace_id": "5e035bcfbd3548a2", "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}
+2026-06-29 09:38:53,679 [    INFO] agent.network_config: {"trace_id": "78e21b7f718a4c20", "module_name": "network_config", "action": "network_config._load.self", "duration_ms": 0, "message": "[网络配置] 已从文件加载: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:53,680 [    INFO] agent.network_config: {"trace_id": "4c18e6aebe814982", "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 开始更新配置..."}
+2026-06-29 09:38:53,680 [    INFO] agent.network_config: {"trace_id": "389a5c2c7d4d4b56", "module_name": "network_config", "action": "network_config.update.llm", "duration_ms": 0, "message": "[网络配置] 检测到新的 LLM API Key，准备加密保存..."}
+2026-06-29 09:38:53,680 [ WARNING] agent.network_config: {"trace_id": "75535ca81e0d4673", "module_name": "network_config", "action": "network_config._save_secure.securemanager", "duration_ms": 0, "message": "[网络配置] SecureManager 未初始化，敏感信息将明文存储"}
+2026-06-29 09:38:53,681 [    INFO] agent.network_config: {"trace_id": "47de5c53a10e4466", "module_name": "network_config", "action": "network_config.update.llm", "duration_ms": 0, "message": "[网络配置] LLM API Key 已加密保存"}
+2026-06-29 09:38:53,681 [    INFO] agent.network_config: {"trace_id": "65918ff558dc4ac2", "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 合并配置到当前配置..."}
+2026-06-29 09:38:53,681 [    INFO] agent.network_config: {"trace_id": "b413d00e4457455d", "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 保存配置到文件: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:53,683 [    INFO] agent.network_config: {"trace_id": "e306e74510c04bd9", "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": "[网络配置] 已保存到文件: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:53,683 [    INFO] agent.network_config: {"trace_id": "42622d7688fb4718", "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 配置已更新到文件"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "cc1b6adfbe8940be", "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 开始将配置应用到应用实例..."}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "e348e8cfc3704519", "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 应用实例: <test_network_config_integration.MockApp object at 0x00000256E9323FE0>"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "22c6d0636ade4cd5", "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 应用实例类型: <class 'test_network_config_integration.MockApp'>"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "18c2632529654f8f", "module_name": "network_config", "action": "network_config.apply_to_app.http", "duration_ms": 0, "message": "[网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "9d9063c5aad24d94", "module_name": "network_config", "action": "network_config.apply_to_app.http", "duration_ms": 0, "message": "[网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3"}
+2026-06-29 09:38:53,685 [ WARNING] agent.network_config: {"trace_id": "c605a1ac2a3b4a67", "module_name": "network_config", "action": "network_config.apply_to_app._web_search", "duration_ms": 0, "message": "[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用"}
+2026-06-29 09:38:53,685 [ WARNING] agent.network_config: {"trace_id": "4e4315a1d80b4915", "module_name": "network_config", "action": "network_config.apply_to_app._web_search", "duration_ms": 0, "message": "[网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "c8bd5cfe52e04398", "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": "[网络配置] 使用 LLM 实例 [first_enabled(Deepseek-flash)]: name=Deepseek-flash, provider=deepseek, model=deepseek-v4-flash"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "e400f37c9d2c433e", "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": "[网络配置] LLM 配置状态: enabled=True, provider=deepseek, api_key_set=***, model=deepseek-v4-flash"}
+2026-06-29 09:38:53,685 [    INFO] agent.network_config: {"trace_id": "42d6ef08b7bd4b2a", "module_name": "network_config", "action": "network_config.apply_to_app.configure_llm", "duration_ms": 0, "message": "[网络配置] 正在调用 configure_llm (来源: first_enabled(Deepseek-flash))..."}
+2026-06-29 09:38:53,686 [ WARNING] agent.network_config: {"trace_id": "4956dbf143d84e76", "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": "[网络配置] 应用 LLM 配置失败: MockApp.configure_llm() got an unexpected keyword argument 'base_url'"}
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\network_config.py", line 1126, in apply_to_app
+    result = app_instance.configure_llm(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+2026-06-29 09:38:53,687 [    INFO] agent.network_config: {"trace_id": "c9e4bd7b48e04ca6", "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 配置应用完成"}
+2026-06-29 09:38:53,688 [    INFO] agent.network_config: {"trace_id": "dcabd226038247a1", "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": "[网络配置] 已保存到文件: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:53,689 [    INFO] agent.network_config: {"trace_id": "aa6d420d42a94ad1", "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": "[网络配置] 已保存到文件: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:53,689 [    INFO] agent.network_config: {"trace_id": "c1fd4d719c84484a", "module_name": "network_config", "action": "network_config.reset.log", "duration_ms": 0, "message": "[网络配置] 已重置为默认配置"}
+2026-06-29 09:38:53,690 [    INFO] agent.network_config: {"trace_id": "0e97c85f7c404197", "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": "[网络配置] 已保存到文件: C:\\Users\\Administrator\\agent\\agent\\data\\network_config.json"}
+2026-06-29 09:38:55,836 [    INFO] agent.caching.multi_level_cache: {"trace_id": "47928a07cb0545a6", "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)"}
+2026-06-29 09:38:56,444 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-29 09:38:57,588 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-29 09:38:57,862 [    INFO] agent.caching.multi_level_cache: {"trace_id": "f099cf4fab7f4c5f", "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 初始化完成: L1(max=1000, ttl=3600s), L2(enabled=False, dir=./cache/l2, max=100MB)"}
+2026-06-29 09:38:57,862 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-29 09:39:00,598 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-29 09:39:00,604 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-29 09:39:00,610 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-29 09:39:00,610 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-29 09:39:00,610 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-29 09:39:00,760 [    INFO] agent.monitoring.business_metrics: {"trace_id": "6963b612378d4799", "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}

@@ -1,0 +1,40 @@
+# DigitalLife V1 配置文件示例
+# 此配置将在迁移时被自动转换为 V2 格式
+
+# 记忆管理配置
+memory:
+  max_tokens: 8000
+  enable_long_term: false
+  summary_threshold: 5000
+
+# 行为控制配置
+behavior:
+  default_mode: NORMAL
+  allow_reflection: true
+  max_iterations: 10
+
+# 规划引擎配置
+planning:
+  enabled: false
+  max_depth: 5
+  timeout_seconds: 30
+
+# LLM 配置
+llm:
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+  api_key: ${OPENAI_API_KEY}
+
+# 工具配置
+tools:
+  enabled: true
+  whitelist:
+    - web_search
+    - calculator
+    - file_read
+
+# 会话配置
+session:
+  auto_save: true
+  save_interval: 300

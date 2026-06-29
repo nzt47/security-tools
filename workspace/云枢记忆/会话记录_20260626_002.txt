@@ -1,0 +1,35 @@
+=============================================
+  会话记录 #2
+=============================================
+
+🕒 时间：2026年06月26日 00:01
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+国际新闻
+
+🤖 云枢：
+📰 最新国际新闻：
+1. BBC Home - Breaking News, World News, US News, Sports ... — Trump asks Congress for billions for Iran war, after tension with Republicans ·…  [BBC]
+2. CNN: Breaking News, Latest News and Videos — State of emergency declared after two quakes struck. Dozens killed and hundreds…  [CNN]
+3. World News | Latest Top Stories - Reuters — World · 10 hours ago. Russia hits Ukrainian locomotives and fuel stations, leavi…  [Reuters]
+4. Associated Press News: Breaking News, Latest Headlines and ... — Back-to-back powerful earthquakes hit Venezuela, A powerful 7.2 magnitude earthq…  [AP News]
+5. International News | Latest World News, Videos & Photos - ABC News — 2 missing Chicago men found dead outside Mexico City, family confirms · Global o…  [新闻媒体]
+6. NBC News - Breaking Headlines and Video Reports on World, U.S. ... — Morning Rundown: Venezuela twin quakes kill over 160, a Wall Street titan's Epst…  [新闻媒体]
+7. U.S. News & World Report: News, Rankings and Analysis on Politics ... — Trump on Wednesday canceled the signing event for a bipartisan housing affordabi…  [新闻媒体]
+8. Google News — Venezuela earthquakes leave at least 32 dead, 700 injured and dozens of building…  [Google News]
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.26 00:01
+=============================================
+

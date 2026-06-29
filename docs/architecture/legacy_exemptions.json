@@ -1,0 +1,35 @@
+{
+  "description": "架构规则校验存量豁免清单",
+  "purpose": "对存量代码中已知的架构违规进行豁免，仅对新增代码强制执行架构规则。新增违规不在此清单中将被阻断合并。",
+  "created_at": "2026-06-26",
+  "last_updated": "2026-06-26",
+  "exemptions": [
+    {
+      "rule_id": "no_circular_dependency",
+      "source": "agent.cognitive.critic",
+      "target": "agent.graceful_degrade",
+      "reason": "存量循环依赖：critic 依赖 graceful_degrade 进行降级，graceful_degrade 通过函数内延迟 import 反向引用 critic。已通过延迟加载缓解，列入技术债务清单。",
+      "added_at": "2026-06-26",
+      "owner": "architecture-team",
+      "tech_debt_ticket": "ARCH-DEBT-001",
+      "mitigation": "graceful_degrade.py:464 使用函数内延迟 import（from agent.cognitive.critic import CriticEvaluator）打破模块加载时循环，运行期可正常工作。后续应通过接口抽象或事件解耦彻底消除循环。"
+    },
+    {
+      "rule_id": "no_circular_dependency",
+      "source": "agent.error_handler",
+      "target": "agent.monitoring.error_reporter",
+      "reason": "存量循环依赖：error_handler 在异常上报时延迟 import error_reporter 的 ErrorReporter 多通道能力，error_reporter 在 WebhookReporter 初始化时反向延迟 import error_handler 的 with_retry 与 TemporaryNetworkError。双向均使用函数内延迟 import，运行期可正常工作。",
+      "added_at": "2026-06-26",
+      "owner": "architecture-team",
+      "tech_debt_ticket": "ARCH-DEBT-002",
+      "mitigation": "error_handler.py:1176 与 error_reporter.py:158 均使用函数内延迟 import 打破模块加载时循环。后续应将 with_retry/TemporaryNetworkError 下沉到独立的基础设施模块（如 agent.utils.retry），消除 error_handler 与 monitoring 之间的双向耦合。"
+    }
+  ],
+  "guidelines": [
+    "豁免清单仅用于存量代码，不得用于掩盖新增违规",
+    "每项豁免必须包含 reason、owner、tech_debt_ticket",
+    "豁免项应定期评审，推动技术债务清零",
+    "新增违规若需豁免，必须经架构评审委员会批准并登记 ticket",
+    "循环依赖豁免支持双向匹配：A→B 与 B→A 视为同一循环，无需重复登记"
+  ]
+}

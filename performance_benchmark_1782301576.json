@@ -1,0 +1,122 @@
+{
+  "timestamp": 1782301576.729451,
+  "generated_at": "2026-06-24T19:46:16.729450",
+  "scenarios": [
+    {
+      "name": "基准测试（无可观测性）",
+      "timestamp": 1782301575.0562322,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 18.63539998885244,
+        "avg_duration_ms": 0.0002872999175451696,
+        "p50_duration_ms": 0.000300002284348011,
+        "p90_duration_ms": 0.000300002284348011,
+        "p95_duration_ms": 0.000300002284348011,
+        "p99_duration_ms": 0.0010999938240274787,
+        "min_duration_ms": 0.00019998697098344564,
+        "max_duration_ms": 0.0016999983927235007,
+        "throughput": 53661.31129990194,
+        "avg_memory_mb": 18.34765625,
+        "max_memory_mb": 18.34765625,
+        "avg_cpu_percent": 97.7,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    },
+    {
+      "name": "追踪启用",
+      "timestamp": 1782301576.1141212,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 411.1210000119172,
+        "avg_duration_ms": 3.715719500061823,
+        "p50_duration_ms": 0.11050001194234937,
+        "p90_duration_ms": 0.37000000884290785,
+        "p95_duration_ms": 31.89100000599865,
+        "p99_duration_ms": 72.04560001264326,
+        "min_duration_ms": 0.09890001092571765,
+        "max_duration_ms": 120.56170000869315,
+        "throughput": 2432.373923908078,
+        "avg_memory_mb": 62.0280330882353,
+        "max_memory_mb": 78.796875,
+        "avg_cpu_percent": 57.470588235294116,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    },
+    {
+      "name": "指标导出",
+      "timestamp": 1782301576.1858602,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 31.104399997275323,
+        "avg_duration_ms": 0.0040781994321150705,
+        "p50_duration_ms": 0.0025000044843181968,
+        "p90_duration_ms": 0.008400005754083395,
+        "p95_duration_ms": 0.009199997293762863,
+        "p99_duration_ms": 0.012600008631125093,
+        "min_duration_ms": 0.0022999884095042944,
+        "max_duration_ms": 0.055500000598840415,
+        "throughput": 32149.792315157913,
+        "avg_memory_mb": 77.640625,
+        "max_memory_mb": 77.640625,
+        "avg_cpu_percent": 97.7,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    },
+    {
+      "name": "日志关联",
+      "timestamp": 1782301576.2674336,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 17.53860000462737,
+        "avg_duration_ms": 0.0012345999566605315,
+        "p50_duration_ms": 0.0011999945854768157,
+        "p90_duration_ms": 0.001200009137392044,
+        "p95_duration_ms": 0.0012999953469261527,
+        "p99_duration_ms": 0.0045000051613897085,
+        "min_duration_ms": 0.0009999930625781417,
+        "max_duration_ms": 0.01720000000204891,
+        "throughput": 57017.093709655324,
+        "avg_memory_mb": 77.62890625,
+        "max_memory_mb": 77.62890625,
+        "avg_cpu_percent": 100.8,
+        "max_cpu_percent": 100.8
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    },
+    {
+      "name": "全量可观测性",
+      "timestamp": 1782301576.7281601,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 374.1102000058163,
+        "avg_duration_ms": 3.317590500082588,
+        "p50_duration_ms": 0.13339999713934958,
+        "p90_duration_ms": 0.2798000059556216,
+        "p95_duration_ms": 27.770000000600703,
+        "p99_duration_ms": 69.47580000269227,
+        "min_duration_ms": 0.11930000619031489,
+        "max_duration_ms": 125.54170000657905,
+        "throughput": 2673.0091828141894,
+        "avg_memory_mb": 78.88560267857143,
+        "max_memory_mb": 79.1796875,
+        "avg_cpu_percent": 57.68571428571429,
+        "max_cpu_percent": 104.2
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    }
+  ],
+  "summary": {
+    "baseline_latency_ms": 0.0002872999175451696,
+    "full_observability_latency_ms": null,
+    "max_overhead_percent": 0.0,
+    "recommendation": "无法生成建议：缺少基准数据"
+  }
+}

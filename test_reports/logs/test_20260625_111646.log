@@ -1,0 +1,74 @@
+2026-06-25 11:16:46,988 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 11:16:46,992 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 11:16:46,993 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 11:16:47,101 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 11:16:47,115 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 11:16:47,118 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 11:16:47,174 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:16:47,175 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 11:16:47,177 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 11:16:47,184 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 11:16:47,189 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 11:16:47,207 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 11:16:47,208 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 11:16:47,208 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 11:16:47,209 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 11:16:47,211 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 11:16:47,339 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 11:16:47,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 11:16:47,343 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:16:47,350 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:16:47,350 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 11:16:47,350 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 11:16:47,350 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 11:16:47,351 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 11:16:47,367 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 11:16:47,367 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 11:16:47,413 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,417 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,421 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,424 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,427 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,430 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,439 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,444 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,447 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,451 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,455 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,458 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,465 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,474 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,478 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,490 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,494 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,497 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,501 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,504 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,507 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,511 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,511 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标已重置
+2026-06-25 11:16:47,515 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,515 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标已重置
+2026-06-25 11:16:47,519 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,533 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,638 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,642 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,645 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,649 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,652 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,656 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,659 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,663 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,666 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 11:16:47,669 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化

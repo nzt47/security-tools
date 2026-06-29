@@ -1,0 +1,294 @@
+{
+  "schema_trend": [
+    {
+      "time": "22:00",
+      "total": 119,
+      "success": 96,
+      "fail": 23
+    },
+    {
+      "time": "23:00",
+      "total": 114,
+      "success": 104,
+      "fail": 10
+    },
+    {
+      "time": "00:00",
+      "total": 108,
+      "success": 93,
+      "fail": 15
+    },
+    {
+      "time": "01:00",
+      "total": 115,
+      "success": 99,
+      "fail": 16
+    },
+    {
+      "time": "02:00",
+      "total": 105,
+      "success": 94,
+      "fail": 11
+    },
+    {
+      "time": "03:00",
+      "total": 86,
+      "success": 64,
+      "fail": 22
+    },
+    {
+      "time": "04:00",
+      "total": 88,
+      "success": 74,
+      "fail": 14
+    },
+    {
+      "time": "05:00",
+      "total": 102,
+      "success": 87,
+      "fail": 15
+    },
+    {
+      "time": "06:00",
+      "total": 112,
+      "success": 91,
+      "fail": 21
+    },
+    {
+      "time": "07:00",
+      "total": 93,
+      "success": 84,
+      "fail": 9
+    },
+    {
+      "time": "08:00",
+      "total": 100,
+      "success": 87,
+      "fail": 13
+    },
+    {
+      "time": "09:00",
+      "total": 81,
+      "success": 64,
+      "fail": 17
+    },
+    {
+      "time": "10:00",
+      "total": 92,
+      "success": 87,
+      "fail": 5
+    },
+    {
+      "time": "11:00",
+      "total": 100,
+      "success": 89,
+      "fail": 11
+    },
+    {
+      "time": "12:00",
+      "total": 110,
+      "success": 97,
+      "fail": 13
+    },
+    {
+      "time": "13:00",
+      "total": 104,
+      "success": 82,
+      "fail": 22
+    },
+    {
+      "time": "14:00",
+      "total": 88,
+      "success": 74,
+      "fail": 14
+    },
+    {
+      "time": "15:00",
+      "total": 97,
+      "success": 84,
+      "fail": 13
+    },
+    {
+      "time": "16:00",
+      "total": 119,
+      "success": 96,
+      "fail": 23
+    },
+    {
+      "time": "17:00",
+      "total": 92,
+      "success": 76,
+      "fail": 16
+    },
+    {
+      "time": "18:00",
+      "total": 86,
+      "success": 76,
+      "fail": 10
+    },
+    {
+      "time": "19:00",
+      "total": 93,
+      "success": 73,
+      "fail": 20
+    },
+    {
+      "time": "20:00",
+      "total": 99,
+      "success": 75,
+      "fail": 24
+    },
+    {
+      "time": "21:00",
+      "total": 110,
+      "success": 84,
+      "fail": 26
+    },
+    {
+      "time": "22:00",
+      "total": 108,
+      "success": 96,
+      "fail": 12
+    }
+  ],
+  "critic_trend": [
+    {
+      "time": "22:00",
+      "avg_score": 71,
+      "count": 25
+    },
+    {
+      "time": "23:00",
+      "avg_score": 73,
+      "count": 22
+    },
+    {
+      "time": "00:00",
+      "avg_score": 80,
+      "count": 22
+    },
+    {
+      "time": "01:00",
+      "avg_score": 82,
+      "count": 24
+    },
+    {
+      "time": "02:00",
+      "avg_score": 81,
+      "count": 34
+    },
+    {
+      "time": "03:00",
+      "avg_score": 89,
+      "count": 31
+    },
+    {
+      "time": "04:00",
+      "avg_score": 70,
+      "count": 23
+    },
+    {
+      "time": "05:00",
+      "avg_score": 74,
+      "count": 35
+    },
+    {
+      "time": "06:00",
+      "avg_score": 76,
+      "count": 22
+    },
+    {
+      "time": "07:00",
+      "avg_score": 85,
+      "count": 35
+    },
+    {
+      "time": "08:00",
+      "avg_score": 78,
+      "count": 35
+    },
+    {
+      "time": "09:00",
+      "avg_score": 74,
+      "count": 35
+    },
+    {
+      "time": "10:00",
+      "avg_score": 76,
+      "count": 34
+    },
+    {
+      "time": "11:00",
+      "avg_score": 89,
+      "count": 35
+    },
+    {
+      "time": "12:00",
+      "avg_score": 77,
+      "count": 34
+    },
+    {
+      "time": "13:00",
+      "avg_score": 74,
+      "count": 29
+    },
+    {
+      "time": "14:00",
+      "avg_score": 82,
+      "count": 15
+    },
+    {
+      "time": "15:00",
+      "avg_score": 86,
+      "count": 20
+    },
+    {
+      "time": "16:00",
+      "avg_score": 66,
+      "count": 16
+    },
+    {
+      "time": "17:00",
+      "avg_score": 66,
+      "count": 19
+    },
+    {
+      "time": "18:00",
+      "avg_score": 67,
+      "count": 21
+    },
+    {
+      "time": "19:00",
+      "avg_score": 70,
+      "count": 26
+    },
+    {
+      "time": "20:00",
+      "avg_score": 84,
+      "count": 18
+    },
+    {
+      "time": "21:00",
+      "avg_score": 69,
+      "count": 34
+    },
+    {
+      "time": "22:00",
+      "avg_score": 85,
+      "count": 18
+    }
+  ],
+  "failure_distribution": {
+    "api_fabrication": 18,
+    "field_error": 18,
+    "logic_error": 9,
+    "timeout": 5,
+    "validation_failure": 35,
+    "rate_limit": 6,
+    "network_error": 7
+  },
+  "total_validations": 2521,
+  "successful_validations": 2126,
+  "total_evaluations": 662,
+  "avg_critic_score": 77.23111782477342
+}

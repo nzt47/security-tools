@@ -1,0 +1,2 @@
+2026-06-29 11:15:49,815 [INFO] {"trace_id":"b6fed446468e4f72","module_name":"notify_arch_violation","action":"no_violations","active_count":0,"duration_ms":0.34}
+2026-06-29 11:15:49,816 [INFO] Prometheus 指标已写入: docs\architecture\arch_metrics.prom

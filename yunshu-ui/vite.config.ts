@@ -9,6 +9,16 @@ export default defineConfig({
   build: {
     sourcemap: 'hidden',
   },
+  server: {
+    // 将 /api 请求代理到后端 Flask 服务（端口 5678）
+    // 解决前端 dev server (5173) 与后端 API 跨域问题
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5678',
+        changeOrigin: true,
+      },
+    },
+  },
   plugins: [
     react({
       babel: {
@@ -25,7 +35,7 @@ export default defineConfig({
       clickUrl: 'https://www.trae.ai/solo?showJoin=1',
       autoTheme: true,
       autoThemeTarget: '#root'
-    }), 
+    }),
     tsconfigPaths()
   ],
 })

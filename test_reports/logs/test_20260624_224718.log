@@ -1,0 +1,89 @@
+2026-06-24 22:47:18,535 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 22:47:18,539 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 22:47:18,540 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 22:47:18,643 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 22:47:18,669 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 22:47:18,673 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 22:47:18,737 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 22:47:18,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:18,739 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:47:18,740 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 22:47:18,747 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 22:47:18,752 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 22:47:18,768 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 22:47:18,769 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 22:47:18,769 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 22:47:18,770 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 22:47:18,772 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 22:47:18,895 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 22:47:18,899 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 22:47:18,899 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:47:18,905 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:47:18,906 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 22:47:18,906 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 22:47:18,906 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 22:47:18,906 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 22:47:18,906 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 22:47:18,907 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 22:47:18,907 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 22:47:18,907 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 22:47:18,907 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:47:18,908 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 22:47:18,908 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 22:47:18,908 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 22:47:18,922 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:18,923 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 22:47:19,062 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,062 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_schema_validation_stats", "start_time": 0, "end_time": 1782312439.0620968, "status": "started"}
+2026-06-24 22:47:19,063 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_schema_validation_stats", "status": "using_mock_data", "total_validations": 2521}
+2026-06-24 22:47:19,067 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,067 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_critic_stats", "status": "started"}
+2026-06-24 22:47:19,068 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_critic_stats", "status": "using_mock_data"}
+2026-06-24 22:47:19,071 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,071 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_failure_distribution", "start_time": 0, "end_time": 1782312439.0713441, "status": "started"}
+2026-06-24 22:47:19,072 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_failure_distribution", "status": "using_mock_data", "total_failures": 98}
+2026-06-24 22:47:19,081 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,081 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_long_term_memory_stats", "status": "started"}
+2026-06-24 22:47:19,082 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_long_term_memory_stats", "status": "using_mock_data", "total_count": 2500}
+2026-06-24 22:47:19,086 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,086 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_short_term_memory_stats", "status": "started"}
+2026-06-24 22:47:19,086 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_short_term_memory_stats", "status": "using_mock_data", "total_count": 150}
+2026-06-24 22:47:19,089 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,089 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_hit_rate_stats", "status": "started"}
+2026-06-24 22:47:19,090 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_hit_rate_stats", "status": "using_mock_data", "overall_hit_rate": 73.5}
+2026-06-24 22:47:19,094 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,095 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_memory_category_distribution", "status": "started"}
+2026-06-24 22:47:19,096 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_memory_category_distribution", "status": "using_mock_data"}
+2026-06-24 22:47:19,099 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,100 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_recent_memory_access", "status": "started"}
+2026-06-24 22:47:19,100 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_recent_memory_access", "status": "using_mock_data", "record_count": 20}
+2026-06-24 22:47:19,104 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,104 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,104 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_schema_validation_stats", "start_time": 0, "end_time": 1782312439.1047242, "status": "started"}
+2026-06-24 22:47:19,105 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_schema_validation_stats", "status": "using_mock_data", "total_validations": 2521}
+2026-06-24 22:47:19,105 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,105 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_critic_stats", "status": "started"}
+2026-06-24 22:47:19,105 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_critic_stats", "status": "using_mock_data"}
+2026-06-24 22:47:19,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,107 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_failure_distribution", "start_time": 0, "end_time": 1782312439.1047242, "status": "started"}
+2026-06-24 22:47:19,107 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_failure_distribution", "status": "using_mock_data", "total_failures": 98}
+2026-06-24 22:47:19,107 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "get_quality_metrics", "duration_ms": 2.85, "status": "success"}
+2026-06-24 22:47:19,111 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,112 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,112 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_long_term_memory_stats", "status": "started"}
+2026-06-24 22:47:19,113 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_long_term_memory_stats", "status": "using_mock_data", "total_count": 2500}
+2026-06-24 22:47:19,113 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,113 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_short_term_memory_stats", "status": "started"}
+2026-06-24 22:47:19,114 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_short_term_memory_stats", "status": "using_mock_data", "total_count": 150}
+2026-06-24 22:47:19,114 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,114 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_hit_rate_stats", "status": "started"}
+2026-06-24 22:47:19,115 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_hit_rate_stats", "status": "using_mock_data", "overall_hit_rate": 73.5}
+2026-06-24 22:47:19,115 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,115 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_memory_category_distribution", "status": "started"}
+2026-06-24 22:47:19,116 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_memory_category_distribution", "status": "using_mock_data"}
+2026-06-24 22:47:19,117 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:47:19,117 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_recent_memory_access", "status": "started"}
+2026-06-24 22:47:19,118 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "_get_recent_memory_access", "status": "using_mock_data", "record_count": 20}
+2026-06-24 22:47:19,118 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "get_memory_stats", "duration_ms": 6.56, "status": "success"}

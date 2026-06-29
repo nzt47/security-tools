@@ -1,0 +1,434 @@
+2026-06-25 10:46:30,333 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:46:30,337 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:46:30,339 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:46:30,479 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:46:30,496 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:46:30,499 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 10:46:30,536 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 10:46:30,538 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:30,539 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 10:46:30,540 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 10:46:30,549 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 10:46:30,606 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 10:46:30,625 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 10:46:30,625 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 10:46:30,626 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 10:46:30,627 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 10:46:30,628 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 10:46:30,646 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 10:46:30,651 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 10:46:30,651 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:30,658 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:30,658 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 10:46:30,658 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 10:46:30,658 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 10:46:30,659 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 10:46:30,659 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 10:46:30,659 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 10:46:30,659 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 10:46:30,660 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 10:46:30,660 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:30,660 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 10:46:30,660 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 10:46:30,660 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 10:46:30,672 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:30,672 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:30,821 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:46:30,826 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:46:30,828 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:46:30,984 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:46:31,004 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:46:31,009 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 10:46:31,062 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 10:46:31,064 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,065 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 10:46:31,066 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 10:46:31,077 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 10:46:31,084 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 10:46:31,110 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 10:46:31,110 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 10:46:31,112 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 10:46:31,112 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 10:46:31,115 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 10:46:31,140 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 10:46:31,148 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 10:46:31,148 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:31,152 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:31,153 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 10:46:31,153 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 10:46:31,153 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 10:46:31,153 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 10:46:31,154 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 10:46:31,154 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 10:46:31,154 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 10:46:31,155 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 10:46:31,155 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:46:31,155 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 10:46:31,155 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 10:46:31,156 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 10:46:31,174 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,175 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,257 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,258 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 10:46:31,284 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,285 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,285 [    INFO] agent.permission_system: 
+2026-06-25 10:46:31,292 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,292 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,292 [    INFO] agent.permission_system: 
+2026-06-25 10:46:31,298 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,298 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,312 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,312 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,325 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,325 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,337 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,338 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,350 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,351 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,363 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,363 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,369 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,369 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,372 [    INFO] agent.permission_system: 操作已确认: perm_0001 — rm -rf temp_dir
+2026-06-25 10:46:31,377 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,377 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,378 [ WARNING] agent.permission_system: 未找到待确认操作: perm_9999
+2026-06-25 10:46:31,384 [    INFO] agent.permission_system: 权限系统初始化，备份目录: C:\Windows\TEMP\tmp5csdy8id\backups
+2026-06-25 10:46:31,384 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,387 [    INFO] agent.permission_system: 已备份: C:\Windows\TEMP\tmp5csdy8id\test.txt → C:\Windows\TEMP\tmp5csdy8id\backups\test.txt.20260625_104631.bak
+2026-06-25 10:46:31,393 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,394 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,394 [ WARNING] agent.permission_system: 备份失败: 文件不存在 — /nonexistent/path/file.txt
+2026-06-25 10:46:31,400 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,400 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,406 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,406 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,414 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,414 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,420 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,420 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,425 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,425 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,426 [    INFO] agent.permission_system: 
+2026-06-25 10:46:31,435 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,436 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,441 [    INFO] agent.permission_system: 
+2026-06-25 10:46:31,447 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,447 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,452 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,453 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,459 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,459 [    INFO] agent.permission_system: 危险词库: 1 条严重 + 0 条警告
+2026-06-25 10:46:31,465 [ WARNING] agent.permission_system: 加载危险词库失败: Expecting value: line 1 column 1 (char 0)
+2026-06-25 10:46:31,465 [    INFO] agent.permission_system: 权限系统初始化，备份目录: ./.backups
+2026-06-25 10:46:31,466 [    INFO] agent.permission_system: 危险词库: 4 条严重 + 5 条警告
+2026-06-25 10:46:31,472 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,472 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,479 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,479 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": false, "max_retries": 5, "timeout_seconds": 60.0, "cache_ttl_seconds": 600}}
+2026-06-25 10:46:31,489 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,489 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,496 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 1, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,496 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,601 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: \u6570\u636e\u5fc5\u987b\u662f\u5b57\u5178\u7c7b\u578b"}
+2026-06-25 10:46:31,603 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,607 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: \u6570\u636e\u5fc5\u987b\u662f\u5b57\u5178\u7c7b\u578b"}
+2026-06-25 10:46:31,622 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,632 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,632 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,633 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,633 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,634 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "skip", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u8df3\u8fc7\u8bc4\u4f30"}
+2026-06-25 10:46:31,657 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,657 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,657 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "critic", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-25 10:46:31,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,658 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker_manager", "action": "register", "duration_ms": 0, "name": "critic"}
+2026-06-25 10:46:31,760 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,760 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,761 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: CriticEvaluator.evaluate() missing 1 required positional argument: 'response'"}
+2026-06-25 10:46:31,861 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,861 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,862 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: CriticEvaluator.evaluate() missing 1 required positional argument: 'response'"}
+2026-06-25 10:46:31,964 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,965 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,965 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: CriticEvaluator.evaluate() missing 1 required positional argument: 'response'"}
+2026-06-25 10:46:31,966 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,966 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,966 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: CriticEvaluator.evaluate() missing 1 required positional argument: 'response'"}
+2026-06-25 10:46:31,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:31,972 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:31,972 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,074 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,074 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,074 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,176 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,176 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,176 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,277 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,277 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,277 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,278 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,278 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,279 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,285 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 0, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,286 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,286 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,286 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: memory timeout"}
+2026-06-25 10:46:32,291 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,393 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,393 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,393 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,495 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,597 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,597 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,598 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,599 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,599 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: GracefulDegrade.memory_query_with_degrade.<locals>.query_memory() takes 0 positional arguments but 1 was given"}
+2026-06-25 10:46:32,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,606 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,607 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,612 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,613 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,613 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,613 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,619 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,624 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,624 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,629 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,636 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,636 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 2, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,636 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,648 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,648 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,649 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: failed"}
+2026-06-25 10:46:32,659 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,660 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,660 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: failed"}
+2026-06-25 10:46:32,666 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,666 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 0.1}}
+2026-06-25 10:46:32,667 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,667 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,868 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,875 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,876 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,876 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,882 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,882 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 0, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,883 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,883 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,883 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,884 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,884 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,885 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "reset", "duration_ms": 0}
+2026-06-25 10:46:32,891 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,891 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 0, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,891 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,892 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,892 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,892 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,892 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,893 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,893 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,893 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,894 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,894 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,894 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,894 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,895 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,896 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,896 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,896 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,896 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,897 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: fail"}
+2026-06-25 10:46:32,902 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,902 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,907 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,907 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:46:32,913 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,913 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 10:46:32,919 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,919 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 10, "max_backups": 5, "backup_dir": "./data/backups", "auto_recover": false}}
+2026-06-25 10:46:32,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,932 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./tmp_backup_test", "auto_recover": true}}
+2026-06-25 10:46:32,933 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,933 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test_data"}
+2026-06-25 10:46:32,945 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,945 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_trigger_backup_full0", "auto_recover": true}}
+2026-06-25 10:46:32,946 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,946 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:32,948 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,948 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,949 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.04, "backup_id": "backup_20260625_104632", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:32,956 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,956 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_trigger_backup_incrementa0", "auto_recover": true}}
+2026-06-25 10:46:32,957 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,957 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "incr"}
+2026-06-25 10:46:32,959 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,960 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,960 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104632", "type": "incremental", "files": ["incr"], "size_bytes": 166}
+2026-06-25 10:46:32,967 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,968 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_trigger_backup_disabled0", "auto_recover": true}}
+2026-06-25 10:46:32,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,969 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 0, "warning": "\u5907\u4efd\u672a\u542f\u7528"}
+2026-06-25 10:46:32,976 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,977 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_backup_with_multiple_prov0", "auto_recover": true}}
+2026-06-25 10:46:32,977 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,977 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "provider1"}
+2026-06-25 10:46:32,977 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,978 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "provider2"}
+2026-06-25 10:46:32,979 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,980 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104632", "type": "full", "files": ["provider1", "provider2"], "size_bytes": 218}
+2026-06-25 10:46:32,988 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,989 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_verify_backup0", "auto_recover": true}}
+2026-06-25 10:46:32,989 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,989 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:32,991 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,991 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:32,992 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104632", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,000 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,000 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 3, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_get_backup_list0", "auto_recover": true}}
+2026-06-25 10:46:33,000 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,001 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:33,002 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,002 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,003 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,108 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,110 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 4.65, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,213 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,213 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,214 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 0.98, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,316 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,317 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,317 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.51, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,420 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 0.96, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:33,530 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,531 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_restore_from_backup0", "auto_recover": true}}
+2026-06-25 10:46:33,531 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,531 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:33,533 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,533 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,533 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.03, "backup_id": "backup_20260625_104633", "type": "full", "files": ["test"], "size_bytes": 174}
+2026-06-25 10:46:33,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,535 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104633", "restored_files": ["test"]}
+2026-06-25 10:46:33,544 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,544 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_restore_from_invalid_back0", "auto_recover": true}}
+2026-06-25 10:46:33,545 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,545 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0, "error": "\u5907\u4efd invalid_backup_id \u65e0\u6548\u6216\u5df2\u635f\u574f", "backup_id": "invalid_backup_id"}
+2026-06-25 10:46:33,552 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,553 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-25 10:46:33,553 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,554 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-25 10:46:33,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,556 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,556 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.97, "backup_id": "backup_20260625_104633", "type": "full", "files": ["auto_recover_test"], "size_bytes": 170}
+2026-06-25 10:46:33,557 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,557 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-25 10:46:33,558 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,558 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-25 10:46:33,559 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,560 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u5c1d\u8bd5\u81ea\u52a8\u6062\u590d\u5907\u4efd backup_20260625_104633"}
+2026-06-25 10:46:33,561 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,561 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.99, "backup_id": "backup_20260625_104633", "restored_files": ["auto_recover_test"]}
+2026-06-25 10:46:33,569 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,569 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_auto_recover_disabled0", "auto_recover": false}}
+2026-06-25 10:46:33,587 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,588 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_repair_valid_database0", "auto_recover": true}}
+2026-06-25 10:46:33,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,598 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_repair_corrupted_database0", "auto_recover": true}}
+2026-06-25 10:46:33,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,600 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "repair_database", "duration_ms": 0, "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_repair_corrupted_database0\\corrupted.db", "error": "file is not a database"}
+2026-06-25 10:46:33,607 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,608 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_repair_nonexistent_databa0", "auto_recover": true}}
+2026-06-25 10:46:33,627 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,627 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config0\\config.json"}
+2026-06-25 10:46:33,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:33,629 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config0\\config.json"]}
+2026-06-25 10:46:35,640 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:35,640 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config0\\config.json"}
+2026-06-25 10:46:37,132 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:37,133 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 10:46:37,142 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:37,142 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config_callback_err0\\config.json"}
+2026-06-25 10:46:37,144 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:37,144 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config_callback_err0\\config.json"]}
+2026-06-25 10:46:39,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,151 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_watch_config_callback_err0\\config.json", "error": "callback error"}
+2026-06-25 10:46:39,649 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,649 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 10:46:39,657 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,657 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 0.01, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_start_stop_scheduler0", "auto_recover": true}}
+2026-06-25 10:46:39,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,658 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "scheduler_test"}
+2026-06-25 10:46:39,659 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,660 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "interval_minutes": 0.01}
+2026-06-25 10:46:39,660 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,661 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:39,661 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.81, "backup_id": "backup_20260625_104639", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 183}
+2026-06-25 10:46:40,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,267 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 3.03, "backup_id": "backup_20260625_104640", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 183}
+2026-06-25 10:46:40,661 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,661 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "stop_backup_scheduler", "duration_ms": 0}
+2026-06-25 10:46:40,670 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,670 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_start_scheduler_disabled0", "auto_recover": true}}
+2026-06-25 10:46:40,671 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,671 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "warning": "\u5907\u4efd\u672a\u542f\u7528\uff0c\u8df3\u8fc7\u8c03\u5ea6\u5668\u542f\u52a8"}
+2026-06-25 10:46:40,679 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,680 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 0.01, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_start_scheduler_already_r0", "auto_recover": true}}
+2026-06-25 10:46:40,680 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,680 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:40,681 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,682 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "interval_minutes": 0.01}
+2026-06-25 10:46:40,682 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,683 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "warning": "\u5907\u4efd\u8c03\u5ea6\u5668\u5df2\u8fd0\u884c"}
+2026-06-25 10:46:40,683 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,684 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,684 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 3.0, "backup_id": "backup_20260625_104640", "type": "incremental", "files": ["test"], "size_bytes": 161}
+2026-06-25 10:46:40,684 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,685 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "stop_backup_scheduler", "duration_ms": 0}
+2026-06-25 10:46:40,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,693 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_get_recovery_status0", "auto_recover": true}}
+2026-06-25 10:46:40,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,701 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-355\\test_get_status0", "auto_recover": true}}
+2026-06-25 10:46:40,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,702 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:46:40,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,704 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.01, "backup_id": "backup_20260625_104640", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:46:40,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,711 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_test"}
+2026-06-25 10:46:40,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,719 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_backup"}
+2026-06-25 10:46:40,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,721 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104640", "type": "full", "files": ["convenience_test", "convenience_backup"], "size_bytes": 222}
+2026-06-25 10:46:40,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,729 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_restore"}
+2026-06-25 10:46:40,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,731 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104640", "type": "full", "files": ["convenience_test", "convenience_backup", "convenience_restore"], "size_bytes": 279}
+2026-06-25 10:46:40,732 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:46:40,732 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260625_104640", "restored_files": ["convenience_test", "convenience_backup", "convenience_restore"]}
