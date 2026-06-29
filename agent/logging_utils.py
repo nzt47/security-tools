@@ -427,15 +427,19 @@ class SensitiveDataFilter(logging.Filter):
         patterns.append(re.compile(r'\bey[A-Za-z0-9+/=]{40,}\b', re.IGNORECASE))
         
         # 密码字段值（完整匹配并替换）
-        patterns.append(re.compile(r'(password|secret|token)\s*=\s*["\']?[^"\']*["\']?', re.IGNORECASE))
-        patterns.append(re.compile(r'(password|secret|token)\s*:\s*["\']?[^"\']*["\']?', re.IGNORECASE))
-        
+        # P0-SEC-002 修复：[^"'\&\s]* 排除 & 和空白，避免吞噬相邻 URL 参数
+        patterns.append(re.compile(r'(password|secret|token)\s*=\s*["\']?[^"\'&\s]*["\']?', re.IGNORECASE))
+        patterns.append(re.compile(r'(password|secret|token)\s*:\s*["\']?[^"\'&\s]*["\']?', re.IGNORECASE))
+
         # 密钥字段值（完整匹配并替换）
-        patterns.append(re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?[^"\']*["\']?', re.IGNORECASE))
-        patterns.append(re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?[^"\']*["\']?', re.IGNORECASE))
-        
+        patterns.append(re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?[^"\'&\s]*["\']?', re.IGNORECASE))
+        patterns.append(re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?[^"\'&\s]*["\']?', re.IGNORECASE))
+
         # URL 中的敏感参数（完整匹配并替换）
-        patterns.append(re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*[^&]*', re.IGNORECASE))
+        patterns.append(re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*[^&\s]*', re.IGNORECASE))
+
+        # Bearer Token（P0-SEC-001 修复：独立匹配，整段替换为 Bearer [REDACTED]）
+        patterns.append(re.compile(r'(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*'))
         
         # 手机号（中国大陆：11位数字，以1开头）
         patterns.append(re.compile(r'(?<!\d)1[3-9]\d{9}(?!\d)'))
@@ -512,16 +516,20 @@ class SensitiveDataFilter(logging.Filter):
             result = email_pattern.sub('[REDACTED]', result)
             
             # 处理字段名=值形式的敏感信息
+            # P0-SEC-002 修复：[^"'\&\s]* 排除 & 和空白，避免贪婪吞噬相邻 URL 参数
             field_patterns = [
-                (re.compile(r'(password|secret|token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
-                (re.compile(r'(password|secret|token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
-                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
-                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?([^"\']*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
-                (re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*([^&]*)', re.IGNORECASE), r'\1\2=[REDACTED]'),
+                (re.compile(r'(password|secret|token)\s*=\s*["\']?([^"\'&\s]*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
+                (re.compile(r'(password|secret|token)\s*:\s*["\']?([^"\'&\s]*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
+                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*=\s*["\']?([^"\'&\s]*)["\']?', re.IGNORECASE), r'\1="[REDACTED]"'),
+                (re.compile(r'(api_key|api\.key|secret_key|access_token)\s*:\s*["\']?([^"\'&\s]*)["\']?', re.IGNORECASE), r'\1: "[REDACTED]"'),
+                (re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*([^&\s]*)', re.IGNORECASE), r'\1\2=[REDACTED]'),
             ]
-            
+
             for pattern, replacement in field_patterns:
                 result = pattern.sub(replacement, result)
+
+            # 处理 Bearer Token（P0-SEC-001 修复：整段替换为 Bearer [REDACTED]）
+            result = re.sub(r'(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*', 'Bearer [REDACTED]', result)
             
             # 先处理身份证号（18位）- 保留前6位和后4位
             # 18位身份证: 前6位地区码 + 8位生日 + 3位顺序码 + 1位校验码

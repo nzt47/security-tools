@@ -1,0 +1,190 @@
+2026-06-23 16:29:57,079 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-23 16:29:57,082 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-23 16:29:57,084 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-23 16:29:57,096 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-23 16:29:57,110 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 16:29:57,113 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-23 16:29:57,141 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-23 16:29:57,147 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-23 16:29:57,152 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-23 16:29:57,169 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-23 16:29:57,169 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-23 16:29:57,169 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-23 16:29:57,170 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-23 16:29:57,171 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-23 16:29:57,288 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-23 16:29:57,292 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-23 16:29:57,292 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-23 16:29:57,298 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-23 16:29:57,343 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,343 [    INFO] test_agent_integration: [集成测试] 开始测试错误处理器与熔断器集成
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration: [步骤1] 初始化错误处理器和熔断器
+2026-06-23 16:29:57,344 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 16:29:57,344 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=2
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration:   - 错误处理器已初始化
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration:   - 熔断器 'test_cb' 已创建，max_failures=2
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration: [步骤2] 注册熔断器到错误处理器
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration:   - 熔断器注册成功
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration: [步骤3] 测试熔断器跳闸机制
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration:   - 记录第 1 次失败，当前状态: CLOSED
+2026-06-23 16:29:57,344 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 2 failures
+2026-06-23 16:29:57,344 [    INFO] test_agent_integration:   - 记录第 2 次失败，当前状态: OPEN
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration:   - 记录第 3 次失败，当前状态: OPEN
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration:   - 熔断器已成功跳闸
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration: [步骤4] 验证熔断器状态查询
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration:   - 熔断器状态查询成功: {'test_cb': {'name': 'test_cb', 'state': 'open', 'failure_count': 3, 'success_count': 0, 'max_failures': 2, 'last_failure_time': '2026-06-23T16:29:57.345630', 'last_success_time': None}}
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration: [集成测试] 错误处理器与熔断器集成测试通过
+2026-06-23 16:29:57,345 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration: [集成测试] 开始测试全局错误处理器
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration: [步骤1] 获取全局错误处理器实例
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration:   - 第一次获取: 2397747752320
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration:   - 第二次获取: 2397747752320
+2026-06-23 16:29:57,348 [    INFO] test_agent_integration:   - 验证通过: 全局错误处理器是单例
+2026-06-23 16:29:57,349 [    INFO] test_agent_integration: [步骤2] 记录错误并验证指标
+2026-06-23 16:29:57,349 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-23 16:29:57,349 [    INFO] test_agent_integration:   - 错误已记录
+2026-06-23 16:29:57,349 [    INFO] test_agent_integration:   - 指标验证成功: {'key': 'YunshuError', 'total_count': 1, 'count_by_severity': {'debug': 0, 'info': 0, 'warning': 0, 'error': 1, 'critical': 0}, 'count_by_category': {'network_temporary': 0, 'network_timeout': 0, 'network_connection': 0, 'resource_memory': 0, 'resource_disk': 0, 'resource_cpu': 0, 'external_service': 0, 'external_api': 0, 'data_invalid': 0, 'data_missing': 0, 'data_corrupt': 0, 'permission_denied': 0, 'security_alert': 0, 'config_error': 0, 'unknown': 1}, 'first_occurrence': '2026-06-23T16:29:57.349631', 'last_occurrence': '2026-06-23T16:29:57.349631'}
+2026-06-23 16:29:57,349 [    INFO] test_agent_integration: [集成测试] 全局错误处理器测试通过
+2026-06-23 16:29:57,349 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,352 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,352 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器依赖管理
+2026-06-23 16:29:57,352 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,352 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器
+2026-06-23 16:29:57,352 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-23 16:29:57,352 [    INFO] test_agent_integration:   - 懒加载器已初始化
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration: [步骤2] 定义测试模块和依赖
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration:   - 依赖模块加载函数已定义
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration:   - 主模块加载函数已定义
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration: [步骤3] 注册模块（带依赖关系）
+2026-06-23 16:29:57,353 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dependency, level=CRITICAL, deps=[], has_async=False
+2026-06-23 16:29:57,353 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dependency'], has_async=False
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration:   - 依赖模块 'dependency' 已注册 (CRITICAL级别)
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration:   - 主模块 'main' 已注册 (IMPORTANT级别, 依赖: dependency)
+2026-06-23 16:29:57,353 [    INFO] test_agent_integration: [步骤4] 加载主模块（应自动加载依赖）
+2026-06-23 16:29:57,356 [    INFO] test_agent_integration:   - 主模块加载结果: main
+2026-06-23 16:29:57,356 [    INFO] test_agent_integration:   - 依赖加载次数: 1
+2026-06-23 16:29:57,356 [    INFO] test_agent_integration:   - 依赖自动加载验证通过
+2026-06-23 16:29:57,356 [    INFO] test_agent_integration: [集成测试] 懒加载器依赖管理测试通过
+2026-06-23 16:29:57,356 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,359 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,359 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器并行加载
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器（4个工作线程）
+2026-06-23 16:29:57,360 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration:   - 懒加载器已初始化, max_workers=4
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration: [步骤2] 定义并行加载的模块
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration:   - 三个测试模块加载函数已定义
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration: [步骤3] 注册模块
+2026-06-23 16:29:57,360 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod1, level=CRITICAL, deps=[], has_async=False
+2026-06-23 16:29:57,360 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod2, level=CRITICAL, deps=[], has_async=False
+2026-06-23 16:29:57,360 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod3, level=CRITICAL, deps=[], has_async=False
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration:   - 三个CRITICAL级别模块已注册
+2026-06-23 16:29:57,360 [    INFO] test_agent_integration: [步骤4] 执行并行加载
+2026-06-23 16:29:57,360 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-23 16:29:57,365 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=3, 失败=0
+2026-06-23 16:29:57,366 [    INFO] test_agent_integration:   - 加载结果: ['mod1', 'mod2', 'mod3']
+2026-06-23 16:29:57,366 [    INFO] test_agent_integration:   - 实际加载顺序: ['mod1', 'mod2', 'mod3']
+2026-06-23 16:29:57,366 [    INFO] test_agent_integration:   - 并行加载验证通过
+2026-06-23 16:29:57,366 [    INFO] test_agent_integration: [集成测试] 懒加载器并行加载测试通过
+2026-06-23 16:29:57,366 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration: [集成测试] 开始测试全局懒加载器
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration: [步骤1] 获取全局懒加载器实例
+2026-06-23 16:29:57,369 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration:   - 第一次获取: 2398136581200
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration:   - 第二次获取: 2398136581200
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration:   - 验证通过: 全局懒加载器是单例
+2026-06-23 16:29:57,369 [    INFO] test_agent_integration: [步骤2] 在一个实例上注册模块
+2026-06-23 16:29:57,370 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_mod, level=OPTIONAL, deps=[], has_async=False
+2026-06-23 16:29:57,370 [    INFO] test_agent_integration:   - 测试模块 'test_mod' 已注册
+2026-06-23 16:29:57,370 [    INFO] test_agent_integration: [步骤3] 在另一个实例上验证
+2026-06-23 16:29:57,370 [    INFO] test_agent_integration:   - 模块共享验证通过
+2026-06-23 16:29:57,370 [    INFO] test_agent_integration: [集成测试] 全局懒加载器测试通过
+2026-06-23 16:29:57,370 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,373 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,373 [    INFO] test_agent_integration: [集成测试] 开始测试数据脱敏器与日志过滤器集成
+2026-06-23 16:29:57,373 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,373 [    INFO] test_agent_integration: [步骤1] 初始化脱敏器和日志过滤器
+2026-06-23 16:29:57,373 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration:   - 数据脱敏器已初始化
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration:   - 敏感数据过滤器已初始化
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration: [步骤2] 准备测试数据
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration:   - 原始数据: API Key=sk-12345, password=secret
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration: [步骤3] 使用脱敏器处理
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration:   - 脱敏器处理结果: API Key=[REDACTED], password=[REDACTED]
+2026-06-23 16:29:57,375 [    INFO] test_agent_integration: [步骤4] 使用日志过滤器处理
+2026-06-23 16:29:57,377 [    INFO] test_agent_integration:   - 过滤器处理结果: API Key=[REDACTED], password="[REDACTED]"
+2026-06-23 16:29:57,377 [    INFO] test_agent_integration:   - 脱敏效果验证通过
+2026-06-23 16:29:57,377 [    INFO] test_agent_integration: [集成测试] 数据脱敏器与日志过滤器集成测试通过
+2026-06-23 16:29:57,378 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: [集成测试] 开始测试加密器与脱敏器配合使用
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: [步骤1] 初始化数据脱敏器
+2026-06-23 16:29:57,381 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration:   - 数据脱敏器已初始化
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: [步骤2] 准备测试数据
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration:   - 原始数据: {'user': 'admin', 'api_key': 'sk-secret-key', 'password': 'secret123'}
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration: [步骤3] 执行脱敏处理
+2026-06-23 16:29:57,381 [    INFO] test_agent_integration:   - 脱敏后数据: {'user': 'admin', 'api_key': '[REDACTED]', 'password': '[REDACTED]'}
+2026-06-23 16:29:57,382 [    INFO] test_agent_integration:   - 脱敏验证通过
+2026-06-23 16:29:57,382 [    INFO] test_agent_integration: [集成测试] 加密器与脱敏器配合测试通过
+2026-06-23 16:29:57,382 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: [集成测试] 开始测试安全监控器与日志系统集成
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: [步骤1] 获取安全监控器
+2026-06-23 16:29:57,385 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration:   - 安全监控器已获取
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: [步骤2] 测试监控器记录功能
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration:   - 监控器记录成功
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: [集成测试] 安全监控器与日志系统集成测试通过
+2026-06-23 16:29:57,385 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,388 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,388 [    INFO] test_agent_integration: [集成测试] 开始测试敏感数据过滤器在日志中的应用
+2026-06-23 16:29:57,388 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,388 [    INFO] test_agent_integration: [步骤1] 配置测试日志器
+2026-06-23 16:29:57,388 [    INFO] test_agent_integration:   - 测试日志器配置完成
+2026-06-23 16:29:57,389 [    INFO] test_agent_integration: [步骤2] 测试日志记录（包含敏感数据）
+2026-06-23 16:29:57,389 [    INFO] test_agent_integration:   - 日志记录成功
+2026-06-23 16:29:57,389 [    INFO] test_agent_integration: [集成测试] 敏感数据过滤器在日志中的应用测试通过
+2026-06-23 16:29:57,389 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,392 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,392 [    INFO] test_agent_integration: [集成测试] 开始测试错误处理完整工作流
+2026-06-23 16:29:57,392 [    INFO] test_agent_integration: ============================================================
+2026-06-23 16:29:57,392 [    INFO] test_agent_integration: [步骤1] 初始化错误处理器
+2026-06-23 16:29:57,393 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration:   - 错误处理器已初始化
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration: [步骤2] 导入错误类
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration:   - 错误类导入完成
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration: [步骤3] 记录普通错误
+2026-06-23 16:29:57,393 [   ERROR] agent.error_handler: [error] unknown: 普通错误
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration:   - 普通错误已记录
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration: [步骤4] 记录可恢复错误
+2026-06-23 16:29:57,393 [ WARNING] agent.error_handler: [warning] unknown: 可恢复错误
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration:   - 可恢复错误已记录
+2026-06-23 16:29:57,393 [    INFO] test_agent_integration: [步骤5] 记录严重错误
+2026-06-23 16:29:57,393 [CRITICAL] agent.error_handler: [critical] unknown: 严重错误
+2026-06-23 16:29:57,394 [    INFO] test_agent_integration:   - 严重错误已记录
+2026-06-23 16:29:57,394 [    INFO] test_agent_integration: [步骤6] 注册熔断器
+2026-06-23 16:29:57,394 [    INFO] agent.error_handler: Circuit breaker 'workflow_cb' initialized: max_failures=5
+2026-06-23 16:29:57,394 [    INFO] test_agent_integration:   - 熔断器 'workflow_cb' 已注册
+2026-06-23 16:29:57,394 [    INFO] test_agent_integration: [步骤7] 验证指标

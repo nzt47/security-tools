@@ -1,0 +1,48 @@
+2026-06-29 01:23:49,724 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 01:23:49,727 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 01:23:49,728 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 01:23:49,740 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 01:23:49,754 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:23:49,757 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 01:23:49,787 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-29 01:23:49,794 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 01:23:49,800 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 01:23:49,817 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 01:23:49,817 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 01:23:49,817 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 01:23:49,819 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-29 01:23:49,820 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 01:23:49,969 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 01:23:49,973 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 01:23:49,974 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 01:23:49,974 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:23:49,974 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 01:23:49,974 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-29 01:23:49,974 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 01:23:50,116 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-29 01:23:50,116 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-29 01:23:50,480 [    INFO] agent.skills_mgmt: {"trace_id": "f3ecf227-1252-44f3-a402-7562b6de3e5c", "module_name": "skills_mgmt", "action": "skill_ai_generate.start", "duration_ms": 0.0, "ts": 1782667430.480873, "name": "ai-skill", "intent": "生成一段问候语"}
+2026-06-29 01:23:50,480 [    INFO] agent.skills_mgmt: {"trace_id": "6f972461-4cff-4086-8b09-112f70474c45", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667430.480873, "event_name": "skill_ai_generate_start", "payload": {"name": "ai-skill", "intent": "生成一段问候语"}}
+2026-06-29 01:23:50,484 [    INFO] agent.skills_mgmt: {"trace_id": "f3ecf227-1252-44f3-a402-7562b6de3e5c", "module_name": "skills_mgmt", "action": "skill_ai_generate.end", "duration_ms": 3.41, "ts": 1782667430.4842865, "status": "ok", "name": "ai-skill", "intent": "生成一段问候语", "skill_id": "ai-skill"}
+2026-06-29 01:23:50,485 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-544\test_create_via_ai_with_templa0\skills_mgmt.json
+2026-06-29 01:23:50,490 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-544\\test_create_via_ai_with_templa0\\skills.json'
+2026-06-29 01:23:50,490 [    INFO] agent.skills_mgmt: {"trace_id": "47da97ca-3fda-43bf-bf62-cd3d09378fe3", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667430.4904356, "event_name": "skill_created", "payload": {"skill_id": "ai-skill", "source": "ai_assisted", "category": "ai_generated"}}
+2026-06-29 01:23:50,490 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ai-skill (source=ai_assisted)
+2026-06-29 01:23:50,497 [    INFO] agent.skills_mgmt: {"trace_id": "421c64f5-fa1f-454a-bb40-1a7d51ce45f7", "module_name": "skills_mgmt", "action": "skill_install.start", "duration_ms": 0.0, "ts": 1782667430.4976733, "source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-544\\test_install_local_json_file0\\skill.json", "force": false}
+2026-06-29 01:23:50,498 [    INFO] agent.skills_mgmt: {"trace_id": "4050ef4b-05ef-4de2-9bbc-159fe64a1aa0", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667430.4981842, "event_name": "skill_install_start", "payload": {"source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-544\\test_install_local_json_file0\\skill.json"}}
+2026-06-29 01:23:50,501 [   ERROR] agent.skills_mgmt: {"trace_id": "421c64f5-fa1f-454a-bb40-1a7d51ce45f7", "module_name": "skills_mgmt", "action": "skill_install.error", "duration_ms": 0.51, "ts": 1782667430.5016563, "status": "error", "error": "1 validation error for Skill\nid\n  Field required [type=missing, input_value={'name': 'installed-skill...84', 'version': '0.1.0'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "error_type": "ValidationError", "source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-544\\test_install_local_json_file0\\skill.json", "force": false}
+2026-06-29 01:23:50,595 [    INFO] agent.skills_mgmt: {"trace_id": "e6774efe-647e-4b66-a421-5b4183a752b1", "module_name": "skills_mgmt", "action": "svc_review.start", "duration_ms": 0.0, "ts": 1782667430.5954618, "skill_id": "nonexistent-id"}
+2026-06-29 01:23:50,597 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-544\test_review_nonexistent_raises0\skills_mgmt.json
+2026-06-29 01:23:50,597 [   ERROR] agent.skills_mgmt: {"trace_id": "e6774efe-647e-4b66-a421-5b4183a752b1", "module_name": "skills_mgmt", "action": "svc_review.error", "duration_ms": 2.13, "ts": 1782667430.597589, "status": "error", "error": "技能不存在: nonexistent-id", "error_type": "SkillNotFoundError", "skill_id": "nonexistent-id"}

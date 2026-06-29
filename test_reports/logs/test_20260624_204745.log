@@ -1,0 +1,141 @@
+2026-06-24 20:47:45,778 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 20:47:45,779 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 20:47:45,782 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 20:47:45,915 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 20:47:45,931 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 20:47:45,934 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 20:47:45,967 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 20:47:45,967 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 20:47:45,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 20:47:45,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 20:47:46,000 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 20:47:46,001 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 20:47:46,001 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 20:47:46,002 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 20:47:46,003 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 20:47:46,132 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 20:47:46,162 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 20:47:46,162 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 20:47:46,170 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 20:47:46,172 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 20:47:46,172 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 20:47:46,172 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 20:47:46,172 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 20:47:46,172 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 20:47:46,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 20:47:46,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 20:47:46,282 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-24 20:47:46,285 [   ERROR] agent.error_handler: [error] unknown: test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 229, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-24 20:47:46,288 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 1/3): test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-24 20:47:46,290 [   ERROR] agent.error_handler: [error] unknown: test error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+2026-06-24 20:47:46,294 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 1/2): retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,295 [   ERROR] agent.error_handler: [error] unknown: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,296 [ WARNING] agent.monitoring.decorators: [trace123] 函数 test_func 将在 0.1 秒后重试 (尝试 1/2)
+2026-06-24 20:47:46,296 [   ERROR] agent.monitoring.decorators: [trace123] 函数 test_func 执行失败 (尝试 2/2): retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,297 [   ERROR] agent.error_handler: [error] unknown: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,298 [ WARNING] agent.monitoring.decorators: [trace123] 函数 test_func 将在 0.1 秒后重试 (尝试 2/2)
+2026-06-24 20:47:46,304 [   ERROR] agent.monitoring.decorators: [trace123] 捕获异常 ValueError: test error
+2026-06-24 20:47:46,337 [   ERROR] agent.monitoring.decorators: [trace123] 异步函数 test_func 执行失败: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 497, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,356 [   ERROR] agent.monitoring.decorators: [trace123] 异步函数 test_func 执行失败: retry error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 497, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+2026-06-24 20:47:46,424 [    INFO] agent.monitoring.error_reporter: Error reported to webhook: https://example.com/webhook
+2026-06-24 20:47:46,428 [ WARNING] agent.error_handler: [execute_with_retry] 异常不可重试，立即抛出: func=_do_send_webhook, exception_type=Exception
+2026-06-24 20:47:46,428 [   ERROR] agent.error_handler: [error] unknown: Connection failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 536, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\monitoring\error_reporter.py", line 184, in _do_send_webhook
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+Exception: Connection failed
+2026-06-24 20:47:46,432 [   ERROR] agent.monitoring.error_reporter: Failed to report to webhook after retries: Connection failed
+2026-06-24 20:47:46,435 [ WARNING] agent.monitoring.error_reporter: Webhook URL not configured
+2026-06-24 20:47:46,442 [    INFO] agent.monitoring.error_reporter: Error reported to Slack: #errors
+2026-06-24 20:47:46,445 [ WARNING] agent.monitoring.error_reporter: Slack webhook URL not configured
+2026-06-24 20:47:46,452 [    INFO] agent.monitoring.error_reporter: Error reported via email: admin@example.com
+2026-06-24 20:47:46,455 [ WARNING] agent.monitoring.error_reporter: Email recipients not configured
+2026-06-24 20:47:46,571 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-24 20:47:46,574 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-24 20:47:46,578 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-24 20:47:46,581 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 1 reporters
+2026-06-24 20:47:46,585 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters

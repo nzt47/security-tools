@@ -1,0 +1,1795 @@
+2026-06-23 09:19:08,556 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-23 09:19:08,560 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-23 09:19:08,561 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-23 09:19:08,589 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-23 09:19:08,603 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 09:19:08,607 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-23 09:19:08,635 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-23 09:19:08,642 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-23 09:19:08,647 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-23 09:19:08,666 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-23 09:19:08,666 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-23 09:19:08,667 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-23 09:19:08,668 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-23 09:19:08,669 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-23 09:19:08,792 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-23 09:19:08,798 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-23 09:19:08,798 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-23 09:19:08,806 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 09:19:08,807 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-23 09:19:08,807 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-23 09:19:08,808 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-23 09:19:08,808 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-23 09:19:08,808 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-23 09:19:08,808 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-23 09:19:08,808 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-23 09:19:08,809 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-23 09:19:08,809 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 09:19:08,809 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-23 09:19:08,809 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-23 09:19:08,809 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-23 09:19:08,888 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:08,889 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:08,889 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:08,889 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:08,889 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:08,890 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:08,890 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [OK] 可用
+2026-06-23 09:19:08,890 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:08,891 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:08,891 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:08,891 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:08,891 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:08,892 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:08,892 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:08,892 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=True, v2_distillation=False
+2026-06-23 09:19:08,892 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=True, v2_distillation=False
+2026-06-23 09:19:08,892 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:08,893 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:08,893 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:08,893 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:08,894 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:08,894 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:08,894 [    INFO] agent.orchestrator.lifecycle_manager: [P5] Persona 配置为懒加载模式，将在首次访问时初始化
+2026-06-23 09:19:08,895 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:08,895 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:08,900 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:08,900 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:08,901 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:08,901 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:08,902 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:08,902 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:08,902 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:08,902 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:08,902 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:08,903 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:08,907 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:08,907 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:08,907 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:08,907 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:08,908 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:08,913 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:08,913 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:08,915 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:08,937 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:08,937 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:08,937 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:08,938 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:08,938 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:08,938 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:08,939 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:08,939 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:08,939 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:08,939 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:08,940 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:08,940 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:08,940 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:08,940 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:08,940 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:08,941 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:08,941 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:08,941 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:08,941 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:08,941 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:08,942 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:08,942 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:08,942 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:08,942 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:08,942 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:08,943 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:08,943 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:08,943 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:08,943 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:08,944 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:08,944 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:08,944 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:08,945 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:08,947 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:08,947 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:08,947 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:08,948 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:08,948 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:08,948 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:08,948 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:08,948 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:08,948 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:08,949 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:08,949 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:08,949 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:08,949 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:08,950 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:08,950 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:08,950 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:08,950 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:08,951 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:08,957 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:08,958 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:08,958 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:08,958 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:08,958 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:08,959 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:08,959 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:08,959 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:08,959 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:08,959 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:08,960 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:08,960 [    INFO] agent.async_executor: 全局异步执行器已初始化（max_workers=3, result_ttl=3600）
+2026-06-23 09:19:08,960 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:08,961 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:08,961 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:08,961 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:08,961 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:08,961 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:08,962 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:08,962 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:08,962 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:08,967 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:08,967 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:08,968 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:08,973 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:08,976 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:08,976 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:08,976 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,294 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,294 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,294 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,295 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,295 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,295 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,296 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [OK] 可用
+2026-06-23 09:19:09,296 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,296 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,296 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,297 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,297 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,297 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=True, v2_distillation=False
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=True, v2_distillation=False
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,298 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,299 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,299 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,299 [    INFO] agent.orchestrator.lifecycle_manager: [P5] Persona 配置为懒加载模式，将在首次访问时初始化
+2026-06-23 09:19:09,300 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,300 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,307 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,307 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,307 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,307 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,308 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,308 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,308 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,308 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,308 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,309 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,309 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,309 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,309 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,309 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,310 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,310 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,310 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,310 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,310 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,315 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,315 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,315 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,316 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,316 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,316 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,316 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,316 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,317 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,317 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,321 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,321 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,321 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,322 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,322 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,323 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,337 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,338 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,338 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,339 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,339 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,339 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,340 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,340 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,340 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,340 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,341 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,341 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,341 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,341 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,342 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,342 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,342 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,342 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,343 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,343 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,343 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,343 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,343 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,344 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,344 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,344 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,344 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,345 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,345 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,345 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,345 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,345 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,345 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,345 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,345 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,347 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,347 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,347 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,347 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,347 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,347 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,349 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,349 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,349 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,349 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,349 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,350 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,350 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,351 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,351 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,351 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,351 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,351 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,352 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,353 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,353 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,354 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,354 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,355 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,355 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,355 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,355 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,355 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,355 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,355 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,355 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,355 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,356 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,356 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,356 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,356 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,356 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,357 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,357 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,357 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,357 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,357 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,357 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,358 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,358 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,359 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,359 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,359 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,361 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,361 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,362 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,362 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,362 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,362 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,363 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,363 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,363 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,363 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,363 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,364 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,364 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,364 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,364 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,364 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,365 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,365 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,365 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,365 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,365 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,366 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,366 [    INFO] agent.async_executor: 全局异步执行器已初始化（max_workers=3, result_ttl=3600）
+2026-06-23 09:19:09,367 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,367 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,367 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,368 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,368 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,368 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,368 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,368 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,369 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,369 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,369 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,369 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,369 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,370 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,375 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,375 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,375 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,376 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,376 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,376 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,377 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,377 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,382 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,383 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,384 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,384 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,385 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 自主循环已启动
+2026-06-23 09:19:09,385 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢已觉醒！感知神经全面激活。
+2026-06-23 09:19:09,385 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 周期性多层摘要已刷新
+2026-06-23 09:19:09,386 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 自主循环已启动（健康=30s, 压缩=60s, 修剪=120s, 摘要=300s）
+2026-06-23 09:19:09,386 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,386 [    INFO] agent.orchestrator.orchestrator: [None] [Orchestrator.process] 收到对话请求
+2026-06-23 09:19:09,386 [    INFO] agent.orchestrator.orchestrator:    用户输入: 测试请求
+2026-06-23 09:19:09,387 [    INFO] agent.orchestrator.orchestrator:    对话次数: 1
+2026-06-23 09:19:09,387 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,411 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,411 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,411 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,412 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,412 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,412 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,412 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [FAIL] 不可用
+2026-06-23 09:19:09,413 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,413 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,413 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,413 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,414 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,414 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,414 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,414 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,414 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,415 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,415 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,415 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,415 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,415 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,416 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,416 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,416 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,416 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,416 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,417 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,417 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,417 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,417 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,417 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,418 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,418 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,418 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,418 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,418 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,418 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,419 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,419 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,419 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,419 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,419 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,419 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,420 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,420 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,420 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,420 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,420 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,421 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,421 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,421 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,422 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,422 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,422 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,422 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,422 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,422 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,422 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,422 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,423 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,423 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,424 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,424 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,424 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,425 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,425 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,425 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,425 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,425 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,426 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,426 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,426 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,426 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,427 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,428 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,428 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,428 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,428 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,428 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,428 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,429 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,429 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,429 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,429 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,429 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,430 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,430 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,430 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,430 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,430 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,430 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,431 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,431 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,431 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,431 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,431 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,431 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,432 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,432 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,432 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,432 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,432 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,432 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,433 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,433 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,433 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,433 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,433 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,434 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,434 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,434 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,434 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,434 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,434 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,434 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,435 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,435 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,435 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,435 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,435 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,436 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,436 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,436 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,436 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,436 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,437 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,437 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,437 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,437 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,437 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,437 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,437 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,437 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,438 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,438 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,438 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,438 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,438 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,439 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,439 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,439 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,439 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,439 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,440 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,440 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,440 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,440 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,441 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,441 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,441 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,441 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,441 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,442 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,442 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,442 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,442 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,442 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,442 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,443 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,443 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,443 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,444 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,444 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,444 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,444 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,444 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,444 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,445 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,445 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,445 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,445 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,445 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,445 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,445 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,447 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,447 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,447 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,447 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,447 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,447 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,447 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,457 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,458 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,458 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,458 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,468 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,468 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,468 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,468 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,469 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,469 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,469 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [OK] 可用
+2026-06-23 09:19:09,469 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,469 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,470 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,470 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,470 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,470 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,470 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,471 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=True
+2026-06-23 09:19:09,471 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=True
+2026-06-23 09:19:09,471 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,471 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,471 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,472 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,472 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,472 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,473 [    INFO] agent.orchestrator.lifecycle_manager: [P5] Distillation 配置为懒加载模式，将在首次访问时初始化
+2026-06-23 09:19:09,473 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,473 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,473 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,473 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,474 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,474 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,474 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,474 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,474 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,475 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,475 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,475 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,475 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,475 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,475 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,476 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,476 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,476 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,476 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,477 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,477 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,477 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,477 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,477 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,478 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,478 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,478 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,478 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,479 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,479 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,479 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,479 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,480 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,480 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,480 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,480 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,480 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,481 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,481 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,482 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,482 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,482 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,482 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,482 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,483 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,483 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,483 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,483 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,483 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,483 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,484 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,484 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,484 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,484 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,484 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,485 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,485 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,485 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,485 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,485 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,486 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,486 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,486 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,487 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,487 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,487 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,487 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,487 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,488 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,488 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,488 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,488 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,489 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,489 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,489 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,489 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,489 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,490 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,490 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,490 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,490 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,490 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,491 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,491 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,491 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,491 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,491 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,491 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,492 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,492 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,492 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,492 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,492 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,492 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,493 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,493 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,493 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,493 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,493 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,494 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,494 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,494 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,494 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,495 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,495 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,495 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,495 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,496 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,496 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,496 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,496 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,496 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,496 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,496 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,496 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,497 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,497 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,497 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,497 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,498 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,498 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,498 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:09,498 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,498 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,498 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,498 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,502 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,502 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,502 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,502 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,502 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,502 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,502 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,502 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,502 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,502 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,504 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,504 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,504 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,504 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,504 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,504 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,504 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,505 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,505 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,505 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,505 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,505 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,506 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,506 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,506 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,507 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,507 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,507 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,507 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,507 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,508 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,508 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,509 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,514 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,516 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,516 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,516 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,571 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,572 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,572 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,572 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [FAIL] 不可用
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,573 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,574 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,575 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,575 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,575 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,575 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,576 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,576 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,576 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,577 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,577 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,577 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,577 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,578 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,578 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,578 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,578 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,578 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,579 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,579 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,582 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,582 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,582 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,582 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,585 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,585 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,585 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,585 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,585 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,586 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,586 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,589 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,589 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,592 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,592 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,594 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,594 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,594 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,595 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,595 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,595 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,595 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,595 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,595 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,595 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,595 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,596 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,596 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,596 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,596 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,596 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,597 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,597 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,597 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,597 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,597 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,598 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,598 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,598 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,598 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,598 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,599 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,599 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,599 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,599 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,599 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,600 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,600 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,600 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,600 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,600 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,601 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,601 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,601 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,601 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,601 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,602 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,602 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,602 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,602 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,602 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,603 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,603 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,603 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,603 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,603 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,604 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,604 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,604 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,604 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,604 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,604 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,605 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,605 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,605 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,605 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,605 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,605 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,606 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,606 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,606 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,606 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,606 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,607 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,607 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,607 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,607 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,607 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,608 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,609 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,609 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,609 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,609 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,609 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,610 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,610 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,611 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,616 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,618 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,618 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,618 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,619 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,619 [    INFO] agent.orchestrator.orchestrator: [None] [Orchestrator.process] 收到对话请求
+2026-06-23 09:19:09,619 [    INFO] agent.orchestrator.orchestrator:    用户输入: 测试输入
+2026-06-23 09:19:09,619 [    INFO] agent.orchestrator.orchestrator:    对话次数: 1
+2026-06-23 09:19:09,619 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,619 [ WARNING] agent.orchestrator.orchestrator: 云枢未运行，返回提示
+2026-06-23 09:19:09,674 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,674 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,674 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,674 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,675 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,675 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,675 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [FAIL] 不可用
+2026-06-23 09:19:09,675 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,676 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,677 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,677 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,677 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,677 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,678 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,678 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,678 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,679 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,679 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,679 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,680 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,680 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,680 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,680 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,680 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,680 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,680 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,680 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,680 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,682 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,682 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,682 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,682 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,682 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,683 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,683 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,683 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,683 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,683 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,683 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,683 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,683 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,683 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,683 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,685 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,685 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,685 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,685 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,685 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,685 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,685 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,685 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,685 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,686 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,687 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,687 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,687 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,687 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,687 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,688 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,688 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,688 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,688 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,688 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,689 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,689 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,689 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,690 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,690 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,690 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,690 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,690 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,690 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,692 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,692 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,692 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,692 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,692 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,692 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,692 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,692 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,693 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,693 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,693 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,694 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,694 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,694 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,694 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,694 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,695 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,695 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,695 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,695 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,695 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,696 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,696 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,696 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,696 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,697 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,697 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,697 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,697 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,697 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,697 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,698 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,698 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,698 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,698 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,698 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,698 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,699 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,699 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,699 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,699 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,699 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,700 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,700 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,700 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,700 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,700 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,701 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,701 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,701 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,701 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,701 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,702 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,702 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,702 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,702 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,702 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,702 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,703 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,703 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,703 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,703 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,703 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,704 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,704 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,704 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,704 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,704 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,705 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,705 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,705 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,705 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,705 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,705 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,705 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,705 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,706 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,706 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,706 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,706 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,706 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,707 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,707 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,707 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,707 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,707 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,707 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,708 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,708 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,708 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,708 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,708 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,709 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,709 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,709 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,709 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,709 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,710 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,710 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,711 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,711 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,712 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,712 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,712 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,712 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,712 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,713 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,717 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,720 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,720 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,720 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,728 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,732 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,733 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,733 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,733 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,733 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,733 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,733 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,733 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,734 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,734 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,734 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,734 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,734 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,735 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,735 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,735 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,736 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,736 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,736 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,737 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,737 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,737 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,737 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,737 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,738 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,738 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,738 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,738 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,738 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,738 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,739 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,739 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,739 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,739 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,739 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,740 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,740 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,740 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,740 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,740 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,741 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,741 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,742 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,742 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,742 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,742 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,742 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,743 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,743 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,743 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,743 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,743 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,743 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,744 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,744 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,744 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,744 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,744 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,745 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,745 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,745 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,745 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,745 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,745 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,745 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,745 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,745 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,746 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,746 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,746 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,746 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,746 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,747 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,747 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,747 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,747 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,747 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,747 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,748 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,748 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,748 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,748 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,748 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,748 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,749 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,750 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,750 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,750 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,750 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,750 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,750 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,750 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,750 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,751 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,751 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,751 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,751 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,751 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,751 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,752 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,752 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,752 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,752 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,752 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,752 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,753 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,753 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,753 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,753 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,753 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,754 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,754 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,754 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,754 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,755 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,755 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,755 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,755 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,755 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,755 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,755 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,755 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,756 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,756 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,756 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,756 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,756 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,757 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:09,758 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,758 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,758 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,758 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,759 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,759 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,759 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,759 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,759 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,760 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,760 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,760 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,760 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,761 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,761 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,761 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,761 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,761 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,761 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,762 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,762 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,762 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,762 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,762 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,762 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,763 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,763 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,763 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,763 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,763 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,764 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,764 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,764 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,764 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,764 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,764 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,766 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,766 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,766 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,767 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,767 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,767 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,767 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,767 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,768 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,772 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,775 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,776 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,778 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,779 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 自主循环已启动
+2026-06-23 09:19:09,779 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢已觉醒！感知神经全面激活。
+2026-06-23 09:19:09,782 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 周期性多层摘要已刷新
+2026-06-23 09:19:09,782 [    INFO] agent.orchestrator.lifecycle_manager: [维护] 自主循环已启动（健康=30s, 压缩=60s, 修剪=120s, 摘要=300s）
+2026-06-23 09:19:09,782 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,783 [    INFO] agent.orchestrator.orchestrator: [None] [Orchestrator.process] 收到对话请求
+2026-06-23 09:19:09,783 [    INFO] agent.orchestrator.orchestrator:    用户输入: 你好
+2026-06-23 09:19:09,783 [    INFO] agent.orchestrator.orchestrator:    对话次数: 1
+2026-06-23 09:19:09,784 [    INFO] agent.orchestrator.orchestrator: ======================================================================
+2026-06-23 09:19:09,794 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-23 09:19:09,807 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,807 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,807 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,807 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,807 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [OK] 可用
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [OK] 可用
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,808 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,809 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,809 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,809 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,809 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=True, v2_persona=False, v2_distillation=True
+2026-06-23 09:19:09,809 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=True, v2_persona=False, v2_distillation=True
+2026-06-23 09:19:09,810 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,810 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,811 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,812 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,812 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,812 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,813 [    INFO] agent.orchestrator.lifecycle_manager: [P5] LifeTrace 配置为懒加载模式，将在首次访问时初始化
+2026-06-23 09:19:09,813 [    INFO] agent.orchestrator.lifecycle_manager: [P5] Distillation 配置为懒加载模式，将在首次访问时初始化
+2026-06-23 09:19:09,813 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,813 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,813 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,814 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,814 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,814 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,814 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,814 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,815 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,815 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,815 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,815 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,815 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,816 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,816 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,816 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,816 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,817 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,817 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,817 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,817 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,818 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,818 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,818 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,818 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,818 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,819 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,819 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,819 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,819 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,819 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,819 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,820 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,820 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,820 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,820 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,820 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,820 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,820 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,822 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,822 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,822 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,822 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,823 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,823 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,823 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,823 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,823 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,823 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,823 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,824 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,824 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,824 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,824 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,824 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,824 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,825 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,825 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,825 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,825 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,825 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,825 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,826 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,826 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,826 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,826 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,827 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,827 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,827 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,827 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,827 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,827 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,827 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,827 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,828 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,828 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,828 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,828 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,828 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,829 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,829 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,829 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,829 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,829 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,829 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,830 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,830 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,830 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,830 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,830 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,831 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,831 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,831 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,831 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,831 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,831 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,832 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,832 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,832 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,832 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,832 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,833 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,833 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,833 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,833 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,833 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,834 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,834 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,834 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,834 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,834 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,835 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,835 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,835 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,835 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,835 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,835 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,836 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,836 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,836 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,836 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,836 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,837 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,837 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,837 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,838 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,838 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,839 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,839 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,839 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,839 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,839 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,840 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,840 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,840 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,840 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,840 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,840 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,841 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,841 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,841 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,841 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,841 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,841 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,842 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,842 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,842 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,842 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,842 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,843 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,843 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,843 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,843 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,843 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,844 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,844 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,844 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,844 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,844 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,845 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,845 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,846 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,846 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,846 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,846 [    INFO] agent.digital_life_persona: [P5] 首次访问 LifeTrace，执行懒加载初始化...
+2026-06-23 09:19:09,847 [    INFO] agent.digital_life_persona: [P5] LifeTrace 系统初始化完成，耗时: 1.00ms
+2026-06-23 09:19:09,847 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,847 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,847 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,848 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,848 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,853 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,855 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,855 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,855 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,863 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,863 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化开始
+2026-06-23 09:19:09,863 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,864 [    INFO] agent.orchestrator.lifecycle_manager: (采用 P1 模块化架构: orchestrator/LifecycleManager)
+2026-06-23 09:19:09,864 [    INFO] agent.orchestrator.lifecycle_manager: [模块] 模块可用性检查:
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - LifeTrace: [FAIL] 不可用
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - Persona: [FAIL] 不可用
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - Planning: [FAIL] 不可用
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - Vector Memory: [FAIL] 不可用
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - Monitoring: [FAIL] 不可用
+2026-06-23 09:19:09,865 [    INFO] agent.orchestrator.lifecycle_manager:    - Voice: [FAIL] 不可用
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager:    - OCR: [FAIL] 不可用
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager:    - P6 Snapshot: [FAIL] 不可用
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager: [V2] V2 功能配置:
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager:   请求: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager:   实际: v2_lifetrace=False, v2_persona=False, v2_distillation=False
+2026-06-23 09:19:09,866 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,867 [    INFO] agent.orchestrator.lifecycle_manager: 开始初始化各子系统
+2026-06-23 09:19:09,867 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,867 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 身体（BodySensor）已激活
+2026-06-23 09:19:09,868 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 思维（PromptInjector）已激活
+2026-06-23 09:19:09,868 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 记忆（MemoryManager）已激活
+2026-06-23 09:19:09,868 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 本能（BehaviorController）已激活
+2026-06-23 09:19:09,868 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 道德（PermissionSystem）已激活
+2026-06-23 09:19:09,868 [ WARNING] agent.tools.core_tools: 规划工具注册跳过: _planning_tools 未初始化
+2026-06-23 09:19:09,868 [ WARNING] agent.tools: 工具 'get_status' 已存在，将被覆盖
+2026-06-23 09:19:09,869 [    INFO] agent.tools: 工具注册: get_status — 获取我的完整状态
+2026-06-23 09:19:09,869 [ WARNING] agent.tools: 工具 'search_memory' 已存在，将被覆盖
+2026-06-23 09:19:09,869 [    INFO] agent.tools: 工具注册: search_memory — 搜索我的记忆
+2026-06-23 09:19:09,869 [ WARNING] agent.tools: 工具 'remember' 已存在，将被覆盖
+2026-06-23 09:19:09,869 [    INFO] agent.tools: 工具注册: remember — 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+2026-06-23 09:19:09,870 [ WARNING] agent.tools: 工具 'get_sensor_summary' 已存在，将被覆盖
+2026-06-23 09:19:09,870 [    INFO] agent.tools: 工具注册: get_sensor_summary — 查看所有传感器状态
+2026-06-23 09:19:09,870 [ WARNING] agent.tools: 工具 'search_lifetrace' 已存在，将被覆盖
+2026-06-23 09:19:09,870 [    INFO] agent.tools: 工具注册: search_lifetrace — 搜索我的记忆（使用 LifeTrace）
+2026-06-23 09:19:09,870 [ WARNING] agent.tools: 工具 'get_persona_info' 已存在，将被覆盖
+2026-06-23 09:19:09,871 [    INFO] agent.tools: 工具注册: get_persona_info — 查看当前人格配置
+2026-06-23 09:19:09,871 [ WARNING] agent.tools: 工具 'get_preferences' 已存在，将被覆盖
+2026-06-23 09:19:09,871 [    INFO] agent.tools: 工具注册: get_preferences — 查看学习到的用户偏好
+2026-06-23 09:19:09,872 [ WARNING] agent.tools: 工具 'trigger_distillation' 已存在，将被覆盖
+2026-06-23 09:19:09,872 [    INFO] agent.tools: 工具注册: trigger_distillation — 触发一次人格蒸馏学习
+2026-06-23 09:19:09,872 [ WARNING] agent.tools: 工具 'expand_context' 已存在，将被覆盖
+2026-06-23 09:19:09,872 [    INFO] agent.tools: 工具注册: expand_context — 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+2026-06-23 09:19:09,872 [ WARNING] agent.tools: 工具 'read_file' 已存在，将被覆盖
+2026-06-23 09:19:09,873 [    INFO] agent.tools: 工具注册: read_file — 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+2026-06-23 09:19:09,873 [ WARNING] agent.tools: 工具 'write_file' 已存在，将被覆盖
+2026-06-23 09:19:09,873 [    INFO] agent.tools: 工具注册: write_file — 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+2026-06-23 09:19:09,873 [ WARNING] agent.tools: 工具 'list_directory' 已存在，将被覆盖
+2026-06-23 09:19:09,873 [    INFO] agent.tools: 工具注册: list_directory — 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
+2026-06-23 09:19:09,873 [ WARNING] agent.tools: 工具 'get_file_info' 已存在，将被覆盖
+2026-06-23 09:19:09,874 [    INFO] agent.tools: 工具注册: get_file_info — 获取文件或目录的详细信息（大小、修改时间、权限等）
+2026-06-23 09:19:09,874 [ WARNING] agent.tools: 工具 'search_files' 已存在，将被覆盖
+2026-06-23 09:19:09,874 [    INFO] agent.tools: 工具注册: search_files — 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+2026-06-23 09:19:09,874 [ WARNING] agent.tools: 工具 'compress' 已存在，将被覆盖
+2026-06-23 09:19:09,874 [    INFO] agent.tools: 工具注册: compress — 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+2026-06-23 09:19:09,875 [ WARNING] agent.tools: 工具 'decompress' 已存在，将被覆盖
+2026-06-23 09:19:09,875 [    INFO] agent.tools: 工具注册: decompress — 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+2026-06-23 09:19:09,875 [ WARNING] agent.tools: 工具 'diff_files' 已存在，将被覆盖
+2026-06-23 09:19:09,875 [    INFO] agent.tools: 工具注册: diff_files — 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB
+2026-06-23 09:19:09,876 [    INFO] agent.network.config_manager: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-23 09:19:09,876 [    INFO] agent.tools.web_tools: [网络] 已加载网络配置
+2026-06-23 09:19:09,876 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,877 [    INFO] agent.web.scraper: Scraper 引擎已初始化
+2026-06-23 09:19:09,877 [    INFO] agent.tools.web_tools: [ok] 搜索引擎配置已保存（延迟初始化）: 默认引擎=95eb9e0b-d578-4bd7-8387-b51496edb179, 优先级=['95eb9e0b-d578-4bd7-8387-b51496edb179', '5c314f9e-c686-43fc-b9a6-2269e20f0ede', '666e2528-189a-43eb-8128-a980c5395526', '18ccea09-76ea-47ac-9e3b-2e5d44dd7cfe']
+2026-06-23 09:19:09,877 [    INFO] agent.web.crawler_control: CrawlerController 已初始化 (延迟=1.0s, 代理=0, UA=21)
+2026-06-23 09:19:09,878 [    INFO] agent.tools.web_tools: [ok] 网络模块已激活（搜索引擎: 95eb9e0b-d578-4bd7-8387-b51496edb179）
+2026-06-23 09:19:09,878 [ WARNING] agent.tools: 工具 'web_get' 已存在，将被覆盖
+2026-06-23 09:19:09,878 [    INFO] agent.tools: 工具注册: web_get — 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+2026-06-23 09:19:09,878 [ WARNING] agent.tools: 工具 'web_post' 已存在，将被覆盖
+2026-06-23 09:19:09,878 [    INFO] agent.tools: 工具注册: web_post — 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+2026-06-23 09:19:09,879 [ WARNING] agent.tools: 工具 'web_xpath' 已存在，将被覆盖
+2026-06-23 09:19:09,879 [    INFO] agent.tools: 工具注册: web_xpath — 使用 XPath 表达式从网页中提取信息
+2026-06-23 09:19:09,879 [ WARNING] agent.tools: 工具 'web_css' 已存在，将被覆盖
+2026-06-23 09:19:09,879 [    INFO] agent.tools: 工具注册: web_css — 使用 CSS 选择器从网页中提取信息
+2026-06-23 09:19:09,880 [ WARNING] agent.tools: 工具 'web_search' 已存在，将被覆盖
+2026-06-23 09:19:09,880 [    INFO] agent.tools: 工具注册: web_search — 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+2026-06-23 09:19:09,880 [ WARNING] agent.tools: 工具 'web_clean_data' 已存在，将被覆盖
+2026-06-23 09:19:09,880 [    INFO] agent.tools: 工具注册: web_clean_data — 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+2026-06-23 09:19:09,880 [ WARNING] agent.tools: 工具 'web_download' 已存在，将被覆盖
+2026-06-23 09:19:09,881 [    INFO] agent.tools: 工具注册: web_download — 从 URL 下载文件到本地
+2026-06-23 09:19:09,881 [ WARNING] agent.tools: 工具 'web_batch' 已存在，将被覆盖
+2026-06-23 09:19:09,881 [    INFO] agent.tools: 工具注册: web_batch — 批量请求多个 URL
+2026-06-23 09:19:09,881 [ WARNING] agent.tools: 工具 'fetch_news' 已存在，将被覆盖
+2026-06-23 09:19:09,882 [    INFO] agent.tools: 工具注册: fetch_news — 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+2026-06-23 09:19:09,882 [ WARNING] agent.tools: 工具 'ext_install' 已存在，将被覆盖
+2026-06-23 09:19:09,882 [    INFO] agent.tools: 工具注册: ext_install — 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+2026-06-23 09:19:09,882 [ WARNING] agent.tools: 工具 'ext_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,882 [    INFO] agent.tools: 工具注册: ext_uninstall — 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
+2026-06-23 09:19:09,883 [ WARNING] agent.tools: 工具 'ext_list' 已存在，将被覆盖
+2026-06-23 09:19:09,883 [    INFO] agent.tools: 工具注册: ext_list — 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+2026-06-23 09:19:09,883 [ WARNING] agent.tools: 工具 'ext_toggle' 已存在，将被覆盖
+2026-06-23 09:19:09,883 [    INFO] agent.tools: 工具注册: ext_toggle — 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+2026-06-23 09:19:09,883 [ WARNING] agent.tools: 工具 'ext_discover' 已存在，将被覆盖
+2026-06-23 09:19:09,884 [    INFO] agent.tools: 工具注册: ext_discover — 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+2026-06-23 09:19:09,884 [ WARNING] agent.tools: 工具 'ext_configure' 已存在，将被覆盖
+2026-06-23 09:19:09,884 [    INFO] agent.tools: 工具注册: ext_configure — 配置扩展参数。调整技能、MCP服务或通道的设置项。
+2026-06-23 09:19:09,884 [ WARNING] agent.tools: 工具 'ext_send_channel' 已存在，将被覆盖
+2026-06-23 09:19:09,884 [    INFO] agent.tools: 工具注册: ext_send_channel — 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+2026-06-23 09:19:09,885 [ WARNING] agent.tools: 工具 'market_search' 已存在，将被覆盖
+2026-06-23 09:19:09,885 [    INFO] agent.tools: 工具注册: market_search — 搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。
+2026-06-23 09:19:09,885 [ WARNING] agent.tools: 工具 'install_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,885 [    INFO] agent.tools: 工具注册: install_tool — 从扩展市场安装工具。安装后工具立即可用，无需重启。
+2026-06-23 09:19:09,885 [ WARNING] agent.tools: 工具 'generate_tool' 已存在，将被覆盖
+2026-06-23 09:19:09,885 [    INFO] agent.tools: 工具注册: generate_tool — 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+2026-06-23 09:19:09,885 [ WARNING] agent.tools: 工具 'scan_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,885 [    INFO] agent.tools: 工具注册: scan_mcp — 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'connect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: connect_mcp — 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'disconnect_mcp' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: disconnect_mcp — 断开一个 MCP 服务连接，注销其注册的工具。
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'read_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: read_pdf — 读取 PDF 文件中的文本内容（支持指定页码范围）
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'merge_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: merge_pdf — 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'split_pdf' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: split_pdf — 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+2026-06-23 09:19:09,887 [ WARNING] agent.tools: 工具 'get_pdf_info' 已存在，将被覆盖
+2026-06-23 09:19:09,887 [    INFO] agent.tools: 工具注册: get_pdf_info — 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+2026-06-23 09:19:09,887 [ WARNING] agent.tools.software_tools: Chocolatey 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,887 [ WARNING] agent.tools.software_tools: pip 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,887 [ WARNING] agent.tools.software_tools: npm 后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,887 [    INFO] agent.web.http_client: HTTP 请求引擎已初始化
+2026-06-23 09:19:09,887 [    INFO] agent.web.search: SearchEngine 已初始化 (默认引擎: , 优先级: [])
+2026-06-23 09:19:09,890 [ WARNING] agent.tools.software_tools: Web下载后端注册失败: WebDownloadBackend() takes no arguments
+2026-06-23 09:19:09,890 [ WARNING] agent.tools.software_tools: GitHub后端注册失败: 'SoftwareManager' object has no attribute 'register_backend'
+2026-06-23 09:19:09,890 [ WARNING] agent.tools: 工具 'software_search' 已存在，将被覆盖
+2026-06-23 09:19:09,890 [    INFO] agent.tools: 工具注册: software_search — 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源
+2026-06-23 09:19:09,890 [ WARNING] agent.tools: 工具 'software_install' 已存在，将被覆盖
+2026-06-23 09:19:09,890 [    INFO] agent.tools: 工具注册: software_install — 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+2026-06-23 09:19:09,890 [ WARNING] agent.tools: 工具 'software_list' 已存在，将被覆盖
+2026-06-23 09:19:09,890 [    INFO] agent.tools: 工具注册: software_list — 列出已安装的软件包列表
+2026-06-23 09:19:09,891 [ WARNING] agent.tools: 工具 'software_uninstall' 已存在，将被覆盖
+2026-06-23 09:19:09,891 [    INFO] agent.tools: 工具注册: software_uninstall — 卸载已安装的软件包。
+2026-06-23 09:19:09,891 [ WARNING] agent.tools: 工具 'get_weather' 已存在，将被覆盖
+2026-06-23 09:19:09,891 [    INFO] agent.tools: 工具注册: get_weather — 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+2026-06-23 09:19:09,891 [ WARNING] agent.tools: 工具 'run_program' 已存在，将被覆盖
+2026-06-23 09:19:09,892 [    INFO] agent.tools: 工具注册: run_program — 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+2026-06-23 09:19:09,892 [ WARNING] agent.tools: 工具 'list_processes' 已存在，将被覆盖
+2026-06-23 09:19:09,892 [    INFO] agent.tools: 工具注册: list_processes — 列出当前正在运行的白名单程序列表
+2026-06-23 09:19:09,892 [ WARNING] agent.tools: 工具 'stop_process' 已存在，将被覆盖
+2026-06-23 09:19:09,892 [    INFO] agent.tools: 工具注册: stop_process — 终止指定 PID 的白名单程序
+2026-06-23 09:19:09,892 [ WARNING] agent.tools: 工具 'shell_execute' 已存在，将被覆盖
+2026-06-23 09:19:09,893 [    INFO] agent.tools: 工具注册: shell_execute — 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+2026-06-23 09:19:09,893 [ WARNING] agent.tools: 工具 'code_review' 已存在，将被覆盖
+2026-06-23 09:19:09,893 [    INFO] agent.tools: 工具注册: code_review — 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单
+2026-06-23 09:19:09,893 [ WARNING] agent.tools: 工具 'arch_diagram' 已存在，将被覆盖
+2026-06-23 09:19:09,894 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:09,895 [    INFO] agent.tools: 工具注册: arch_diagram — 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）
+2026-06-23 09:19:09,895 [ WARNING] agent.tools: 工具 'humanize_zh' 已存在，将被覆盖
+2026-06-23 09:19:09,895 [    INFO] agent.tools: 工具注册: humanize_zh — 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式
+2026-06-23 09:19:09,896 [ WARNING] agent.tools: 工具 'json_query' 已存在，将被覆盖
+2026-06-23 09:19:09,896 [    INFO] agent.tools: 工具注册: json_query — 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象
+2026-06-23 09:19:09,896 [ WARNING] agent.tools: 工具 'json_to_yaml' 已存在，将被覆盖
+2026-06-23 09:19:09,897 [    INFO] agent.tools: 工具注册: json_to_yaml — 将 JSON 字符串转换为 YAML 格式字符串
+2026-06-23 09:19:09,897 [ WARNING] agent.tools: 工具 'yaml_to_json' 已存在，将被覆盖
+2026-06-23 09:19:09,897 [    INFO] agent.tools: 工具注册: yaml_to_json — 将 YAML 字符串转换为 JSON 格式字符串
+2026-06-23 09:19:09,897 [ WARNING] agent.tools: 工具 'json_validate' 已存在，将被覆盖
+2026-06-23 09:19:09,897 [    INFO] agent.tools: 工具注册: json_validate — 验证字符串是否为合法 JSON，返回验证结果和解析类型
+2026-06-23 09:19:09,897 [ WARNING] agent.tools: 工具 'data_format_detect' 已存在，将被覆盖
+2026-06-23 09:19:09,898 [    INFO] agent.tools: 工具注册: data_format_detect — 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+2026-06-23 09:19:09,898 [ WARNING] agent.tools: 工具 'schedule_task' 已存在，将被覆盖
+2026-06-23 09:19:09,898 [    INFO] agent.tools: 工具注册: schedule_task — 创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
+2026-06-23 09:19:09,898 [ WARNING] agent.tools: 工具 'list_scheduled_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,898 [    INFO] agent.tools: 工具注册: list_scheduled_tasks — 列出所有已创建的定时任务
+2026-06-23 09:19:09,898 [ WARNING] agent.tools: 工具 'cancel_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,899 [    INFO] agent.tools: 工具注册: cancel_scheduled_task — 取消指定的定时任务
+2026-06-23 09:19:09,899 [ WARNING] agent.tools: 工具 'pause_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,899 [    INFO] agent.tools: 工具注册: pause_scheduled_task — 暂停指定的定时任务
+2026-06-23 09:19:09,899 [ WARNING] agent.tools: 工具 'resume_scheduled_task' 已存在，将被覆盖
+2026-06-23 09:19:09,900 [    INFO] agent.tools: 工具注册: resume_scheduled_task — 恢复已暂停的定时任务
+2026-06-23 09:19:09,900 [ WARNING] agent.tools: 工具 'submit_task' 已存在，将被覆盖
+2026-06-23 09:19:09,900 [    INFO] agent.tools: 工具注册: submit_task — 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果
+2026-06-23 09:19:09,900 [ WARNING] agent.tools: 工具 'get_task_status' 已存在，将被覆盖
+2026-06-23 09:19:09,901 [    INFO] agent.tools: 工具注册: get_task_status — 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+2026-06-23 09:19:09,901 [ WARNING] agent.tools: 工具 'get_task_result' 已存在，将被覆盖
+2026-06-23 09:19:09,901 [    INFO] agent.tools: 工具注册: get_task_result — 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result
+2026-06-23 09:19:09,901 [ WARNING] agent.tools: 工具 'cancel_task' 已存在，将被覆盖
+2026-06-23 09:19:09,901 [    INFO] agent.tools: 工具注册: cancel_task — 取消正在等待或运行中的异步任务。已完成的无法取消
+2026-06-23 09:19:09,902 [ WARNING] agent.tools: 工具 'list_async_tasks' 已存在，将被覆盖
+2026-06-23 09:19:09,902 [    INFO] agent.tools: 工具注册: list_async_tasks — 列出所有异步任务（含已完成、运行中、等待中）
+2026-06-23 09:19:09,902 [    INFO] agent.orchestrator.lifecycle_manager: 全部内置工具注册完成（模块化加载）
+2026-06-23 09:19:09,902 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工具（Tool System）已激活
+2026-06-23 09:19:09,902 [    INFO] agent.orchestrator.lifecycle_manager: [skip] 联网引擎未启用（tool_calling.enabled=False 或 LLM 不可用）
+2026-06-23 09:19:09,902 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 工作流引擎（WorkflowEngine）已激活，规则数: 1
+2026-06-23 09:19:09,903 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 20
+2026-06-23 09:19:09,903 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: 20
+2026-06-23 09:19:09,903 [    INFO] agent.orchestrator.lifecycle_manager: [ok] 安全监控器已激活
+2026-06-23 09:19:09,903 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:09,904 [    INFO] agent.orchestrator.lifecycle_manager: [OK] 云枢初始化完成！
+2026-06-23 09:19:09,904 [    INFO] agent.orchestrator.lifecycle_manager: ================================================================================
+2026-06-23 09:19:09,904 [    INFO] agent.orchestrator.lifecycle_manager: 
+[INFO] 最终配置总结:
+2026-06-23 09:19:09,904 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,909 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,911 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,911 [    INFO] agent.orchestrator.lifecycle_manager:   ────────────────────────────────────────────────────────
+2026-06-23 09:19:09,911 [    INFO] agent.orchestrator.lifecycle_manager: 
+================================================================================
+2026-06-23 09:19:10,019 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-23 09:19:10,242 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:10,244 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:10,245 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...
+2026-06-23 09:19:10,453 [    INFO] agent.orchestrator.lifecycle_manager: * 云枢正在休眠...

@@ -1,0 +1,90 @@
+2026-06-25 19:12:45,847 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 19:12:45,850 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 19:12:45,851 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 19:12:46,005 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 19:12:46,022 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 19:12:46,025 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 19:12:46,081 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 19:12:46,083 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:46,083 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 19:12:46,085 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 19:12:46,096 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 19:12:46,102 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 19:12:46,124 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 19:12:46,124 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 19:12:46,124 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 19:12:46,125 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 19:12:46,125 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 19:12:46,311 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 19:12:46,352 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 19:12:46,353 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 19:12:46,374 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:46,374 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:12:46,424 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:46,424 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 19:12:46,446 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:46,446 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config0\\config.json"}
+2026-06-25 19:12:46,446 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:46,446 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config0\\config.json"]}
+2026-06-25 19:12:48,448 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:48,448 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config0\\config.json"}
+2026-06-25 19:12:49,949 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:49,949 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:49,956 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:49,956 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config_callback_err0\\config.json"}
+2026-06-25 19:12:49,956 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:49,956 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config_callback_err0\\config.json"]}
+2026-06-25 19:12:51,960 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:51,965 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_config_callback_err0\\config.json", "error": "callback error", "error_type": "ValueError", "stack_trace": "Traceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\disaster_recovery.py\", line 799, in _watch_loop\n    callback(config_path)\n  File \"C:\\Users\\Administrator\\agent\\tests\\unit\\test_disaster_recovery_scenarios.py\", line 492, in failing_callback\n    raise ValueError(\"callback error\")\nValueError: callback error\n"}
+2026-06-25 19:12:52,474 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:52,474 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:52,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:52,500 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config1.json"}
+2026-06-25 19:12:52,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:52,500 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config2.json"}
+2026-06-25 19:12:52,539 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:52,539 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config1.json", "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config2.json"]}
+2026-06-25 19:12:54,544 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:54,544 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config1.json"}
+2026-06-25 19:12:56,547 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:56,547 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_multiple_configs0\\config2.json"}
+2026-06-25 19:12:57,057 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:57,058 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:57,071 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:57,072 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_nonexistent_file0\\nonexistent.json"}
+2026-06-25 19:12:57,075 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:57,076 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_nonexistent_file0\\nonexistent.json"]}
+2026-06-25 19:12:59,081 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,082 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_nonexistent_file0\\nonexistent.json"}
+2026-06-25 19:12:59,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,731 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:59,741 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,741 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:59,755 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,755 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_reloader_start_already_ru0\\config.json"}
+2026-06-25 19:12:59,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,757 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_reloader_start_already_ru0\\config.json"]}
+2026-06-25 19:12:59,758 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,758 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 19:12:59,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,773 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_loop_exception0\\config.json"}
+2026-06-25 19:12:59,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:12:59,775 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-AdminWT\\pytest-38\\test_watch_loop_exception0\\config.json"]}
+2026-06-25 19:13:01,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:13:01,777 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}

@@ -1,0 +1,38 @@
+2026-06-25 08:26:49,962 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 08:26:49,965 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 08:26:49,966 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 08:26:50,076 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 08:26:50,090 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 08:26:50,093 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 08:26:50,127 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 08:26:50,129 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:26:50,129 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 08:26:50,130 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 08:26:50,136 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 08:26:50,141 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 08:26:50,161 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 08:26:50,161 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 08:26:50,162 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 08:26:50,163 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 08:26:50,165 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 08:26:50,293 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 08:26:50,297 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 08:26:50,298 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 08:26:50,305 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 08:26:50,306 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 08:26:50,319 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:26:50,319 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 08:26:50,959 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid, error=unterminated character set at position 0

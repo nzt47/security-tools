@@ -1,0 +1,30 @@
+[
+  {
+    "id": "DEF-0001",
+    "title": "测试缺陷",
+    "description": "这是一个测试缺陷描述",
+    "severity": "high",
+    "defect_type": "functional",
+    "status": "open",
+    "created_at": "2026-06-25T11:47:46.313946",
+    "fixed_at": null,
+    "root_cause": null,
+    "test_missing": false,
+    "escaped_in_version": "v1.0",
+    "detected_by": "unknown"
+  },
+  {
+    "id": "DEF-0002",
+    "title": "测试缺陷",
+    "description": "这是一个测试缺陷描述",
+    "severity": "high",
+    "defect_type": "functional",
+    "status": "verified",
+    "created_at": "2026-06-25T11:48:01.340757",
+    "fixed_at": "2026-06-25T11:48:01.340757",
+    "root_cause": null,
+    "test_missing": false,
+    "escaped_in_version": "v1.0",
+    "detected_by": "unknown"
+  }
+]

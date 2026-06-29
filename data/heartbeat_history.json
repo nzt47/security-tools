@@ -1,17 +1,17 @@
 {
   "latest": {
-    "timestamp": "2026-06-20T13:32:14.349898",
+    "timestamp": "2026-06-29T10:46:34.256250",
     "status": "healthy",
     "checks": {
       "system": {
         "status": "ok",
-        "cpu": 0.0,
-        "memory": 62.3
+        "cpu": 19.9,
+        "memory": 74.4
       },
       "llm": {
         "status": "ok",
-        "provider": "deepseek",
-        "model": "deepseek-v4-flash",
+        "provider": "openai",
+        "model": "gpt-4",
         "latency_ms": 0
       },
       "memory": {
@@ -25,7 +25,7 @@
       },
       "threads": {
         "status": "ok",
-        "total": 11,
+        "total": 16,
         "alive": [
           "task-scheduler"
         ]
@@ -199,6 +199,83 @@
       "status": "healthy",
       "cpu": 0.0,
       "memory": 62.3,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-27T09:53:02.253523",
+      "status": "healthy",
+      "cpu": 34.1,
+      "memory": 89.2,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-27T12:59:01.593962",
+      "status": "healthy",
+      "cpu": 17.9,
+      "memory": 63.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-27T12:59:11.592653",
+      "status": "healthy",
+      "cpu": 0.0,
+      "memory": 63.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-27T12:59:21.589678",
+      "status": "healthy",
+      "cpu": 15.6,
+      "memory": 63.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:08:13.725223",
+      "status": "healthy",
+      "cpu": 21.8,
+      "memory": 77.5,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:08:23.730890",
+      "status": "healthy",
+      "cpu": 10.7,
+      "memory": 77.3,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:08:33.726887",
+      "status": "healthy",
+      "cpu": 10.7,
+      "memory": 77.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:08:43.731109",
+      "status": "healthy",
+      "cpu": 19.0,
+      "memory": 77.7,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:08:53.728867",
+      "status": "healthy",
+      "cpu": 14.6,
+      "memory": 77.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-28T23:09:03.725126",
+      "status": "healthy",
+      "cpu": 13.3,
+      "memory": 77.4,
+      "llm_latency_ms": 0
+    },
+    {
+      "timestamp": "2026-06-29T10:46:34.256250",
+      "status": "healthy",
+      "cpu": 19.9,
+      "memory": 74.4,
       "llm_latency_ms": 0
     }
   ]

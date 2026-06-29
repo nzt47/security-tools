@@ -1,0 +1,144 @@
+2026-06-26 12:24:02,198 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 12:24:02,201 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 12:24:02,202 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 12:24:02,322 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 12:24:02,339 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 12:24:02,342 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 12:24:02,384 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 12:24:02,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:24:02,386 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 12:24:02,386 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 12:24:02,394 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 12:24:02,398 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 12:24:02,416 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 12:24:02,416 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 12:24:02,416 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 12:24:02,417 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 12:24:02,418 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 12:24:02,583 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 12:24:02,587 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:24:02,588 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 12:24:02,589 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 12:24:02,589 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 12:24:02,605 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:24:02,605 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 12:24:02,658 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "7aae1854cd4e4b9e", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,664 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "custom123", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,674 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "8b69951f9ee64519", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=1"}
+2026-06-26 12:24:02,682 [ WARNING] agent.observability.arch_rules: [ArchRules] 豁免清单不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-368\test_init_with_missing_exempti0\nonexistent.json，视为空清单
+2026-06-26 12:24:02,682 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "230b82ea519c4a76", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,708 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "b8665fd915434b2f", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,708 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "b8665fd915434b2f", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,709 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b8665fd915434b2f", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_validate_detects_cross_la0\\agent, trace_id=b8665fd915434b2f"}
+2026-06-26 12:24:02,709 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b8665fd915434b2f", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,709 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b8665fd915434b2f", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.27}
+2026-06-26 12:24:02,711 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b8665fd915434b2f", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:02,716 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b8665fd915434b2f", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=7.02", "duration_ms": 7.02}
+2026-06-26 12:24:02,720 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "b8665fd915434b2f", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=12.71", "duration_ms": 12.71}
+2026-06-26 12:24:02,733 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "6b1a659495a74d32", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,734 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "6b1a659495a74d32", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,734 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "6b1a659495a74d32", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_validate_detects_circular0\\agent, trace_id=6b1a659495a74d32"}
+2026-06-26 12:24:02,734 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "6b1a659495a74d32", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,735 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "6b1a659495a74d32", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.31}
+2026-06-26 12:24:02,736 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "6b1a659495a74d32", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:02,741 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "6b1a659495a74d32", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=6.66", "duration_ms": 6.66}
+2026-06-26 12:24:02,745 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "6b1a659495a74d32", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=12.13", "duration_ms": 12.13}
+2026-06-26 12:24:02,760 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "d71083cfdc574a80", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,760 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "d71083cfdc574a80", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,761 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "d71083cfdc574a80", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_validate_detects_tests_re0\\agent, trace_id=d71083cfdc574a80"}
+2026-06-26 12:24:02,761 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "d71083cfdc574a80", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,761 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "d71083cfdc574a80", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.27}
+2026-06-26 12:24:02,763 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "d71083cfdc574a80", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:02,768 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "d71083cfdc574a80", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=7.53", "duration_ms": 7.53}
+2026-06-26 12:24:02,774 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "d71083cfdc574a80", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=14.53", "duration_ms": 14.53}
+2026-06-26 12:24:02,829 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "97dd85b94c804673", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,830 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "97dd85b94c804673", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,830 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "97dd85b94c804673", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_validate_clean_project_pa0\\agent, trace_id=97dd85b94c804673"}
+2026-06-26 12:24:02,831 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "97dd85b94c804673", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,831 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "97dd85b94c804673", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.37}
+2026-06-26 12:24:02,832 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "97dd85b94c804673", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 5 个 Python 文件"}
+2026-06-26 12:24:02,835 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "97dd85b94c804673", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=2, edges=1, violations=0, duration_ms=4.81", "duration_ms": 4.81}
+2026-06-26 12:24:02,839 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "97dd85b94c804673", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=0, active=0, exempted=0, duration_ms=9.54", "duration_ms": 9.54}
+2026-06-26 12:24:02,896 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "427d9bea218b4b9b", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:02,896 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "427d9bea218b4b9b", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,897 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "427d9bea218b4b9b", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_validate_returns_report0\\agent, trace_id=427d9bea218b4b9b"}
+2026-06-26 12:24:02,897 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "427d9bea218b4b9b", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,898 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "427d9bea218b4b9b", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.4}
+2026-06-26 12:24:02,899 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "427d9bea218b4b9b", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 5 个 Python 文件"}
+2026-06-26 12:24:02,902 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "427d9bea218b4b9b", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=2, edges=1, violations=0, duration_ms=4.71", "duration_ms": 4.71}
+2026-06-26 12:24:02,906 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "427d9bea218b4b9b", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=0, active=0, exempted=0, duration_ms=9.46", "duration_ms": 9.46}
+2026-06-26 12:24:02,932 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "8688dac9e6ba4db7", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=1"}
+2026-06-26 12:24:02,932 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "8688dac9e6ba4db7", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,933 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8688dac9e6ba4db7", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_exemption_marks_violation0\\agent, trace_id=8688dac9e6ba4db7"}
+2026-06-26 12:24:02,933 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8688dac9e6ba4db7", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,934 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8688dac9e6ba4db7", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.3}
+2026-06-26 12:24:02,936 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8688dac9e6ba4db7", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:02,943 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8688dac9e6ba4db7", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=9.43", "duration_ms": 9.43}
+2026-06-26 12:24:02,950 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "8688dac9e6ba4db7", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=3, exempted=1, duration_ms=17.92", "duration_ms": 17.92}
+2026-06-26 12:24:02,974 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "729e9ad2604c41a7", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=4"}
+2026-06-26 12:24:02,975 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "729e9ad2604c41a7", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:02,976 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "729e9ad2604c41a7", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_exempted_violation_does_n0\\agent, trace_id=729e9ad2604c41a7"}
+2026-06-26 12:24:02,976 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "729e9ad2604c41a7", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:02,976 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "729e9ad2604c41a7", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.34}
+2026-06-26 12:24:02,978 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "729e9ad2604c41a7", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:02,986 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "729e9ad2604c41a7", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=9.98", "duration_ms": 9.98}
+2026-06-26 12:24:02,996 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "729e9ad2604c41a7", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=0, exempted=4, duration_ms=20.99", "duration_ms": 20.99}
+2026-06-26 12:24:03,023 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4d975eaa3d854b16", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,026 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4d975eaa3d854b16", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,028 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4d975eaa3d854b16", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_report_to_dict0\\agent, trace_id=4d975eaa3d854b16"}
+2026-06-26 12:24:03,028 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4d975eaa3d854b16", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:03,029 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4d975eaa3d854b16", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.41}
+2026-06-26 12:24:03,031 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4d975eaa3d854b16", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:03,039 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4d975eaa3d854b16", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=10.32", "duration_ms": 10.32}
+2026-06-26 12:24:03,044 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4d975eaa3d854b16", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=17.57", "duration_ms": 17.57}
+2026-06-26 12:24:03,059 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "0f29b389f24a4ad5", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,060 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "0f29b389f24a4ad5", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,061 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "0f29b389f24a4ad5", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_report_to_markdown0\\agent, trace_id=0f29b389f24a4ad5"}
+2026-06-26 12:24:03,061 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "0f29b389f24a4ad5", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:03,061 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "0f29b389f24a4ad5", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.26}
+2026-06-26 12:24:03,062 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "0f29b389f24a4ad5", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:03,068 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "0f29b389f24a4ad5", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=6.98", "duration_ms": 6.98}
+2026-06-26 12:24:03,073 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "0f29b389f24a4ad5", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=13.38", "duration_ms": 13.38}
+2026-06-26 12:24:03,086 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4bb052b639fa42c4", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,086 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4bb052b639fa42c4", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,087 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4bb052b639fa42c4", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_report_markdown_for_clean0\\agent, trace_id=4bb052b639fa42c4"}
+2026-06-26 12:24:03,087 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4bb052b639fa42c4", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:03,088 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4bb052b639fa42c4", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.38}
+2026-06-26 12:24:03,089 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4bb052b639fa42c4", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 5 个 Python 文件"}
+2026-06-26 12:24:03,092 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4bb052b639fa42c4", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=2, edges=1, violations=0, duration_ms=4.96", "duration_ms": 4.96}
+2026-06-26 12:24:03,096 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4bb052b639fa42c4", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=0, active=0, exempted=0, duration_ms=9.81", "duration_ms": 9.81}
+2026-06-26 12:24:03,115 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4aa6582e9c5042f1", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,116 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4aa6582e9c5042f1", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,116 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4aa6582e9c5042f1", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_report_has_violations_pro0\\agent, trace_id=4aa6582e9c5042f1"}
+2026-06-26 12:24:03,116 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4aa6582e9c5042f1", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:03,117 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4aa6582e9c5042f1", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.24}
+2026-06-26 12:24:03,118 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4aa6582e9c5042f1", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:03,124 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "4aa6582e9c5042f1", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=7.44", "duration_ms": 7.44}
+2026-06-26 12:24:03,129 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "4aa6582e9c5042f1", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=13.19", "duration_ms": 13.19}
+2026-06-26 12:24:03,143 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "366e732cb2db4229", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,144 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "366e732cb2db4229", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,144 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "366e732cb2db4229", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-368\\test_report_violations_seriali0\\agent, trace_id=366e732cb2db4229"}
+2026-06-26 12:24:03,144 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "366e732cb2db4229", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:24:03,145 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "366e732cb2db4229", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 0 个模块", "duration_ms": 0.26}
+2026-06-26 12:24:03,146 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "366e732cb2db4229", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 13 个 Python 文件"}
+2026-06-26 12:24:03,151 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "366e732cb2db4229", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=6, edges=4, violations=2, duration_ms=6.58", "duration_ms": 6.58}
+2026-06-26 12:24:03,155 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "366e732cb2db4229", "module_name": "arch_rules", "action": "validate_complete", "message": "校验完成: total=4, active=4, exempted=0, duration_ms=12.21", "duration_ms": 12.21}
+2026-06-26 12:24:03,161 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "7960de338e7a45f1", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,167 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "67e56f580a154f19", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}
+2026-06-26 12:24:03,168 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "67e56f580a154f19", "module_name": "arch_rules", "action": "validate_start", "message": "开始架构规则校验"}
+2026-06-26 12:24:03,198 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "5fa47e8cdd624c5c", "module_name": "arch_rules", "action": "load_config", "message": "配置加载完成: rules=7"}
+2026-06-26 12:24:03,198 [    INFO] agent.observability.arch_rules: [ArchRules] {"trace_id": "5fa47e8cdd624c5c", "module_name": "arch_rules", "action": "init", "message": "架构规则校验器初始化: rules=7, exemptions=0"}

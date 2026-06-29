@@ -1,0 +1,148 @@
+import { createHotContext as __vite__createHotContext } from "/static/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/Chat/ThinkingBlock.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/static/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=da804fa9"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/static/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/static/node_modules/.vite/deps/react.js?v=da804fa9"; const useRef = __vite__cjsImport3_react["useRef"]; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import "/static/src/components/Chat/ThinkingBlock.css";
+const ThinkingBlock = ({
+  content,
+  streaming = false,
+  label = "思考过程"
+}) => {
+  _s();
+  const [collapsed, setCollapsed] = useState(false);
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current && streaming) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [content, streaming]);
+  const hasContent = content.trim().length > 0;
+  return /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "35", "trae-inspector-start-column": "4", "trae-inspector-end-line": "67", "trae-inspector-end-column": "10", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `thinking-block ${streaming ? "streaming" : ""} ${collapsed ? "collapsed" : ""}`, children: [
+    /* @__PURE__ */ jsxDEV(
+      "button",
+      {
+        "trae-inspector-start-line": "36",
+        "trae-inspector-start-column": "6",
+        "trae-inspector-end-line": "52",
+        "trae-inspector-end-column": "15",
+        "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx",
+        "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+        className: "thinking-header",
+        onClick: () => setCollapsed(!collapsed),
+        type: "button",
+        children: [
+          /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "41", "trae-inspector-start-column": "8", "trae-inspector-end-line": "43", "trae-inspector-end-column": "15", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-icon", children: streaming ? "⟳" : collapsed ? "›" : "↓" }, void 0, false, {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+            lineNumber: 60,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "44", "trae-inspector-start-column": "8", "trae-inspector-end-line": "46", "trae-inspector-end-column": "15", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-label", children: streaming ? `${label}...` : label }, void 0, false, {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+            lineNumber: 63,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "47", "trae-inspector-start-column": "8", "trae-inspector-end-line": "51", "trae-inspector-end-column": "15", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-status", children: [
+            streaming && /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "48", "trae-inspector-start-column": "24", "trae-inspector-end-line": "48", "trae-inspector-end-column": "61", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-spinner" }, void 0, false, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+              lineNumber: 67,
+              columnNumber: 25
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "49", "trae-inspector-start-column": "10", "trae-inspector-end-line": "49", "trae-inspector-end-column": "68", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-count", children: [
+              content.length,
+              " 字"
+            ] }, void 0, true, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+              lineNumber: 68,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "50", "trae-inspector-start-column": "10", "trae-inspector-end-line": "50", "trae-inspector-end-column": "77", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-chevron", children: collapsed ? "展开" : "收起" }, void 0, false, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+              lineNumber: 69,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+            lineNumber: 66,
+            columnNumber: 9
+          }, this)
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+        lineNumber: 55,
+        columnNumber: 7
+      },
+      this
+    ),
+    !collapsed && /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "55", "trae-inspector-start-column": "8", "trae-inspector-end-line": "65", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-body", ref: scrollRef, children: hasContent ? /* @__PURE__ */ jsxDEV("pre", { "trae-inspector-start-line": "57", "trae-inspector-start-column": "12", "trae-inspector-end-line": "57", "trae-inspector-end-column": "58", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-text", children: content }, void 0, false, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+      lineNumber: 76,
+      columnNumber: 9
+    }, this) : /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "59", "trae-inspector-start-column": "12", "trae-inspector-end-line": "63", "trae-inspector-end-column": "18", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-placeholder", children: [
+      /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "60", "trae-inspector-start-column": "14", "trae-inspector-end-line": "60", "trae-inspector-end-column": "47", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-dot" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+        lineNumber: 79,
+        columnNumber: 15
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "61", "trae-inspector-start-column": "14", "trae-inspector-end-line": "61", "trae-inspector-end-column": "47", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-dot" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+        lineNumber: 80,
+        columnNumber: 15
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "62", "trae-inspector-start-column": "14", "trae-inspector-end-line": "62", "trae-inspector-end-column": "47", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ThinkingBlock.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "thinking-dot" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+        lineNumber: 81,
+        columnNumber: 15
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+      lineNumber: 78,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+      lineNumber: 74,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx",
+    lineNumber: 54,
+    columnNumber: 5
+  }, this);
+};
+_s(ThinkingBlock, "j/KcTtDdQLj/tmE6PFZD4qc4TMk=");
+_c = ThinkingBlock;
+export default ThinkingBlock;
+var _c;
+$RefreshReg$(_c, "ThinkingBlock");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ThinkingBlock.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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VGhpbmtpbmdCbG9jayIsImNvbnRlbnQiLCJzdHJlYW1pbmciLCJsYWJlbCIsIl9zIiwiY29sbGFwc2VkIiwic2V0Q29sbGFwc2VkIiwic2Nyb2xsUmVmIiwiY3VycmVudCIsInNjcm9sbFRvcCIsInNjcm9sbEhlaWdodCIsImhhc0NvbnRlbnQiLCJ0cmltIiwibGVuZ3RoIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiVGhpbmtpbmdCbG9jay50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiwgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCAnLi9UaGlua2luZ0Jsb2NrLmNzcyc7XG5cbmV4cG9ydCBpbnRlcmZhY2UgVGhpbmtpbmdCbG9ja1Byb3BzIHtcbiAgLyoqIOaAneiAg+WGheWuue+8iOWujOaVtOaWh+acrO+8iSAqL1xuICBjb250ZW50OiBzdHJpbmc7XG4gIC8qKiDmmK/lkKbmraPlnKjmgJ3ogIPkuK3vvIjmtYHlvI/vvIkgKi9cbiAgc3RyZWFtaW5nPzogYm9vbGVhbjtcbiAgLyoqIOaAneiAg+agh+etviAqL1xuICBsYWJlbD86IHN0cmluZztcbn1cblxuLyoqXG4gKiDlj6/mipjlj6DnmoTmtYHlvI/mgJ3ogIPlsZXnpLrnu4Tku7ZcbiAqIOaooeS7vyBDbGF1ZGUgQ29kZSDnmoQgdGhpbmtpbmcg5Z2X6aOO5qC8XG4gKi9cbmNvbnN0IFRoaW5raW5nQmxvY2s6IFJlYWN0LkZDPFRoaW5raW5nQmxvY2tQcm9wcz4gPSAoe1xuICBjb250ZW50LFxuICBzdHJlYW1pbmcgPSBmYWxzZSxcbiAgbGFiZWwgPSAn5oCd6ICD6L+H56iLJyxcbn0pID0+IHtcbiAgY29uc3QgW2NvbGxhcHNlZCwgc2V0Q29sbGFwc2VkXSA9IHVzZVN0YXRlKGZhbHNlKTtcbiAgY29uc3Qgc2Nyb2xsUmVmID0gdXNlUmVmPEhUTUxEaXZFbGVtZW50PihudWxsKTtcblxuICAvLyDlhoXlrrnmm7TmlrDml7boh6rliqjmu5rliLDlupXpg6hcbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBpZiAoc2Nyb2xsUmVmLmN1cnJlbnQgJiYgc3RyZWFtaW5nKSB7XG4gICAgICBzY3JvbGxSZWYuY3VycmVudC5zY3JvbGxUb3AgPSBzY3JvbGxSZWYuY3VycmVudC5zY3JvbGxIZWlnaHQ7XG4gICAgfVxuICB9LCBbY29udGVudCwgc3RyZWFtaW5nXSk7XG5cbiAgY29uc3QgaGFzQ29udGVudCA9IGNvbnRlbnQudHJpbSgpLmxlbmd0aCA+IDA7XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT17YHRoaW5raW5nLWJsb2NrICR7c3RyZWFtaW5nID8gJ3N0cmVhbWluZycgOiAnJ30gJHtjb2xsYXBzZWQgPyAnY29sbGFwc2VkJyA6ICcnfWB9PlxuICAgICAgPGJ1dHRvblxuICAgICAgICBjbGFzc05hbWU9XCJ0aGlua2luZy1oZWFkZXJcIlxuICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRDb2xsYXBzZWQoIWNvbGxhcHNlZCl9XG4gICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgPlxuICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1pY29uXCI+XG4gICAgICAgICAge3N0cmVhbWluZyA/ICfin7MnIDogY29sbGFwc2VkID8gJ+KAuicgOiAn4oaTJ31cbiAgICAgICAgPC9zcGFuPlxuICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1sYWJlbFwiPlxuICAgICAgICAgIHtzdHJlYW1pbmcgPyBgJHtsYWJlbH0uLi5gIDogbGFiZWx9XG4gICAgICAgIDwvc3Bhbj5cbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGhpbmtpbmctc3RhdHVzXCI+XG4gICAgICAgICAge3N0cmVhbWluZyAmJiA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1zcGlubmVyXCIgLz59XG4gICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGhpbmtpbmctY291bnRcIj57Y29udGVudC5sZW5ndGh9IOWtlzwvc3Bhbj5cbiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1jaGV2cm9uXCI+e2NvbGxhcHNlZCA/ICflsZXlvIAnIDogJ+aUtui1tyd9PC9zcGFuPlxuICAgICAgICA8L3NwYW4+XG4gICAgICA8L2J1dHRvbj5cblxuICAgICAgeyFjb2xsYXBzZWQgJiYgKFxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInRoaW5raW5nLWJvZHlcIiByZWY9e3Njcm9sbFJlZn0+XG4gICAgICAgICAge2hhc0NvbnRlbnQgPyAoXG4gICAgICAgICAgICA8cHJlIGNsYXNzTmFtZT1cInRoaW5raW5nLXRleHRcIj57Y29udGVudH08L3ByZT5cbiAgICAgICAgICApIDogKFxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0aGlua2luZy1wbGFjZWhvbGRlclwiPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1kb3RcIiAvPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1kb3RcIiAvPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0aGlua2luZy1kb3RcIiAvPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgKX1cbiAgICAgICAgPC9kaXY+XG4gICAgICApfVxuICAgIDwvZGl2PlxuICApO1xufTtcblxuZXhwb3J0IGRlZmF1bHQgVGhpbmtpbmdCbG9jaztcbiJdLCJmaWxlIjoiQzovVXNlcnMvQWRtaW5pc3RyYXRvci9hZ2VudC95dW5zaHUtdWkvc3JjL2NvbXBvbmVudHMvQ2hhdC9UaGlua2luZ0Jsb2NrLnRzeCJ9

@@ -1,0 +1,118 @@
+2026-06-24 21:49:33,192 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 21:49:33,195 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 21:49:33,197 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 21:49:33,299 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 21:49:33,314 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 21:49:33,317 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 21:49:33,349 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 21:49:33,351 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,351 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:49:33,352 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 21:49:33,360 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 21:49:33,364 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 21:49:33,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 21:49:33,382 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 21:49:33,383 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 21:49:33,384 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 21:49:33,385 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 21:49:33,506 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 21:49:33,509 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 21:49:33,510 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:49:33,516 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:49:33,516 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 21:49:33,517 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 21:49:33,517 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 21:49:33,517 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 21:49:33,518 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 21:49:33,518 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 21:49:33,518 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 21:49:33,518 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 21:49:33,519 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:49:33,519 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 21:49:33,519 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 21:49:33,520 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 21:49:33,533 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,533 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:49:33,839 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,839 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:49:33.839578"}
+2026-06-24 21:49:33,844 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:49:33,845 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installing
+2026-06-24 21:49:33,846 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installed
+2026-06-24 21:49:33,846 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,847 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "install", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd\u5df2\u5b58\u5728: self_reflection", "timestamp": "2026-06-24T21:49:33.847486"}
+2026-06-24 21:49:33,849 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → enabled
+2026-06-24 21:49:33,849 [    INFO] agent.extensions.skills_installer: [技能安装器] 已切换技能状态: self_reflection → enabled
+2026-06-24 21:49:33,850 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → enabled
+2026-06-24 21:49:33,850 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,850 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "enable", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd \u5df2\u542f\u7528: self_reflection", "timestamp": "2026-06-24T21:49:33.850486"}
+2026-06-24 21:49:33,852 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → disabled
+2026-06-24 21:49:33,853 [    INFO] agent.extensions.skills_installer: [技能安装器] 已切换技能状态: self_reflection → disabled
+2026-06-24 21:49:33,853 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → disabled
+2026-06-24 21:49:33,854 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,854 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "disable", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd \u5df2\u7981\u7528: self_reflection", "timestamp": "2026-06-24T21:49:33.854485"}
+2026-06-24 21:49:33,858 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,858 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:49:33.858518"}
+2026-06-24 21:49:33,859 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:49:33,860 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installing
+2026-06-24 21:49:33,861 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installed
+2026-06-24 21:49:33,861 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,861 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "install", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd\u5df2\u5b58\u5728: self_reflection", "timestamp": "2026-06-24T21:49:33.861030"}
+2026-06-24 21:49:33,863 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → enabled
+2026-06-24 21:49:33,863 [    INFO] agent.extensions.skills_installer: [技能安装器] 已切换技能状态: self_reflection → enabled
+2026-06-24 21:49:33,864 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → enabled
+2026-06-24 21:49:33,864 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,864 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "enable", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd \u5df2\u542f\u7528: self_reflection", "timestamp": "2026-06-24T21:49:33.864031"}
+2026-06-24 21:49:33,868 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,868 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:49:33.868108"}
+2026-06-24 21:49:33,868 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:49:33,869 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installing
+2026-06-24 21:49:33,871 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installed
+2026-06-24 21:49:33,871 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,871 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "install", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd\u5df2\u5b58\u5728: self_reflection", "timestamp": "2026-06-24T21:49:33.871131"}
+2026-06-24 21:49:33,875 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,875 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:49:33.875130"}
+2026-06-24 21:49:33,875 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:49:33,876 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installing
+2026-06-24 21:49:33,877 [    INFO] agent.extensions.store: [扩展存储] 已更新状态: self_reflection → installed
+2026-06-24 21:49:33,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,878 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "install", "ext_id": "self_reflection", "ext_type": "skill", "message": "\u6280\u80fd\u5df2\u5b58\u5728: self_reflection", "timestamp": "2026-06-24T21:49:33.878141"}
+2026-06-24 21:49:33,881 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,882 [    INFO] agent.extensions.sandbox: Created sandbox for plugin: test_plugin
+2026-06-24 21:49:33,900 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,900 [    INFO] agent.extensions.market: {"trace_id": null, "module_name": "extension_market", "action": "add_review", "plugin_id": "test_plugin", "user_id": "user123", "rating": 5, "timestamp": "2026-06-24T21:49:33.900487"}
+2026-06-24 21:49:33,905 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:33,905 [    INFO] agent.extensions.market: {"trace_id": null, "module_name": "extension_market", "action": "add_review", "plugin_id": "test_plugin_16bc976f", "user_id": "user456", "rating": 5, "timestamp": "2026-06-24T21:49:33.905495"}
+2026-06-24 21:49:35,046 [ WARNING] agent.extensions.market: [扩展市场] 获取社区索引失败: HTTP Error 404: Not Found
+2026-06-24 21:49:38,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,260 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:49:38,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,261 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter_manager", "action": "register", "duration_ms": 0, "name": "api_gateway", "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:49:38,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,280 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,280 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,281 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,281 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,287 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,353 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:38,353 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:49:40,712 [ WARNING] agent.model_router.adapters: google-generativeai 库未安装
+2026-06-24 21:49:40,712 [ WARNING] agent.model_router.adapters: google-generativeai 库未安装
+2026-06-24 21:49:40,713 [ WARNING] agent.model_router.adapters: zhipuai 库未安装
+2026-06-24 21:49:40,715 [ WARNING] agent.model_router.adapters: alibabacloud-dashscope-api 库未安装
+2026-06-24 21:49:40,716 [ WARNING] agent.model_router.adapters: alibabacloud-dashscope-api 库未安装
+2026-06-24 21:49:40,744 [ WARNING] agent.model_router.adapters: 未知提供商: unknown

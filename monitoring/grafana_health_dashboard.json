@@ -1,0 +1,877 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "系统综合健康度",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:overall_score",
+          "legendFormat": "综合健康度",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 },
+              { "color": "dark-green", "value": 90 }
+            ]
+          },
+          "mappings": [],
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "title": "健康等级",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:overall_score",
+          "legendFormat": "健康等级",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 },
+              { "color": "dark-green", "value": 90 }
+            ]
+          },
+          "mappings": [
+            { "type": "range", "from": 90, "to": 100, "text": "优秀" },
+            { "type": "range", "from": 70, "to": 89.9, "text": "良好" },
+            { "type": "range", "from": 50, "to": 69.9, "text": "一般" },
+            { "type": "range", "from": 30, "to": 49.9, "text": "警告" },
+            { "type": "range", "from": 0, "to": 29.9, "text": "危险" }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "title": "健康度趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 14, "x": 10, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:overall_score",
+          "legendFormat": "综合健康度",
+          "refId": "A"
+        },
+        {
+          "expr": "yunshu:health:dimension:stability_score",
+          "legendFormat": "稳定性",
+          "refId": "B"
+        },
+        {
+          "expr": "yunshu:health:dimension:quality_score",
+          "legendFormat": "质量",
+          "refId": "C"
+        },
+        {
+          "expr": "yunshu:health:dimension:availability_score",
+          "legendFormat": "可用性",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 4,
+      "title": "六大维度健康度",
+      "type": "bar-gauge",
+      "gridPos": { "h": 4, "w": 10, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:dimension:stability_score",
+          "legendFormat": "稳定性",
+          "refId": "A"
+        },
+        {
+          "expr": "yunshu:health:dimension:performance_score",
+          "legendFormat": "性能",
+          "refId": "B"
+        },
+        {
+          "expr": "yunshu:health:dimension:quality_score",
+          "legendFormat": "质量",
+          "refId": "C"
+        },
+        {
+          "expr": "yunshu:health:dimension:efficiency_score",
+          "legendFormat": "效率",
+          "refId": "D"
+        },
+        {
+          "expr": "yunshu:health:dimension:availability_score",
+          "legendFormat": "可用性",
+          "refId": "E"
+        },
+        {
+          "expr": "yunshu:health:dimension:security_score",
+          "legendFormat": "安全性",
+          "refId": "F"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 5,
+      "title": "稳定性指标",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 }
+    },
+    {
+      "id": 6,
+      "title": "错误率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 9 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:stability:error_rate * 100",
+          "legendFormat": "错误率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "崩溃次数 (1h)",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 9 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:stability:crash_count",
+          "legendFormat": "崩溃次数",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 3 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "重试率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 9 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:stability:retry_rate * 100",
+          "legendFormat": "重试率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "orange", "value": 20 },
+              { "color": "red", "value": 30 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "错误率趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 9 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:stability:error_rate * 100",
+          "legendFormat": "错误率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "性能指标",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 }
+    },
+    {
+      "id": 11,
+      "title": "P99 延迟",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:p99_latency",
+          "legendFormat": "P99延迟",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 2 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "P95 延迟",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:p95_latency",
+          "legendFormat": "P95延迟",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "吞吐量",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:throughput",
+          "legendFormat": "吞吐量",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "green", "value": 20 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "CPU 使用率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 19 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:cpu_usage * 100",
+          "legendFormat": "CPU使用率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "orange", "value": 85 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "内存使用率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 19 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:memory_usage * 100",
+          "legendFormat": "内存使用率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "orange", "value": 85 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "延迟趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:performance:p99_latency",
+          "legendFormat": "P99",
+          "refId": "A"
+        },
+        {
+          "expr": "yunshu:health:performance:p95_latency",
+          "legendFormat": "P95",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "质量指标",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
+    },
+    {
+      "id": 18,
+      "title": "Schema 校验通过率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 23 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:quality:schema_pass_rate * 100",
+          "legendFormat": "Schema通过率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 80 },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "Critic 评分",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 23 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:quality:critic_score",
+          "legendFormat": "Critic评分",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 60 },
+              { "color": "yellow", "value": 70 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "任务完成率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 23 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:quality:task_success_rate * 100",
+          "legendFormat": "任务完成率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 70 },
+              { "color": "yellow", "value": 85 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "工具调用成功率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 26 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:quality:tool_success_rate * 100",
+          "legendFormat": "工具成功率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 75 },
+              { "color": "yellow", "value": 85 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "质量趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 23 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:quality:schema_pass_rate * 100",
+          "legendFormat": "Schema通过率",
+          "refId": "A"
+        },
+        {
+          "expr": "yunshu:health:quality:critic_score",
+          "legendFormat": "Critic评分",
+          "refId": "B"
+        },
+        {
+          "expr": "yunshu:health:quality:task_success_rate * 100",
+          "legendFormat": "任务完成率",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "可用性指标",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 }
+    },
+    {
+      "id": 24,
+      "title": "服务可用性",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 30 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:availability:uptime * 100",
+          "legendFormat": "可用性",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 95 },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 25,
+      "title": "依赖健康度",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 30 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:availability:dependency_health * 100",
+          "legendFormat": "依赖健康度",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 70 },
+              { "color": "yellow", "value": 85 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 26,
+      "title": "服务健康率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 30 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:availability:service_health * 100",
+          "legendFormat": "服务健康率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 75 },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 27,
+      "title": "可用性趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 30 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:availability:uptime * 100",
+          "legendFormat": "可用性",
+          "refId": "A"
+        },
+        {
+          "expr": "yunshu:health:availability:dependency_health * 100",
+          "legendFormat": "依赖健康度",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "title": "安全指标",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 }
+    },
+    {
+      "id": 29,
+      "title": "安全告警数 (1h)",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 37 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:security:alert_count",
+          "legendFormat": "安全告警",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 3 },
+              { "color": "red", "value": 6 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 30,
+      "title": "认证失败率",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 37 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:security:auth_fail_rate * 100",
+          "legendFormat": "认证失败率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 3 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "异常访问 (1h)",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 37 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu:health:security:anomaly_access",
+          "legendFormat": "异常访问",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "orange", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["yunshu", "health", "monitoring"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "default", "value": "default" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "云枢系统健康度仪表盘",
+  "uid": "yunshu-health-dashboard",
+  "version": 1
+}

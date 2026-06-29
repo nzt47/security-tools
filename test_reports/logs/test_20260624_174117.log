@@ -1,0 +1,57 @@
+2026-06-24 17:41:17,855 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:41:17,859 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:41:17,860 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:41:17,961 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:41:17,977 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:41:17,980 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:41:18,010 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:41:18,017 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:41:18,022 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:41:18,041 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:41:18,041 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:41:18,042 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:41:18,042 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:41:18,044 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:41:18,167 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:41:18,171 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:41:18,171 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:41:18,177 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:41:18,177 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:41:18,177 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:41:18,178 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:41:18,178 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:41:18,178 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:41:18,179 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:41:18,179 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:41:18,179 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:41:18,179 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:41:18,180 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:41:18,180 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:41:18,181 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:41:18,256 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpu1fcflj2
+2026-06-24 17:41:18,561 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmp0mr0vza3
+2026-06-24 17:41:18,571 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpudgneuaj
+2026-06-24 17:41:18,582 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpetp6w9kp
+2026-06-24 17:41:18,593 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpyvvf8g58
+2026-06-24 17:41:18,621 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmphaj8cdrl
+2026-06-24 17:41:18,663 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:41:18,674 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpss8fn8jp
+2026-06-24 17:41:18,703 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:41:18,708 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpjmlp7lzd
+2026-06-24 17:41:18,730 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:41:18,738 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-0", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,738 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-0
+2026-06-24 17:41:18,744 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-1", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,745 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: field_error, trace_id=trace-1
+2026-06-24 17:41:18,753 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-2", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,753 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-2
+2026-06-24 17:41:18,762 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-3", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,762 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: field_error, trace_id=trace-3
+2026-06-24 17:41:18,770 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-4", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,771 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-4
+2026-06-24 17:41:18,793 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpmyoy_h3a
+2026-06-24 17:41:18,819 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:41:18,828 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "test-trace-001", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "high", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:41:18,828 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=test-trace-001

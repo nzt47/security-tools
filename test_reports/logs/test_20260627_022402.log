@@ -1,0 +1,36 @@
+2026-06-27 02:24:03,508 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 02:24:03,510 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 02:24:03,512 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 02:24:03,523 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 02:24:03,536 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 02:24:03,540 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 02:24:03,570 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 02:24:03,577 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 02:24:03,581 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 02:24:03,598 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 02:24:03,598 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 02:24:03,598 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 02:24:03,600 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 02:24:03,601 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 02:24:03,723 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 02:24:03,727 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 02:24:03,727 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:03,727 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 02:24:03,728 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 02:24:03,966 [    INFO] agent.log_system.storage: [LogSystem] 存储层初始化完成: db=C:\Windows\TEMP\tmpzfk0mneb\test.db, raw=C:\Windows\TEMP\tmpzfk0mneb
+2026-06-27 02:24:03,983 [    INFO] agent.log_system.storage: [LogSystem] 存储层初始化完成: db=C:\Windows\TEMP\tmptmyurc82\test.db, raw=C:\Windows\TEMP\tmptmyurc82
+2026-06-27 02:24:04,003 [    INFO] agent.log_system.storage: [LogSystem] 存储层初始化完成: db=C:\Windows\TEMP\tmpbr8iq295\test.db, raw=C:\Windows\TEMP\tmpbr8iq295
