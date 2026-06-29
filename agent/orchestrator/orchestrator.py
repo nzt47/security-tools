@@ -121,7 +121,7 @@ class Orchestrator:
         """
         trace_id = get_trace_id() if _MONITORING_AVAILABLE else None
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": "=" * 70}, ensure_ascii=False))
-        logger.info("[%s] [Orchestrator.process] 收到对话请求", trace_id)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.receive", "duration_ms": 0, "trace_id_ctx": trace_id, "message": "[Orchestrator.process] 收到对话请求"}, ensure_ascii=False))
         input_preview = user_input[:100] + ("..." if len(user_input) > 100 else "")
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("   用户输入: %s") % (input_preview,)}, ensure_ascii=False))
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("   对话次数: %d") % (self._interaction_count + 1,)}, ensure_ascii=False))
@@ -307,9 +307,9 @@ class Orchestrator:
                                 'session_id': getattr(self, '_session_id', 'unknown'),
                             },
                         )
-                        logger.info("[%s] [OK] 错误已自动上报", trace_id)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.error_reported", "duration_ms": 0, "trace_id_ctx": trace_id, "message": "[OK] 错误已自动上报"}, ensure_ascii=False))
                     except Exception as report_error:
-                        logger.warning("[%s] 错误上报失败: %s", trace_id, report_error)
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.error_report_failed", "duration_ms": 0, "trace_id_ctx": trace_id, "error": str(report_error), "message": "错误上报失败"}, ensure_ascii=False))
             return ResponseBuilder.error(
                 "抱歉，处理您的请求时遇到了问题：%s" % e
             ).to_dict()
