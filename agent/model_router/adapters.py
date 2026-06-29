@@ -100,10 +100,12 @@ class OpenAIAdapter(ModelAdapter):
             if client is None:
                 return {"error": "OpenAI client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=[{"role": "user", "content": prompt}],
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -127,10 +129,12 @@ class OpenAIAdapter(ModelAdapter):
             if client is None:
                 return {"error": "OpenAI client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=messages,
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -381,10 +385,12 @@ class ZhipuAdapter(ModelAdapter):
             if client is None:
                 return {"error": "Zhipu client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=[{"role": "user", "content": prompt}],
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -408,10 +414,12 @@ class ZhipuAdapter(ModelAdapter):
             if client is None:
                 return {"error": "Zhipu client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=messages,
-                **kwargs
+                **safe_kwargs
             )
             
             return {
