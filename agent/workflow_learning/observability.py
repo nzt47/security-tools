@@ -39,12 +39,15 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
     tid = trace_id or str(uuid.uuid4())
     ctx: Dict[str, Any] = {"trace_id": tid, "payload": payload}
     t0 = time.time()
+    _RESERVED = {"action", "trace_id", "duration_ms", "level", "module_name",
+                 "status", "error", "error_type"}
+    safe = {k: v for k, v in payload.items() if k not in _RESERVED}
     try:
-        _emit_structured_log(f"{action}.start", trace_id=tid, duration_ms=0.0, **payload)
+        _emit_structured_log(f"{action}.start", trace_id=tid, duration_ms=0.0, **safe)
         yield ctx
         elapsed = (time.time() - t0) * 1000
         _emit_structured_log(f"{action}.end", trace_id=tid, duration_ms=elapsed,
-                             status="ok", **payload, **{
+                             status="ok", **safe, **{
                                  k: v for k, v in ctx.items()
                                  if k not in ("trace_id", "payload")
                              })
@@ -52,7 +55,7 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
         elapsed = (time.time() - t0) * 1000
         _emit_structured_log(f"{action}.error", trace_id=tid, duration_ms=elapsed,
                              status="error", error=str(e),
-                             error_type=type(e).__name__, level="error", **payload)
+                             error_type=type(e).__name__, level="error", **safe)
         raise
 
 

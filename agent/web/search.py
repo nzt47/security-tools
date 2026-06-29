@@ -651,7 +651,9 @@ class SearchEngine:
 
     def multi_search(self, queries: List[str], engine: str = "", **kwargs) -> List[dict]:
         """批量搜索多个关键词"""
-        return [self.search(q, engine=engine, **kwargs) for q in queries]
+        # 过滤与显式参数同名的键，避免 **kwargs 展开时冲突
+        safe_kwargs = {k: v for k, v in kwargs.items() if k != "engine"}
+        return [self.search(q, engine=engine, **safe_kwargs) for q in queries]
 
     # ── 缓存 ──────────────────────────────────────────────────────
 
