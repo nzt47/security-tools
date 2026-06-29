@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>四层可见性趋势周报</title>
+<style>
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; color: #333; }
+        h1 { color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 10px; }
+        h2 { color: #1e3a8a; margin-top: 30px; }
+        h3 { color: #374151; margin-top: 20px; }
+        .meta { display: flex; flex-wrap: wrap; gap: 15px; background: #f3f4f6; padding: 12px; border-radius: 6px; margin: 15px 0; font-size: 13px; }
+        .meta code { background: #e5e7eb; padding: 2px 6px; border-radius: 3px; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
+        th { background: #f9fafb; font-weight: 600; }
+        table.overview tbody tr:hover { background: #f9fafb; }
+        table.health td:first-child { font-weight: 500; width: 200px; }
+        .chart { max-width: 100%; height: auto; display: block; margin: 15px 0; border-radius: 4px; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 15px; margin: 10px 0; border-radius: 4px; }
+        footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; }
+        code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+        
+</style>
+</head>
+<body>
+<h1>四层可见性趋势周报</h1>
+<div class="meta">
+<span>生成时间：2026-06-28T01:02:13.570836+00:00</span>
+<span>Trace ID：<code>b1ecfa70c011419b</code></span>
+<span>周期：2026-06-21T01:02:13.488799+00:00 ~ 2026-06-28T01:02:13.488799+00:00</span>
+<span>数据源：http://localhost:9091</span>
+<span>状态：✅ 通过</span>
+</div>
+<h2>概览统计</h2>
+<table class="overview">
+<thead><tr><th>指标</th><th>当前值</th><th>周期初</th><th>趋势</th><th>变化</th></tr></thead>
+<tbody>
+<tr><td><code>overall_status</code></td><td>1</td><td>1</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>threshold_violations</code></td><td>5.00 项</td><td>5.00 项</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>passing_layers</code></td><td>1.00 层</td><td>1.00 层</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>report_duration</code></td><td>3.90 秒</td><td>3.90 秒</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>runtime_structured_log_coverage</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>runtime_trace_coverage</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>runtime_health_endpoints</code></td><td>2.00 个</td><td>2.00 个</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>verification_test_coverage</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>verification_boundary_test_coverage</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>business_track_event_coverage</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>business_dashboard_count</code></td><td>9.00 个</td><td>9.00 个</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>business_alert_rules_count</code></td><td>13.00 条</td><td>13.00 条</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>architecture_dependency_graph_nodes</code></td><td>215.00 个</td><td>215.00 个</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>architecture_rule_violations</code></td><td>—</td><td>—</td><td>❓</td><td>数据缺失</td></tr>
+<tr><td><code>architecture_impact_analysis_coverage</code></td><td>100.0%</td><td>100.0%</td><td>❓</td><td>数据不足</td></tr>
+<tr><td><code>verification_contract_test_count</code></td><td>3.00 个</td><td>3.00 个</td><td>❓</td><td>数据不足</td></tr>
+</tbody></table>
+<h2>总体状态</h2>
+<h3>总体可见性状态（0=pass, 1=fail, 2=degraded）</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">overall_status ()</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">2.0</text>
+<text x="5" y="190" font-size="10" fill="#666">1.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h3>阈值违规项总数</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">threshold_violations (项)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">6.0</text>
+<text x="5" y="190" font-size="10" fill="#666">5.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h3>通过层数（0-4）</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">passing_layers (层)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">2.0</text>
+<text x="5" y="190" font-size="10" fill="#666">1.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h3>报告生成耗时（秒）</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">report_duration (秒)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">4.9</text>
+<text x="5" y="190" font-size="10" fill="#666">3.9</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h2>运行时可见</h2>
+<h3>结构化日志覆盖率</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>链路追踪覆盖率</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>健康检查端点数</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">runtime_health_endpoints (个)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">3.0</text>
+<text x="5" y="190" font-size="10" fill="#666">2.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h2>验证过程可见</h2>
+<h3>测试覆盖率</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>边界测试覆盖率</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>契约测试数</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">verification_contract_test_count (个)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">4.0</text>
+<text x="5" y="190" font-size="10" fill="#666">3.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h2>业务价值可见</h2>
+<h3>埋点覆盖率</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>看板数量</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">business_dashboard_count (个)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">10.0</text>
+<text x="5" y="190" font-size="10" fill="#666">9.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h3>告警规则数</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">business_alert_rules_count (条)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">14.0</text>
+<text x="5" y="190" font-size="10" fill="#666">13.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h2>架构影响可见</h2>
+<h3>依赖图节点数</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">architecture_dependency_graph_nodes (个)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">216.0</text>
+<text x="5" y="190" font-size="10" fill="#666">215.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h3>架构规则违规数（越少越好）</h3>
+<div class="warning">⚠️ 数据缺失：Prometheus 返回空数据（指标可能尚未采集）</div>
+<h3>影响分析覆盖率</h3>
+<svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" class="chart">
+<rect width="800" height="240" fill="#fafafa" stroke="#ddd"/>
+<text x="50" y="20" font-size="12" fill="#666">architecture_impact_analysis_coverage (%)</text>
+<line x1="50" y1="50" x2="50" y2="190" stroke="#999"/>
+<text x="5" y="60" font-size="10" fill="#666">101.0</text>
+<text x="5" y="190" font-size="10" fill="#666">100.0</text>
+<line x1="50" y1="190" x2="750" y2="190" stroke="#999"/>
+<text x="50" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<text x="670" y="230" font-size="10" fill="#666">06-28 09:02</text>
+<path d="M 50.0,190.0" fill="none" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="50.0" cy="190.0" r="2" fill="#3b82f6"/>
+</svg>
+<h2>健康检查</h2>
+<table class="health">
+<tr><td>Prometheus 可达性</td><td>✅ 已连接</td></tr>
+<tr><td>查询成功率</td><td>10/16</td></tr>
+<tr><td>报告生成状态</td><td>✅ 通过</td></tr>
+</table>
+<footer>
+<p>由 <code>scripts/generate_visibility_trend.py</code> 自动生成</p>
+</footer>
+</body></html>

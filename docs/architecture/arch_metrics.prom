@@ -1,0 +1,21 @@
+# HELP yunshu_arch_violations_total 架构违规总数（按豁免状态分类）
+# TYPE yunshu_arch_violations_total gauge
+yunshu_arch_violations_total{status="active"} 0
+yunshu_arch_violations_total{status="exempted"} 0
+
+# HELP yunshu_arch_rules_total 架构规则总数
+# TYPE yunshu_arch_rules_total gauge
+yunshu_arch_rules_total 7
+
+# HELP yunshu_arch_check_duration_ms 架构校验耗时（毫秒）
+# TYPE yunshu_arch_check_duration_ms gauge
+yunshu_arch_check_duration_ms 3180.57
+
+# HELP yunshu_arch_violation_by_rule 按规则分类的违规数
+# TYPE yunshu_arch_violation_by_rule gauge
+
+# HELP yunshu_arch_violation_by_severity 按严重度分类的违规数
+# TYPE yunshu_arch_violation_by_severity gauge
+yunshu_arch_violation_by_severity{severity="high"} 0
+yunshu_arch_violation_by_severity{severity="medium"} 0
+yunshu_arch_violation_by_severity{severity="low"} 0

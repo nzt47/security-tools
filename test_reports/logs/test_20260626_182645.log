@@ -1,0 +1,318 @@
+2026-06-26 18:26:45,733 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 18:26:45,736 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 18:26:45,738 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 18:26:45,862 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 18:26:45,877 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:26:45,880 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 18:26:45,913 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 18:26:45,914 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:45,915 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 18:26:45,915 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 18:26:45,922 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 18:26:45,926 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 18:26:45,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 18:26:45,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 18:26:45,982 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 18:26:45,983 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 18:26:45,985 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 18:26:46,132 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 18:26:46,136 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 18:26:46,137 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 18:26:46,157 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,158 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.tracing: [Tracing] 使用配置文件中的采样器: ALWAYS_ON
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.tracing: [Tracing] 调试模式：强制使用 ALWAYS_ON 采样器
+2026-06-26 18:26:46,267 [    INFO] agent.monitoring.tracing: [Tracing] 创建 TracerProvider，采样器: StaticSampler
+2026-06-26 18:26:46,269 [    INFO] agent.monitoring.tracing: [Tracing] 配置导出器 - 类型: CONSOLE, 端点: , 协议: GRPC
+2026-06-26 18:26:46,269 [    INFO] agent.monitoring.tracing: [Tracing] 创建 ConsoleSpanExporter
+2026-06-26 18:26:46,269 [    INFO] agent.monitoring.tracing: [Tracing] 已添加 Span Processor: CONSOLE
+2026-06-26 18:26:46,269 [    INFO] agent.monitoring.tracing: [Tracing] 设置全局 TracerProvider...
+2026-06-26 18:26:46,269 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 初始化成功，Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 采样器配置检查完成
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing: [Tracing] 导出器配置:
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing:    类型: CONSOLE
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing:    端点: 
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing:    协议: GRPC
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing:    已启用: CONSOLE
+2026-06-26 18:26:46,270 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 导出器配置检查完成
+2026-06-26 18:26:46,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: e44dbbae69f549dd
+2026-06-26 18:26:46,279 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,279 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,284 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,284 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,289 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,289 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,386 [    INFO] agent.server_routes.tracing_middleware: [Tracing Middleware] 已初始化
+2026-06-26 18:26:46,391 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,391 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,391 [    INFO] agent.server_routes.tracing_middleware: [Tracing Middleware] 已初始化
+2026-06-26 18:26:46,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,398 [    INFO] agent.server_routes.tracing_middleware: [Tracing Middleware] 已初始化
+2026-06-26 18:26:46,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,398 [    INFO] agent.server_routes.tracing_middleware: [Tracing Middleware] 已注册到 Flask 应用
+2026-06-26 18:26:46,402 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890
+2026-06-26 18:26:46,402 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890
+2026-06-26 18:26:46,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,408 [    INFO] agent.server_routes.tracing_middleware: [trace_id=abc123def4567890] [Tracing Middleware] 已初始化
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,408 [    INFO] agent.server_routes.tracing_middleware: [trace_id=abc123def4567890] [Tracing Middleware] 已注册到 Flask 应用
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] ⚠️ 未找到有效的追踪上下文，返回空字典
+2026-06-26 18:26:46,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,409 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,409 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,409 [    INFO] agent.monitoring.tracing: [Tracing] ⚠️ 未找到有效的追踪上下文，返回空字典
+2026-06-26 18:26:46,409 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,410 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: abc123def4567890, span_id: None
+2026-06-26 18:26:46,410 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 span_id，生成新的: 5f6b4b2a27ed4580
+2026-06-26 18:26:46,410 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-abc123def4567890-5f6b4b2a27ed4580-01', 'tracestate': ''}
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: abc123def4567890, span_id: None
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 span_id，生成新的: 858ff50a71734aa6
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-abc123def4567890-858ff50a71734aa6-01', 'tracestate': ''}
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890
+2026-06-26 18:26:46,411 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890
+2026-06-26 18:26:46,412 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,412 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,418 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,418 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,418 [    INFO] agent.server_routes.tracing_middleware: [trace_id=abc123def4567890] [Tracing Middleware] 已初始化
+2026-06-26 18:26:46,418 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,418 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,419 [    INFO] agent.server_routes.tracing_middleware: [trace_id=abc123def4567890] [Tracing Middleware] 已注册到 Flask 应用
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 成功从 traceparent 提取追踪上下文: trace_id=abc123def4567890..., span_id=1234567812345678
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567812345678
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567812345678
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567812345678
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 成功从 traceparent 提取追踪上下文: trace_id=abc123def4567890..., span_id=1234567812345678
+2026-06-26 18:26:46,420 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890abc123def4567890
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: 1234567812345678
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: 1234567812345678
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: 1234567812345678
+2026-06-26 18:26:46,421 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567812345678
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: 1234567812345678, span_id: 1234567812345678
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-1234567812345678-1234567812345678-01', 'tracestate': ''}
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: 1234567812345678
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567812345678
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: 1234567812345678, span_id: 1234567812345678
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-1234567812345678-1234567812345678-01', 'tracestate': ''}
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,422 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: test-trace-id-12345
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: test-trace-id-12345
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: test-trace-id-12345
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,431 [    INFO] test: [trace_id=test-trace-id-12345] Test log message
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: test-trace-id-12345
+2026-06-26 18:26:46,431 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,435 [    INFO] agent.monitoring.tracing: [Tracing] 初始化可观测性模块...
+2026-06-26 18:26:46,435 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: INFO]
+2026-06-26 18:26:46,435 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x000001FF39E77B60>
+2026-06-26 18:26:46,470 [    INFO] agent.monitoring.tracing: [Tracing] 初始化 OpenTelemetry Metrics...
+2026-06-26 18:26:46,471 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Metrics 初始化成功
+2026-06-26 18:26:46,485 [    INFO] agent.monitoring.tracing: [Tracing] 初始化 OpenTelemetry Logging...
+2026-06-26 18:26:46,486 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Logging 初始化成功
+2026-06-26 18:26:46,486 [    INFO] agent.monitoring.tracing: [Tracing] 可观测性模块初始化完成
+2026-06-26 18:26:46,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: test-trace-id-12345
+2026-06-26 18:26:46,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: test-trace-id-12345
+2026-06-26 18:26:46,491 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-26 18:26:46,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,496 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,496 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,499 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,500 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,504 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,505 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,506 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-26 18:26:46,506 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-26 18:26:46,506 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-26 18:26:46,506 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,506 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: runtrace0011234567890abcdef
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: runtrace0011234567890abcdef
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: runspan001abcdef
+2026-06-26 18:26:46,510 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: runspan001abcdef
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: runtrace0011234567890abcdef
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: runspan001abcdef
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-26 18:26:46,511 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-26 18:26:46,515 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 成功从 traceparent 提取追踪上下文: trace_id=abc123def4567890..., span_id=1234567890abcdef
+2026-06-26 18:26:46,520 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 成功从 uber-trace-id 提取追踪上下文: trace_id=abc123def4567890..., span_id=1234567890abcdef
+2026-06-26 18:26:46,524 [    INFO] agent.monitoring.tracing: [Tracing] ⚠️ 未找到有效的追踪上下文，返回空字典
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: injecttrace0011234567890abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: injecttrace0011234567890abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: injectspan001abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: injectspan001abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: injecttrace0011234567890abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: injectspan001abcdef
+2026-06-26 18:26:46,527 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: injecttrace0011234567890abcdef, span_id: injectspan001abcdef
+2026-06-26 18:26:46,528 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-injecttrace0011234567890abcdef-injectspan001abcdef-01', 'tracestate': ''}
+2026-06-26 18:26:46,528 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,528 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,528 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,528 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,533 [    INFO] agent.monitoring.tracing: [Tracing] ✅ 成功从 traceparent 提取追踪上下文: trace_id=abc123def4567890..., span_id=1234567890abcdef
+2026-06-26 18:26:46,534 [ WARNING] agent.monitoring.tracing: [Tracing] ⚠️ traceparent 格式不正确，期望至少4个部分，实际 2 个: ['invalid', 'format']
+2026-06-26 18:26:46,534 [    INFO] agent.monitoring.tracing: [Tracing] ⚠️ 未找到有效的追踪上下文，返回空字典
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: None, span_id: None
+2026-06-26 18:26:46,537 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 trace_id，生成新的: 90644c576dcd4807
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 span_id，生成新的: 0c1b77ef84754a51
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-90644c576dcd4807-0c1b77ef84754a51-01', 'tracestate': ''}
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: safeinject0011234567890abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: safeinject0011234567890abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: safespan001abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: safespan001abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: safeinject0011234567890abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: safespan001abcdef
+2026-06-26 18:26:46,538 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: safeinject0011234567890abcdef, span_id: safespan001abcdef
+2026-06-26 18:26:46,539 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-safeinject0011234567890abcdef-safespan001abcdef-01', 'tracestate': ''}
+2026-06-26 18:26:46,539 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,539 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,539 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,539 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,553 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: detect0011234567890abcdef
+2026-06-26 18:26:46,554 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: detect0011234567890abcdef
+2026-06-26 18:26:46,554 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: detectspan001abcdef
+2026-06-26 18:26:46,554 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: detectspan001abcdef
+2026-06-26 18:26:46,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: detect0011234567890abcdef
+2026-06-26 18:26:46,556 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,556 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,556 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-26 18:26:46,556 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-26 18:26:46,560 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,560 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,560 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:26:46,561 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: health0011234567890abcdef
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: health0011234567890abcdef
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: health0011234567890abcdef
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: health0011234567890abcdef
+2026-06-26 18:26:46,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-26 18:26:46,566 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-26 18:26:46,566 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-26 18:26:46,574 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-429\test_search_traces0
+2026-06-26 18:26:46,575 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest000, spans: 1
+2026-06-26 18:26:46,577 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest001, spans: 1
+2026-06-26 18:26:46,577 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest002, spans: 1
+2026-06-26 18:26:46,578 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest003, spans: 1
+2026-06-26 18:26:46,579 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest004, spans: 1
+2026-06-26 18:26:46,587 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-429\test_get_decision_sequence0
+2026-06-26 18:26:46,588 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: decisiontest001, spans: 2
+2026-06-26 18:26:46,593 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-429\test_get_recent_traces0
+2026-06-26 18:26:46,594 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent000, spans: 1
+2026-06-26 18:26:46,595 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent001, spans: 1
+2026-06-26 18:26:46,596 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent002, spans: 1
+2026-06-26 18:26:46,596 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent003, spans: 1
+2026-06-26 18:26:46,597 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent004, spans: 1
+2026-06-26 18:26:46,597 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent005, spans: 1
+2026-06-26 18:26:46,598 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent006, spans: 1
+2026-06-26 18:26:46,599 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent007, spans: 1
+2026-06-26 18:26:46,600 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent008, spans: 1
+2026-06-26 18:26:46,600 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent009, spans: 1
+2026-06-26 18:26:46,601 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Users\Administrator\agent\agent\monitoring\..\..\data\traces
+2026-06-26 18:26:46,602 [    INFO] agent.monitoring.tracing: [Tracing] 获取最近 4 条追踪数据
+2026-06-26 18:26:46,608 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-429\test_get_trace_detail0
+2026-06-26 18:26:46,609 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: detailtest001, spans: 1
+2026-06-26 18:26:46,615 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-429\test_record_trace_span0
+2026-06-26 18:26:46,617 [    INFO] agent.monitoring.tracing: [Tracing] Trace 加载成功: recordspan001
+2026-06-26 18:26:46,618 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recordspan001, spans: 9
+2026-06-26 18:26:46,618 [    INFO] agent.monitoring.tracing: [Tracing] 获取追踪详情成功: recordspan001
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0001234567890abcdef
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0001234567890abcdef
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0011234567890abcdef
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0011234567890abcdef
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0021234567890abcdef
+2026-06-26 18:26:46,642 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0021234567890abcdef
+2026-06-26 18:26:46,643 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0031234567890abcdef
+2026-06-26 18:26:46,643 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0031234567890abcdef
+2026-06-26 18:26:46,643 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0041234567890abcdef
+2026-06-26 18:26:46,643 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0041234567890abcdef
+2026-06-26 18:26:46,652 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0001234567890abcdef
+2026-06-26 18:26:46,653 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0011234567890abcdef
+2026-06-26 18:26:46,653 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0021234567890abcdef
+2026-06-26 18:26:46,653 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0031234567890abcdef
+2026-06-26 18:26:46,654 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0041234567890abcdef
+2026-06-26 18:26:46,663 [ WARNING] agent.monitoring.tracing: [Tracing] ⚠️ traceparent 格式不正确，期望至少4个部分，实际 1 个: ['invalid']
+2026-06-26 18:26:46,664 [    INFO] agent.monitoring.tracing: [Tracing] ⚠️ 未找到有效的追踪上下文，返回空字典

@@ -1,0 +1,550 @@
+2026-06-22 20:30:49,371 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-22 20:30:49,371 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-22 20:30:49,376 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-22 20:30:49,388 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-22 20:30:49,401 [    INFO] agent.error_handler: Error handler initialized
+2026-06-22 20:30:49,401 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-22 20:30:49,415 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-22 20:30:49,422 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-22 20:30:49,427 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-22 20:30:49,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-22 20:30:49,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-22 20:30:49,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-22 20:30:49,444 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-22 20:30:49,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-22 20:30:49,599 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-22 20:30:49,603 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-22 20:30:49,604 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-22 20:30:49,610 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-22 20:30:49,779 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.99 KB
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 6 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 7 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 8 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 9 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 10 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 11 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 12 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 13 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 14 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 15 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 16 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 17 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 18 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 19 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [ WARNING] utils.file_reader: [告警模拟] 第 20 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:30:49,779 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 8 条，无效: 15 条
+2026-06-22 20:30:49,787 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.09 KB
+2026-06-22 20:30:49,787 [ WARNING] utils.file_reader: [告警模拟] utf-8 编码失败，尝试降级...
+2026-06-22 20:30:49,789 [ WARNING] utils.file_reader: [告警模拟] utf-8-sig 编码失败，尝试降级...
+2026-06-22 20:30:49,789 [    INFO] utils.file_reader: [告警模拟] 使用 gbk 编码读取成功
+2026-06-22 20:30:49,789 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 2 条，无效: 0 条
+2026-06-22 20:30:49,789 [ WARNING] utils.file_reader: [告警模拟] 文件不存在，跳过加载
+2026-06-22 20:30:49,797 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.19 KB
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 2 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 3 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 4 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 5 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 6 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 7 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 8 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [ WARNING] utils.file_reader: [告警模拟] 第 9 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:30:49,799 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 2 条，无效: 8 条
+2026-06-22 20:30:49,810 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp3t8ebt59\test.txt
+2026-06-22 20:30:49,810 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp3t8ebt59\test.txt
+2026-06-22 20:30:49,810 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp3t8ebt59\test.txt
+2026-06-22 20:30:49,815 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\test.txt
+2026-06-22 20:30:49,815 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\test.txt
+2026-06-22 20:30:49,815 [ WARNING] agent.tools.file_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\test.txt
+2026-06-22 20:30:49,818 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path= invalid
+2026-06-22 20:30:49,818 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\ invalid
+2026-06-22 20:30:49,818 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\ invalid
+2026-06-22 20:30:49,837 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpa58e41_8\test.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:30:49,837 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpa58e41_8\test.txt
+2026-06-22 20:30:49,837 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpa58e41_8\test.txt
+2026-06-22 20:30:49,837 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpa58e41_8\test.txt
+2026-06-22 20:30:49,837 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpa58e41_8\test.txt
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 11 bytes
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=11
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 解码成功: encoding=utf-8, content_length=11
+2026-06-22 20:30:49,838 [    INFO] agent.tools.file_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp1wf8v02t\test.bin, encoding=utf-8, max_size_mb=10
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp1wf8v02t\test.bin
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp1wf8v02t\test.bin
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp1wf8v02t\test.bin
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp1wf8v02t\test.bin
+2026-06-22 20:30:49,844 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 3 bytes
+2026-06-22 20:30:49,845 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-22 20:30:49,845 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-22 20:30:49,845 [    INFO] agent.tools.file_tools: [read_file] 使用二进制模式返回 base64
+2026-06-22 20:30:49,849 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:30:49,849 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt
+2026-06-22 20:30:49,849 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt
+2026-06-22 20:30:49,849 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt
+2026-06-22 20:30:49,849 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt
+2026-06-22 20:30:49,849 [ WARNING] agent.tools.file_tools: [read_file] 文件不存在: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpw6kdyn_5\nonexistent.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt, encoding=utf-8, content_length=4
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 12 bytes
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 文件写入成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp35_b39ni\output.txt
+2026-06-22 20:30:49,854 [    INFO] agent.tools.file_tools: [write_file] 写入完成: ok=True, size=12, backup=None
+2026-06-22 20:30:49,861 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpn1a_d3mq\malicious.exe, encoding=utf-8, content_length=4
+2026-06-22 20:30:49,861 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpn1a_d3mq\malicious.exe
+2026-06-22 20:30:49,861 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpn1a_d3mq\malicious.exe
+2026-06-22 20:30:49,861 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpn1a_d3mq\malicious.exe
+2026-06-22 20:30:49,861 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpn1a_d3mq\malicious.exe
+2026-06-22 20:30:49,861 [ WARNING] agent.tools.file_tools: [write_file] 禁止写入可执行文件类型: ext=.exe
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt, encoding=utf-8, content_length=3
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,866 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 9 bytes
+2026-06-22 20:30:49,867 [    INFO] agent.tools.file_tools: [write_file] 文件已存在，准备备份: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,868 [    INFO] agent.tools.file_tools: [write_file] 备份成功: backup_path=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\existing.txt.20260622_203049.bak
+2026-06-22 20:30:49,868 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r
+2026-06-22 20:30:49,869 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:30:49,869 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:30:49,869 [    INFO] agent.tools.file_tools: [write_file] 文件写入成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpnx9ppf6r\existing.txt
+2026-06-22 20:30:49,869 [    INFO] agent.tools.file_tools: [write_file] 写入完成: ok=True, size=9, backup=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\existing.txt.20260622_203049.bak
+2026-06-22 20:30:49,874 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r, show_hidden=False, max_items=500
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:30:49,875 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r\file1.txt
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=8, mode=0o100666
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=8
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpi6d29o0r\subdir
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o40777
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=True, is_link=False
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=dir, size=0
+2026-06-22 20:30:49,876 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-22 20:30:49,882 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpe397g5dk\file1.txt
+2026-06-22 20:30:49,882 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpe397g5dk\file1.txt
+2026-06-22 20:30:49,882 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpe397g5dk\file1.txt
+2026-06-22 20:30:49,882 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpe397g5dk\file1.txt
+2026-06-22 20:30:49,883 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=8, mode=0o100666
+2026-06-22 20:30:49,883 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:30:49,883 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=8
+2026-06-22 20:30:49,889 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Users\Administrator\AppData\Local\Temp\tmpnmd590fi, max_results=200, ignore_case=True
+2026-06-22 20:30:49,890 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpnmd590fi
+2026-06-22 20:30:49,890 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpnmd590fi
+2026-06-22 20:30:49,890 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpnmd590fi
+2026-06-22 20:30:49,890 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmpnmd590fi
+2026-06-22 20:30:49,891 [    INFO] agent.tools.file_tools: [search_files] 搜索完成: total_results=2, walked=2, truncated=False
+2026-06-22 20:30:49,894 [    INFO] agent.tools.workspace_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\tools\..\..\workspace
+2026-06-22 20:30:52,244 [    INFO] agent.task_scheduler: [TaskScheduler] 初始化完成
+2026-06-22 20:30:52,262 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 生成周报 (cron)
+2026-06-22 20:30:52,278 [    INFO] agent.task_scheduler: [TaskScheduler] 添加任务: 清理旧日志 (cron)
+2026-06-22 20:31:04,167 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp75mtshwd\test.txt
+2026-06-22 20:31:04,168 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp75mtshwd\test.txt
+2026-06-22 20:31:04,169 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp75mtshwd\test.txt
+2026-06-22 20:31:04,172 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Windows\System32\notepad.exe, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,173 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\notepad.exe
+2026-06-22 20:31:04,173 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\notepad.exe
+2026-06-22 20:31:04,173 [ WARNING] agent.tools.file_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\notepad.exe
+2026-06-22 20:31:04,173 [ WARNING] agent.tools.file_tools: [read_file] 路径解析失败: path=C:\Windows\System32\notepad.exe, error=路径位于系统保护目录，拒绝访问: C:\Windows\System32\notepad.exe
+2026-06-22 20:31:04,176 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32
+2026-06-22 20:31:04,176 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32
+2026-06-22 20:31:04,177 [ WARNING] agent.tools.file_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt, encoding=utf-8, content_length=12
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 12 bytes
+2026-06-22 20:31:04,179 [    INFO] agent.tools.file_tools: [write_file] 文件已存在，准备备份: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 备份成功: backup_path=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\tmpgu6x2hg0.txt.20260622_203104.bak
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 文件写入成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [write_file] 写入完成: ok=True, size=12, backup=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\tmpgu6x2hg0.txt.20260622_203104.bak
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpgu6x2hg0.txt
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 12 bytes
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=12
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 解码成功: encoding=utf-8, content_length=12
+2026-06-22 20:31:04,185 [    INFO] agent.tools.file_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpvgkdcxrh.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpvgkdcxrh.txt
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpvgkdcxrh.txt
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpvgkdcxrh.txt
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpvgkdcxrh.txt
+2026-06-22 20:31:04,217 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 10485761 bytes
+2026-06-22 20:31:04,219 [ WARNING] agent.tools.file_tools: [read_file] 文件过大: file_size=10485761, max_size=10485760
+2026-06-22 20:31:04,219 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=nonexistent_file_12345.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,225 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=nonexistent_file_12345.txt
+2026-06-22 20:31:04,225 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-22 20:31:04,225 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-22 20:31:04,225 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-22 20:31:04,225 [ WARNING] agent.tools.file_tools: [read_file] 文件不存在: safe_path=C:\Users\Administrator\agent\nonexistent_file_12345.txt
+2026-06-22 20:31:04,228 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,228 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm
+2026-06-22 20:31:04,228 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm
+2026-06-22 20:31:04,228 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm
+2026-06-22 20:31:04,229 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm
+2026-06-22 20:31:04,229 [ WARNING] agent.tools.file_tools: [read_file] 路径是目录而非文件: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpqdlt5ijm
+2026-06-22 20:31:04,235 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp6rxacl5h.bin, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp6rxacl5h.bin
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp6rxacl5h.bin
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp6rxacl5h.bin
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp6rxacl5h.bin
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 4 bytes
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=4
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-22 20:31:04,236 [    INFO] agent.tools.file_tools: [read_file] 使用二进制模式返回 base64
+2026-06-22 20:31:04,240 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp_0ji6r3n.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,240 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp_0ji6r3n.txt
+2026-06-22 20:31:04,240 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp_0ji6r3n.txt
+2026-06-22 20:31:04,240 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp_0ji6r3n.txt
+2026-06-22 20:31:04,240 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp_0ji6r3n.txt
+2026-06-22 20:31:04,241 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 3 bytes
+2026-06-22 20:31:04,241 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-22 20:31:04,241 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-22 20:31:04,241 [    INFO] agent.tools.file_tools: [read_file] 使用二进制模式返回 base64
+2026-06-22 20:31:04,246 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp3es9vayg.exe, encoding=utf-8, content_length=4
+2026-06-22 20:31:04,246 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp3es9vayg.exe
+2026-06-22 20:31:04,246 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp3es9vayg.exe
+2026-06-22 20:31:04,246 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp3es9vayg.exe
+2026-06-22 20:31:04,246 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp3es9vayg.exe
+2026-06-22 20:31:04,247 [ WARNING] agent.tools.file_tools: [write_file] 禁止写入可执行文件类型: ext=.exe
+2026-06-22 20:31:04,253 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpjjpu7qja.txt, encoding=utf-8, content_length=53477376
+2026-06-22 20:31:04,253 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpjjpu7qja.txt
+2026-06-22 20:31:04,253 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpjjpu7qja.txt
+2026-06-22 20:31:04,253 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpjjpu7qja.txt
+2026-06-22 20:31:04,259 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpjjpu7qja.txt
+2026-06-22 20:31:04,271 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 53477376 bytes
+2026-06-22 20:31:04,271 [ WARNING] agent.tools.file_tools: [write_file] 内容过大: size=53477376, max_size=52428800
+2026-06-22 20:31:04,281 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Windows\System32\test.txt, encoding=utf-8, content_length=4
+2026-06-22 20:31:04,281 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Windows\System32\test.txt
+2026-06-22 20:31:04,282 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Windows\System32\test.txt
+2026-06-22 20:31:04,282 [ WARNING] agent.tools.file_tools: [safe_resolve_path] 路径被保护目录拦截: abs_path=C:\Windows\System32\test.txt
+2026-06-22 20:31:04,282 [ WARNING] agent.tools.file_tools: [write_file] 路径解析失败: path=C:\Windows\System32\test.txt, error=路径位于系统保护目录，拒绝访问: C:\Windows\System32\test.txt
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy, show_hidden=False, max_items=500
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy
+2026-06-22 20:31:04,286 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy\file.txt
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=4, mode=0o100666
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=4
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpxx0nzefy\subdir
+2026-06-22 20:31:04,287 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o40777
+2026-06-22 20:31:04,288 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=True, is_link=False
+2026-06-22 20:31:04,288 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=dir, size=0
+2026-06-22 20:31:04,288 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-22 20:31:04,293 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpbwegdggt.txt
+2026-06-22 20:31:04,293 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpbwegdggt.txt
+2026-06-22 20:31:04,293 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpbwegdggt.txt
+2026-06-22 20:31:04,293 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpbwegdggt.txt
+2026-06-22 20:31:04,293 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=0, mode=0o100666
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=0
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Users\Administrator\AppData\Local\Temp\tmptdocwg34, max_results=200, ignore_case=True
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmptdocwg34
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmptdocwg34
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmptdocwg34
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmptdocwg34
+2026-06-22 20:31:04,294 [    INFO] agent.tools.file_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-22 20:31:04,304 [    INFO] agent.tools.workspace_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\tools\..\..\workspace
+2026-06-22 20:31:04,356 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,356 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n
+2026-06-22 20:31:04,356 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n
+2026-06-22 20:31:04,356 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n
+2026-06-22 20:31:04,356 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n
+2026-06-22 20:31:04,357 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 4 bytes
+2026-06-22 20:31:04,357 [ WARNING] agent.tools.file_tools: [read_file] OS错误: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpaou316_n, error=test error
+2026-06-22 20:31:04,361 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp9_e645pu, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:04,361 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp9_e645pu
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp9_e645pu
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp9_e645pu
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp9_e645pu
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 3 bytes
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=3
+2026-06-22 20:31:04,362 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-22 20:31:04,363 [    INFO] agent.tools.file_tools: [read_file] 使用二进制模式返回 base64
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt, encoding=utf-8, content_length=7
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 7 bytes
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:31:04,367 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:31:04,367 [ WARNING] agent.tools.file_tools: [write_file] OS错误: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp7yilkvwq\test.txt, error=test error
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=test.txt, encoding=utf-8, content_length=7
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=test.txt
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\test.txt
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\test.txt
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\test.txt
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 7 bytes
+2026-06-22 20:31:04,369 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\agent
+2026-06-22 20:31:04,369 [ WARNING] agent.tools.file_tools: [write_file] 创建目录失败: dir_path=C:\Users\Administrator\agent, error=mkdir error
+2026-06-22 20:31:04,374 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=invalid, show_hidden=False, max_items=500
+2026-06-22 20:31:04,374 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=invalid
+2026-06-22 20:31:04,374 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,374 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,374 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,374 [ WARNING] agent.tools.file_tools: [list_directory] 路径不存在: safe_path=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,382 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=/nonexistent/path/xyz123, show_hidden=False, max_items=500
+2026-06-22 20:31:04,382 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-22 20:31:04,382 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,383 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,383 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,394 [ WARNING] agent.tools.file_tools: [list_directory] 路径不存在: safe_path=C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,398 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p, show_hidden=False, max_items=500
+2026-06-22 20:31:04,398 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p
+2026-06-22 20:31:04,398 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p
+2026-06-22 20:31:04,398 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p
+2026-06-22 20:31:04,398 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p
+2026-06-22 20:31:04,399 [    INFO] agent.tools.file_tools: [list_directory] 路径是文件而非目录: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp1lt_g97p
+2026-06-22 20:31:04,402 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=test_dir, show_hidden=False, max_items=500
+2026-06-22 20:31:04,402 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=test_dir
+2026-06-22 20:31:04,402 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\test_dir
+2026-06-22 20:31:04,402 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\test_dir
+2026-06-22 20:31:04,402 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\agent\test_dir
+2026-06-22 20:31:04,403 [ WARNING] agent.tools.file_tools: [list_directory] 路径不存在: safe_path=C:\Users\Administrator\agent\test_dir
+2026-06-22 20:31:04,409 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt, show_hidden=True, max_items=500
+2026-06-22 20:31:04,409 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,409 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,409 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,409 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,410 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt\.hidden
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=6, mode=0o100666
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=6
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt\visible
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=7, mode=0o100666
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=7
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=2
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt, show_hidden=False, max_items=500
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpbs6c_kbt\visible
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=7, mode=0o100666
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,411 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=7
+2026-06-22 20:31:04,414 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=1
+2026-06-22 20:31:04,434 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw, show_hidden=False, max_items=5
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw\file0.txt
+2026-06-22 20:31:04,435 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw\file1.txt
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-22 20:31:04,436 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw\file2.txt
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw\file3.txt
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,437 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpea7n4uiw\file4.txt
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=1, mode=0o100666
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=1
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [list_directory] 达到最大条目数限制: max_items=5
+2026-06-22 20:31:04,438 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=5
+2026-06-22 20:31:04,446 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=invalid
+2026-06-22 20:31:04,446 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,446 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,449 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path/xyz123
+2026-06-22 20:31:04,449 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,449 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path\xyz123
+2026-06-22 20:31:04,453 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpvm_v28nn
+2026-06-22 20:31:04,453 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpvm_v28nn
+2026-06-22 20:31:04,454 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpvm_v28nn
+2026-06-22 20:31:04,454 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpvm_v28nn
+2026-06-22 20:31:04,454 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=12, mode=0o100666
+2026-06-22 20:31:04,454 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:04,454 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=12
+2026-06-22 20:31:04,458 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=invalid, max_results=200, ignore_case=True
+2026-06-22 20:31:04,458 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=invalid
+2026-06-22 20:31:04,458 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,458 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,459 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,459 [ WARNING] agent.tools.file_tools: [search_files] 搜索路径不存在: safe_root=C:\Users\Administrator\agent\invalid
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=/nonexistent/path_xyz123, max_results=200, ignore_case=True
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=/nonexistent/path_xyz123
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\nonexistent\path_xyz123
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\nonexistent\path_xyz123
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\nonexistent\path_xyz123
+2026-06-22 20:31:04,462 [ WARNING] agent.tools.file_tools: [search_files] 搜索路径不存在: safe_root=C:\nonexistent\path_xyz123
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10, max_results=200, ignore_case=True
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10
+2026-06-22 20:31:04,462 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10
+2026-06-22 20:31:04,462 [ WARNING] agent.tools.file_tools: [search_files] 搜索路径不是目录: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmpn_w73n10
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Users\Administrator\AppData\Local\Temp\tmpehiaouzr, max_results=200, ignore_case=True
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpehiaouzr
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpehiaouzr
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpehiaouzr
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmpehiaouzr
+2026-06-22 20:31:04,470 [    INFO] agent.tools.file_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [search_files] 开始搜索文件: pattern=*.txt, root_path=C:\Users\Administrator\AppData\Local\Temp\tmp5c_1abza, max_results=200, ignore_case=True
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp5c_1abza
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp5c_1abza
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp5c_1abza
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [search_files] 路径安全解析成功: safe_root=C:\Users\Administrator\AppData\Local\Temp\tmp5c_1abza
+2026-06-22 20:31:04,472 [    INFO] agent.tools.file_tools: [search_files] 搜索完成: total_results=1, walked=1, truncated=False
+2026-06-22 20:31:05,643 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=../etc/passwd
+2026-06-22 20:31:05,643 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\etc\passwd
+2026-06-22 20:31:05,644 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\etc\passwd
+2026-06-22 20:31:05,645 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpv5d2qsar
+2026-06-22 20:31:05,645 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpv5d2qsar
+2026-06-22 20:31:05,645 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpv5d2qsar
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmprh9p3qok.bin, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmprh9p3qok.bin
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmprh9p3qok.bin
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmprh9p3qok.bin
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmprh9p3qok.bin
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 4 bytes
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=4
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=True
+2026-06-22 20:31:05,649 [    INFO] agent.tools.file_tools: [read_file] 使用二进制模式返回 base64
+2026-06-22 20:31:05,654 [    INFO] agent.tools.file_tools: [read_file] 开始读取文件: path=C:\Users\Administrator\AppData\Local\Temp\tmprpjy2hwp.txt, encoding=utf-8, max_size_mb=10
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmprpjy2hwp.txt
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmprpjy2hwp.txt
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmprpjy2hwp.txt
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmprpjy2hwp.txt
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 文件大小: 13 bytes
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 文件读取成功: raw_data_size=13
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 二进制检测结果: is_binary=False
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 使用文本模式解码: encoding=utf-8
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 解码成功: encoding=utf-8, content_length=13
+2026-06-22 20:31:05,656 [    INFO] agent.tools.file_tools: [read_file] 文件读取完成: ok=True, encoding=utf-8, binary=False
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt, encoding=utf-8, content_length=11
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 11 bytes
+2026-06-22 20:31:05,659 [    INFO] agent.tools.file_tools: [write_file] 文件已存在，准备备份: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 备份成功: backup_path=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\test.txt.20260622_203105.bak
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 文件写入成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmphl4h0x1k\test.txt
+2026-06-22 20:31:05,663 [    INFO] agent.tools.file_tools: [write_file] 写入完成: ok=True, size=11, backup=C:\Users\Administrator\agent\agent\tools\..\..\.file_backups\test.txt.20260622_203105.bak
+2026-06-22 20:31:05,664 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmpty9aom0f\test.exe, encoding=utf-8, content_length=7
+2026-06-22 20:31:05,664 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpty9aom0f\test.exe
+2026-06-22 20:31:05,664 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpty9aom0f\test.exe
+2026-06-22 20:31:05,664 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpty9aom0f\test.exe
+2026-06-22 20:31:05,664 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpty9aom0f\test.exe
+2026-06-22 20:31:05,664 [ WARNING] agent.tools.file_tools: [write_file] 禁止写入可执行文件类型: ext=.exe
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件: path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt, encoding=utf-8, content_length=7
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 内容大小: 7 bytes
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 检查目录: dir_path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 目录创建/确认成功
+2026-06-22 20:31:05,669 [    INFO] agent.tools.file_tools: [write_file] 开始写入文件内容
+2026-06-22 20:31:05,674 [    INFO] agent.tools.file_tools: [write_file] 文件写入成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmp58pbkrb_\nested\dir\file.txt
+2026-06-22 20:31:05,674 [    INFO] agent.tools.file_tools: [write_file] 写入完成: ok=True, size=7, backup=None
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n, show_hidden=False, max_items=500
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=0
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n, show_hidden=True, max_items=500
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpyxilk74n\.hidden
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=14, mode=0o100666
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=14
+2026-06-22 20:31:05,679 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=1
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [list_directory] 开始列出目录: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc, show_hidden=False, max_items=5
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [list_directory] 路径安全解析成功: safe_path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [list_directory] 开始遍历目录内容
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc\file0.txt
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=9, mode=0o100666
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=9
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc\file1.txt
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=9, mode=0o100666
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=9
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc\file2.txt
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=9, mode=0o100666
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=9
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc\file3.txt
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=9, mode=0o100666
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=9
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpl91gnslc\file4.txt
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=9, mode=0o100666
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=False
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=9
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [list_directory] 达到最大条目数限制: max_items=5
+2026-06-22 20:31:05,689 [    INFO] agent.tools.file_tools: [list_directory] 目录列出完成: total_items=5
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [safe_resolve_path] 开始解析路径: path=C:\Users\Administrator\AppData\Local\Temp\tmpjfk_3jmz\link.txt
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径规范化成功: abs_path=C:\Users\Administrator\AppData\Local\Temp\tmpjfk_3jmz\link.txt
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [safe_resolve_path] 路径解析完成，返回: C:\Users\Administrator\AppData\Local\Temp\tmpjfk_3jmz\link.txt
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] 开始获取文件信息: path=C:\Users\Administrator\AppData\Local\Temp\tmpjfk_3jmz\link.txt
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] stat获取成功: size=14, mode=0o100666
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件属性: is_dir=False, is_link=True
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件是符号链接，尝试读取目标
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] 符号链接目标: link_target=\\?\C:\Users\Administrator\AppData\Local\Temp\tmpjfk_3jmz\target.txt
+2026-06-22 20:31:05,700 [    INFO] agent.tools.file_tools: [_get_single_file_info] 文件信息获取完成: type=file, size=14
+2026-06-22 20:31:05,713 [    INFO] agent.tools.workspace_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\tools\..\..\workspace
+2026-06-22 20:31:05,717 [    INFO] agent.tools.workspace_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\tools\..\..\workspace
+2026-06-22 20:31:05,721 [    INFO] agent.tools.workspace_tools: 工作区已初始化: C:\Users\Administrator\agent\agent\tools\..\..\workspace

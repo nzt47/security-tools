@@ -1,0 +1,21 @@
+[run]
+# 跟踪 scripts/ 目录下所有 .py 文件（含以 test_ 开头的脚本模块）
+source = scripts
+# 按测试函数区分覆盖率上下文，便于定位未覆盖行来自哪个测试用例
+dynamic_context = test_function
+# 不使用 include 白名单：scripts/ 下以 test_ 开头的文件（如 test_quality_assess.py）
+# 属于被测脚本而非测试用例，依赖 source=scripts + omit 即可覆盖全部脚本，
+# 避免维护易过时的白名单（曾遗漏 baseline_collector.py 等有测试覆盖的脚本）。
+omit =
+    tests/*
+    agent/*
+    */__pycache__/*
+
+[report]
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if typing.TYPE_CHECKING

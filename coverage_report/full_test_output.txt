@@ -1,0 +1,2153 @@
+============================= test session starts =============================
+collected 3095 items
+
+tests\unit\test_ab_testing_framework.py ................                 [  0%]
+tests\unit\test_alert_system.py ................                         [  1%]
+tests\unit\test_arch_rules.py ...........................                [  1%]
+tests\unit\test_audit.py ......................                          [  2%]
+tests\unit\test_behavior_controller.py ......                            [  2%]
+tests\unit\test_browser_agent.py ...............                         [  3%]
+tests\unit\test_business_metrics_tracking.py ........................... [  4%]
+..........                                                               [  4%]
+tests\unit\test_caching_multi_level.py ................................. [  5%]
+.....                                                                    [  5%]
+tests\unit\test_caching_supplement.py .......                            [  5%]
+tests\unit\test_check_boundary_coverage.py ............................. [  6%]
+                                                                         [  6%]
+tests\unit\test_circuit_breaker_boundary.py ............................ [  7%]
+...........                                                              [  8%]
+tests\unit\test_code_review.py ..................                        [  8%]
+tests\unit\test_code_review_additional.py ..........                     [  9%]
+tests\unit\test_compatibility.py .................                       [  9%]
+tests\unit\test_config_secure.py ......s.FF.FF........                   [ 10%]
+tests\unit\test_context_engineering.py ...........F..................... [ 11%]
+......                                                                   [ 11%]
+tests\unit\test_core.py ..                                               [ 11%]
+tests\unit\test_core_comprehensive.py ..............                     [ 12%]
+tests\unit\test_crawler_control.py ...................                   [ 12%]
+tests\unit\test_dashboard.py .................                           [ 13%]
+tests\unit\test_dashboard_frontend.py .....................              [ 13%]
+tests\unit\test_data_analytics.py ......................                 [ 14%]
+tests\unit\test_dependency_graph.py .................................... [ 15%]
+.                                                                        [ 15%]
+tests\unit\test_disaster_recovery_scenarios.py ......................... [ 16%]
+....................                                                     [ 17%]
+tests\unit\test_distiller.py ..........................                  [ 18%]
+tests\unit\test_error_handler.py ..............................   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "custom_key"}
+   Traceback:
+NoneType: None
+
+..
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:09.093665
+   Type: ValueError
+   Message: 标准异常
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+..
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:09.105686
+   Type: Exception
+   Message: 测试 critical
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+..... [ 19%]
+..   Type: ValueError
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 649, in failing_func
+    raise ValueError("不可重试")
+ValueError: 不可重试
+
+..   Type: Exception
+   Message: 测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.............................
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:09.944500
+   Type: Exception
+   Message: 测试 critical
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:09.954012
+   Type: ValueError
+   Message: 原始错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.474149
+   Type: Exception
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 1148, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+
+...   Type: Exception
+   Message: 错误1
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:17.575060
+   Type: Exception
+   Message: 测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+........
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.761209
+   Type: Exception
+   Message: thread_error_4
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.762212
+   Type: Exception
+   Message: thread_error_4
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.763210
+   Type: Exception
+   Message: thread_error_5
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+E   Time: 2026-06-26T16:40:17.763210
+   Type: Exception
+   Message: thread_error_5
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:17.765195
+   Type: Exception
+   Message: thread_error_5
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+E   Time: 2026-06-26T16:40:17.770688
+   Type: Exception
+   Message: thread_error_5
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.771686
+   Type: Exception
+   Message: thread_error_6
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.772687
+   Type: Exception
+   Message: thread_error_6
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.771686
+   Type: Exception
+   Message: thread_error_5
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+E
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.773709
+   Type: Exception
+   Message: thread_error_6
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.777243
+   Type: Exception
+   Message: thread_error_6
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:17.778245
+   Type: Exception
+   Message: thread_error_7
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.780839
+   Type: Exception
+   Message: thread_error_6
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:17.780244
+   Type: Exception
+   Message: thread_error_7
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:17.782355
+   Type: Exception
+   Message: thread_error_7
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.785068
+   Type: Exception
+   Message: thread_error_7
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.786068
+   Type: Exception
+   Message: thread_error_8
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.788069
+   Type: Exception
+   Message: thread_error_7
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.788069
+   Type: Exception
+   Message: thread_error_8
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.790070
+   Type: Exception
+   Message: thread_error_8
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.792068
+   Type: Exception
+   Message: thread_error_8
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.793938
+   Type: Exception
+   Message: thread_error_9
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.796471
+   Type: Exception
+   Message: thread_error_8
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Message: thread_error_9
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.799466
+   Type: Exception
+   Message: thread_error_9
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.901119
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "custom_key"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:17.911601
+   Type: ValueError
+   Message: 原始错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 1542, in test_record_error_with_original_exception
+    raise ValueError("原始错误")
+ValueError: 原始错误
+
+   Message: 错误1
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+...   Time: 2026-06-26T16:40:19.000041
+   Type: TypeError
+   Message: 自定义可重试异常
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 1597, in failing_func
+    raise TypeError("自定义可重试异常")
+TypeError: 自定义可重试异常
+
+........ [ 21%]
+....
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:19.125636
+   Type: Exception
+   Message: 严重
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:19.135789
+   Type: Exception
+   Message: 带上下文的错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.......   Time: 2026-06-26T16:40:19.196080
+   Type: ValueError
+   Message: 测试异常
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+..   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+...............   Time: 2026-06-26T16:40:20.511739
+   Type: ValueError
+   Message: 普通异常测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 2225, in test_record_error_normal_exception
+    raise ValueError("普通异常测试")
+ValueError: 普通异常测试
+
+.
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:20.523794
+   Type: Exception
+   Message: CRITICAL
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:20.534300
+   Type: Exception
+   Message: 错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+...........F.......
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:20.761407
+   Type: ValueError
+   Message: 普通异常
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 2575, in test_record_error_normal_exception_conversion
+    raise ValueError("普通异常")
+ValueError: 普通异常
+
+.   Time: 2026-06-26T16:40:20.771389
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "custom_key"}
+   Traceback:
+NoneType: None
+
+.
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:20.783442
+   Type: Exception
+   Message: CRITICAL
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+....
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:27.337831
+   Type: Exception
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 2664, in always_fail
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+
+...
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:27.389003
+   Type: Exception
+   Message: 错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "key2"}
+   Traceback:
+NoneType: None
+
+   Type: Exception
+   Message: 错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "key2"}
+   Traceback:
+NoneType: None
+
+............. [ 24%]
+....   Time: 2026-06-26T16:40:28.052645
+   Type: ValueError
+   Message: 原始异常
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:28.072157
+   Type: Exception
+   Message: critical
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:28.095296
+   Type: Exception
+   Message: 第二次
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+..   Time: 2026-06-26T16:40:28.139396
+   Type: TypeError
+   Message: 类型错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3068, in fail_func
+    raise TypeError("类型错误")
+TypeError: 类型错误
+
+.
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:34.853917
+   Type: Exception
+   Message: Circuit breaker 'default' is OPEN
+   Context: {"category": "external_service", "severity": "critical", "error_key": "CriticalError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1306, in execute_with_retry
+    result = circuit_breaker.execute(func, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 836, in execute
+    raise CriticalError(
+agent.error_handler.CriticalError: Circuit breaker 'default' is OPEN
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.932240
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.934240
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.936240
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.942269
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:34.943267
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.944267
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.947268
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:34.949267
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.949267
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.954298
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.957827
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:34.959827
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:35.017891
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:35.019409
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:35.020405
+   Type: Exception
+   Message: 并发错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+............FF...   Type: Exception
+   Message: 总是失败
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3542, in always_fail
+    raise YunshuError("总是失败", retryable=False)
+agent.error_handler.YunshuError: 总是失败
+
+...........   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1595, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3717, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+
+...   Time: 2026-06-26T16:40:42.415442
+   Type: Exception
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3776, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+
+F
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:42.431495
+   Type: Exception
+   Message: 测试 critical
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:42.457025
+   Type: Exception
+   Message: 测试
+   Context: {"category": "permission_denied", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:42.459035
+   Type: Exception
+   Message: 测试
+   Context: {"category": "security_alert", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:42.462037
+   Type: Exception
+   Message: 测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:42.472031
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.F.F..F.............. [ 26%]
+......   Time: 2026-06-26T16:40:43.013917
+   Type: Exception
+   Message: Circuit breaker 'default' is OPEN
+   Context: {"category": "external_service", "severity": "critical", "error_key": "CriticalError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1306, in execute_with_retry
+    result = circuit_breaker.execute(func, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 836, in execute
+    raise CriticalError(
+agent.error_handler.CriticalError: Circuit breaker 'default' is OPEN
+
+.   Time: 2026-06-26T16:40:50.141955
+   Type: Exception
+   Message: 失败
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 4327, in fail_func
+    raise YunshuError("失败", retryable=False)
+agent.error_handler.YunshuError: 失败
+
+..
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:50.164495
+   Type: Exception
+   Message: 错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.............   Time: 2026-06-26T16:40:50.343096
+   Type: Exception
+   Message: 测试错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+FFF.F....   Time: 2026-06-26T16:40:50.811417
+   Type: ValueError
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 4659, in always_fail
+    raise ValueError("不可重试")
+ValueError: 不可重试
+
+...   Type: ValueError
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1595, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 4702, in async_fail
+    raise ValueError("不可重试")
+ValueError: 不可重试
+
+...   Message: 测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+...   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:53.978853
+   Type: Exception
+   Message: 错误2
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+..FF   Time: 2026-06-26T16:40:54.066020
+   Type: Exception
+   Message: 可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 4892, in failing_func
+    raise YunshuError("可重试", retryable=True)
+agent.error_handler.YunshuError: 可重试
+
+..   Type: Exception
+   Message: Circuit breaker 'test_cb' is OPEN
+   Context: {"category": "external_service", "severity": "critical", "error_key": "CriticalError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1306, in execute_with_retry
+    result = circuit_breaker.execute(func, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 836, in execute
+    raise CriticalError(
+agent.error_handler.CriticalError: Circuit breaker 'test_cb' is OPEN
+
+.FF..
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:54.155350
+   Type: Exception
+   Message: 全局测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.F.....s...s.s...... [ 28%]
+......   Message: 总是失败
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 5463, in func
+    raise YunshuError("总是失败", retryable=True)
+agent.error_handler.YunshuError: 总是失败
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.050511
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.061511
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.062511
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+                                                                [ 28%]
+tests\unit\test_error_handler_edge.py ...   Message: 原始错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.189325
+   Type: Exception
+   Message: 测试 permission_denied
+   Context: {"category": "permission_denied", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.190326
+   Type: Exception
+   Message: 测试 security_alert
+   Context: {"category": "security_alert", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.192326
+   Type: Exception
+   Message: 测试 config_error
+   Context: {"category": "config_error", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+🚨 Error Report [CRITICAL]
+   Time: 2026-06-26T16:40:55.206864
+   Type: Exception
+   Message: 测试 critical
+   Context: {"category": "unknown", "severity": "critical", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+........
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.336033
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.339033
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.340033
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.343070
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.342034
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.346103
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:55.348102
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:55.349101
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.353303
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.354161
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:55.358158
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.362157
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.363157
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.365156
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.367156
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.370155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.372156
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.374161
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.377155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.378155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.380157
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.382155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.388155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:55.389156
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:55.390155
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.392704
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.393703
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.397705
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.401705
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.401705
+   Type: Exception
+   Message: 线程安全测试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:55.510547
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+   Time: 2026-06-26T16:40:55.521121
+   Type: ValueError
+   Message: 普通错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+NoneType: None
+
+.   Time: 2026-06-26T16:40:55.530634
+   Type: Exception
+   Message: 测试错误
+   Context: {"category": "unknown", "severity": "error", "error_key": "custom_key"}
+   Traceback:
+NoneType: None
+
+........ [ 30%]
+..                                                                       [ 30%]
+tests\unit\test_error_reporting.py ..................................... [ 31%]
+                                                                         [ 31%]
+tests\unit\test_error_reporting_config.py ......                         [ 31%]
+tests\unit\test_ethics_engine.py .................                       [ 32%]
+tests\unit\test_execute_with_retry_args.py .....................         [ 32%]
+tests\unit\test_extensions_base.py .........                             [ 33%]
+tests\unit\test_extensions_manager.py .......                            [ 33%]
+tests\unit\test_extensions_store.py ...........                          [ 33%]
+tests\unit\test_false_alarm_resistance.py .                              [ 33%]
+tests\unit\test_feedback_engineering.py ................                 [ 34%]
+tests\unit\test_graceful_degrade_scenarios.py .......................... [ 34%]
+....                                                                     [ 35%]
+tests\unit\test_guardrails.py .............                              [ 35%]
+tests\unit\test_guardrails_supplement.py ....                            [ 35%]
+tests\unit\test_health.py ...                                            [ 35%]
+tests\unit\test_health_assessor.py .............                         [ 36%]
+tests\unit\test_history_load_edge_cases.py ...                           [ 36%]
+tests\unit\test_hitl.py .....                                            [ 36%]
+tests\unit\test_http_client.py ...............                           [ 36%]
+tests\unit\test_index_manager.py ..................                      [ 37%]
+tests\unit\test_lazy_loader.py ................................          [ 38%]
+tests\unit\test_llm_response_cache.py ............................F..... [ 39%]
+.......                                                                  [ 39%]
+tests\unit\test_log_system_analyzer.py .........                         [ 40%]
+tests\unit\test_log_system_collectors.py ...                             [ 40%]
+tests\unit\test_log_system_dashboard.py .                                [ 40%]
+tests\unit\test_log_system_emoji_map.py ..........                       [ 40%]
+tests\unit\test_log_system_formatter.py ...                              [ 40%]
+tests\unit\test_log_system_handlers.py .........                         [ 41%]
+tests\unit\test_log_system_introspection.py ....F                        [ 41%]
+tests\unit\test_log_system_models.py ......................              [ 41%]
+tests\unit\test_log_system_safe_logger.py ....F..F..........             [ 42%]
+tests\unit\test_log_system_storage.py ..                                 [ 42%]
+tests\unit\test_logging_utils.py ......................                  [ 43%]
+tests\unit\test_message_handler.py ........F........                     [ 43%]
+tests\unit\test_model_router.py FF.                                      [ 43%]
+tests\unit\test_monitoring.py ......                                     [ 44%]
+tests\unit\test_monitoring_decorators.py .............   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 229, in test_func
+    raise ValueError("test error")
+ValueError: test error
+
+.   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+
+...........       [ 44%]
+tests\unit\test_monitoring_error_reporter.py ........................... [ 45%]
+..                                                                       [ 45%]
+tests\unit\test_monitoring_metrics.py ......................             [ 46%]
+tests\unit\test_monitoring_tracing.py ................                   [ 47%]
+tests\unit\test_multi_level_cache.py .............                       [ 47%]
+tests\unit\test_network_config.py ..F................................... [ 48%]
+....                                                                     [ 48%]
+tests\unit\test_observability_config.py ................................ [ 49%]
+....................                                                     [ 50%]
+tests\unit\test_orchestrator_refactor.py ............................... [ 51%]
+............................................                             [ 52%]
+tests\unit\test_p6_config_loader.py ............                         [ 53%]
+tests\unit\test_p6_snapshot.py ..................................        [ 54%]
+tests\unit\test_p6_snapshot_advanced.py ................................ [ 55%]
+......................................................FFFF.............. [ 57%]
+...........                                                              [ 58%]
+tests\unit\test_p6_snapshot_supplement.py ..                             [ 58%]
+tests\unit\test_performance_alert.py ..........................F........ [ 59%]
+                                                                         [ 59%]
+tests\unit\test_performance_alert_integration.py .....................   [ 60%]
+tests\unit\test_performance_logging.py ...............                   [ 60%]
+tests\unit\test_performance_monitor.py ......................            [ 61%]
+tests\unit\test_permission_edge_cases.py ............................    [ 62%]
+tests\unit\test_permission_system.py .............................       [ 63%]
+tests\unit\test_persona_boundary_cases.py ............................   [ 63%]
+tests\unit\test_persona_injector.py .....................                [ 64%]
+tests\unit\test_persona_model.py ........................                [ 65%]
+tests\unit\test_personality_extractor.py ...........................     [ 66%]
+tests\unit\test_planning_decomposer.py .......................           [ 67%]
+tests\unit\test_planning_executor.py ...................                 [ 67%]
+tests\unit\test_planning_models.py .......................               [ 68%]
+tests\unit\test_planning_react.py ..........................             [ 69%]
+tests\unit\test_planning_reflector.py ....................               [ 69%]
+tests\unit\test_planning_state_machine.py ..................             [ 70%]
+tests\unit\test_processor.py ...................                         [ 71%]
+tests\unit\test_prometheus_alert_trigger.py .                            [ 71%]
+tests\unit\test_prometheus_exporter.py ...........................ss     [ 72%]
+tests\unit\test_prompt_builder.py .....                                  [ 72%]
+tests\unit\test_rate_limiter_boundary.py ............................... [ 73%]
+......................................                                   [ 74%]
+tests\unit\test_release_engineering.py ................................. [ 75%]
+.........                                                                [ 75%]
+tests\unit\test_replay_storage.py ....................................   [ 76%]
+tests\unit\test_resource_monitor.py .................................... [ 78%]
+.......                                                                  [ 78%]
+tests\unit\test_resource_monitor_persist.py .......................      [ 79%]
+tests\unit\test_response_builder.py .......F.........                    [ 79%]
+tests\unit\test_routes_config_validation.py ...........                  [ 79%]
+tests\unit\test_safe_file_reader_alerts.py ....                          [ 80%]
+tests\unit\test_safety_guard.py .................                        [ 80%]
+tests\unit\test_scraper.py ...............                               [ 81%]
+tests\unit\test_search.py F.F...........F                                [ 81%]
+tests\unit\test_search_performance_monitor.py ..............             [ 82%]
+tests\unit\test_security_utils.py ...............                        [ 82%]
+tests\unit\test_security_utils_comprehensive.py ........................ [ 83%]
+........................................................................ [ 85%]
+................................                                         [ 86%]
+tests\unit\test_serialization.py ................                        [ 87%]
+tests\unit\test_task_dispatcher.py ..                                    [ 87%]
+tests\unit\test_task_planner.py ....                                     [ 87%]
+tests\unit\test_task_scheduler.py .FFF..FF.FF..........FFFF...FF.F.FFF.. [ 88%]
+FF.F...FFF................................                               [ 89%]
+tests\unit\test_text_tools.py ...F.F....F                                [ 90%]
+tests\unit\test_tool_calling_refactor.py ..............................  [ 91%]
+tests\unit\test_trace_store.py ....................                      [ 91%]
+tests\unit\test_tracing_coverage.py ...............................      [ 92%]
+tests\unit\test_tracing_middleware.py .........                          [ 93%]
+tests\unit\test_utils_cache.py .............                             [ 93%]
+tests\unit\test_utils_compatibility.py ...........                       [ 94%]
+tests\unit\test_utils_index_manager.py ............................      [ 94%]
+tests\unit\test_utils_serialization.py ............                      [ 95%]
+tests\unit\test_verification.py .......F.....FFFF..............          [ 96%]
+tests\unit\test_web_http_client.py ...........                           [ 96%]
+tests\unit\test_web_init.py .......                                      [ 96%]
+tests\unit\test_web_processor.py ....................................... [ 98%]
+.................                                                        [ 98%]
+tests\unit\test_web_scraper_supplement.py .............F..F.......       [ 99%]
+tests\unit\test_weekly_report_generator.py ..........F.....              [100%]
+
+=================================== ERRORS ====================================
+_ ERROR at setup of TestErrorHandlerExecuteWithRetryEdgeCases.test_execute_with_retry_no_args _
+file C:\Users\Administrator\agent\tests\unit\test_error_handler.py, line 1373
+      @pytest.mark.unit
+      @pytest.mark.p1
+      def test_execute_with_retry_no_args(self, error_handler):
+E       fixture 'error_handler' not found
+>       available fixtures: _asyncio_loop_factory, _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, event_loop_policy, extra, extras, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, json_metadata, metadata, mock_llm_response, monitoring_metrics_sample, monkeypatch, no_cover, permission_test_cases, project_root, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, reset_environment, sample_memory_data, sample_sensor_data, setup_test_environment, subtests, temp_test_dir, test_config, test_data_manager, test_user_input, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:1373
+_ ERROR at setup of TestErrorHandlerExecuteWithRetryEdgeCases.test_execute_with_retry_with_args _
+file C:\Users\Administrator\agent\tests\unit\test_error_handler.py, line 1383
+      @pytest.mark.unit
+      @pytest.mark.p1
+      def test_execute_with_retry_with_args(self, error_handler):
+E       fixture 'error_handler' not found
+>       available fixtures: _asyncio_loop_factory, _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, event_loop_policy, extra, extras, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, json_metadata, metadata, mock_llm_response, monitoring_metrics_sample, monkeypatch, no_cover, permission_test_cases, project_root, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, reset_environment, sample_memory_data, sample_sensor_data, setup_test_environment, subtests, temp_test_dir, test_config, test_data_manager, test_user_input, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:1383
+---------------------------- Captured stdout setup ----------------------------
+❌ Error Report [ERROR]
+____ ERROR at setup of TestErrorHandlerEmptyMetrics.test_get_metrics_empty ____
+file C:\Users\Administrator\agent\tests\unit\test_error_handler.py, line 1419
+      @pytest.mark.unit
+      @pytest.mark.p1
+      def test_get_metrics_empty(self, error_handler):
+E       fixture 'error_handler' not found
+>       available fixtures: _asyncio_loop_factory, _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, event_loop_policy, extra, extras, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, json_metadata, metadata, mock_llm_response, monitoring_metrics_sample, monkeypatch, no_cover, permission_test_cases, project_root, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, reset_environment, sample_memory_data, sample_sensor_data, setup_test_environment, subtests, temp_test_dir, test_config, test_data_manager, test_user_input, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:1419
+================================== FAILURES ===================================
+E   AssertionError: Failed for: sk-abc123def456ghi789jkl0
+    assert '********' == '***'
+      
+      - ***
+      + ********
+C:\Users\Administrator\agent\tests\unit\test_config_secure.py:168: AssertionError: Failed for: sk-abc123def456ghi789jkl0
+E   AssertionError: Failed for: token=abc123, got: token=abc123
+    assert '***' in 'token=abc123'
+C:\Users\Administrator\agent\tests\unit\test_config_secure.py:182: AssertionError: Failed for: token=abc123, got: token=abc123
+E   AssertionError: api_key should be masked, got: ********
+    assert '********' == '***'
+      
+      - ***
+      + ********
+C:\Users\Administrator\agent\tests\unit\test_config_secure.py:212: AssertionError: api_key should be masked, got: ********
+E   AssertionError: API Key should be masked, got: API Key: sk-12345
+    assert '***' in 'API Key: sk-12345'
+     +  where 'API Key: sk-12345' = <LogRecord: test, 20, test.py, 1, "API Key: sk-12345">.msg
+C:\Users\Administrator\agent\tests\unit\test_config_secure.py:237: AssertionError: API Key should be masked, got: API Key: sk-12345
+E   assert False
+     +  where False = any(<generator object TestSensitiveDataFilter.test_filter_detects_password.<locals>.<genexpr> at 0x000001FFA1990D40>)
+C:\Users\Administrator\agent\tests\unit\test_context_engineering.py:212: assert False
+E   AttributeError: type object 'ErrorCategory' has no attribute 'SYSTEM'
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:2452: AttributeError: type object 'ErrorCategory' has no attribute 'SYSTEM'
+E   assert True is False
+     +  where True = should_retry(ValueError("don't retry"), attempt=0)
+     +    where should_retry = <agent.error_handler.RetryPolicy object at 0x000001FF9F0D9E50>.should_retry
+     +    and   ValueError("don't retry") = ValueError("don't retry")
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3460: assert True is False
+E   assert True is False
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3469: assert True is False
+E   assert 3 == 1
+---------------------------- Captured stdout call -----------------------------
+
+❌ Error Report [ERROR]
+   Time: 2026-06-26T16:40:42.415442
+   Type: Exception
+   Message: 不可重试
+   Context: {"category": "unknown", "severity": "error", "error_key": "YunshuError"}
+   Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3776, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+
+
+❌ Error Report [ERROR]
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:42,378 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,378 [    INFO] agent.error_handler: [with_retry] 开始执行函数: func=func, trace_id=None, max_retries=2, strategy=exponential, initial_delay=0.01, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=None
+2026-06-26 16:40:42,378 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,379 [    INFO] agent.error_handler: [execute_with_retry] 开始执行: func=func, trace_id=None, max_retries=2, strategy=exponential, circuit_breaker=None, error_counter=None
+2026-06-26 16:40:42,379 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,379 [ WARNING] agent.error_handler: [execute_with_retry] 准备重试: func=func, trace_id=None, attempt=1/2, delay=0.01s, exception_type=YunshuError, error_msg=不可重试
+2026-06-26 16:40:42,390 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,390 [ WARNING] agent.error_handler: [execute_with_retry] 准备重试: func=func, trace_id=None, attempt=2/2, delay=0.02s, exception_type=YunshuError, error_msg=不可重试
+2026-06-26 16:40:42,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,412 [   ERROR] agent.error_handler: [execute_with_retry] 所有重试已用尽: func=func, trace_id=None, max_retries=2, final_error_type=YunshuError, final_error_msg=不可重试
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3776, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+2026-06-26 16:40:42,413 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,413 [    INFO] agent.error_handler: [ErrorHandler.record_error] 错误被记录: error_key=YunshuError, trace_id=None, severity=error, category=unknown, recoverable=False, retryable=False, message=不可重试, original_type=YunshuError
+2026-06-26 16:40:42,414 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+2026-06-26 16:40:42,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,415 [    INFO] agent.error_handler: [ErrorHandler._report_to_external] 外部上报成功: error_key=YunshuError, trace_id=None, alert_level=error, error_type=Exception, service=yunshu-backend
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:1482 [with_retry] 开始执行函数: func=func, trace_id=None, max_retries=2, strategy=exponential, initial_delay=0.01, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=None
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:1281 [execute_with_retry] 开始执行: func=func, trace_id=None, max_retries=2, strategy=exponential, circuit_breaker=None, error_counter=None
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+WARNING  agent.error_handler:error_handler.py:1376 [execute_with_retry] 准备重试: func=func, trace_id=None, attempt=1/2, delay=0.01s, exception_type=YunshuError, error_msg=不可重试
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+WARNING  agent.error_handler:error_handler.py:1376 [execute_with_retry] 准备重试: func=func, trace_id=None, attempt=2/2, delay=0.02s, exception_type=YunshuError, error_msg=不可重试
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+ERROR    agent.error_handler:error_handler.py:1361 [execute_with_retry] 所有重试已用尽: func=func, trace_id=None, max_retries=2, final_error_type=YunshuError, final_error_msg=不可重试
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1308, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 3776, in func
+    raise YunshuError("不可重试", retryable=False)
+agent.error_handler.YunshuError: 不可重试
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:1119 [ErrorHandler.record_error] 错误被记录: error_key=YunshuError, trace_id=None, severity=error, category=unknown, recoverable=False, retryable=False, message=不可重试, original_type=YunshuError
+ERROR    agent.error_handler:error_handler.py:1153 [error] unknown: 不可重试
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:1233 [ErrorHandler._report_to_external] 外部上报成功: error_key=YunshuError, trace_id=None, alert_level=error, error_type=Exception, service=yunshu-backend
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3784: assert 3 == 1
+E   TypeError: ErrorHandler.execute_with_retry() got an unexpected keyword argument 'c'
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:42,491 [    INFO] agent.error_handler: Error handler initialized
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:1062 Error handler initialized
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3856: TypeError: ErrorHandler.execute_with_retry() got an unexpected keyword argument 'c'
+E   AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+     +  where <CircuitState.CLOSED: 'closed'> = <agent.error_handler.CircuitBreaker object at 0x000001FF9F0F14F0>.state
+     +  and   <CircuitState.HALF_OPEN: 'half_open'> = CircuitState.HALF_OPEN
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:42,509 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-26 16:40:42,510 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-26 16:40:42,530 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,530 [    INFO] agent.error_handler: [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+2026-06-26 16:40:42,530 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,530 [    INFO] agent.error_handler: [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=success, trace_id=None, state=half_open
+2026-06-26 16:40:42,530 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-26 16:40:42,530 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,531 [    INFO] agent.error_handler: [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=success, trace_id=None, state=closed, success_count=1
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:740 Circuit breaker 'default' initialized: max_failures=1
+WARNING  agent.error_handler:error_handler.py:791 Circuit breaker 'default': OPENED after 1 failures
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:824 [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:842 [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=success, trace_id=None, state=half_open
+INFO     agent.error_handler:error_handler.py:774 Circuit breaker 'default': recovered to CLOSED state
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:849 [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=success, trace_id=None, state=closed, success_count=1
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3890: AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+E   AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+     +  where <CircuitState.CLOSED: 'closed'> = <agent.error_handler.CircuitBreaker object at 0x000001FF9F0DB560>.state
+     +  and   <CircuitState.HALF_OPEN: 'half_open'> = CircuitState.HALF_OPEN
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:42,585 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-26 16:40:42,585 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-26 16:40:42,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,606 [    INFO] agent.error_handler: [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+2026-06-26 16:40:42,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,606 [    INFO] agent.error_handler: [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=<lambda>, trace_id=None, state=half_open
+2026-06-26 16:40:42,607 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-26 16:40:42,607 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:42,607 [    INFO] agent.error_handler: [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=<lambda>, trace_id=None, state=closed, success_count=1
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:740 Circuit breaker 'default' initialized: max_failures=1
+WARNING  agent.error_handler:error_handler.py:791 Circuit breaker 'default': OPENED after 1 failures
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:824 [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:842 [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=<lambda>, trace_id=None, state=half_open
+INFO     agent.error_handler:error_handler.py:774 Circuit breaker 'default': recovered to CLOSED state
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:849 [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=<lambda>, trace_id=None, state=closed, success_count=1
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:3945: AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+E   assert 3.017675928921774 == 3.0
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:4544: assert 3.017675928921774 == 3.0
+E   assert 1.95921361838098 == 2.0
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:4552: assert 1.95921361838098 == 2.0
+E   assert 1.5448682210118094 == 1.5
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:4560: assert 1.5448682210118094 == 1.5
+E   AssertionError: assert True is False
+     +  where True = should_retry(ValueError('no retry'), 0)
+     +    where should_retry = <agent.error_handler.RetryPolicy object at 0x000001FFA1A5C470>.should_retry
+     +    and   ValueError('no retry') = ValueError('no retry')
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:4583: AssertionError: assert True is False
+E   AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:54,007 [    INFO] agent.error_handler: Error handler initialized
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:1062 Error handler initialized
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1428: AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+E   AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:54,019 [    INFO] agent.error_handler: Error handler initialized
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:1062 Error handler initialized
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1428: AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+E   AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1428: AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+E   TypeError: TestRetryPolicyComplete.test_retry_policy_custom_condition.<locals>.custom_condition() missing 1 required positional argument: 'attempt'
+C:\Users\Administrator\agent\agent\error_handler.py:976: TypeError: TestRetryPolicyComplete.test_retry_policy_custom_condition.<locals>.custom_condition() missing 1 required positional argument: 'attempt'
+E   AssertionError: assert 'open' == 'half_open'
+      
+      - half_open
+      + open
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:40:54,164 [    INFO] agent.error_handler: Circuit breaker 'test_reset' initialized: max_failures=1
+2026-06-26 16:40:54,164 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:54,164 [    INFO] agent.error_handler: [CircuitBreaker.execute] 开始执行受保护函数: name=test_reset, func=<lambda>, trace_id=None, state=closed
+2026-06-26 16:40:54,164 [ WARNING] agent.error_handler: Circuit breaker 'test_reset': OPENED after 1 failures
+2026-06-26 16:40:54,165 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 16:40:54,165 [ WARNING] agent.error_handler: [CircuitBreaker.execute] 受保护函数执行失败: name=test_reset, func=<lambda>, trace_id=None, state=open, failure_count=1, error_type=ValueError, error_msg=
+------------------------------ Captured log call ------------------------------
+INFO     agent.error_handler:error_handler.py:740 Circuit breaker 'test_reset' initialized: max_failures=1
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+INFO     agent.error_handler:error_handler.py:842 [CircuitBreaker.execute] 开始执行受保护函数: name=test_reset, func=<lambda>, trace_id=None, state=closed
+WARNING  agent.error_handler:error_handler.py:791 Circuit breaker 'test_reset': OPENED after 1 failures
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: None
+WARNING  agent.error_handler:error_handler.py:857 [CircuitBreaker.execute] 受保护函数执行失败: name=test_reset, func=<lambda>, trace_id=None, state=open, failure_count=1, error_type=ValueError, error_msg=
+C:\Users\Administrator\agent\tests\unit\test_error_handler.py:5042: AssertionError: assert 'open' == 'half_open'
+E   AssertionError: assert 'response1' is None
+---------------------------- Captured stderr call -----------------------------
+2026-06-26 16:41:06,151 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=0s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-26 16:41:06,151 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=100, ttl=0s
+2026-06-26 16:41:06,152 [    INFO] agent.llm_response_cache: [LLMCache] 💾 保存: type=greeting, size=9 chars, ttl=0s, time=0.06ms
+2026-06-26 16:41:06,152 [    INFO] agent.llm_response_cache: [LLMCache] ✅ 命中: type=greeting, time=0.05ms
+------------------------------ Captured log call ------------------------------
+INFO     agent.caching.multi_level_cache:multi_level_cache.py:443 [MultiLevelCache] 初始化完成: L1(max=100, ttl=0s), L2(enabled=False, dir=./cache/l2, max=100MB)
+INFO     agent.llm_response_cache:llm_response_cache.py:88 [LLMCache] 初始化完成，max_size=100, ttl=0s
+INFO     agent.llm_response_cache:llm_response_cache.py:200 [LLMCache] 💾 保存: type=greeting, size=9 chars, ttl=0s, time=0.06ms
+INFO     agent.llm_response_cache:llm_response_cache.py:157 [LLMCache] ✅ 命中: type=greeting, time=0.05ms
+C:\Users\Administrator\agent\tests\unit\test_llm_response_cache.py:462: AssertionError: assert 'response1' is None
+E   assert False is True
+C:\Users\Administrator\agent\tests\unit\test_log_system_introspection.py:36: assert False is True
+E   AssertionError: assert '***@***.com' in '联系邮箱 te***@example.com'
+C:\Users\Administrator\agent\tests\unit\test_log_system_safe_logger.py:39: AssertionError: assert '***@***.com' in '联系邮箱 te***@example.com'
+E   AssertionError: assert '********' == '***'
+      
+      - ***
+      + ********
+C:\Users\Administrator\agent\tests\unit\test_log_system_safe_logger.py:52: AssertionError: assert '********' == '***'
+E   AssertionError: assert {'confidence'...{'msg': 'ok'}} == {'msg': 'ok'}
+      
+      Left contains 3 more items:
+      {'confidence': 1.0, 'intent': '', 'output': {'msg': 'ok'}}
+      Right contains 1 more item:
+      {'msg': 'ok'}
+      
+      Full diff:
+        {
+      +     'confidence': 1.0,
+      +     'intent': '',
+      +     'output': {
+      -     'msg': 'ok',
+      +         'msg': 'ok',
+      ? ++++
+      +     },
+        }
+C:\Users\Administrator\agent\tests\unit\test_message_handler.py:62: AssertionError: assert {'confidence'...{'msg': 'ok'}} == {'msg': 'ok'}
+E   AssertionError: assert 'gemini-1.5-flash' in ('gpt-3.5-turbo', 'gpt-4o-mini')
+C:\Users\Administrator\agent\tests\unit\test_model_router.py:11: AssertionError: assert 'gemini-1.5-flash' in ('gpt-3.5-turbo', 'gpt-4o-mini')
+E   AssertionError: assert 'gpt-4o' == 'gpt-4'
+      
+      - gpt-4
+      + gpt-4o
+      ?      +
+C:\Users\Administrator\agent\tests\unit\test_model_router.py:15: AssertionError: assert 'gpt-4o' == 'gpt-4'
+E   AssertionError: set_secure_value('search_tavily_key', 'tvly-real-key-123') call not found
+------------------------------ Captured log call ------------------------------
+INFO     agent.network_config:network_config.py:384 {"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 开始更新配置...", "duration_ms": 0}
+WARNING  agent.network_config:network_config.py:194 {"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)", "duration_ms": 0}
+INFO     agent.network_config:network_config.py:421 {"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 合并配置到当前配置...", "duration_ms": 0}
+INFO     agent.network_config:network_config.py:425 [网络配置] 保存配置到文件: C:\Windows\TEMP\tmpvs_llalz.json
+INFO     agent.network_config:network_config.py:254 {"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 已保存到文件: C:\\Windows\\TEMP\\tmpvs_llalz.json", "duration_ms": 0}
+INFO     agent.network_config:network_config.py:434 {"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 配置已更新到文件", "duration_ms": 0}
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1015: AssertionError: set_secure_value('search_tavily_key', 'tvly-real-key-123') call not found
+E   assert False is True
+     +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=12.489795684814453, error_message="Can't pickle...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+----------------------------- Captured log setup ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:170 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 性能监控器初始化完成", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:279 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照管理器初始化完成，目录: C:\\Windows\\TEMP\\tmpzkdzddqu", "duration_ms": 0}
+------------------------------ Captured log call ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:457 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:458 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存流程开始", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:459 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 参数: force=True, incremental=False", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:460 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 目标对象: DigitalLife", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:473 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✓ 频率检查通过", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:478 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 生成新快照ID: snap_20260626_164123_679755", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:496 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 创建快照对象成功，版本: p6.2.0", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:501 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 配置保存成功，键数: 1", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:506 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:592 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] Phase 2/4: 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:743 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='2197466891472'>", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:569 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:570 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:571 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常类型: PicklingError", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:573 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常堆栈:\nTraceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 507, in save_snapshot\n    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 600, in _save_core_modules_with_delta\n    state_data = pickle.dumps(body_state)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock\n", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:574 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+C:\Users\Administrator\agent\tests\unit\test_p6_snapshot_advanced.py:1900: assert False is True
+E   assert False is True
+     +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=12.000322341918945, error_message="Can't pickle...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+----------------------------- Captured log setup ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:170 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 性能监控器初始化完成", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:279 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照管理器初始化完成，目录: C:\\Windows\\TEMP\\tmpd8kdkal4", "duration_ms": 0}
+------------------------------ Captured log call ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:457 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:458 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存流程开始", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:459 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 参数: force=True, incremental=False", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:460 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 目标对象: DigitalLife", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:473 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✓ 频率检查通过", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:478 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 生成新快照ID: snap_20260626_164123_709242", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:496 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 创建快照对象成功，版本: p6.2.0", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:501 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 配置保存成功，键数: 1", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:506 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:592 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] Phase 2/4: 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:743 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='2197462829680'>", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:569 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:570 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:571 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常类型: PicklingError", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:573 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常堆栈:\nTraceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 507, in save_snapshot\n    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 600, in _save_core_modules_with_delta\n    state_data = pickle.dumps(body_state)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock\n", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:574 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+C:\Users\Administrator\agent\tests\unit\test_p6_snapshot_advanced.py:1908: assert False is True
+E   assert False is True
+     +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=10.15019416809082, error_message="Can't pickle ...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+----------------------------- Captured log setup ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:170 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 性能监控器初始化完成", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:279 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照管理器初始化完成，目录: C:\\Windows\\TEMP\\tmph0p5sri_", "duration_ms": 0}
+------------------------------ Captured log call ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:457 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:458 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存流程开始", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:459 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 参数: force=True, incremental=False", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:460 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 目标对象: DigitalLife", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:473 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✓ 频率检查通过", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:478 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 生成新快照ID: snap_20260626_164123_735892", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:496 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 创建快照对象成功，版本: p6.2.0", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:501 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 配置保存成功，键数: 1", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:506 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:592 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] Phase 2/4: 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:743 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='2197440291008'>", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:569 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:570 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:571 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常类型: PicklingError", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:573 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常堆栈:\nTraceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 507, in save_snapshot\n    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 600, in _save_core_modules_with_delta\n    state_data = pickle.dumps(body_state)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock\n", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:574 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+C:\Users\Administrator\agent\tests\unit\test_p6_snapshot_advanced.py:1927: assert False is True
+E   assert None is not None
+----------------------------- Captured log setup ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:170 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 性能监控器初始化完成", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:279 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照管理器初始化完成，目录: C:\\Windows\\TEMP\\tmpceucmlad", "duration_ms": 0}
+------------------------------ Captured log call ------------------------------
+INFO     agent.p6_snapshot:p6_snapshot.py:457 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:458 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存流程开始", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:459 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 参数: force=True, incremental=False", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:460 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 目标对象: DigitalLife", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:473 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✓ 频率检查通过", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:478 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 生成新快照ID: snap_20260626_164123_762098", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:496 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 创建快照对象成功，版本: p6.2.0", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:501 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 配置保存成功，键数: 1", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:506 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:592 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] Phase 2/4: 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:743 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='2197466844864'>", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:569 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:570 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:571 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常类型: PicklingError", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:573 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常堆栈:\nTraceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 507, in save_snapshot\n    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 600, in _save_core_modules_with_delta\n    state_data = pickle.dumps(body_state)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock\n", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:574 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:457 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:458 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存流程开始", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:459 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 参数: force=True, incremental=True", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:460 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 目标对象: DigitalLife", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:473 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✓ 频率检查通过", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:478 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 生成新快照ID: snap_20260626_164123_773182", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:496 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 创建快照对象成功，版本: p6.2.0", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:501 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 配置保存成功，键数: 1", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:506 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:592 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] Phase 2/4: 开始序列化核心模块...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:743 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='2197466844864'>", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:569 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:570 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:571 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常类型: PicklingError", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:573 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 异常堆栈:\nTraceback (most recent call last):\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 507, in save_snapshot\n    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Administrator\\agent\\agent\\p6_snapshot.py\", line 600, in _save_core_modules_with_delta\n    state_data = pickle.dumps(body_state)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock\n", "duration_ms": 0}
+ERROR    agent.p6_snapshot:p6_snapshot.py:574 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:1042 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:1043 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] 快照加载流程开始（Phase 3 完整版）", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:1046 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ 步骤1: 定位快照文件...", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:1050 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] │   └─ 未指定快照ID，将使用最新快照", "duration_ms": 0}
+WARNING  agent.p6_snapshot:p6_snapshot.py:1054 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ├─ ✗ 未找到可用快照", "duration_ms": 0}
+WARNING  agent.p6_snapshot:p6_snapshot.py:1055 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] └─ 可能原因: 快照目录为空或文件损坏", "duration_ms": 0}
+INFO     agent.p6_snapshot:p6_snapshot.py:1056 {"trace_id": "", "module_name": "p6_snapshot", "action": "log", "msg": "[P6] ═══════════════════════════════════════════════════════", "duration_ms": 0}
+C:\Users\Administrator\agent\tests\unit\test_p6_snapshot_advanced.py:1947: assert None is not None
+E   AssertionError: assert 80.0 == 75.0
+     +  where 80.0 = AlertConfig(cpu_threshold=80.0, cpu_alert_level='warning', memory_threshold=85.0, memory_alert_level='warning', sustained_threshold_count=5, sustained_check_window=10, cooldown_seconds=60.0, enable_logging=True, enable_callback=True).cpu_threshold
+     +    where AlertConfig(cpu_threshold=80.0, cpu_alert_level='warning', memory_threshold=85.0, memory_alert_level='warning', sustained_threshold_count=5, sustained_check_window=10, cooldown_seconds=60.0, enable_logging=True, enable_callback=True) = <agent.monitoring.performance.PerformanceAlertManager object at 0x000001FFA33C6570>.config
+C:\Users\Administrator\agent\tests\unit\test_performance_alert.py:434: AssertionError: assert 80.0 == 75.0
+E   TypeError: ResponseBuilder.workflow_result() got an unexpected keyword argument 'result'
+C:\Users\Administrator\agent\tests\unit\test_response_builder.py:49: TypeError: ResponseBuilder.workflow_result() got an unexpected keyword argument 'result'
+E   AssertionError: assert '' == 'duckduckgo'
+      
+      - duckduckgo
+------------------------------ Captured log call ------------------------------
+INFO     agent.web.search:search.py:99 SearchEngine 已初始化 (默认引擎: , 优先级: [])
+C:\Users\Administrator\agent\tests\unit\test_search.py:20: AssertionError: assert '' == 'duckduckgo'
+E   KeyError: 'bing'
+------------------------------ Captured log call ------------------------------
+INFO     agent.web.search:search.py:99 SearchEngine 已初始化 (默认引擎: , 优先级: [])
+C:\Users\Administrator\agent\tests\unit\test_search.py:44: KeyError: 'bing'
+E   AssertionError: assert '' == 'duckduckgo'
+      
+      - duckduckgo
+------------------------------ Captured log call ------------------------------
+INFO     agent.web.search:search.py:99 SearchEngine 已初始化 (默认引擎: , 优先级: [])
+C:\Users\Administrator\agent\tests\unit\test_search.py:200: AssertionError: assert '' == 'duckduckgo'
+E   AssertionError: assert 'python_func' == 'cron'
+      
+      - cron
+      + python_func
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:64 [TaskScheduler] 添加任务: test_cron (cron)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:75: AssertionError: assert 'python_func' == 'cron'
+E   AssertionError: assert 'python_func' == 'interval'
+      
+      - interval
+      + python_func
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:78 [TaskScheduler] 添加任务: test_interval (每60秒)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:92: AssertionError: assert 'python_func' == 'interval'
+E   AssertionError: assert False is True
+     +  where False = _should_run({'day_of_week': 4, 'func': <MagicMock id='2197467318464'>, 'hour': 16, 'last_run': None, ...})
+     +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA3424C50>._should_run
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:112: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = _should_run({'func': <MagicMock id='2197466901312'>, 'interval': 60, 'last_run': None, 'name': 'test', ...})
+     +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA33BE690>._should_run
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:168: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = _should_run({'func': <MagicMock id='2197466897280'>, 'interval': 60, 'last_run': datetime.datetime(2026, 6, 26, 16, 41, 31, 77171), 'name': 'test', ...})
+     +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA33BDC40>._should_run
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:186: AssertionError: assert False is True
+E   AssertionError: Expected 'mock' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:923: AssertionError: Expected 'mock' to have been called once. Called 0 times.
+E   AssertionError: Expected 'mock' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:923: AssertionError: Expected 'mock' to have been called once. Called 0 times.
+E   AssertionError: assert 1 >= 2
+     +  where 1 = <MagicMock name='logger.info' id='2197429824944'>.call_count
+     +    where <MagicMock name='logger.info' id='2197429824944'> = <MagicMock name='logger' id='2197467256192'>.info
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:394: AssertionError: assert 1 >= 2
+E   AssertionError: assert 'python_func' == 'cron'
+      
+      - cron
+      + python_func
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:64 [TaskScheduler] 添加任务: test_cron (cron)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:420: AssertionError: assert 'python_func' == 'cron'
+E   KeyError: 'day_of_week'
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:64 [TaskScheduler] 添加任务: daily_task (cron)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:438: KeyError: 'day_of_week'
+E   AssertionError: assert 'python_func' == 'interval'
+      
+      - interval
+      + python_func
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:78 [TaskScheduler] 添加任务: test_interval (每60秒)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:456: AssertionError: assert 'python_func' == 'interval'
+E   assert False is True
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:548: assert False is True
+E   assert False is True
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:558: assert False is True
+E   assert False is True
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:607: assert False is True
+E   KeyError: 'type'
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\agent\task_scheduler.py:162: KeyError: 'type'
+E   KeyError: 'type'
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\agent\task_scheduler.py:162: KeyError: 'type'
+E   AssertionError: Expected 'mock' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:923: AssertionError: Expected 'mock' to have been called once. Called 0 times.
+E   AttributeError: 'TaskScheduler' object has no attribute 'start'
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:723: AttributeError: 'TaskScheduler' object has no attribute 'start'
+E   AttributeError: 'TaskScheduler' object has no attribute 'start'
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:739: AttributeError: 'TaskScheduler' object has no attribute 'start'
+E   AssertionError: assert 'python_func' == 'cron'
+      
+      - cron
+      + python_func
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+INFO     agent.task_scheduler:task_scheduler.py:64 [TaskScheduler] 添加任务: cron_task (cron)
+INFO     agent.task_scheduler:task_scheduler.py:78 [TaskScheduler] 添加任务: interval_task (每60秒)
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:772: AssertionError: assert 'python_func' == 'cron'
+E   AssertionError: assert not True
+     +  where True = <built-in function _path_exists>('C:\\Windows\\TEMP\\tmpmzfgksdx\\data\\blackbox\\blackbox_old.jsonl')
+     +    where <built-in function _path_exists> = <module 'ntpath' (frozen)>.exists
+     +      where <module 'ntpath' (frozen)> = os.path
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:861: AssertionError: assert not True
+E   assert False is True
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:893: assert False is True
+E   assert False is True
+------------------------------ Captured log call ------------------------------
+INFO     agent.task_scheduler:task_scheduler.py:49 [TaskScheduler] 初始化完成
+C:\Users\Administrator\agent\tests\unit\test_task_scheduler.py:917: assert False is True
+E   assert 33 > 80
+C:\Users\Administrator\agent\tests\unit\test_text_tools.py:38: assert 33 > 80
+E   AssertionError: 文本 '这不仅是技术问题，而且是战略问题' 未能检测到模式 9
+    assert 9 in [11]
+C:\Users\Administrator\agent\tests\unit\test_text_tools.py:64: AssertionError: 文本 '这不仅是技术问题，而且是战略问题' 未能检测到模式 9
+E   assert 99 in []
+C:\Users\Administrator\agent\tests\unit\test_text_tools.py:112: assert 99 in []
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+DEBUG    agent.circuit_breaker:circuit_breaker.py:274 {"trace_id": "test-trace-id-12345", "module_name": "circuit_breaker", "action": "allow_request", "duration_ms": 0, "name": "schema_validation", "state": "closed", "allowed": true}
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+DEBUG    agent.circuit_breaker:circuit_breaker.py:309 {"trace_id": "test-trace-id-12345", "module_name": "circuit_breaker", "action": "record_success", "duration_ms": 0, "name": "schema_validation", "state": "closed", "total_requests": 2, "successes": 2}
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\json\decoder.py:355: json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+E   AssertionError: assert True is False
+     +  where True = EvaluationResult(overall_score=80, dimension_scores={}, passed=True, feedback=['Critic 服务不可用，已跳过评估'], retry_recommended=False, explanation='Critic 服务不可用，已降级跳过评估').passed
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+WARNING  agent.cognitive.critic:critic.py:139 {"trace_id": "test-trace-id-12345", "module_name": "critic", "action": "evaluate", "duration_ms": 0, "status": "skipped", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u5df2\u964d\u7ea7\u8df3\u8fc7\u8bc4\u4f30"}
+C:\Users\Administrator\agent\tests\unit\test_verification.py:196: AssertionError: assert True is False
+E   KeyError: 'factual_accuracy'
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+WARNING  agent.cognitive.critic:critic.py:139 {"trace_id": "test-trace-id-12345", "module_name": "critic", "action": "evaluate", "duration_ms": 0, "status": "skipped", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u5df2\u964d\u7ea7\u8df3\u8fc7\u8bc4\u4f30"}
+C:\Users\Administrator\agent\tests\unit\test_verification.py:207: KeyError: 'factual_accuracy'
+E   KeyError: 'relevance'
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+WARNING  agent.cognitive.critic:critic.py:139 {"trace_id": "test-trace-id-12345", "module_name": "critic", "action": "evaluate", "duration_ms": 0, "status": "skipped", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u5df2\u964d\u7ea7\u8df3\u8fc7\u8bc4\u4f30"}
+C:\Users\Administrator\agent\tests\unit\test_verification.py:217: KeyError: 'relevance'
+E   KeyError: 'completeness'
+------------------------------ Captured log call ------------------------------
+INFO     agent.monitoring.tracing:tracing.py:955 [Tracing] 获取 trace_id: test-trace-id-12345
+WARNING  agent.cognitive.critic:critic.py:139 {"trace_id": "test-trace-id-12345", "module_name": "critic", "action": "evaluate", "duration_ms": 0, "status": "skipped", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u5df2\u964d\u7ea7\u8df3\u8fc7\u8bc4\u4f30"}
+C:\Users\Administrator\agent\tests\unit\test_verification.py:227: KeyError: 'completeness'
+E   assert 'style.css' not in '<html>\n   ...     </html>'
+      
+      'style.css' is contained here:
+        et" href="style.css">
+                </head>
+                <body><p>Content</p></body>
+                </html>
+C:\Users\Administrator\agent\tests\unit\test_web_scraper_supplement.py:249: assert 'style.css' not in '<html>\n   ...     </html>'
+E   AssertionError: assert '<html><body>.../body></html>' == '<html><body><div>Invalid'
+      
+      - <html><body><div>Invalid
+      + <html><body><div>Invalid</div></body></html>
+C:\Users\Administrator\agent\tests\unit\test_web_scraper_supplement.py:291: AssertionError: assert '<html><body>.../body></html>' == '<html><body><div>Invalid'
+E   AttributeError: module 'agent.memory' has no attribute 'vector_store'
+------------------------------ Captured log call ------------------------------
+INFO     agent.weekly_report_generator:weekly_report_generator.py:38 [WeeklyReportGenerator] __init__ 开始初始化
+INFO     agent.weekly_report_generator:weekly_report_generator.py:47 [WeeklyReportGenerator] 输出目录: C:\Windows\TEMP\tmpa3vci8ke
+INFO     agent.weekly_report_generator:weekly_report_generator.py:48 [WeeklyReportGenerator] __init__ 初始化完成
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\pkgutil.py:528: AttributeError: module 'agent.memory' has no attribute 'vector_store'
+================================ 测试失败 - 需要修复！✗ ================================
+
+测试统计:
+  通过: 3014
+  失败: 72
+  跳过: 6
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_config_secure.py:140: 文件权限测试在Windows上不适用
+SKIPPED [1] tests\unit\test_error_handler.py:5172: 时间依赖测试不稳定
+SKIPPED [1] tests\unit\test_error_handler.py:5225: get_status 方法实现可能不同
+SKIPPED [1] tests\unit\test_error_handler.py:5258: 测试条件不满足
+SKIPPED [1] tests\unit\test_prometheus_exporter.py:324: Testing behavior when prometheus not available
+SKIPPED [1] tests\unit\test_prometheus_exporter.py:331: Testing behavior when prometheus not available
+ERROR tests/unit/test_error_handler.py::TestErrorHandlerExecuteWithRetryEdgeCases::test_execute_with_retry_no_args
+ERROR tests/unit/test_error_handler.py::TestErrorHandlerExecuteWithRetryEdgeCases::test_execute_with_retry_with_args
+ERROR tests/unit/test_error_handler.py::TestErrorHandlerEmptyMetrics::test_get_metrics_empty
+FAILED tests/unit/test_config_secure.py::TestSensitiveDataFilter::test_sanitize_api_key - AssertionError: Failed for: sk-abc123def456ghi789jkl0
+assert '********' == '***'
+  
+  - ***
+  + ********
+FAILED tests/unit/test_config_secure.py::TestSensitiveDataFilter::test_sanitize_password_field - AssertionError: Failed for: token=abc123, got: token=abc123
+assert '***' in 'token=abc123'
+FAILED tests/unit/test_config_secure.py::TestSensitiveDataFilter::test_sanitize_dict - AssertionError: api_key should be masked, got: ********
+assert '********' == '***'
+  
+  - ***
+  + ********
+FAILED tests/unit/test_config_secure.py::TestSensitiveDataFilter::test_filter_log_record - AssertionError: API Key should be masked, got: API Key: sk-12345
+assert '***' in 'API Key: sk-12345'
+ +  where 'API Key: sk-12345' = <LogRecord: test, 20, test.py, 1, "API Key: sk-12345">.msg
+FAILED tests/unit/test_context_engineering.py::TestSensitiveDataFilter::test_filter_detects_password - assert False
+ +  where False = any(<generator object TestSensitiveDataFilter.test_filter_detects_password.<locals>.<genexpr> at 0x000001FFA1990D40>)
+FAILED tests/unit/test_error_handler.py::TestYunshuErrorInitParams::test_yunshu_error_to_dict_complete - AttributeError: type object 'ErrorCategory' has no attribute 'SYSTEM'
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyShouldRetry::test_should_retry_with_custom_condition - assert True is False
+ +  where True = should_retry(ValueError("don't retry"), attempt=0)
+ +    where should_retry = <agent.error_handler.RetryPolicy object at 0x000001FF9F0D9E50>.should_retry
+ +    and   ValueError("don't retry") = ValueError("don't retry")
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyShouldRetry::test_should_retry_no_custom_rules - assert True is False
+FAILED tests/unit/test_error_handler.py::TestWithRetryDecoratorBranches::test_with_retry_non_retryable_error - assert 3 == 1
+FAILED tests/unit/test_error_handler.py::TestExecuteWithRetryBranches::test_execute_with_retry_with_kwargs - TypeError: ErrorHandler.execute_with_retry() got an unexpected keyword argument 'c'
+FAILED tests/unit/test_error_handler.py::TestCircuitBreakerExecuteBranches::test_circuit_breaker_execute_open_to_half_open - AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+ +  where <CircuitState.CLOSED: 'closed'> = <agent.error_handler.CircuitBreaker object at 0x000001FF9F0F14F0>.state
+ +  and   <CircuitState.HALF_OPEN: 'half_open'> = CircuitState.HALF_OPEN
+FAILED tests/unit/test_error_handler.py::TestCircuitBreakerRecordFailureBranches::test_record_failure_in_half_open_reopens - AssertionError: assert <CircuitState.CLOSED: 'closed'> == <CircuitState.HALF_OPEN: 'half_open'>
+ +  where <CircuitState.CLOSED: 'closed'> = <agent.error_handler.CircuitBreaker object at 0x000001FF9F0DB560>.state
+ +  and   <CircuitState.HALF_OPEN: 'half_open'> = CircuitState.HALF_OPEN
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyAdditional::test_retry_policy_linear_strategy - assert 3.017675928921774 == 3.0
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyAdditional::test_retry_policy_fixed_strategy - assert 1.95921361838098 == 2.0
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyAdditional::test_retry_policy_invalid_strategy - assert 1.5448682210118094 == 1.5
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyAdditional::test_should_retry_with_custom_condition - AssertionError: assert True is False
+ +  where True = should_retry(ValueError('no retry'), 0)
+ +    where should_retry = <agent.error_handler.RetryPolicy object at 0x000001FFA1A5C470>.should_retry
+ +    and   ValueError('no retry') = ValueError('no retry')
+FAILED tests/unit/test_error_handler.py::TestExecuteWithRetryMetrics::test_execute_with_retry_success_metrics - AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+FAILED tests/unit/test_error_handler.py::TestExecuteWithRetryMetrics::test_execute_with_retry_failure_metrics - AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+FAILED tests/unit/test_error_handler.py::TestWithRetryDecorator::test_with_retry_error_counter - AttributeError: <module 'agent.error_handler' from 'C:\\Users\\Administrator\\agent\\agent\\error_handler.py'> does not have the attribute 'get_metrics_collector'
+FAILED tests/unit/test_error_handler.py::TestRetryPolicyComplete::test_retry_policy_custom_condition - TypeError: TestRetryPolicyComplete.test_retry_policy_custom_condition.<locals>.custom_condition() missing 1 required positional argument: 'attempt'
+FAILED tests/unit/test_error_handler.py::TestCircuitBreakerComplete::test_circuit_breaker_reset_timeout - AssertionError: assert 'open' == 'half_open'
+  
+  - half_open
+  + open
+FAILED tests/unit/test_llm_response_cache.py::TestLLMResponseCacheEdgeCases::test_cache_expiration_with_zero_ttl - AssertionError: assert 'response1' is None
+FAILED tests/unit/test_log_system_introspection.py::TestIdleDetector::test_reset_after_mark - assert False is True
+FAILED tests/unit/test_log_system_safe_logger.py::TestSensitiveDataFilter::test_mask_email - AssertionError: assert '***@***.com' in '联系邮箱 te***@example.com'
+FAILED tests/unit/test_log_system_safe_logger.py::TestSensitiveDataFilter::test_sanitize_dict - AssertionError: assert '********' == '***'
+  
+  - ***
+  + ********
+FAILED tests/unit/test_message_handler.py::TestResponseBuilder::test_workflow_result - AssertionError: assert {'confidence'...{'msg': 'ok'}} == {'msg': 'ok'}
+  
+  Left contains 3 more items:
+  {'confidence': 1.0, 'intent': '', 'output': {'msg': 'ok'}}
+  Right contains 1 more item:
+  {'msg': 'ok'}
+  
+  Full diff:
+    {
+  +     'confidence': 1.0,
+  +     'intent': '',
+  +     'output': {
+  -     'msg': 'ok',
+  +         'msg': 'ok',
+  ? ++++
+  +     },
+    }
+FAILED tests/unit/test_model_router.py::TestModelRouter::test_simple_uses_small_model - AssertionError: assert 'gemini-1.5-flash' in ('gpt-3.5-turbo', 'gpt-4o-mini')
+FAILED tests/unit/test_model_router.py::TestModelRouter::test_complex_uses_large_model - AssertionError: assert 'gpt-4o' == 'gpt-4'
+  
+  - gpt-4
+  + gpt-4o
+  ?      +
+FAILED tests/unit/test_network_config.py::TestNetworkConfigEncryption::test_search_api_key_encrypted - AssertionError: set_secure_value('search_tavily_key', 'tvly-real-key-123') call not found
+FAILED tests/unit/test_p6_snapshot_advanced.py::TestStateSnapshotManagerCompression::test_save_with_compression - assert False is True
+ +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=12.489795684814453, error_message="Can't pickle...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+FAILED tests/unit/test_p6_snapshot_advanced.py::TestStateSnapshotManagerCompression::test_load_with_compression - assert False is True
+ +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=12.000322341918945, error_message="Can't pickle...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+FAILED tests/unit/test_p6_snapshot_advanced.py::TestStateSnapshotManagerIncremental::test_incremental_snapshot - assert False is True
+ +  where False = SnapshotResult(success=False, snapshot_id=None, version='', elapsed_ms=10.15019416809082, error_message="Can't pickle ...ittest.mock.MagicMock", is_incremental=False, base_snapshot_id=None, space_saved_bytes=0, file_size=0, created_at=None).success
+FAILED tests/unit/test_p6_snapshot_advanced.py::TestStateSnapshotManagerIncremental::test_load_incremental_snapshot - assert None is not None
+FAILED tests/unit/test_performance_alert.py::TestGlobalFunctions::test_get_alert_manager_with_config - AssertionError: assert 80.0 == 75.0
+ +  where 80.0 = AlertConfig(cpu_threshold=80.0, cpu_alert_level='warning', memory_threshold=85.0, memory_alert_level='warning', sustained_threshold_count=5, sustained_check_window=10, cooldown_seconds=60.0, enable_logging=True, enable_callback=True).cpu_threshold
+ +    where AlertConfig(cpu_threshold=80.0, cpu_alert_level='warning', memory_threshold=85.0, memory_alert_level='warning', sustained_threshold_count=5, sustained_check_window=10, cooldown_seconds=60.0, enable_logging=True, enable_callback=True) = <agent.monitoring.performance.PerformanceAlertManager object at 0x000001FFA33C6570>.config
+FAILED tests/unit/test_response_builder.py::TestResponseBuilder::test_workflow_result_response - TypeError: ResponseBuilder.workflow_result() got an unexpected keyword argument 'result'
+FAILED tests/unit/test_search.py::TestSearchEngineInit::test_init_default_config - AssertionError: assert '' == 'duckduckgo'
+  
+  - duckduckgo
+FAILED tests/unit/test_search.py::TestSearchEngineInit::test_init_with_api_keys - KeyError: 'bing'
+FAILED tests/unit/test_search.py::TestSearchEngineEngines::test_engine_selection - AssertionError: assert '' == 'duckduckgo'
+  
+  - duckduckgo
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_add_cron_task - AssertionError: assert 'python_func' == 'cron'
+  
+  - cron
+  + python_func
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_add_interval_task - AssertionError: assert 'python_func' == 'interval'
+  
+  - interval
+  + python_func
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_should_run_cron_task - AssertionError: assert False is True
+ +  where False = _should_run({'day_of_week': 4, 'func': <MagicMock id='2197467318464'>, 'hour': 16, 'last_run': None, ...})
+ +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA3424C50>._should_run
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_should_run_interval_task_first_time - AssertionError: assert False is True
+ +  where False = _should_run({'func': <MagicMock id='2197466901312'>, 'interval': 60, 'last_run': None, 'name': 'test', ...})
+ +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA33BE690>._should_run
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_should_run_interval_task_elapsed - AssertionError: assert False is True
+ +  where False = _should_run({'func': <MagicMock id='2197466897280'>, 'interval': 60, 'last_run': datetime.datetime(2026, 6, 26, 16, 41, 31, 77171), 'name': 'test', ...})
+ +    where _should_run = <agent.task_scheduler.TaskScheduler object at 0x000001FFA33BDC40>._should_run
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_run_task_success - AssertionError: Expected 'mock' to have been called once. Called 0 times.
+FAILED tests/unit/test_task_scheduler.py::TestTaskScheduler::test_run_task_failure - AssertionError: Expected 'mock' to have been called once. Called 0 times.
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerInitialization::test_init_logging - AssertionError: assert 1 >= 2
+ +  where 1 = <MagicMock name='logger.info' id='2197429824944'>.call_count
+ +    where <MagicMock name='logger.info' id='2197429824944'> = <MagicMock name='logger' id='2197467256192'>.info
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerCronTasks::test_add_cron_task - AssertionError: assert 'python_func' == 'cron'
+  
+  - cron
+  + python_func
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerCronTasks::test_add_cron_task_no_day - KeyError: 'day_of_week'
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerIntervalTasks::test_add_interval_task - AssertionError: assert 'python_func' == 'interval'
+  
+  - interval
+  + python_func
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerShouldRun::test_should_run_cron_task_ready_to_run - assert False is True
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerShouldRun::test_should_run_interval_task_first_time - assert False is True
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerShouldRun::test_should_run_interval_task_ready - assert False is True
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerRunTask::test_run_task_success - KeyError: 'type'
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerRunTask::test_run_task_exception - KeyError: 'type'
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerTick::test_tick_runs_ready_tasks - AssertionError: Expected 'mock' to have been called once. Called 0 times.
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerStartStop::test_start_stops_on_keyboard_interrupt - AttributeError: 'TaskScheduler' object has no attribute 'start'
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerStartStop::test_start_catches_general_exception - AttributeError: 'TaskScheduler' object has no attribute 'start'
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerListTasks::test_list_tasks_with_tasks - AssertionError: assert 'python_func' == 'cron'
+  
+  - cron
+  + python_func
+FAILED tests/unit/test_task_scheduler.py::TestPredefinedTasks::test_cleanup_old_logs_with_files - AssertionError: assert not True
+ +  where True = <built-in function _path_exists>('C:\\Windows\\TEMP\\tmpmzfgksdx\\data\\blackbox\\blackbox_old.jsonl')
+ +    where <built-in function _path_exists> = <module 'ntpath' (frozen)>.exists
+ +      where <module 'ntpath' (frozen)> = os.path
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerCronDaySpecific::test_should_run_cron_with_specific_day_of_week - assert False is True
+FAILED tests/unit/test_task_scheduler.py::TestTaskSchedulerCronDaySpecific::test_should_run_cron_without_day_of_week - assert False is True
+FAILED tests/unit/test_text_tools.py::TestHumanizeZh::test_human_text - assert 33 > 80
+FAILED tests/unit/test_text_tools.py::TestHumanizeZh::test_pattern_detection - AssertionError: 文本 '这不仅是技术问题，而且是战略问题' 未能检测到模式 9
+assert 9 in [11]
+FAILED tests/unit/test_text_tools.py::TestHumanizeZh::test_three_sentence_pattern - assert 99 in []
+FAILED tests/unit/test_verification.py::TestOutputSchema::test_parse_and_validate_failure - json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAILED tests/unit/test_verification.py::TestCritic::test_evaluate_fails_threshold - AssertionError: assert True is False
+ +  where True = EvaluationResult(overall_score=80, dimension_scores={}, passed=True, feedback=['Critic 服务不可用，已跳过评估'], retry_recommended=False, explanation='Critic 服务不可用，已降级跳过评估').passed
+FAILED tests/unit/test_verification.py::TestCritic::test_evaluate_factual_accuracy - KeyError: 'factual_accuracy'
+FAILED tests/unit/test_verification.py::TestCritic::test_evaluate_relevance - KeyError: 'relevance'
+FAILED tests/unit/test_verification.py::TestCritic::test_evaluate_completeness - KeyError: 'completeness'
+FAILED tests/unit/test_web_scraper_supplement.py::TestScraperHtmlCleaning::test_clean_html_remove_styles - assert 'style.css' not in '<html>\n   ...     </html>'
+  
+  'style.css' is contained here:
+    et" href="style.css">
+            </head>
+            <body><p>Content</p></body>
+            </html>
+FAILED tests/unit/test_web_scraper_supplement.py::TestScraperHtmlCleaning::test_clean_html_invalid_html - AssertionError: assert '<html><body>.../body></html>' == '<html><body><div>Invalid'
+  
+  - <html><body><div>Invalid
+  + <html><body><div>Invalid</div></body></html>
+FAILED tests/unit/test_weekly_report_generator.py::TestWeeklyReportGenerator::test_analytics_lazy_load - AttributeError: module 'agent.memory' has no attribute 'vector_store'
+= 72 failed, 3014 passed, 6 skipped, 93 warnings, 3 errors in 340.32s (0:05:40) =

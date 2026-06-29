@@ -1,0 +1,33 @@
+2026-06-22 20:26:52,102 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.99 KB
+2026-06-22 20:26:52,102 [ WARNING] utils.file_reader: [告警模拟] 第 6 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,102 [ WARNING] utils.file_reader: [告警模拟] 第 7 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,102 [ WARNING] utils.file_reader: [告警模拟] 第 8 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,102 [ WARNING] utils.file_reader: [告警模拟] 第 9 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,102 [ WARNING] utils.file_reader: [告警模拟] 第 10 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,103 [ WARNING] utils.file_reader: [告警模拟] 第 11 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,103 [ WARNING] utils.file_reader: [告警模拟] 第 12 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,103 [ WARNING] utils.file_reader: [告警模拟] 第 13 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 14 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 15 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 16 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 17 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 18 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 19 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [ WARNING] utils.file_reader: [告警模拟] 第 20 行 JSON 解析失败，跳过: Unterminated string starting at: line 1 column 2 (char 1)
+2026-06-22 20:26:52,104 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 8 条，无效: 15 条
+2026-06-22 20:26:52,110 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.09 KB
+2026-06-22 20:26:52,110 [ WARNING] utils.file_reader: [告警模拟] utf-8 编码失败，尝试降级...
+2026-06-22 20:26:52,112 [ WARNING] utils.file_reader: [告警模拟] utf-8-sig 编码失败，尝试降级...
+2026-06-22 20:26:52,112 [    INFO] utils.file_reader: [告警模拟] 使用 gbk 编码读取成功
+2026-06-22 20:26:52,113 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 2 条，无效: 0 条
+2026-06-22 20:26:52,116 [ WARNING] utils.file_reader: [告警模拟] 文件不存在，跳过加载
+2026-06-22 20:26:52,121 [    INFO] utils.file_reader: [告警模拟] 文件大小: 0.19 KB
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 2 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 3 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 4 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 5 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 6 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,121 [ WARNING] utils.file_reader: [告警模拟] 第 7 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,122 [ WARNING] utils.file_reader: [告警模拟] 第 8 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,122 [ WARNING] utils.file_reader: [告警模拟] 第 9 行 JSON 解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-22 20:26:52,122 [    INFO] utils.file_reader: [告警模拟] 读取完成 - 有效: 2 条，无效: 8 条

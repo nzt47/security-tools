@@ -1,0 +1,432 @@
+/**
+ * DevConsole / StateInspector 暗色主题样式
+ *
+ * 风格对齐 templates/network_config_debug.html：
+ * - 背景 #0d1117 / 卡片 #161b22 / 边框 #30363d
+ * - 文本 #e6edf3 / 次要 #8b949e
+ * - 状态色：绿 #7ee787 / 黄 #d29922 / 红 #f85149 / 蓝 #58a6ff
+ *
+ * 移动端可用：user-select: text 保证文本可复制；响应式布局自适应。
+ */
+
+/* ─── 浮层容器 ─── */
+.devconsole-root {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 99999;
+  font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+  font-size: 12px;
+  color: #e6edf3;
+  pointer-events: none; /* 容器本身不拦截事件，仅浮层与图标拦截 */
+}
+
+/* 唤起图标（右上角可拖动） */
+.devconsole-fab {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #58a6ff;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  user-select: none;
+  z-index: 100000;
+  transition: background 0.15s, border-color 0.15s;
+}
+.devconsole-fab:hover {
+  background: #1f2937;
+  border-color: #58a6ff;
+}
+.devconsole-fab:active {
+  cursor: grabbing;
+}
+.devconsole-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #f85149;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ─── 浮层面板 ─── */
+.devconsole-panel {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  width: 720px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 100000;
+}
+
+/* 头部 Tab 栏 */
+.devconsole-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+.devconsole-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+.devconsole-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8b949e;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.devconsole-tab:hover {
+  color: #e6edf3;
+  background: #21262d;
+}
+.devconsole-tab.active {
+  color: #58a6ff;
+  background: #1f6feb33;
+  border-color: #1f6feb;
+}
+.devconsole-tab-count {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 8px;
+  background: #30363d;
+  color: #e6edf3;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+}
+.devconsole-tab-count.error {
+  background: #f8514933;
+  color: #f85149;
+}
+
+/* 头部操作按钮 */
+.devconsole-actions {
+  display: flex;
+  gap: 4px;
+}
+.devconsole-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.devconsole-btn:hover {
+  background: #30363d;
+  border-color: #58a6ff;
+}
+.devconsole-btn.danger {
+  color: #f85149;
+}
+.devconsole-btn.danger:hover {
+  background: #f8514933;
+  border-color: #f85149;
+}
+.devconsole-btn.warning {
+  color: #d29922;
+}
+.devconsole-btn.warning:hover {
+  background: #d2992233;
+  border-color: #d29922;
+}
+
+/* 工具栏（过滤输入等） */
+.devconsole-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+.devconsole-input {
+  flex: 1;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.devconsole-input:focus {
+  border-color: #58a6ff;
+}
+
+/* ─── 记录列表区 ─── */
+.devconsole-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.devconsole-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.devconsole-body::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+.devconsole-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 表格 */
+.devconsole-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.devconsole-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: #8b949e;
+  font-weight: 500;
+  font-size: 11px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.devconsole-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #21262d;
+  vertical-align: top;
+  word-break: break-all;
+  user-select: text; /* 移动端可复制 */
+}
+.devconsole-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.devconsole-row:hover {
+  background: #161b22;
+}
+.devconsole-row.expanded {
+  background: #161b22;
+}
+.devconsole-row-detail {
+  background: #0d1117;
+}
+.devconsole-row-detail td {
+  padding: 8px 12px;
+}
+
+/* 状态徽章 */
+.devconsole-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-ok {
+  background: #23863633;
+  color: #7ee787;
+}
+.badge-warn {
+  background: #9e6a0333;
+  color: #d29922;
+}
+.badge-err {
+  background: #da363333;
+  color: #f85149;
+}
+.badge-info {
+  background: #1f6feb33;
+  color: #58a6ff;
+}
+.badge-muted {
+  background: #30363d;
+  color: #8b949e;
+}
+
+/* 方法标签 */
+.devconsole-method {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.method-get {
+  background: #1f6feb33;
+  color: #58a6ff;
+}
+.method-post {
+  background: #23863633;
+  color: #7ee787;
+}
+.method-put {
+  background: #9e6a0333;
+  color: #d29922;
+}
+.method-delete {
+  background: #da363333;
+  color: #f85149;
+}
+.method-other {
+  background: #30363d;
+  color: #8b949e;
+}
+
+/* trace_id 单元格 */
+.devconsole-trace {
+  color: #8b949e;
+  font-size: 11px;
+  cursor: pointer;
+}
+.devconsole-trace:hover {
+  color: #58a6ff;
+  text-decoration: underline;
+}
+
+/* 代码块（堆栈/详情） */
+.devconsole-code {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 240px;
+  overflow-y: auto;
+  user-select: text; /* 移动端可复制 */
+  color: #e6edf3;
+}
+
+/* 空状态 */
+.devconsole-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #8b949e;
+  font-size: 12px;
+}
+
+/* ─── StateInspector 专用 ─── */
+.stateinspector-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid #21262d;
+}
+.stateinspector-section-title {
+  color: #7ee787;
+  font-size: 11px;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+.stateinspector-kv {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  border-bottom: 1px dotted #21262d;
+  align-items: flex-start;
+}
+.stateinspector-key {
+  color: #58a6ff;
+  min-width: 120px;
+  word-break: break-all;
+  user-select: text;
+}
+.stateinspector-value {
+  color: #e6edf3;
+  flex: 1;
+  word-break: break-all;
+  user-select: text;
+}
+.stateinspector-countdown {
+  color: #d29922;
+  font-size: 11px;
+}
+.stateinspector-countdown.expired {
+  color: #f85149;
+}
+.stateinspector-diff-added {
+  color: #7ee787;
+  background: #23863622;
+}
+.stateinspector-diff-removed {
+  color: #f85149;
+  background: #da363322;
+  text-decoration: line-through;
+}
+.stateinspector-diff-updated {
+  color: #d29922;
+  background: #9e6a0322;
+}
+
+/* ─── 响应式（移动端） ─── */
+@media (max-width: 640px) {
+  .devconsole-panel {
+    top: 56px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+    max-height: 60vh;
+  }
+  .devconsole-fab {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  .devconsole-table {
+    font-size: 11px;
+  }
+  .devconsole-table th,
+  .devconsole-table td {
+    padding: 4px 6px;
+  }
+}
