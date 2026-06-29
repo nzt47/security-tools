@@ -1,6 +1,7 @@
 """对话 & 语音 & Web 工具 API 路由"""
 import os
 import json
+import uuid
 import time
 import datetime as dt
 import logging
@@ -9,6 +10,11 @@ from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def _save_conversation_record(user_input, response, Yunshu, mode="normal", health_data=None):
@@ -136,21 +142,21 @@ def register_routes(app, state):
             if not stt_available:
                 return jsonify({"ok": False, "error": "语音识别引擎不可用，请检查SpeechRecognition库"}), 500
 
-            logger.info(f"[VOICE] 开始语音识别，时长: {duration}秒")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "duration", "msg": f"[VOICE] 开始语音识别，时长: {duration}秒"}, ensure_ascii=False))
             result = Yunshu._voice_manager.listen(duration=duration)
 
             if result.success:
-                logger.info(f"[VOICE] 语音识别成功: {result.text[:50]}...")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.text", "msg": f"[VOICE] 语音识别成功: {result.text[:50]}..."}, ensure_ascii=False))
                 return jsonify({
                     "ok": True,
                     "text": result.text,
                     "duration": duration
                 })
             else:
-                logger.warning(f"[VOICE] 语音识别失败: {result.error}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.error", "msg": f"[VOICE] 语音识别失败: {result.error}"}, ensure_ascii=False))
                 return jsonify({"ok": False, "error": result.error}), 400
         except Exception as e:
-            logger.error(f"[VOICE] 语音识别异常: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "log", "msg": f"[VOICE] 语音识别异常: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/voice/status")
