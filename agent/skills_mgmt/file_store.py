@@ -120,8 +120,8 @@ class SkillMDParser:
         if end_idx is None:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.MD_NO_FRONTMATTER,
                 f"skill.md front matter 未闭合（缺少结束的 ---）",
+                code=ErrorCode.MD_NO_FRONTMATTER,
             )
 
         yaml_block = "\n".join(lines[1:end_idx])
@@ -132,17 +132,17 @@ class SkillMDParser:
             if not isinstance(meta, dict):
                 from .exceptions import SkillFileError, ErrorCode
                 raise SkillFileError(
-                    ErrorCode.MD_YAML_ERROR,
-                    f"front matter 根节点必须是对象，got {type(meta).__name__}",
-                )
+                f"front matter 根节点必须是对象，got {type(meta).__name__}",
+                code=ErrorCode.MD_YAML_ERROR,
+            )
             # 过滤白名单字段
             meta = {k: v for k, v in meta.items() if k in _META_FIELDS}
             return meta, body
         except yaml.YAMLError as e:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.MD_YAML_ERROR,
                 f"YAML 解析失败: {e}",
+                code=ErrorCode.MD_YAML_ERROR,
             )
 
     @staticmethod
@@ -204,8 +204,8 @@ class SkillFileStore:
         except ValueError:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.PATH_TRAVERSAL,
                 f"路径越界: {skill_id}",
+                code=ErrorCode.PATH_TRAVERSAL,
             )
         return skill_dir
 
@@ -215,8 +215,8 @@ class SkillFileStore:
         if not re.match(r"^[a-z0-9][a-z0-9_\-]*$", skill_id):
             from .exceptions import SkillValidationError, ErrorCode
             raise SkillValidationError(
-                ErrorCode.INVALID_SKILL_ID,
                 f"技能ID必须为 kebab_case: {skill_id}",
+                code=ErrorCode.INVALID_SKILL_ID,
             )
 
     # ──────────────────────────────────────────────
@@ -322,8 +322,8 @@ class SkillFileStore:
         except Exception as e:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.MD_READ_ERROR,
                 f"读取使用说明失败 [{skill_id}]: {e}",
+                code=ErrorCode.MD_READ_ERROR,
             )
 
     # ──────────────────────────────────────────────
@@ -350,8 +350,8 @@ class SkillFileStore:
         except ValueError:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.PATH_TRAVERSAL,
                 f"脚本路径越界: {script_name}",
+                code=ErrorCode.PATH_TRAVERSAL,
             )
         if not script_path.exists():
             from .exceptions import SkillNotFoundError
@@ -372,8 +372,8 @@ class SkillFileStore:
         if "/" in filename or "\\" in filename or ".." in filename:
             from .exceptions import SkillFileError, ErrorCode
             raise SkillFileError(
-                ErrorCode.PATH_TRAVERSAL,
                 f"非法文件名: {filename}",
+                code=ErrorCode.PATH_TRAVERSAL,
             )
         skill_dir = self._skill_dir(skill_id)
         temp_path = skill_dir / _TEMP_DIR / filename
@@ -388,8 +388,8 @@ class SkillFileStore:
         if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*\.py$", name):
             from .exceptions import SkillValidationError, ErrorCode
             raise SkillValidationError(
-                ErrorCode.INVALID_SCRIPT_NAME,
                 f"脚本名必须为合法 Python 文件名: {name}",
+                code=ErrorCode.INVALID_SCRIPT_NAME,
             )
 
     # ──────────────────────────────────────────────
@@ -504,9 +504,9 @@ class SkillFileStore:
             if "/" in filename or "\\" in filename or ".." in filename:
                 from .exceptions import SkillValidationError, ErrorCode
                 raise SkillValidationError(
-                    ErrorCode.INVALID_FILENAME,
-                    f"非法文件名: {filename}",
-                )
+                f"非法文件名: {filename}",
+                code=ErrorCode.INVALID_FILENAME,
+            )
             skill_dir = self._skill_dir(skill_id)
             temp_dir = skill_dir / _TEMP_DIR
             temp_dir.mkdir(exist_ok=True)
@@ -547,8 +547,8 @@ class SkillFileStore:
         if not skill_id:
             from .exceptions import SkillValidationError, ErrorCode
             raise SkillValidationError(
-                ErrorCode.INVALID_SKILL_ID,
                 "迁移失败: 缺少 id 字段",
+                code=ErrorCode.INVALID_SKILL_ID,
             )
 
         # 如果目录已存在，先备份
