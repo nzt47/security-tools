@@ -251,10 +251,25 @@ class NetworkConfigManager:
                 logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._ensure_config_structure.instance", "duration_ms": 0, "message": f"[网络配置] 为实例 {instance.get('name')} 自动生成 ID: {instance['id']}"}, ensure_ascii=False))
 
     def _save(self, data: dict):
-        """保存网络配置到文件"""
+        """保存网络配置到文件并更新缓存
+
+        当 secure_manager 可用时，自动移除 search_instances 中的 api_key 字段，
+        避免明文写入 JSON 文件（api_key 已通过 _save_secure 加密存储）。
+        当 secure_manager 不可用时，保留 api_key 明文（兼容旧版行为）。
+
+        重要：同时更新 self._cache，保证后续 _load() 返回最新配置，
+        避免 app_server.py 中 _save 后 apply_search_instances 读取旧缓存覆盖文件。
+        """
+        save_data = data
+        if self._secure_manager:
+            save_data = deepcopy(data)
+            for inst in save_data.get('search_instances', []):
+                inst.pop('api_key', None)
         self._config_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self._config_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            json.dump(save_data, f, ensure_ascii=False, indent=2)
+        # 更新缓存为已保存的数据（与文件内容一致，不含 api_key）
+        self._cache = deepcopy(save_data)
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": f"[网络配置] 已保存到文件: {self._config_file}"}, ensure_ascii=False))
 
     def _save_secure(self, key: str, value: str):
@@ -294,10 +309,13 @@ class NetworkConfigManager:
             self._cache['change_log'] = self._cache['change_log'][:100]
 
     def get_all(self) -> dict:
-        """获取完整配置（敏感信息脱敏）"""
-        config = self._load()
+        """获取完整配置（敏感信息脱敏）
 
-        # 加载加密的敏感信息
+        重要：返回深拷贝以避免污染 self._cache（与 get_raw_config 保持一致）。
+        """
+        config = deepcopy(self._load())
+
+        # 加载加密的敏感信息（修改的是副本，不影响缓存）
         config['llm']['api_key'] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
         config['external_services']['error_reporting']['webhook_url'] = self._load_secure(
             'error_reporting_webhook',
@@ -322,12 +340,12 @@ class NetworkConfigManager:
                 )
 
         # 脱敏处理
-        safe_config = deepcopy(config)
-        
+        safe_config = config
+
         # LLM API Key 脱敏
         if safe_config['llm'].get('api_key'):
             safe_config['llm']['api_key'] = '***' + safe_config['llm']['api_key'][-4:] if len(safe_config['llm']['api_key']) > 4 else '***'
-        
+
         # 错误报告 Webhook 脱敏
         if safe_config['external_services']['error_reporting'].get('webhook_url'):
             safe_config['external_services']['error_reporting']['webhook_url'] = '***'
@@ -347,10 +365,15 @@ class NetworkConfigManager:
         return safe_config
 
     def get_raw_config(self) -> dict:
-        """获取完整原始配置（包含解密后的敏感信息）"""
-        config = self._load()
+        """获取完整原始配置（包含解密后的敏感信息）
 
-        # 加载加密的敏感信息
+        重要：返回深拷贝以避免污染 self._cache。
+        _load() 返回的是缓存引用，若直接修改会使缓存残留解密后的 api_key，
+        导致后续 _save() 把明文写入 JSON 文件。
+        """
+        config = deepcopy(self._load())
+
+        # 加载加密的敏感信息（修改的是副本，不影响缓存）
         config['llm']['api_key'] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
         config['external_services']['error_reporting']['webhook_url'] = self._load_secure(
             'error_reporting_webhook',
@@ -434,12 +457,9 @@ class NetworkConfigManager:
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 合并配置到当前配置..."}, ensure_ascii=False))
         self._merge(config, updates)
 
-        # 保存到文件
+        # 保存到文件（_save 会同步更新缓存，剥离 api_key）
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": ("[网络配置] 保存配置到文件: %s") % (self._config_file,)}, ensure_ascii=False))
         self._save(config)
-
-        # 清除缓存
-        self._cache = config
 
         # 记录变更日志
         self._add_change_log('update', 'config', {'keys': list(updates.keys())})
@@ -480,27 +500,33 @@ class NetworkConfigManager:
                     self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
 
     def _update_search_instances(self, instances: list):
-        """更新搜索实例配置"""
+        """更新搜索实例配置
+
+        重要：api_key 通过 _save_secure 加密存储，配置文件/缓存中不保留明文或脱敏值。
+        前端传入的 api_key 若为脱敏值（***xxxx）会被忽略，避免覆盖真实 key。
+        """
         config = self._load()
         for inst in instances:
             inst_id = inst.get('id')
+            api_key = inst.get('api_key', '')
+            has_new_key = bool(api_key) and api_key != '***' and not api_key.startswith('***')
+            # 移除 api_key 字段，避免脱敏值或明文写入缓存/文件
+            inst_clean = {k: v for k, v in inst.items() if k != 'api_key'}
             if not inst_id:
                 # 新增
-                inst['id'] = str(uuid.uuid4())
-                inst['created_at'] = datetime.datetime.now().isoformat()
-                inst['updated_at'] = inst['created_at']
-                api_key = inst.get('api_key', '')
-                if api_key and api_key != '***' and not api_key.startswith('***'):
-                    self._save_secure(f'search_{inst["id"]}_api_key', api_key)
-                config['search_instances'].append(inst)
-                self._add_change_log('add', 'search_instance', {'id': inst['id'], 'name': inst.get('name')})
+                inst_clean['id'] = str(uuid.uuid4())
+                inst_clean['created_at'] = datetime.datetime.now().isoformat()
+                inst_clean['updated_at'] = inst_clean['created_at']
+                if has_new_key:
+                    self._save_secure(f'search_{inst_clean["id"]}_api_key', api_key)
+                config['search_instances'].append(inst_clean)
+                self._add_change_log('add', 'search_instance', {'id': inst_clean['id'], 'name': inst_clean.get('name')})
             else:
                 existing = next((i for i in config['search_instances'] if i['id'] == inst_id), None)
                 if existing:
-                    api_key = inst.get('api_key', '')
-                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                    if has_new_key:
                         self._save_secure(f'search_{inst_id}_api_key', api_key)
-                    existing.update(inst)
+                    existing.update(inst_clean)
                     existing['updated_at'] = datetime.datetime.now().isoformat()
                     self._add_change_log('update', 'search_instance', {'id': inst_id, 'name': inst.get('name')})
 
@@ -583,6 +609,7 @@ class NetworkConfigManager:
         """
         if not search_engine:
             return
+        # get_raw_config() 返回深拷贝，不污染缓存；包含解密后的 api_key 供注册使用
         config = self.get_raw_config()
         instances = config.get('search_instances', [])
 
@@ -590,7 +617,6 @@ class NetworkConfigManager:
         if not instances:
             instances = self._seed_builtin_search_instances(config)
             config['search_instances'] = instances
-            self._save(config)
 
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_search_instances.log", "duration_ms": 0, "message": ("[网络配置] 开始注册 %d 个搜索实例...") % (len(instances),)}, ensure_ascii=False))
 
@@ -648,6 +674,15 @@ class NetworkConfigManager:
                 seen.add(inst_id)
 
         config.setdefault('search', {})['engine_priority'] = new_priority
+
+        # 修复：验证 default_engine 有效性（指向不存在的实例时清空）
+        valid_ids_set = {inst['id'] for inst in instances if inst.get('id')}
+        current_default = config.get('search', {}).get('default_engine', '')
+        if current_default and current_default not in valid_ids_set:
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_search_instances.default", "duration_ms": 0, "message": f"[网络配置] default_engine 指向不存在的实例 {current_default}，已清空"}, ensure_ascii=False))
+            config['search']['default_engine'] = ''
+
+        # 保存配置：_save() 会自动剥离 search_instances 中的 api_key 并更新缓存
         self._save(config)
 
         # 更新 SearchEngine 的优先级
