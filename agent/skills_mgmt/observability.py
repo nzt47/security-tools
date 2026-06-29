@@ -55,30 +55,28 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
     tid = trace_id or str(uuid.uuid4())
     ctx: Dict[str, Any] = {"trace_id": tid, "payload": payload}
     t0 = time.time()
+    # 保留键：与 _emit_structured_log 的显式参数同名，展开前必须过滤
+    _RESERVED = {"action", "trace_id", "duration_ms", "level", "module_name",
+                 "status", "error", "error_type"}
+    safe = {k: v for k, v in payload.items() if k not in _RESERVED}
     try:
         _emit_structured_log(f"{action}.start", trace_id=tid, duration_ms=0.0,
-                             **payload)
+                             **safe)
         yield ctx
         elapsed = (time.time() - t0) * 1000
-        # 合并 payload 与 ctx，但过滤掉与显式参数冲突的保留键
-        merged = {**payload}
+        # 合并 payload 与 ctx，过滤保留键（safe_merged 命名标记已过滤）
+        safe_merged = {**safe}
         for k, v in ctx.items():
-            if k in ("trace_id", "payload", "status", "error",
-                     "error_type", "level", "duration_ms"):
+            if k in _RESERVED or k in ("payload",):
                 continue
-            merged[k] = v
+            safe_merged[k] = v
         _emit_structured_log(f"{action}.end", trace_id=tid, duration_ms=elapsed,
-                             status="ok", **merged)
+                             status="ok", **safe_merged)
     except Exception as e:
         elapsed = (time.time() - t0) * 1000
-        # 避免 payload 中的关键字与显式参数冲突
-        safe_payload = {
-            k: v for k, v in payload.items()
-            if k not in ("status", "error", "error_type", "level")
-        }
         _emit_structured_log(f"{action}.error", trace_id=tid, duration_ms=elapsed,
                              status="error", error=str(e), error_type=type(e).__name__,
-                             level="error", **safe_payload)
+                             level="error", **safe)
         raise
 
 
