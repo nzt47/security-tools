@@ -2,13 +2,205 @@
 // 网络配置管理
 // ════════════════════════════════════════════════════════════
 
-let __networkConfigCache = null;
-let __networkConfigDirty = false;
+/**
+ * 网络配置统一状态管理器
+ *
+ * 集中管理网络配置相关的所有状态，提供：
+ * - 统一的状态获取与更新入口
+ * - 状态变更监听机制（观察者模式）
+ * - 状态变更日志记录（可追溯性）
+ * - sessionStorage 持久化与恢复
+ *
+ * 设计原则：透明性、可追溯性、解耦
+ */
+class NetworkConfigStateManager {
+  constructor() {
+    this._state = {
+      config: null,
+      dirty: false,
+      llmInstances: [],
+      mcpServices: [],
+      searchInstances: [],
+    };
+    this._listeners = [];
+    this._changeLog = [];
+    this._maxLogEntries = 100;
+    this._sessionStorageKey = 'networkConfigState';
+    this._notifying = false; // 防止监听器中再次触发 setState 导致递归
+  }
 
-// LLM 实例数据
-let __llmInstances = [];
-// MCP 服务数据
-let __mcpServices = [];
+  /** 获取单个状态字段（深拷贝避免外部直接修改内部状态） */
+  get(key) {
+    const value = this._state[key];
+    // 基本类型直接返回；引用类型返回浅拷贝（性能与安全平衡）
+    if (value === null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.slice();
+    return { ...value };
+  }
+
+  /** 获取完整状态快照 */
+  getSnapshot() {
+    return {
+      config: this._state.config,
+      dirty: this._state.dirty,
+      llmInstances: (this._state.llmInstances || []).slice(),
+      mcpServices: (this._state.mcpServices || []).slice(),
+      searchInstances: (this._state.searchInstances || []).slice(),
+    };
+  }
+
+  /**
+   * 更新状态（合并更新）
+   * @param {Object} updates - 待合并的状态字段
+   * @param {string} source - 变更来源标识，用于追溯
+   */
+  setState(updates, source = 'unknown') {
+    if (this._notifying) {
+      // 监听器内部触发的更新只修改状态，不再递归通知
+      Object.assign(this._state, updates);
+      return;
+    }
+    const changes = this._diff(updates);
+    if (changes.length === 0) return;
+
+    const oldSnapshot = this.getSnapshot();
+    Object.assign(this._state, updates);
+
+    this._logChange(changes, source);
+    this._notifyListeners(oldSnapshot, this.getSnapshot(), changes, source);
+  }
+
+  /** 标记配置是否已修改 */
+  markDirty(dirty = true, source = 'markDirty') {
+    if (this._state.dirty === dirty) return;
+    this.setState({ dirty }, source);
+  }
+
+  /** 添加状态变更监听器，返回移除函数 */
+  addListener(listener) {
+    if (typeof listener !== 'function') {
+      console.warn('[状态管理器] addListener: 监听器必须为函数');
+      return () => {};
+    }
+    this._listeners.push(listener);
+    return () => {
+      const idx = this._listeners.indexOf(listener);
+      if (idx > -1) this._listeners.splice(idx, 1);
+    };
+  }
+
+  /** 获取变更日志（最近 maxLogEntries 条） */
+  getChangeLog() {
+    return this._changeLog.slice();
+  }
+
+  /** 清空变更日志 */
+  clearChangeLog() {
+    this._changeLog = [];
+  }
+
+  /** 重置状态为初始值 */
+  reset(source = 'reset') {
+    this.setState({
+      config: null,
+      dirty: false,
+      llmInstances: [],
+      mcpServices: [],
+      searchInstances: [],
+    }, source);
+  }
+
+  // ── 持久化（sessionStorage） ──
+
+  /** 保存状态快照到 sessionStorage（不含 dirty 标记） */
+  saveToSession() {
+    try {
+      const payload = {
+        config: this._state.config,
+        llmInstances: this._state.llmInstances,
+        mcpServices: this._state.mcpServices,
+        searchInstances: this._state.searchInstances,
+        timestamp: new Date().toISOString(),
+      };
+      sessionStorage.setItem(this._sessionStorageKey, JSON.stringify(payload));
+    } catch (e) {
+      console.warn('[状态管理器] 保存到 sessionStorage 失败:', e);
+    }
+  }
+
+  /** 从 sessionStorage 恢复状态，成功返回 true */
+  restoreFromSession(source = 'restoreFromSession') {
+    try {
+      const raw = sessionStorage.getItem(this._sessionStorageKey);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      this.setState({
+        config: parsed.config || null,
+        llmInstances: parsed.llmInstances || [],
+        mcpServices: parsed.mcpServices || [],
+        searchInstances: parsed.searchInstances || [],
+      }, source);
+      return true;
+    } catch (e) {
+      console.warn('[状态管理器] 从 sessionStorage 恢复失败:', e);
+      return false;
+    }
+  }
+
+  /** 清除 sessionStorage 中的状态快照 */
+  clearSession() {
+    try {
+      sessionStorage.removeItem(this._sessionStorageKey);
+    } catch (e) {
+      console.warn('[状态管理器] 清除 sessionStorage 失败:', e);
+    }
+  }
+
+  // ── 内部方法 ──
+
+  /** 计算本次更新涉及的字段（仅记录真正发生变化的字段） */
+  _diff(updates) {
+    const changed = [];
+    for (const key in updates) {
+      if (!Object.prototype.hasOwnProperty.call(this._state, key)) continue;
+      const oldVal = this._state[key];
+      const newVal = updates[key];
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        changed.push(key);
+      }
+    }
+    return changed;
+  }
+
+  _logChange(changedKeys, source) {
+    this._changeLog.push({
+      timestamp: new Date().toISOString(),
+      source,
+      keys: changedKeys,
+    });
+    if (this._changeLog.length > this._maxLogEntries) {
+      this._changeLog.shift();
+    }
+  }
+
+  _notifyListeners(oldSnapshot, newSnapshot, changedKeys, source) {
+    this._notifying = true;
+    try {
+      this._listeners.forEach((listener) => {
+        try {
+          listener(oldSnapshot, newSnapshot, changedKeys, source);
+        } catch (e) {
+          console.error('[状态管理器] 监听器执行异常:', e);
+        }
+      });
+    } finally {
+      this._notifying = false;
+    }
+  }
+}
+
+// 全局状态管理器实例
+const configStateManager = new NetworkConfigStateManager();
 
 /**
  * 加载网络配置
@@ -20,9 +212,9 @@ async function loadNetworkConfig() {
     const res = await apiFetch('/api/network-config');
     const config = await res.json();
     console.log('[网络配置] 配置加载成功:', config);
-    __networkConfigCache = config;
+    configStateManager.setState({ config }, 'loadNetworkConfig');
     renderNetworkConfig(config);
-    
+
     // 加载 LLM 实例
     await loadLlmInstances();
     // 加载 MCP 服务
@@ -31,7 +223,8 @@ async function loadNetworkConfig() {
     await loadSearchInstances();
 
     // 将自定义引擎也加入优先级列表
-    if (__searchInstances && __searchInstances.length > 0) {
+    const searchInstances = configStateManager.get('searchInstances');
+    if (searchInstances && searchInstances.length > 0) {
       refreshPriorityWithInstances();
     }
 
@@ -50,8 +243,9 @@ async function loadLlmInstances() {
     const res = await apiFetch('/api/llm/instances');
     const result = await res.json();
     if (result.ok) {
-      __llmInstances = result.instances || [];
-      renderLlmInstances(__llmInstances);
+      const instances = result.instances || [];
+      configStateManager.setState({ llmInstances: instances }, 'loadLlmInstances');
+      renderLlmInstances(instances);
     }
   } catch (e) {
     console.error('[网络配置] 加载 LLM 实例失败:', e);
@@ -66,8 +260,9 @@ async function loadMcpServices() {
     const res = await apiFetch('/api/mcp/services');
     const result = await res.json();
     if (result.ok) {
-      __mcpServices = result.services || [];
-      renderMcpServices(__mcpServices);
+      const services = result.services || [];
+      configStateManager.setState({ mcpServices: services }, 'loadMcpServices');
+      renderMcpServices(services);
     }
   } catch (e) {
     console.error('[网络配置] 加载 MCP 服务失败:', e);
@@ -95,7 +290,7 @@ function renderNetworkConfig(config) {
   set('nc-search-timeout', config.search.timeout || 30);
 
   // 渲染搜索引擎优先级（实例数据稍后在 loadSearchInstances 中补充）
-  renderSearchEnginePriority(config.search.engine_priority || [], config.search_api_keys, __searchInstances);
+  renderSearchEnginePriority(config.search.engine_priority || [], config.search_api_keys, configStateManager.get('searchInstances'));
 
   // Web 抓取服务
   set('nc-scraping-enabled', config.web_scraping.enabled);
@@ -118,7 +313,7 @@ function renderNetworkConfig(config) {
   set('nc-monitoring-enabled', config.external_services.monitoring.enabled);
   set('nc-monitoring-endpoint', config.external_services.monitoring.endpoint || '');
 
-  __networkConfigDirty = false;
+  configStateManager.markDirty(false, 'renderNetworkConfig');
 }
 
 /**
@@ -129,7 +324,7 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
   if (!list) return;
 
   apiKeys = apiKeys || {};
-  searchInstances = searchInstances || __searchInstances || [];
+  searchInstances = searchInstances || configStateManager.get('searchInstances') || [];
   // 建立实例 ID/名称/类型 -> 实例数据 映射（兼容新旧数据格式）
   const instanceMap = {};
   searchInstances.forEach(inst => {
@@ -159,7 +354,8 @@ function renderSearchEnginePriority(priority, apiKeys, searchInstances) {
       </label>`;
 
     const et = inst.engine_type || '';
-    const isDefault = inst.is_default || (engine === __networkConfigCache?.search?.default_engine);
+    const cachedConfig = configStateManager.get('config');
+    const isDefault = inst.is_default || (engine === cachedConfig?.search?.default_engine);
 
     // 操作按钮
     html += `<span style="display:inline-flex;align-items:center;gap:2px;margin-left:auto">`;
@@ -239,8 +435,8 @@ function onDrag(e) {
       list.insertBefore(draggedItem, referenceNode);
     }
   }
-  
-  __networkConfigDirty = true;
+
+  configStateManager.markDirty(true, 'onDrag');
 }
 
 function stopDrag() {
@@ -252,7 +448,7 @@ function stopDrag() {
   }
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
-  __networkConfigDirty = true;
+  configStateManager.markDirty(true, 'stopDrag');
 }
 
 /**
@@ -273,8 +469,9 @@ function collectNetworkConfig() {
     });
   }
 
-  // 获取 LLM 配置（从缓存中获取，因为已删除默认配置表单）
-  const llmConfig = __networkConfigCache?.llm || {
+  // 获取 LLM 配置（从状态管理器中获取，因为已删除默认配置表单）
+  const cachedConfig = configStateManager.get('config');
+  const llmConfig = cachedConfig?.llm || {
     enabled: true,
     provider: '',
     api_key: '',
@@ -303,13 +500,12 @@ function collectNetworkConfig() {
     },
     search: {
       enabled: get('nc-search-enabled'),
-      default_engine: enginePriority.length > 0 ? enginePriority[0] : '',
+      default_engine: cachedConfig?.search?.default_engine || (enginePriority.length > 0 ? enginePriority[0] : ''),
       max_results: num('nc-search-max'),
       timeout: num('nc-search-timeout'),
       engine_priority: enginePriority,
       engine_enabled: engineEnabled,
     },
-    search_instances: __searchInstances,
     web_scraping: {
       enabled: get('nc-scraping-enabled'),
       respect_robots_txt: get('nc-scraping-robots'),
@@ -343,7 +539,7 @@ function collectNetworkConfig() {
  * 配置变更时标记脏数据
  */
 function onNetworkConfigChange() {
-  __networkConfigDirty = true;
+  configStateManager.markDirty(true, 'onNetworkConfigChange');
   toggleProxyUrlRow();
 }
 
@@ -351,10 +547,11 @@ function onNetworkConfigChange() {
  * 搜索引擎启用/禁用切换
  */
 function onEngineToggle(engine, enabled) {
-  __networkConfigDirty = true;
+  configStateManager.markDirty(true, 'onEngineToggle');
   console.log(`[网络配置] 搜索引擎 ${engine} ${enabled ? '已启用' : '已禁用'}`);
   // 如果是自定义引擎实例，同时更新其后端状态
-  if (__searchInstances && __searchInstances.some(i => (i.id || i.name) === engine)) {
+  const searchInstances = configStateManager.get('searchInstances');
+  if (searchInstances && searchInstances.some(i => (i.id || i.name) === engine)) {
     toggleSearchInstance(engine, enabled);
   }
 }
@@ -370,7 +567,7 @@ function updateNetworkConfig(path, value) {
     current = current[parts[i]];
   }
   current[parts[parts.length - 1]] = value;
-  __networkConfigDirty = true;
+  configStateManager.markDirty(true, 'updateNetworkConfig');
 }
 
 /**
@@ -386,38 +583,100 @@ function toggleProxyUrlRow() {
 
 /**
  * 保存网络配置
+ *
+ * 状态同步机制：保存成功后通过 renderNetworkConfig + refreshPriorityWithInstances
+ * 立即刷新 UI，避免用户看到陈旧的排序/实例列表。
  */
 async function saveNetworkConfig() {
-  console.log('[网络配置] saveNetworkConfig 被调用');
+  const traceId = (window._lastTraceId = (window._lastTraceId || 0) + 1);
+  const t0 = performance.now();
+  console.log(JSON.stringify({
+    trace_id: 'fe-' + traceId,
+    module_name: 'network_config',
+    action: 'saveNetworkConfig.start',
+    duration_ms: 0,
+    message: '[网络配置] saveNetworkConfig 被调用'
+  }));
+
   const config = collectNetworkConfig();
-  console.log('[网络配置] 收集到的配置:', JSON.stringify(config, null, 2).substring(0, 500));
+  console.log(JSON.stringify({
+    trace_id: 'fe-' + traceId,
+    module_name: 'network_config',
+    action: 'saveNetworkConfig.collect',
+    duration_ms: Math.round(performance.now() - t0),
+    engine_priority: config.search?.engine_priority,
+    default_engine: config.search?.default_engine,
+    search_instances_count: (configStateManager.get('searchInstances') || []).length
+  }));
 
   const validationErrors = validateNetworkConfig(config);
   if (validationErrors.length > 0) {
-    console.warn('[网络配置] 验证失败:', validationErrors);
+    console.warn(JSON.stringify({
+      trace_id: 'fe-' + traceId,
+      module_name: 'network_config',
+      action: 'saveNetworkConfig.validation_failed',
+      duration_ms: Math.round(performance.now() - t0),
+      errors: validationErrors
+    }));
     showNetworkStatus('验证失败: ' + validationErrors.join('; '), 'err');
     return;
   }
 
   try {
-    console.log('[网络配置] 正在发送保存请求...');
     showNetworkStatus('保存中...', 'info');
     const res = await apiFetch('/api/network-config', {
       method: 'POST',
       body: JSON.stringify(config),
     });
     const result = await res.json();
-    console.log('[网络配置] 保存响应:', result);
+    const respDuration = Math.round(performance.now() - t0);
+    console.log(JSON.stringify({
+      trace_id: 'fe-' + traceId,
+      module_name: 'network_config',
+      action: 'saveNetworkConfig.response',
+      duration_ms: respDuration,
+      ok: !!result.ok,
+      returned_engine_priority: result.config?.search?.engine_priority,
+      returned_default_engine: result.config?.search?.default_engine
+    }));
 
     if (result.ok) {
-      __networkConfigCache = result.config;
-      __networkConfigDirty = false;
+      const beforePriority = JSON.stringify(configStateManager.get('config')?.search?.engine_priority || []);
+      configStateManager.setState({ config: result.config, dirty: false }, 'saveNetworkConfig');
+      // 重新渲染 UI 以反映保存后的配置（如搜索引擎排序）
+      renderNetworkConfig(result.config);
+      // 刷新优先级列表（确保使用最新的 searchInstances）
+      refreshPriorityWithInstances();
+      const afterPriority = JSON.stringify(result.config?.search?.engine_priority || []);
+      console.log(JSON.stringify({
+        trace_id: 'fe-' + traceId,
+        module_name: 'network_config',
+        action: 'saveNetworkConfig.ui_refreshed',
+        duration_ms: Math.round(performance.now() - t0),
+        priority_before: beforePriority,
+        priority_after: afterPriority,
+        priority_changed: beforePriority !== afterPriority
+      }));
       showNetworkStatus('✓ 配置已保存', 'ok');
     } else {
+      console.error(JSON.stringify({
+        trace_id: 'fe-' + traceId,
+        module_name: 'network_config',
+        action: 'saveNetworkConfig.failed',
+        duration_ms: respDuration,
+        error: result.error || '未知错误'
+      }));
       showNetworkStatus('✗ 保存失败: ' + (result.error || '未知错误'), 'err');
     }
   } catch (e) {
-    console.error('[网络配置] 保存异常:', e);
+    console.error(JSON.stringify({
+      trace_id: 'fe-' + traceId,
+      module_name: 'network_config',
+      action: 'saveNetworkConfig.exception',
+      duration_ms: Math.round(performance.now() - t0),
+      error: e.message,
+      error_name: e.name
+    }));
     showNetworkStatus('✗ 保存失败: ' + e.message, 'err');
   }
 }
@@ -551,8 +810,9 @@ async function applyNetworkConfig() {
 
       if (llmResult.ok) {
         console.log('[网络配置] [步骤3] ✓ LLM 已连接并生效');
-        __networkConfigCache = result.config;
-        __networkConfigDirty = false;
+        configStateManager.setState({ config: result.config, dirty: false }, 'applyNetworkConfig.llm_ok');
+        renderNetworkConfig(result.config);
+        refreshPriorityWithInstances();
         showNetworkStatus('✓ 配置已保存，LLM 已连接并生效', 'ok');
       } else {
         console.error('[网络配置] [步骤3] ✗ LLM 配置失败:', llmResult);
@@ -560,13 +820,15 @@ async function applyNetworkConfig() {
       }
     } else if (isMaskedApiKey) {
       console.log('[网络配置] [步骤3] 跳过 LLM 配置（API Key 是脱敏值，请重新输入完整 API Key）');
-      __networkConfigCache = result.config;
-      __networkConfigDirty = false;
+      configStateManager.setState({ config: result.config, dirty: false }, 'applyNetworkConfig.masked_key');
+      renderNetworkConfig(result.config);
+      refreshPriorityWithInstances();
       showNetworkStatus('✓ 配置已保存（如需配置 LLM，请重新输入完整 API Key）', 'info');
     } else {
       console.log('[网络配置] [步骤3] 跳过 LLM 配置');
-      __networkConfigCache = result.config;
-      __networkConfigDirty = false;
+      configStateManager.setState({ config: result.config, dirty: false }, 'applyNetworkConfig.skip_llm');
+      renderNetworkConfig(result.config);
+      refreshPriorityWithInstances();
       showNetworkStatus('✓ 配置已保存并即时生效', 'ok');
     }
 
@@ -780,7 +1042,7 @@ function renderLlmInstances(instances) {
   }
 
   // 获取当前默认实例 ID
-  const defaultInstanceId = __networkConfigCache?.default_llm_instance || '';
+  const defaultInstanceId = configStateManager.get('config')?.default_llm_instance || '';
 
   container.innerHTML = instances.map(instance => {
     // 确保 instance.id 存在
@@ -831,7 +1093,7 @@ function renderLlmInstances(instances) {
  */
 function editLlmInstance(instanceId) {
   // 支持 UUID 和名称匹配
-  const instance = __llmInstances.find(i => (i.id || i.name) === instanceId);
+  const instance = configStateManager.get('llmInstances').find(i => (i.id || i.name) === instanceId);
   if (instance) {
     showLlmInstanceModal(instance.id || instance.name);
   } else {
@@ -852,7 +1114,7 @@ function showLlmInstanceModal(instanceId = null) {
     title.textContent = '编辑 LLM 实例';
     __editingLlmInstanceId = instanceId;
     // 支持 UUID 和名称匹配
-    const instance = __llmInstances.find(i => (i.id || i.name) === instanceId);
+    const instance = configStateManager.get('llmInstances').find(i => (i.id || i.name) === instanceId);
     if (instance) {
       set('llm-form-name', instance.name);
       set('llm-form-provider', instance.provider);
@@ -1127,7 +1389,7 @@ function renderMcpServices(services) {
  * 编辑 MCP 服务（入口，调用模态框）
  */
 function editMcpService(serviceId) {
-  const service = __mcpServices.find(s => s.id === serviceId);
+  const service = configStateManager.get('mcpServices').find(s => s.id === serviceId);
   if (service) {
     showMcpServiceModal(serviceId);
   } else {
@@ -1147,7 +1409,7 @@ function showMcpServiceModal(serviceId = null) {
   if (serviceId) {
     title.textContent = '编辑 MCP 服务';
     __editingMcpServiceId = serviceId;
-    const service = __mcpServices.find(s => s.id === serviceId);
+    const service = configStateManager.get('mcpServices').find(s => s.id === serviceId);
     if (service) {
       set('mcp-form-name', service.name);
       set('mcp-form-address', service.address);
@@ -1344,7 +1606,6 @@ async function toggleMcpEnabled(enabled) {
 // 搜索引擎实例管理
 // ════════════════════════════════════════════════════════════
 
-let __searchInstances = [];
 let __editingSearchId = null;
 
 async function loadSearchInstances() {
@@ -1352,35 +1613,56 @@ async function loadSearchInstances() {
     const res = await apiFetch('/api/search/instances');
     const result = await res.json();
     if (result.ok) {
-      __searchInstances = result.instances || [];
-      renderSearchInstances(__searchInstances);
+      const instances = result.instances || [];
+      configStateManager.setState({ searchInstances: instances }, 'loadSearchInstances');
+      renderSearchInstances(instances);
     }
   } catch (e) {
     console.error('[网络配置] 加载搜索引擎实例失败:', e);
   }
 }
 
-/** 刷新优先级列表（加载自定义引擎后或增删后调用） */
+/** 刷新优先级列表（加载自定义引擎后或增删后调用）
+ *
+ * 状态同步机制：从 configStateManager 读取最新 config + searchInstances，
+ * 将缺失的实例 ID 补入 engine_priority，保证 UI 列表与实例集合一致。
+ */
 function refreshPriorityWithInstances() {
-  if (!__networkConfigCache) return;
-  const priority = __networkConfigCache.search.engine_priority || [];
+  const t0 = performance.now();
+  const traceId = 'fe-rp-' + (window._lastRpTraceId = (window._lastRpTraceId || 0) + 1);
+  const cachedConfig = configStateManager.get('config');
+  if (!cachedConfig) {
+    console.warn(JSON.stringify({
+      trace_id: traceId,
+      module_name: 'network_config',
+      action: 'refreshPriorityWithInstances.skipped',
+      duration_ms: 0,
+      reason: 'cached_config_is_null'
+    }));
+    return;
+  }
+  const priorityBefore = [...(cachedConfig.search.engine_priority || [])];
+  const searchInstances = configStateManager.get('searchInstances') || [];
+  const priority = cachedConfig.search.engine_priority || [];
 
   // 收集已在 priority 中的所有标识（ID、名称、类型）
   const existingIds = new Set(priority);
   const seen = new Set(priority);
 
   // 将名称和类型也计入已存在
-  (__searchInstances || []).forEach(inst => {
+  searchInstances.forEach(inst => {
     if (inst.name && seen.has(inst.name)) existingIds.add(inst.id);
     if (inst.engine_type && seen.has(inst.engine_type)) existingIds.add(inst.id);
   });
 
+  const addedIds = [];
   let changed = false;
-  (__searchInstances || []).forEach(inst => {
+  searchInstances.forEach(inst => {
     const eid = inst.id || inst.name;
     if (eid && !existingIds.has(eid)) {
       priority.push(eid);
       existingIds.add(eid);
+      addedIds.push(eid);
       changed = true;
     }
   });
@@ -1388,8 +1670,20 @@ function refreshPriorityWithInstances() {
   renderSearchEnginePriority(
     priority,
     {},
-    __searchInstances
+    searchInstances
   );
+
+  console.log(JSON.stringify({
+    trace_id: traceId,
+    module_name: 'network_config',
+    action: 'refreshPriorityWithInstances.done',
+    duration_ms: Math.round(performance.now() - t0),
+    priority_before: priorityBefore,
+    priority_after: priority,
+    instances_count: searchInstances.length,
+    added_count: addedIds.length,
+    changed: changed
+  }));
 }
 
 function renderSearchInstances(instances) {
@@ -1402,7 +1696,7 @@ function renderSearchInstances(instances) {
   }
 
   // 查找哪个是默认
-  const defaultId = __networkConfigCache?.search?.default_engine || '';
+  const defaultId = configStateManager.get('config')?.search?.default_engine || '';
 
   container.innerHTML = instances.map(inst => {
     const id = inst.id || inst.name;
@@ -1450,7 +1744,7 @@ function showSearchInstanceModal(instanceId) {
   if (instanceId) {
     title.textContent = '编辑搜索引擎';
     __editingSearchId = instanceId;
-    const inst = __searchInstances.find(i => (i.id || i.name) === instanceId);
+    const inst = configStateManager.get('searchInstances').find(i => (i.id || i.name) === instanceId);
     if (inst) {
       set('si-form-name', inst.name);
       set('si-form-engine-type', inst.engine_type);
@@ -1594,7 +1888,7 @@ async function setDefaultSearchInstance(instanceId) {
 }
 
 async function editSearchInstance(instanceId) {
-  const inst = __searchInstances.find(i => (i.id || i.name) === instanceId);
+  const inst = configStateManager.get('searchInstances').find(i => (i.id || i.name) === instanceId);
   if (inst) showSearchInstanceModal(inst.id || inst.name);
   else alert('未找到该实例');
 }
@@ -1628,4 +1922,75 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// ════════════════════════════════════════════════════════════
+// 状态管理器集成：监听器注册与 UI 自动响应
+// ════════════════════════════════════════════════════════════
+
+/**
+ * 更新保存按钮的启用状态和文案
+ * 根据脏标记决定按钮是否可点击及显示文本
+ */
+function updateSaveButtonState(isDirty) {
+  const saveBtn = document.getElementById('nc-save-btn');
+  const applyBtn = document.getElementById('nc-apply-btn');
+  const btns = [saveBtn, applyBtn].filter(Boolean);
+  if (btns.length === 0) return;
+
+  btns.forEach((btn) => {
+    if (isDirty) {
+      btn.disabled = false;
+      if (btn === saveBtn) btn.textContent = '保存更改';
+      if (btn === applyBtn) btn.textContent = '保存并应用';
+    } else {
+      // 非脏状态下不禁用按钮，但可指示已保存（保留可点击以便重试）
+      if (btn === saveBtn) btn.textContent = '已保存';
+      if (btn === applyBtn) btn.textContent = '保存并应用';
+    }
+  });
+}
+
+/**
+ * 初始化网络配置状态管理器监听器
+ * 在 DOMContentLoaded 时自动调用，也可手动调用以重新绑定
+ */
+function initNetworkConfigStateManager() {
+  configStateManager.addListener((oldSnapshot, newSnapshot, changedKeys, source) => {
+    // 脏标记变更 → 更新保存按钮
+    if (changedKeys.indexOf('dirty') > -1) {
+      updateSaveButtonState(newSnapshot.dirty);
+    }
+
+    // 配置变更 → 持久化到 sessionStorage（防抖处理避免频繁写入）
+    if (changedKeys.indexOf('config') > -1 ||
+        changedKeys.indexOf('llmInstances') > -1 ||
+        changedKeys.indexOf('mcpServices') > -1 ||
+        changedKeys.indexOf('searchInstances') > -1) {
+      if (window.__ncStateSaveTimer) {
+        clearTimeout(window.__ncStateSaveTimer);
+      }
+      window.__ncStateSaveTimer = setTimeout(() => {
+        configStateManager.saveToSession();
+        window.__ncStateSaveTimer = null;
+      }, 500);
+    }
+
+    // 调试日志（便于追溯状态变更来源）
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug(
+        `[状态管理器] 变更来源=${source} 字段=[${changedKeys.join(', ')}] 脏=${newSnapshot.dirty}`
+      );
+    }
+  });
+
+  console.info('[网络配置] 状态管理器监听器已注册');
+}
+
+// DOMContentLoaded 时自动初始化状态管理器监听器
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNetworkConfigStateManager);
+} else {
+  // 文档已加载完成（脚本延迟加载场景），直接初始化
+  initNetworkConfigStateManager();
 }
