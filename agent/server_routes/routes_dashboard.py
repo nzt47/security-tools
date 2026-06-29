@@ -405,7 +405,7 @@ def _get_trace_list(limit=20, trace_id_filter=None):
     if mock_traces:
         result = mock_traces[:limit]
         if trace_id_filter:
-            result = [t for t in result if trace_id_filter.lower() in t.get("trace_id", "").lower()]
+            result = [t for t in result if trace_id_filter.lower() in (t.get("trace_id") or "").lower()]
         
         logger.info(json.dumps({
             "trace_id": trace_id,
