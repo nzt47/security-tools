@@ -417,6 +417,15 @@ class NetworkConfigManager:
         if 'search_instances' in updates:
             self._update_search_instances(updates['search_instances'])
 
+        # 处理旧版 search_api_keys 字典（兼容性：加密保存各引擎 Key）
+        if 'search_api_keys' in updates and isinstance(updates['search_api_keys'], dict):
+            for engine_name, api_key in updates['search_api_keys'].items():
+                if api_key and api_key != '***' and not str(api_key).startswith('***'):
+                    secure_key = f'search_{engine_name}_key'
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.search", "duration_ms": 0, "message": f"[网络配置] 检测到搜索引擎 {engine_name} 的 API Key，准备加密保存..."}, ensure_ascii=False))
+                    self._save_secure(secure_key, api_key)
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.search", "duration_ms": 0, "message": f"[网络配置] 搜索引擎 {engine_name} API Key 已加密保存"}, ensure_ascii=False))
+
         # 处理 MCP 配置
         if 'mcp' in updates:
             self._update_mcp_config(updates['mcp'])

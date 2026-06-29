@@ -10,17 +10,24 @@ Prometheus 监控系统集成模块
 """
 
 import logging
+import json
+import uuid
 import time
 import threading
 from typing import Optional, Callable, Any
 
 logger = logging.getLogger(__name__)
 
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
+
 try:
     from prometheus_client import Counter, Histogram, Gauge, start_http_server, REGISTRY
     _PROMETHEUS_AVAILABLE = True
 except ImportError:
-    logger.warning("[WARN] prometheus_client not installed, Prometheus export disabled")
+    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "prometheus", "action": "prometheus_client.not.installed", "msg": "[WARN] prometheus_client not installed, Prometheus export disabled"}, ensure_ascii=False))
     _PROMETHEUS_AVAILABLE = False
 
 try:
@@ -40,7 +47,7 @@ try:
     )
     _ERROR_HANDLER_AVAILABLE = True
 except ImportError:
-    logger.warning("[WARN] error_handler module not available, error handling disabled")
+    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "prometheus", "action": "error_handler.module.not", "msg": "[WARN] error_handler module not available, error handling disabled"}, ensure_ascii=False))
     _ERROR_HANDLER_AVAILABLE = False
 
 
@@ -216,7 +223,7 @@ class PrometheusMetricsExporter:
     def start(self):
         """启动 Prometheus HTTP 服务器（带重试机制）"""
         if self._running:
-            logger.warning("[WARN] Prometheus exporter already running")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "prometheus", "action": "prometheus.exporter.already", "msg": "[WARN] Prometheus exporter already running"}, ensure_ascii=False))
             return
 
         def _start_server():
@@ -252,7 +259,7 @@ class PrometheusMetricsExporter:
         """停止 Prometheus HTTP 服务器"""
         self._running = False
         self._update_circuit_breaker_metrics()
-        logger.info("[INFO] Prometheus exporter stopped")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "prometheus", "action": "prometheus.exporter.stopped", "msg": "[INFO] Prometheus exporter stopped"}, ensure_ascii=False))
 
     def __enter__(self):
         self.start()

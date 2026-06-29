@@ -1,8 +1,21 @@
+
+import logging
+import json
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 """
 数据模型 — 日志系统的核心类型定义
 """
 
 import json
+import uuid
 import time
 from enum import Enum
 from dataclasses import dataclass, field, asdict
@@ -197,3 +210,21 @@ class LogStats:
     p95_duration_ms: float = 0.0
     p99_duration_ms: float = 0.0
     time_range_hours: float = 0.0
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "models",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise
