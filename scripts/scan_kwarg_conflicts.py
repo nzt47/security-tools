@@ -466,12 +466,18 @@ def scan_directory(root: str) -> List[ConflictFinding]:
 
     t0 = time.time()
 
-    for filepath in root_path.rglob("*.py"):
-        if not should_scan(filepath):
-            continue
-        files_scanned += 1
-        findings = scan_file(filepath)
-        all_findings.extend(findings)
+    # 支持单文件扫描
+    if root_path.is_file():
+        if should_scan(root_path):
+            files_scanned = 1
+            all_findings = scan_file(root_path)
+    else:
+        for filepath in root_path.rglob("*.py"):
+            if not should_scan(filepath):
+                continue
+            files_scanned += 1
+            findings = scan_file(filepath)
+            all_findings.extend(findings)
 
     elapsed_ms = (time.time() - t0) * 1000
 
