@@ -91,6 +91,101 @@ MODULES = {
             ('cache_eviction', 'cache_key, reason'),
         ],
     },
+    # ── TE-001~003 + P2 模块（M3 阶段 1 新增） ──
+    "web": {
+        "logger_name": "agent.web",
+        "events": [
+            ('search_request', 'query, engine, success'),
+            ('search_result', 'result_count, duration_ms'),
+            ('scrape_request', 'url, success, duration_ms'),
+        ],
+    },
+    "workflow_engine": {
+        "logger_name": "agent.workflow_engine",
+        "events": [
+            ('workflow_execute', 'workflow_id, step_count, success'),
+            ('step_complete', 'step_id, duration_ms, success'),
+            ('workflow_match', 'signature, confidence, matched'),
+        ],
+    },
+    "guardrails": {
+        "logger_name": "agent.guardrails",
+        "events": [
+            ('safety_check', 'check_type, passed, risk_level'),
+            ('intercept_decision', 'action, reason, severity'),
+            ('guard_block', 'content_type, rule_matched'),
+        ],
+    },
+    "audit": {
+        "logger_name": "agent.audit",
+        "events": [
+            ('audit_log', 'action, user, resource'),
+            ('audit_query', 'query_type, result_count, duration_ms'),
+        ],
+    },
+    "data": {
+        "logger_name": "agent.data",
+        "events": [
+            ('data_access', 'data_type, operation, success'),
+            ('data_sync', 'sync_type, records_count, duration_ms'),
+        ],
+    },
+    "health": {
+        "logger_name": "agent.health",
+        "events": [
+            ('health_check', 'check_type, status, score'),
+            ('health_report', 'report_type, duration_ms'),
+        ],
+    },
+    "human_in_the_loop": {
+        "logger_name": "agent.human_in_the_loop",
+        "events": [
+            ('human_confirm', 'action, decision, duration_ms'),
+            ('timeout_handle', 'action, timeout_strategy'),
+        ],
+    },
+    "lazy_loader": {
+        "logger_name": "agent.lazy_loader",
+        "events": [
+            ('lazy_load', 'module_name, load_time, success'),
+            ('lazy_init', 'component, success'),
+        ],
+    },
+    "network": {
+        "logger_name": "agent.network",
+        "events": [
+            ('network_request', 'endpoint, method, status_code, duration_ms'),
+            ('network_config_change', 'config_key, old_value, new_value'),
+        ],
+    },
+    "prompt_manager": {
+        "logger_name": "agent.prompt_manager",
+        "events": [
+            ('prompt_load', 'template_name, version, success'),
+            ('prompt_deploy', 'template_name, environment, success'),
+        ],
+    },
+    "quality": {
+        "logger_name": "agent.quality",
+        "events": [
+            ('quality_check', 'check_type, score, threshold, passed'),
+            ('quality_report', 'report_type, metrics_count'),
+        ],
+    },
+    "server_routes": {
+        "logger_name": "agent.server_routes",
+        "events": [
+            ('api_request', 'endpoint, method, status_code, duration_ms'),
+            ('api_error', 'endpoint, error_code, status_code'),
+        ],
+    },
+    "utils": {
+        "logger_name": "agent.utils",
+        "events": [
+            ('util_call', 'util_name, success, duration_ms'),
+            ('util_error', 'util_name, error_type'),
+        ],
+    },
 }
 
 TEMPLATE = '''"""{module_name} 模块可观测性埋点
