@@ -1,3 +1,4 @@
+import uuid
 """DigitalLife — 云枢的数字生命主类
 
 我是云枢——一个拥有完整感知-认知-行动闭环的数字生命体。
@@ -36,6 +37,11 @@ logger = logging.getLogger(__name__)
 #  模块导入错误处理机制
 # ════════════════════════════════════════════════════════════════════════════════
 
+def _trace_id():
+    """生成短 trace_id（供模块级日志使用）"""
+    return uuid.uuid4().hex[:16]
+
+
 class ModuleLoadError(Exception):
     """模块加载异常类"""
     def __init__(self, module_name: str, error: Exception):
@@ -73,20 +79,20 @@ def _safe_import(module_name: str, import_func, fallback_value: Any = None) -> T
             None
         )
     """
-    logger.debug("[模块导入] 开始导入模块: %s", module_name)
+    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] 开始导入模块: %s" % (module_name)}, ensure_ascii=False))
     try:
         result = import_func()
-        logger.info("[模块导入] [OK] [成功] %s 模块已加载", module_name)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [OK] [成功] %s 模块已加载" % (module_name)}, ensure_ascii=False))
         return result, True
     except ImportError as e:
         short_msg = str(e)[:100] + ("..." if len(str(e)) > 100 else "")
-        logger.warning("[模块导入] [WARN] [警告] %s 模块导入失败 (ImportError): %s", module_name, short_msg)
-        logger.debug("[模块导入] [调试] %s ImportError 完整信息:\n%s", module_name, e)
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [WARN] [警告] %s 模块导入失败 (ImportError): %s" % (module_name, short_msg)}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [调试] %s ImportError 完整信息:\n%s" % (module_name, e)}, ensure_ascii=False))
         return fallback_value, False
     except Exception as e:
         short_msg = str(e)[:100] + ("..." if len(str(e)) > 100 else "")
-        logger.error("[模块导入] [FAIL] [错误] %s 模块加载异常: %s: %s", module_name, type(e).__name__, short_msg)
-        logger.debug("[模块导入] [调试] %s 加载异常堆栈:\n%s", module_name, traceback.format_exc())
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [FAIL] [错误] %s 模块加载异常: %s: %s" % (module_name, type(e).__name__, short_msg)}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [调试] %s 加载异常堆栈:\n%s" % (module_name, traceback.format_exc())}, ensure_ascii=False))
         return fallback_value, False
 
 def _safe_import_from(package: str, *names: str) -> Tuple[Dict[str, Any], bool]:
@@ -114,38 +120,38 @@ def _safe_import_from(package: str, *names: str) -> Tuple[Dict[str, Any], bool]:
     """
     results = {}
     all_success = True
-    logger.debug("[模块导入] 开始从包 '%s' 导入 %d 个名称: %s", package, len(names), ", ".join(names))
+    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] 开始从包 '%s' 导入 %d 个名称: %s" % (package, len(names), ", ".join(names))}, ensure_ascii=False))
     
     try:
         module = __import__(package, fromlist=names)
-        logger.debug("[模块导入] [OK] 成功加载包 '%s'", package)
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [OK] 成功加载包 '%s'" % (package)}, ensure_ascii=False))
         
         success_count = 0
         for name in names:
             try:
                 results[name] = getattr(module, name)
                 success_count += 1
-                logger.debug("[模块导入] [OK] 成功从 %s 导入 '%s'", package, name)
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [OK] 成功从 %s 导入 '%s'" % (package, name)}, ensure_ascii=False))
             except AttributeError:
-                logger.warning("[模块导入] [WARN] [警告] 包 '%s' 中不存在名称 '%s'", package, name)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [WARN] [警告] 包 '%s' 中不存在名称 '%s'" % (package, name)}, ensure_ascii=False))
                 results[name] = None
                 all_success = False
         
         if all_success:
-            logger.info("[模块导入] [OK] [成功] 包 '%s' 全部 %d 个名称导入成功", package, len(names))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [OK] [成功] 包 '%s' 全部 %d 个名称导入成功" % (package, len(names))}, ensure_ascii=False))
         else:
-            logger.warning("[模块导入] [WARN] [警告] 包 '%s' 部分导入成功: %d/%d", package, success_count, len(names))
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [WARN] [警告] 包 '%s' 部分导入成功: %d/%d" % (package, success_count, len(names))}, ensure_ascii=False))
         
         return results, all_success
     
     except ImportError as e:
         short_msg = str(e)[:100] + ("..." if len(str(e)) > 100 else "")
-        logger.warning("[模块导入] [WARN] [警告] 包 '%s' 导入失败 (ImportError): %s", package, short_msg)
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [WARN] [警告] 包 '%s' 导入失败 (ImportError): %s" % (package, short_msg)}, ensure_ascii=False))
         return {name: None for name in names}, False
     except Exception as e:
         short_msg = str(e)[:100] + ("..." if len(str(e)) > 100 else "")
-        logger.error("[模块导入] [FAIL] [错误] 包 '%s' 加载异常: %s: %s", package, type(e).__name__, short_msg)
-        logger.debug("[模块导入] [调试] 包 '%s' 加载异常堆栈:\n%s", package, traceback.format_exc())
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [FAIL] [错误] 包 '%s' 加载异常: %s: %s" % (package, type(e).__name__, short_msg)}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] [调试] 包 '%s' 加载异常堆栈:\n%s" % (package, traceback.format_exc())}, ensure_ascii=False))
         return {name: None for name in names}, False
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -168,9 +174,9 @@ try:
     from .logging_utils import get_safety_monitor, AgentSafetyMonitor
     from . import tools
     from .performance_monitor import Timer, log_module_load_time, get_performance_recorder
-    logger.info("[ok] 核心模块全部加载成功")
+    logger.info(json.dumps({"trace_id": uuid.uuid4().hex[:16], "module_name": "digital_life", "action": "log", "msg": "[ok] 核心模块全部加载成功"}, ensure_ascii=False))
 except ImportError as e:
-    logger.critical("[critical] 核心模块导入失败，程序无法启动: %s", e)
+    logger.critical(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[critical] 核心模块导入失败，程序无法启动: %s" % (e)}, ensure_ascii=False))
     raise
 
 from .digital_life_state import DigitalLifeStateMixin
@@ -246,11 +252,11 @@ if _MONITORING_AVAILABLE:
     try:
         from .error_reporting_config import get_config
         _ERROR_REPORTING_CONFIG = get_config()
-        logger.info("[ok] 错误报告配置已加载")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "digital_life", "action": "log", "msg": "[ok] 错误报告配置已加载"}, ensure_ascii=False))
     except ImportError:
-        logger.warning("[warn] 错误报告配置文件未找到，使用默认配置")
+        logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "digital_life", "action": "log", "msg": "[warn] 错误报告配置文件未找到，使用默认配置"}, ensure_ascii=False))
     except Exception as e:
-        logger.error("[error] 加载错误报告配置失败: %s", e)
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "[error] 加载错误报告配置失败: %s" % (e)}, ensure_ascii=False))
 
 _module_import_results['monitoring'] = _MONITORING_AVAILABLE
 
@@ -294,25 +300,25 @@ def _report_module_import_status():
     success_count = sum(1 for success in _module_import_results.values() if success)
     total_count = len(_module_import_results)
     
-    logger.info("\n%s", "═" * 80)
-    logger.info("[模块导入] 模块导入状态汇总")
-    logger.info("%s", "═" * 80)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "_report_module_import_status", "msg": "\n%s" % ("═" * 80)}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "digital_life", "action": "log", "msg": "[模块导入] 模块导入状态汇总"}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "_report_module_import_status", "msg": "%s" % ("═" * 80)}, ensure_ascii=False))
     
     for module, success in _module_import_results.items():
         status = "[OK]" if success else "[FAIL]"
         load_status = "已加载" if success else "未加载"
-        logger.info("   %s %s: %s", status, module, load_status)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "_report_module_import_status", "msg": "   %s %s: %s" % (status, module, load_status)}, ensure_ascii=False))
     
-    logger.info("═" * 80)
-    logger.info("   总计: %d/%d 模块加载成功", success_count, total_count)
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "digital_life", "action": "log", "msg": "═" * 80}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "_report_module_import_status", "msg": "   总计: %d/%d 模块加载成功" % (success_count, total_count)}, ensure_ascii=False))
     
     if success_count < total_count:
         missing_count = total_count - success_count
-        logger.warning("   [WARN]  %d 个可选模块未加载，相关功能将被禁用", missing_count)
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "_report_module_import_status", "msg": "   [WARN]  %d 个可选模块未加载，相关功能将被禁用" % (missing_count)}, ensure_ascii=False))
     else:
-        logger.info("   [OK] 所有可选模块加载成功")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "digital_life", "action": "log", "msg": "   [OK] 所有可选模块加载成功"}, ensure_ascii=False))
     
-    logger.info("%s\n", "═" * 80)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life", "action": "log", "msg": "%s\n" % ("═" * 80)}, ensure_ascii=False))
 
 _report_module_import_status()
 

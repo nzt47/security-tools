@@ -33,38 +33,38 @@ def _clean_for_json(obj, _seen=None):
     try:
         if isinstance(obj, bytes):
             result = obj.decode("utf-8", errors="replace")
-            logger.debug("[_clean_for_json] bytes -> str (长度: %d)", len(result))
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] bytes -> str (长度: %d)" % (len(result))}, ensure_ascii=False))
             return result
         if isinstance(obj, dict):
-            logger.debug("[_clean_for_json] dict -> 递归处理 (%d 个key)", len(obj))
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] dict -> 递归处理 (%d 个key)" % (len(obj))}, ensure_ascii=False))
             return {str(k) if k is not None else None: _clean_for_json(v, _seen)
                     for k, v in obj.items()}
         if isinstance(obj, (list, tuple)):
-            logger.debug("[_clean_for_json] list/tuple -> 递归处理 (%d 个元素)", len(obj))
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] list/tuple -> 递归处理 (%d 个元素)" % (len(obj))}, ensure_ascii=False))
             return [_clean_for_json(v, _seen) for v in obj]
         if isinstance(obj, set):
-            logger.debug("[_clean_for_json] set -> 转为list (%d 个元素)", len(obj))
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] set -> 转为list (%d 个元素)" % (len(obj))}, ensure_ascii=False))
             return [_clean_for_json(v, _seen) for v in obj]
         if isinstance(obj, frozenset):
-            logger.debug("[_clean_for_json] frozenset -> 转为list (%d 个元素)", len(obj))
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] frozenset -> 转为list (%d 个元素)" % (len(obj))}, ensure_ascii=False))
             return [_clean_for_json(v, _seen) for v in obj]
         # 处理常见不可序列化类型
         if isinstance(obj, (int, float, str, bool, type(None))):
-            logger.debug("[_clean_for_json] 基本类型直接返回: %s", type(obj).__name__)
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] 基本类型直接返回: %s" % (type(obj).__name__)}, ensure_ascii=False))
             return obj
         # datetime 系列
         if hasattr(obj, 'isoformat'):
             result = obj.isoformat()
-            logger.debug("[_clean_for_json] datetime -> str: %s", result)
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] datetime -> str: %s" % (result)}, ensure_ascii=False))
             return result
         if hasattr(obj, '__str__'):
             result = str(obj)
-            logger.debug("[_clean_for_json] 其他类型 -> str: %s", type(obj).__name__)
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] 其他类型 -> str: %s" % (type(obj).__name__)}, ensure_ascii=False))
             return result
-        logger.warning("[_clean_for_json] 未知类型，返回类型名称: %s", type(obj).__name__)
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] 未知类型，返回类型名称: %s" % (type(obj).__name__)}, ensure_ascii=False))
         return str(type(obj).__name__)
     except Exception as e:
-        logger.error("[_clean_for_json] 异常: %s, 对象类型: %s", e, type(obj).__name__)
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] 异常: %s, 对象类型: %s" % (e, type(obj).__name__)}, ensure_ascii=False))
         return str(obj)
 
 from agent import tools
@@ -109,8 +109,7 @@ class ToolCallingService:
                 tool_timeout = 120
             if task_timeout is None:
                 task_timeout = 600
-            logger.warning("[工具调用] 无法从配置系统获取设置，使用默认值 max_rounds=%d, tool_timeout=%d",
-                           max_rounds, tool_timeout)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[工具调用] 无法从配置系统获取设置，使用默认值 max_rounds=%d, tool_timeout=%d" % (max_rounds, tool_timeout)}, ensure_ascii=False))
         self._max_rounds = max_rounds
         self._tool_timeout = tool_timeout
         self._task_timeout = task_timeout
@@ -137,8 +136,7 @@ class ToolCallingService:
             return False
 
         if not self._model_router:
-            logger.warning("[ToolCalling] ⬆ 跳过升级: model_router 为空 (primary=%s)",
-                          self._primary_llm.model if hasattr(self, '_primary_llm') else 'N/A')
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "_try_upgrade_model", "msg": "[ToolCalling] ⬆ 跳过升级: model_router 为空 (primary=%s)" % (self._primary_llm.model if hasattr(self, '_primary_llm') else 'N/A')}, ensure_ascii=False))
             return False
 
         has_done_tools = any(
@@ -148,8 +146,7 @@ class ToolCallingService:
         if not has_done_tools:
             step_types = [s.get("type") for s in steps[-5:]]
             step_statuses = [s.get("status") for s in steps[-5:]]
-            logger.info("[ToolCalling] ⬆ 跳过升级: 无成功工具结果 (steps=%s, statuses=%s)",
-                       step_types, step_statuses)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 跳过升级: 无成功工具结果 (steps=%s, statuses=%s)" % (step_types, step_statuses)}, ensure_ascii=False))
             return False
 
         # 查找当前模型名称在路由器中的注册名
@@ -160,8 +157,7 @@ class ToolCallingService:
                 break
 
         if not current_name:
-            logger.warning("[ToolCalling] ⬆ 无法匹配当前模型 %s 到路由器",
-                          self._primary_llm.model)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 无法匹配当前模型 %s 到路由器" % (self._primary_llm.model)}, ensure_ascii=False))
             return False
 
         upgrade_cfg = self._model_router.get_upgrade(current_name)
@@ -169,17 +165,17 @@ class ToolCallingService:
             # 当前已是多轮模型或没有可升级的目标
             return False
 
-        logger.info("[ToolCalling] ⬆ 升级: %s → %s", self._primary_llm.model, upgrade_cfg.model)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 升级: %s → %s" % (self._primary_llm.model, upgrade_cfg.model)}, ensure_ascii=False))
         try:
             from memory.llm_service import LLMService
             new_llm = LLMService(**upgrade_cfg.to_llm_kwargs())
             new_llm._get_client()
             self._upgrade_llm = new_llm
             self._model_upgraded = True
-            logger.info("[ToolCalling] ⬆ 升级成功: %s", upgrade_cfg.model)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 升级成功: %s" % (upgrade_cfg.model)}, ensure_ascii=False))
             return True
         except Exception as e:
-            logger.error("[ToolCalling] ⬆ 升级失败: %s", e)
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 升级失败: %s" % (e)}, ensure_ascii=False))
             return False
 
     def abort(self):
@@ -211,8 +207,7 @@ class ToolCallingService:
         tool_defs = tools.get_tool_defs(whitelist=tools_whitelist)
         steps = []
         self.last_steps = steps
-        logger.info("[ToolCalling] chat() 开始，工具定义数: %d, 消息数: %d",
-                     len(tool_defs), len(messages))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "chat_with_steps", "msg": "[ToolCalling] chat() 开始，工具定义数: %d, 消息数: %d" % (len(tool_defs), len(messages))}, ensure_ascii=False))
         working_messages = list(messages)
 
         # 连续失败检测：记录每个工具连续返回错误的次数
@@ -228,7 +223,7 @@ class ToolCallingService:
             _timeout_timer = threading.Timer(self._task_timeout, self._timeout_event.set)
             _timeout_timer.daemon = True
             _timeout_timer.start()
-            logger.info("[ToolCalling] 任务超时保护已启用: %d 秒", self._task_timeout)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] 任务超时保护已启用: %d 秒" % (self._task_timeout)}, ensure_ascii=False))
 
         response = None  # 安全初始值
         try:
@@ -243,7 +238,7 @@ class ToolCallingService:
 
                 # 检查任务超时
                 if self._timeout_event.is_set():
-                    logger.warning("[ToolCalling] ⏰ 任务执行超时（%d 秒），终止工具循环", self._task_timeout)
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⏰ 任务执行超时（%d 秒），终止工具循环" % (self._task_timeout)}, ensure_ascii=False))
                     steps.append({"type": "timed_out", "summary": f"⏰ 任务执行超时（{self._task_timeout} 秒）"})
                     if on_step: on_step(steps[-1])
                     result = {"text": self._get_last_assistant_text(working_messages) or "（任务超时）", "steps": steps}
@@ -258,9 +253,8 @@ class ToolCallingService:
                         break
                     try:
                         has_tools = need_tools is not None and len(need_tools) > 0
-                        logger.info("[ToolCalling] 第 %d 轮 LLM 调用（尝试 %d/3），%s工具",
-                                    round_idx, retry_attempt + 1,
-                                    f"带 {len(need_tools)} 个" if has_tools else "无")
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] 第 %d 轮 LLM 调用（尝试 %d/3），%s工具" % (round_idx, retry_attempt + 1,
+                                    f"带 {len(need_tools)} 个" if has_tools else "无")}, ensure_ascii=False))
                         response = self._call_llm_with_tools(
                             working_messages, system_prompt,
                             max_tokens, temperature, need_tools
@@ -271,15 +265,13 @@ class ToolCallingService:
                         llm_last_exc = e
                         if retry_attempt < 2:  # 前两次失败才重试
                             delay = 2 ** retry_attempt  # 指数退避: 1s, 2s
-                            logger.warning("[ToolCalling] LLM 调用失败（第 %d 轮，尝试 %d/3）: %s，%.1fs 后重试",
-                                           round_idx, retry_attempt + 1, e, delay)
+                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] LLM 调用失败（第 %d 轮，尝试 %d/3）: %s，%.1fs 后重试" % (round_idx, retry_attempt + 1, e, delay)}, ensure_ascii=False))
                             time.sleep(delay)
                         else:
-                            logger.error("[ToolCalling] LLM 调用失败（第 %d 轮，3 次尝试均失败）: %s",
-                                         round_idx, e)
+                            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] LLM 调用失败（第 %d 轮，3 次尝试均失败）: %s" % (round_idx, e)}, ensure_ascii=False))
 
                 if llm_last_exc is not None:
-                    logger.error("LLM 调用失败（第 %d 轮，已重试 3 次）: %s", round_idx, llm_last_exc)
+                    logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "LLM 调用失败（第 %d 轮，已重试 3 次）: %s" % (round_idx, llm_last_exc)}, ensure_ascii=False))
                     if round_idx == 0:
                         logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "llm", "msg": "[ToolCalling] 首轮失败，降级为纯文本 LLM 调用"}, ensure_ascii=False))
                         try:
@@ -306,7 +298,7 @@ class ToolCallingService:
                     # ⬆ XML 格式工具调用检测（DeepSeek 模型有时输出 XML 格式而非 JSON tool_calls）
                     _xml_tools = self._extract_xml_tool_calls(text_preview) if text_preview else []
                     if _xml_tools:
-                        logger.info("[ToolCalling] 检测到 XML 格式工具调用: %d 个", len(_xml_tools))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] 检测到 XML 格式工具调用: %d 个" % (len(_xml_tools))}, ensure_ascii=False))
                         # 执行 XML 工具，然后用结果摘要直接回复（不返回模型循环，防止死循环）
                         _summaries = []
                         for _xc in _xml_tools:
@@ -329,15 +321,15 @@ class ToolCallingService:
                         return result
                     else:
                         # ⬆ 模型升级检测
-                        logger.info("[UPGRADE] notool round=%d router=%s upgraded=%s", round_idx, self._model_router is not None, self._model_upgraded)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] notool round=%d router=%s upgraded=%s" % (round_idx, self._model_router is not None, self._model_upgraded)}, ensure_ascii=False))
                         if not self._model_upgraded and self._model_router:
                             _has = any(s.get("type")=="tool_result" and s.get("status")=="success" for s in steps)
-                            logger.info("[UPGRADE] has_tools=%s", _has)
+                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] has_tools=%s" % (_has)}, ensure_ascii=False))
                             if _has:
                                 _cn = next((cn for cn,cc in self._model_router._models.items()
                                             if cc.model == self._primary_llm.model), None)
                                 _uc = self._model_router.get_upgrade(_cn) if _cn else None
-                                logger.info("[UPGRADE] cn=%s uc=%s", _cn, _uc.model if _uc else None)
+                                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] cn=%s uc=%s" % (_cn, _uc.model if _uc else None)}, ensure_ascii=False))
                                 if _uc:
                                     try:
                                         from memory.llm_service import LLMService
@@ -348,7 +340,7 @@ class ToolCallingService:
                                         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 已切换到更强模型，继续执行"}, ensure_ascii=False))
                                         continue
                                     except Exception as _e:
-                                        logger.warning("[UPGRADE] ❌ 失败: %s", _e)
+                                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] ❌ 失败: %s" % (_e)}, ensure_ascii=False))
 
                     # 最终文本降级链：模型文本 > reasoning > 历史助手消息 > 工具步骤摘要
                     final_text = text_preview
@@ -364,9 +356,8 @@ class ToolCallingService:
                         result["reasoning"] = reasoning
                     return result
 
-                logger.info("[ToolCalling] LLM 返回 %d 个工具调用: %s",
-                            len(tool_calls),
-                            [tc.get("function", {}).get("name", "") for tc in tool_calls])
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] LLM 返回 %d 个工具调用: %s" % (len(tool_calls),
+                            [tc.get("function", {}).get("name", "") for tc in tool_calls])}, ensure_ascii=False))
 
                 assistant_msg = {"role": "assistant", "content": None, "tool_calls": []}
                 tool_results = []
@@ -378,8 +369,7 @@ class ToolCallingService:
                         try:
                             raw_args = json.loads(raw_args)
                         except json.JSONDecodeError:
-                            logger.warning("[ToolCalling] %s 参数 JSON 解析失败，原始参数: %s",
-                                           func_name, raw_args[:200])
+                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] %s 参数 JSON 解析失败，原始参数: %s" % (func_name, raw_args[:200])}, ensure_ascii=False))
                             # 尝试修复 LLM 常见的 JSON 格式错误
                             fixed = raw_args.strip()
                             # 单引号 → 双引号（LLM 经常用单引号代替双引号）
@@ -392,13 +382,12 @@ class ToolCallingService:
                             fixed = re.sub(r",\s*([}\]])", r"\1", fixed)
                             try:
                                 raw_args = json.loads(fixed)
-                                logger.info("[ToolCalling] %s 参数已通过修复解析成功: %s", func_name, raw_args)
+                                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] %s 参数已通过修复解析成功: %s" % (func_name, raw_args)}, ensure_ascii=False))
                             except json.JSONDecodeError:
-                                logger.error("[ToolCalling] %s 参数修复后仍然无法解析: %s",
-                                             func_name, fixed[:200])
+                                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] %s 参数修复后仍然无法解析: %s" % (func_name, fixed[:200])}, ensure_ascii=False))
                                 raw_args = {}
 
-                    logger.info("[ToolCalling] LLM 调用工具: %s, 参数: %s", func_name, raw_args)
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] LLM 调用工具: %s, 参数: %s" % (func_name, raw_args)}, ensure_ascii=False))
 
                     tc_entry = {
                         "id": tc_id,
@@ -426,8 +415,7 @@ class ToolCallingService:
                         # 工具被调用但参数为空或全空 → 可能是 LLM 工具调用缺陷
                         _consecutive_failures[func_name] = _consecutive_failures.get(func_name, 0) + 1
                         if _consecutive_failures[func_name] >= 2:
-                            logger.warning("[ToolCalling] %s 连续 %d 次空参数调用失败，终止工具循环",
-                                           func_name, _consecutive_failures[func_name])
+                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] %s 连续 %d 次空参数调用失败，终止工具循环" % (func_name, _consecutive_failures[func_name])}, ensure_ascii=False))
 
                     # 记录步骤：工具返回结果
                     result_ok = result.get("ok", False)
@@ -457,12 +445,12 @@ class ToolCallingService:
                 # if not tool_calls 分支，所以必须在此处检查）
                 if not self._model_upgraded and self._model_router:
                     _has = any(s.get("type")=="tool_result" and s.get("status")=="success" for s in steps)
-                    logger.info("[UPGRADE] upgraded=%s has=%s router_models=%d", self._model_upgraded, _has, len(self._model_router._models))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] upgraded=%s has=%s router_models=%d" % (self._model_upgraded, _has, len(self._model_router._models))}, ensure_ascii=False))
                     if _has:
                         _cn = next((cn for cn,cc in self._model_router._models.items()
                                     if cc.model == self._primary_llm.model), None)
                         _uc = self._model_router.get_upgrade(_cn) if _cn else None
-                        logger.info("[UPGRADE] cn=%s uc=%s", _cn, _uc.model if _uc else None)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] cn=%s uc=%s" % (_cn, _uc.model if _uc else None)}, ensure_ascii=False))
                         if _uc:
                             try:
                                 from memory.llm_service import LLMService
@@ -470,15 +458,15 @@ class ToolCallingService:
                                 _nu._get_client()
                                 self._upgrade_llm = _nu
                                 self._model_upgraded = True
-                                logger.info("[UPGRADE] ✅ 升级: %s -> %s", self._primary_llm.model, _uc.model)
+                                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] ✅ 升级: %s -> %s" % (self._primary_llm.model, _uc.model)}, ensure_ascii=False))
                             except Exception as _e:
-                                logger.warning("[UPGRADE] ❌ 失败: %s", _e)
+                                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[UPGRADE] ❌ 失败: %s" % (_e)}, ensure_ascii=False))
 
                 # 检测连续空参数失败：某个工具连续 2+ 次被 LLM 以空参数调用
                 # 不再直接终止循环，而是清除计数让 LLM 重新尝试，避免一次失败就放弃
                 stuck_tools = [name for name, count in _consecutive_failures.items() if count >= 2]
                 if stuck_tools:
-                    logger.warning("[ToolCalling] 以下工具连续空参数调用失败: %s，清除计数继续重试", stuck_tools)
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] 以下工具连续空参数调用失败: %s，清除计数继续重试" % (stuck_tools)}, ensure_ascii=False))
                     # 记录提示步骤但不终止循环
                     steps.append({
                         "type": "tool_stuck",
@@ -711,14 +699,13 @@ class ToolCallingService:
                 if has_workflow:
                     plan = ErrorRecovery.get_recovery_plan(error_msg, attempt)
                     if plan["should_retry"]:
-                        logger.warning("[恢复] %s (尝试 %d/3, %.1fs 后重试)",
-                                       plan["message"], attempt + 1, plan["delay"])
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[恢复] %s (尝试 %d/3, %.1fs 后重试)" % (plan["message"], attempt + 1, plan["delay"])}, ensure_ascii=False))
                         import time
                         time.sleep(plan["delay"])
                         continue
                 return {"ok": False, "error": error_msg}
             except Exception as e:
-                logger.error("工具 %s 执行异常: %s", func_name, e)
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "工具 %s 执行异常: %s" % (func_name, e)}, ensure_ascii=False))
                 if has_workflow:
                     plan = ErrorRecovery.get_recovery_plan(str(e), attempt)
                     if plan["should_retry"]:
