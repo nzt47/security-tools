@@ -1,3 +1,15 @@
+
+import logging
+import json
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 """RuleMatcher — 规则匹配器（关键词/正则/自定义函数三种匹配模式）
 
 提供标准化的匹配函数工厂，供 Rule.match_fn 使用。
@@ -57,3 +69,21 @@ class RuleMatcher:
                 if p and p.lower() in text.lower():
                     return True
         return False
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "matcher",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise
