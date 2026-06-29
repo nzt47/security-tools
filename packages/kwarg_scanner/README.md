@@ -118,6 +118,67 @@ jobs:
           path: report.json
 ```
 
+### Docker 镜像（CI 流水线专用）
+
+适用于跨项目复用、CI 环境隔离、以及非 Python 主项目的场景。
+
+```bash
+# 构建镜像
+docker build -t kwarg-scanner:latest ./packages/kwarg_scanner
+
+# CI 默认扫描（HIGH 风险阻断，exit 0=通过, 1=阻断）
+docker run --rm -v "$(pwd):/project" kwarg-scanner
+
+# 自定义参数
+docker run --rm -v "$(pwd):/project" kwarg-scanner --path /project/src --min-risk MEDIUM
+
+# 环境变量配置
+docker run --rm -v "$(pwd):/project" \
+  -e MIN_RISK=HIGH \
+  -e OUTPUT_FORMAT=json \
+  -e OUTPUT_FILE=/project/report.json \
+  -e ENABLE_LOGGING=true \
+  kwarg-scanner
+
+# 健康检查
+docker run --rm kwarg-scanner --health
+```
+
+**环境变量**:
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SCAN_PATH` | `/project` | 扫描路径 |
+| `MIN_RISK` | `HIGH` | 最低风险等级 LOW/MEDIUM/HIGH |
+| `OUTPUT_FORMAT` | `text` | 输出格式 text/json |
+| `OUTPUT_FILE` | (空) | 输出文件路径（空则输出到 stdout） |
+| `ENABLE_LOGGING` | `false` | 启用结构化 JSON 日志 |
+
+**退出码**:
+
+| 码 | 含义 | CI 行为 |
+|----|------|---------|
+| 0 | 扫描通过，未发现 HIGH 风险 | 继续 |
+| 1 | 发现 HIGH 风险 | 阻断 |
+| 2 | 参数错误 | 阻断 |
+| 3 | 扫描器内部错误 | 阻断 |
+
+**结构化日志**（输出到 stderr）:
+
+```json
+{"trace_id":"47ab3a43c4f56d55","module_name":"kwarg_scanner_ci","action":"scan_complete","duration_ms":223.78,"result":"success","exit_code":"0","total_duration_ms":"221.14","high_risk_count":"0"}
+```
+
+**GitHub Actions 集成（Docker 版）**:
+
+```yaml
+# .github/workflows/kwarg-docker-scan.yml
+- name: 关键字参数冲突扫描
+  run: |
+    docker build -t kwarg-scanner:local ./packages/kwarg_scanner
+    docker run --rm -v "${{ github.workspace }}:/project" kwarg-scanner:local
+```
+
 ## 风险等级
 
 | 等级 | 条件 | 处理 |
