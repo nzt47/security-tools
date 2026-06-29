@@ -49,13 +49,15 @@ def trackEvent(event_name: str, payload: Optional[Dict[str, Any]] = None) -> Non
     """
     tid = _trace_id()
     t0 = time.time()
+    _RESERVED = {"action", "trace_id", "duration_ms", "level", "module_name"}
+    safe_payload = {k: v for k, v in (payload or {}).items() if k not in _RESERVED}
     try:
         _emit_structured_log(
             f"track.{event_name}",
             trace_id=tid,
             duration_ms=0.0,
             event_name=event_name,
-            **(payload or {}),
+            **safe_payload,
         )
         if _METRICS_AVAILABLE:
             _metrics.record_interaction(event_name, "network", True, (time.time() - t0) * 1000)
