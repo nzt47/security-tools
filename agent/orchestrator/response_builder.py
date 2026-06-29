@@ -1,3 +1,15 @@
+
+import logging
+import json
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 """ResponseBuilder — 统一响应构建
 
 提供静态工厂方法构建统一的 Response 格式。
@@ -80,3 +92,21 @@ def _response_to_dict(r: Response) -> Dict:
 
 
 Response.to_dict = lambda self: _response_to_dict(self)  # type: ignore
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "response_builder",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise
