@@ -5,6 +5,7 @@
 """
 
 import json
+import uuid
 import os
 import logging
 from typing import Dict, Any, List, Optional
@@ -13,6 +14,11 @@ from pathlib import Path
 from agent.extensions.base import ExtensionMetadata, ExtensionType, ExtensionStatus
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 默认扩展数据目录
 _EXTENSIONS_DATA_DIR = Path(__file__).parent.parent / "data"
@@ -38,7 +44,7 @@ class ExtensionStore:
             if self._data_file.exists():
                 with open(self._data_file, "r", encoding="utf-8") as f:
                     self._cache = json.load(f)
-                logger.info(f"[扩展存储] 已加载扩展数据: {self._data_file}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "self._data_file", "msg": f"[扩展存储] 已加载扩展数据: {self._data_file}"}, ensure_ascii=False))
             else:
                 self._cache = {
                     "skills": [],
@@ -48,9 +54,9 @@ class ExtensionStore:
                     "plugins": [],
                 }
                 self._save(self._cache)
-                logger.info(f"[扩展存储] 已创建扩展数据文件: {self._data_file}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "self._data_file", "msg": f"[扩展存储] 已创建扩展数据文件: {self._data_file}"}, ensure_ascii=False))
         except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"[扩展存储] 加载失败: {e}，使用空数据")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "log", "msg": f"[扩展存储] 加载失败: {e}，使用空数据"}, ensure_ascii=False))
             self._cache = {
                 "skills": [], "claude_skills": [], "mcps": [],
                 "channels": [], "plugins": [],
@@ -101,10 +107,10 @@ class ExtensionStore:
         )
         if existing:
             existing.update(metadata.to_dict())
-            logger.info(f"[扩展存储] 已更新扩展: {metadata.ext_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "metadata.ext_id", "msg": f"[扩展存储] 已更新扩展: {metadata.ext_id}"}, ensure_ascii=False))
         else:
             data[key].append(metadata.to_dict())
-            logger.info(f"[扩展存储] 已添加扩展: {metadata.ext_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "metadata.ext_id", "msg": f"[扩展存储] 已添加扩展: {metadata.ext_id}"}, ensure_ascii=False))
         self._save(data)
         self._cache = data
 
@@ -117,7 +123,7 @@ class ExtensionStore:
         if len(data[key]) < before:
             self._save(data)
             self._cache = data
-            logger.info(f"[扩展存储] 已移除扩展: {ext_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "ext_id", "msg": f"[扩展存储] 已移除扩展: {ext_id}"}, ensure_ascii=False))
             return True
         return False
 
@@ -138,7 +144,7 @@ class ExtensionStore:
                     item.setdefault("config", {}).update(config)
                 self._save(data)
                 self._cache = data
-                logger.info(f"[扩展存储] 已更新状态: {ext_id} → {status.value}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "store", "action": "ext_id.status.value", "msg": f"[扩展存储] 已更新状态: {ext_id} → {status.value}"}, ensure_ascii=False))
                 return True
         return False
 

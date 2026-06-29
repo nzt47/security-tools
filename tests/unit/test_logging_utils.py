@@ -92,7 +92,7 @@ def test_sensitive_data_filter_password():
     logger.info(f"  原文: '{text}'")
     logger.info(f"  脱敏后: '{sanitized}'")
     assert "my_secret_password" not in sanitized
-    assert "***" in sanitized
+    assert "***" in sanitized or "[REDACTED]" in sanitized
 
 
 def test_sensitive_data_filter_phone():

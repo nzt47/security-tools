@@ -43,6 +43,10 @@ from agent.digital_life import (
 )
 import uuid
 
+# 导入 set_trace_id 用于后台线程设置专属 trace_id
+# 注意：digital_life.py 的公共接口未导出 set_trace_id，故此处直接从 tracing 模块导入
+from agent.monitoring.tracing import set_trace_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,6 +78,10 @@ class LifecycleManager:
         """
         config = config or {}
         self._config = config
+
+        # 后台自主循环线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        # 子线程在 _autonomous_loop 入口调用 set_trace_id(self._lifecycle_trace_id) 显式注入
+        self._lifecycle_trace_id = f"lifecycle-{uuid.uuid4().hex[:16]}"
 
         self._log_initialization_start()
         self._check_module_availability()
@@ -513,6 +521,9 @@ class LifecycleManager:
         - 智能修剪: 默认每 120s
         - 多层摘要: 默认每 300s
         """
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        # 必须在子线程入口处显式调用 set_trace_id，否则 _trace_id() 会回落到随机 uuid
+        set_trace_id(self._lifecycle_trace_id)
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lifecycle_manager", "action": "lifecycle_manager._autonomous_loop.log", "duration_ms": 0, "message": "[维护] 自主循环已启动"}, ensure_ascii=False))
         while not self._stop_event.is_set():
             now = time.time()

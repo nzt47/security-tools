@@ -40,7 +40,7 @@ def _load_mock_data(filename):
             with open(data_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.warning(f"[Dashboard] 加载 mock 数据失败 {filename}: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "mock.filename", "msg": f"[Dashboard] 加载 mock 数据失败 {filename}: {e}"}, ensure_ascii=False))
     return None
 
 
@@ -481,7 +481,7 @@ def _get_trace_detail(trace_id):
         if detail:
             return detail
     except Exception as e:
-        logger.error(f"获取追踪详情失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "log", "msg": f"获取追踪详情失败: {e}"}, ensure_ascii=False))
     
     # 返回模拟数据
     return _generate_mock_trace_detail(trace_id)
@@ -1107,4 +1107,4 @@ def register_routes(app, state):
         
         return jsonify(result)
     
-    logger.info("[Routes] 仪表盘端点已注册")
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "log", "msg": "[Routes] 仪表盘端点已注册"}, ensure_ascii=False))

@@ -1,7 +1,21 @@
+
+import logging
+import json
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 """日志处理器工厂与配置"""
 import os
 import sys
 import logging
+import json
+import uuid
 import logging.handlers
 from typing import Optional
 
@@ -124,8 +138,8 @@ def setup_agent_logging(
         logging.getLogger(module).setLevel(logging.DEBUG if debug_mode else logging.INFO)
 
     logger = logging.getLogger("云枢.agent")
-    logger.info("=" * 70)
-    logger.info("Agent 模块日志系统已初始化")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "handlers", "action": "log", "msg": "=" * 70}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "handlers", "action": "agent", "msg": "Agent 模块日志系统已初始化"}, ensure_ascii=False))
     return logger
 
 
@@ -154,3 +168,21 @@ def setup_error_logging(
     file_handler.addFilter(SensitiveDataFilter())
     logger.addHandler(file_handler)
     return logger
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "handlers",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise

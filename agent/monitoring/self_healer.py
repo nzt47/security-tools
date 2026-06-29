@@ -131,6 +131,9 @@ class SelfHealer:
         self._running = False
         self._health_check_thread: Optional[threading.Thread] = None
 
+        # 后台健康检查线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._healer_trace_id = f"self-healer-{uuid.uuid4().hex[:16]}"
+
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "self_healer",

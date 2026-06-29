@@ -209,6 +209,8 @@ class AsyncWriter:
         self._flush_thread = None
         self._running = False
         self._last_flush = time.time()
+        # 后台刷新线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._flush_trace_id = f"tracing-cache-flush-{uuid.uuid4().hex[:16]}"
     
     def start(self):
         """启动异步写入线程"""
