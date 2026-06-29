@@ -1,0 +1,119 @@
+2026-06-24 17:44:43,665 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:44:43,669 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:44:43,671 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:44:43,808 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:44:43,831 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:44:43,834 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:44:43,863 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:44:43,931 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:44:43,936 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:44:43,957 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:44:43,958 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:44:43,958 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:44:43,960 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:44:43,962 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:44:44,098 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:44:44,103 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:44:44,103 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:44:44,176 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:44:44,177 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:44:44,177 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:44:44,177 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:44:44,178 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:44:44,178 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:44:44,178 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:44:44,178 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:44:44,178 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:44:44,179 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:44:44,179 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:44:44,179 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:44:44,179 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:44:44,261 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpktz0shxv
+2026-06-24 17:44:44,262 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: flow-test-001, spans: 2
+2026-06-24 17:44:44,263 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Users\Administrator\agent\tests\unit\..\..\agent\monitoring\..\..\data\traces
+2026-06-24 17:44:44,264 [ WARNING] agent.monitoring.tracing: [Tracing] Trace 不存在: flow-test-001
+2026-06-24 17:44:44,576 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpngtngnqn
+2026-06-24 17:44:44,581 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmp4n2l3mz6
+2026-06-24 17:44:44,582 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-000, spans: 1
+2026-06-24 17:44:44,583 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-001, spans: 1
+2026-06-24 17:44:44,584 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-002, spans: 1
+2026-06-24 17:44:44,591 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpkmrevihi
+2026-06-24 17:44:44,598 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpttmf38nl
+2026-06-24 17:44:44,599 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-003, spans: 1
+2026-06-24 17:44:44,619 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpft_qvtgy
+2026-06-24 17:44:44,641 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:44:44,648 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmp866zf8ge
+2026-06-24 17:44:44,669 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:44:44,674 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpla_3eohd
+2026-06-24 17:44:44,694 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:44:44,704 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-0", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,704 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-0
+2026-06-24 17:44:44,713 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-1", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,713 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: field_error, trace_id=trace-1
+2026-06-24 17:44:44,721 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-2", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,721 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-2
+2026-06-24 17:44:44,729 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-3", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,730 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: field_error, trace_id=trace-3
+2026-06-24 17:44:44,739 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-4", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,739 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=trace-4
+2026-06-24 17:44:44,745 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmp443ryv20
+2026-06-24 17:44:44,770 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:44:44,778 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "test-trace-001", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "high", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,779 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 记录失败案例: api_fiction, trace_id=test-trace-001
+2026-06-24 17:44:44,790 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmp909hluc5
+2026-06-24 17:44:44,812 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:44,813 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-006
+2026-06-24 17:44:44,816 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-006", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,821 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpdc9douvg
+2026-06-24 17:44:44,843 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:44,844 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-004
+2026-06-24 17:44:44,847 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-004", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,852 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 2c2cead8-4a6f-49a1-a708-92fcbb342602, prompt_id=test-prompt-004
+2026-06-24 17:44:44,852 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-004", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,854 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-004
+2026-06-24 17:44:44,858 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-004", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,862 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 564f1bfc-38f0-4dce-b2c5-314348afbbc5, prompt_id=test-prompt-004
+2026-06-24 17:44:44,862 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-004", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,868 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpkd5zb4lr
+2026-06-24 17:44:44,892 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:44,893 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-002
+2026-06-24 17:44:44,897 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-002", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,902 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 74b65c71-6196-48a0-ab6e-12697d5bf6b5, prompt_id=test-prompt-002
+2026-06-24 17:44:44,902 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-002", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,907 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmp7_f9rit3
+2026-06-24 17:44:44,929 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:44,930 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-001
+2026-06-24 17:44:44,933 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-001", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,938 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmptzvx7yh1
+2026-06-24 17:44:44,968 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:44,970 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-005
+2026-06-24 17:44:44,972 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-005", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,976 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 7364c2da-74fe-4a0d-af3f-75c9b5859360, prompt_id=test-prompt-005
+2026-06-24 17:44:44,976 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,978 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-005
+2026-06-24 17:44:44,980 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-005", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,984 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: f2c223c1-c97e-40e5-961e-7398954ffa96, prompt_id=test-prompt-005
+2026-06-24 17:44:44,985 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,986 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-005
+2026-06-24 17:44:44,992 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 4b727d29-dbe6-4eef-8fa1-9ece56177165, prompt_id=test-prompt-005
+2026-06-24 17:44:44,993 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.2", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,993 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "rollback", "prompt_id": "test-prompt-005", "target_version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:44,998 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmp29kw0wfw
+2026-06-24 17:44:45,017 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:45,018 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-007
+2026-06-24 17:44:45,021 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-007", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:45,026 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 8b1f001f-afef-479b-97e2-cf63cf81917d, prompt_id=test-prompt-007
+2026-06-24 17:44:45,026 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-007", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:45,031 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新版本测试结果: 8b1f001f-afef-479b-97e2-cf63cf81917d
+2026-06-24 17:44:45,036 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpfl7w4ilv
+2026-06-24 17:44:45,056 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 17:44:45,057 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-003
+2026-06-24 17:44:45,060 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-003", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:45,064 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 6d92ffc1-6b47-4505-9d89-3ce7457fced1, prompt_id=test-prompt-003
+2026-06-24 17:44:45,064 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-003", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:45,066 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-003
+2026-06-24 17:44:45,069 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-003", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:44:45,073 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 6d190e29-121b-4704-b693-eb6bc45e5a9b, prompt_id=test-prompt-003
+2026-06-24 17:44:45,073 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-003", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}

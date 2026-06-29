@@ -1,0 +1,252 @@
+2026-06-29 01:27:37,605 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 01:27:37,609 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 01:27:37,610 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 01:27:37,620 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 01:27:37,636 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:27:37,640 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 01:27:37,670 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-29 01:27:37,676 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 01:27:37,681 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 01:27:37,697 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 01:27:37,698 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 01:27:37,698 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 01:27:37,699 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-29 01:27:37,700 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 01:27:37,848 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 01:27:37,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 01:27:37,851 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-29 01:27:37,852 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 01:27:37,993 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-29 01:27:37,993 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-29 01:27:38,015 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_create_manual_basic0\skills_mgmt.json
+2026-06-29 01:27:38,017 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_create_manual_basic0\\skills.json'
+2026-06-29 01:27:38,017 [    INFO] agent.skills_mgmt: {"trace_id": "ec3faddd-c319-43aa-aaa3-a5c5bf8a7065", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.0174508, "event_name": "skill_created", "payload": {"skill_id": "test-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,017 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: test-skill (source=manual)
+2026-06-29 01:27:38,026 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_create_manual_duplicate_r0\skills_mgmt.json
+2026-06-29 01:27:38,027 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_create_manual_duplicate_r0\\skills.json'
+2026-06-29 01:27:38,027 [    INFO] agent.skills_mgmt: {"trace_id": "8115b73d-0a11-473e-ad6c-0d6ab110ba80", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.0279646, "event_name": "skill_created", "payload": {"skill_id": "dup", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,028 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: dup (source=manual)
+2026-06-29 01:27:38,041 [    INFO] agent.skills_mgmt: {"trace_id": "3ad2de7f-6332-442d-972d-f882df38bed2", "module_name": "skills_mgmt", "action": "skill_ai_generate.start", "duration_ms": 0.0, "ts": 1782667658.0419934, "name": "ai-skill", "intent": "生成一段问候语"}
+2026-06-29 01:27:38,042 [    INFO] agent.skills_mgmt: {"trace_id": "cb180705-cb20-4b74-b627-0c44406471bb", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.0425093, "event_name": "skill_ai_generate_start", "payload": {"name": "ai-skill", "intent": "生成一段问候语"}}
+2026-06-29 01:27:38,043 [    INFO] agent.skills_mgmt: {"trace_id": "3ad2de7f-6332-442d-972d-f882df38bed2", "module_name": "skills_mgmt", "action": "skill_ai_generate.end", "duration_ms": 0.52, "ts": 1782667658.0430174, "status": "ok", "name": "ai-skill", "intent": "生成一段问候语", "skill_id": "ai-skill"}
+2026-06-29 01:27:38,044 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_create_via_ai_with_templa0\skills_mgmt.json
+2026-06-29 01:27:38,046 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_create_via_ai_with_templa0\\skills.json'
+2026-06-29 01:27:38,046 [    INFO] agent.skills_mgmt: {"trace_id": "4ccd02b8-7d18-46e7-a7f8-6cdce876ac58", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.046901, "event_name": "skill_created", "payload": {"skill_id": "ai-skill", "source": "ai_assisted", "category": "ai_generated"}}
+2026-06-29 01:27:38,046 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ai-skill (source=ai_assisted)
+2026-06-29 01:27:38,053 [    INFO] agent.skills_mgmt: {"trace_id": "c1881830-985c-4ac2-ac26-4511a8464ea2", "module_name": "skills_mgmt", "action": "skill_install.start", "duration_ms": 0.0, "ts": 1782667658.053851, "source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_install_local_json_file0\\skill.json", "force": false}
+2026-06-29 01:27:38,053 [    INFO] agent.skills_mgmt: {"trace_id": "38662c5a-c94f-4535-bcf2-4601c4d3b292", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.053851, "event_name": "skill_install_start", "payload": {"source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_install_local_json_file0\\skill.json"}}
+2026-06-29 01:27:38,057 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_install_local_json_file0\skills_mgmt.json
+2026-06-29 01:27:38,058 [    INFO] agent.skills_mgmt: [Installer] 安装成功: installed-skill (scheme=local)
+2026-06-29 01:27:38,058 [    INFO] agent.skills_mgmt: {"trace_id": "c1881830-985c-4ac2-ac26-4511a8464ea2", "module_name": "skills_mgmt", "action": "skill_install.end", "duration_ms": 4.77, "ts": 1782667658.0586188, "status": "ok", "source": "local:C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_install_local_json_file0\\skill.json", "force": false, "skill_id": "installed-skill"}
+2026-06-29 01:27:38,066 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_review_passes_good_skill0\skills_mgmt.json
+2026-06-29 01:27:38,069 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_passes_good_skill0\\skills.json'
+2026-06-29 01:27:38,069 [    INFO] agent.skills_mgmt: {"trace_id": "5ddf3522-4e7b-4887-b3ba-144ed7d49542", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.0690491, "event_name": "skill_created", "payload": {"skill_id": "good", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,069 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: good (source=manual)
+2026-06-29 01:27:38,069 [    INFO] agent.skills_mgmt: {"trace_id": "5ce89257-137e-4f2e-bec4-af5f825cc414", "module_name": "skills_mgmt", "action": "svc_review.start", "duration_ms": 0.0, "ts": 1782667658.0690491, "skill_id": "good"}
+2026-06-29 01:27:38,069 [    INFO] agent.skills_mgmt: {"trace_id": "9c9e0e11-69ff-4b3e-bd6a-b143adf0a4c8", "module_name": "skills_mgmt", "action": "skill_review.start", "duration_ms": 0.0, "ts": 1782667658.0695872, "skill_id": "good"}
+2026-06-29 01:27:38,070 [    INFO] agent.skills_mgmt: {"trace_id": "9c9e0e11-69ff-4b3e-bd6a-b143adf0a4c8", "module_name": "skills_mgmt", "action": "skill_review.end", "duration_ms": 0.51, "ts": 1782667658.070097, "status": "ok", "skill_id": "good", "score": 94.0}
+2026-06-29 01:27:38,071 [    INFO] agent.skills_mgmt: {"trace_id": "5ce89257-137e-4f2e-bec4-af5f825cc414", "module_name": "skills_mgmt", "action": "svc_review.end", "duration_ms": 2.63, "ts": 1782667658.071676, "status": "ok", "skill_id": "good"}
+2026-06-29 01:27:38,080 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_review_rejects_security_r0\skills_mgmt.json
+2026-06-29 01:27:38,082 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_rejects_security_r0\\skills.json'
+2026-06-29 01:27:38,082 [    INFO] agent.skills_mgmt: {"trace_id": "b3c24c69-a846-4768-8fa4-67c12436ec9d", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.082057, "event_name": "skill_created", "payload": {"skill_id": "dangerous", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,082 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: dangerous (source=manual)
+2026-06-29 01:27:38,082 [    INFO] agent.skills_mgmt: {"trace_id": "f7613979-388d-4437-80d5-8dcd9ac7c517", "module_name": "skills_mgmt", "action": "svc_review.start", "duration_ms": 0.0, "ts": 1782667658.082057, "skill_id": "dangerous"}
+2026-06-29 01:27:38,082 [    INFO] agent.skills_mgmt: {"trace_id": "50ac0486-2dc5-4e22-812f-e4c059c0683d", "module_name": "skills_mgmt", "action": "skill_review.start", "duration_ms": 0.0, "ts": 1782667658.082569, "skill_id": "dangerous"}
+2026-06-29 01:27:38,083 [ WARNING] agent.skills_mgmt: [Reviewer] 技能 dangerous 因安全风险被拒绝
+2026-06-29 01:27:38,083 [    INFO] agent.skills_mgmt: {"trace_id": "50ac0486-2dc5-4e22-812f-e4c059c0683d", "module_name": "skills_mgmt", "action": "skill_review.end", "duration_ms": 0.58, "ts": 1782667658.0831466, "status": "ok", "skill_id": "dangerous", "blocked": true}
+2026-06-29 01:27:38,084 [    INFO] agent.skills_mgmt: {"trace_id": "f7613979-388d-4437-80d5-8dcd9ac7c517", "module_name": "skills_mgmt", "action": "svc_review.end", "duration_ms": 2.78, "ts": 1782667658.084836, "status": "ok", "skill_id": "dangerous"}
+2026-06-29 01:27:38,093 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_security_scanner_raises_o0\skills_mgmt.json
+2026-06-29 01:27:38,094 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_security_scanner_raises_o0\\skills.json'
+2026-06-29 01:27:38,094 [    INFO] agent.skills_mgmt: {"trace_id": "d4de4656-37bb-4c85-ae38-f4d73be43308", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.0948055, "event_name": "skill_created", "payload": {"skill_id": "dangerous2", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,094 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: dangerous2 (source=manual)
+2026-06-29 01:27:38,103 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_review_detects_duplicate0\skills_mgmt.json
+2026-06-29 01:27:38,104 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_detects_duplicate0\\skills.json'
+2026-06-29 01:27:38,105 [    INFO] agent.skills_mgmt: {"trace_id": "c54774cb-92ac-43f8-9dd1-352862b0e6f2", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1048045, "event_name": "skill_created", "payload": {"skill_id": "skill-a", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,105 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: skill-a (source=manual)
+2026-06-29 01:27:38,107 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_detects_duplicate0\\skills.json'
+2026-06-29 01:27:38,107 [    INFO] agent.skills_mgmt: {"trace_id": "705a9b6b-4184-4374-9153-e96c2a5c7ec7", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.10736, "event_name": "skill_created", "payload": {"skill_id": "skill-b", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,107 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: skill-b (source=manual)
+2026-06-29 01:27:38,107 [    INFO] agent.skills_mgmt: {"trace_id": "861ffae1-4aac-42a9-9f5a-b1329813b890", "module_name": "skills_mgmt", "action": "svc_review.start", "duration_ms": 0.0, "ts": 1782667658.10736, "skill_id": "skill-b"}
+2026-06-29 01:27:38,107 [    INFO] agent.skills_mgmt: {"trace_id": "647313b6-739b-493f-9164-cf66e960250d", "module_name": "skills_mgmt", "action": "skill_review.start", "duration_ms": 0.0, "ts": 1782667658.10736, "skill_id": "skill-b"}
+2026-06-29 01:27:38,107 [    INFO] agent.skills_mgmt: {"trace_id": "647313b6-739b-493f-9164-cf66e960250d", "module_name": "skills_mgmt", "action": "skill_review.end", "duration_ms": 0.51, "ts": 1782667658.10787, "status": "ok", "skill_id": "skill-b", "score": 57.5}
+2026-06-29 01:27:38,109 [    INFO] agent.skills_mgmt: {"trace_id": "861ffae1-4aac-42a9-9f5a-b1329813b890", "module_name": "skills_mgmt", "action": "svc_review.end", "duration_ms": 2.13, "ts": 1782667658.1094894, "status": "ok", "skill_id": "skill-b"}
+2026-06-29 01:27:38,115 [    INFO] agent.skills_mgmt: {"trace_id": "614ba350-536a-462f-ad35-1555674248a8", "module_name": "skills_mgmt", "action": "svc_review.start", "duration_ms": 0.0, "ts": 1782667658.1159623, "skill_id": "nonexistent-id"}
+2026-06-29 01:27:38,117 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_review_nonexistent_raises0\skills_mgmt.json
+2026-06-29 01:27:38,118 [   ERROR] agent.skills_mgmt: {"trace_id": "614ba350-536a-462f-ad35-1555674248a8", "module_name": "skills_mgmt", "action": "svc_review.error", "duration_ms": 2.1, "ts": 1782667658.118059, "status": "error", "error": "技能不存在: nonexistent-id", "error_type": "SkillNotFoundError", "skill_id": "nonexistent-id"}
+2026-06-29 01:27:38,126 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_review_batch0\skills_mgmt.json
+2026-06-29 01:27:38,128 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_batch0\\skills.json'
+2026-06-29 01:27:38,128 [    INFO] agent.skills_mgmt: {"trace_id": "599f9ab4-ecbc-4797-9133-e22b223cd118", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1288288, "event_name": "skill_created", "payload": {"skill_id": "batch-1", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,128 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: batch-1 (source=manual)
+2026-06-29 01:27:38,130 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_review_batch0\\skills.json'
+2026-06-29 01:27:38,130 [    INFO] agent.skills_mgmt: {"trace_id": "6d255e84-1c27-408c-a120-90de296ecb33", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1305869, "event_name": "skill_created", "payload": {"skill_id": "batch-2", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,131 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: batch-2 (source=manual)
+2026-06-29 01:27:38,139 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_search_by_keyword0\skills_mgmt.json
+2026-06-29 01:27:38,141 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_keyword0\\skills.json'
+2026-06-29 01:27:38,141 [    INFO] agent.skills_mgmt: {"trace_id": "3365f651-4f82-40ac-82dc-082932ac5b81", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1419597, "event_name": "skill_created", "payload": {"skill_id": "email-helper", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,141 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: email-helper (source=manual)
+2026-06-29 01:27:38,144 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_keyword0\\skills.json'
+2026-06-29 01:27:38,144 [    INFO] agent.skills_mgmt: {"trace_id": "c4b81384-af6c-4304-8cd4-8c62ecf39dca", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1446157, "event_name": "skill_created", "payload": {"skill_id": "code-reviewer", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,144 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: code-reviewer (source=manual)
+2026-06-29 01:27:38,146 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_keyword0\\skills.json'
+2026-06-29 01:27:38,146 [    INFO] agent.skills_mgmt: {"trace_id": "c22b82c6-71a7-4cc2-9f97-30583ed866f7", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1468742, "event_name": "skill_created", "payload": {"skill_id": "data-fetcher", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,146 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: data-fetcher (source=manual)
+2026-06-29 01:27:38,146 [    INFO] agent.skills_mgmt: {"trace_id": "446ea01a-4bbe-4825-8483-29c254b4c9a0", "module_name": "skills_mgmt", "action": "skill_search.start", "duration_ms": 0.0, "ts": 1782667658.1468742, "query": "邮件", "filters": 0}
+2026-06-29 01:27:38,147 [    INFO] agent.skills_mgmt: [Searcher] query='邮件' → 1/1 命中, 0.00ms
+2026-06-29 01:27:38,147 [    INFO] agent.skills_mgmt: {"trace_id": "446ea01a-4bbe-4825-8483-29c254b4c9a0", "module_name": "skills_mgmt", "action": "skill_search.end", "duration_ms": 0.54, "ts": 1782667658.1474109, "status": "ok", "query": "邮件", "filters": 0, "total": 1, "elapsed_ms": 0.0}
+2026-06-29 01:27:38,155 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_search_by_tag0\skills_mgmt.json
+2026-06-29 01:27:38,157 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_tag0\\skills.json'
+2026-06-29 01:27:38,157 [    INFO] agent.skills_mgmt: {"trace_id": "adfec257-9c6e-431e-8d11-3bbfa35c5a1b", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1571178, "event_name": "skill_created", "payload": {"skill_id": "email-helper", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,157 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: email-helper (source=manual)
+2026-06-29 01:27:38,159 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_tag0\\skills.json'
+2026-06-29 01:27:38,159 [    INFO] agent.skills_mgmt: {"trace_id": "24f34309-712f-4310-8d4e-e1f0a2d2db7d", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1593025, "event_name": "skill_created", "payload": {"skill_id": "code-reviewer", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,159 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: code-reviewer (source=manual)
+2026-06-29 01:27:38,160 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_tag0\\skills.json'
+2026-06-29 01:27:38,161 [    INFO] agent.skills_mgmt: {"trace_id": "16c56902-8c97-4dc7-8bdf-469ccb9cc4c6", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1619434, "event_name": "skill_created", "payload": {"skill_id": "data-fetcher", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,162 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: data-fetcher (source=manual)
+2026-06-29 01:27:38,162 [    INFO] agent.skills_mgmt: {"trace_id": "02cc2f3c-4453-4394-8799-11ebba1a10af", "module_name": "skills_mgmt", "action": "skill_search.start", "duration_ms": 0.0, "ts": 1782667658.1620188, "query": "", "filters": 1}
+2026-06-29 01:27:38,162 [    INFO] agent.skills_mgmt: [Searcher] query='' → 1/1 命中, 0.00ms
+2026-06-29 01:27:38,162 [    INFO] agent.skills_mgmt: {"trace_id": "02cc2f3c-4453-4394-8799-11ebba1a10af", "module_name": "skills_mgmt", "action": "skill_search.end", "duration_ms": 0.51, "ts": 1782667658.162528, "status": "ok", "query": "", "filters": 1, "total": 1, "elapsed_ms": 0.0}
+2026-06-29 01:27:38,170 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_search_by_category0\skills_mgmt.json
+2026-06-29 01:27:38,172 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_category0\\skills.json'
+2026-06-29 01:27:38,172 [    INFO] agent.skills_mgmt: {"trace_id": "9b065967-dac2-4a7e-8c3e-96e4329eacfb", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.172718, "event_name": "skill_created", "payload": {"skill_id": "email-helper", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,172 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: email-helper (source=manual)
+2026-06-29 01:27:38,174 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_category0\\skills.json'
+2026-06-29 01:27:38,174 [    INFO] agent.skills_mgmt: {"trace_id": "e050c84f-a72c-4759-999e-76d1efbc7162", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1746368, "event_name": "skill_created", "payload": {"skill_id": "code-reviewer", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,174 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: code-reviewer (source=manual)
+2026-06-29 01:27:38,176 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_by_category0\\skills.json'
+2026-06-29 01:27:38,176 [    INFO] agent.skills_mgmt: {"trace_id": "f83e92fb-818c-4eef-b6c5-ce55a348384f", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1768978, "event_name": "skill_created", "payload": {"skill_id": "data-fetcher", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,176 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: data-fetcher (source=manual)
+2026-06-29 01:27:38,177 [    INFO] agent.skills_mgmt: {"trace_id": "c4778011-99e6-48ed-9daf-373147061641", "module_name": "skills_mgmt", "action": "skill_search.start", "duration_ms": 0.0, "ts": 1782667658.1774678, "query": "", "filters": 1}
+2026-06-29 01:27:38,177 [    INFO] agent.skills_mgmt: [Searcher] query='' → 3/3 命中, 0.00ms
+2026-06-29 01:27:38,177 [    INFO] agent.skills_mgmt: {"trace_id": "c4778011-99e6-48ed-9daf-373147061641", "module_name": "skills_mgmt", "action": "skill_search.end", "duration_ms": 0.0, "ts": 1782667658.1774678, "status": "ok", "query": "", "filters": 1, "total": 3, "elapsed_ms": 0.0}
+2026-06-29 01:27:38,185 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_search_pagination0\skills_mgmt.json
+2026-06-29 01:27:38,187 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,187 [    INFO] agent.skills_mgmt: {"trace_id": "0319d3a1-b22d-4b23-a9ce-6c7c7082ebf8", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1876476, "event_name": "skill_created", "payload": {"skill_id": "page-skill-0", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,187 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-0 (source=manual)
+2026-06-29 01:27:38,189 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,189 [    INFO] agent.skills_mgmt: {"trace_id": "fe4d685d-b9ca-4203-9826-30479518d38a", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1899219, "event_name": "skill_created", "payload": {"skill_id": "page-skill-1", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,189 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-1 (source=manual)
+2026-06-29 01:27:38,192 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,192 [    INFO] agent.skills_mgmt: {"trace_id": "4bc1bcd9-6ed7-4c9b-9b14-9ab1cbdfe675", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1921084, "event_name": "skill_created", "payload": {"skill_id": "page-skill-2", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,192 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-2 (source=manual)
+2026-06-29 01:27:38,194 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,194 [    INFO] agent.skills_mgmt: {"trace_id": "88ec23ff-ec9d-4768-ac71-299d608ed76f", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1947956, "event_name": "skill_created", "payload": {"skill_id": "page-skill-3", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,194 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-3 (source=manual)
+2026-06-29 01:27:38,197 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,197 [    INFO] agent.skills_mgmt: {"trace_id": "61fb8e06-d947-499b-9607-1a47020b97ae", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1971252, "event_name": "skill_created", "payload": {"skill_id": "page-skill-4", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,197 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-4 (source=manual)
+2026-06-29 01:27:38,199 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,199 [    INFO] agent.skills_mgmt: {"trace_id": "d9be3768-85bc-4af3-8b38-289221055cf4", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.1998518, "event_name": "skill_created", "payload": {"skill_id": "page-skill-5", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,199 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-5 (source=manual)
+2026-06-29 01:27:38,202 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,202 [    INFO] agent.skills_mgmt: {"trace_id": "0154b13c-4c66-4896-83b5-0ab26fca8687", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2025132, "event_name": "skill_created", "payload": {"skill_id": "page-skill-6", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,202 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-6 (source=manual)
+2026-06-29 01:27:38,204 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,205 [    INFO] agent.skills_mgmt: {"trace_id": "f5c2efcd-dc24-497b-8cf4-36d2ba20815c", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.20534, "event_name": "skill_created", "payload": {"skill_id": "page-skill-7", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,205 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-7 (source=manual)
+2026-06-29 01:27:38,208 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,208 [    INFO] agent.skills_mgmt: {"trace_id": "78222ec1-b2b8-497b-b3d9-b31c1b01d95e", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2080138, "event_name": "skill_created", "payload": {"skill_id": "page-skill-8", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,208 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-8 (source=manual)
+2026-06-29 01:27:38,210 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,210 [    INFO] agent.skills_mgmt: {"trace_id": "7ae7b677-d13e-4742-9e6b-5183de516f39", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2107623, "event_name": "skill_created", "payload": {"skill_id": "page-skill-9", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,210 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-9 (source=manual)
+2026-06-29 01:27:38,213 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,213 [    INFO] agent.skills_mgmt: {"trace_id": "0076724b-9a61-44be-a3ba-88023a1e7173", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2134078, "event_name": "skill_created", "payload": {"skill_id": "page-skill-10", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,213 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-10 (source=manual)
+2026-06-29 01:27:38,216 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,216 [    INFO] agent.skills_mgmt: {"trace_id": "105f029b-5d8a-44db-8b2c-ef2ac05b0f08", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2167487, "event_name": "skill_created", "payload": {"skill_id": "page-skill-11", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,216 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-11 (source=manual)
+2026-06-29 01:27:38,219 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,219 [    INFO] agent.skills_mgmt: {"trace_id": "abc97b36-64bd-40ea-a573-44981c88fcc6", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2196536, "event_name": "skill_created", "payload": {"skill_id": "page-skill-12", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,219 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-12 (source=manual)
+2026-06-29 01:27:38,222 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,222 [    INFO] agent.skills_mgmt: {"trace_id": "d9d8d44a-db7f-4f30-9684-1ab8e926d31a", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2228317, "event_name": "skill_created", "payload": {"skill_id": "page-skill-13", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,222 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-13 (source=manual)
+2026-06-29 01:27:38,225 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_search_pagination0\\skills.json'
+2026-06-29 01:27:38,225 [    INFO] agent.skills_mgmt: {"trace_id": "99ce650c-0e1d-4a4c-8209-f1b520a922a3", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2256966, "event_name": "skill_created", "payload": {"skill_id": "page-skill-14", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,226 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: page-skill-14 (source=manual)
+2026-06-29 01:27:38,226 [    INFO] agent.skills_mgmt: {"trace_id": "046bb44c-950e-4335-be9b-57cc1471e2cb", "module_name": "skills_mgmt", "action": "skill_search.start", "duration_ms": 0.0, "ts": 1782667658.2262468, "query": "", "filters": 0}
+2026-06-29 01:27:38,226 [    INFO] agent.skills_mgmt: [Searcher] query='' → 5/15 命中, 0.51ms
+2026-06-29 01:27:38,226 [    INFO] agent.skills_mgmt: {"trace_id": "046bb44c-950e-4335-be9b-57cc1471e2cb", "module_name": "skills_mgmt", "action": "skill_search.end", "duration_ms": 0.52, "ts": 1782667658.2267659, "status": "ok", "query": "", "filters": 0, "total": 15, "elapsed_ms": 0.5097389221191406}
+2026-06-29 01:27:38,234 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_bump_patch_version0\skills_mgmt.json
+2026-06-29 01:27:38,236 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_bump_patch_version0\\skills.json'
+2026-06-29 01:27:38,236 [    INFO] agent.skills_mgmt: {"trace_id": "151e1371-ef77-492b-905d-b84d8c725dc3", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2367435, "event_name": "skill_created", "payload": {"skill_id": "ver-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,237 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ver-skill (source=manual)
+2026-06-29 01:27:38,237 [    INFO] agent.skills_mgmt: {"trace_id": "bee3bb2f-77ce-41b5-a594-5ea73aa12a0c", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.2373338, "skill_id": "ver-skill", "kind": "patch"}
+2026-06-29 01:27:38,239 [    INFO] agent.skills_mgmt: {"trace_id": "9e07559d-a7e9-4331-94fe-e4cea2047753", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.239083, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.0", "new": "0.1.1"}}
+2026-06-29 01:27:38,239 [    INFO] agent.skills_mgmt: {"trace_id": "bee3bb2f-77ce-41b5-a594-5ea73aa12a0c", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 1.75, "ts": 1782667658.239083, "status": "ok", "skill_id": "ver-skill", "kind": "patch", "old_version": "0.1.0", "new_version": "0.1.1"}
+2026-06-29 01:27:38,247 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_bump_minor_version0\skills_mgmt.json
+2026-06-29 01:27:38,249 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_bump_minor_version0\\skills.json'
+2026-06-29 01:27:38,249 [    INFO] agent.skills_mgmt: {"trace_id": "e31c383e-f1c8-4267-b646-6f3ba3b79b90", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2495275, "event_name": "skill_created", "payload": {"skill_id": "ver-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,249 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ver-skill (source=manual)
+2026-06-29 01:27:38,250 [    INFO] agent.skills_mgmt: {"trace_id": "7327e961-fd3d-4668-9861-ca659455ac65", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.2500708, "skill_id": "ver-skill", "kind": "minor"}
+2026-06-29 01:27:38,251 [    INFO] agent.skills_mgmt: {"trace_id": "d8b12da5-4709-4cef-8808-b88ff37a358f", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2517009, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.0", "new": "0.2.0"}}
+2026-06-29 01:27:38,251 [    INFO] agent.skills_mgmt: {"trace_id": "7327e961-fd3d-4668-9861-ca659455ac65", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 1.63, "ts": 1782667658.2517009, "status": "ok", "skill_id": "ver-skill", "kind": "minor", "old_version": "0.1.0", "new_version": "0.2.0"}
+2026-06-29 01:27:38,260 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_bump_major_version0\skills_mgmt.json
+2026-06-29 01:27:38,262 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_bump_major_version0\\skills.json'
+2026-06-29 01:27:38,262 [    INFO] agent.skills_mgmt: {"trace_id": "f9a270c3-0177-4c14-98a8-95fcea2a410c", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.262281, "event_name": "skill_created", "payload": {"skill_id": "ver-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,262 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ver-skill (source=manual)
+2026-06-29 01:27:38,262 [    INFO] agent.skills_mgmt: {"trace_id": "1417e652-a707-406b-a32d-942ce37cc850", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.262281, "skill_id": "ver-skill", "kind": "major"}
+2026-06-29 01:27:38,263 [    INFO] agent.skills_mgmt: {"trace_id": "07bbb8c3-df39-40da-8f1f-9a6463312888", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2638955, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.0", "new": "1.0.0"}}
+2026-06-29 01:27:38,264 [    INFO] agent.skills_mgmt: {"trace_id": "1417e652-a707-406b-a32d-942ce37cc850", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 2.13, "ts": 1782667658.2644062, "status": "ok", "skill_id": "ver-skill", "kind": "major", "old_version": "0.1.0", "new_version": "1.0.0"}
+2026-06-29 01:27:38,271 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_list_versions0\skills_mgmt.json
+2026-06-29 01:27:38,273 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_list_versions0\\skills.json'
+2026-06-29 01:27:38,273 [    INFO] agent.skills_mgmt: {"trace_id": "885cc0ee-c327-44a5-912c-d713de192f9e", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2739515, "event_name": "skill_created", "payload": {"skill_id": "ver-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,273 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ver-skill (source=manual)
+2026-06-29 01:27:38,273 [    INFO] agent.skills_mgmt: {"trace_id": "c2368039-17b6-4025-93ee-4c234ce3151b", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.2739515, "skill_id": "ver-skill", "kind": "patch"}
+2026-06-29 01:27:38,275 [    INFO] agent.skills_mgmt: {"trace_id": "3c6a0f8c-08c7-433a-970f-19fa190f4a5e", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2756174, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.0", "new": "0.1.1"}}
+2026-06-29 01:27:38,276 [    INFO] agent.skills_mgmt: {"trace_id": "c2368039-17b6-4025-93ee-4c234ce3151b", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 2.18, "ts": 1782667658.2761278, "status": "ok", "skill_id": "ver-skill", "kind": "patch", "old_version": "0.1.0", "new_version": "0.1.1"}
+2026-06-29 01:27:38,276 [    INFO] agent.skills_mgmt: {"trace_id": "9c33b47d-a063-42f3-8a71-43b3cea54ecf", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.2761278, "skill_id": "ver-skill", "kind": "minor"}
+2026-06-29 01:27:38,277 [    INFO] agent.skills_mgmt: {"trace_id": "01ecdbcf-8eb7-418f-ba0b-6f8462ac84ce", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2777436, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.1", "new": "0.2.0"}}
+2026-06-29 01:27:38,277 [    INFO] agent.skills_mgmt: {"trace_id": "9c33b47d-a063-42f3-8a71-43b3cea54ecf", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 1.62, "ts": 1782667658.2777436, "status": "ok", "skill_id": "ver-skill", "kind": "minor", "old_version": "0.1.1", "new_version": "0.2.0"}
+2026-06-29 01:27:38,285 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_rollback_version0\skills_mgmt.json
+2026-06-29 01:27:38,287 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_rollback_version0\\skills.json'
+2026-06-29 01:27:38,287 [    INFO] agent.skills_mgmt: {"trace_id": "96fabace-8954-414a-81ad-7ce5e9970b90", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2879112, "event_name": "skill_created", "payload": {"skill_id": "ver-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,287 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: ver-skill (source=manual)
+2026-06-29 01:27:38,287 [    INFO] agent.skills_mgmt: {"trace_id": "2d6484d6-19e0-4c6e-84d2-65eeb783c8ba", "module_name": "skills_mgmt", "action": "skill_bump_version.start", "duration_ms": 0.0, "ts": 1782667658.2879112, "skill_id": "ver-skill", "kind": "minor"}
+2026-06-29 01:27:38,290 [    INFO] agent.skills_mgmt: {"trace_id": "ae80fbb2-cf42-46e0-99f0-4380b17aaab0", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.2903488, "event_name": "skill_version_bumped", "payload": {"skill_id": "ver-skill", "old": "0.1.0", "new": "0.2.0"}}
+2026-06-29 01:27:38,290 [    INFO] agent.skills_mgmt: {"trace_id": "2d6484d6-19e0-4c6e-84d2-65eeb783c8ba", "module_name": "skills_mgmt", "action": "skill_bump_version.end", "duration_ms": 2.82, "ts": 1782667658.290731, "status": "ok", "skill_id": "ver-skill", "kind": "minor", "old_version": "0.1.0", "new_version": "0.2.0"}
+2026-06-29 01:27:38,290 [    INFO] agent.skills_mgmt: {"trace_id": "808e7129-04b2-4ec5-935d-24748a32d3e2", "module_name": "skills_mgmt", "action": "skill_rollback.start", "duration_ms": 0.0, "ts": 1782667658.2909822, "skill_id": "ver-skill", "target": "0.1.0"}
+2026-06-29 01:27:38,293 [    INFO] agent.skills_mgmt: {"trace_id": "808e7129-04b2-4ec5-935d-24748a32d3e2", "module_name": "skills_mgmt", "action": "skill_rollback.end", "duration_ms": 2.8, "ts": 1782667658.2937796, "status": "ok", "skill_id": "ver-skill", "target": "0.1.0"}
+2026-06-29 01:27:38,301 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_toggle_enable_disable0\skills_mgmt.json
+2026-06-29 01:27:38,303 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_toggle_enable_disable0\\skills.json'
+2026-06-29 01:27:38,303 [    INFO] agent.skills_mgmt: {"trace_id": "36121117-b1c4-48f9-b91e-b954142c9e1c", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3031535, "event_name": "skill_created", "payload": {"skill_id": "toggle-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,303 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: toggle-skill (source=manual)
+2026-06-29 01:27:38,315 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_record_execution_updates_0\skills_mgmt.json
+2026-06-29 01:27:38,316 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_record_execution_updates_0\\skills.json'
+2026-06-29 01:27:38,316 [    INFO] agent.skills_mgmt: {"trace_id": "ec34bdf1-25b5-4d1b-9e59-f17b450f7c32", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3161352, "event_name": "skill_created", "payload": {"skill_id": "metrics-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,317 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: metrics-skill (source=manual)
+2026-06-29 01:27:38,329 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_optimize_returns_suggesti0\skills_mgmt.json
+2026-06-29 01:27:38,331 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_optimize_returns_suggesti0\\skills.json'
+2026-06-29 01:27:38,331 [    INFO] agent.skills_mgmt: {"trace_id": "ee8c9f19-6d1f-473a-b661-56520bfcdd8d", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3314385, "event_name": "skill_created", "payload": {"skill_id": "opt-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,331 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: opt-skill (source=manual)
+2026-06-29 01:27:38,339 [    INFO] agent.skills_mgmt: {"trace_id": "3ad505d7-c21e-4fbd-a52a-55da0e83fd3e", "module_name": "skills_mgmt", "action": "skill_optimize_params.start", "duration_ms": 0.0, "ts": 1782667658.3393757, "skill_id": "opt-skill"}
+2026-06-29 01:27:38,339 [    INFO] agent.skills_mgmt: {"trace_id": "3ad505d7-c21e-4fbd-a52a-55da0e83fd3e", "module_name": "skills_mgmt", "action": "skill_optimize_params.end", "duration_ms": 0.0, "ts": 1782667658.3393757, "status": "ok", "skill_id": "opt-skill"}
+2026-06-29 01:27:38,347 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_persistence_across_restar0\skills.json
+2026-06-29 01:27:38,350 [    INFO] agent.skills_mgmt: [SkillStore] 同步 1 个技能到 legacy skills.json
+2026-06-29 01:27:38,350 [    INFO] agent.skills_mgmt: {"trace_id": "afea32cb-054b-4c58-b994-266d1c166655", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3503587, "event_name": "skill_created", "payload": {"skill_id": "persist", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,350 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: persist (source=manual)
+2026-06-29 01:27:38,359 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_health_returns_stats0\skills_mgmt.json
+2026-06-29 01:27:38,361 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_health_returns_stats0\\skills.json'
+2026-06-29 01:27:38,361 [    INFO] agent.skills_mgmt: {"trace_id": "86fc70b9-30e4-480f-b09a-6c17c5f175a3", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3613524, "event_name": "skill_created", "payload": {"skill_id": "h-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,361 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: h-skill (source=manual)
+2026-06-29 01:27:38,369 [    INFO] agent.skills_mgmt: [SkillStore] 初始化存储: C:\Windows\Temp\pytest-of-AdminWT\pytest-548\test_delete_skill0\skills_mgmt.json
+2026-06-29 01:27:38,371 [ WARNING] agent.skills_mgmt: [SkillStore] 同步 legacy 失败: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-548\\test_delete_skill0\\skills.json'
+2026-06-29 01:27:38,371 [    INFO] agent.skills_mgmt: {"trace_id": "11a1966c-6e77-42df-a55b-8f07eaabab95", "module_name": "skills_mgmt", "action": "track_event", "duration_ms": 0.0, "ts": 1782667658.3713164, "event_name": "skill_created", "payload": {"skill_id": "del-skill", "source": "manual", "category": "custom"}}
+2026-06-29 01:27:38,371 [    INFO] agent.skills_mgmt: [Creator] 技能已创建: del-skill (source=manual)
+2026-06-29 01:27:38,373 [    INFO] agent.skills_mgmt: [Service] 技能已删除: del-skill

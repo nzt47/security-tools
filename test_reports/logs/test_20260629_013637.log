@@ -1,0 +1,91 @@
+2026-06-29 01:36:37,428 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 01:36:37,431 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 01:36:37,433 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 01:36:37,444 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 01:36:37,460 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:37,463 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 01:36:37,495 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-29 01:36:37,501 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 01:36:37,506 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 01:36:37,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 01:36:37,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 01:36:37,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 01:36:37,525 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-29 01:36:37,527 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 01:36:37,657 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 01:36:37,661 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-29 01:36:37,662 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 01:36:37,865 [    INFO] agent.error_handler: {"trace_id": "c29a1a4881514a42", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:36:37,870 [    INFO] agent.error_handler: {"trace_id": "382766d9a2f34451", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:36:37,875 [    INFO] agent.error_handler: {"trace_id": "909653a0c69f4d6c", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:36:37,876 [ WARNING] agent.error_handler: {"trace_id": "a450094575c14cb6", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 3}
+2026-06-29 01:36:37,880 [    INFO] agent.error_handler: {"trace_id": "08874a8e589447c1", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:36:37,885 [    INFO] agent.error_handler: {"trace_id": "d718d13d79534a36", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 2}
+2026-06-29 01:36:37,886 [ WARNING] agent.error_handler: {"trace_id": "e6cb860cda4549f8", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 2}
+2026-06-29 01:36:37,890 [    INFO] agent.error_handler: {"trace_id": "654de5474a8043b6", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:36:37,896 [    INFO] agent.error_handler: {"trace_id": "1cac96465fa64400", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "test", "max_failures": 5}
+2026-06-29 01:36:37,900 [    INFO] agent.error_handler: {"trace_id": "e3d065e363374e27", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:36:37,901 [ WARNING] agent.error_handler: {"trace_id": "2cd42a0507a84017", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 1}
+2026-06-29 01:36:37,921 [    INFO] agent.error_handler: {"trace_id": "a17741a5b4eb42e7", "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": "default", "state": "HALF_OPEN"}
+2026-06-29 01:36:37,921 [    INFO] agent.error_handler: {"trace_id": "c4d8ca06af7449c2", "module_name": "error_handler", "action": "circuit_breaker.recovered", "duration_ms": 0, "name": "default", "state": "CLOSED"}
+2026-06-29 01:36:37,927 [    INFO] agent.error_handler: {"trace_id": "fe8d4916b03f4a50", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:36:37,927 [ WARNING] agent.error_handler: {"trace_id": "57c9cd286bda491d", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 1}
+2026-06-29 01:36:37,948 [    INFO] agent.error_handler: {"trace_id": "f2da32f004c442dd", "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": "default", "state": "HALF_OPEN"}
+2026-06-29 01:36:37,948 [ WARNING] agent.error_handler: {"trace_id": "8ea090aea4154419", "module_name": "error_handler", "action": "circuit_breaker.reopened", "duration_ms": 0, "name": "default", "state": "OPEN"}
+2026-06-29 01:36:37,981 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:37,986 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:37,986 [ WARNING] agent.error_handler: [warning] unknown: 测试错误
+2026-06-29 01:36:37,991 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:37,992 [   ERROR] agent.error_handler: [error] unknown: 测试错误
+2026-06-29 01:36:37,997 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,002 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,003 [   ERROR] agent.error_handler: [error] unknown: 标准异常
+ValueError: 标准异常
+2026-06-29 01:36:38,007 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,008 [    INFO] agent.error_handler: [info] unknown: 测试 info
+2026-06-29 01:36:38,008 [ WARNING] agent.error_handler: [warning] unknown: 测试 warning
+2026-06-29 01:36:38,008 [   ERROR] agent.error_handler: [error] unknown: 测试 error
+2026-06-29 01:36:38,009 [CRITICAL] agent.error_handler: [critical] unknown: 测试 critical
+2026-06-29 01:36:38,013 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,014 [    INFO] agent.error_handler: {"trace_id": "16c6ffca73834f0a", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "test_cb", "max_failures": 5}
+2026-06-29 01:36:38,018 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,026 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,026 [    INFO] agent.error_handler: {"trace_id": "6c7f49af56714865", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "cb1", "max_failures": 5}
+2026-06-29 01:36:38,027 [    INFO] agent.error_handler: {"trace_id": "171218fdfd2f4426", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "cb2", "max_failures": 5}
+2026-06-29 01:36:38,035 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,040 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,041 [    INFO] agent.error_handler: {"trace_id": "56ce3d2e004e47bb", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 5}
+2026-06-29 01:36:38,047 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,052 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,052 [ WARNING] agent.error_handler: Attempt 1/2 failed, retrying in 0.01s: 暂时失败
+2026-06-29 01:36:38,063 [ WARNING] agent.error_handler: Attempt 2/2 failed, retrying in 0.02s: 暂时失败
+2026-06-29 01:36:38,090 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,090 [ WARNING] agent.error_handler: [execute_with_retry] 异常不可重试，立即抛出: func=failing_func, exception_type=ValueError
+2026-06-29 01:36:38,091 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 539, in execute_with_retry
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_error_handler.py", line 649, in failing_func
+    raise ValueError("不可重试")
+ValueError: 不可重试
+2026-06-29 01:36:38,098 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,099 [ WARNING] agent.error_handler: Attempt 1/1 failed, retrying in 0.01s: 可重试
+2026-06-29 01:36:38,116 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:36:38,116 [   ERROR] agent.error_handler: [error] unknown: 测试

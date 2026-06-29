@@ -1,0 +1,32 @@
+{
+  "start_time": "2026-06-23T14:18:54.256442",
+  "mode": "quick",
+  "tests": [],
+  "summary": {
+    "all_passed": false,
+    "total_test_categories": 3,
+    "passed_test_categories": 2,
+    "timestamp": "2026-06-23T14:18:54.347719"
+  },
+  "performance_metrics": {},
+  "boundary_tests": {
+    "passed": 11,
+    "total": 12,
+    "success_rate": 91.66666666666666
+  },
+  "functional_tests": {
+    "passed": 8,
+    "total": 8,
+    "success_rate": 100.0
+  },
+  "stress_test": {
+    "total_requests": 100,
+    "successful_requests": 100,
+    "failed_requests": 0,
+    "duration_seconds": 0.02712869644165039,
+    "requests_per_second": 3686.1336192501713,
+    "avg_latency_ms": 0.2712869644165039,
+    "errors": []
+  },
+  "end_time": "2026-06-23T14:18:54.347189"
+}

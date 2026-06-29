@@ -1,0 +1,1170 @@
+2026-06-26 12:21:31,983 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 12:21:31,987 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 12:21:31,989 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 12:21:32,096 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 12:21:32,111 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 12:21:32,114 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 12:21:32,148 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 12:21:32,150 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,150 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 12:21:32,151 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 12:21:32,157 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 12:21:32,161 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 12:21:32,179 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 12:21:32,179 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 12:21:32,179 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 12:21:32,179 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 12:21:32,181 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 12:21:32,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 12:21:32,348 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 12:21:32,349 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 12:21:32,362 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,363 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 12:21:32,539 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,539 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,544 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,544 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,549 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,549 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,554 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,555 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "old_value": 60, "new_value": 30}
+2026-06-26 12:21:32,560 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,560 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,561 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,561 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "old_value": 60, "new_value": 1800.5}
+2026-06-26 12:21:32,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,566 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,566 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,566 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.enabled", "old_value": true, "new_value": true}
+2026-06-26 12:21:32,571 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,572 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,573 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,573 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "custom.unknown_key", "old_value": null, "new_value": "value"}
+2026-06-26 12:21:32,578 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,578 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "startup_repair", "duration_ms": 0, "repaired_count": 3}
+2026-06-26 12:21:32,578 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,578 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 1800.5, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,583 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,584 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,589 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,589 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,589 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,589 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 1440, "new_value": 100}
+2026-06-26 12:21:32,594 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,594 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,595 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,595 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "old_value": 60, "new_value": 30}
+2026-06-26 12:21:32,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,600 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,601 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,601 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "reload_from_dict", "duration_ms": 0, "repaired_keys": []}
+2026-06-26 12:21:32,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,607 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,607 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,607 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "reload_from_dict", "duration_ms": 0, "repaired_keys": ["resource_monitor.sample_interval_sec"]}
+2026-06-26 12:21:32,612 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,612 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,613 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,613 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "old_value": 60, "new_value": 30}
+2026-06-26 12:21:32,618 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,618 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,619 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,619 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "tracing.log_level", "old_value": "INFO", "new_value": "DEBUG"}
+2026-06-26 12:21:32,624 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,625 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,625 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,625 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "tracing.log_level", "old_value": "INFO", "new_value": "DEBUG"}
+2026-06-26 12:21:32,630 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,630 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,631 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,631 [ WARNING] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "callback_failed", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "pattern": "resource_monitor", "error": "callback boom"}
+2026-06-26 12:21:32,631 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,631 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.sample_interval_sec", "old_value": 60, "new_value": 30}
+2026-06-26 12:21:32,636 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,637 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,642 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,642 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,647 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,647 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,653 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,653 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,653 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,654 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "tracing.env", "old_value": "development", "new_value": "production"}
+2026-06-26 12:21:32,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,659 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,664 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,664 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,669 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,669 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,674 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,674 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,679 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,680 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,680 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,680 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,685 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 1440, "new_value": 100}
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,687 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,688 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,690 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,691 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,692 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 8, "key": "resource_monitor.history_size", "old_value": 149, "new_value": 100}
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,698 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,699 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,701 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,702 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,703 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 17, "key": "resource_monitor.history_size", "old_value": 149, "new_value": 100}
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,704 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,707 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,709 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,710 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,712 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,714 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 26, "key": "resource_monitor.history_size", "old_value": 149, "new_value": 100}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,715 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,716 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,718 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,719 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,722 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 37, "key": "resource_monitor.history_size", "old_value": 149, "new_value": 100}
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,723 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,724 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,725 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,726 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,728 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,729 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,731 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,738 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,745 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,745 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-26 12:21:32,745 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,745 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "/nonexistent/path/config.json"}
+2026-06-26 12:21:32,745 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,745 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["/nonexistent/path/config.json"]}
+2026-06-26 12:21:32,745 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,746 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "watch_config_file", "duration_ms": 0, "path": "/nonexistent/path/config.json"}
+2026-06-26 12:21:32,751 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,751 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,757 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,757 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "new.section.key", "old_value": null, "new_value": "value"}
+2026-06-26 12:21:32,762 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,762 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,763 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,763 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 1440, "new_value": 100}
+2026-06-26 12:21:32,763 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,763 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 100, "new_value": 101}
+2026-06-26 12:21:32,763 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 101, "new_value": 102}
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 102, "new_value": 103}
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 103, "new_value": 104}
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 104, "new_value": 105}
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 105, "new_value": 106}
+2026-06-26 12:21:32,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 106, "new_value": 107}
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 107, "new_value": 108}
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 108, "new_value": 109}
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 109, "new_value": 110}
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 110, "new_value": 111}
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,765 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 111, "new_value": 112}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 112, "new_value": 113}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 113, "new_value": 114}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 114, "new_value": 115}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 115, "new_value": 116}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 116, "new_value": 117}
+2026-06-26 12:21:32,766 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 117, "new_value": 118}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 118, "new_value": 119}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 119, "new_value": 120}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 120, "new_value": 121}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 121, "new_value": 122}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 122, "new_value": 123}
+2026-06-26 12:21:32,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 123, "new_value": 124}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 124, "new_value": 125}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 125, "new_value": 126}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 126, "new_value": 127}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 127, "new_value": 128}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 128, "new_value": 129}
+2026-06-26 12:21:32,768 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 129, "new_value": 130}
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 130, "new_value": 131}
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 131, "new_value": 132}
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 132, "new_value": 133}
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 133, "new_value": 134}
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,769 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 134, "new_value": 135}
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 135, "new_value": 136}
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 136, "new_value": 137}
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 137, "new_value": 138}
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 138, "new_value": 139}
+2026-06-26 12:21:32,770 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 139, "new_value": 140}
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 140, "new_value": 141}
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 141, "new_value": 142}
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 142, "new_value": 143}
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 143, "new_value": 144}
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,771 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 144, "new_value": 145}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 145, "new_value": 146}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 146, "new_value": 147}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 147, "new_value": 148}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 148, "new_value": 149}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 149, "new_value": 150}
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,772 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 150, "new_value": 151}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 151, "new_value": 152}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 152, "new_value": 153}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 153, "new_value": 154}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 154, "new_value": 155}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 155, "new_value": 156}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 156, "new_value": 157}
+2026-06-26 12:21:32,773 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 157, "new_value": 158}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 158, "new_value": 159}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 159, "new_value": 160}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 160, "new_value": 161}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 161, "new_value": 162}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 162, "new_value": 163}
+2026-06-26 12:21:32,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 163, "new_value": 164}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 164, "new_value": 165}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 165, "new_value": 166}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 166, "new_value": 167}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 167, "new_value": 168}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 168, "new_value": 169}
+2026-06-26 12:21:32,775 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 169, "new_value": 170}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 170, "new_value": 171}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 171, "new_value": 172}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 172, "new_value": 173}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 173, "new_value": 174}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 174, "new_value": 175}
+2026-06-26 12:21:32,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 175, "new_value": 176}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 176, "new_value": 177}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 177, "new_value": 178}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 178, "new_value": 179}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 179, "new_value": 180}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 180, "new_value": 181}
+2026-06-26 12:21:32,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 181, "new_value": 182}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 182, "new_value": 183}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 183, "new_value": 184}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 184, "new_value": 185}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 185, "new_value": 186}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 186, "new_value": 187}
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,778 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 187, "new_value": 188}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 188, "new_value": 189}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 189, "new_value": 190}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 190, "new_value": 191}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 191, "new_value": 192}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 192, "new_value": 193}
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,779 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 193, "new_value": 194}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 194, "new_value": 195}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 195, "new_value": 196}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 196, "new_value": 197}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 197, "new_value": 198}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 198, "new_value": 199}
+2026-06-26 12:21:32,780 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 199, "new_value": 200}
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 200, "new_value": 201}
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 201, "new_value": 202}
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,781 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 202, "new_value": 203}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 203, "new_value": 204}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 204, "new_value": 205}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 205, "new_value": 206}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 206, "new_value": 207}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 207, "new_value": 208}
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,782 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 208, "new_value": 209}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 209, "new_value": 210}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 210, "new_value": 211}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 211, "new_value": 212}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 212, "new_value": 213}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 213, "new_value": 214}
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,783 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 214, "new_value": 215}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 215, "new_value": 216}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 216, "new_value": 217}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 217, "new_value": 218}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 218, "new_value": 219}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 219, "new_value": 220}
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,784 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 220, "new_value": 221}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 221, "new_value": 222}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 222, "new_value": 223}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 223, "new_value": 224}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 224, "new_value": 225}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 225, "new_value": 226}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 226, "new_value": 227}
+2026-06-26 12:21:32,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 227, "new_value": 228}
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 228, "new_value": 229}
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 229, "new_value": 230}
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,786 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 230, "new_value": 231}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 231, "new_value": 232}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 232, "new_value": 233}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 233, "new_value": 234}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 234, "new_value": 235}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 235, "new_value": 236}
+2026-06-26 12:21:32,787 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 1, "key": "resource_monitor.history_size", "old_value": 236, "new_value": 237}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 237, "new_value": 238}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 238, "new_value": 239}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 239, "new_value": 240}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 240, "new_value": 241}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 241, "new_value": 242}
+2026-06-26 12:21:32,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 242, "new_value": 243}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 243, "new_value": 244}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 244, "new_value": 245}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 245, "new_value": 246}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 246, "new_value": 247}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 247, "new_value": 248}
+2026-06-26 12:21:32,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,790 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "set", "duration_ms": 0, "key": "resource_monitor.history_size", "old_value": 248, "new_value": 249}
+2026-06-26 12:21:32,795 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,795 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,796 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,796 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "reload_from_dict", "duration_ms": 0, "repaired_keys": []}
+2026-06-26 12:21:32,821 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,821 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 12, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440}}}
+2026-06-26 12:21:32,822 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,823 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:32,940 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,942 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,943 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:32,959 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:32,960 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,076 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,079 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,079 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:33,094 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,096 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,214 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,216 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,217 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:33,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,233 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,355 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,358 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,359 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:33,374 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,374 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,496 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,499 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,500 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:33,516 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,517 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,646 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,782 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,786 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:33,802 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:33,802 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:33,972 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,109 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,231 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,357 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,495 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,499 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:34,514 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,515 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:34,517 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,518 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:34,520 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,522 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:34,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,538 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:34,540 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,540 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 5}
+2026-06-26 12:21:34,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,867 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:34,999 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,133 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,403 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,539 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,673 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,807 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,940 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,940 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,941 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:35,944 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,944 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:35,960 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,961 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:35,965 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,965 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:35,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,982 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:35,986 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:35,987 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,002 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,003 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,008 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,008 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,024 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,025 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,029 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,029 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,045 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,045 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,049 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,049 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,065 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,066 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,068 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,069 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100}
+2026-06-26 12:21:36,071 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,072 [ WARNING] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "leak_detected", "duration_ms": 0, "resource_type": "memory", "slope": 100.0, "threshold": 1.0, "r_squared": 1.0, "sample_count": 10}
+2026-06-26 12:21:36,072 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,073 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,076 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,076 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,094 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,095 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,097 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,098 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100}
+2026-06-26 12:21:36,099 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,100 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,103 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,103 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,120 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,121 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,123 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,124 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100}
+2026-06-26 12:21:36,125 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,126 [ WARNING] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "leak_detected", "duration_ms": 0, "resource_type": "memory", "slope": 500.0, "threshold": 1.0, "r_squared": 1.0, "sample_count": 5}
+2026-06-26 12:21:36,126 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,127 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,130 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,131 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,147 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,148 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,150 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,151 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "enable_stress_mode", "duration_ms": 0, "interval_sec": 1.0}
+2026-06-26 12:21:36,154 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,154 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,171 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,172 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,174 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,174 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "enable_stress_mode", "duration_ms": 0, "interval_sec": 1.0}
+2026-06-26 12:21:36,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,175 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "disable_stress_mode", "duration_ms": 0}
+2026-06-26 12:21:36,178 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,179 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,194 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,196 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,197 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "enable_stress_mode", "duration_ms": 0, "interval_sec": 1.0}
+2026-06-26 12:21:36,197 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,198 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "disable_stress_mode", "duration_ms": 0}
+2026-06-26 12:21:36,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,201 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,217 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,217 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,220 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,221 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "register_pool_provider", "duration_ms": 0, "name": "worker_pool", "pool_type": "thread"}
+2026-06-26 12:21:36,367 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,370 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,371 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,387 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,387 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,389 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,390 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "register_pool_provider", "duration_ms": 0, "name": "main_db", "pool_type": "db"}
+2026-06-26 12:21:36,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,538 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,538 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,555 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,557 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,557 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "register_pool_provider", "duration_ms": 0, "name": "bad_pool", "pool_type": "thread"}
+2026-06-26 12:21:36,558 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,558 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "register_pool_provider", "duration_ms": 0, "name": "good_pool", "pool_type": "thread"}
+2026-06-26 12:21:36,599 [ WARNING] agent.monitoring.resource_monitor: [ResourceMonitor] 池 bad_pool 采样失败: provider boom
+2026-06-26 12:21:36,709 [ WARNING] agent.monitoring.resource_monitor: [ResourceMonitor] 数据库连接池 bad_pool 采样失败: provider boom
+2026-06-26 12:21:36,710 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,713 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,714 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,730 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,866 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,866 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,867 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,886 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,887 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:36,926 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,927 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,927 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:36,950 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:36,950 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:37,118 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,122 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,124 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:37,149 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,150 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:37,328 [ WARNING] agent.monitoring.resource_monitor: [ResourceMonitor] 指标上报失败: metrics boom
+2026-06-26 12:21:37,329 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,332 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,333 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:37,350 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,351 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:37,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,515 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,515 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:37,532 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,533 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:37,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:37,554 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "start", "duration_ms": 0, "interval_sec": 1.0, "stress_mode": false}
+2026-06-26 12:21:37,679 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:38,829 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,056 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,057 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,080 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,087 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,087 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "start", "duration_ms": 0, "interval_sec": 60.0, "stress_mode": false}
+2026-06-26 12:21:39,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,233 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,259 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,260 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,262 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,281 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,282 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,284 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,284 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,302 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,303 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,303 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,304 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,304 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,305 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,308 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,308 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:21:39,327 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,327 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440}
+2026-06-26 12:21:39,330 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:21:39,331 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}

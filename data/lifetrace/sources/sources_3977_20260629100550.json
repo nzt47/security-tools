@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_3977_20260629100550",
+  "content": "{\"value\": 83.6, \"unit\": \"%\", \"severity\": \"warning\"}",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "sensor",
+    "sensor_type": "memory_usage",
+    "interaction_id": 0
+  },
+  "created_at": "2026-06-29T10:05:50.594118",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "sensor",
+    "memory_usage"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

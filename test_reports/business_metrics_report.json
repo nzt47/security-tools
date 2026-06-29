@@ -1,0 +1,2098 @@
+{
+  "core_metrics_coverage": {
+    "status": "pass",
+    "coverage_rate": 100.0,
+    "total_core_metrics": 8,
+    "covered_metrics": 8,
+    "missing_metrics": [],
+    "details": {
+      "yunshu_interaction_total": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_task_completion_rate": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_memory_search_hit_rate": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_tool_call_total": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_circuit_breaker_trigger_total": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_model_call_total": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_extension_install_total": {
+        "covered": true,
+        "status": "pass"
+      },
+      "yunshu_rate_limit_trigger_total": {
+        "covered": true,
+        "status": "pass"
+      }
+    }
+  },
+  "naming_convention": {
+    "status": "pass",
+    "valid_rate": 100.0,
+    "total_metrics": 115,
+    "valid_metrics": 115,
+    "invalid_metrics": [],
+    "pattern": "^yunshu_[a-z_]+_(total|duration_seconds|rate|count|success|state|hit_rate|distribution)$",
+    "details": {
+      "yunshu_interaction_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_interaction_duration_seconds": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_message_type_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_tool_call_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_tool_call_duration_seconds": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_task_completion_rate": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_task_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_task_duration_seconds": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_planning_task_success": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_async_task_success": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_search_hit_rate": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_search_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_access_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_storage_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_vector_query_hit_rate": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_compression_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_deletion_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_memory_operation_duration_seconds": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_extension_install_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_extension_uninstall_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_extension_enabled_count": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_mcp_connection_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_mcp_active_connection_count": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_skill_usage_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_market_search_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_model_call_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_model_call_duration_seconds": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_model_switch_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_model_success_rate": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_circuit_breaker_trigger_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_circuit_breaker_state": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_rate_limit_trigger_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_degrade_trigger_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_disaster_recovery_total": {
+        "valid": true,
+        "status": "pass"
+      },
+      "yunshu_backup_total": {
+        "valid": true,
+        "status": "pass"
+      }
+    }
+  },
+  "new_code_check": {
+    "status": "pass",
+    "coverage_rate": 100.0,
+    "total_business_files": 91,
+    "files_with_metrics": 91,
+    "files_without_metrics": 0,
+    "missing_files": [],
+    "details": {
+      "ab_testing.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "api_gateway.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "async_executor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "auto_tuner.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "behavior_controller.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "circuit_breaker.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "code_review.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "compression_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "data_analytics.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "data_process_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "detailed_profiler.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "diagram_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "diff_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "digital_life.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "digital_life_persona.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "digital_life_state.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "disaster_recovery.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "error_handler.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "error_reporting_config.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "feedback.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "graceful_degrade.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "lazy_loader_async.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "llm_monitor.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "llm_response_cache.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "logging_utils.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory_optimized.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "multi_tenant.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "network_config.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "p6_config_loader.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "p6_snapshot.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "pdf_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "performance_integration_guide.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "performance_logging.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "performance_monitor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "permission_system.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "prometheus_exporter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "rate_limiter.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "safety_guard.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "scheduling.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "search_aggregator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "search_performance_monitor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "security_utils.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "sensor_health_monitor.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_auth.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_ui.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "session_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "software_backends.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "software_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "state_manager.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "system_prompt_config.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "system_prompt_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "system_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_scheduler.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "test_memory_module.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "test_permission_system.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "text_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tool_calling.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tool_router.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "v2_performance_patch.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "weekly_report_generator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "audit\\logger.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "caching\\multi_level_cache.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "cognitive\\actor_critic.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "cognitive\\critic.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "cognitive\\debate.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "cognitive\\failure_analysis.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "cognitive\\failure_collector.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "cognitive\\knowledge.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "cognitive\\logging_integration.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "cognitive\\loop.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "cognitive\\reflection.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\base.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\channels_installer.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "extensions\\dependency_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\installer.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\manager.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "extensions\\market.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\mcp_installer.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "extensions\\plugins_installer.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "extensions\\sandbox.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\security_checker.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\security_check_skill.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "extensions\\skills_installer.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "extensions\\store.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "guardrails\\input_guard.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "guardrails\\output_guard.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "guardrails\\output_schema.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "health\\assessor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "health\\dashboard.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "health\\health_score.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "human_in_the_loop\\ethics.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "human_in_the_loop\\hitl.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\analyzer.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\collectors.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\dashboard.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "log_system\\emoji_map.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\formatter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\handlers.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\introspection.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\models.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\optimized_storage.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "log_system\\safe_logger.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "log_system\\storage.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory\\base.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory\\filter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "memory\\long_term_memory.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory\\reviewer.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "memory\\router.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory\\short_term_memory.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "memory\\adapters\\holographic_adapter.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "memory\\adapters\\mem0_adapter.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "model_router\\adapters.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "model_router\\cost_tracker.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "model_router\\router.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\alert_evaluator.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\alert_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\alert_notifier.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\business_metrics.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\chaos_injector.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\decorators.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\error_reporter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\loki.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\metrics.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\observability_optimizations.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\optimized_metrics.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\performance.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\performance_optimization.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\prometheus.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\search.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\self_healer.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\sensitive_data_filter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\trace_http_client.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\tracing.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "monitoring\\tracing_cache.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\tracing_config.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\tracing_perf.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\tracing_sampling.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "monitoring\\utils.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "network\\config_manager.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "network\\config_validator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "observability\\subscriber.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "observability\\tracer.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\lifecycle_manager.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "orchestrator\\message_handler.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\orchestrator.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "orchestrator\\prompt_builder.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\response_builder.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\status_reporter.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "orchestrator\\subagent_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\task_dispatcher.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "orchestrator\\voice_vision.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "p6\\frequency.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "p6\\performance.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "p6\\snapshot.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "prompt_manager\\deployment.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "prompt_manager\\registry.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "prompt_manager\\storage.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "prompt_manager\\version_control.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "quality\\defect_tracker.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\extensions.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_business_dashboard.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": false,
+        "status": "pass"
+      },
+      "server_routes\\routes_chat.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_config.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_dashboard.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_feedback.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_health.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_llm_monitor.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_logging.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_memory.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_monitoring.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_panorama.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_permission.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_personality.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_sessions.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_skills.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "server_routes\\routes_subagent.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_system_prompt.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\routes_workspace.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\tracing_decorator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "server_routes\\tracing_middleware.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "subagent\\barrier.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "subagent\\container.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "subagent\\lifecycle.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "subagent\\sandbox.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "subagent\\summarizer.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\builtin_plans.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\dag.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\enhanced_dag.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\enhanced_planner.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\executor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "task_planner\\planner.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\stress_test_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_async_executor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_behavior_controller.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_behavior_controller_debug.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_chroma_optimization.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_chroma_optimized.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_compression_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_data_analytics.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_data_process_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_detailed_profiler.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_diff_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_ext_tools.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_file_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_lazy_loader.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_lazy_loader_async.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_memory_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_pdf_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_permission_system.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_persona.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_planning.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_safety_guard.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_scheduling.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_search_aggregator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_sensor_health_monitor.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tests\\test_session_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_software_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_system_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_tools_registry.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_tool_calling.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_tool_router.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tests\\test_web_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\browser_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\code_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\core_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\discovery_service.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\ext_tools.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tools\\file_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\file_tools_reg.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\mcp_connector.py": {
+        "has_metrics": true,
+        "has_import": true,
+        "has_call": true,
+        "status": "pass"
+      },
+      "tools\\pdf_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\process_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\shell_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\software_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\system_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\task_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\tool_generator.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\web_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "tools\\workspace_tools.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "utils\\compatibility.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "utils\\decision_logger.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "utils\\index_manager.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "utils\\sensitive_data_filter.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "utils\\serialization.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "web\\browser_agent.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "web\\crawler_control.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "web\\http_client.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "web\\processor.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "web\\scraper.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "web\\search.py": {
+        "has_metrics": true,
+        "has_import": false,
+        "has_call": true,
+        "status": "pass"
+      },
+      "workflow_engine\\builtin_rules.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "workflow_engine\\engine.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "workflow_engine\\matcher.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      },
+      "workflow_engine\\registry.py": {
+        "has_metrics": false,
+        "has_import": false,
+        "has_call": false,
+        "status": "skip",
+        "reason": "非业务逻辑文件"
+      }
+    }
+  },
+  "summary": {
+    "overall_status": "pass",
+    "passed_checks": 4,
+    "failed_checks": 0,
+    "total_checks": 4,
+    "checks": [
+      [
+        "core_metrics_coverage",
+        "核心埋点覆盖率"
+      ],
+      [
+        "naming_convention",
+        "命名规范"
+      ],
+      [
+        "new_code_check",
+        "新增代码埋点"
+      ],
+      [
+        "metric_type_consistency",
+        "指标类型一致性"
+      ]
+    ]
+  },
+  "metric_type_consistency": {
+    "status": "pass",
+    "consistency_rate": 100.0,
+    "total_metrics": 35,
+    "consistent_count": 35,
+    "inconsistent_metrics": [],
+    "details": {
+      "yunshu_interaction_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_interaction_duration_seconds": {
+        "metric_type": "histogram",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_message_type_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_tool_call_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_tool_call_duration_seconds": {
+        "metric_type": "histogram",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_task_completion_rate": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_task_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_task_duration_seconds": {
+        "metric_type": "histogram",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_planning_task_success": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_async_task_success": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_search_hit_rate": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_search_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_access_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_storage_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_vector_query_hit_rate": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_compression_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_deletion_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_memory_operation_duration_seconds": {
+        "metric_type": "histogram",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_extension_install_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_extension_uninstall_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_extension_enabled_count": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_mcp_connection_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_mcp_active_connection_count": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_skill_usage_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_market_search_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_model_call_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_model_call_duration_seconds": {
+        "metric_type": "histogram",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_model_switch_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_model_success_rate": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_circuit_breaker_trigger_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_circuit_breaker_state": {
+        "metric_type": "gauge",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_rate_limit_trigger_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_degrade_trigger_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_disaster_recovery_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      },
+      "yunshu_backup_total": {
+        "metric_type": "counter",
+        "consistent": true,
+        "status": "pass"
+      }
+    }
+  }
+}

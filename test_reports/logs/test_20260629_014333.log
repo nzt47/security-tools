@@ -1,0 +1,50 @@
+2026-06-29 01:43:33,992 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 01:43:33,995 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 01:43:33,996 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 01:43:34,008 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 01:43:34,022 [    INFO] agent.error_handler: Error handler initialized
+2026-06-29 01:43:34,025 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 01:43:34,056 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-29 01:43:34,063 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 01:43:34,067 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 01:43:34,085 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 01:43:34,085 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 01:43:34,085 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 01:43:34,087 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-29 01:43:34,088 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 01:43:34,249 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 01:43:34,253 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 01:43:34,254 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 01:43:34,255 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-29 01:43:34,255 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 01:43:34,339 [    INFO] agent.error_handler: {"trace_id": "36841801045b43c4", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:43:34,356 [    INFO] agent.error_handler: {"trace_id": "624ad99f05e04163", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:43:34,373 [    INFO] agent.error_handler: {"trace_id": "9eccd96865554abb", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:43:34,379 [ WARNING] agent.error_handler: {"trace_id": "8fc9eca608294133", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 3}
+2026-06-29 01:43:34,406 [    INFO] agent.error_handler: {"trace_id": "76fdd6de99fc4c91", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 3}
+2026-06-29 01:43:34,423 [    INFO] agent.error_handler: {"trace_id": "8a7e34b5a4b14239", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 2}
+2026-06-29 01:43:34,423 [ WARNING] agent.error_handler: {"trace_id": "5de33cb3e4794012", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 2}
+2026-06-29 01:43:34,435 [    INFO] agent.error_handler: {"trace_id": "5791b4131a5b4e86", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:43:34,451 [    INFO] agent.error_handler: {"trace_id": "71cbead3923048f6", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "test", "max_failures": 5}
+2026-06-29 01:43:34,466 [    INFO] agent.error_handler: {"trace_id": "1ecb78d7907348e9", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:43:34,467 [ WARNING] agent.error_handler: {"trace_id": "dca7d715b29d4b43", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 1}
+2026-06-29 01:43:34,492 [    INFO] agent.error_handler: {"trace_id": "9a49509cb57d4f1b", "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": "default", "state": "HALF_OPEN"}
+2026-06-29 01:43:34,492 [    INFO] agent.error_handler: {"trace_id": "ad9cc060e8144bdc", "module_name": "error_handler", "action": "circuit_breaker.recovered", "duration_ms": 0, "name": "default", "state": "CLOSED"}
+2026-06-29 01:43:34,503 [    INFO] agent.error_handler: {"trace_id": "27346702314549c1", "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": "default", "max_failures": 1}
+2026-06-29 01:43:34,504 [ WARNING] agent.error_handler: {"trace_id": "bf08adc30a964635", "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": "default", "failure_count": 1}
+2026-06-29 01:43:34,540 [    INFO] agent.error_handler: {"trace_id": "0c4dbae2e9d14820", "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": "default", "state": "HALF_OPEN"}
+2026-06-29 01:43:34,541 [ WARNING] agent.error_handler: {"trace_id": "e036e93f6c44459c", "module_name": "error_handler", "action": "circuit_breaker.reopened", "duration_ms": 0, "name": "default", "state": "OPEN"}

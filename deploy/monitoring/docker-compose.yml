@@ -1,0 +1,169 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：生产级监控部署 Compose（Prometheus + Grafana + visibility-exporter + node-exporter）
+# - 生成参数：4 服务、固定镜像版本、资源限制、健康检查、日志驱动限制
+# - 模型配置：GLM-5.2
+# - 关键状态变化：与开发环境 monitoring/ 隔离（端口 9091/3001/9101），不修改 monitoring/ 下任何文件
+#
+# 部署说明：
+#   1. 启动：docker compose -f deploy/monitoring/docker-compose.yml up -d
+#   2. 生产环境务必修改 GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD
+#   3. visibility-exporter 以只读方式挂载项目源码，仅用于读取指标
+#   4. 与开发环境端口隔离：Prometheus 9091、Grafana 3001、visibility-exporter 9101
+
+services:
+  # ─── Prometheus 指标采集（生产） ───
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: yunshu-prod-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./prometheus/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ─── Grafana 可视化看板（生产） ───
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: yunshu-prod-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      # ⚠️ 生产环境请务必修改以下默认账号密码
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+  # ─── 四层可见性指标导出器 ───
+  # 运行 visibility_report.py --serve-metrics，暴露 /metrics 与 /health
+  visibility-exporter:
+    image: python:3.11-slim
+    container_name: yunshu-prod-visibility-exporter
+    working_dir: /app
+    # 安装 PyYAML 后启动 exporter（visibility_report.py load_thresholds 需要 yaml）
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        pip install --no-cache-dir pyyaml --quiet &&
+        python scripts/visibility_report.py --serve-metrics --port 9101 --refresh-interval 300
+    ports:
+      - "9101:9101"
+    volumes:
+      # 项目根目录只读挂载（visibility_report.py 通过 PROJECT_ROOT 自解析）
+      - ../..:/app:ro
+      # 显式只读挂载关键子路径，确保 exporter 可访问
+      - ../../scripts:/app/scripts:ro
+      - ../../config.yaml:/app/config.yaml:ro
+      - ../../agent:/app/agent:ro
+      - ../../tests:/app/tests:ro
+      - ../../docs:/app/docs:ro
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:9101/health').read()\""]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  # ─── Node Exporter 主机指标（可选） ───
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: yunshu-prod-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+networks:
+  monitoring-net:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

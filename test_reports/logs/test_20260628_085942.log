@@ -1,0 +1,217 @@
+2026-06-28 08:59:42,334 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 08:59:42,338 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 08:59:42,339 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 08:59:42,354 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 08:59:42,375 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 08:59:42,377 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 08:59:42,382 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:59:42,382 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 08:59:42,389 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 08:59:42,393 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 08:59:42,409 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 08:59:42,410 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 08:59:42,410 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 08:59:42,412 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 08:59:42,413 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 08:59:42,517 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 08:59:42,522 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 08:59:42,523 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 08:59:42,524 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 08:59:42,524 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:59:42,524 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 08:59:42,524 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 08:59:42,524 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 08:59:42,547 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=test_start, case=bucket_exhaustion
+2026-06-28 08:59:42,547 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=limiter_created, category=default, capacity=3, refill_rate=1.0
+2026-06-28 08:59:42,547 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=1, tool_name=test_tool, allowed=True, remaining_tokens=2
+2026-06-28 08:59:42,547 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=2, tool_name=test_tool, allowed=True, remaining_tokens=1.0001
+2026-06-28 08:59:42,548 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=3, tool_name=test_tool, allowed=True, remaining_tokens=0.0002
+2026-06-28 08:59:42,548 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=assert_before, expected=[True,True,True], actual=[True, True, True]
+2026-06-28 08:59:42,548 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=exhaustion, tool_name=test_tool, allowed=False, remaining_tokens=0.0005, msg=bucket_exhausted
+2026-06-28 08:59:42,548 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=assert_before, expected=False, actual=False
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=test_start, case=refill_after_wait
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=limiter_created, category=default, capacity=2, refill_rate=1.0
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=1, tool_name=test_tool, allowed=True, remaining_tokens=1
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=2, tool_name=test_tool, allowed=True, remaining_tokens=0.0001
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=exhaustion, idx=3, tool_name=test_tool, allowed=False, remaining_tokens=0.0002, msg=bucket_exhausted
+2026-06-28 08:59:42,551 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=sleep_start, seconds=1.2, msg=waiting_for_refill
+2026-06-28 08:59:43,752 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=refill_done, remaining_tokens=0.0002, msg=refilled_after_wait
+2026-06-28 08:59:43,753 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=consume, idx=4, tool_name=test_tool, allowed=True, remaining_tokens=0.2018, msg=after_refill_consume
+2026-06-28 08:59:43,753 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestTokenBucketExhaustion - action=assert_before, expected=True, actual=True
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=test_start, case=burst_far_exceeding
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=limiter_created, category=default, capacity=5, refill_rate=1.0
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=1, tool_name=burst_tool, allowed=True, blocked=False, running_allowed=1, running_rejected=0, remaining_tokens=4
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=2, tool_name=burst_tool, allowed=True, blocked=False, running_allowed=2, running_rejected=0, remaining_tokens=3.0001
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=3, tool_name=burst_tool, allowed=True, blocked=False, running_allowed=3, running_rejected=0, remaining_tokens=2.0002
+2026-06-28 08:59:43,756 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=4, tool_name=burst_tool, allowed=True, blocked=False, running_allowed=4, running_rejected=0, remaining_tokens=1.0003
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=5, tool_name=burst_tool, allowed=True, blocked=False, running_allowed=5, running_rejected=0, remaining_tokens=0.0006
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=6, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=1, remaining_tokens=0.0008
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=7, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=2, remaining_tokens=0.0009
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=8, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=3, remaining_tokens=0.0011
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=9, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=4, remaining_tokens=0.0013
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=10, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=5, remaining_tokens=0.0014
+2026-06-28 08:59:43,757 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=11, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=6, remaining_tokens=0.0015
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=12, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=7, remaining_tokens=0.0016
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=13, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=8, remaining_tokens=0.0017
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=14, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=9, remaining_tokens=0.0018
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=15, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=10, remaining_tokens=0.002
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=16, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=11, remaining_tokens=0.0021
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=17, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=12, remaining_tokens=0.0022
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=18, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=13, remaining_tokens=0.0023
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=19, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=14, remaining_tokens=0.0024
+2026-06-28 08:59:43,758 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=20, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=15, remaining_tokens=0.0025
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=21, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=16, remaining_tokens=0.0026
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=22, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=17, remaining_tokens=0.0027
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=23, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=18, remaining_tokens=0.0028
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=24, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=19, remaining_tokens=0.0029
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=25, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=20, remaining_tokens=0.003
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=26, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=21, remaining_tokens=0.0031
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=27, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=22, remaining_tokens=0.0032
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=28, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=23, remaining_tokens=0.0033
+2026-06-28 08:59:43,759 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=29, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=24, remaining_tokens=0.0034
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=30, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=25, remaining_tokens=0.0036
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=31, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=26, remaining_tokens=0.0037
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=32, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=27, remaining_tokens=0.0038
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=33, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=28, remaining_tokens=0.0039
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=34, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=29, remaining_tokens=0.0041
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=35, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=30, remaining_tokens=0.0042
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=36, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=31, remaining_tokens=0.0043
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=37, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=32, remaining_tokens=0.0044
+2026-06-28 08:59:43,760 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=38, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=33, remaining_tokens=0.0045
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=39, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=34, remaining_tokens=0.0047
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=40, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=35, remaining_tokens=0.0048
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=41, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=36, remaining_tokens=0.0049
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=42, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=37, remaining_tokens=0.0051
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=43, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=38, remaining_tokens=0.0052
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=44, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=39, remaining_tokens=0.0053
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=45, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=40, remaining_tokens=0.0054
+2026-06-28 08:59:43,761 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=46, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=41, remaining_tokens=0.0055
+2026-06-28 08:59:43,762 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=47, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=42, remaining_tokens=0.0056
+2026-06-28 08:59:43,762 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=48, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=43, remaining_tokens=0.0057
+2026-06-28 08:59:43,762 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=49, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=44, remaining_tokens=0.0059
+2026-06-28 08:59:43,762 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=consume, idx=50, tool_name=burst_tool, allowed=False, blocked=True, running_allowed=5, running_rejected=45, remaining_tokens=0.006
+2026-06-28 08:59:43,762 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestBurstTraffic - action=assert_before, expected_allowed=5, actual_allowed=5, expected_rejected=45, actual_rejected=45
+2026-06-28 08:59:43,765 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=test_start, case=multi_level_independent_buckets
+2026-06-28 08:59:43,765 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=limiter_created, config=default, network=(5,0.5), shell=(2,0.2), file=(15,1.0), default=(10,1.0)
+2026-06-28 08:59:43,765 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=network, idx=1, tool_name=http_fetch_0, allowed=True, remaining_tokens=4
+2026-06-28 08:59:43,765 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=network, idx=2, tool_name=http_fetch_1, allowed=True, remaining_tokens=3.0001
+2026-06-28 08:59:43,765 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=network, idx=3, tool_name=http_fetch_2, allowed=True, remaining_tokens=2.0001
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=network, idx=4, tool_name=http_fetch_3, allowed=True, remaining_tokens=1.0002
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=network, idx=5, tool_name=http_fetch_4, allowed=True, remaining_tokens=0.0003
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=exhaustion, category=network, tool_name=http_fetch_extra, allowed=False, remaining_tokens=0.0003, msg=bucket_exhausted
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=assert_before, category=network, expected=False, actual=False
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=shell, idx=1, tool_name=shell_execute, allowed=True, remaining_tokens=1
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=shell, idx=2, tool_name=run_program, allowed=True, remaining_tokens=0.0
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=exhaustion, category=shell, idx=3, tool_name=start_process, allowed=False, remaining_tokens=0.0, msg=bucket_exhausted
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=assert_before, category=shell, expected=False, actual=False
+2026-06-28 08:59:43,766 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=file, idx=1, tool_name=read_file_0, allowed=True, remaining_tokens=14, msg=sampled_log
+2026-06-28 08:59:43,767 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=file, idx=5, tool_name=read_file_4, allowed=True, remaining_tokens=10.0001, msg=sampled_log
+2026-06-28 08:59:43,767 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=file, idx=10, tool_name=read_file_9, allowed=True, remaining_tokens=5.0002, msg=sampled_log
+2026-06-28 08:59:43,767 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=consume, category=file, idx=15, tool_name=read_file_14, allowed=True, remaining_tokens=0.0004, msg=sampled_log
+2026-06-28 08:59:43,767 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=exhaustion, category=file, tool_name=read_file_extra, allowed=False, remaining_tokens=0.0005, msg=bucket_exhausted
+2026-06-28 08:59:43,767 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestMultiLevelLimiting - action=assert_before, category=file, expected=False, actual=False
+2026-06-28 08:59:43,769 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=test_start, case=sustained_load
+2026-06-28 08:59:43,770 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=limiter_created, category=default, capacity=5, refill_rate=10.0
+2026-06-28 08:59:43,870 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=100, attempts=30831, allowed=5, remaining_tokens=0.9999, msg=sustained_load_progress
+2026-06-28 08:59:43,970 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=200, attempts=61923, allowed=6, remaining_tokens=1.0, msg=sustained_load_progress
+2026-06-28 08:59:44,070 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=300, attempts=92906, allowed=7, remaining_tokens=1.0, msg=sustained_load_progress
+2026-06-28 08:59:44,170 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=400, attempts=124535, allowed=9, remaining_tokens=0.0, msg=sustained_load_progress
+2026-06-28 08:59:44,270 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=500, attempts=155540, allowed=10, remaining_tokens=0.0, msg=sustained_load_progress
+2026-06-28 08:59:44,370 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=600, attempts=186125, allowed=11, remaining_tokens=0.0, msg=sustained_load_progress
+2026-06-28 08:59:44,470 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=700, attempts=215776, allowed=12, remaining_tokens=0.0001, msg=sustained_load_progress
+2026-06-28 08:59:44,570 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=800, attempts=245667, allowed=13, remaining_tokens=0.0001, msg=sustained_load_progress
+2026-06-28 08:59:44,670 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=progress, elapsed_ms=900, attempts=275536, allowed=14, remaining_tokens=0.0001, msg=sustained_load_progress
+2026-06-28 08:59:44,770 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=refill_done, remaining_tokens=0.9999, total_allowed=14, total_attempts=305872, msg=dynamic_balance_result
+2026-06-28 08:59:44,770 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestSustainedLoad - action=assert_before, expected_range=[5,20], actual=14
+2026-06-28 08:59:44,773 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=test_start, case=concurrent_consumption
+2026-06-28 08:59:44,773 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=limiter_created, category=default, capacity=10, refill_rate=0.01
+2026-06-28 08:59:44,773 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=threads_created, thread_count=10, consumes_per_thread=5, total_consumes=50
+2026-06-28 08:59:44,775 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16452, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=1
+2026-06-28 08:59:44,775 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=20232, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=2
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=19388, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=3
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=18760, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=4
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=17536, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=5
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=14788, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=6
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=8268, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=7
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=12936, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=8
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=21512, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=9
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16800, idx=1, tool_name=concurrent_tool, allowed=True, local_allowed=1, local_blocked=0, global_allowed=10
+2026-06-28 08:59:44,776 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16452, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,777 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=20232, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,777 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=19388, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,777 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=18760, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,777 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=17536, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,777 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=14788, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,778 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=8268, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,778 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=12936, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,778 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=21512, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,778 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16800, idx=2, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=1, global_allowed=10
+2026-06-28 08:59:44,778 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16452, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,779 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=20232, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,779 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=19388, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,779 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=18760, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,779 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=17536, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,779 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=14788, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,780 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=8268, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,780 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=12936, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,780 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=21512, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,780 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16800, idx=3, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=2, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16452, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=20232, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=19388, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=18760, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=17536, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,781 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=14788, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=8268, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=12936, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=21512, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16800, idx=4, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=3, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16452, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,782 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=20232, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,783 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=19388, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,783 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=18760, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,783 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=17536, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,783 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=14788, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,783 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=8268, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,784 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=12936, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,784 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=21512, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,784 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=consume, thread_id=16800, idx=5, tool_name=concurrent_tool, allowed=False, local_allowed=1, local_blocked=4, global_allowed=10
+2026-06-28 08:59:44,786 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=threads_summary, thread_results={16452: {'allowed': 1, 'blocked': 4}, 20232: {'allowed': 1, 'blocked': 4}, 19388: {'allowed': 1, 'blocked': 4}, 18760: {'allowed': 1, 'blocked': 4}, 17536: {'allowed': 1, 'blocked': 4}, 14788: {'allowed': 1, 'blocked': 4}, 8268: {'allowed': 1, 'blocked': 4}, 12936: {'allowed': 1, 'blocked': 4}, 21512: {'allowed': 1, 'blocked': 4}, 16800: {'allowed': 1, 'blocked': 4}}, total_allowed=10
+2026-06-28 08:59:44,786 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=assert_before, msg=all_threads_exited, expected_alive=False, actual_any_alive=False
+2026-06-28 08:59:44,786 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=assert_before, msg=capacity_check, expected_max=10, actual=10
+2026-06-28 08:59:44,786 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestConcurrentTokenConsumption - action=assert_before, msg=starvation_check, expected_min=1, actual=10
+2026-06-28 08:59:44,789 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=test_start, case=reset_clears_buckets
+2026-06-28 08:59:44,789 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=limiter_created, default=(3,0.01), network=(2,0.01)
+2026-06-28 08:59:44,789 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=default, idx=1, tool_name=default_tool, allowed=True, remaining_tokens=2
+2026-06-28 08:59:44,789 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=default, idx=2, tool_name=default_tool, allowed=True, remaining_tokens=1.0
+2026-06-28 08:59:44,789 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=default, idx=3, tool_name=default_tool, allowed=True, remaining_tokens=0.0
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=network, idx=1, tool_name=http_tool, allowed=True, remaining_tokens=1
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=network, idx=2, tool_name=http_tool, allowed=True, remaining_tokens=0.0
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=exhaustion, category=default, tool_name=default_tool, allowed=False, remaining_tokens=0.0, msg=bucket_exhausted_before_reset
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, category=default, expected=False, actual=False
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=exhaustion, category=network, tool_name=http_tool, allowed=False, remaining_tokens=0.0, msg=bucket_exhausted_before_reset
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, category=network, expected=False, actual=False
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=reset_done, buckets={}, msg=all_buckets_cleared
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=default, tool_name=default_tool, allowed=True, remaining_tokens=2, msg=after_reset_consume
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, category=default, expected=True, actual=True, msg=reset_recovery
+2026-06-28 08:59:44,790 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, category=network, tool_name=http_tool, allowed=True, remaining_tokens=1, msg=after_reset_consume
+2026-06-28 08:59:44,791 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, category=network, expected=True, actual=True, msg=reset_recovery
+2026-06-28 08:59:44,793 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=test_start, case=wait_time_after_exhaustion
+2026-06-28 08:59:44,793 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=limiter_created, category=default, capacity=2, refill_rate=1.0
+2026-06-28 08:59:44,793 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, idx=1, tool_name=test_tool, allowed=True, remaining_tokens=1
+2026-06-28 08:59:44,793 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=consume, idx=2, tool_name=test_tool, allowed=True, remaining_tokens=0.0001
+2026-06-28 08:59:44,794 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=exhaustion, tool_name=test_tool, remaining_tokens=0.0001, msg=bucket_exhausted_before_wait_query
+2026-06-28 08:59:44,794 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=wait_time_query, tool_name=test_tool, wait_time=1.0, remaining_tokens=0.0001, refill_rate=1.0
+2026-06-28 08:59:44,794 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, msg=wait_positive, expected_min=0, actual=1.0
+2026-06-28 08:59:44,794 [    INFO] chaos.test_rate_limiter_chaos: [RL_CHAOS] TestLimiterReset - action=assert_before, msg=wait_within_bound, expected_max=1.0, actual=1.0

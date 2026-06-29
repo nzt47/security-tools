@@ -1,0 +1,22 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：Grafana 看板自动加载配置（从 /var/lib/grafana/dashboards 加载 JSON）
+# - 生成参数：folder='云枢可观测性'、updateIntervalSeconds=30、editable=true
+# - 模型配置：GLM-5.2
+# - 关键状态变化：看板文件挂载在容器 /var/lib/grafana/dashboards
+
+apiVersion: 1
+
+providers:
+  - name: 'yunshu-visibility'
+    orgId: 1
+    folder: '云枢可观测性'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

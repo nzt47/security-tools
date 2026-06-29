@@ -1703,6 +1703,30 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  技能管理系统 v1 路由（/api/skills-mgmt/*）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_skills_mgmt import register_routes as reg_skills_mgmt
+    reg_skills_mgmt(app, lambda: None)
+    logger.info("技能管理系统路由已注册 (/api/skills-mgmt/*)")
+except Exception as e:
+    logger.error("加载技能管理路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  工作流学习系统路由（/api/workflow-learning/*）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_workflow_learning import register_routes as reg_workflow_learning
+    reg_workflow_learning(app, lambda: None)
+    logger.info("工作流学习系统路由已注册 (/api/workflow-learning/*)")
+except Exception as e:
+    logger.error("加载工作流学习路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 

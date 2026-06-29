@@ -1,0 +1,122 @@
+2026-06-24 18:00:54,729 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 18:00:54,733 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 18:00:54,735 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 18:00:54,832 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 18:00:54,847 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 18:00:54,850 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 18:00:54,878 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 18:00:54,887 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 18:00:54,892 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 18:00:54,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 18:00:54,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 18:00:54,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 18:00:54,908 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 18:00:54,911 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 18:00:55,035 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 18:00:55,041 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 18:00:55,041 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:00:55,052 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:00:55,052 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 18:00:55,052 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 18:00:55,052 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 18:00:55,052 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 18:00:55,053 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 18:00:55,176 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpts9y71t5\test_ltm.db
+2026-06-24 18:00:55,240 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpre28d90m\test_ltm.db
+2026-06-24 18:00:55,271 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmprjh_ugv9\test_ltm.db
+2026-06-24 18:00:55,278 [ WARNING] agent.memory.long_term_memory: [LongTermMemory] 删除被拒绝: key=important 需要审查
+2026-06-24 18:00:55,282 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 删除成功: key=important, force=True
+2026-06-24 18:00:55,298 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpf_n64f_8\test_ltm.db
+2026-06-24 18:00:55,328 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmplw71yf4o\test_ltm.db
+2026-06-24 18:00:55,363 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpj986jbtu\test_ltm.db
+2026-06-24 18:00:55,379 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 18:00:55,385 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 18:00:56,491 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 18:00:56,496 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 18:00:56,498 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 清除任务记忆: task_id=task_1, count=1
+2026-06-24 18:00:56,501 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 18:00:56,502 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 已清空所有临时记忆: count=2
+2026-06-24 18:00:56,507 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,511 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,514 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,517 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,521 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,524 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,527 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 18:00:56,529 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=key_points, original_len=80, summary_len=17, duration_ms=0.00
+2026-06-24 18:00:56,532 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 18:00:56,535 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=minimal, original_len=16, summary_len=16, duration_ms=0.00
+2026-06-24 18:00:56,538 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 18:00:56,540 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=key_points, original_len=20, summary_len=6, duration_ms=0.00
+2026-06-24 18:00:56,543 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,545 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 18:00:56,545 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注销: sa-1
+2026-06-24 18:00:56,548 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,548 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 18:00:56,551 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,551 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 18:00:56,553 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-2
+2026-06-24 18:00:56,555 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,556 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 18:00:56,558 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,559 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 18:00:56,572 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,575 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_28421b0757d3", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "告诉我时间", "goal_length": 5, "has_task_definitions": false, "timestamp": 1782295256.575424}
+2026-06-24 18:00:56,575 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_28421b0757d3", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "告诉我时间", "complexity": "trivial", "requires_confirmation": true, "duration_ms": 0.0, "timestamp": 1782295256.575424}
+2026-06-24 18:00:56,575 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_28421b0757d3", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "trivial", "task_count": 3, "duration_ms": 0.0, "timestamp": 1782295256.575424}
+2026-06-24 18:00:56,575 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_28421b0757d3", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "trivial", "task_count": 3, "requires_confirmation": true, "warnings_count": 0, "warnings": [], "status": "draft", "duration_ms": 0.0, "timestamp": 1782295256.575424}
+2026-06-24 18:00:56,579 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,581 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_a1f750dd204f", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "帮我设计一个分布式系统", "goal_length": 11, "has_task_definitions": false, "timestamp": 1782295256.5811808}
+2026-06-24 18:00:56,581 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_a1f750dd204f", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "帮我设计一个分布式系统", "complexity": "complex", "requires_confirmation": false, "duration_ms": 0.0, "timestamp": 1782295256.5811808}
+2026-06-24 18:00:56,581 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_a1f750dd204f", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "complex", "task_count": 9, "duration_ms": 0.0, "timestamp": 1782295256.5811808}
+2026-06-24 18:00:56,581 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_a1f750dd204f", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "complex", "task_count": 9, "requires_confirmation": false, "warnings_count": 1, "warnings": ["这是一个复杂任务，建议仔细审查执行步骤"], "status": "draft", "duration_ms": 0.0, "timestamp": 1782295256.5811808}
+2026-06-24 18:00:56,583 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,585 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_85b2c0145c74", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "帮我写一个 Web 服务器", "goal_length": 13, "has_task_definitions": false, "timestamp": 1782295256.5854454}
+2026-06-24 18:00:56,585 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_85b2c0145c74", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "帮我写一个 Web 服务器", "complexity": "simple", "requires_confirmation": true, "duration_ms": 0.0, "timestamp": 1782295256.5854454}
+2026-06-24 18:00:56,585 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_85b2c0145c74", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "simple", "task_count": 4, "duration_ms": 0.0, "timestamp": 1782295256.5854454}
+2026-06-24 18:00:56,585 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_85b2c0145c74", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "simple", "task_count": 4, "requires_confirmation": true, "warnings_count": 0, "warnings": [], "status": "draft", "duration_ms": 0.0, "timestamp": 1782295256.5854454}
+2026-06-24 18:00:56,589 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,591 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_07375e4c049d", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "分析数据并生成报告", "goal_length": 9, "has_task_definitions": false, "timestamp": 1782295256.5916018}
+2026-06-24 18:00:56,593 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_07375e4c049d", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "分析数据并生成报告", "complexity": "moderate", "requires_confirmation": true, "duration_ms": 1.57, "timestamp": 1782295256.5931728}
+2026-06-24 18:00:56,593 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_07375e4c049d", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "moderate", "task_count": 5, "duration_ms": 0.0, "timestamp": 1782295256.5931728}
+2026-06-24 18:00:56,593 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_07375e4c049d", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "moderate", "task_count": 5, "requires_confirmation": true, "warnings_count": 0, "warnings": [], "status": "draft", "duration_ms": 1.57, "timestamp": 1782295256.5931728}
+2026-06-24 18:00:56,593 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "confirm_a45256b717ec", "module_name": "task_planner", "action": "plan_confirm_start", "plan_id": "plan_07375e4c049d", "confirmed_by": "user", "has_task_level_confirmations": false, "timestamp": 1782295256.5931728}
+2026-06-24 18:00:56,593 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "confirm_a45256b717ec", "module_name": "task_planner", "action": "plan_confirm_complete", "plan_id": "plan_07375e4c049d", "confirmed_by": "user", "confirmation_status": "full", "total_tasks": 5, "confirmed_count": 5, "rejected_count": 0, "auto_confirmed": 5, "user_confirmed": 0, "unconfirmed_count": 0, "duration_ms": 0.0, "timestamp": 1782295256.5931728}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_5bf641236952", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "告诉我今天天气", "goal_length": 7, "has_task_definitions": false, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_5bf641236952", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "告诉我今天天气", "complexity": "trivial", "requires_confirmation": true, "duration_ms": 0.0, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_5bf641236952", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "trivial", "task_count": 3, "duration_ms": 0.0, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_5bf641236952", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "trivial", "task_count": 3, "requires_confirmation": true, "warnings_count": 0, "warnings": [], "status": "draft", "duration_ms": 0.0, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_ccd68c4da677", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "设计一个分布式架构", "goal_length": 9, "has_task_definitions": false, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_ccd68c4da677", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "设计一个分布式架构", "complexity": "complex", "requires_confirmation": false, "duration_ms": 0.0, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,595 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_ccd68c4da677", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "complex", "task_count": 9, "duration_ms": 0.0, "timestamp": 1782295256.595215}
+2026-06-24 18:00:56,599 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_ccd68c4da677", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "complex", "task_count": 9, "requires_confirmation": false, "warnings_count": 1, "warnings": ["这是一个复杂任务，建议仔细审查执行步骤"], "status": "draft", "duration_ms": 4.55, "timestamp": 1782295256.5997632}
+2026-06-24 18:00:56,601 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_0c2959160786", "module_name": "task_planner", "action": "plan_create_start", "goal_preview": "帮我写代码", "goal_length": 5, "has_task_definitions": false, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_0c2959160786", "module_name": "task_planner", "action": "complexity_evaluation", "goal_preview": "帮我写代码", "complexity": "simple", "requires_confirmation": true, "duration_ms": 0.0, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_0c2959160786", "module_name": "task_planner", "action": "goal_decomposition", "complexity": "simple", "task_count": 4, "duration_ms": 0.0, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "plan_0c2959160786", "module_name": "task_planner", "action": "plan_create_complete", "complexity": "simple", "task_count": 4, "requires_confirmation": true, "warnings_count": 0, "warnings": [], "status": "draft", "duration_ms": 0.0, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "confirm_4662fb9a7c09", "module_name": "task_planner", "action": "plan_confirm_start", "plan_id": "plan_0c2959160786", "confirmed_by": "user", "has_task_level_confirmations": false, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,603 [    INFO] agent.task_planner.enhanced_planner: {"trace_id": "confirm_4662fb9a7c09", "module_name": "task_planner", "action": "plan_confirm_complete", "plan_id": "plan_0c2959160786", "confirmed_by": "user", "confirmation_status": "full", "total_tasks": 4, "confirmed_count": 4, "rejected_count": 0, "auto_confirmed": 4, "user_confirmed": 0, "unconfirmed_count": 0, "duration_ms": 0.0, "timestamp": 1782295256.6033928}
+2026-06-24 18:00:56,633 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpseubplq5\test.db
+2026-06-24 18:00:56,633 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=0 days
+2026-06-24 18:00:56,636 [    INFO] agent.memory.reviewer: [review_1782295256] [MemoryReviewer] 开始审查记忆库: trace_id=review_1782295256
+2026-06-24 18:00:56,638 [    INFO] agent.memory.reviewer: [review_1782295256] [MemoryReviewer] 审查完成: total=0, healthy=0, stale=0, duplicates=0, duration_ms=2.99
+2026-06-24 18:00:56,653 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpcvoirjlc\test.db
+2026-06-24 18:00:56,653 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=0 days
+2026-06-24 18:00:56,657 [    INFO] agent.memory.reviewer: [quick_1782295256] [MemoryReviewer] 快速审查完成: duration_ms=1.13
+2026-06-24 18:00:56,664 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 18:00:56,665 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 18:00:56,665 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 18:00:56,665 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-analysis, strategy=key_points, original_len=56, summary_len=8, duration_ms=0.00
+2026-06-24 18:00:56,665 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-dbe48dc0f59e, model=test-model, memory=holographic, permissions=['read'])
+2026-06-24 18:00:56,665 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-analysis

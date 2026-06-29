@@ -1,0 +1,223 @@
+2026-06-26 12:57:20,710 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 12:57:20,715 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 12:57:20,717 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 12:57:20,840 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 12:57:20,866 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 12:57:20,870 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 12:57:20,942 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 12:57:20,944 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:20,944 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 12:57:20,945 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 12:57:20,953 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 12:57:20,958 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 12:57:20,976 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 12:57:20,976 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 12:57:20,976 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 12:57:20,977 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 12:57:20,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 12:57:21,122 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 12:57:21,126 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 12:57:21,126 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:57:21,126 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 12:57:21,126 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 12:57:21,127 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 12:57:21,142 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,142 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 12:57:21,313 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,313 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_custom_path_used0\\test_history.jsonl"}
+2026-06-26 12:57:21,317 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,318 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:21,337 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,338 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_default_path_when_empty0\\test_history.jsonl"}
+2026-06-26 12:57:21,341 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,342 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-26 12:57:21,343 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,343 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440, "persist_enabled": true, "persist_path": "data\\resource_monitor_history.jsonl"}
+2026-06-26 12:57:21,344 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,345 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:21,347 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,348 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:21,367 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,368 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_sample_buffers_until_batc0\\test_history.jsonl"}
+2026-06-26 12:57:21,493 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,623 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,630 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,631 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:21,654 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,655 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_flush_triggered_at_batch_0\\test_history.jsonl"}
+2026-06-26 12:57:21,778 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:21,906 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,045 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,046 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,048 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,049 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:22,069 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,070 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_manual_flush_writes_buffe0\\test_history.jsonl"}
+2026-06-26 12:57:22,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,197 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,200 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:22,221 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,222 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_stop_flushes_remaining_bu0\\test_history.jsonl"}
+2026-06-26 12:57:22,378 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,384 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,387 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:22,392 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,393 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:22,427 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,428 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_persisted_format_is_jsonl0\\test_history.jsonl"}
+2026-06-26 12:57:22,582 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,855 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,856 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,861 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,862 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:22,882 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:22,882 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_persisted_history_on0\\test_history.jsonl"}
+2026-06-26 12:57:23,020 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,145 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,273 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,428 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,561 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,562 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,563 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:23,564 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,564 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_persisted_history_on0\\test_history.jsonl"}
+2026-06-26 12:57:23,576 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,578 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "load_persisted_history", "duration_ms": 0, "loaded": 5, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_persisted_history_on0\\test_history.jsonl"}
+2026-06-26 12:57:23,579 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,581 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:23,585 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,586 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:23,610 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,611 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_only_once0\\test_history.jsonl"}
+2026-06-26 12:57:23,758 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:23,886 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,026 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,028 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,029 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,030 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,032 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,034 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_only_once0\\test_history.jsonl"}
+2026-06-26 12:57:24,042 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,043 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,043 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "load_persisted_history", "duration_ms": 0, "loaded": 3, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_only_once0\\test_history.jsonl"}
+2026-06-26 12:57:24,044 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,044 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,047 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,047 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,068 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,069 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_missing_file_returns0\\test_history.jsonl"}
+2026-06-26 12:57:24,072 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,073 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,093 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,094 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_expired_data_filtered_on_0\\test_history.jsonl"}
+2026-06-26 12:57:24,234 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,239 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,240 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,240 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,241 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_expired_data_filtered_on_0\\test_history.jsonl"}
+2026-06-26 12:57:24,246 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,246 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,247 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "load_persisted_history", "duration_ms": 0, "loaded": 1, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_expired_data_filtered_on_0\\test_history.jsonl"}
+2026-06-26 12:57:24,248 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,248 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,252 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,273 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,274 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_rewrite_removes_expired0\\test_history.jsonl"}
+2026-06-26 12:57:24,417 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,420 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,422 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,422 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,425 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,428 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,429 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,450 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,451 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_cleanup_public_api0\\test_history.jsonl"}
+2026-06-26 12:57:24,583 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,714 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,864 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,865 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,869 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,872 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,873 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:24,893 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:24,894 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_dict_to_snapshot_roundtri0\\test_history.jsonl"}
+2026-06-26 12:57:25,035 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,041 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,041 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,042 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,063 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,063 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_dict_to_snapshot_partial_0\\test_history.jsonl"}
+2026-06-26 12:57:25,067 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,068 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,089 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,089 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_dict_to_snapshot_invalid_0\\test_history.jsonl"}
+2026-06-26 12:57:25,094 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,094 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,116 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,116 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_skips_corrupt_lines0\\test_history.jsonl"}
+2026-06-26 12:57:25,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,256 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,257 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,258 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,260 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 1440, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_skips_corrupt_lines0\\test_history.jsonl"}
+2026-06-26 12:57:25,261 [ WARNING] agent.monitoring.resource_monitor: [ResourceMonitor] 历史行解析失败，跳过: Expecting value: line 1 column 1 (char 0)
+2026-06-26 12:57:25,262 [ WARNING] agent.monitoring.resource_monitor: [ResourceMonitor] 历史行解析失败，跳过: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-06-26 12:57:25,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,267 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "load_persisted_history", "duration_ms": 0, "loaded": 1, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_load_skips_corrupt_lines0\\test_history.jsonl"}
+2026-06-26 12:57:25,268 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,268 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,271 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,291 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,292 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_persist_failure_does_not_0\\test_history.jsonl"}
+2026-06-26 12:57:25,445 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,445 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,448 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,449 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,469 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,470 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_disabled_persist_no_write0\\test_history.jsonl"}
+2026-06-26 12:57:25,614 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,617 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,618 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,643 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,644 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_flush_empty_buffer_noop0\\test_history.jsonl"}
+2026-06-26 12:57:25,648 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,649 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,669 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,670 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_get_persist_status0\\test_history.jsonl"}
+2026-06-26 12:57:25,803 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,809 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,810 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,810 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,830 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,831 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_get_status_includes_persi0\\test_history.jsonl"}
+2026-06-26 12:57:25,835 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,836 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}
+2026-06-26 12:57:25,857 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,858 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "init", "duration_ms": 0, "psutil_available": true, "history_size": 100, "persist_enabled": true, "persist_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-386\\test_get_persist_status_disabl0\\test_history.jsonl"}
+2026-06-26 12:57:25,862 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:57:25,862 [    INFO] agent.monitoring.resource_monitor: {"trace_id": null, "module_name": "resource_monitor", "action": "stop", "duration_ms": 0}

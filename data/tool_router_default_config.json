@@ -1,0 +1,122 @@
+{
+  "version": "1.0.0",
+  "description": "智能工具选择配置模板 - 已通过验证的默认配置",
+  "created_at": "2026-06-23",
+  "last_updated": "2026-06-23",
+  
+  "priority_config": {
+    "description": "类别优先级配置 - 数值越小优先级越高",
+    "priorities": {
+      "core": 0,
+      "web": 1,
+      "file": 2,
+      "code": 3,
+      "system": 4,
+      "extension": 5,
+      "pdf": 6,
+      "software": 7,
+      "async": 8,
+      "schedule": 9,
+      "v2": 10
+    }
+  },
+  
+  "keywords_config": {
+    "description": "关键词配置 - 用于工具分类匹配",
+    "keywords": {
+      "web": [
+        "搜索", "查找", "打开网页", "网站", "url", "http", "https",
+        "新闻", "网络", "查询", "联网", "上网", "百度", "谷歌",
+        "信息", "资料", "文章", "页面", "链接", "抓取", "爬虫",
+        "translate", "翻译", "search", "web", "internet", "fetch",
+        "最新", "热点", "资讯"
+      ],
+      "file": [
+        "文件", "读取", "写入", "目录", "文件夹", "保存", "打开文件",
+        "创建文件", "删除文件", "移动文件", "复制文件", "压缩", "解压",
+        "zip", "tar", "diff", "对比文件", "文件信息", "搜索文件",
+        "列出", "文件大小", "修改时间", "file", "read", "write",
+        "日志", "log", "logs", "debug", "分析日志", "日志分析"
+      ],
+      "code": [
+        "执行", "命令", "shell", "终端", "cmd", "powershell", "bash",
+        "json", "yaml", "xml", "格式化", "校验", "转换", "检测格式",
+        "代码审查", "架构图", "review", "代码", "脚本", "运行",
+        "humanize", "ai写作", "代码检查"
+      ],
+      "system": [
+        "进程", "启动程序", "运行程序", "天气", "温度", "天气预报",
+        "程序", "process", "weather", "停止", "打开", "notepad",
+        "calc", "白名单", "执行命令", "cmd", "命令行"
+      ],
+      "extension": [
+        "安装扩展", "卸载扩展", "技能", "插件", "mcp", "通道",
+        "扩展市场", "扩展列表", "扩展管理", "安装技能",
+        "安装插件", "拓展", "channel", "webhook", "邮件",
+        "ext_", "扩展"
+      ],
+      "pdf": [
+        "pdf", "合并pdf", "拆分pdf", "读取pdf", "pdf信息",
+        "pdf文件", "pdf处理", "pdf合并"
+      ],
+      "software": [
+        "安装软件", "卸载软件", "搜索软件", "软件包", "软件列表",
+        "chocolatey", "pip install", "npm install", "安装包",
+        "软件管理"
+      ],
+      "async": [
+        "异步", "后台", "提交任务", "任务状态", "任务结果",
+        "取消任务", "长时间", "耗时", "background", "async",
+        "submit", "task"
+      ],
+      "schedule": [
+        "定时", "计划", "调度", "cron", "周期", "每天", "每小时",
+        "定时任务", "计划任务", "schedule", "定时执行",
+        "重复", "每隔"
+      ],
+      "v2": [
+        "lifetrace", "人格", "persona", "蒸馏", "distillation",
+        "偏好", "preference", "记忆检索"
+      ]
+    }
+  },
+  
+  "alias_config": {
+    "description": "别名合并规则 - 同类工具只保留主工具",
+    "aliases": {
+      "shell_execute": ["run_program"],
+      "read_file": ["read_pdf"],
+      "list_directory": ["list_processes", "list_async_tasks", "list_scheduled_tasks", "software_list", "ext_list"],
+      "software_install": ["ext_install"],
+      "software_uninstall": ["ext_uninstall"],
+      "cancel_task": ["cancel_scheduled_task"]
+    }
+  },
+  
+  "limits_config": {
+    "description": "限制配置",
+    "max_tools_per_request": 25,
+    "max_keywords_per_category": 50,
+    "enable_smart_tool_selection": true
+  },
+  
+  "validation_info": {
+    "description": "配置验证信息",
+    "last_validated": "2026-06-23",
+    "validation_status": "passed",
+    "test_results": {
+      "total_tests": 9,
+      "passed": 9,
+      "success_rate": 100.0
+    }
+  },
+  
+  "notes": [
+    "1. 优先级数值越小，工具越优先被选中",
+    "2. 当工具数量超过 max_tools_per_request 时，低优先级类别的工具会被舍弃",
+    "3. 别名工具不会被选中，只选择主工具",
+    "4. 核心工具(core)始终会被选中",
+    "5. 关键词匹配是大小写不敏感的",
+    "6. 此配置已通过全部回归测试验证"
+  ]
+}

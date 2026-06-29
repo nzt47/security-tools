@@ -1,0 +1,576 @@
+{
+  "test_time": "2026-06-23 12:36:40",
+  "summary": {
+    "total_scenarios": 10,
+    "total_tools": 64,
+    "alias_rules": 6
+  },
+  "alias_configuration": {
+    "shell_execute": [
+      "run_program"
+    ],
+    "read_file": [
+      "read_pdf"
+    ],
+    "list_directory": [
+      "list_processes",
+      "list_async_tasks",
+      "list_scheduled_tasks",
+      "software_list",
+      "ext_list"
+    ],
+    "software_install": [
+      "ext_install"
+    ],
+    "software_uninstall": [
+      "ext_uninstall"
+    ],
+    "cancel_task": [
+      "cancel_scheduled_task"
+    ]
+  },
+  "results": [
+    {
+      "scenario_id": 1,
+      "name": "触发所有别名",
+      "input": "执行命令 运行程序 读取文件 读取PDF 列出目录 列出进程 安装软件 安装扩展 卸载软件 卸载扩展 取消任务 取消定时任务",
+      "categories": [
+        "system",
+        "extension",
+        "async",
+        "file",
+        "code",
+        "software",
+        "core",
+        "schedule",
+        "pdf"
+      ],
+      "selected_tools": [
+        "code_review",
+        "read_file",
+        "json_query",
+        "yaml_to_json",
+        "remember",
+        "get_file_info",
+        "get_weather",
+        "decompress",
+        "json_validate",
+        "search_memory",
+        "get_status",
+        "search_files",
+        "list_directory",
+        "stop_process",
+        "get_sensor_summary",
+        "shell_execute",
+        "json_to_yaml",
+        "humanize_zh",
+        "ext_install",
+        "diff_files",
+        "write_file",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "compress"
+      ],
+      "tool_count": 25,
+      "tokens_estimate": 3906,
+      "duration_ms": 0.9987354278564453,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        },
+        {
+          "alias": "read_pdf",
+          "main": "read_file"
+        },
+        {
+          "alias": "list_processes",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_async_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_scheduled_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "software_list",
+          "main": "list_directory"
+        },
+        {
+          "alias": "ext_list",
+          "main": "list_directory"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute",
+        "read_file",
+        "list_directory",
+        "software_install",
+        "software_uninstall",
+        "cancel_task"
+      ]
+    },
+    {
+      "scenario_id": 2,
+      "name": "重复触发同一别名",
+      "input": "执行命令 执行命令 执行命令 读取文件 读取文件",
+      "categories": [
+        "system",
+        "file",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "code_review",
+        "read_file",
+        "json_query",
+        "yaml_to_json",
+        "remember",
+        "get_file_info",
+        "get_weather",
+        "decompress",
+        "json_validate",
+        "search_memory",
+        "get_status",
+        "search_files",
+        "list_directory",
+        "stop_process",
+        "get_sensor_summary",
+        "shell_execute",
+        "json_to_yaml",
+        "humanize_zh",
+        "diff_files",
+        "write_file",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "compress"
+      ],
+      "tool_count": 24,
+      "tokens_estimate": 3750,
+      "duration_ms": 3.021240234375,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        },
+        {
+          "alias": "read_pdf",
+          "main": "read_file"
+        },
+        {
+          "alias": "list_processes",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_async_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_scheduled_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "software_list",
+          "main": "list_directory"
+        },
+        {
+          "alias": "ext_list",
+          "main": "list_directory"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute",
+        "read_file"
+      ]
+    },
+    {
+      "scenario_id": 3,
+      "name": "别名无主工具（模拟）",
+      "input": "执行命令",
+      "categories": [
+        "system",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "remember",
+        "list_processes",
+        "get_weather",
+        "json_validate",
+        "get_sensor_summary",
+        "shell_execute",
+        "code_review",
+        "search_memory",
+        "json_query",
+        "json_to_yaml",
+        "yaml_to_json",
+        "stop_process",
+        "get_status",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "humanize_zh"
+      ],
+      "tool_count": 17,
+      "tokens_estimate": 2656,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute"
+      ]
+    },
+    {
+      "scenario_id": 4,
+      "name": "多个别名触发同一主工具",
+      "input": "列出目录 列出进程 列出异步任务 列出定时任务 列出软件列表 列出扩展列表",
+      "categories": [
+        "system",
+        "extension",
+        "async",
+        "file",
+        "software",
+        "core",
+        "schedule"
+      ],
+      "selected_tools": [
+        "ext_uninstall",
+        "software_uninstall",
+        "read_file",
+        "ext_configure",
+        "software_search",
+        "remember",
+        "get_file_info",
+        "get_weather",
+        "decompress",
+        "search_memory",
+        "get_status",
+        "ext_discover",
+        "run_program",
+        "search_files",
+        "ext_toggle",
+        "software_install",
+        "list_directory",
+        "stop_process",
+        "get_sensor_summary",
+        "ext_send_channel",
+        "ext_install",
+        "diff_files",
+        "write_file",
+        "expand_context",
+        "compress"
+      ],
+      "tool_count": 25,
+      "tokens_estimate": 3906,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "read_pdf",
+          "main": "read_file"
+        },
+        {
+          "alias": "list_processes",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_async_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_scheduled_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "software_list",
+          "main": "list_directory"
+        },
+        {
+          "alias": "ext_list",
+          "main": "list_directory"
+        }
+      ],
+      "expected_aliases": [
+        "list_directory"
+      ]
+    },
+    {
+      "scenario_id": 5,
+      "name": "优先级覆盖别名",
+      "input": "执行命令 进程管理",
+      "categories": [
+        "system",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "remember",
+        "list_processes",
+        "get_weather",
+        "json_validate",
+        "get_sensor_summary",
+        "shell_execute",
+        "code_review",
+        "search_memory",
+        "json_query",
+        "json_to_yaml",
+        "yaml_to_json",
+        "stop_process",
+        "get_status",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "humanize_zh"
+      ],
+      "tool_count": 17,
+      "tokens_estimate": 2656,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute"
+      ]
+    },
+    {
+      "scenario_id": 6,
+      "name": "空输入",
+      "input": "",
+      "categories": [
+        "core"
+      ],
+      "selected_tools": [
+        "remember",
+        "get_sensor_summary",
+        "search_memory",
+        "get_status",
+        "expand_context"
+      ],
+      "tool_count": 5,
+      "tokens_estimate": 781,
+      "duration_ms": 0.0,
+      "merged_aliases": [],
+      "expected_aliases": []
+    },
+    {
+      "scenario_id": 7,
+      "name": "特殊字符",
+      "input": "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+      "categories": [
+        "core"
+      ],
+      "selected_tools": [
+        "remember",
+        "get_sensor_summary",
+        "search_memory",
+        "get_status",
+        "expand_context"
+      ],
+      "tool_count": 5,
+      "tokens_estimate": 781,
+      "duration_ms": 0.0,
+      "merged_aliases": [],
+      "expected_aliases": []
+    },
+    {
+      "scenario_id": 8,
+      "name": "超长输入",
+      "input": "执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 执行命令 ",
+      "categories": [
+        "system",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "remember",
+        "list_processes",
+        "get_weather",
+        "json_validate",
+        "get_sensor_summary",
+        "shell_execute",
+        "code_review",
+        "search_memory",
+        "json_query",
+        "json_to_yaml",
+        "yaml_to_json",
+        "stop_process",
+        "get_status",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "humanize_zh"
+      ],
+      "tool_count": 17,
+      "tokens_estimate": 2656,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute"
+      ]
+    },
+    {
+      "scenario_id": 9,
+      "name": "中英混合",
+      "input": "execute 命令 run 程序 read 文件",
+      "categories": [
+        "system",
+        "file",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "code_review",
+        "read_file",
+        "json_query",
+        "yaml_to_json",
+        "remember",
+        "get_file_info",
+        "get_weather",
+        "decompress",
+        "json_validate",
+        "search_memory",
+        "get_status",
+        "search_files",
+        "list_directory",
+        "stop_process",
+        "get_sensor_summary",
+        "shell_execute",
+        "json_to_yaml",
+        "humanize_zh",
+        "diff_files",
+        "write_file",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "compress"
+      ],
+      "tool_count": 24,
+      "tokens_estimate": 3750,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        },
+        {
+          "alias": "read_pdf",
+          "main": "read_file"
+        },
+        {
+          "alias": "list_processes",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_async_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_scheduled_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "software_list",
+          "main": "list_directory"
+        },
+        {
+          "alias": "ext_list",
+          "main": "list_directory"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute",
+        "read_file"
+      ]
+    },
+    {
+      "scenario_id": 10,
+      "name": "数字符号干扰",
+      "input": "1执行2命令3run4程序5读取6文件",
+      "categories": [
+        "system",
+        "file",
+        "code",
+        "core"
+      ],
+      "selected_tools": [
+        "code_review",
+        "read_file",
+        "json_query",
+        "yaml_to_json",
+        "remember",
+        "get_file_info",
+        "get_weather",
+        "decompress",
+        "json_validate",
+        "search_memory",
+        "get_status",
+        "search_files",
+        "list_directory",
+        "stop_process",
+        "get_sensor_summary",
+        "shell_execute",
+        "json_to_yaml",
+        "humanize_zh",
+        "diff_files",
+        "write_file",
+        "arch_diagram",
+        "data_format_detect",
+        "expand_context",
+        "compress"
+      ],
+      "tool_count": 24,
+      "tokens_estimate": 3750,
+      "duration_ms": 0.0,
+      "merged_aliases": [
+        {
+          "alias": "run_program",
+          "main": "shell_execute"
+        },
+        {
+          "alias": "read_pdf",
+          "main": "read_file"
+        },
+        {
+          "alias": "list_processes",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_async_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "list_scheduled_tasks",
+          "main": "list_directory"
+        },
+        {
+          "alias": "software_list",
+          "main": "list_directory"
+        },
+        {
+          "alias": "ext_list",
+          "main": "list_directory"
+        }
+      ],
+      "expected_aliases": [
+        "shell_execute",
+        "read_file"
+      ]
+    }
+  ]
+}

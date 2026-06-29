@@ -1,0 +1,8 @@
+{
+  "sections": {
+    "smart_tool_selection": {
+      "enabled": true,
+      "description": "根据用户输入智能选择相关工具，减少Token消耗"
+    }
+  }
+}
