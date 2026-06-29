@@ -1,0 +1,318 @@
+{
+  "trace_id": "verify_1782703046",
+  "timestamp": "2026-06-29T11:17:26.118292",
+  "strict_mode": false,
+  "preflight": [
+    {
+      "check": "required_files",
+      "passed": true,
+      "missing": [],
+      "checked_count": 5,
+      "duration_ms": 0
+    },
+    {
+      "check": "contract_files",
+      "passed": true,
+      "issues": [],
+      "checked_count": 3,
+      "duration_ms": 2
+    },
+    {
+      "check": "ci_branches",
+      "passed": true,
+      "branches_found": [
+        "main",
+        "master",
+        "develop"
+      ],
+      "master_included": true,
+      "duration_ms": 1
+    },
+    {
+      "check": "encoding_fix",
+      "passed": true,
+      "issues": [],
+      "duration_ms": 3
+    }
+  ],
+  "threshold_checks": [
+    {
+      "metric": "structured_log_coverage",
+      "actual": 63.7,
+      "threshold": 55.0,
+      "passed": true,
+      "margin": 8.7
+    },
+    {
+      "metric": "trace_coverage",
+      "actual": 91.8,
+      "threshold": 16.0,
+      "passed": true,
+      "margin": 75.8
+    },
+    {
+      "metric": "test_coverage",
+      "actual": 3.7,
+      "threshold": 0.0,
+      "passed": true,
+      "margin": 3.7
+    },
+    {
+      "metric": "boundary_test_coverage",
+      "actual": 12.2,
+      "threshold": 12.0,
+      "passed": true,
+      "margin": 0.2
+    },
+    {
+      "metric": "contract_test_count",
+      "actual": 3,
+      "threshold": 3.0,
+      "passed": true,
+      "margin": 0.0
+    },
+    {
+      "metric": "track_event_coverage",
+      "actual": 51.7,
+      "threshold": 50.0,
+      "passed": true,
+      "margin": 1.7
+    },
+    {
+      "metric": "exception_coverage",
+      "actual": 81.2,
+      "threshold": 80.0,
+      "passed": true,
+      "margin": 1.2
+    }
+  ],
+  "boundary_check": {
+    "total_tests": 3873,
+    "total_boundary_tests": 471,
+    "coverage_percent": 12.2,
+    "overall_status": "warn",
+    "duration_ms": 2773
+  },
+  "regression": [
+    {
+      "metric": "structured_log_coverage",
+      "baseline": 26.5,
+      "actual": 63.7,
+      "diff_pp": 37.2,
+      "is_regression": false
+    },
+    {
+      "metric": "trace_coverage",
+      "baseline": 16.7,
+      "actual": 91.8,
+      "diff_pp": 75.1,
+      "is_regression": false
+    },
+    {
+      "metric": "test_coverage",
+      "baseline": 0.6,
+      "actual": 3.7,
+      "diff_pp": 3.1,
+      "is_regression": false
+    },
+    {
+      "metric": "boundary_test_coverage",
+      "baseline": 12.2,
+      "actual": 12.2,
+      "diff_pp": 0.0,
+      "is_regression": false
+    },
+    {
+      "metric": "exception_coverage",
+      "baseline": 71.6,
+      "actual": 81.2,
+      "diff_pp": 9.6,
+      "is_regression": false
+    },
+    {
+      "metric": "track_event_coverage",
+      "baseline": 7.4,
+      "actual": 51.7,
+      "diff_pp": 44.3,
+      "is_regression": false
+    }
+  ],
+  "overall_passed": true,
+  "errors": [],
+  "report_data": {
+    "report": {
+      "trace_id": "ecf4d487045d44fc",
+      "timestamp": "2026-06-29T11:17:30.968552",
+      "duration_ms": 4556.95,
+      "overall_status": "pass",
+      "threshold_violations": [],
+      "error": null,
+      "layers": [
+        {
+          "layer_name": "运行时可见",
+          "description": "结构化日志、链路追踪、健康检查端点",
+          "overall_passed": true,
+          "metrics": [
+            {
+              "name": "structured_log_coverage",
+              "value": 63.7,
+              "threshold": 55,
+              "unit": "%",
+              "description": "包含 trace_id/module_name/action/duration_ms 的日志占比",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "trace_coverage",
+              "value": 91.8,
+              "threshold": 16,
+              "unit": "%",
+              "description": "使用 @trace_route 或 TraceContext 的路由占比",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "health_endpoints",
+              "value": 2,
+              "threshold": 1,
+              "unit": "个",
+              "description": "健康检查端点数量",
+              "passed": true,
+              "details": {}
+            }
+          ]
+        },
+        {
+          "layer_name": "验证过程可见",
+          "description": "测试覆盖率、边界测试、契约测试",
+          "overall_passed": true,
+          "metrics": [
+            {
+              "name": "test_coverage",
+              "value": 3.7,
+              "threshold": 0,
+              "unit": "%",
+              "description": "代码测试覆盖率（来自 coverage.xml 真实 line-rate）",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "boundary_test_coverage",
+              "value": 12.2,
+              "threshold": 12,
+              "unit": "%",
+              "description": "边界测试用例占总测试比例",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "contract_test_count",
+              "value": 3,
+              "threshold": 3,
+              "unit": "个",
+              "description": "Pact 契约测试数量",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "exception_coverage",
+              "value": 81.2,
+              "threshold": 80,
+              "unit": "%",
+              "description": "含 try/except/raise 异常处理的核心模块占比",
+              "passed": true,
+              "details": {}
+            }
+          ]
+        },
+        {
+          "layer_name": "业务价值可见",
+          "description": "埋点覆盖率、看板数、告警规则数",
+          "overall_passed": true,
+          "metrics": [
+            {
+              "name": "track_event_coverage",
+              "value": 51.7,
+              "threshold": 50,
+              "unit": "%",
+              "description": "包含 trackEvent/track( 调用的核心模块占比",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "dashboard_count",
+              "value": 9,
+              "threshold": 3,
+              "unit": "个",
+              "description": "监控看板数量",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "alert_rules_count",
+              "value": 13,
+              "threshold": 5,
+              "unit": "条",
+              "description": "Prometheus 告警规则数量",
+              "passed": true,
+              "details": {}
+            }
+          ]
+        },
+        {
+          "layer_name": "架构影响可见",
+          "description": "依赖图、架构规则、变更影响分析",
+          "overall_passed": true,
+          "metrics": [
+            {
+              "name": "dependency_graph_nodes",
+              "value": 220,
+              "threshold": 10,
+              "unit": "个",
+              "description": "模块依赖图节点数",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "arch_rule_violations",
+              "value": 0,
+              "threshold": 0,
+              "unit": "个",
+              "description": "架构规则违规数（越少越好）",
+              "passed": true,
+              "details": {}
+            },
+            {
+              "name": "impact_analysis_coverage",
+              "value": 100.0,
+              "threshold": 80,
+              "unit": "%",
+              "description": "变更影响分析报告覆盖率",
+              "passed": true,
+              "details": {}
+            }
+          ]
+        }
+      ]
+    },
+    "metrics": {
+      "structured_log_coverage": 63.7,
+      "trace_coverage": 91.8,
+      "health_endpoints": 2,
+      "test_coverage": 3.7,
+      "boundary_test_coverage": 12.2,
+      "contract_test_count": 3,
+      "exception_coverage": 81.2,
+      "track_event_coverage": 51.7,
+      "dashboard_count": 9,
+      "alert_rules_count": 13,
+      "dependency_graph_nodes": 220,
+      "arch_rule_violations": 0,
+      "impact_analysis_coverage": 100.0
+    },
+    "json_path": "C:\\Users\\Administrator\\agent\\docs\\observability\\visibility_report.json",
+    "stdout_excerpt": "",
+    "duration_ms": 4861
+  },
+  "duration_ms": 7644
+}

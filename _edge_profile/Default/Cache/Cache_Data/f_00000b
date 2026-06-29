@@ -1,0 +1,197 @@
+import { createHotContext as __vite__createHotContext } from "/static/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/Chat/ChatInput.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/static/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=da804fa9"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/static/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/static/node_modules/.vite/deps/react.js?v=da804fa9"; const useState = __vite__cjsImport3_react["useState"]; const useRef = __vite__cjsImport3_react["useRef"]; const useEffect = __vite__cjsImport3_react["useEffect"];
+import "/static/src/components/Chat/ChatInput.css";
+const ChatInput = ({
+  value,
+  onChange,
+  onSend,
+  placeholder = "输入消息...",
+  disabled = false,
+  maxLength = 2e3,
+  autoFocus = false,
+  className = ""
+}) => {
+  _s();
+  const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef(null);
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [value]);
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+  const handleSend = () => {
+    if (value.trim() && !disabled) {
+      onSend();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    }
+  };
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    if (newValue.length <= maxLength) {
+      onChange(newValue);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "73", "trae-inspector-start-column": "4", "trae-inspector-end-line": "116", "trae-inspector-end-column": "10", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `chat-input-container ${isFocused ? "focused" : ""} ${disabled ? "disabled" : ""} ${className}`, children: /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "74", "trae-inspector-start-column": "6", "trae-inspector-end-line": "115", "trae-inspector-end-column": "12", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "chat-input-wrapper", children: [
+    /* @__PURE__ */ jsxDEV(
+      "textarea",
+      {
+        "trae-inspector-start-line": "75",
+        "trae-inspector-start-column": "8",
+        "trae-inspector-end-line": "87",
+        "trae-inspector-end-column": "10",
+        "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx",
+        "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+        ref: textareaRef,
+        className: "chat-input",
+        value,
+        onChange: handleChange,
+        onKeyDown: handleKeyDown,
+        onFocus: () => setIsFocused(true),
+        onBlur: () => setIsFocused(false),
+        placeholder,
+        disabled,
+        autoFocus,
+        rows: 1
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+        lineNumber: 94,
+        columnNumber: 9
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "89", "trae-inspector-start-column": "8", "trae-inspector-end-line": "114", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "chat-input-actions", children: [
+      /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "90", "trae-inspector-start-column": "10", "trae-inspector-end-line": "92", "trae-inspector-end-column": "17", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "char-count", children: [
+        value.length,
+        "/",
+        maxLength
+      ] }, void 0, true, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+        lineNumber: 109,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        "button",
+        {
+          "trae-inspector-start-line": "94",
+          "trae-inspector-start-column": "10",
+          "trae-inspector-end-line": "113",
+          "trae-inspector-end-column": "19",
+          "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx",
+          "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+          className: "send-button",
+          onClick: handleSend,
+          disabled: !value.trim() || disabled,
+          type: "button",
+          children: /* @__PURE__ */ jsxDEV(
+            "svg",
+            {
+              "trae-inspector-start-line": "100",
+              "trae-inspector-start-column": "12",
+              "trae-inspector-end-line": "112",
+              "trae-inspector-end-column": "18",
+              "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx",
+              "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+              width: "20",
+              height: "20",
+              viewBox: "0 0 24 24",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: "2",
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              children: [
+                /* @__PURE__ */ jsxDEV("line", { x1: "22", y1: "2", x2: "11", y2: "13" }, void 0, false, {
+                  fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+                  lineNumber: 129,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("polygon", { "trae-inspector-start-line": "111", "trae-inspector-start-column": "14", "trae-inspector-end-line": "111", "trae-inspector-end-column": "60", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ChatInput.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", points: "22 2 15 22 11 13 2 9 22 2" }, void 0, false, {
+                  fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+                  lineNumber: 130,
+                  columnNumber: 15
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+              lineNumber: 119,
+              columnNumber: 13
+            },
+            this
+          )
+        },
+        void 0,
+        false,
+        {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+          lineNumber: 113,
+          columnNumber: 11
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+      lineNumber: 108,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+    lineNumber: 93,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx",
+    lineNumber: 92,
+    columnNumber: 5
+  }, this);
+};
+_s(ChatInput, "9kUcIuBbNb0Uv5v9AmkGB4HORg0=");
+_c = ChatInput;
+export default ChatInput;
+var _c;
+$RefreshReg$(_c, "ChatInput");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ChatInput.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBLGNBQ1osZUFBYztBQUFBLGNBQ2QsZ0JBQWU7QUFBQSxjQUVmO0FBQUEsdUNBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxLQUFJLElBQUcsTUFBSyxJQUFHLFFBQWhDO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQW9DO0FBQUEsZ0JBQ3BDLHVCQUFDLGFBQU8sK1VBQUMsUUFBTywrQkFBaEI7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBMkM7QUFBQTtBQUFBO0FBQUEsWUFYN0M7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFVBWUE7QUFBQTtBQUFBLFFBbEJGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxNQW1CQTtBQUFBLFNBeEJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0F5QkE7QUFBQSxPQXhDRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBeUNBLEtBMUNGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0EyQ0E7QUFFSjtBQUFFSSxHQTVGSVQsV0FBbUM7QUFBQSxLQUFuQ0E7QUE4Rk4sZUFBZUE7QUFBVSxJQUFBOEI7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlU3RhdGUiLCJ1c2VSZWYiLCJ1c2VFZmZlY3QiLCJDaGF0SW5wdXQiLCJ2YWx1ZSIsIm9uQ2hhbmdlIiwib25TZW5kIiwicGxhY2Vob2xkZXIiLCJkaXNhYmxlZCIsIm1heExlbmd0aCIsImF1dG9Gb2N1cyIsImNsYXNzTmFtZSIsIl9zIiwiaXNGb2N1c2VkIiwic2V0SXNGb2N1c2VkIiwidGV4dGFyZWFSZWYiLCJjdXJyZW50Iiwic3R5bGUiLCJoZWlnaHQiLCJNYXRoIiwibWluIiwic2Nyb2xsSGVpZ2h0IiwiaGFuZGxlS2V5RG93biIsImUiLCJrZXkiLCJzaGlmdEtleSIsInByZXZlbnREZWZhdWx0IiwiaGFuZGxlU2VuZCIsInRyaW0iLCJoYW5kbGVDaGFuZ2UiLCJuZXdWYWx1ZSIsInRhcmdldCIsImxlbmd0aCIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkNoYXRJbnB1dC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFJlYWN0LCB7IHVzZVN0YXRlLCB1c2VSZWYsIHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JztcclxuaW1wb3J0ICcuL0NoYXRJbnB1dC5jc3MnO1xyXG5cclxuZXhwb3J0IGludGVyZmFjZSBDaGF0SW5wdXRQcm9wcyB7XHJcbiAgLyoqIOi+k+WFpeWAvCAqL1xyXG4gIHZhbHVlOiBzdHJpbmc7XHJcbiAgLyoqIOWAvOWPmOWMluWbnuiwgyAqL1xyXG4gIG9uQ2hhbmdlOiAodmFsdWU6IHN0cmluZykgPT4gdm9pZDtcclxuICAvKiog5Y+R6YCB5Zue6LCDICovXHJcbiAgb25TZW5kOiAoKSA9PiB2b2lkO1xyXG4gIC8qKiDljaDkvY3nrKbmlofmnKwgKi9cclxuICBwbGFjZWhvbGRlcj86IHN0cmluZztcclxuICAvKiog5piv5ZCm56aB55SoICovXHJcbiAgZGlzYWJsZWQ/OiBib29sZWFuO1xyXG4gIC8qKiDmnIDlpKfplb/luqYgKi9cclxuICBtYXhMZW5ndGg/OiBudW1iZXI7XHJcbiAgLyoqIOiHquWKqOiBmueEpiAqL1xyXG4gIGF1dG9Gb2N1cz86IGJvb2xlYW47XHJcbiAgLyoqIOiHquWumuS5ieexu+WQjSAqL1xyXG4gIGNsYXNzTmFtZT86IHN0cmluZztcclxufVxyXG5cclxuLyoqXHJcbiAqIOiBiuWkqei+k+WFpeahhue7hOS7tlxyXG4gKi9cclxuY29uc3QgQ2hhdElucHV0OiBSZWFjdC5GQzxDaGF0SW5wdXRQcm9wcz4gPSAoe1xyXG4gIHZhbHVlLFxyXG4gIG9uQ2hhbmdlLFxyXG4gIG9uU2VuZCxcclxuICBwbGFjZWhvbGRlciA9ICfovpPlhaXmtojmga8uLi4nLFxyXG4gIGRpc2FibGVkID0gZmFsc2UsXHJcbiAgbWF4TGVuZ3RoID0gMjAwMCxcclxuICBhdXRvRm9jdXMgPSBmYWxzZSxcclxuICBjbGFzc05hbWUgPSAnJyxcclxufSkgPT4ge1xyXG4gIGNvbnN0IFtpc0ZvY3VzZWQsIHNldElzRm9jdXNlZF0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgdGV4dGFyZWFSZWYgPSB1c2VSZWY8SFRNTFRleHRBcmVhRWxlbWVudD4obnVsbCk7XHJcblxyXG4gIC8vIOiHquWKqOiwg+aVtOmrmOW6plxyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBpZiAodGV4dGFyZWFSZWYuY3VycmVudCkge1xyXG4gICAgICB0ZXh0YXJlYVJlZi5jdXJyZW50LnN0eWxlLmhlaWdodCA9ICdhdXRvJztcclxuICAgICAgdGV4dGFyZWFSZWYuY3VycmVudC5zdHlsZS5oZWlnaHQgPSBgJHtNYXRoLm1pbih0ZXh0YXJlYVJlZi5jdXJyZW50LnNjcm9sbEhlaWdodCwgMTIwKX1weGA7XHJcbiAgICB9XHJcbiAgfSwgW3ZhbHVlXSk7XHJcblxyXG4gIC8vIOmUruebmOS6i+S7tuWkhOeQhlxyXG4gIGNvbnN0IGhhbmRsZUtleURvd24gPSAoZTogUmVhY3QuS2V5Ym9hcmRFdmVudCkgPT4ge1xyXG4gICAgaWYgKGUua2V5ID09PSAnRW50ZXInICYmICFlLnNoaWZ0S2V5KSB7XHJcbiAgICAgIGUucHJldmVudERlZmF1bHQoKTtcclxuICAgICAgaGFuZGxlU2VuZCgpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIGNvbnN0IGhhbmRsZVNlbmQgPSAoKSA9PiB7XHJcbiAgICBpZiAodmFsdWUudHJpbSgpICYmICFkaXNhYmxlZCkge1xyXG4gICAgICBvblNlbmQoKTtcclxuICAgICAgLy8g5riF56m66L6T5YWl5qGG5bm26YeN572u6auY5bqmXHJcbiAgICAgIGlmICh0ZXh0YXJlYVJlZi5jdXJyZW50KSB7XHJcbiAgICAgICAgdGV4dGFyZWFSZWYuY3VycmVudC5zdHlsZS5oZWlnaHQgPSAnYXV0byc7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVDaGFuZ2UgPSAoZTogUmVhY3QuQ2hhbmdlRXZlbnQ8SFRNTFRleHRBcmVhRWxlbWVudD4pID0+IHtcclxuICAgIGNvbnN0IG5ld1ZhbHVlID0gZS50YXJnZXQudmFsdWU7XHJcbiAgICBpZiAobmV3VmFsdWUubGVuZ3RoIDw9IG1heExlbmd0aCkge1xyXG4gICAgICBvbkNoYW5nZShuZXdWYWx1ZSk7XHJcbiAgICB9XHJcbiAgfTtcclxuXHJcbiAgcmV0dXJuIChcclxuICAgIDxkaXYgY2xhc3NOYW1lPXtgY2hhdC1pbnB1dC1jb250YWluZXIgJHtpc0ZvY3VzZWQgPyAnZm9jdXNlZCcgOiAnJ30gJHtkaXNhYmxlZCA/ICdkaXNhYmxlZCcgOiAnJ30gJHtjbGFzc05hbWV9YH0+XHJcbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiY2hhdC1pbnB1dC13cmFwcGVyXCI+XHJcbiAgICAgICAgPHRleHRhcmVhXHJcbiAgICAgICAgICByZWY9e3RleHRhcmVhUmVmfVxyXG4gICAgICAgICAgY2xhc3NOYW1lPVwiY2hhdC1pbnB1dFwiXHJcbiAgICAgICAgICB2YWx1ZT17dmFsdWV9XHJcbiAgICAgICAgICBvbkNoYW5nZT17aGFuZGxlQ2hhbmdlfVxyXG4gICAgICAgICAgb25LZXlEb3duPXtoYW5kbGVLZXlEb3dufVxyXG4gICAgICAgICAgb25Gb2N1cz17KCkgPT4gc2V0SXNGb2N1c2VkKHRydWUpfVxyXG4gICAgICAgICAgb25CbHVyPXsoKSA9PiBzZXRJc0ZvY3VzZWQoZmFsc2UpfVxyXG4gICAgICAgICAgcGxhY2Vob2xkZXI9e3BsYWNlaG9sZGVyfVxyXG4gICAgICAgICAgZGlzYWJsZWQ9e2Rpc2FibGVkfVxyXG4gICAgICAgICAgYXV0b0ZvY3VzPXthdXRvRm9jdXN9XHJcbiAgICAgICAgICByb3dzPXsxfVxyXG4gICAgICAgIC8+XHJcblxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiY2hhdC1pbnB1dC1hY3Rpb25zXCI+XHJcbiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJjaGFyLWNvdW50XCI+XHJcbiAgICAgICAgICAgIHt2YWx1ZS5sZW5ndGh9L3ttYXhMZW5ndGh9XHJcbiAgICAgICAgICA8L3NwYW4+XHJcblxyXG4gICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJzZW5kLWJ1dHRvblwiXHJcbiAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZVNlbmR9XHJcbiAgICAgICAgICAgIGRpc2FibGVkPXshdmFsdWUudHJpbSgpIHx8IGRpc2FibGVkfVxyXG4gICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgID5cclxuICAgICAgICAgICAgPHN2Z1xyXG4gICAgICAgICAgICAgIHdpZHRoPVwiMjBcIlxyXG4gICAgICAgICAgICAgIGhlaWdodD1cIjIwXCJcclxuICAgICAgICAgICAgICB2aWV3Qm94PVwiMCAwIDI0IDI0XCJcclxuICAgICAgICAgICAgICBmaWxsPVwibm9uZVwiXHJcbiAgICAgICAgICAgICAgc3Ryb2tlPVwiY3VycmVudENvbG9yXCJcclxuICAgICAgICAgICAgICBzdHJva2VXaWR0aD1cIjJcIlxyXG4gICAgICAgICAgICAgIHN0cm9rZUxpbmVjYXA9XCJyb3VuZFwiXHJcbiAgICAgICAgICAgICAgc3Ryb2tlTGluZWpvaW49XCJyb3VuZFwiXHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICA8bGluZSB4MT1cIjIyXCIgeTE9XCIyXCIgeDI9XCIxMVwiIHkyPVwiMTNcIiAvPlxyXG4gICAgICAgICAgICAgIDxwb2x5Z29uIHBvaW50cz1cIjIyIDIgMTUgMjIgMTEgMTMgMiA5IDIyIDJcIiAvPlxyXG4gICAgICAgICAgICA8L3N2Zz5cclxuICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICA8L2Rpdj5cclxuICAgIDwvZGl2PlxyXG4gICk7XHJcbn07XHJcblxyXG5leHBvcnQgZGVmYXVsdCBDaGF0SW5wdXQ7XHJcbiJdLCJmaWxlIjoiQzovVXNlcnMvQWRtaW5pc3RyYXRvci9hZ2VudC95dW5zaHUtdWkvc3JjL2NvbXBvbmVudHMvQ2hhdC9DaGF0SW5wdXQudHN4In0=

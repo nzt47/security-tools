@@ -1,0 +1,322 @@
+2026-06-24 17:59:08,413 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:59:08,416 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:59:08,418 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:59:08,517 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:59:08,531 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:59:08,534 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:59:08,565 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:59:08,574 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:59:08,577 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:59:08,596 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:59:08,596 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:59:08,596 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:59:08,597 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:59:08,598 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:59:08,749 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:59:08,754 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:59:08,754 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:59:08,761 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:59:08,762 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:59:08,762 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:59:08,838 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:08,838 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:08,838 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:08,838 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:08,838 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:08,838 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:08,840 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.02, "overall_score": 68, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 71, "relevance": 20, "logic": 60, "clarity": 75}}
+2026-06-24 17:59:08,840 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.02, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 68, "threshold": 70, "feedback": ["\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd"]}
+2026-06-24 17:59:09,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,175 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "tool_call"}
+2026-06-24 17:59:09,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,175 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,175 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "tool_call"}
+2026-06-24 17:59:09,176 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,176 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 1.01, "result": "success", "output_type": "tool_call"}
+2026-06-24 17:59:09,176 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,176 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,179 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "summary_report"}
+2026-06-24 17:59:09,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "summary_report"}
+2026-06-24 17:59:09,180 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,180 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.0, "result": "success", "output_type": "summary_report"}
+2026-06-24 17:59:09,185 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,185 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u65e0\u6548\u7684 output_type: invalid_type, \u6709\u6548\u503c: ['text_response', 'tool_call', 'error_message', 'summary_report']"}
+2026-06-24 17:59:09,185 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,185 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,185 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u65e0\u6548\u7684 output_type: invalid_type, \u6709\u6548\u503c: ['text_response', 'tool_call', 'error_message', 'summary_report']"}
+2026-06-24 17:59:09,186 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 1.03, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:59:09,186 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,189 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,189 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,189 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "_validate_by_type", "duration_ms": 0, "error": "text_response \u7f3a\u5c11 content \u5b57\u6bb5"}
+2026-06-24 17:59:09,189 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,189 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,189 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "_validate_by_type", "duration_ms": 0, "error": "tool_call \u7f3a\u5c11 tool_calls \u5b57\u6bb5"}
+2026-06-24 17:59:09,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,194 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "JSON \u89e3\u6790\u5931\u8d25: Expecting value: line 1 column 1 (char 0)"}
+2026-06-24 17:59:09,194 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.0, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:59:09,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "_validate_by_type", "duration_ms": 0, "error": "text_response \u7f3a\u5c11 content \u5b57\u6bb5"}
+2026-06-24 17:59:09,199 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.0, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,199 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "_validate_by_type", "duration_ms": 0, "error": "text_response \u7f3a\u5c11 content \u5b57\u6bb5"}
+2026-06-24 17:59:09,199 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.0, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:59:09,199 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,201 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "_validate_by_type", "duration_ms": 0, "error": "text_response \u7f3a\u5c11 content \u5b57\u6bb5"}
+2026-06-24 17:59:09,201 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.54, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:59:09,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,205 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,205 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,205 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,205 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 57, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,205 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 57, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1180\u5b57\u7b26\uff0c\u5b9e\u96459\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,210 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,210 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,210 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,210 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 48, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 70, "completeness": 34, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,210 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 48, "threshold": 70, "feedback": ["\u5305\u542b\u9519\u8bef\u7684\u79d1\u5b66\u5e38\u8bc6", "\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1180\u5b57\u7b26\uff0c\u5b9e\u964518\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,214 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,214 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,214 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,214 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 57, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,214 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 57, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c11100\u5b57\u7b26\uff0c\u5b9e\u964514\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,232 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,232 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,233 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.52, "overall_score": 0, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 0, "completeness": 0, "relevance": 0, "logic": 0, "clarity": 0}}
+2026-06-24 17:59:09,233 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.52, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 0, "threshold": 70, "feedback": ["\u54cd\u5e94\u5185\u5bb9\u4e3a\u7a7a", "\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1180\u5b57\u7b26\uff0c\u5b9e\u96450\u5b57\u7b26", "\u67e5\u8be2\u6216\u54cd\u5e94\u4e3a\u7a7a", "\u54cd\u5e94\u4e3a\u7a7a", "\u54cd\u5e94\u4e3a\u7a7a"]}
+2026-06-24 17:59:09,233 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,237 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,238 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,238 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,240 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.58, "overall_score": 74, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 100, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,241 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,241 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,245 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,249 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,249 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,250 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,252 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,252 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,253 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.53, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,253 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,254 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,254 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,256 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.34, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,256 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,256 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,256 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,257 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,257 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,257 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,257 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,258 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,259 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,259 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 4.3, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,260 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,260 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,260 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.42, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,260 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,261 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,261 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,261 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.9, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.0, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,262 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,263 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.02, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,263 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,263 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.02, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,264 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 4.07, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,264 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.59, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,264 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,266 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,267 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,267 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,268 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,268 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,269 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 4.32, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,270 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,270 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,270 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,270 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.73, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,272 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,272 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,272 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:59:09,272 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,272 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,272 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.52, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,274 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,274 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,274 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.53, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,274 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,274 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,276 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 4.05, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,276 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 4.05, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,277 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,277 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,277 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.59, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,277 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.59, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,277 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 2.59, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,278 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,278 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 3.61, "overall_score": 73, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 100, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,279 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,284 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,284 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,284 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 56, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 30, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,285 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 56, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96452\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,285 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,285 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 56, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 30, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,285 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 56, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96452\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,285 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:59:09,286 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:59:09,286 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "overall_score": 56, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 30, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:59:09,286 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 56, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96452\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:59:09,290 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Users\Administrator\agent\agent\cognitive\..\..\data\failures
+2026-06-24 17:59:09,291 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u8c03\u7528\u4e86\u4e00\u4e2a\u4e0d\u5b58\u5728\u7684 API get_user_data", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:59:09,293 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: (调用|使用|调用了).*不存在.*API
+2026-06-24 17:59:09,293 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 调用了一个不存在的 API
+2026-06-24 17:59:09,293 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u5b57\u6bb5\u7c7b\u578b\u9519\u8bef\uff1aexpected string, got int", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:59:09,295 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 字段.*类型错误
+2026-06-24 17:59:09,295 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 字段类型错误
+2026-06-24 17:59:09,295 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u8df3\u8fc7\u4e86\u4e00\u6b65\u9a8c\u8bc1", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:59:09,309 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Users\Administrator\agent\agent\cognitive\..\..\data\failures
+2026-06-24 17:59:09,335 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: test_trace_1782295149309
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: api_fiction
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: high
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test_module
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: 测试失败消息...
+2026-06-24 17:59:09,337 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 2
+2026-06-24 17:59:09,345 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "test_trace_1782295149309", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "high", "duration_ms": 0, "level": "INFO"}
+2026-06-24 17:59:09,354 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Users\Administrator\agent\agent\cognitive\..\..\data\failures
+2026-06-24 17:59:09,356 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 17:59:09,451 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用

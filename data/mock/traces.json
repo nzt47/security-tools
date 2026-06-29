@@ -1,0 +1,802 @@
+[
+  {
+    "trace_id": "528f2b11dd064285",
+    "service": "WebServer",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 467,
+    "timestamp": 1782311974.545862
+  },
+  {
+    "trace_id": "9fbb213356ac453c",
+    "service": "TaskPlanner",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 68,
+    "timestamp": 1782311674.545862
+  },
+  {
+    "trace_id": "4f9fb4f5b5424b61",
+    "service": "Memory",
+    "operation": "update",
+    "status": "timeout",
+    "duration_ms": 506,
+    "timestamp": 1782311374.545862
+  },
+  {
+    "trace_id": "cf98fa0787ce4744",
+    "service": "Memory",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 253,
+    "timestamp": 1782311074.545862
+  },
+  {
+    "trace_id": "d32719acdc3b438c",
+    "service": "WebServer",
+    "operation": "evaluate",
+    "status": "success",
+    "duration_ms": 103,
+    "timestamp": 1782310774.545862
+  },
+  {
+    "trace_id": "299a8b91a8eb465c",
+    "service": "TaskPlanner",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 284,
+    "timestamp": 1782310474.545862
+  },
+  {
+    "trace_id": "a95b45124efa46a7",
+    "service": "API",
+    "operation": "plan",
+    "status": "timeout",
+    "duration_ms": 352,
+    "timestamp": 1782310174.545862
+  },
+  {
+    "trace_id": "dfca21177c6e490d",
+    "service": "DigitalLife",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 146,
+    "timestamp": 1782309874.545862
+  },
+  {
+    "trace_id": "53b60aaebbb040bd",
+    "service": "VectorMemory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 248,
+    "timestamp": 1782309574.545862
+  },
+  {
+    "trace_id": "012dc2141bfe445a",
+    "service": "Memory",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 497,
+    "timestamp": 1782309274.545862
+  },
+  {
+    "trace_id": "0fb2d8ab70824eb3",
+    "service": "Memory",
+    "operation": "chat",
+    "status": "error",
+    "duration_ms": 120,
+    "timestamp": 1782308974.545862
+  },
+  {
+    "trace_id": "e6c2def5acbd4874",
+    "service": "TaskPlanner",
+    "operation": "load",
+    "status": "timeout",
+    "duration_ms": 385,
+    "timestamp": 1782308674.545862
+  },
+  {
+    "trace_id": "d9bfd870a1fd4cb2",
+    "service": "WebServer",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 303,
+    "timestamp": 1782308374.545862
+  },
+  {
+    "trace_id": "0f43037c48fd417b",
+    "service": "TaskPlanner",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 31,
+    "timestamp": 1782308074.545862
+  },
+  {
+    "trace_id": "6278a2b8cef64a8d",
+    "service": "Memory",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 202,
+    "timestamp": 1782307774.545862
+  },
+  {
+    "trace_id": "d35f3342e079408d",
+    "service": "Critic",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 423,
+    "timestamp": 1782307474.545862
+  },
+  {
+    "trace_id": "c7a90c1a6e394dab",
+    "service": "Memory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 66,
+    "timestamp": 1782307174.545862
+  },
+  {
+    "trace_id": "68b8fd655cf34f99",
+    "service": "Memory",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 296,
+    "timestamp": 1782306874.545862
+  },
+  {
+    "trace_id": "f89256ca5cff4a53",
+    "service": "API",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 480,
+    "timestamp": 1782306574.545862
+  },
+  {
+    "trace_id": "905d1a5491a54796",
+    "service": "VectorMemory",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 118,
+    "timestamp": 1782306274.545862
+  },
+  {
+    "trace_id": "3fe006a7cd2b4236",
+    "service": "Critic",
+    "operation": "search",
+    "status": "timeout",
+    "duration_ms": 85,
+    "timestamp": 1782305974.545862
+  },
+  {
+    "trace_id": "5e13fcfd9c354a20",
+    "service": "DigitalLife",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 353,
+    "timestamp": 1782305674.545862
+  },
+  {
+    "trace_id": "9b447c0f473649b9",
+    "service": "Memory",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 524,
+    "timestamp": 1782305374.545862
+  },
+  {
+    "trace_id": "2c78e1c8eb044a24",
+    "service": "WebServer",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 148,
+    "timestamp": 1782305074.545862
+  },
+  {
+    "trace_id": "1cf49c971fc04835",
+    "service": "Critic",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 40,
+    "timestamp": 1782304774.545862
+  },
+  {
+    "trace_id": "51619b2cde3f49ce",
+    "service": "VectorMemory",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 463,
+    "timestamp": 1782304474.545862
+  },
+  {
+    "trace_id": "c5e994eb4a5b458b",
+    "service": "WebServer",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 283,
+    "timestamp": 1782304174.545862
+  },
+  {
+    "trace_id": "6fbfff47307741e0",
+    "service": "API",
+    "operation": "evaluate",
+    "status": "error",
+    "duration_ms": 144,
+    "timestamp": 1782303874.545862
+  },
+  {
+    "trace_id": "9d432caf4844490c",
+    "service": "Critic",
+    "operation": "save",
+    "status": "timeout",
+    "duration_ms": 258,
+    "timestamp": 1782303574.545862
+  },
+  {
+    "trace_id": "937b19f0186c4daa",
+    "service": "WebServer",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 315,
+    "timestamp": 1782303274.545862
+  },
+  {
+    "trace_id": "39addccd36ef40f2",
+    "service": "TaskPlanner",
+    "operation": "execute",
+    "status": "error",
+    "duration_ms": 235,
+    "timestamp": 1782302974.545862
+  },
+  {
+    "trace_id": "ead78e26386a4fea",
+    "service": "VectorMemory",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 166,
+    "timestamp": 1782302674.545862
+  },
+  {
+    "trace_id": "be4ca9640ca14a66",
+    "service": "DigitalLife",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 419,
+    "timestamp": 1782302374.545862
+  },
+  {
+    "trace_id": "660c487b998f42ed",
+    "service": "DigitalLife",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 371,
+    "timestamp": 1782302074.545862
+  },
+  {
+    "trace_id": "1ec43ba5efeb4c9e",
+    "service": "VectorMemory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 125,
+    "timestamp": 1782301774.545862
+  },
+  {
+    "trace_id": "7be30eaacb574407",
+    "service": "Memory",
+    "operation": "plan",
+    "status": "error",
+    "duration_ms": 160,
+    "timestamp": 1782301474.545862
+  },
+  {
+    "trace_id": "3aa7fb24f87c490e",
+    "service": "TaskPlanner",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 465,
+    "timestamp": 1782301174.545862
+  },
+  {
+    "trace_id": "b1e3437d1caa4e87",
+    "service": "Critic",
+    "operation": "load",
+    "status": "error",
+    "duration_ms": 45,
+    "timestamp": 1782300874.545862
+  },
+  {
+    "trace_id": "7ba42d9c7c2148f6",
+    "service": "TaskPlanner",
+    "operation": "save",
+    "status": "error",
+    "duration_ms": 409,
+    "timestamp": 1782300574.545862
+  },
+  {
+    "trace_id": "8e50ec37d40443c4",
+    "service": "API",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 63,
+    "timestamp": 1782300274.545862
+  },
+  {
+    "trace_id": "6f354c438cbe4b78",
+    "service": "Critic",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 433,
+    "timestamp": 1782299974.545862
+  },
+  {
+    "trace_id": "c35e86be71084dd7",
+    "service": "WebServer",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 522,
+    "timestamp": 1782299674.545862
+  },
+  {
+    "trace_id": "4a8f6d0c117243b1",
+    "service": "DigitalLife",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 50,
+    "timestamp": 1782299374.545862
+  },
+  {
+    "trace_id": "3a329a42b73f4c93",
+    "service": "API",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 379,
+    "timestamp": 1782299074.545862
+  },
+  {
+    "trace_id": "bef523d36e2c4d8f",
+    "service": "DigitalLife",
+    "operation": "plan",
+    "status": "error",
+    "duration_ms": 372,
+    "timestamp": 1782298774.545862
+  },
+  {
+    "trace_id": "62484120a7fd4440",
+    "service": "DigitalLife",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 160,
+    "timestamp": 1782298474.545862
+  },
+  {
+    "trace_id": "c381ab78f26844cd",
+    "service": "VectorMemory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 89,
+    "timestamp": 1782298174.545862
+  },
+  {
+    "trace_id": "577074af573f4395",
+    "service": "Memory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 406,
+    "timestamp": 1782297874.545862
+  },
+  {
+    "trace_id": "e8338201120f4328",
+    "service": "API",
+    "operation": "load",
+    "status": "error",
+    "duration_ms": 168,
+    "timestamp": 1782297574.545862
+  },
+  {
+    "trace_id": "e04fc9d416ab49b3",
+    "service": "TaskPlanner",
+    "operation": "chat",
+    "status": "timeout",
+    "duration_ms": 340,
+    "timestamp": 1782297274.545862
+  },
+  {
+    "trace_id": "94f3ff4910c24863",
+    "service": "WebServer",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 216,
+    "timestamp": 1782296974.545862
+  },
+  {
+    "trace_id": "74c301fe035842a4",
+    "service": "Memory",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 124,
+    "timestamp": 1782296674.545862
+  },
+  {
+    "trace_id": "3d1535addc624768",
+    "service": "API",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 107,
+    "timestamp": 1782296374.545862
+  },
+  {
+    "trace_id": "6536a6b31e104ca5",
+    "service": "Critic",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 272,
+    "timestamp": 1782296074.545862
+  },
+  {
+    "trace_id": "ae3fa31b72cd4493",
+    "service": "Memory",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 280,
+    "timestamp": 1782295774.545862
+  },
+  {
+    "trace_id": "49973b8d6fcb4990",
+    "service": "API",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 30,
+    "timestamp": 1782295474.545862
+  },
+  {
+    "trace_id": "31853a44bd8d4ed7",
+    "service": "TaskPlanner",
+    "operation": "save",
+    "status": "error",
+    "duration_ms": 80,
+    "timestamp": 1782295174.545862
+  },
+  {
+    "trace_id": "4f397b86e2734527",
+    "service": "VectorMemory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 353,
+    "timestamp": 1782294874.545862
+  },
+  {
+    "trace_id": "b0458716080b4e32",
+    "service": "TaskPlanner",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 339,
+    "timestamp": 1782294574.545862
+  },
+  {
+    "trace_id": "a5fc0602553f49f9",
+    "service": "Critic",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 304,
+    "timestamp": 1782294274.545862
+  },
+  {
+    "trace_id": "232f8be0fd9544c2",
+    "service": "TaskPlanner",
+    "operation": "evaluate",
+    "status": "success",
+    "duration_ms": 157,
+    "timestamp": 1782293974.545862
+  },
+  {
+    "trace_id": "0ebe7dc8f64347da",
+    "service": "API",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 415,
+    "timestamp": 1782293674.545862
+  },
+  {
+    "trace_id": "8deb1df1f9ea4620",
+    "service": "WebServer",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 231,
+    "timestamp": 1782293374.545862
+  },
+  {
+    "trace_id": "7cf55ac018a94cbd",
+    "service": "Critic",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 482,
+    "timestamp": 1782293074.545862
+  },
+  {
+    "trace_id": "827810ad16aa4e2e",
+    "service": "API",
+    "operation": "chat",
+    "status": "timeout",
+    "duration_ms": 358,
+    "timestamp": 1782292774.545862
+  },
+  {
+    "trace_id": "b1af9202b27246ca",
+    "service": "Critic",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 378,
+    "timestamp": 1782292474.545862
+  },
+  {
+    "trace_id": "f81a844a6f9d4f41",
+    "service": "WebServer",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 289,
+    "timestamp": 1782292174.545862
+  },
+  {
+    "trace_id": "398d98444f90426a",
+    "service": "Critic",
+    "operation": "evaluate",
+    "status": "timeout",
+    "duration_ms": 88,
+    "timestamp": 1782291874.545862
+  },
+  {
+    "trace_id": "a73ba3bafec44cb8",
+    "service": "Critic",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 232,
+    "timestamp": 1782291574.545862
+  },
+  {
+    "trace_id": "3e0176fd5bd04aad",
+    "service": "DigitalLife",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 336,
+    "timestamp": 1782291274.545862
+  },
+  {
+    "trace_id": "e413643d82ad4a18",
+    "service": "Critic",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 298,
+    "timestamp": 1782290974.545862
+  },
+  {
+    "trace_id": "4520993e31b94524",
+    "service": "WebServer",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 145,
+    "timestamp": 1782290674.545862
+  },
+  {
+    "trace_id": "2f3f97aed1684650",
+    "service": "API",
+    "operation": "evaluate",
+    "status": "success",
+    "duration_ms": 93,
+    "timestamp": 1782290374.545862
+  },
+  {
+    "trace_id": "7c1ea3990d834179",
+    "service": "VectorMemory",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 90,
+    "timestamp": 1782290074.545862
+  },
+  {
+    "trace_id": "a5e46f9d2df64490",
+    "service": "VectorMemory",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 160,
+    "timestamp": 1782289774.545862
+  },
+  {
+    "trace_id": "c17fec228fe046bf",
+    "service": "Critic",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 108,
+    "timestamp": 1782289474.545862
+  },
+  {
+    "trace_id": "d6c77c4b529244ef",
+    "service": "Memory",
+    "operation": "load",
+    "status": "timeout",
+    "duration_ms": 227,
+    "timestamp": 1782289174.545862
+  },
+  {
+    "trace_id": "dcd982b030b04d5a",
+    "service": "VectorMemory",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 282,
+    "timestamp": 1782288874.545862
+  },
+  {
+    "trace_id": "8ec797768f944ba4",
+    "service": "DigitalLife",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 479,
+    "timestamp": 1782288574.545862
+  },
+  {
+    "trace_id": "93780d6fa6b34bd4",
+    "service": "API",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 277,
+    "timestamp": 1782288274.545862
+  },
+  {
+    "trace_id": "92bb6c9d6b5e406e",
+    "service": "API",
+    "operation": "update",
+    "status": "timeout",
+    "duration_ms": 115,
+    "timestamp": 1782287974.545862
+  },
+  {
+    "trace_id": "05cdd099be2546c3",
+    "service": "TaskPlanner",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 296,
+    "timestamp": 1782287674.545862
+  },
+  {
+    "trace_id": "eceaa136eb804a5a",
+    "service": "Memory",
+    "operation": "update",
+    "status": "success",
+    "duration_ms": 196,
+    "timestamp": 1782287374.545862
+  },
+  {
+    "trace_id": "7059a239f75644e8",
+    "service": "DigitalLife",
+    "operation": "save",
+    "status": "success",
+    "duration_ms": 284,
+    "timestamp": 1782287074.545862
+  },
+  {
+    "trace_id": "ece8a1f48a86420d",
+    "service": "Memory",
+    "operation": "evaluate",
+    "status": "success",
+    "duration_ms": 189,
+    "timestamp": 1782286774.545862
+  },
+  {
+    "trace_id": "2219fe7d4ac84087",
+    "service": "DigitalLife",
+    "operation": "save",
+    "status": "error",
+    "duration_ms": 292,
+    "timestamp": 1782286474.545862
+  },
+  {
+    "trace_id": "8db13c10f1974770",
+    "service": "VectorMemory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 299,
+    "timestamp": 1782286174.545862
+  },
+  {
+    "trace_id": "9ba99bf987404654",
+    "service": "Critic",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 528,
+    "timestamp": 1782285874.545862
+  },
+  {
+    "trace_id": "1791d0c23d714c9d",
+    "service": "Memory",
+    "operation": "chat",
+    "status": "success",
+    "duration_ms": 193,
+    "timestamp": 1782285574.545862
+  },
+  {
+    "trace_id": "872f5bcd9f5b4f93",
+    "service": "Memory",
+    "operation": "load",
+    "status": "timeout",
+    "duration_ms": 234,
+    "timestamp": 1782285274.545862
+  },
+  {
+    "trace_id": "3fc7196f03f44df0",
+    "service": "DigitalLife",
+    "operation": "evaluate",
+    "status": "error",
+    "duration_ms": 395,
+    "timestamp": 1782284974.545862
+  },
+  {
+    "trace_id": "c2d888de38f94235",
+    "service": "Critic",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 475,
+    "timestamp": 1782284674.545862
+  },
+  {
+    "trace_id": "1896baa5dd5d4d3f",
+    "service": "WebServer",
+    "operation": "execute",
+    "status": "success",
+    "duration_ms": 31,
+    "timestamp": 1782284374.545862
+  },
+  {
+    "trace_id": "4c3b5688e4934ddb",
+    "service": "Memory",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 428,
+    "timestamp": 1782284074.545862
+  },
+  {
+    "trace_id": "f2bbc0d92d9a4401",
+    "service": "Memory",
+    "operation": "evaluate",
+    "status": "success",
+    "duration_ms": 354,
+    "timestamp": 1782283774.545862
+  },
+  {
+    "trace_id": "eedc17c5090c4605",
+    "service": "Memory",
+    "operation": "plan",
+    "status": "timeout",
+    "duration_ms": 282,
+    "timestamp": 1782283474.545862
+  },
+  {
+    "trace_id": "259f09b9d6b346e2",
+    "service": "API",
+    "operation": "plan",
+    "status": "timeout",
+    "duration_ms": 97,
+    "timestamp": 1782283174.545862
+  },
+  {
+    "trace_id": "7ea8b6e331bf40d1",
+    "service": "Memory",
+    "operation": "search",
+    "status": "success",
+    "duration_ms": 267,
+    "timestamp": 1782282874.545862
+  },
+  {
+    "trace_id": "890cd1fd937f4859",
+    "service": "DigitalLife",
+    "operation": "plan",
+    "status": "success",
+    "duration_ms": 484,
+    "timestamp": 1782282574.545862
+  },
+  {
+    "trace_id": "3349d22cad664f5e",
+    "service": "WebServer",
+    "operation": "load",
+    "status": "success",
+    "duration_ms": 355,
+    "timestamp": 1782282274.545862
+  }
+]

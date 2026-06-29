@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_4219_20260623100049",
+  "content": "你还没把代码发给我呢～把需要分析的代码贴过来吧，我帮你看看：\n\n- **语法错误**、**逻辑缺陷**、**性能瓶颈**、**安全隐患** 都能查\n- 支持 Python、JavaScript、Java、Go、C++ 等主流语言\n\n直接贴代码或指定文件路径就行。\n\n（规划引擎已就绪，可用工具: ['check_health']）",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "assistant",
+    "interaction_id": 3
+  },
+  "created_at": "2026-06-23T10:00:49.406876",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "assistant"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

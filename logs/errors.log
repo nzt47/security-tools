@@ -1234,3 +1234,244 @@ Context:
 Traceback:
 NoneType: None
 
+
+================================================================================
+Level: ERROR
+Time: 2026-06-27T01:05:32.577552
+Type: Exception
+Message: verify-test-error
+Trace ID: N/A
+
+Context:
+{
+  "action": "verify",
+  "module": "test"
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-28T01:07:57.072337
+Type: Exception
+Message: verify-test-error
+Trace ID: N/A
+
+Context:
+{
+  "action": "verify",
+  "module": "test"
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-28T08:49:38.416175
+Type: Exception
+Message: verify-test-error
+Trace ID: N/A
+
+Context:
+{
+  "action": "verify",
+  "module": "test"
+}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-28T09:15:03.300931
+Type: ValueError
+Message: shortcut test
+Trace ID: N/A
+
+Context:
+{}
+
+Traceback:
+NoneType: None
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.317761
+Type: ValueError
+Message: test error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 1,
+  "trace_id": "trace123",
+  "args": null,
+  "kwargs": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 229, in test_func
+    raise ValueError("test error")
+ValueError: test error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.347717
+Type: ValueError
+Message: test error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 1,
+  "trace_id": "trace123",
+  "args": null,
+  "kwargs": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 242, in test_func
+    raise ValueError("test error")
+ValueError: test error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.378429
+Type: ValueError
+Message: retry error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 1,
+  "trace_id": "trace123",
+  "args": null,
+  "kwargs": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.389760
+Type: ValueError
+Message: retry error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 2,
+  "trace_id": "trace123",
+  "args": null,
+  "kwargs": null
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 295, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 260, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.589285
+Type: ValueError
+Message: test error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 1,
+  "trace_id": "trace123"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 497, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 385, in test_func
+    raise ValueError("test error")
+ValueError: test error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.623244
+Type: ValueError
+Message: retry error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 1,
+  "trace_id": "trace123"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 497, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+
+
+================================================================================
+Level: ERROR
+Time: 2026-06-29T10:44:12.649531
+Type: ValueError
+Message: retry error
+Trace ID: trace123
+
+Context:
+{
+  "function": "test_func",
+  "attempt": 2,
+  "trace_id": "trace123"
+}
+
+Traceback:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\monitoring\decorators.py", line 497, in wrapper
+    return await func(*args, **kwargs_inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_monitoring_decorators.py", line 401, in test_func
+    raise ValueError("retry error")
+ValueError: retry error
+

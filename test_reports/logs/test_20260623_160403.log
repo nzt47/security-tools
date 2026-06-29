@@ -1,0 +1,231 @@
+2026-06-23 16:04:04,361 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-23 16:04:04,363 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-23 16:04:04,365 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-23 16:04:04,383 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-23 16:04:04,397 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 16:04:04,400 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-23 16:04:04,428 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-23 16:04:04,436 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-23 16:04:04,440 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-23 16:04:04,457 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-23 16:04:04,457 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-23 16:04:04,457 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-23 16:04:04,458 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-23 16:04:04,459 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-23 16:04:04,577 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-23 16:04:04,620 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-23 16:04:04,621 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:04:04,626 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:04:04,626 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-23 16:04:04,626 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-23 16:04:04,626 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-23 16:04:04,627 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-23 16:04:04,841 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t1, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,844 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t2, score=0.50, retry=1/3
+2026-06-23 16:04:04,844 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t2, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,847 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t3, score=0.70, passed=True, retry=False (0/3), issues=1
+2026-06-23 16:04:04,850 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t4, score=0.80, passed=True, retry=False (0/3), issues=1
+2026-06-23 16:04:04,853 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t5, score=0.90, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,856 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t6, score=0.40, retry=1/3
+2026-06-23 16:04:04,856 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t6, score=0.40, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,859 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=1/3
+2026-06-23 16:04:04,859 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,860 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=2/3
+2026-06-23 16:04:04,860 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (1/3), issues=1
+2026-06-23 16:04:04,860 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=3/3
+2026-06-23 16:04:04,860 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (2/3), issues=1
+2026-06-23 16:04:04,860 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=False (3/3), issues=1
+2026-06-23 16:04:04,863 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t7, score=0.70, passed=True, retry=False (0/3), issues=1
+2026-06-23 16:04:04,866 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=reset1, score=0.50, retry=1/3
+2026-06-23 16:04:04,866 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=reset1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,869 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=clear1, score=0.50, retry=1/3
+2026-06-23 16:04:04,870 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=clear1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,870 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=clear1, score=1.00, passed=True, retry=False (1/3), issues=0
+2026-06-23 16:04:04,876 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-23 16:04:04,878 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-23 16:04:04,882 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=1, entities=2, confidence=0.70
+2026-06-23 16:04:04,885 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=4, entities=0, confidence=0.70
+2026-06-23 16:04:04,893 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-23 16:04:04,899 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,905 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-23 16:04:04,912 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.70, issues=1
+2026-06-23 16:04:04,915 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.70, issues=1
+2026-06-23 16:04:04,918 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-23 16:04:04,918 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-23 16:04:04,918 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-23 16:04:04,921 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=browser_navigate, approved=True, score=0.80, issues=1
+2026-06-23 16:04:04,924 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.85, recommendation=推荐执行
+2026-06-23 16:04:04,927 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.57, recommendation=不推荐执行（安全视角评分过低: 0.20）
+2026-06-23 16:04:04,930 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-23 16:04:04,933 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-23 16:04:04,937 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-23 16:04:04,940 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-23 16:04:04,940 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.46, recommendation=不推荐执行（安全视角评分过低: 0.20）
+2026-06-23 16:04:04,943 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t1, type=chat, complexity=simple
+2026-06-23 16:04:04,943 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t1, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,943 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t1, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-23 16:04:04,946 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t2, type=chat, complexity=normal
+2026-06-23 16:04:04,946 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t2, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,946 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-23 16:04:04,946 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t2, decision=continue, reflection_score=1.00, knowledge=yes, review=N/A, debate=no
+2026-06-23 16:04:04,950 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t3, type=execute_shell, complexity=high_risk
+2026-06-23 16:04:04,950 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t3, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,950 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=execute_shell, facts=1, entities=0, confidence=0.50
+2026-06-23 16:04:04,950 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-23 16:04:04,950 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t3, decision=escalate, reflection_score=1.00, knowledge=yes, review=False, debate=no
+2026-06-23 16:04:04,953 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t4, type=chat, complexity=complex
+2026-06-23 16:04:04,953 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t4, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,953 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.70
+2026-06-23 16:04:04,953 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.85, recommendation=推荐执行
+2026-06-23 16:04:04,954 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t4, decision=continue, reflection_score=1.00, knowledge=yes, review=N/A, debate=yes
+2026-06-23 16:04:04,957 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t5, type=chat, complexity=simple
+2026-06-23 16:04:04,957 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t5, score=0.50, retry=1/3
+2026-06-23 16:04:04,957 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t5, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-23 16:04:04,958 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t5, decision=retry, reflection_score=0.50, knowledge=no, review=N/A, debate=no
+2026-06-23 16:04:04,960 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t6, type=execute_shell, complexity=high_risk
+2026-06-23 16:04:04,961 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t6, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,961 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-23 16:04:04,961 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t6, decision=escalate, reflection_score=1.00, knowledge=no, review=False, debate=no
+2026-06-23 16:04:04,964 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t7, type=chat, complexity=simple
+2026-06-23 16:04:04,964 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t7, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-23 16:04:04,964 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t7, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-23 16:04:04,985 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 指令忽略: 'ignore all previous instructions'
+2026-06-23 16:04:04,988 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 System Prompt 泄露尝试: 'what is your system prompt'
+2026-06-23 16:04:04,991 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 DAN 越狱: 'DAN'
+2026-06-23 16:04:04,997 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 XML/JSON 注入: '<system>'
+2026-06-23 16:04:05,003 [    INFO] agent.guardrails.output_guard: [OutputGuard] 已遮盖 1 个字段
+2026-06-23 16:04:05,006 [    INFO] agent.guardrails.output_guard: [OutputGuard] 已遮盖 1 个字段
+2026-06-23 16:04:05,010 [    INFO] agent.guardrails.output_guard: [OutputGuard] 已遮盖 1 个字段
+2026-06-23 16:04:05,031 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: test → world
+2026-06-23 16:04:05,035 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-23 16:04:05,038 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-23 16:04:05,038 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 16:04
+2026-06-23 16:04:05,318 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-83fd088e3db2, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,321 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-a2c09d70a4a6, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,324 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-4e9f640c9d47, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,326 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-8cceb67b76d4, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,327 [    INFO] agent.subagent.container: [Subagent:sa-8cceb67b76d4] 执行任务: trace=d4cead979e5541de, task=测试任务
+2026-06-23 16:04:05,330 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-f08a457499f6, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,330 [    INFO] agent.subagent.container: [Subagent:sa-f08a457499f6] 执行任务: trace=b5bf069da0e144fb, task=帮我写代码
+2026-06-23 16:04:05,334 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-ba1629a24bfb, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,334 [    INFO] agent.subagent.container: [Subagent:sa-ba1629a24bfb] 执行任务: trace=e22416e516354ac3, task=test
+2026-06-23 16:04:05,337 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-105f63da34d3, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,338 [    INFO] agent.subagent.container: [Subagent:sa-105f63da34d3] 执行任务: trace=aa2717e1b5d3497b, task=hello
+2026-06-23 16:04:05,340 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-844ac2b0c76f, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,351 [    INFO] agent.subagent.container: [Subagent:sa-844ac2b0c76f] 执行任务: trace=dfeb0a6949024869, task=test
+2026-06-23 16:04:05,360 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-2e310a47f208, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,366 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-483486f04f80, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,371 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-a5932b8f7dbd, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,372 [    INFO] agent.subagent.container: [Subagent] 创建分身: exp (id=sa-865904354700, model=m1, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,386 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-966cb3a2e883, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,399 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-2ad455da1849, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,403 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-37038c7fdd48, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,406 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-777e3d49ad3c, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,406 [    INFO] agent.subagent.container: [Subagent:sa-777e3d49ad3c] 执行任务: trace=e3c03618066d4af6, task=task1
+2026-06-23 16:04:05,406 [    INFO] agent.subagent.container: [Subagent:sa-777e3d49ad3c] 上下文已清空
+2026-06-23 16:04:05,409 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-7866ab54be10, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,412 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-71c366285c6f, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,412 [    INFO] agent.subagent.container: [Subagent:sa-71c366285c6f] 执行任务: trace=28566ad1a9624752, task=test
+2026-06-23 16:04:05,415 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-3b54e49349e9, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,416 [    INFO] agent.subagent.container: [Subagent:sa-3b54e49349e9] 执行任务: trace=38ec7de5c6ff4b80, task=test
+2026-06-23 16:04:05,419 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,419 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-64fd6d695956, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,419 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: test-agent (id=sa-64fd6d695956, 活跃=1, 总计=1)
+2026-06-23 16:04:05,420 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: test-agent (id=sa-64fd6d695956, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 16:04:05,422 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,423 [    INFO] agent.subagent.container: [Subagent] 创建分身: unique (id=sa-f5ad1cab4015, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,423 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: unique (id=sa-f5ad1cab4015, 活跃=1, 总计=1)
+2026-06-23 16:04:05,425 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,428 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,429 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent1 (id=sa-64e843726df8, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,429 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent1 (id=sa-64e843726df8, 活跃=1, 总计=1)
+2026-06-23 16:04:05,431 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_0 (id=sa-747056de2089, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_0 (id=sa-747056de2089, 活跃=1, 总计=1)
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_1 (id=sa-1970fde5ab3b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_1 (id=sa-1970fde5ab3b, 活跃=2, 总计=2)
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_2 (id=sa-74c1c062d959, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_2 (id=sa-74c1c062d959, 活跃=3, 总计=3)
+2026-06-23 16:04:05,432 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_3 (id=sa-f14159effd4a, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,433 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_3 (id=sa-f14159effd4a, 活跃=4, 总计=4)
+2026-06-23 16:04:05,433 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_4 (id=sa-fcdb58d77ca8, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,433 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_4 (id=sa-fcdb58d77ca8, 活跃=5, 总计=5)
+2026-06-23 16:04:05,435 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,436 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 2
+2026-06-23 16:04:05,436 [    INFO] agent.subagent.container: [Subagent] 创建分身: a1 (id=sa-a8479903d37a, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,436 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: a1 (id=sa-a8479903d37a, 活跃=1, 总计=1)
+2026-06-23 16:04:05,436 [    INFO] agent.subagent.container: [Subagent] 创建分身: a2 (id=sa-8a64b9154c96, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,436 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: a2 (id=sa-8a64b9154c96, 活跃=2, 总计=2)
+2026-06-23 16:04:05,439 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,439 [    INFO] agent.subagent.container: [Subagent] 创建分身: finder (id=sa-81592d38ca0b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,440 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: finder (id=sa-81592d38ca0b, 活跃=1, 总计=1)
+2026-06-23 16:04:05,442 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,445 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,446 [    INFO] agent.subagent.container: [Subagent] 创建分身: id-test (id=sa-ca25606eb78b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,446 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: id-test (id=sa-ca25606eb78b, 活跃=1, 总计=1)
+2026-06-23 16:04:05,449 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,451 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,452 [    INFO] agent.subagent.container: [Subagent] 创建分身: orphan (id=sa-24fd62f6f903, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,455 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,456 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm1 (id=sa-e9b3219c863a, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,456 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm1 (id=sa-e9b3219c863a, 活跃=1, 总计=1)
+2026-06-23 16:04:05,456 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm2 (id=sa-a9e9c2dc6d4c, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,456 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm2 (id=sa-a9e9c2dc6d4c, 活跃=2, 总计=2)
+2026-06-23 16:04:05,459 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,459 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm (id=sa-0ab402328523, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,459 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm (id=sa-0ab402328523, 活跃=1, 总计=1)
+2026-06-23 16:04:05,460 [    INFO] agent.subagent.container: [Subagent] 创建分身: short (id=sa-2fe7dbfecb71, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,460 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: short (id=sa-2fe7dbfecb71, 活跃=2, 总计=2)
+2026-06-23 16:04:05,471 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: short (id=sa-2fe7dbfecb71, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 16:04:05,471 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] GC 回收 1 个超时分身
+2026-06-23 16:04:05,473 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,474 [    INFO] agent.subagent.container: [Subagent] 创建分身: hot-reload (id=sa-68a741cdbcb8, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,474 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: hot-reload (id=sa-68a741cdbcb8, 活跃=1, 总计=1)
+2026-06-23 16:04:05,474 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身热更新: hot-reload -> hot-reload (model: gpt-4 -> claude-4; memory: holographic -> mem0)
+2026-06-23 16:04:05,477 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,477 [    INFO] agent.subagent.container: [Subagent] 创建分身: old-name (id=sa-7e63c3aa9484, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,477 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: old-name (id=sa-7e63c3aa9484, 活跃=1, 总计=1)
+2026-06-23 16:04:05,477 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身热更新: old-name -> new-name (无变更)
+2026-06-23 16:04:05,480 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,481 [    INFO] agent.subagent.container: [Subagent] 创建分身: existing (id=sa-0971fbecba4b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,481 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: existing (id=sa-0971fbecba4b, 活跃=1, 总计=1)
+2026-06-23 16:04:05,481 [    INFO] agent.subagent.container: [Subagent] 创建分身: to-rename (id=sa-6bf35e267985, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,481 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: to-rename (id=sa-6bf35e267985, 活跃=2, 总计=2)
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.container: [Subagent] 创建分身: code1 (id=sa-e528f513e290, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: code1 (id=sa-e528f513e290, 活跃=1, 总计=1)
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.container: [Subagent] 创建分身: chat1 (id=sa-b3aa6903885c, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: chat1 (id=sa-b3aa6903885c, 活跃=2, 总计=2)
+2026-06-23 16:04:05,484 [    INFO] agent.subagent.container: [Subagent] 创建分身: code2 (id=sa-c4333b694f4b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,485 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: code2 (id=sa-c4333b694f4b, 活跃=3, 总计=3)
+2026-06-23 16:04:05,488 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,488 [    INFO] agent.subagent.container: [Subagent] 创建分身: reader (id=sa-a48dbd2dc306, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,489 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: reader (id=sa-a48dbd2dc306, 活跃=1, 总计=1)
+2026-06-23 16:04:05,489 [    INFO] agent.subagent.container: [Subagent] 创建分身: writer (id=sa-ee71685453ae, model=gpt-4, memory=holographic, permissions=['read', 'write'])
+2026-06-23 16:04:05,489 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: writer (id=sa-ee71685453ae, 活跃=2, 总计=2)
+2026-06-23 16:04:05,491 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,492 [    INFO] agent.subagent.container: [Subagent] 创建分身: stat1 (id=sa-6ab846ed0c4c, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,492 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: stat1 (id=sa-6ab846ed0c4c, 活跃=1, 总计=1)
+2026-06-23 16:04:05,492 [    INFO] agent.subagent.container: [Subagent] 创建分身: stat2 (id=sa-c8eb996b5c71, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,492 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: stat2 (id=sa-c8eb996b5c71, 活跃=2, 总计=2)
+2026-06-23 16:04:05,495 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 16:04:05,495 [    INFO] agent.subagent.container: [Subagent] 创建分身: to-destroy (id=sa-79015f40e5ed, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 16:04:05,496 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: to-destroy (id=sa-79015f40e5ed, 活跃=1, 总计=1)
+2026-06-23 16:04:05,496 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: to-destroy (id=sa-79015f40e5ed, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 16:04:05,547 [ WARNING] agent.subagent.sandbox: [Sandbox] Docker 沙箱尚未实现 — 预留适配位
+2026-06-23 16:04:05,549 [ WARNING] agent.subagent.sandbox: [Sandbox] WASM 沙箱尚未实现 — 预留适配位

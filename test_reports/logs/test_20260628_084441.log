@@ -1,0 +1,38 @@
+2026-06-28 08:44:42,785 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 08:44:42,800 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 08:44:42,801 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 08:44:42,853 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 08:44:42,901 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 08:44:42,919 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 08:44:42,932 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:44:43,143 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 08:44:43,199 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 08:44:43,238 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 08:44:43,313 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 08:44:43,314 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 08:44:43,316 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:44:43,317 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] 性能监控 模块加载异常: NameError: name 'Counter' is not defined
+2026-06-28 08:44:43,325 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 08:44:43,936 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 08:44:43,958 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 08:44:43,958 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:44:43,959 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 08:44:43,959 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:44:43,959 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 08:44:43,959 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [FAIL] monitoring: 未加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 08:44:43,960 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 08:44:43,961 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 08:44:43,961 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-28 08:44:43,961 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-28 08:44:43,961 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 08:44:44,028 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:44:44,109 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:44:44,136 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 08:44:44,213 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled

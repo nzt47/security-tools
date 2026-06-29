@@ -1,0 +1,38 @@
+2026-06-28 01:48:34,037 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 01:48:34,040 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 01:48:34,042 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 01:48:34,052 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 01:48:34,067 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 01:48:34,070 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 01:48:34,098 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 01:48:34,105 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 01:48:34,109 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 01:48:34,127 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 01:48:34,127 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 01:48:34,127 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 01:48:34,129 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 01:48:34,130 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 01:48:34,275 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 01:48:34,279 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 01:48:34,280 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 01:48:34,351 [    INFO] agent.monitoring.replay_storage: {"trace_id": "3213b4bd8d674da7b95ce0be630baac5", "module_name": "replay_storage", "action": "init", "result": "initialized", "duration_ms": 19.58, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-512\\test_store_failure_rolls_back_0\\replays"}
+2026-06-28 01:48:34,356 [    INFO] agent.monitoring.replay_storage: {"trace_id": "fae88d7f638341b49f1fc702595e2b09", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.01, "replay_id": "r-normal", "size_bytes": 223, "compressed": false}
+2026-06-28 01:48:34,358 [ WARNING] agent.monitoring.replay_storage: {"trace_id": "e9e617d66b8e478a96b1b4807a7d2c56", "module_name": "replay_storage", "action": "store", "result": "file_rolled_back", "file_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-512\\test_store_failure_rolls_back_0\\replays\\20260628\\r-rollback.json"}
+2026-06-28 01:48:34,358 [   ERROR] agent.monitoring.replay_storage: {"trace_id": "e9e617d66b8e478a96b1b4807a7d2c56", "module_name": "replay_storage", "action": "store", "result": "db_write_failed", "duration_ms": 0.97, "error": "SQLite 写入失败: DB error", "code": "REPLAY_ERR_003", "exception_type": "Error"}
+2026-06-28 01:48:34,669 [    INFO] agent.monitoring.replay_storage: {"trace_id": "939bfd2286ec44a292e46c717ad411a1", "module_name": "replay_storage", "action": "close", "result": "closed", "duration_ms": 0.0}

@@ -1,0 +1,14 @@
+{
+  "trace_id": "f212a612cfdc42bb",
+  "base_ref": "HEAD~1",
+  "head_ref": "HEAD",
+  "changed_files": [],
+  "impacted_modules": [],
+  "recommended_tests": [],
+  "risk_summary": {
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "duration_ms": 162.95
+}

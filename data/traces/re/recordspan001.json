@@ -1,0 +1,54 @@
+{
+  "trace_id": "recordspan001",
+  "spans": [
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    },
+    {
+      "span_id": "span1",
+      "service": "TestService",
+      "operation": "record_test"
+    }
+  ],
+  "span_count": 9,
+  "created_at": 1782312328.7341452,
+  "updated_at": 1782469606.6179855,
+  "duration_ms": 0
+}

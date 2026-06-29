@@ -148,6 +148,74 @@ class LogSystemConfig(BaseModel):
     idle_timeout: int = Field(default=300, ge=60, le=3600, description="空闲检测超时（秒）")
 
 
+# ─── 技能管理系统配置（skills_mgmt）──────────────────────────────
+class SkillsMgmtReviewThresholdsConfig(BaseModel):
+    """技能审核阈值配置"""
+    duplicate_max: int = Field(default=60, ge=0, le=100, description="重复度上限（0-100），超过则拒绝")
+    security_min: int = Field(default=70, ge=0, le=100, description="安全分下限（0-100），低于则拒绝")
+    quality_min: int = Field(default=50, ge=0, le=100, description="质量分下限（0-100），低于则要求人工复核")
+    overall_min: int = Field(default=60, ge=0, le=100, description="综合分下限（0-100），低于则拒绝")
+
+
+class SkillsMgmtInstallerConfig(BaseModel):
+    """技能安装器配置"""
+    http_timeout: int = Field(default=30, ge=5, le=300, description="HTTP 下载超时（秒）")
+    max_file_size_mb: int = Field(default=10, ge=1, le=100, description="最大文件大小（MB）")
+    allowed_schemes: List[str] = Field(
+        default_factory=lambda: ["github", "url", "local", "registry"],
+        description="允许的安装源协议",
+    )
+
+
+class SkillsMgmtAiAssistConfig(BaseModel):
+    """AI 辅助生成配置"""
+    enabled: bool = Field(default=True, description="启用 AI 辅助生成")
+    template_fallback: bool = Field(default=True, description="LLM 不可用时使用模板兜底")
+
+
+class SkillsMgmtConfig(BaseModel):
+    """综合技能管理系统配置模型"""
+    enabled: bool = Field(default=True, description="全局开关")
+    store_path: str = Field(default="./data/skills_mgmt.json", description="技能持久化存储路径")
+    sync_legacy: bool = Field(default=True, description="是否同步到旧版 data/skills.json")
+    review_thresholds: SkillsMgmtReviewThresholdsConfig = Field(
+        default_factory=SkillsMgmtReviewThresholdsConfig
+    )
+    installer: SkillsMgmtInstallerConfig = Field(default_factory=SkillsMgmtInstallerConfig)
+    ai_assist: SkillsMgmtAiAssistConfig = Field(default_factory=SkillsMgmtAiAssistConfig)
+
+
+# ─── 工作流学习系统配置（workflow_learning）──────────────────────
+class WorkflowMatcherConfig(BaseModel):
+    """工作流匹配器配置"""
+    min_similarity: float = Field(default=0.3, ge=0.0, le=1.0, description="TF-IDF 相似度下限")
+    min_confidence: float = Field(default=0.4, ge=0.0, le=1.0, description="置信度下限")
+    top_k: int = Field(default=5, ge=1, le=50, description="返回 Top-K 候选")
+
+
+class WorkflowExecutorConfig(BaseModel):
+    """工作流执行器配置"""
+    min_score: float = Field(default=0.25, ge=0.0, le=1.0, description="综合得分下限")
+    step_timeout_ms: int = Field(default=30000, ge=1000, le=600000, description="单步执行超时（毫秒）")
+    max_steps: int = Field(default=12, ge=1, le=50, description="工作流最大步数")
+
+
+class WorkflowLearnerConfig(BaseModel):
+    """工作流学习器配置"""
+    min_tool_calls: int = Field(default=2, ge=1, le=20, description="触发学习的最小工具调用次数")
+    max_keywords: int = Field(default=8, ge=1, le=50, description="关键词提取最大数量")
+    dedup_window_days: int = Field(default=7, ge=1, le=365, description="同任务签名去重窗口（天）")
+
+
+class WorkflowLearningConfig(BaseModel):
+    """智能工作流学习系统配置模型"""
+    enabled: bool = Field(default=True, description="全局开关")
+    repo_path: str = Field(default="./data/learned_workflows.json", description="工作流持久化存储路径")
+    matcher: WorkflowMatcherConfig = Field(default_factory=WorkflowMatcherConfig)
+    executor: WorkflowExecutorConfig = Field(default_factory=WorkflowExecutorConfig)
+    learner: WorkflowLearnerConfig = Field(default_factory=WorkflowLearnerConfig)
+
+
 class ConfigModel(BaseModel):
     """完整配置模型"""
     sensor: SensorConfig = Field(default_factory=SensorConfig)
@@ -160,6 +228,8 @@ class ConfigModel(BaseModel):
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     planning: PlanningConfig = Field(default_factory=PlanningConfig)
     log_system: LogSystemConfig = Field(default_factory=LogSystemConfig)
+    skills_mgmt: SkillsMgmtConfig = Field(default_factory=SkillsMgmtConfig)
+    workflow_learning: WorkflowLearningConfig = Field(default_factory=WorkflowLearningConfig)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

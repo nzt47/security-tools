@@ -1,0 +1,411 @@
+import { createHotContext as __vite__createHotContext } from "/static/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/SkillsMgmt/SkillList.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/static/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=da804fa9"; const Fragment = __vite__cjsImport0_react_jsxDevRuntime["Fragment"]; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/static/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/static/node_modules/.vite/deps/react.js?v=da804fa9"; const useEffect = __vite__cjsImport3_react["useEffect"]; const useMemo = __vite__cjsImport3_react["useMemo"]; const useRef = __vite__cjsImport3_react["useRef"]; const useState = __vite__cjsImport3_react["useState"];
+import { useSkillsStore } from "/static/src/store/skillsStore.ts";
+import { debounce, trackEvent } from "/static/src/lib/skillsApi.ts";
+import "/static/src/components/SkillsMgmt/SkillManagement.css";
+const ALL_CATEGORIES = [
+  "BUILTIN",
+  "CUSTOM",
+  "CLAUDE",
+  "COMMUNITY",
+  "MCP",
+  "AI_GENERATED"
+];
+const ALL_STATUSES = [
+  "DRAFT",
+  "PENDING_REVIEW",
+  "APPROVED",
+  "PUBLISHED",
+  "REJECTED",
+  "DEPRECATED",
+  "ARCHIVED"
+];
+const SkillList = () => {
+  _s();
+  const {
+    skills,
+    loadingList,
+    error,
+    selectedSkill,
+    searchSkills,
+    loadAllSkills,
+    selectSkill,
+    clearError
+  } = useSkillsStore();
+  const [query, setQuery] = useState("");
+  const [activeCategories, setActiveCategories] = useState([]);
+  const [activeStatuses, setActiveStatuses] = useState([]);
+  const [enabledOnly, setEnabledOnly] = useState(false);
+  const debouncedSearchRef = useRef(
+    debounce((q, cats, sts, en) => {
+      const hasFilter = q.trim() || cats.length > 0 || sts.length > 0 || en;
+      if (!hasFilter) {
+        loadAllSkills();
+        return;
+      }
+      searchSkills({
+        q: q.trim() || void 0,
+        categories: cats.length > 0 ? cats : void 0,
+        statuses: sts.length > 0 ? sts : void 0,
+        enabled_only: en || void 0,
+        page: 1,
+        page_size: 50
+      });
+    }, 300)
+  );
+  useEffect(() => {
+    debouncedSearchRef.current(query, activeCategories, activeStatuses, enabledOnly);
+  }, [query, activeCategories, activeStatuses, enabledOnly]);
+  const toggleCategory = (cat) => {
+    setActiveCategories(
+      (prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+  const toggleStatus = (st) => {
+    setActiveStatuses(
+      (prev) => prev.includes(st) ? prev.filter((s) => s !== st) : [...prev, st]
+    );
+  };
+  const handleSelect = (skillId) => {
+    trackEvent("skill_select", { skill_id: skillId });
+    selectSkill(skillId);
+  };
+  const categoryLabel = useMemo(() => ({
+    BUILTIN: "内置",
+    CUSTOM: "自定义",
+    CLAUDE: "Claude",
+    COMMUNITY: "社区",
+    MCP: "MCP",
+    AI_GENERATED: "AI生成"
+  }), []);
+  const statusLabel = useMemo(() => ({
+    DRAFT: "草稿",
+    PENDING_REVIEW: "待审",
+    APPROVED: "已通过",
+    PUBLISHED: "已发布",
+    REJECTED: "已拒绝",
+    DEPRECATED: "已弃用",
+    ARCHIVED: "已归档"
+  }), []);
+  return /* @__PURE__ */ jsxDEV(Fragment, { children: [
+    /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "91", "trae-inspector-start-column": "6", "trae-inspector-end-line": "139", "trae-inspector-end-column": "12", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-search-bar", children: [
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "92", "trae-inspector-start-column": "8", "trae-inspector-end-line": "102", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-search-input-wrap", children: [
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "93", "trae-inspector-start-column": "10", "trae-inspector-end-line": "93", "trae-inspector-end-column": "56", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%F0%9F%94%8D%22%2C%22textStartLine%22%3A%2293%22%2C%22textStartColumn%22%3A%2247%22%2C%22textEndLine%22%3A%2293%22%2C%22textEndColumn%22%3A%2249%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-search-icon", children: "🔍" }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+          lineNumber: 112,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            "trae-inspector-start-line": "94",
+            "trae-inspector-start-column": "10",
+            "trae-inspector-end-line": "101",
+            "trae-inspector-end-column": "12",
+            "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx",
+            "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+            className: "skmgmt-search-input",
+            type: "text",
+            placeholder: "按名称、描述、标签搜索...",
+            value: query,
+            onChange: (e) => setQuery(e.target.value),
+            "aria-label": "搜索技能"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+            lineNumber: 113,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 111,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "105", "trae-inspector-start-column": "8", "trae-inspector-end-line": "116", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-filter-row", children: ALL_CATEGORIES.map(
+        (cat) => /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            "trae-inspector-start-line": "107",
+            "trae-inspector-start-column": "12",
+            "trae-inspector-end-line": "114",
+            "trae-inspector-end-column": "21",
+            "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx",
+            "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+            type: "button",
+            className: `skmgmt-filter-chip ${activeCategories.includes(cat) ? "active" : ""}`,
+            onClick: () => toggleCategory(cat),
+            children: categoryLabel[cat]
+          },
+          cat,
+          false,
+          {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+            lineNumber: 126,
+            columnNumber: 11
+          },
+          this
+        )
+      ) }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 124,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "119", "trae-inspector-start-column": "8", "trae-inspector-end-line": "138", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-filter-row", children: [
+        ALL_STATUSES.map(
+          (st) => /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              "trae-inspector-start-line": "121",
+              "trae-inspector-start-column": "12",
+              "trae-inspector-end-line": "128",
+              "trae-inspector-end-column": "21",
+              "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx",
+              "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+              type: "button",
+              className: `skmgmt-filter-chip ${activeStatuses.includes(st) ? "active" : ""}`,
+              onClick: () => toggleStatus(st),
+              children: statusLabel[st]
+            },
+            st,
+            false,
+            {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+              lineNumber: 140,
+              columnNumber: 11
+            },
+            this
+          )
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            "trae-inspector-start-line": "130",
+            "trae-inspector-start-column": "10",
+            "trae-inspector-end-line": "137",
+            "trae-inspector-end-column": "19",
+            "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx",
+            "trae-inspector-static-props": "%7B%22text%22%3A%22%E4%BB%85%E5%90%AF%E7%94%A8%22%2C%22textStartLine%22%3A%22135%22%2C%22textStartColumn%22%3A%2211%22%2C%22textEndLine%22%3A%22137%22%2C%22textEndColumn%22%3A%2210%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+            type: "button",
+            className: `skmgmt-filter-chip ${enabledOnly ? "active" : ""}`,
+            onClick: () => setEnabledOnly((v) => !v),
+            style: { marginLeft: "auto" },
+            children: "仅启用"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+            lineNumber: 149,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 138,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+      lineNumber: 110,
+      columnNumber: 7
+    }, this),
+    error && /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "143", "trae-inspector-start-column": "8", "trae-inspector-end-line": "146", "trae-inspector-end-column": "14", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-error-banner", children: [
+      /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "144", "trae-inspector-start-column": "10", "trae-inspector-end-line": "144", "trae-inspector-end-column": "30", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", children: error }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 163,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { "trae-inspector-start-line": "145", "trae-inspector-start-column": "10", "trae-inspector-end-line": "145", "trae-inspector-end-column": "100", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%C3%97%22%2C%22textStartLine%22%3A%22145%22%2C%22textStartColumn%22%3A%2290%22%2C%22textEndLine%22%3A%22145%22%2C%22textEndColumn%22%3A%2291%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", type: "button", onClick: clearError, className: "skmgmt-btn skmgmt-btn-sm", children: "×" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 164,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+      lineNumber: 162,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "150", "trae-inspector-start-column": "6", "trae-inspector-end-line": "204", "trae-inspector-end-column": "12", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-list", children: loadingList ? /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "152", "trae-inspector-start-column": "10", "trae-inspector-end-line": "155", "trae-inspector-end-column": "16", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-loading", children: [
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "153", "trae-inspector-start-column": "12", "trae-inspector-end-line": "153", "trae-inspector-end-column": "54", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-loading-spinner" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 172,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "154", "trae-inspector-start-column": "12", "trae-inspector-end-line": "154", "trae-inspector-end-column": "29", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E5%8A%A0%E8%BD%BD%E4%B8%AD...%22%2C%22textStartLine%22%3A%22154%22%2C%22textStartColumn%22%3A%2217%22%2C%22textEndLine%22%3A%22154%22%2C%22textEndColumn%22%3A%2223%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", children: "加载中..." }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 173,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+      lineNumber: 171,
+      columnNumber: 9
+    }, this) : skills.length === 0 ? /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "157", "trae-inspector-start-column": "10", "trae-inspector-end-line": "163", "trae-inspector-end-column": "16", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-detail-empty", children: [
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "158", "trae-inspector-start-column": "12", "trae-inspector-end-line": "158", "trae-inspector-end-column": "61", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E2%88%85%22%2C%22textStartLine%22%3A%22158%22%2C%22textStartColumn%22%3A%2254%22%2C%22textEndLine%22%3A%22158%22%2C%22textEndColumn%22%3A%2255%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-detail-empty-icon", children: "∅" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 177,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "159", "trae-inspector-start-column": "12", "trae-inspector-end-line": "159", "trae-inspector-end-column": "27", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E6%9A%82%E6%97%A0%E6%8A%80%E8%83%BD%22%2C%22textStartLine%22%3A%22159%22%2C%22textStartColumn%22%3A%2217%22%2C%22textEndLine%22%3A%22159%22%2C%22textEndColumn%22%3A%2221%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", children: "暂无技能" }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 178,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "160", "trae-inspector-start-column": "12", "trae-inspector-end-line": "162", "trae-inspector-end-column": "18", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E4%BD%BF%E7%94%A8%E5%8F%B3%E4%B8%8A%E8%A7%92%5C%22%E6%96%B0%E5%BB%BA%E6%8A%80%E8%83%BD%5C%22%E6%8C%89%E9%92%AE%E5%88%9B%E5%BB%BA%E7%AC%AC%E4%B8%80%E4%B8%AA%E6%8A%80%E8%83%BD%22%2C%22textStartLine%22%3A%22160%22%2C%22textStartColumn%22%3A%2256%22%2C%22textEndLine%22%3A%22162%22%2C%22textEndColumn%22%3A%2212%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", style: { fontSize: 11, marginTop: 4 }, children: '使用右上角"新建技能"按钮创建第一个技能' }, void 0, false, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+        lineNumber: 179,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+      lineNumber: 176,
+      columnNumber: 9
+    }, this) : skills.map(
+      (skill) => /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          "trae-inspector-start-line": "166",
+          "trae-inspector-start-column": "12",
+          "trae-inspector-end-line": "201",
+          "trae-inspector-end-column": "18",
+          "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx",
+          "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D",
+          className: `skmgmt-list-item ${selectedSkill?.id === skill.id ? "selected" : ""}`,
+          onClick: () => handleSelect(skill.id),
+          role: "button",
+          tabIndex: 0,
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleSelect(skill.id);
+            }
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "179", "trae-inspector-start-column": "14", "trae-inspector-end-line": "184", "trae-inspector-end-column": "20", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-item-title", children: [
+              /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "180", "trae-inspector-start-column": "16", "trae-inspector-end-line": "180", "trae-inspector-end-column": "41", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", children: skill.name }, void 0, false, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 199,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "181", "trae-inspector-start-column": "16", "trae-inspector-end-line": "183", "trae-inspector-end-column": "23", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `skmgmt-badge skmgmt-badge-${skill.enabled ? "enabled" : "disabled"}`, children: skill.enabled ? "启用" : "停用" }, void 0, false, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 200,
+                columnNumber: 17
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+              lineNumber: 198,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { "trae-inspector-start-line": "185", "trae-inspector-start-column": "14", "trae-inspector-end-line": "187", "trae-inspector-end-column": "18", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-item-desc", children: skill.description || "(无描述)" }, void 0, false, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+              lineNumber: 204,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "188", "trae-inspector-start-column": "14", "trae-inspector-end-line": "200", "trae-inspector-end-column": "20", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-item-meta", children: [
+              /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "189", "trae-inspector-start-column": "16", "trae-inspector-end-line": "189", "trae-inspector-end-column": "92", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "skmgmt-category-tag", children: categoryLabel[skill.category] }, void 0, false, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 208,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "190", "trae-inspector-start-column": "16", "trae-inspector-end-line": "192", "trae-inspector-end-column": "23", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `skmgmt-badge skmgmt-badge-${skill.status.toLowerCase()}`, children: statusLabel[skill.status] }, void 0, false, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 209,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "193", "trae-inspector-start-column": "16", "trae-inspector-end-line": "193", "trae-inspector-end-column": "45", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", children: [
+                "v",
+                skill.version
+              ] }, void 0, true, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 212,
+                columnNumber: 17
+              }, this),
+              skill.metrics.usage_count > 0 && /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "195", "trae-inspector-start-column": "18", "trae-inspector-end-line": "195", "trae-inspector-end-column": "77", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", title: "使用次数", children: [
+                "· 用 ",
+                skill.metrics.usage_count,
+                " 次"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 214,
+                columnNumber: 13
+              }, this),
+              skill.review && /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "198", "trae-inspector-start-column": "18", "trae-inspector-end-line": "198", "trae-inspector-end-column": "88", "trae-inspector-file-path": "src\\\\components\\\\SkillsMgmt\\\\SkillList.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", title: "综合得分", children: [
+                "· 评 ",
+                Math.round(skill.review.overall_score)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+                lineNumber: 217,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+              lineNumber: 207,
+              columnNumber: 15
+            }, this)
+          ]
+        },
+        skill.id,
+        true,
+        {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+          lineNumber: 185,
+          columnNumber: 9
+        },
+        this
+      )
+    ) }, void 0, false, {
+      fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+      lineNumber: 169,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx",
+    lineNumber: 108,
+    columnNumber: 5
+  }, this);
+};
+_s(SkillList, "hqyGAQiaXOBXspgopSxNkCRa/uw=", false, function() {
+  return [useSkillsStore];
+});
+_c = SkillList;
+export default SkillList;
+var _c;
+$RefreshReg$(_c, "SkillList");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Administrator/agent/yunshu-ui/src/components/SkillsMgmt/SkillList.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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LHFCQUFvRDtBQUFBLGNBRXJEWixNQUFNYSxVQUNMLHVCQUFDLFVBQUkscVZBQUMsT0FBTSxRQUFPO0FBQUE7QUFBQSxnQkFBS0MsS0FBS0MsTUFBTWYsTUFBTWEsT0FBT0csYUFBYTtBQUFBLG1CQUE3RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUErRDtBQUFBLGlCQVZuRTtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQVlBO0FBQUE7QUFBQTtBQUFBLFFBakNLaEIsTUFBTUM7QUFBQUEsUUFEYjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLE1BbUNBO0FBQUEsSUFDRCxLQXBETDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBc0RBO0FBQUEsT0FuSEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQW9IQTtBQUVKO0FBQUVwRSxHQTFMSUQsV0FBbUI7QUFBQSxVQVVuQkwsY0FBYztBQUFBO0FBQUEsS0FWZEs7QUE0TE4sZUFBZUE7QUFBVSxJQUFBcUY7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlRWZmZWN0IiwidXNlTWVtbyIsInVzZVJlZiIsInVzZVN0YXRlIiwidXNlU2tpbGxzU3RvcmUiLCJkZWJvdW5jZSIsInRyYWNrRXZlbnQiLCJBTExfQ0FURUdPUklFUyIsIkFMTF9TVEFUVVNFUyIsIlNraWxsTGlzdCIsIl9zIiwic2tpbGxzIiwibG9hZGluZ0xpc3QiLCJlcnJvciIsInNlbGVjdGVkU2tpbGwiLCJzZWFyY2hTa2lsbHMiLCJsb2FkQWxsU2tpbGxzIiwic2VsZWN0U2tpbGwiLCJjbGVhckVycm9yIiwicXVlcnkiLCJzZXRRdWVyeSIsImFjdGl2ZUNhdGVnb3JpZXMiLCJzZXRBY3RpdmVDYXRlZ29yaWVzIiwiYWN0aXZlU3RhdHVzZXMiLCJzZXRBY3RpdmVTdGF0dXNlcyIsImVuYWJsZWRPbmx5Iiwic2V0RW5hYmxlZE9ubHkiLCJkZWJvdW5jZWRTZWFyY2hSZWYiLCJxIiwiY2F0cyIsInN0cyIsImVuIiwiaGFzRmlsdGVyIiwidHJpbSIsImxlbmd0aCIsInVuZGVmaW5lZCIsImNhdGVnb3JpZXMiLCJzdGF0dXNlcyIsImVuYWJsZWRfb25seSIsInBhZ2UiLCJwYWdlX3NpemUiLCJjdXJyZW50IiwidG9nZ2xlQ2F0ZWdvcnkiLCJjYXQiLCJwcmV2IiwiaW5jbHVkZXMiLCJmaWx0ZXIiLCJjIiwidG9nZ2xlU3RhdHVzIiwic3QiLCJzIiwiaGFuZGxlU2VsZWN0Iiwic2tpbGxJZCIsInNraWxsX2lkIiwiY2F0ZWdvcnlMYWJlbCIsIkJVSUxUSU4iLCJDVVNUT00iLCJDTEFVREUiLCJDT01NVU5JVFkiLCJNQ1AiLCJBSV9HRU5FUkFURUQiLCJzdGF0dXNMYWJlbCIsIkRSQUZUIiwiUEVORElOR19SRVZJRVciLCJBUFBST1ZFRCIsIlBVQkxJU0hFRCIsIlJFSkVDVEVEIiwiREVQUkVDQVRFRCIsIkFSQ0hJVkVEIiwiZSIsInRhcmdldCIsInZhbHVlIiwibWFwIiwidiIsIm1hcmdpbkxlZnQiLCJmb250U2l6ZSIsIm1hcmdpblRvcCIsInNraWxsIiwiaWQiLCJrZXkiLCJwcmV2ZW50RGVmYXVsdCIsIm5hbWUiLCJlbmFibGVkIiwiZGVzY3JpcHRpb24iLCJjYXRlZ29yeSIsInN0YXR1cyIsInRvTG93ZXJDYXNlIiwidmVyc2lvbiIsIm1ldHJpY3MiLCJ1c2FnZV9jb3VudCIsInJldmlldyIsIk1hdGgiLCJyb3VuZCIsIm92ZXJhbGxfc2NvcmUiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJTa2lsbExpc3QudHN4Il0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICog5oqA6IO95YiX6KGoIOKAlCDmkJzntKIgLyDnrZvpgIkgLyDmjpLluo9cbiAqXG4gKiDnirbmgIHlkIzmraXmnLrliLbvvJpcbiAqIC0gZGVib3VuY2Ug6Ziy5oqW77ya5pCc57Si6L6T5YWlIDMwMG1zIOmYsuaKlu+8jOmYsuatoumrmOmikeivt+axguaJk+S5seeKtuaAgVxuICogLSBBYm9ydENvbnRyb2xsZXIgKyBSZXF1ZXN0IElE77ya6YCa6L+HIHN0b3JlIOWGhee9rueahOWPjOmHjemYsuernuaAge+8jOS7heacgOaWsOivt+axgue7k+aenOabtOaWsCBVSVxuICovXG5cbmltcG9ydCBSZWFjdCwgeyB1c2VFZmZlY3QsIHVzZU1lbW8sIHVzZVJlZiwgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7XG5pbXBvcnQgeyB1c2VTa2lsbHNTdG9yZSB9IGZyb20gJy4uLy4uL3N0b3JlL3NraWxsc1N0b3JlJztcbmltcG9ydCB7IGRlYm91bmNlLCB0cmFja0V2ZW50LCB0eXBlIFNraWxsQ2F0ZWdvcnksIHR5cGUgU2tpbGxTdGF0dXMgfSBmcm9tICcuLi8uLi9saWIvc2tpbGxzQXBpJztcbmltcG9ydCAnLi9Ta2lsbE1hbmFnZW1lbnQuY3NzJztcblxuY29uc3QgQUxMX0NBVEVHT1JJRVM6IFNraWxsQ2F0ZWdvcnlbXSA9IFtcbiAgJ0JVSUxUSU4nLCAnQ1VTVE9NJywgJ0NMQVVERScsICdDT01NVU5JVFknLCAnTUNQJywgJ0FJX0dFTkVSQVRFRCcsXG5dO1xuY29uc3QgQUxMX1NUQVRVU0VTOiBTa2lsbFN0YXR1c1tdID0gW1xuICAnRFJBRlQnLCAnUEVORElOR19SRVZJRVcnLCAnQVBQUk9WRUQnLCAnUFVCTElTSEVEJywgJ1JFSkVDVEVEJywgJ0RFUFJFQ0FURUQnLCAnQVJDSElWRUQnLFxuXTtcblxuY29uc3QgU2tpbGxMaXN0OiBSZWFjdC5GQyA9ICgpID0+IHtcbiAgY29uc3Qge1xuICAgIHNraWxscyxcbiAgICBsb2FkaW5nTGlzdCxcbiAgICBlcnJvcixcbiAgICBzZWxlY3RlZFNraWxsLFxuICAgIHNlYXJjaFNraWxscyxcbiAgICBsb2FkQWxsU2tpbGxzLFxuICAgIHNlbGVjdFNraWxsLFxuICAgIGNsZWFyRXJyb3IsXG4gIH0gPSB1c2VTa2lsbHNTdG9yZSgpO1xuXG4gIGNvbnN0IFtxdWVyeSwgc2V0UXVlcnldID0gdXNlU3RhdGUoJycpO1xuICBjb25zdCBbYWN0aXZlQ2F0ZWdvcmllcywgc2V0QWN0aXZlQ2F0ZWdvcmllc10gPSB1c2VTdGF0ZTxTa2lsbENhdGVnb3J5W10+KFtdKTtcbiAgY29uc3QgW2FjdGl2ZVN0YXR1c2VzLCBzZXRBY3RpdmVTdGF0dXNlc10gPSB1c2VTdGF0ZTxTa2lsbFN0YXR1c1tdPihbXSk7XG4gIGNvbnN0IFtlbmFibGVkT25seSwgc2V0RW5hYmxlZE9ubHldID0gdXNlU3RhdGUoZmFsc2UpO1xuXG4gIC8vIOKUgOKUgOKUgCDmkJzntKLpmLLmipbvvJozMDBtcyDilIDilIDilIBcbiAgLy8g6YCa6L+HIHVzZVJlZiDkv53mjIHlkIzkuIDkuKogZGVib3VuY2VkIOWHveaVsOWunuS+i++8jOmBv+WFjeavj+asoea4suafk+mHjeW7ulxuICBjb25zdCBkZWJvdW5jZWRTZWFyY2hSZWYgPSB1c2VSZWYoXG4gICAgZGVib3VuY2UoKHE6IHN0cmluZywgY2F0czogU2tpbGxDYXRlZ29yeVtdLCBzdHM6IFNraWxsU3RhdHVzW10sIGVuOiBib29sZWFuKSA9PiB7XG4gICAgICBjb25zdCBoYXNGaWx0ZXIgPSBxLnRyaW0oKSB8fCBjYXRzLmxlbmd0aCA+IDAgfHwgc3RzLmxlbmd0aCA+IDAgfHwgZW47XG4gICAgICBpZiAoIWhhc0ZpbHRlcikge1xuICAgICAgICBsb2FkQWxsU2tpbGxzKCk7XG4gICAgICAgIHJldHVybjtcbiAgICAgIH1cbiAgICAgIHNlYXJjaFNraWxscyh7XG4gICAgICAgIHE6IHEudHJpbSgpIHx8IHVuZGVmaW5lZCxcbiAgICAgICAgY2F0ZWdvcmllczogY2F0cy5sZW5ndGggPiAwID8gY2F0cyA6IHVuZGVmaW5lZCxcbiAgICAgICAgc3RhdHVzZXM6IHN0cy5sZW5ndGggPiAwID8gc3RzIDogdW5kZWZpbmVkLFxuICAgICAgICBlbmFibGVkX29ubHk6IGVuIHx8IHVuZGVmaW5lZCxcbiAgICAgICAgcGFnZTogMSxcbiAgICAgICAgcGFnZV9zaXplOiA1MCxcbiAgICAgIH0pO1xuICAgIH0sIDMwMCksXG4gICk7XG5cbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBkZWJvdW5jZWRTZWFyY2hSZWYuY3VycmVudChxdWVyeSwgYWN0aXZlQ2F0ZWdvcmllcywgYWN0aXZlU3RhdHVzZXMsIGVuYWJsZWRPbmx5KTtcbiAgfSwgW3F1ZXJ5LCBhY3RpdmVDYXRlZ29yaWVzLCBhY3RpdmVTdGF0dXNlcywgZW5hYmxlZE9ubHldKTtcblxuICBjb25zdCB0b2dnbGVDYXRlZ29yeSA9IChjYXQ6IFNraWxsQ2F0ZWdvcnkpID0+IHtcbiAgICBzZXRBY3RpdmVDYXRlZ29yaWVzKChwcmV2KSA9PlxuICAgICAgcHJldi5pbmNsdWRlcyhjYXQpID8gcHJldi5maWx0ZXIoKGMpID0+IGMgIT09IGNhdCkgOiBbLi4ucHJldiwgY2F0XSxcbiAgICApO1xuICB9O1xuICBjb25zdCB0b2dnbGVTdGF0dXMgPSAoc3Q6IFNraWxsU3RhdHVzKSA9PiB7XG4gICAgc2V0QWN0aXZlU3RhdHVzZXMoKHByZXYpID0+XG4gICAgICBwcmV2LmluY2x1ZGVzKHN0KSA/IHByZXYuZmlsdGVyKChzKSA9PiBzICE9PSBzdCkgOiBbLi4ucHJldiwgc3RdLFxuICAgICk7XG4gIH07XG5cbiAgY29uc3QgaGFuZGxlU2VsZWN0ID0gKHNraWxsSWQ6IHN0cmluZykgPT4ge1xuICAgIHRyYWNrRXZlbnQoJ3NraWxsX3NlbGVjdCcsIHsgc2tpbGxfaWQ6IHNraWxsSWQgfSk7XG4gICAgc2VsZWN0U2tpbGwoc2tpbGxJZCk7XG4gIH07XG5cbiAgLy8g4pSA4pSA4pSAIOWIhuexu+S4jueKtuaAgeWxleekuuaWh+ahiCDilIDilIDilIBcbiAgY29uc3QgY2F0ZWdvcnlMYWJlbCA9IHVzZU1lbW8oKCkgPT4gKHtcbiAgICBCVUlMVElOOiAn5YaF572uJywgQ1VTVE9NOiAn6Ieq5a6a5LmJJywgQ0xBVURFOiAnQ2xhdWRlJyxcbiAgICBDT01NVU5JVFk6ICfnpL7ljLonLCBNQ1A6ICdNQ1AnLCBBSV9HRU5FUkFURUQ6ICdBSeeUn+aIkCcsXG4gIH0gYXMgY29uc3QpLCBbXSk7XG4gIGNvbnN0IHN0YXR1c0xhYmVsID0gdXNlTWVtbygoKSA9PiAoe1xuICAgIERSQUZUOiAn6I2J56i/JywgUEVORElOR19SRVZJRVc6ICflvoXlrqEnLCBBUFBST1ZFRDogJ+W3sumAmui/hycsXG4gICAgUFVCTElTSEVEOiAn5bey5Y+R5biDJywgUkVKRUNURUQ6ICflt7Lmi5Lnu50nLCBERVBSRUNBVEVEOiAn5bey5byD55SoJywgQVJDSElWRUQ6ICflt7LlvZLmoaMnLFxuICB9IGFzIGNvbnN0KSwgW10pO1xuXG4gIHJldHVybiAoXG4gICAgPD5cbiAgICAgIHsvKiDilIDilIDilIAg5pCc57Si5qCPIOKUgOKUgOKUgCAqL31cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LXNlYXJjaC1iYXJcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJza21nbXQtc2VhcmNoLWlucHV0LXdyYXBcIj5cbiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJza21nbXQtc2VhcmNoLWljb25cIj7wn5SNPC9zcGFuPlxuICAgICAgICAgIDxpbnB1dFxuICAgICAgICAgICAgY2xhc3NOYW1lPVwic2ttZ210LXNlYXJjaC1pbnB1dFwiXG4gICAgICAgICAgICB0eXBlPVwidGV4dFwiXG4gICAgICAgICAgICBwbGFjZWhvbGRlcj1cIuaMieWQjeensOOAgeaPj+i/sOOAgeagh+etvuaQnOe0oi4uLlwiXG4gICAgICAgICAgICB2YWx1ZT17cXVlcnl9XG4gICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFF1ZXJ5KGUudGFyZ2V0LnZhbHVlKX1cbiAgICAgICAgICAgIGFyaWEtbGFiZWw9XCLmkJzntKLmioDog71cIlxuICAgICAgICAgIC8+XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIHsvKiDliIbnsbvnrZvpgIkgKi99XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWZpbHRlci1yb3dcIj5cbiAgICAgICAgICB7QUxMX0NBVEVHT1JJRVMubWFwKChjYXQpID0+IChcbiAgICAgICAgICAgIDxidXR0b25cbiAgICAgICAgICAgICAga2V5PXtjYXR9XG4gICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICBjbGFzc05hbWU9e2Bza21nbXQtZmlsdGVyLWNoaXAgJHthY3RpdmVDYXRlZ29yaWVzLmluY2x1ZGVzKGNhdCkgPyAnYWN0aXZlJyA6ICcnfWB9XG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHRvZ2dsZUNhdGVnb3J5KGNhdCl9XG4gICAgICAgICAgICA+XG4gICAgICAgICAgICAgIHtjYXRlZ29yeUxhYmVsW2NhdF19XG4gICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgey8qIOeKtuaAgeetm+mAiSAqL31cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJza21nbXQtZmlsdGVyLXJvd1wiPlxuICAgICAgICAgIHtBTExfU1RBVFVTRVMubWFwKChzdCkgPT4gKFxuICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICBrZXk9e3N0fVxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgc2ttZ210LWZpbHRlci1jaGlwICR7YWN0aXZlU3RhdHVzZXMuaW5jbHVkZXMoc3QpID8gJ2FjdGl2ZScgOiAnJ31gfVxuICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiB0b2dnbGVTdGF0dXMoc3QpfVxuICAgICAgICAgICAgPlxuICAgICAgICAgICAgICB7c3RhdHVzTGFiZWxbc3RdfVxuICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgKSl9XG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICBjbGFzc05hbWU9e2Bza21nbXQtZmlsdGVyLWNoaXAgJHtlbmFibGVkT25seSA/ICdhY3RpdmUnIDogJyd9YH1cbiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldEVuYWJsZWRPbmx5KCh2KSA9PiAhdil9XG4gICAgICAgICAgICBzdHlsZT17eyBtYXJnaW5MZWZ0OiAnYXV0bycgfX1cbiAgICAgICAgICA+XG4gICAgICAgICAgICDku4XlkK/nlKhcbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L2Rpdj5cblxuICAgICAgey8qIOKUgOKUgOKUgCDplJnor6/mj5DnpLog4pSA4pSA4pSAICovfVxuICAgICAge2Vycm9yICYmIChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJza21nbXQtZXJyb3ItYmFubmVyXCI+XG4gICAgICAgICAgPHNwYW4+e2Vycm9yfTwvc3Bhbj5cbiAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXtjbGVhckVycm9yfSBjbGFzc05hbWU9XCJza21nbXQtYnRuIHNrbWdtdC1idG4tc21cIj7DlzwvYnV0dG9uPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICl9XG5cbiAgICAgIHsvKiDilIDilIDilIAg5YiX6KGoIOKUgOKUgOKUgCAqL31cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWxpc3RcIj5cbiAgICAgICAge2xvYWRpbmdMaXN0ID8gKFxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWxvYWRpbmdcIj5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWxvYWRpbmctc3Bpbm5lclwiIC8+XG4gICAgICAgICAgICA8ZGl2PuWKoOi9veS4rS4uLjwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICApIDogc2tpbGxzLmxlbmd0aCA9PT0gMCA/IChcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNrbWdtdC1kZXRhaWwtZW1wdHlcIj5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWRldGFpbC1lbXB0eS1pY29uXCI+4oiFPC9kaXY+XG4gICAgICAgICAgICA8ZGl2PuaaguaXoOaKgOiDvTwvZGl2PlxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogMTEsIG1hcmdpblRvcDogNCB9fT5cbiAgICAgICAgICAgICAg5L2/55So5Y+z5LiK6KeSXCLmlrDlu7rmioDog71cIuaMiemSruWIm+W7uuesrOS4gOS4quaKgOiDvVxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICkgOiAoXG4gICAgICAgICAgc2tpbGxzLm1hcCgoc2tpbGwpID0+IChcbiAgICAgICAgICAgIDxkaXZcbiAgICAgICAgICAgICAga2V5PXtza2lsbC5pZH1cbiAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgc2ttZ210LWxpc3QtaXRlbSAke3NlbGVjdGVkU2tpbGw/LmlkID09PSBza2lsbC5pZCA/ICdzZWxlY3RlZCcgOiAnJ31gfVxuICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBoYW5kbGVTZWxlY3Qoc2tpbGwuaWQpfVxuICAgICAgICAgICAgICByb2xlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgdGFiSW5kZXg9ezB9XG4gICAgICAgICAgICAgIG9uS2V5RG93bj17KGUpID0+IHtcbiAgICAgICAgICAgICAgICBpZiAoZS5rZXkgPT09ICdFbnRlcicgfHwgZS5rZXkgPT09ICcgJykge1xuICAgICAgICAgICAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xuICAgICAgICAgICAgICAgICAgaGFuZGxlU2VsZWN0KHNraWxsLmlkKTtcbiAgICAgICAgICAgICAgICB9XG4gICAgICAgICAgICAgIH19XG4gICAgICAgICAgICA+XG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2ttZ210LWl0ZW0tdGl0bGVcIj5cbiAgICAgICAgICAgICAgICA8c3Bhbj57c2tpbGwubmFtZX08L3NwYW4+XG4gICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPXtgc2ttZ210LWJhZGdlIHNrbWdtdC1iYWRnZS0ke3NraWxsLmVuYWJsZWQgPyAnZW5hYmxlZCcgOiAnZGlzYWJsZWQnfWB9PlxuICAgICAgICAgICAgICAgICAge3NraWxsLmVuYWJsZWQgPyAn5ZCv55SoJyA6ICflgZznlKgnfVxuICAgICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInNrbWdtdC1pdGVtLWRlc2NcIj5cbiAgICAgICAgICAgICAgICB7c2tpbGwuZGVzY3JpcHRpb24gfHwgJyjml6Dmj4/ov7ApJ31cbiAgICAgICAgICAgICAgPC9wPlxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNrbWdtdC1pdGVtLW1ldGFcIj5cbiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJza21nbXQtY2F0ZWdvcnktdGFnXCI+e2NhdGVnb3J5TGFiZWxbc2tpbGwuY2F0ZWdvcnldfTwvc3Bhbj5cbiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9e2Bza21nbXQtYmFkZ2Ugc2ttZ210LWJhZGdlLSR7c2tpbGwuc3RhdHVzLnRvTG93ZXJDYXNlKCl9YH0+XG4gICAgICAgICAgICAgICAgICB7c3RhdHVzTGFiZWxbc2tpbGwuc3RhdHVzXX1cbiAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgICAgPHNwYW4+dntza2lsbC52ZXJzaW9ufTwvc3Bhbj5cbiAgICAgICAgICAgICAgICB7c2tpbGwubWV0cmljcy51c2FnZV9jb3VudCA+IDAgJiYgKFxuICAgICAgICAgICAgICAgICAgPHNwYW4gdGl0bGU9XCLkvb/nlKjmrKHmlbBcIj7CtyDnlKgge3NraWxsLm1ldHJpY3MudXNhZ2VfY291bnR9IOasoTwvc3Bhbj5cbiAgICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICAgIHtza2lsbC5yZXZpZXcgJiYgKFxuICAgICAgICAgICAgICAgICAgPHNwYW4gdGl0bGU9XCLnu7zlkIjlvpfliIZcIj7CtyDor4Qge01hdGgucm91bmQoc2tpbGwucmV2aWV3Lm92ZXJhbGxfc2NvcmUpfTwvc3Bhbj5cbiAgICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICkpXG4gICAgICAgICl9XG4gICAgICA8L2Rpdj5cbiAgICA8Lz5cbiAgKTtcbn07XG5cbmV4cG9ydCBkZWZhdWx0IFNraWxsTGlzdDtcbiJdLCJmaWxlIjoiQzovVXNlcnMvQWRtaW5pc3RyYXRvci9hZ2VudC95dW5zaHUtdWkvc3JjL2NvbXBvbmVudHMvU2tpbGxzTWdtdC9Ta2lsbExpc3QudHN4In0=

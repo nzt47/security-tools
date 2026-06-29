@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "name": "auto_search_memory",
+      "description": "自动学习：特朗普",
+      "keywords": [
+        "特朗普"
+      ],
+      "tool_name": "search_memory",
+      "priority": 30,
+      "category": "auto_learned",
+      "enabled": false
+    }
+  ]
+}

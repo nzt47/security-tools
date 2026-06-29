@@ -1,0 +1,6 @@
+2026-06-22 20:25:56,232 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-22 20:25:56,235 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-22 20:25:56,236 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-22 20:25:56,246 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-22 20:25:56,259 [    INFO] agent.error_handler: Error handler initialized
+2026-06-22 20:25:56,267 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s

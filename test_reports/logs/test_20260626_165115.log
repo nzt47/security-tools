@@ -1,0 +1,38 @@
+2026-06-26 16:51:15,922 [    INFO] visibility_report: {"trace_id": "5fb0113324804ce0", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:15.922071"}
+2026-06-26 16:51:15,926 [    INFO] visibility_report: {"trace_id": "5fb0113324804ce0", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.08, "overall_status": "pass", "violations_count": 0}
+2026-06-26 16:51:15,937 [    INFO] visibility_report: {"trace_id": "f86d16e026684486", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:15.937376"}
+2026-06-26 16:51:15,941 [    INFO] visibility_report: {"trace_id": "f86d16e026684486", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.04, "overall_status": "fail", "violations_count": 6}
+2026-06-26 16:51:15,972 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_degraded_report_written0\report.md
+2026-06-26 16:51:15,980 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_degraded_report_includes_0\report.md
+2026-06-26 16:51:15,986 [   ERROR] visibility_report: 降级报告输出失败: [WinError 3] 系统找不到指定的路径。: 'Z:\\'
+2026-06-26 16:51:16,021 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_load_missing_file0\nonexistent.yaml，使用默认阈值
+2026-06-26 16:51:16,056 [    INFO] visibility_report: {"trace_id": "63c6c5807989467e", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.056388"}
+2026-06-26 16:51:16,061 [    INFO] visibility_report: {"trace_id": "63c6c5807989467e", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.97, "overall_status": "fail", "violations_count": 4}
+2026-06-26 16:51:16,074 [    INFO] visibility_report: {"trace_id": "a50c18962f20495c", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.074332"}
+2026-06-26 16:51:16,078 [    INFO] visibility_report: {"trace_id": "a50c18962f20495c", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 3.88, "overall_status": "fail", "violations_count": 6}
+2026-06-26 16:51:16,098 [    INFO] visibility_report: {"trace_id": "a492869b6ac14563", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.098608"}
+2026-06-26 16:51:16,103 [    INFO] visibility_report: {"trace_id": "a492869b6ac14563", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.92, "overall_status": "pass", "violations_count": 0}
+2026-06-26 16:51:16,117 [    INFO] visibility_report: {"trace_id": "afe64818b1314667", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.117724"}
+2026-06-26 16:51:16,121 [    INFO] visibility_report: {"trace_id": "afe64818b1314667", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.0, "overall_status": "fail", "violations_count": 6}
+2026-06-26 16:51:16,135 [    INFO] visibility_report: {"trace_id": "cdc83bcf9ead4a79", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.135354"}
+2026-06-26 16:51:16,139 [    INFO] visibility_report: {"trace_id": "cdc83bcf9ead4a79", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.0, "overall_status": "fail", "violations_count": 5}
+2026-06-26 16:51:16,141 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_cli_markdown_output0\out\report.md
+2026-06-26 16:51:16,141 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_cli_markdown_output0\out\report.json
+2026-06-26 16:51:16,141 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 5 项
+2026-06-26 16:51:16,141 [   ERROR] visibility_report:   - 验证过程可见.test_coverage: 实际=0.0%, 阈值=40%
+2026-06-26 16:51:16,141 [   ERROR] visibility_report:   - 验证过程可见.boundary_test_coverage: 实际=0.0%, 阈值=10%
+2026-06-26 16:51:16,141 [   ERROR] visibility_report:   - 验证过程可见.contract_test_count: 实际=1个, 阈值=3个
+2026-06-26 16:51:16,141 [   ERROR] visibility_report:   - 业务价值可见.track_event_coverage: 实际=0.0%, 阈值=50%
+2026-06-26 16:51:16,141 [   ERROR] visibility_report:   - 业务价值可见.dashboard_count: 实际=0个, 阈值=1个
+2026-06-26 16:51:16,155 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_cli_missing_config_uses_d0\nonexistent.yaml，使用默认阈值
+2026-06-26 16:51:16,155 [    INFO] visibility_report: {"trace_id": "664e9b25953940ac", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:51:16.155491"}
+2026-06-26 16:51:16,160 [    INFO] visibility_report: {"trace_id": "664e9b25953940ac", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.61, "overall_status": "fail", "violations_count": 6}
+2026-06-26 16:52:16,435 [ WARNING] visibility_report: 边界覆盖率计算失败: Command '['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', 'C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py', '--json-only']' timed out after 60 seconds
+2026-06-26 16:52:16,731 [    INFO] visibility_report: {"trace_id": "64a019f51c884ddb", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:52:16.730640"}
+2026-06-26 16:53:16,980 [ WARNING] visibility_report: 边界覆盖率计算失败: Command '['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', 'C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py', '--json-only']' timed out after 60 seconds
+2026-06-26 16:53:17,034 [    INFO] visibility_report: {"trace_id": "64a019f51c884ddb", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 60304.33, "overall_status": "pass", "violations_count": 0}
+2026-06-26 16:53:17,035 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_real_project_full_report_0\real_report.md
+2026-06-26 16:53:17,035 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-409\test_real_project_full_report_0\real_report.json
+2026-06-26 16:53:17,056 [    INFO] visibility_report: {"trace_id": "8998ce1b6c0e4e7b", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T16:53:17.056114"}
+2026-06-26 16:54:17,269 [ WARNING] visibility_report: 边界覆盖率计算失败: Command '['C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', 'C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py', '--json-only']' timed out after 60 seconds
+2026-06-26 16:54:17,326 [    INFO] visibility_report: {"trace_id": "8998ce1b6c0e4e7b", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 60270.11, "overall_status": "pass", "violations_count": 0}

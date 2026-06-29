@@ -433,3 +433,163 @@ def register_routes(app, state):
             })
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  三层架构 (Layer 1/2/3) — 分层检索 + 脚本沙箱执行
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/three-layer/summary", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_layer_summary():
+        """三层架构统计摘要 — 供前端可视化
+
+        返回:
+            {ok, summary: {layer1, layer2, layer3, total_skills, total_scripts}}
+        """
+        try:
+            return jsonify({"ok": True, "summary": _svc().get_layer_summary()})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/match", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_match():
+        """Layer 1: 意图匹配 — 在元数据索引上做快速检索
+
+        Body: {intent: str, top_k?: int=5, enabled_only?: bool=true, min_score?: float=0.01}
+
+        Returns:
+            {ok, matches: [...], total_scanned, elapsed_ms, estimated_total_tokens}
+        """
+        try:
+            data = request.get_json() or {}
+            intent = (data.get("intent") or "").strip()
+            if not intent:
+                return jsonify({"ok": False,
+                                "error": "缺少 intent 参数",
+                                "code": "SKILL_VALIDATION_ERROR"}), 400
+            top_k = int(data.get("top_k", 5))
+            enabled_only = bool(data.get("enabled_only", True))
+            min_score = float(data.get("min_score", 0.01))
+            result = _svc().match_skills(
+                intent, top_k=top_k,
+                enabled_only=enabled_only, min_score=min_score,
+            )
+            return jsonify({
+                "ok": True,
+                "matches": [m.to_dict() for m in result.matches],
+                "total_scanned": result.total_scanned,
+                "elapsed_ms": result.elapsed_ms,
+                "estimated_total_tokens": result.estimated_total_tokens,
+            })
+        except ValueError as e:
+            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/instruction", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_instruction(skill_id: str):
+        """Layer 2: 按需加载技能使用说明 (skill.md 正文)
+
+        仅在 Layer 1 命中后才应调用，避免无谓加载。
+        """
+        try:
+            return jsonify({"ok": True,
+                            **_svc().load_skill_instruction(skill_id)})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/scripts", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_list_scripts(skill_id: str):
+        """Layer 3: 列出技能的脚本文件 (元信息，不加载代码)"""
+        try:
+            scripts = _svc().list_skill_scripts(skill_id)
+            return jsonify({"ok": True, "scripts": scripts,
+                            "total": len(scripts)})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/execute", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_execute(skill_id: str):
+        """Layer 3: 沙箱执行技能脚本
+
+        Body: {script_name?: str="main.py", params?: dict, timeout?: float}
+
+        Returns:
+            {ok, success, result?, error?, exit_code, duration_ms, timed_out}
+        """
+        try:
+            data = request.get_json() or {}
+            script_name = data.get("script_name", "main.py")
+            params = data.get("params")
+            timeout = data.get("timeout")
+            if timeout is not None:
+                timeout = float(timeout)
+            result = _svc().execute_skill_script(
+                skill_id, script_name=script_name,
+                params=params, timeout=timeout,
+            )
+            # 仅暴露 result/error/stderr，不暴露 raw stdout
+            return jsonify({
+                "ok": result.success,
+                "success": result.success,
+                "result": result.result,
+                "error": result.error,
+                "exit_code": result.exit_code,
+                "duration_ms": result.duration_ms,
+                "timed_out": result.timed_out,
+                "stderr": result.stderr,
+            })
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/inject", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_inject():
+        """一站式构建 LLM 上下文 (Layer 1 + Layer 2)
+
+        Body: {intent: str, max_tokens?: int=6000, top_k?: int=5,
+               auto_load_instruction?: bool=false, skill_id?: str}
+
+        Returns:
+            {ok, prompt, matches, instruction?, estimated_tokens, layers_used}
+        """
+        try:
+            data = request.get_json() or {}
+            intent = (data.get("intent") or "").strip()
+            if not intent:
+                return jsonify({"ok": False,
+                                "error": "缺少 intent 参数",
+                                "code": "SKILL_VALIDATION_ERROR"}), 400
+            ctx = _svc().build_skill_context(
+                intent,
+                max_tokens=int(data.get("max_tokens", 6000)),
+                top_k=int(data.get("top_k", 5)),
+                auto_load_instruction=bool(data.get("auto_load_instruction", False)),
+                skill_id=data.get("skill_id"),
+            )
+            return jsonify({"ok": True, **ctx})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500

@@ -1,0 +1,23 @@
+2026-06-26 17:42:19,419 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-26 17:42:19,422 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-26 17:42:19,424 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-26 17:42:19,430 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-26 17:42:19,432 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-26 17:42:19,434 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-26 17:42:19,475 [    INFO] contract_framework: {"trace_id": "b4e7093a1adc40f2", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息"}
+2026-06-26 17:42:19,476 [    INFO] contract_framework: {"trace_id": "b4e7093a1adc40f2", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息", "passed": true, "duration_ms": 0.0}
+2026-06-26 17:42:19,476 [    INFO] contract_framework: {"trace_id": "23894c226f1c497d", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误"}
+2026-06-26 17:42:19,476 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=400, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-26 17:42:19,476 [    INFO] contract_framework: {"trace_id": "23894c226f1c497d", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误", "passed": false, "duration_ms": 0.0}
+2026-06-26 17:42:19,476 [    INFO] contract_framework: {"trace_id": "3bf893300ff44749", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断"}
+2026-06-26 17:42:19,476 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=403, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-26 17:42:19,476 [    INFO] contract_framework: {"trace_id": "3bf893300ff44749", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断", "passed": false, "duration_ms": 0.0}
+2026-06-26 17:42:19,482 [    INFO] contract_framework: {"trace_id": "b5c99125814349ed", "module_name": "contract_verification", "action": "verify.start", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组"}
+2026-06-26 17:42:19,483 [ WARNING] contract_framework: 契约验证失败: 契约 'health_api' 违反: 字段 '$.status' 期望=200, 实际=500 [error_code=CONTRACT_VIOLATION]
+2026-06-26 17:42:19,483 [    INFO] contract_framework: {"trace_id": "b5c99125814349ed", "module_name": "contract_verification", "action": "verify.complete", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组", "passed": false, "duration_ms": 1.0}
+2026-06-26 17:42:19,488 [    INFO] contract_framework: {"trace_id": "082748e567e343d3", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标"}
+2026-06-26 17:42:19,488 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'success_count' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-26 17:42:19,489 [    INFO] contract_framework: {"trace_id": "082748e567e343d3", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标", "passed": false, "duration_ms": 1.0}
+2026-06-26 17:42:19,489 [    INFO] contract_framework: {"trace_id": "c85f54fe39414ce5", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录"}
+2026-06-26 17:42:19,489 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'total' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-26 17:42:19,489 [    INFO] contract_framework: {"trace_id": "c85f54fe39414ce5", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录", "passed": false, "duration_ms": 0.0}
