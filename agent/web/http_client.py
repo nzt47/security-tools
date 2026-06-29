@@ -139,6 +139,11 @@ class HttpClient:
             return self._error_result(url, "仅支持 http/https 协议", start)
 
         try:
+            # 过滤与显式参数同名的键，避免 **kwargs 展开冲突
+            _http_reserved = {"method", "url", "params", "data", "json",
+                              "headers", "cookies", "timeout",
+                              "allow_redirects", "stream", "verify"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}
             resp = self._session.request(
                 method=method.upper(),
                 url=url,
@@ -151,7 +156,7 @@ class HttpClient:
                 allow_redirects=allow_redirects,
                 stream=stream,
                 verify=verify,
-                **kwargs,
+                **safe_kwargs,
             )
 
             elapsed = time.time() - start
