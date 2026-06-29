@@ -36,6 +36,21 @@ class ErrorCode:
     VERSION_CONFLICT = "SKILL_VERSION_CONFLICT"
     PARAM_OPTIMIZE_FAILED = "SKILL_PARAM_OPTIMIZE_FAILED"
 
+    # 文件系统 (5xxx) — 三层架构
+    MD_NO_FRONTMATTER = "SKILL_MD_NO_FRONTMATTER"
+    MD_YAML_ERROR = "SKILL_MD_YAML_ERROR"
+    MD_READ_ERROR = "SKILL_MD_READ_ERROR"
+    PATH_TRAVERSAL = "SKILL_PATH_TRAVERSAL"
+    INVALID_SKILL_ID = "SKILL_INVALID_SKILL_ID"
+    INVALID_SCRIPT_NAME = "SKILL_INVALID_SCRIPT_NAME"
+    INVALID_FILENAME = "SKILL_INVALID_FILENAME"
+
+    # 脚本执行 (6xxx) — 第三层
+    SCRIPT_EXEC_TIMEOUT = "SKILL_SCRIPT_EXEC_TIMEOUT"
+    SCRIPT_EXEC_FAILED = "SKILL_SCRIPT_EXEC_FAILED"
+    SCRIPT_EXEC_BLOCKED = "SKILL_SCRIPT_EXEC_BLOCKED"
+    SCRIPT_NOT_FOUND = "SKILL_SCRIPT_NOT_FOUND"
+
 
 class SkillMgmtError(Exception):
     """技能管理系统基础异常
@@ -90,8 +105,11 @@ class SkillAlreadyExistsError(SkillMgmtError):
 class SkillValidationError(SkillMgmtError):
     code = ErrorCode.VALIDATION_ERROR
 
-    def __init__(self, message: str, *, fields: Optional[Dict[str, Any]] = None):
-        super().__init__(message, code=ErrorCode.VALIDATION_ERROR, details=fields or {})
+    def __init__(self, message: str, *,
+                 fields: Optional[Dict[str, Any]] = None,
+                 code: Optional[str] = None):
+        use_code = code or ErrorCode.VALIDATION_ERROR
+        super().__init__(message, code=use_code, details=fields or {})
 
 
 class SkillReviewError(SkillMgmtError):
@@ -108,3 +126,32 @@ class SkillSecurityError(SkillMgmtError):
     def __init__(self, message: str, *, findings: Optional[list] = None):
         super().__init__(message, code=ErrorCode.REVIEW_SECURITY_RISK,
                          details={"findings": findings or []})
+
+
+class SkillFileError(SkillMgmtError):
+    """文件系统层异常 — skill.md 解析/读写/路径越界等"""
+    pass
+
+
+class SkillExecutionError(SkillMgmtError):
+    """脚本执行层异常 — 超时/失败/安全阻止"""
+
+    def __init__(self, message: str, *, code: Optional[str] = None,
+                 skill_id: Optional[str] = None,
+                 script_name: Optional[str] = None,
+                 exit_code: Optional[int] = None,
+                 stderr: Optional[str] = None,
+                 duration_ms: Optional[float] = None):
+        details: Dict[str, Any] = {}
+        if skill_id:
+            details["skill_id"] = skill_id
+        if script_name:
+            details["script_name"] = script_name
+        if exit_code is not None:
+            details["exit_code"] = exit_code
+        if stderr:
+            details["stderr"] = stderr[-500:]  # 截断，避免日志过大
+        if duration_ms is not None:
+            details["duration_ms"] = duration_ms
+        use_code = code or ErrorCode.SCRIPT_EXEC_FAILED
+        super().__init__(message, code=use_code, details=details)
