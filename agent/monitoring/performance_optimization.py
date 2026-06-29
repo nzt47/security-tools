@@ -16,11 +16,15 @@ import queue
 import json
 import hashlib
 import uuid
+import logging
 from typing import Dict, Any, List, Optional, Callable, Tuple
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass
 from enum import Enum
 from agent.monitoring.tracing import get_trace_id, set_trace_id
+
+# 模块级 logger 定义（修复 NameError: name 'logger' is not defined）
+logger = logging.getLogger(__name__)
 
 
 class OptimizationLevel(Enum):

@@ -49,7 +49,7 @@ try:
     _PSUTIL_AVAILABLE = True
 except ImportError:
     _PSUTIL_AVAILABLE = False
-    logger.warning("[ResourceMonitor] psutil 未安装，文件句柄监控降级为不可用")
+    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "psutil", "msg": "[ResourceMonitor] psutil 未安装，文件句柄监控降级为不可用"}, ensure_ascii=False))
 
 # 业务指标收集器（惰性导入避免循环依赖）
 _business_collector = None
@@ -63,7 +63,7 @@ def _get_business_collector():
             from agent.monitoring.business_metrics import get_business_metrics_collector
             _business_collector = get_business_metrics_collector()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 业务指标收集器不可用: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 业务指标收集器不可用: {e}"}, ensure_ascii=False))
     return _business_collector
 
 
@@ -438,7 +438,7 @@ class ResourceMonitor:
                 tracemalloc.start(10)  # 保留 10 帧回溯
             self._tracemalloc_started = True
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] tracemalloc 启动失败，内存监控降级: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "tracemalloc", "msg": f"[ResourceMonitor] tracemalloc 启动失败，内存监控降级: {e}"}, ensure_ascii=False))
             self._tracemalloc_started = False
 
     def _get_config(self, key: str, default: Any) -> Any:
@@ -492,7 +492,7 @@ class ResourceMonitor:
         try:
             snap.memory = self._sample_memory()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 内存采样失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 内存采样失败: {e}"}, ensure_ascii=False))
         mem_ms = (time.time() - t0) * 1000
 
         # 2. 线程池采样
@@ -500,7 +500,7 @@ class ResourceMonitor:
         try:
             snap.thread_pool = self._sample_thread_pool()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 线程池采样失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 线程池采样失败: {e}"}, ensure_ascii=False))
         thread_ms = (time.time() - t1) * 1000
 
         # 3. 文件句柄采样（psutil，可能不可用）
@@ -508,7 +508,7 @@ class ResourceMonitor:
         try:
             snap.file_handles = self._sample_file_handles()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 文件句柄采样失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 文件句柄采样失败: {e}"}, ensure_ascii=False))
         fh_ms = (time.time() - t2) * 1000
 
         # 4. 数据库连接采样（依赖外部 provider 注册）
@@ -516,7 +516,7 @@ class ResourceMonitor:
         try:
             snap.db_connections = self._sample_db_connections()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 数据库连接采样失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 数据库连接采样失败: {e}"}, ensure_ascii=False))
         db_ms = (time.time() - t3) * 1000
 
         snap.sample_duration_ms = (time.time() - start) * 1000
@@ -582,7 +582,7 @@ class ResourceMonitor:
                         "size": int(data.get("size", 0)),
                     }
             except Exception as e:
-                logger.warning(f"[ResourceMonitor] 池 {name} 采样失败: {e}")
+                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "name", "msg": f"[ResourceMonitor] 池 {name} 采样失败: {e}"}, ensure_ascii=False))
         return stat
 
     def _sample_file_handles(self) -> FileHandleStat:
@@ -594,7 +594,7 @@ class ResourceMonitor:
             open_files = proc.open_files()
             return FileHandleStat(open_count=len(open_files), available=True)
         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-            logger.warning(f"[ResourceMonitor] 文件句柄采样受限: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 文件句柄采样受限: {e}"}, ensure_ascii=False))
             return FileHandleStat(available=False)
 
     def _sample_db_connections(self) -> DbConnectionStat:
@@ -610,7 +610,7 @@ class ResourceMonitor:
                         "size": int(data.get("size", 0)),
                     }
             except Exception as e:
-                logger.warning(f"[ResourceMonitor] 数据库连接池 {name} 采样失败: {e}")
+                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "name", "msg": f"[ResourceMonitor] 数据库连接池 {name} 采样失败: {e}"}, ensure_ascii=False))
         return stat
 
     def _report_metrics(self, snap: ResourceSnapshot) -> None:
@@ -653,7 +653,7 @@ class ResourceMonitor:
                 )
         except Exception as e:
             # 埋点失败仅日志记录，不影响主业务流程
-            logger.warning(f"[ResourceMonitor] 指标上报失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 指标上报失败: {e}"}, ensure_ascii=False))
 
     @staticmethod
     def _extract_value(snap: ResourceSnapshot, resource_type: str) -> Optional[float]:
@@ -714,7 +714,7 @@ class ResourceMonitor:
             try:
                 callback(result)
             except Exception as e:
-                logger.warning(f"[ResourceMonitor] 泄漏告警回调执行失败: {e}")
+                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 泄漏告警回调执行失败: {e}"}, ensure_ascii=False))
 
     # ── 持久化实现（跨重启趋势分析） ──
 
@@ -741,7 +741,7 @@ class ResourceMonitor:
             if should_flush:
                 self._flush_persist()
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 持久化缓冲失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 持久化缓冲失败: {e}"}, ensure_ascii=False))
 
     def _flush_persist(self) -> None:
         """将缓冲区快照批量写入磁盘（追加模式）
@@ -772,7 +772,7 @@ class ResourceMonitor:
                 try:
                     lines.append(json.dumps(snap.to_dict(), ensure_ascii=False))
                 except Exception as e:
-                    logger.warning(f"[ResourceMonitor] 快照序列化失败: {e}")
+                    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 快照序列化失败: {e}"}, ensure_ascii=False))
 
             with open(self._persist_path, "a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
@@ -829,7 +829,7 @@ class ResourceMonitor:
                                 self._history.append(snap)
                             loaded += 1
                     except Exception as e:
-                        logger.warning(f"[ResourceMonitor] 历史行解析失败，跳过: {e}")
+                        logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 历史行解析失败，跳过: {e}"}, ensure_ascii=False))
 
             # 加载后触发过期清理（重写文件，仅保留有效数据）
             if loaded > 0:
@@ -895,7 +895,7 @@ class ResourceMonitor:
                     os.remove(tmp_path)
             except Exception:
                 pass
-            logger.warning(f"[ResourceMonitor] 重写持久化文件失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 重写持久化文件失败: {e}"}, ensure_ascii=False))
 
     def _dict_to_snapshot(self, data: Dict[str, Any]) -> Optional[ResourceSnapshot]:
         """从字典重建快照对象（容错：字段缺失返回 None）"""
@@ -927,7 +927,7 @@ class ResourceMonitor:
                 sample_duration_ms=float(data.get("sample_duration_ms", 0)),
             )
         except Exception as e:
-            logger.warning(f"[ResourceMonitor] 快照反序列化失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 快照反序列化失败: {e}"}, ensure_ascii=False))
             return None
 
     # ── 持久化公开 API ──

@@ -25,6 +25,11 @@ from typing import Callable, Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
+
 # 数据文件路径
 DATA_DIR = Path(__file__).parent.parent / "data"
 SCHEDULES_FILE = DATA_DIR / "schedules.json"
@@ -57,10 +62,10 @@ class Scheduler:
             import schedule
             self._schedule = schedule.Scheduler()
         except ImportError:
-            logger.error("[调度系统] schedule 库未安装，使用自定义轮询代替")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "schedule", "msg": "[调度系统] schedule 库未安装，使用自定义轮询代替"}, ensure_ascii=False))
             self._schedule = None
 
-        logger.info("[调度系统] 初始化完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 初始化完成"}, ensure_ascii=False))
 
     # ════════════════════════════════════════════════════════
     #  生命周期
@@ -69,7 +74,7 @@ class Scheduler:
     def start(self):
         """启动后台调度线程"""
         if self._running:
-            logger.warning("[调度系统] 已在运行中")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已在运行中"}, ensure_ascii=False))
             return
 
         self._running = True
@@ -85,14 +90,14 @@ class Scheduler:
             name="schedule-worker",
         )
         self._thread.start()
-        logger.info("[调度系统] 后台线程已启动")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 后台线程已启动"}, ensure_ascii=False))
 
     def stop(self):
         """停止后台调度线程并持久化"""
         self._running = False
         self._stop_event.set()
         self.save_to_file()
-        logger.info("[调度系统] 已停止")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已停止"}, ensure_ascii=False))
 
     # ════════════════════════════════════════════════════════
     #  后台调度循环
@@ -100,7 +105,7 @@ class Scheduler:
 
     def _run_loop(self):
         """后台循环 — 周期性检查并执行到期任务"""
-        logger.info("[调度系统] 调度循环开始")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 调度循环开始"}, ensure_ascii=False))
 
         while self._running and not self._stop_event.is_set():
             try:
@@ -112,7 +117,7 @@ class Scheduler:
                 logger.error("[调度系统] 循环异常: %s", e)
                 time.sleep(5)
 
-        logger.info("[调度系统] 调度循环已退出")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 调度循环已退出"}, ensure_ascii=False))
 
     # ════════════════════════════════════════════════════════
     #  任务管理
@@ -384,7 +389,7 @@ class Scheduler:
     def load_from_file(self):
         """从 data/schedules.json 加载任务并重新注册到 schedule"""
         if not SCHEDULES_FILE.exists():
-            logger.info("[调度系统] 无持久化数据，跳过加载")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 无持久化数据，跳过加载"}, ensure_ascii=False))
             return
 
         try:

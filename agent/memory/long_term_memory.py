@@ -10,6 +10,7 @@
 """
 
 import json
+import uuid
 import time
 import logging
 import threading
@@ -21,6 +22,11 @@ from agent.memory.base import MemoryInterface, MemoryResult, MemoryCapability
 
 logger = logging.getLogger(__name__)
 
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
+
 # ── 业务指标埋点 ──
 try:
     from agent.monitoring.business_metrics import (
@@ -31,7 +37,7 @@ try:
     _BUSINESS_METRICS_AVAILABLE = True
 except ImportError:
     _BUSINESS_METRICS_AVAILABLE = False
-    logger.debug("[LongTermMemory] business_metrics 模块未加载，业务指标埋点禁用")
+    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "long_term_memory", "action": "business_metrics", "msg": "[LongTermMemory] business_metrics 模块未加载，业务指标埋点禁用"}, ensure_ascii=False))
 
 
 @dataclass
@@ -211,7 +217,7 @@ class LongTermMemory:
             True 表示保存成功
         """
         if not key:
-            logger.warning("[LongTermMemory] save 失败: key 为空")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "long_term_memory", "action": "save.key", "msg": "[LongTermMemory] save 失败: key 为空"}, ensure_ascii=False))
             return False
 
         # 序列化内容

@@ -37,6 +37,8 @@ import sys
 import time
 import threading
 import logging
+import json
+import uuid
 import tempfile
 import hashlib
 from typing import Optional, List, Dict, Any, Callable
@@ -45,6 +47,11 @@ from pathlib import Path
 from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 @dataclass
@@ -139,7 +146,7 @@ class ChromaInitCache:
         with self._lock:
             if key in self.cache:
                 self.cache.move_to_end(key)
-                logger.debug(f"[ChromaCache] 命中: {persist_directory}/{collection_name}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "persist_directory.collection_name", "msg": f"[ChromaCache] 命中: {persist_directory}/{collection_name}"}, ensure_ascii=False))
                 return self.cache[key]['config']
         
         return None
@@ -156,7 +163,7 @@ class ChromaInitCache:
             if len(self.cache) >= self.max_size:
                 evicted_key = next(iter(self.cache))
                 del self.cache[evicted_key]
-                logger.debug(f"[ChromaCache] 淘汰: {evicted_key}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "evicted_key", "msg": f"[ChromaCache] 淘汰: {evicted_key}"}, ensure_ascii=False))
             
             self.cache[key] = {
                 'config': config,
@@ -167,14 +174,14 @@ class ChromaInitCache:
         """清空缓存"""
         with self._lock:
             self.cache.clear()
-            logger.debug("[ChromaCache] 已清空")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": "[ChromaCache] 已清空"}, ensure_ascii=False))
     
     def invalidate(self, persist_directory: str = None, collection_name: str = None):
         """使缓存失效"""
         with self._lock:
             if persist_directory is None and collection_name is None:
                 self.cache.clear()
-                logger.debug("[ChromaCache] 已清空")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": "[ChromaCache] 已清空"}, ensure_ascii=False))
                 return
             
             keys_to_remove = []
@@ -245,7 +252,7 @@ class OptimizedChromaDB:
         if enable_cache:
             cached_config = self._cache.get(persist_directory, collection_name)
             if cached_config:
-                logger.info(f"[ChromaDB] 使用缓存配置: {persist_directory}/{collection_name}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "persist_directory.collection_name", "msg": f"[ChromaDB] 使用缓存配置: {persist_directory}/{collection_name}"}, ensure_ascii=False))
                 self._apply_cached_config(cached_config)
                 return
         
@@ -258,7 +265,7 @@ class OptimizedChromaDB:
     def _apply_cached_config(self, config: dict):
         """应用缓存的配置"""
         # 缓存命中时，简化初始化流程
-        logger.info("[ChromaDB] 缓存命中，跳过完整初始化")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": "[ChromaDB] 缓存命中，跳过完整初始化"}, ensure_ascii=False))
         self._initialized = True
     
     def _emit_progress(self, stage: str, progress: float, message: str):
@@ -277,24 +284,24 @@ class OptimizedChromaDB:
             elapsed_ms=elapsed_ms
         )
         
-        logger.debug(f"[ChromaDB] [{progress*100:.0f}%] {stage}: {message}")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "progress.stage", "msg": f"[ChromaDB] [{progress*100:.0f}%] {stage}: {message}"}, ensure_ascii=False))
         
         if self.on_progress:
             try:
                 self.on_progress(progress_obj)
             except Exception as e:
-                logger.warning(f"[ChromaDB] 进度回调异常: {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": f"[ChromaDB] 进度回调异常: {e}"}, ensure_ascii=False))
     
     def _init_async(self):
         """异步初始化"""
-        logger.info("[ChromaDB] 启动异步初始化...")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": "[ChromaDB] 启动异步初始化..."}, ensure_ascii=False))
         
         def do_init():
             try:
                 self._init_sync()
             except Exception as e:
                 self._init_error = e
-                logger.error(f"[ChromaDB] 异步初始化失败: {e}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": f"[ChromaDB] 异步初始化失败: {e}"}, ensure_ascii=False))
             finally:
                 self._initializing = False
         
@@ -357,7 +364,7 @@ class OptimizedChromaDB:
                 is_async=self._initializing
             )
             
-            logger.info(f"[ChromaDB] ✅ 初始化完成: {total_time:.2f}ms")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "total_time", "msg": f"[ChromaDB] ✅ 初始化完成: {total_time:.2f}ms"}, ensure_ascii=False))
             self._emit_progress("complete", 1.0, f"初始化完成 ({total_time:.2f}ms)")
             
         except Exception as e:
@@ -370,7 +377,7 @@ class OptimizedChromaDB:
                 is_async=self._initializing
             )
             
-            logger.error(f"[ChromaDB] ❌ 初始化失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "log", "msg": f"[ChromaDB] ❌ 初始化失败: {e}"}, ensure_ascii=False))
             raise
     
     def _check_environment(self):
@@ -383,7 +390,7 @@ class OptimizedChromaDB:
             import shutil
             total, used, free = shutil.disk_usage(self.persist_directory)
             if free < 100 * 1024 * 1024:  # < 100MB
-                logger.warning(f"[ChromaDB] 磁盘空间不足: {free / 1024 / 1024:.1f}MB 可用")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "free", "msg": f"[ChromaDB] 磁盘空间不足: {free / 1024 / 1024:.1f}MB 可用"}, ensure_ascii=False))
         except Exception:
             pass
     
@@ -401,7 +408,7 @@ class OptimizedChromaDB:
                 )
             )
         except ImportError:
-            logger.warning("[ChromaDB] ChromaDB 未安装，使用模拟实现")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "memory_optimized", "action": "chromadb", "msg": "[ChromaDB] ChromaDB 未安装，使用模拟实现"}, ensure_ascii=False))
             self._client = MockChromaClient()
     
     def _verify_connection(self):

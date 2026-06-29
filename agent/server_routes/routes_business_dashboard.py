@@ -238,7 +238,7 @@ def _get_business_health():
         }
         
     except Exception as e:
-        logger.error(f"获取业务指标健康状态失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取业务指标健康状态失败: {e}"}, ensure_ascii=False))
         return {
             "status": "error",
             "error": str(e),
@@ -282,7 +282,7 @@ def _get_metric_definitions():
         }
         
     except Exception as e:
-        logger.error(f"获取指标定义失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取指标定义失败: {e}"}, ensure_ascii=False))
         return {
             "definitions": [],
             "total": 0,
@@ -425,4 +425,4 @@ def register_routes(app, state):
         result = _get_metric_definitions()
         return jsonify(result)
     
-    logger.info("[Routes] 业务仪表盘端点已注册")
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": "[Routes] 业务仪表盘端点已注册"}, ensure_ascii=False))

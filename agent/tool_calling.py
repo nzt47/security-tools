@@ -5,6 +5,7 @@
 """
 
 import json
+import uuid
 import logging
 import re
 import threading
@@ -25,7 +26,7 @@ def _clean_for_json(obj, _seen=None):
         _seen = set()
     obj_id = id(obj)
     if obj_id in _seen:
-        logger.debug("[_clean_for_json] 检测到循环引用，跳过")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[_clean_for_json] 检测到循环引用，跳过"}, ensure_ascii=False))
         return "<循环引用>"
     _seen.add(obj_id)
 
@@ -69,6 +70,11 @@ def _clean_for_json(obj, _seen=None):
 from agent import tools
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class ToolCallError(Exception):
@@ -179,7 +185,7 @@ class ToolCallingService:
     def abort(self):
         """手动中止当前正在进行的工具调用循环"""
         self._abort_event.set()
-        logger.info("[ToolCalling] ⏹ 手动中止已触发")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⏹ 手动中止已触发"}, ensure_ascii=False))
 
     def chat(self, messages: list[dict], system_prompt: str = "",
              max_tokens: int = 8192, temperature: float = 0.7,
@@ -229,7 +235,7 @@ class ToolCallingService:
             for round_idx in range(self._max_rounds + 1):
                 # 检查手动中止信号
                 if self._abort_event.is_set():
-                    logger.info("[ToolCalling] ⏹ 检测到中止信号，终止工具循环")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⏹ 检测到中止信号，终止工具循环"}, ensure_ascii=False))
                     steps.append({"type": "aborted", "summary": "⏹ 用户手动中止"})
                     if on_step: on_step(steps[-1])
                     result = {"text": self._get_last_assistant_text(working_messages) or "（已中止）", "steps": steps}
@@ -275,7 +281,7 @@ class ToolCallingService:
                 if llm_last_exc is not None:
                     logger.error("LLM 调用失败（第 %d 轮，已重试 3 次）: %s", round_idx, llm_last_exc)
                     if round_idx == 0:
-                        logger.warning("[ToolCalling] 首轮失败，降级为纯文本 LLM 调用")
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "llm", "msg": "[ToolCalling] 首轮失败，降级为纯文本 LLM 调用"}, ensure_ascii=False))
                         try:
                             text = self._current_llm.chat(
                                 messages, system_prompt=system_prompt,
@@ -295,7 +301,7 @@ class ToolCallingService:
                 reasoning = self._extract_reasoning(response)
 
                 if not tool_calls:
-                    logger.info("[ToolCalling] LLM 返回纯文本")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "llm", "msg": "[ToolCalling] LLM 返回纯文本"}, ensure_ascii=False))
 
                     # ⬆ XML 格式工具调用检测（DeepSeek 模型有时输出 XML 格式而非 JSON tool_calls）
                     _xml_tools = self._extract_xml_tool_calls(text_preview) if text_preview else []
@@ -339,7 +345,7 @@ class ToolCallingService:
                                         _nu._get_client()
                                         self._upgrade_llm = _nu
                                         self._model_upgraded = True
-                                        logger.info("[ToolCalling] ⬆ 已切换到更强模型，继续执行")
+                                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "tool_calling", "action": "log", "msg": "[ToolCalling] ⬆ 已切换到更强模型，继续执行"}, ensure_ascii=False))
                                         continue
                                     except Exception as _e:
                                         logger.warning("[UPGRADE] ❌ 失败: %s", _e)

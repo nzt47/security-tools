@@ -507,9 +507,9 @@ class SensitiveDataFilter(logging.Filter):
             for pattern in standalone_patterns:
                 result = pattern.sub('[REDACTED]', result)
             
-            # 处理邮箱地址
+            # 处理邮箱地址（完全脱敏，去除 @ 符号避免泄露邮箱特征）
             email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', re.IGNORECASE)
-            result = email_pattern.sub('[REDACTED]@[REDACTED].com', result)
+            result = email_pattern.sub('[REDACTED]', result)
             
             # 处理字段名=值形式的敏感信息
             field_patterns = [
