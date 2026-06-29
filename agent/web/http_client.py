@@ -243,7 +243,9 @@ class HttpClient:
         import os
         start = time.time()
         try:
-            resp = self._session.get(url, stream=True, timeout=DEFAULT_TIMEOUT, **kwargs)
+            _http_reserved = {"url", "stream", "timeout"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}
+            resp = self._session.get(url, stream=True, timeout=DEFAULT_TIMEOUT, **safe_kwargs)
             resp.raise_for_status()
 
             os.makedirs(os.path.dirname(os.path.abspath(filepath)) or ".", exist_ok=True)
