@@ -71,6 +71,27 @@ class SkillsMgmtService:
     def install(self, source: str, *, force: bool = False) -> Skill:
         return self.creator.install(source, force=force)
 
+    def install_from_zip(self, zip_path: str) -> Dict[str, Any]:
+        """从 zip 技能包安装到三层架构文件仓库
+
+        Args:
+            zip_path: zip 文件路径
+
+        Returns:
+            dict — {skill_id, name, version, scripts_count}
+        """
+        from .skill_manager import SkillManager
+        mgr = SkillManager(repo_path=str(self.file_store.repo_path))
+        skill_id = mgr.install_from_zip(zip_path)
+        meta = self.file_store.get_metadata(skill_id) or {}
+        scripts = self.file_store.list_scripts(skill_id)
+        return {
+            "skill_id": skill_id,
+            "name": meta.get("name", skill_id),
+            "version": meta.get("version", "0.0.0"),
+            "scripts_count": len(scripts),
+        }
+
     # ─── 审核 ───
 
     def review(self, skill_id: str) -> ReviewResult:
