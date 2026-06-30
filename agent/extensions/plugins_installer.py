@@ -31,6 +31,7 @@ Plugin 类接口：
 
 import importlib
 import json
+import uuid
 import logging
 import os
 import sys
@@ -45,6 +46,11 @@ from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 插件存储目录
 _PLUGINS_DIR = Path(__file__).parent.parent / "data" / "extensions_packages" / "plugins"
@@ -93,7 +99,7 @@ class PluginInstaller:
         Returns:
             (成功标志, 消息)
         """
-        logger.info(f"[插件安装器] 安装插件: {source}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "source", "msg": f"[插件安装器] 安装插件: {source}"}, ensure_ascii=False))
         ext_type, location, subpath = self._engine.parse_source(source)
 
         plugins_dir = _PLUGINS_DIR
@@ -192,7 +198,7 @@ class PluginInstaller:
         if deps:
             failed = self._engine.install_dependencies(deps)
             if failed:
-                logger.warning(f"[插件安装器] 部分依赖安装失败: {failed}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "failed", "msg": f"[插件安装器] 部分依赖安装失败: {failed}"}, ensure_ascii=False))
 
         # 记录到扩展存储
         meta = ExtensionMetadata(
@@ -213,7 +219,7 @@ class PluginInstaller:
         meta.installed_at = meta.created_at
         self._store.add(meta)
 
-        logger.info(f"[插件安装器] 插件安装完成: {plugin_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "plugin_id", "msg": f"[插件安装器] 插件安装完成: {plugin_id}"}, ensure_ascii=False))
         return True, f"已安装插件: {plugin_name} (v{meta.version})"
 
     def load_plugin(self, plugin_id: str) -> Tuple[bool, str]:
@@ -268,14 +274,14 @@ class PluginInstaller:
                                     source_id=plugin_id,
                                 )
                                 count += 1
-                            logger.info(f"[插件安装器] 插件 '{plugin_id}' 已注册 {count} 个工具")
+                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 插件 '{plugin_id}' 已注册 {count} 个工具"}, ensure_ascii=False))
                     except Exception as e:
-                        logger.warning(f"[插件安装器] 插件 '{plugin_id}' 工具注册失败: {e}")
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 插件 '{plugin_id}' 工具注册失败: {e}"}, ensure_ascii=False))
 
                 self._store.update_status(
                     ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ENABLED
                 )
-                logger.info(f"[插件安装器] 插件已加载: {plugin_id}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "plugin_id", "msg": f"[插件安装器] 插件已加载: {plugin_id}"}, ensure_ascii=False))
                 return True, f"插件已加载: {plugin_id}"
 
             # 即使没有 Plugin 类，也认为安装成功
@@ -285,7 +291,7 @@ class PluginInstaller:
             return True, f"插件模块已导入: {module_name}"
 
         except Exception as e:
-            logger.error(f"[插件安装器] 插件加载失败: {plugin_id}: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "plugin_id", "msg": f"[插件安装器] 插件加载失败: {plugin_id}: {e}"}, ensure_ascii=False))
             self._store.update_status(
                 ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ERROR
             )
@@ -298,21 +304,21 @@ class PluginInstaller:
             try:
                 instance.on_unload()
             except Exception as e:
-                logger.warning(f"[插件安装器] 插件卸载回调失败: {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 插件卸载回调失败: {e}"}, ensure_ascii=False))
 
         # 注销插件注册的工具
         if self._tool_unregister_fn:
             try:
                 removed = self._tool_unregister_fn(source="plugin", source_id=plugin_id)
                 if removed:
-                    logger.info(f"[插件安装器] 插件 '{plugin_id}' 已注销 {removed} 个工具")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 插件 '{plugin_id}' 已注销 {removed} 个工具"}, ensure_ascii=False))
             except Exception as e:
-                logger.warning(f"[插件安装器] 插件 '{plugin_id}' 工具注销失败: {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 插件 '{plugin_id}' 工具注销失败: {e}"}, ensure_ascii=False))
 
         self._store.update_status(
             ExtensionType.PLUGIN, plugin_id, ExtensionStatus.DISABLED
         )
-        logger.info(f"[插件安装器] 插件已卸载: {plugin_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "plugin_id", "msg": f"[插件安装器] 插件已卸载: {plugin_id}"}, ensure_ascii=False))
         return True, f"插件已卸载: {plugin_id}"
 
     def uninstall_plugin(self, plugin_id: str) -> Tuple[bool, str]:
@@ -333,10 +339,10 @@ class PluginInstaller:
                 else:
                     os.remove(install_path)
             except Exception as e:
-                logger.warning(f"[插件安装器] 删除插件文件失败: {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "log", "msg": f"[插件安装器] 删除插件文件失败: {e}"}, ensure_ascii=False))
 
         self._store.remove(ExtensionType.PLUGIN, plugin_id)
-        logger.info(f"[插件安装器] 插件已完全卸载: {plugin_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "plugins_installer", "action": "plugin_id", "msg": f"[插件安装器] 插件已完全卸载: {plugin_id}"}, ensure_ascii=False))
         return True, f"插件已完全卸载: {plugin_id}"
 
     def toggle_plugin(self, plugin_id: str, enabled: bool = None) -> Tuple[bool, str, bool]:

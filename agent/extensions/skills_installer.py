@@ -12,6 +12,7 @@ Claude Code 技能：存储在 .claude/skills/ 中，是独立的技能包
 """
 
 import json
+import uuid
 import logging
 import os
 import shutil
@@ -26,6 +27,11 @@ from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 应用层技能配置文件（统一使用根目录 data/skills.json 作为唯一数据源）
 _SKILLS_FILE = Path(__file__).parents[2] / "data" / "skills.json"
@@ -51,7 +57,7 @@ class SkillsInstaller:
                     data = json.load(f)
                 return data.get("skills", [])
         except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"[技能安装器] 加载技能文件失败: {e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "log", "msg": f"[技能安装器] 加载技能文件失败: {e}"}, ensure_ascii=False))
         return []
 
     def add_builtin_skill(self, skill_id: str) -> Tuple[bool, str]:
@@ -107,7 +113,7 @@ class SkillsInstaller:
         meta.installed_at = meta.created_at
         self._store.add(meta)
 
-        logger.info(f"[技能安装器] 已安装内置技能: {skill_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "skill_id", "msg": f"[技能安装器] 已安装内置技能: {skill_id}"}, ensure_ascii=False))
         return True, f"已安装技能: {builtin['name']}"
 
     def add_custom_skill(
@@ -159,7 +165,7 @@ class SkillsInstaller:
         meta.installed_at = meta.created_at
         self._store.add(meta)
 
-        logger.info(f"[技能安装器] 已添加自定义技能: {skill_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "skill_id", "msg": f"[技能安装器] 已添加自定义技能: {skill_id}"}, ensure_ascii=False))
         return True, f"已添加技能: {name}"
 
     def remove_skill(self, skill_id: str) -> Tuple[bool, str]:
@@ -174,7 +180,7 @@ class SkillsInstaller:
                 json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
 
             self._store.remove(ExtensionType.SKILL, skill_id)
-            logger.info(f"[技能安装器] 已移除技能: {skill_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "skill_id", "msg": f"[技能安装器] 已移除技能: {skill_id}"}, ensure_ascii=False))
             return True, f"已移除技能: {skill_id}"
 
         return False, f"技能不存在: {skill_id}"
@@ -199,7 +205,7 @@ class SkillsInstaller:
 
                 status = ExtensionStatus.ENABLED if s["enabled"] else ExtensionStatus.DISABLED
                 self._store.update_status(ExtensionType.SKILL, skill_id, status)
-                logger.info(f"[技能安装器] 已切换技能状态: {skill_id} → {status.value}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "skill_id.status.value", "msg": f"[技能安装器] 已切换技能状态: {skill_id} → {status.value}"}, ensure_ascii=False))
                 return True, f"技能 {'已启用' if s['enabled'] else '已禁用'}: {skill_id}", s["enabled"]
 
         return False, f"技能不存在: {skill_id}", False
@@ -216,7 +222,7 @@ class SkillsInstaller:
                     json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
 
                 self._store.update_config(ExtensionType.SKILL, skill_id, params)
-                logger.info(f"[技能安装器] 已更新技能参数: {skill_id}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "skill_id", "msg": f"[技能安装器] 已更新技能参数: {skill_id}"}, ensure_ascii=False))
                 return True, f"已更新技能参数: {skill_id}"
 
         return False, f"技能不存在: {skill_id}"
@@ -295,7 +301,7 @@ class SkillsInstaller:
 
         如果技能文件已存在于磁盘上，自动注册到扩展商店。
         """
-        logger.info(f"[技能安装器] 安装 Claude Code 技能: source={source}, name={skill_name}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "claude.code.source", "msg": f"[技能安装器] 安装 Claude Code 技能: source={source}, name={skill_name}"}, ensure_ascii=False))
 
         ext_type, location, subpath = self._engine.parse_source(source)
         skills_dir = _CLAUDE_SKILLS_DIR
@@ -327,7 +333,7 @@ class SkillsInstaller:
             meta.touch()
             meta.installed_at = meta.created_at
             self._store.add(meta)
-            logger.info(f"[技能安装器] 已注册本地 Claude Code 技能: {target_name}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "claude.code.target_name", "msg": f"[技能安装器] 已注册本地 Claude Code 技能: {target_name}"}, ensure_ascii=False))
             return True, f"已注册 Claude Code 技能: {target_name}（文件已存在）"
 
         success = False
@@ -363,7 +369,7 @@ class SkillsInstaller:
         meta.installed_at = meta.created_at
         self._store.add(meta)
 
-        logger.info(f"[技能安装器] Claude Code 技能安装完成: {target_name}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "claude.code.target_name", "msg": f"[技能安装器] Claude Code 技能安装完成: {target_name}"}, ensure_ascii=False))
         return True, f"已安装 Claude Code 技能: {target_name}"
 
     def uninstall_claude_skill(self, skill_name: str) -> Tuple[bool, str]:
@@ -375,7 +381,7 @@ class SkillsInstaller:
         shutil.rmtree(target_dir, ignore_errors=True)
         self._store.remove(ExtensionType.CLAUDE_SKILL, skill_name)
 
-        logger.info(f"[技能安装器] 已卸载 Claude Code 技能: {skill_name}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "skills_installer", "action": "claude.code.skill_name", "msg": f"[技能安装器] 已卸载 Claude Code 技能: {skill_name}"}, ensure_ascii=False))
         return True, f"已卸载 Claude Code 技能: {skill_name}"
 
     # ── 发现 ──

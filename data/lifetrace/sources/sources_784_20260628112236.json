@@ -1,0 +1,20 @@
+{
+  "node_id": "sources_784_20260628112236",
+  "content": "{\"value\": 7.0, \"unit\": \"%\", \"severity\": \"normal\"}",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "sensor",
+    "sensor_type": "cpu_usage",
+    "interaction_id": 3
+  },
+  "created_at": "2026-06-28T11:22:36.502895",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "sensor",
+    "cpu_usage"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

@@ -1,0 +1,862 @@
+{
+  "start_time": "2026-06-24T20:54:07.441658",
+  "end_time": "2026-06-24T20:54:09.326371",
+  "total_duration_ms": 1884.7130000000002,
+  "summary": {
+    "total": 52,
+    "passed": 52,
+    "failed": 0,
+    "skipped": 0,
+    "pass_rate": 100.0
+  },
+  "by_category": {
+    "功能测试": {
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "total": 30
+    },
+    "集成测试": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8
+    },
+    "边界测试": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5
+    },
+    "安全测试": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6
+    },
+    "性能测试": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    }
+  },
+  "by_module": {
+    "tracing": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8
+    },
+    "prometheus": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    },
+    "metrics": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "total": 2
+    },
+    "health": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    },
+    "alert": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5
+    },
+    "business_metrics": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "total": 2
+    },
+    "chaos": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5
+    },
+    "self_healing": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5
+    },
+    "security": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6
+    },
+    "concurrency": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    },
+    "performance": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    },
+    "boundary": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "total": 4
+    },
+    "integration": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3
+    }
+  },
+  "test_cases": [
+    {
+      "test_id": "TRC-001",
+      "test_name": "基本追踪上下文创建",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 608.2620620727539,
+      "error_message": null,
+      "details": {
+        "trace_id": "61f3c06cef634034",
+        "span_id": "24010d4968c248e6"
+      }
+    },
+    {
+      "test_id": "TRC-002",
+      "test_name": "追踪上下文提取（HTTP头）",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "trace_id": "abc123def4567890abc123def4567890",
+        "span_id": "1234567812345678"
+      }
+    },
+    {
+      "test_id": "TRC-003",
+      "test_name": "追踪上下文注入（生成HTTP头）",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.5214214324951172,
+      "error_message": null,
+      "details": {
+        "headers_count": 2,
+        "traceparent_format": "valid",
+        "trace_id_len": 16
+      }
+    },
+    {
+      "test_id": "TRC-004",
+      "test_name": "跨服务上下文传播",
+      "category": "集成测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "trace_id_a": "521d1862da5d490b",
+        "trace_id_b": "521d1862da5d490b",
+        "propagation_consistent": true
+      }
+    },
+    {
+      "test_id": "TRC-005",
+      "test_name": "OpenTelemetry 可用性检查",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "opentelemetry_available": true
+      }
+    },
+    {
+      "test_id": "TRC-006",
+      "test_name": "追踪装饰器功能",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 1.5218257904052734,
+      "error_message": null,
+      "details": {
+        "return_value": 7
+      }
+    },
+    {
+      "test_id": "TRC-007",
+      "test_name": "错误场景追踪捕获",
+      "category": "边界测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "error_propagated": true
+      }
+    },
+    {
+      "test_id": "TRC-008",
+      "test_name": "嵌套 Span 创建",
+      "category": "功能测试",
+      "module": "tracing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "parent_trace_id": "1b3e92df92424385",
+        "child_trace_id": "1b3e92df92424385"
+      }
+    },
+    {
+      "test_id": "PROM-001",
+      "test_name": "Prometheus 客户端可用性",
+      "category": "功能测试",
+      "module": "prometheus",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "prometheus_client_available": true
+      }
+    },
+    {
+      "test_id": "PROM-002",
+      "test_name": "Prometheus 指标类型创建",
+      "category": "功能测试",
+      "module": "prometheus",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "counter_created": true,
+        "gauge_created": true,
+        "histogram_created": true
+      }
+    },
+    {
+      "test_id": "PROM-003",
+      "test_name": "Prometheus 导出器初始化",
+      "category": "功能测试",
+      "module": "prometheus",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "namespace": "AcceptanceTest",
+        "port": 8000
+      }
+    },
+    {
+      "test_id": "PROM-004",
+      "test_name": "指标收集器功能",
+      "category": "功能测试",
+      "module": "metrics",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "collector_available": true
+      }
+    },
+    {
+      "test_id": "PROM-005",
+      "test_name": "延迟记录功能",
+      "category": "功能测试",
+      "module": "metrics",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "latency_recorded": true,
+        "counter_incremented": true
+      }
+    },
+    {
+      "test_id": "HLT-001",
+      "test_name": "基本健康检查功能",
+      "category": "功能测试",
+      "module": "health",
+      "status": "passed",
+      "duration_ms": 2.0296573638916016,
+      "error_message": null,
+      "details": {
+        "health_assessor_available": true
+      }
+    },
+    {
+      "test_id": "HLT-002",
+      "test_name": "健康评估功能",
+      "category": "功能测试",
+      "module": "health",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "overall_health": 1.0,
+        "dimensions": [
+          "response_time",
+          "error_rate",
+          "tool_success"
+        ]
+      }
+    },
+    {
+      "test_id": "HLT-003",
+      "test_name": "健康历史记录",
+      "category": "功能测试",
+      "module": "health",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "history_count": 3,
+        "latest_overall": 1.0
+      }
+    },
+    {
+      "test_id": "ALT-001",
+      "test_name": "告警规则创建",
+      "category": "功能测试",
+      "module": "alert",
+      "status": "passed",
+      "duration_ms": 2.5436878204345703,
+      "error_message": null,
+      "details": {
+        "rule_name": "test_acceptance_alert",
+        "severity": "warning"
+      }
+    },
+    {
+      "test_id": "ALT-002",
+      "test_name": "告警评估器初始化",
+      "category": "功能测试",
+      "module": "alert",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "evaluator_initialized": true
+      }
+    },
+    {
+      "test_id": "ALT-003",
+      "test_name": "告警规则添加/移除",
+      "category": "功能测试",
+      "module": "alert",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "alerts_before": 1,
+        "alerts_after": 0
+      }
+    },
+    {
+      "test_id": "ALT-004",
+      "test_name": "告警通知器初始化",
+      "category": "功能测试",
+      "module": "alert",
+      "status": "passed",
+      "duration_ms": 178.9836883544922,
+      "error_message": null,
+      "details": {
+        "notifier_available": true
+      }
+    },
+    {
+      "test_id": "ALT-005",
+      "test_name": "告警管理器集成",
+      "category": "集成测试",
+      "module": "alert",
+      "status": "passed",
+      "duration_ms": 30.37405014038086,
+      "error_message": null,
+      "details": {
+        "components_integrated": true,
+        "components": [
+          "evaluator",
+          "notifier",
+          "healer"
+        ],
+        "rules_count": 1,
+        "heal_action_available": true
+      }
+    },
+    {
+      "test_id": "BM-001",
+      "test_name": "业务指标定义",
+      "category": "功能测试",
+      "module": "business_metrics",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "total_metrics": 23,
+        "categories": [
+          "interaction",
+          "knowledge",
+          "task",
+          "extension"
+        ]
+      }
+    },
+    {
+      "test_id": "BM-002",
+      "test_name": "业务指标分类完整性",
+      "category": "功能测试",
+      "module": "business_metrics",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "categories_count": 4,
+        "main_categories_found": [
+          "interaction",
+          "task",
+          "knowledge",
+          "extension"
+        ],
+        "all_categories": [
+          "interaction",
+          "task",
+          "knowledge",
+          "extension"
+        ]
+      }
+    },
+    {
+      "test_id": "CHAOS-001",
+      "test_name": "混沌注入器初始化",
+      "category": "功能测试",
+      "module": "chaos",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "injector_initialized": true
+      }
+    },
+    {
+      "test_id": "CHAOS-002",
+      "test_name": "支持的故障类型",
+      "category": "功能测试",
+      "module": "chaos",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "fault_types": [
+          "network_delay",
+          "network_timeout",
+          "service_unavailable",
+          "memory_pressure",
+          "concurrent_pressure",
+          "cpu_pressure"
+        ],
+        "count": 6
+      }
+    },
+    {
+      "test_id": "CHAOS-003",
+      "test_name": "网络延迟故障注入",
+      "category": "功能测试",
+      "module": "chaos",
+      "status": "passed",
+      "duration_ms": 47.88947105407715,
+      "error_message": null,
+      "details": {
+        "delay_ms": 10,
+        "active_faults_before_clear": 1
+      }
+    },
+    {
+      "test_id": "CHAOS-004",
+      "test_name": "服务不可用故障注入",
+      "category": "功能测试",
+      "module": "chaos",
+      "status": "passed",
+      "duration_ms": 40.50612449645996,
+      "error_message": null,
+      "details": {
+        "service_name": "test-service",
+        "active_faults_count": 1,
+        "service_faults_count": 1
+      }
+    },
+    {
+      "test_id": "CHAOS-005",
+      "test_name": "所有故障清理",
+      "category": "功能测试",
+      "module": "chaos",
+      "status": "passed",
+      "duration_ms": 40.92907905578613,
+      "error_message": null,
+      "details": {
+        "remaining_faults": 0
+      }
+    },
+    {
+      "test_id": "HEAL-001",
+      "test_name": "自愈机制初始化",
+      "category": "功能测试",
+      "module": "self_healing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "healer_initialized": true
+      }
+    },
+    {
+      "test_id": "HEAL-002",
+      "test_name": "支持的自愈动作类型",
+      "category": "功能测试",
+      "module": "self_healing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "heal_actions": [
+          "restart_service",
+          "clear_cache",
+          "restart_component",
+          "scale_up",
+          "scale_down",
+          "recover_circuit_breaker",
+          "clear_memory",
+          "gc_collect",
+          "restart_pod"
+        ],
+        "count": 9
+      }
+    },
+    {
+      "test_id": "HEAL-003",
+      "test_name": "自愈策略配置",
+      "category": "功能测试",
+      "module": "self_healing",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "policies_count": 0,
+        "policy_keys": []
+      }
+    },
+    {
+      "test_id": "HEAL-004",
+      "test_name": "GC 回收自愈动作",
+      "category": "功能测试",
+      "module": "self_healing",
+      "status": "passed",
+      "duration_ms": 24.8868465423584,
+      "error_message": null,
+      "details": {
+        "action": "gc_collect",
+        "status": "success"
+      }
+    },
+    {
+      "test_id": "HEAL-005",
+      "test_name": "缓存清理自愈动作",
+      "category": "功能测试",
+      "module": "self_healing",
+      "status": "passed",
+      "duration_ms": 27.007341384887695,
+      "error_message": null,
+      "details": {
+        "action": "clear_cache",
+        "status": "success"
+      }
+    },
+    {
+      "test_id": "SEC-001",
+      "test_name": "敏感数据过滤器初始化",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 1.9130706787109375,
+      "error_message": null,
+      "details": {
+        "filter_initialized": true
+      }
+    },
+    {
+      "test_id": "SEC-002",
+      "test_name": "字典敏感数据过滤",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "fields_filtered": [
+          "password",
+          "api_key"
+        ],
+        "fields_preserved": [
+          "username",
+          "email",
+          "public_field"
+        ]
+      }
+    },
+    {
+      "test_id": "SEC-003",
+      "test_name": "嵌套字典敏感数据过滤",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "nested_filtered": true
+      }
+    },
+    {
+      "test_id": "SEC-004",
+      "test_name": "字符串敏感数据过滤",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 1.9996166229248047,
+      "error_message": null,
+      "details": {
+        "aws_key_filtered": true,
+        "api_key_filtered": true,
+        "jwt_filtered": true
+      }
+    },
+    {
+      "test_id": "SEC-005",
+      "test_name": "敏感字段判断",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "sensitive_keys_checked": 6,
+        "non_sensitive_keys_checked": 5
+      }
+    },
+    {
+      "test_id": "SEC-006",
+      "test_name": "自定义敏感字段模式",
+      "category": "安全测试",
+      "module": "security",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "custom_pattern_applied": true,
+        "original_value": "my_custom_secret_value",
+        "filtered_value_preview": "my****..."
+      }
+    },
+    {
+      "test_id": "CONC-001",
+      "test_name": "并发请求追踪隔离",
+      "category": "集成测试",
+      "module": "concurrency",
+      "status": "passed",
+      "duration_ms": 14.949560165405273,
+      "error_message": null,
+      "details": {
+        "num_threads": 10,
+        "unique_trace_ids": 10,
+        "errors": 0
+      }
+    },
+    {
+      "test_id": "CONC-002",
+      "test_name": "并发指标记录",
+      "category": "集成测试",
+      "module": "concurrency",
+      "status": "passed",
+      "duration_ms": 4.131555557250977,
+      "error_message": null,
+      "details": {
+        "num_threads": 20,
+        "total_increments": 1000,
+        "errors": 0
+      }
+    },
+    {
+      "test_id": "CONC-003",
+      "test_name": "并发敏感数据过滤",
+      "category": "集成测试",
+      "module": "concurrency",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "num_threads": 15,
+        "errors": 0,
+        "filtered_count": 15
+      }
+    },
+    {
+      "test_id": "PERF-001",
+      "test_name": "追踪功能性能开销",
+      "category": "性能测试",
+      "module": "performance",
+      "status": "passed",
+      "duration_ms": 161.64231300354004,
+      "error_message": null,
+      "details": {
+        "iterations": 1000,
+        "baseline_ms": 0.0,
+        "traced_ms": 161.64,
+        "overhead_per_call_ms": 0.1616,
+        "overhead_percent": 0,
+        "acceptable": true
+      }
+    },
+    {
+      "test_id": "PERF-002",
+      "test_name": "敏感数据过滤性能开销",
+      "category": "性能测试",
+      "module": "performance",
+      "status": "passed",
+      "duration_ms": 47.878265380859375,
+      "error_message": null,
+      "details": {
+        "iterations": 1000,
+        "total_ms": 47.88,
+        "per_call_ms": 0.0479,
+        "acceptable": true
+      }
+    },
+    {
+      "test_id": "PERF-003",
+      "test_name": "上下文提取/注入性能",
+      "category": "性能测试",
+      "module": "performance",
+      "status": "passed",
+      "duration_ms": 380.0230026245117,
+      "error_message": null,
+      "details": {
+        "iterations": 1000,
+        "inject_total_ms": 143.89,
+        "inject_per_call_us": 143.89,
+        "extract_total_ms": 236.13,
+        "extract_per_call_us": 236.13
+      }
+    },
+    {
+      "test_id": "BND-001",
+      "test_name": "空数据边界情况",
+      "category": "边界测试",
+      "module": "boundary",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "empty_handling": true
+      }
+    },
+    {
+      "test_id": "BND-002",
+      "test_name": "大数据量过滤",
+      "category": "边界测试",
+      "module": "boundary",
+      "status": "passed",
+      "duration_ms": 0.1277923583984375,
+      "error_message": null,
+      "details": {
+        "field_count": 110,
+        "sensitive_fields_count": 10,
+        "duration_ms": 0.09
+      }
+    },
+    {
+      "test_id": "BND-003",
+      "test_name": "特殊字符处理",
+      "category": "边界测试",
+      "module": "boundary",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "special_chars_handled": true
+      }
+    },
+    {
+      "test_id": "BND-004",
+      "test_name": "None/Null 值处理",
+      "category": "边界测试",
+      "module": "boundary",
+      "status": "passed",
+      "duration_ms": 0.0,
+      "error_message": null,
+      "details": {
+        "null_values_handled": true
+      }
+    },
+    {
+      "test_id": "INT-001",
+      "test_name": "完整可观测性流水线",
+      "category": "集成测试",
+      "module": "integration",
+      "status": "passed",
+      "duration_ms": 1.0042190551757812,
+      "error_message": null,
+      "details": {
+        "trace_id": "43be013bfadc4c8d",
+        "pipeline_stages": [
+          "tracing",
+          "metrics",
+          "logging"
+        ]
+      }
+    },
+    {
+      "test_id": "INT-002",
+      "test_name": "追踪与指标关联",
+      "category": "集成测试",
+      "module": "integration",
+      "status": "passed",
+      "duration_ms": 56.01811408996582,
+      "error_message": null,
+      "details": {
+        "request_count": 5,
+        "avg_latency_ms": 11.09
+      }
+    },
+    {
+      "test_id": "INT-003",
+      "test_name": "混沌-告警-自愈链路",
+      "category": "集成测试",
+      "module": "integration",
+      "status": "passed",
+      "duration_ms": 173.48504066467285,
+      "error_message": null,
+      "details": {
+        "chaos_injected": true,
+        "heal_executed": true,
+        "chaos_cleared": true,
+        "heal_status": "success"
+      }
+    }
+  ],
+  "conclusion": "PASS"
+}

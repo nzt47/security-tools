@@ -1,0 +1,111 @@
+{
+  "trace_id": "trace_20260624_demo_001",
+  "spans": [
+    {
+      "span_id": "span_init",
+      "service": "agent.core",
+      "operation": "initialize",
+      "start_time": 1719216000.0,
+      "end_time": 1719216000.5,
+      "duration_ms": 500.0,
+      "status": "success",
+      "attributes": {
+        "agent_id": "yunshu-001",
+        "version": "3.0.0"
+      },
+      "events": [
+        {
+          "name": "decision",
+          "timestamp": 1719216000.2,
+          "attributes": {
+            "decision": "开始处理用户请求",
+            "confidence": 0.95
+          }
+        }
+      ]
+    },
+    {
+      "span_id": "span_analyze",
+      "parent_span_id": "span_init",
+      "service": "agent.planner",
+      "operation": "analyze_intent",
+      "start_time": 1719216000.5,
+      "end_time": 1719216001.2,
+      "duration_ms": 700.0,
+      "status": "success",
+      "attributes": {
+        "intent": "查询天气",
+        "confidence": 0.92
+      },
+      "events": [
+        {
+          "name": "plan",
+          "timestamp": 1719216000.8,
+          "attributes": {
+            "plan": "调用天气API获取实时天气"
+          }
+        }
+      ]
+    },
+    {
+      "span_id": "span_tool",
+      "parent_span_id": "span_analyze",
+      "service": "agent.tool",
+      "operation": "call_weather_api",
+      "start_time": 1719216001.2,
+      "end_time": 1719216002.5,
+      "duration_ms": 1300.0,
+      "status": "success",
+      "attributes": {
+        "api_endpoint": "https://api.weather.com/v3/forecast",
+        "city": "北京"
+      },
+      "events": [
+        {
+          "name": "tool_call",
+          "timestamp": 1719216001.5,
+          "attributes": {
+            "tool_name": "weather_api",
+            "params": {
+              "city": "北京"
+            }
+          }
+        },
+        {
+          "name": "reflection",
+          "timestamp": 1719216002.3,
+          "attributes": {
+            "reflection": "API调用成功，获取到天气数据"
+          }
+        }
+      ]
+    },
+    {
+      "span_id": "span_response",
+      "parent_span_id": "span_tool",
+      "service": "agent.core",
+      "operation": "generate_response",
+      "start_time": 1719216002.5,
+      "end_time": 1719216003.0,
+      "duration_ms": 500.0,
+      "status": "success",
+      "attributes": {
+        "response_length": 128
+      },
+      "events": [
+        {
+          "name": "decision",
+          "timestamp": 1719216002.8,
+          "attributes": {
+            "decision": "生成最终响应",
+            "confidence": 0.98
+          }
+        }
+      ]
+    }
+  ],
+  "span_count": 4,
+  "created_at": 1782294694.483723,
+  "updated_at": 1782294694.483723,
+  "duration_ms": 3000.0
+}

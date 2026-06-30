@@ -1,0 +1,196 @@
+2026-06-24 17:51:12,091 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:51:12,094 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:51:12,095 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:51:12,196 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:51:12,212 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:51:12,216 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:51:12,252 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:51:12,259 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:51:12,264 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:51:12,280 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:51:12,280 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:51:12,280 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:51:12,281 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:51:12,282 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:51:12,444 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:51:12,449 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:51:12,449 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:51:12,456 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:51:12,457 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:51:12,457 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:51:12,457 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:51:12,457 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:51:12,524 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,526 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "all", "status": "start"}
+2026-06-24 17:51:12,526 [   ERROR] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "all", "duration_ms": 0, "error": "数据库连接失败", "status": "failed"}
+2026-06-24 17:51:12,526 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_list
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/list
+[REQUEST] 查询参数: {}
+[RESPONSE] 状态码: 500
+[RESPONSE] 耗时: 1.03ms
+2026-06-24 17:51:12,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,537 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "channel_send", "channel_id": "slack_notify", "message_length": 4, "has_params": True, "status": "start"}
+2026-06-24 17:51:12,537 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "channel_send", "channel_id": "slack_notify", "duration_ms": 0, "message": "消息已发送", "status": "success"}
+2026-06-24 17:51:12,537 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_channel_send
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/channels/send
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'channel_id': 'slack_notify', 'message': '测试消息', 'params': {'channel': '#general'}}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+[RESPONSE] 内容: <Response 55 bytes [200 OK]>
+2026-06-24 17:51:12,545 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,545 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "channel_send", "channel_id": "slack_notify", "message_length": 0, "has_params": False, "status": "start"}
+2026-06-24 17:51:12,545 [ WARNING] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "channel_send", "channel_id": "slack_notify", "duration_ms": 0, "error": "缺少 channel_id 或 message", "status": "bad_request"}
+2026-06-24 17:51:12,545 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_channel_send
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/channels/send
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'channel_id': 'slack_notify'}
+[RESPONSE] 状态码: 400
+[RESPONSE] 耗时: 0.00ms
+[RESPONSE] 内容: {"error":"\u7f3a\u5c11 channel_id \u6216 message","ok":false}
+
+2026-06-24 17:51:12,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,555 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "configure", "ext_type": "channel", "ext_id": "slack_notify", "config_keys": ['webhook_url'], "status": "start"}
+2026-06-24 17:51:12,555 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "configure", "ext_type": "channel", "ext_id": "slack_notify", "duration_ms": 0, "message": "配置已更新", "status": "success"}
+2026-06-24 17:51:12,555 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_configure
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/configure
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'type': 'channel', 'id': 'slack_notify', 'config': {'webhook_url': 'https://hooks.slack.com/services/xxx'}}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.00ms
+[RESPONSE] 内容: <Response 55 bytes [200 OK]>
+2026-06-24 17:51:12,563 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,563 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "discover", "status": "start"}
+2026-06-24 17:51:12,564 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "discover", "duration_ms": 1, "status": "success"}
+2026-06-24 17:51:12,564 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_discover
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/discover
+[REQUEST] 查询参数: {}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.28ms
+2026-06-24 17:51:12,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,572 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "", "source": "self_reflection", "has_params": False, "status": "start"}
+2026-06-24 17:51:12,572 [ WARNING] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "", "source": "self_reflection", "duration_ms": 0, "error": "缺少 type 或 source/id", "status": "bad_request"}
+2026-06-24 17:51:12,573 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_install
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/install
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'source': 'self_reflection'}
+[RESPONSE] 状态码: 400
+[RESPONSE] 耗时: 1.00ms
+[RESPONSE] 内容: {"error":"\u7f3a\u5c11 type \u6216 source/id","ok":false}
+
+2026-06-24 17:51:12,580 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,580 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "skill", "source": "self_reflection", "has_params": False, "status": "start"}
+2026-06-24 17:51:12,581 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "skill", "source": "self_reflection", "duration_ms": 1, "message": "安装成功", "status": "success"}
+2026-06-24 17:51:12,581 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_install
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/install
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'type': 'skill', 'source': 'self_reflection'}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.03ms
+[RESPONSE] 内容: <Response 49 bytes [200 OK]>
+2026-06-24 17:51:12,589 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,589 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "skill", "source": "custom_skill", "has_params": True, "status": "start"}
+2026-06-24 17:51:12,589 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "install", "ext_type": "skill", "source": "custom_skill", "duration_ms": 0, "message": "安装成功", "status": "success"}
+2026-06-24 17:51:12,589 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_install
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/install
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'type': 'skill', 'source': 'custom_skill', 'params': {'name': '自定义技能', 'description': '我的技能'}}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+[RESPONSE] 内容: <Response 49 bytes [200 OK]>
+2026-06-24 17:51:12,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,599 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "installed", "status": "start"}
+2026-06-24 17:51:12,599 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "installed", "duration_ms": 0, "skills": 2, "mcp_services": 2, "channels": 1, "plugins": 0, "status": "success"}
+2026-06-24 17:51:12,599 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_installed
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/installed
+[REQUEST] 查询参数: {}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.11ms
+2026-06-24 17:51:12,607 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,607 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "all", "status": "start"}
+2026-06-24 17:51:12,607 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "all", "duration_ms": 0, "result_count": 0, "status": "success"}
+2026-06-24 17:51:12,607 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_list
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/list
+[REQUEST] 查询参数: {}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+2026-06-24 17:51:12,615 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,615 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "skill", "status": "start"}
+2026-06-24 17:51:12,615 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "list", "ext_type": "skill", "duration_ms": 0, "result_count": 0, "status": "success"}
+2026-06-24 17:51:12,615 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_list
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/list
+[REQUEST] 查询参数: {'type': 'skill'}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+2026-06-24 17:51:12,625 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,625 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_recommend", "ext_type": "all", "limit": 5, "status": "start"}
+2026-06-24 17:51:12,625 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_recommend", "ext_type": "all", "limit": 5, "duration_ms": 0, "recommendation_count": 1, "status": "success"}
+2026-06-24 17:51:12,625 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_market_recommend
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/market/recommend
+[REQUEST] 查询参数: {}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+2026-06-24 17:51:12,634 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,634 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_refresh", "status": "start"}
+2026-06-24 17:51:12,635 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_refresh", "duration_ms": 0, "count": 4, "status": "success"}
+2026-06-24 17:51:12,635 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_market_refresh
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/market/refresh
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.60ms
+[RESPONSE] 内容: <Response 22 bytes [200 OK]>
+2026-06-24 17:51:12,642 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,642 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_search", "query": "calculator", "ext_type": "all", "include_github": True, "status": "start"}
+2026-06-24 17:51:12,643 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "market_search", "query": "calculator", "ext_type": "all", "duration_ms": 0, "builtin_count": 1, "community_count": 1, "github_count": 1, "status": "success"}
+2026-06-24 17:51:12,643 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_market_search
+[REQUEST] 方法: GET
+[REQUEST] 路径: /api/extensions/market/search
+[REQUEST] 查询参数: {'q': 'calculator'}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.00ms
+2026-06-24 17:51:12,651 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,652 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "toggle", "ext_type": "mcp", "ext_id": "github", "enabled": True, "status": "start"}
+2026-06-24 17:51:12,652 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "toggle", "ext_type": "mcp", "ext_id": "github", "enabled": True, "duration_ms": 0, "status": "success"}
+2026-06-24 17:51:12,652 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_toggle
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/toggle
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'type': 'mcp', 'id': 'github', 'enabled': True}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 1.03ms
+[RESPONSE] 内容: <Response 58 bytes [200 OK]>
+2026-06-24 17:51:12,660 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:51:12,660 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "uninstall", "ext_type": "skill", "ext_id": "self_reflection", "status": "start"}
+2026-06-24 17:51:12,660 [    INFO] agent.server_routes.extensions: {"trace_id": "None", "module_name": "extensions_api", "action": "uninstall", "ext_type": "skill", "ext_id": "self_reflection", "duration_ms": 0, "message": "卸载成功", "status": "success"}
+2026-06-24 17:51:12,660 [    INFO] agent.server_auth: [REQUEST] 接口: api_extensions_uninstall
+[REQUEST] 方法: POST
+[REQUEST] 路径: /api/extensions/uninstall
+[REQUEST] 查询参数: {}
+[REQUEST] 请求体: {'type': 'skill', 'id': 'self_reflection'}
+[RESPONSE] 状态码: 200
+[RESPONSE] 耗时: 0.00ms
+[RESPONSE] 内容: <Response 49 bytes [200 OK]>

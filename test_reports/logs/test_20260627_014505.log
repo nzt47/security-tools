@@ -1,0 +1,446 @@
+2026-06-27 01:45:05,870 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 01:45:05,874 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 01:45:05,875 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 01:45:05,887 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 01:45:05,901 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:45:05,905 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 01:45:05,937 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 01:45:05,944 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 01:45:05,949 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 01:45:05,966 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 01:45:05,966 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 01:45:05,966 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 01:45:05,968 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 01:45:05,970 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 01:45:06,095 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 01:45:06,100 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 01:45:06,100 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 01:45:06,101 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 01:45:06,102 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:45:06,102 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 01:45:06,102 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 01:45:06,102 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 01:45:06,231 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-27 01:45:06,287 [ WARNING] agent.utils.sensitive_data_filter: [SensitiveFilter] 无效的正则表达式: [invalid
+2026-06-27 01:45:06,460 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid, error=unterminated character set at position 0
+2026-06-27 01:45:06,628 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid_pattern, error=unterminated character set at position 0
+2026-06-27 01:45:06,675 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,679 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,684 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,685 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,685 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-27 01:45:06,685 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-27 01:45:06,688 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,690 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,690 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,695 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,696 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:06,696 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:06,696 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: analyze
+2026-06-27 01:45:06,696 [    INFO] planning.executor: 工具已注册: analyze
+2026-06-27 01:45:06,700 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,702 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,705 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,707 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,709 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,711 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,711 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:06,711 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:06,714 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,716 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,720 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,721 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,727 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,730 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,731 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-27 01:45:06,731 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-27 01:45:06,731 [    INFO] planning.executor: [工具调用] INFO: 开始执行: test_tool
+2026-06-27 01:45:06,731 [    INFO] planning.executor: [工具调用] SUCCESS: test_tool
+2026-06-27 01:45:06,737 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,739 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,739 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: async_tool
+2026-06-27 01:45:06,739 [    INFO] planning.executor: 工具已注册: async_tool
+2026-06-27 01:45:06,739 [    INFO] planning.executor: [工具调用] INFO: 开始执行: async_tool
+2026-06-27 01:45:06,739 [    INFO] planning.executor: [工具调用] SUCCESS: async_tool
+2026-06-27 01:45:06,744 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,747 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,747 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-27 01:45:06,747 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-27 01:45:06,747 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 01:45:06,747 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 01:45:06,747 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-27 01:45:06,747 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-27 01:45:06,748 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 156, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-27 01:45:06,754 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,756 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,762 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,765 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,765 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:06,765 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:06,765 [    INFO] planning.executor: 开始执行计划: plan_09486672
+2026-06-27 01:45:06,765 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 01:45:06,765 [    INFO] planning.executor: [工具调用] SUCCESS: search
+2026-06-27 01:45:06,765 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 01:45:06,769 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:06,771 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:06,771 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-27 01:45:06,772 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-27 01:45:06,772 [    INFO] planning.executor: 开始执行计划: plan_95cd7f35
+2026-06-27 01:45:06,772 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 01:45:06,772 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 01:45:06,772 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-27 01:45:06,772 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-27 01:45:06,772 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-27 01:45:06,773 [ WARNING] agent.error_handler: [async_with_retry] 第 1/3 次尝试失败, 等待 1.04s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:07,827 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 01:45:07,827 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 01:45:07,827 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-27 01:45:07,827 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-27 01:45:07,828 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-27 01:45:07,828 [ WARNING] agent.error_handler: [async_with_retry] 第 2/3 次尝试失败, 等待 2.05s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:09,876 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 01:45:09,877 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 01:45:09,877 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-27 01:45:09,878 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-27 01:45:09,880 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-27 01:45:09,881 [ WARNING] agent.error_handler: [async_with_retry] 第 3/3 次尝试失败, 等待 3.94s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:13,829 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 01:45:13,829 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 01:45:13,829 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-27 01:45:13,829 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-27 01:45:13,830 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-27 01:45:13,830 [   ERROR] agent.error_handler: [async_with_retry] 所有 3 次重试已用尽: func=_do_execute_task
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 758, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 244, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+agent.error_handler.RecoverableError: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:13,832 [ WARNING] agent.error_handler: [warning] unknown: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:13,832 [   ERROR] planning.executor: 任务执行失败: 任务执行失败: 工具执行失败: division by zero
+2026-06-27 01:45:13,832 [   ERROR] planning.executor: 高优先级任务失败: task1
+2026-06-27 01:45:13,833 [    INFO] planning.executor: 计划执行completed: 0.0%
+2026-06-27 01:45:13,839 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:13,841 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:13,841 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step1
+2026-06-27 01:45:13,841 [    INFO] planning.executor: 工具已注册: step1
+2026-06-27 01:45:13,841 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step2
+2026-06-27 01:45:13,842 [    INFO] planning.executor: 工具已注册: step2
+2026-06-27 01:45:13,842 [    INFO] planning.executor: 开始执行计划: plan_a00dbfc6
+2026-06-27 01:45:13,842 [    INFO] planning.executor: [工具调用] INFO: 开始执行: step1
+2026-06-27 01:45:13,842 [    INFO] planning.executor: [工具调用] SUCCESS: step1
+2026-06-27 01:45:13,842 [    INFO] planning.executor: [工具调用] INFO: 开始执行: step2
+2026-06-27 01:45:13,842 [    INFO] planning.executor: [工具调用] SUCCESS: step2
+2026-06-27 01:45:13,842 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 01:45:13,847 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:13,849 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:13,849 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-27 01:45:13,850 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-27 01:45:13,850 [    INFO] planning.executor: 开始执行计划: plan_c754ea86
+2026-06-27 01:45:13,850 [    INFO] planning.executor: [工具调用] INFO: 开始执行: test_tool
+2026-06-27 01:45:13,850 [    INFO] planning.executor: [工具调用] SUCCESS: test_tool
+2026-06-27 01:45:13,850 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 01:45:13,856 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:13,858 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:13,858 [    INFO] planning.executor: 计划已取消: plan_ce795aea
+2026-06-27 01:45:13,861 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:13,863 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:13,894 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,894 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-27 01:45:13,897 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,900 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,900 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-27 01:45:13,900 [    INFO] agent.memory.router: [MemoryRouter] 注销适配器: test_adapter
+2026-06-27 01:45:13,903 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,906 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,906 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-27 01:45:13,909 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,909 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: mem0 = MockMemoryAdapter
+2026-06-27 01:45:13,912 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,914 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,916 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,918 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockMemoryAdapter
+2026-06-27 01:45:13,919 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,924 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,924 [    INFO] agent.memory.router: [MemoryRouter] 更新默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,925 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,929 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,929 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-27 01:45:13,932 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,932 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-27 01:45:13,932 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已移除
+2026-06-27 01:45:13,936 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,936 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-27 01:45:13,941 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,941 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-27 01:45:13,945 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:13,950 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,274 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,296 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,318 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,340 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,348 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,358 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-27 01:45:14,359 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test = MockMemoryAdapter
+2026-06-27 01:45:14,404 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=15 days
+2026-06-27 01:45:14,408 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,409 [    INFO] agent.memory.reviewer: [review_1782495914] [MemoryReviewer] 开始审查记忆库: trace_id=review_1782495914
+2026-06-27 01:45:14,410 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找陈旧记忆失败: error=no such table: long_term_memory
+2026-06-27 01:45:14,410 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找重复记忆失败: error=no such table: long_term_memory
+2026-06-27 01:45:14,410 [    INFO] agent.memory.reviewer: [review_1782495914] [MemoryReviewer] 审查完成: total=0, healthy=0, stale=0, duplicates=0, duration_ms=0.52
+2026-06-27 01:45:14,414 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,416 [    INFO] agent.memory.reviewer: [quick_1782495914] [MemoryReviewer] 快速审查完成: duration_ms=0.00
+2026-06-27 01:45:14,419 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,421 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,424 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,427 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,430 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,433 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,436 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,439 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-27 01:45:14,461 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=50, default_ttl=600s
+2026-06-27 01:45:14,464 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,466 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,471 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,474 [ WARNING] agent.memory.short_term_memory: [ShortTermMemory] save 失败: key 为空
+2026-06-27 01:45:14,475 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,481 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,488 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,493 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,513 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,515 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,524 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,529 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,534 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,540 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 清除任务记忆: task_id=task1, count=2
+2026-06-27 01:45:14,544 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,546 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:14,556 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 已清空所有临时记忆: count=3
+2026-06-27 01:45:14,556 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=0s
+2026-06-27 01:45:15,667 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:16,780 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=3, default_ttl=0s
+2026-06-27 01:45:16,790 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-27 01:45:16,797 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-27 01:45:16,805 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:16,805 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s
+2026-06-27 01:45:16,815 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-27 01:45:16,821 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s
+2026-06-27 01:45:16,855 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:16,857 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:16,858 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:16,858 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:16,864 [ WARNING] planning.react: 思考结果JSON解析失败
+2026-06-27 01:45:16,868 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:16,868 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:16,868 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:16,868 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:16,874 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:16,876 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:16,879 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:16,880 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:16,908 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:16,918 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:16,918 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:16,926 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,926 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,929 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-27 01:45:16,930 [    INFO] planning.react:       ├─ 推理: 使用工具执行
+2026-06-27 01:45:16,930 [    INFO] planning.react:       ├─ 行动类型: tool_call
+2026-06-27 01:45:16,930 [    INFO] planning.react:       ├─ 行动: 简单任务
+2026-06-27 01:45:16,930 [    INFO] planning.react:       ├─ 工具名: <MagicMock name='mock.tool_registry.find_tool()' id='1564612727376'>
+2026-06-27 01:45:16,930 [    INFO] planning.react:       └─ 置信度: 0.70
+2026-06-27 01:45:16,930 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,933 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,934 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-27 01:45:16,934 [    INFO] planning.react:    [行动] 工具名: <MagicMock name='mock.tool_registry.find_tool()' id='1564612727376'>
+2026-06-27 01:45:16,934 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-27 01:45:16,934 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-27 01:45:16,936 [    INFO] planning.react:    [行动] 输出: <MagicMock name='mock.tool_registry.get()()' id='1564612988320'>
+2026-06-27 01:45:16,939 [    INFO] planning.react:       ├─ 输出: <MagicMock name='mock.tool_registry.get()()' id='1564612988320'>
+2026-06-27 01:45:16,939 [    INFO] planning.react:       └─ 观察: 成功: <MagicMock name='mock.tool_registry.get()()' id='1564612988320'>
+2026-06-27 01:45:16,941 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,944 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,947 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,949 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,949 [    INFO] planning.react:       └─ 迭代时长: 30.84ms
+2026-06-27 01:45:16,949 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:16,956 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,959 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,959 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-27 01:45:16,962 [    INFO] planning.react:       ├─ 推理: 任务已处理完成
+2026-06-27 01:45:16,962 [    INFO] planning.react:       ├─ 行动类型: finish
+2026-06-27 01:45:16,962 [    INFO] planning.react:       └─ 行动: (无)
+2026-06-27 01:45:16,962 [    INFO] planning.react:       └─ 置信度: 0.90
+2026-06-27 01:45:16,962 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,965 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,967 [    INFO] planning.react:       ├─ 执行步数: 2
+2026-06-27 01:45:16,967 [    INFO] planning.react:       ├─ 总时长: 54.51ms
+2026-06-27 01:45:16,967 [    INFO] planning.react:       └─ 结果: 已完成任务处理
+2026-06-27 01:45:16,967 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:16,973 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:45:16,975 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:45:16,975 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:45:16,975 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:45:16,975 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:16,986 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:16,986 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:16,990 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,990 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,990 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-27 01:45:16,995 [    INFO] planning.react:       ├─ 推理: 使用工具执行
+2026-06-27 01:45:16,995 [    INFO] planning.react:       ├─ 行动类型: tool_call
+2026-06-27 01:45:16,996 [    INFO] planning.react:       ├─ 行动: 使用search搜索
+2026-06-27 01:45:16,996 [    INFO] planning.react:       ├─ 工具名: search
+2026-06-27 01:45:16,996 [    INFO] planning.react:       └─ 置信度: 0.70
+2026-06-27 01:45:16,996 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:16,997 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:16,997 [    INFO] planning.react:    [行动] 行动类型: 工具调用
+2026-06-27 01:45:16,997 [    INFO] planning.react:    [行动] 工具名: search
+2026-06-27 01:45:16,997 [    INFO] planning.react:    [行动] 参数: {}
+2026-06-27 01:45:16,997 [    INFO] planning.react:    [行动] 开始调用工具...
+2026-06-27 01:45:17,000 [    INFO] planning.react:       ├─ 错误: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required positional a...
+2026-06-27 01:45:17,000 [    INFO] planning.react:       └─ 观察: 失败: 工具执行失败: TestReActLoop.test_run_with_tool_call.<locals>.search_tool() missing 1 required positional argument: 'query'
+2026-06-27 01:45:17,006 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,006 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,011 [    INFO] planning.react:       └─ 迭代时长: 20.50ms
+2026-06-27 01:45:17,011 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:17,017 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,019 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,019 [    INFO] planning.react:    [思考] 使用规则降级思考
+2026-06-27 01:45:17,020 [    INFO] planning.react:       ├─ 推理: 任务已处理完成
+2026-06-27 01:45:17,021 [    INFO] planning.react:       ├─ 行动类型: finish
+2026-06-27 01:45:17,021 [    INFO] planning.react:       └─ 行动: (无)
+2026-06-27 01:45:17,021 [    INFO] planning.react:       └─ 置信度: 0.90
+2026-06-27 01:45:17,021 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,023 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,024 [    INFO] planning.react:       ├─ 执行步数: 2
+2026-06-27 01:45:17,025 [    INFO] planning.react:       ├─ 总时长: 45.57ms
+2026-06-27 01:45:17,025 [    INFO] planning.react:       └─ 结果: 已完成任务处理
+2026-06-27 01:45:17,025 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:17,031 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:17,041 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:17,041 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:17,047 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,047 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,052 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-27 01:45:17,052 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-27 01:45:17,052 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-27 01:45:17,054 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-27 01:45:17,054 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,055 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,055 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-27 01:45:17,057 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-27 01:45:17,057 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-27 01:45:17,057 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,063 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,065 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,067 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,071 [    INFO] planning.react:       └─ 迭代时长: 27.43ms
+2026-06-27 01:45:17,071 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:17,076 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,078 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,080 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-27 01:45:17,080 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-27 01:45:17,080 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-27 01:45:17,080 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-27 01:45:17,080 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,082 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,082 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-27 01:45:17,086 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-27 01:45:17,086 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-27 01:45:17,086 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,088 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,088 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,094 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,098 [    INFO] planning.react:       └─ 迭代时长: 24.98ms
+2026-06-27 01:45:17,098 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 01:45:17,103 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,105 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,107 [    INFO] planning.react:       ├─ 推理: 继续思考
+2026-06-27 01:45:17,107 [    INFO] planning.react:       ├─ 行动类型: response
+2026-06-27 01:45:17,107 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-27 01:45:17,107 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-27 01:45:17,107 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,109 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,109 [    INFO] planning.react:    [行动] 行动类型: 直接响应
+2026-06-27 01:45:17,112 [    INFO] planning.react:       ├─ 输出: 继续
+2026-06-27 01:45:17,114 [    INFO] planning.react:       └─ 观察: 成功: 继续
+2026-06-27 01:45:17,116 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,116 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,119 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 01:45:17,119 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 01:45:17,124 [    INFO] planning.react:       └─ 迭代时长: 21.39ms
+2026-06-27 01:45:17,124 [ WARNING] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:17,132 [ WARNING] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 01:45:17,187 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,195 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-27 01:45:17,197 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,300 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,302 [    INFO] agent.memory_optimized: [ChromaDB] 使用缓存配置: C:\Windows\TEMP\tmp5so5ysgx/test_cache
+2026-06-27 01:45:17,302 [    INFO] agent.memory_optimized: [ChromaDB] 缓存命中，跳过完整初始化
+2026-06-27 01:45:17,306 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,316 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,322 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,332 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-27 01:45:17,336 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,336 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,357 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现
+2026-06-27 01:45:17,363 [    INFO] agent.memory_optimized: [ChromaDB] 启动异步初始化...
+2026-06-27 01:45:17,365 [ WARNING] agent.memory_optimized: [ChromaDB] ChromaDB 未安装，使用模拟实现

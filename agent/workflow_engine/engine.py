@@ -4,6 +4,7 @@
 """
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Optional, Any
 from .registry import RuleRegistry
@@ -16,8 +17,11 @@ class WorkflowResult:
     """工作流执行结果"""
     matched: bool = False
     rule_name: str = ""
+    intent: str = ""
     output: str = ""
     data: Any = None
+    confidence: float = 1.0
+    execution_time_ms: float = 0.0
 
 
 class WorkflowEngine:
@@ -26,19 +30,21 @@ class WorkflowEngine:
     def __init__(self):
         self.registry = RuleRegistry()
 
-    def try_match(self, text: str) -> Optional[WorkflowResult]:
+    def try_match(self, text: str) -> WorkflowResult:
         """尝试匹配并执行规则
 
         Args:
             text: 用户输入文本
 
         Returns:
-            匹配成功返回 WorkflowResult，匹配失败返回 None
+            WorkflowResult — matched=True 表示命中规则，matched=False 表示无匹配
         """
+        t0 = time.time()
         for rule in self.registry.get_enabled():
             try:
                 if rule.match_fn(text):
                     output = rule.execute_fn(text)
+                    elapsed = (time.time() - t0) * 1000
                     try:
                         logger.info("[WorkflowEngine] 规则匹配: %s → %s", rule.name, output[:60])
                     except Exception:
@@ -46,13 +52,16 @@ class WorkflowEngine:
                     return WorkflowResult(
                         matched=True,
                         rule_name=rule.name,
+                        intent=rule.name,
                         output=output,
+                        confidence=1.0,
+                        execution_time_ms=round(elapsed, 2),
                     )
             except Exception as e:
                 logger.warning("[WorkflowEngine] 规则执行异常 %s: %s", rule.name, e)
                 continue
-        return None
+        return WorkflowResult(matched=False)
 
-    def match(self, text: str) -> Optional[WorkflowResult]:
+    def match(self, text: str) -> WorkflowResult:
         """try_match 的别名"""
         return self.try_match(text)

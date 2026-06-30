@@ -1,0 +1,549 @@
+2026-06-25 19:15:03,770 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 19:15:03,776 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 19:15:03,778 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 19:15:03,887 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 19:15:03,907 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 19:15:03,910 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 19:15:03,946 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 19:15:03,947 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:03,947 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 19:15:03,948 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 19:15:03,954 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 19:15:03,959 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 19:15:03,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 19:15:03,979 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 19:15:03,979 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 19:15:03,980 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 19:15:03,981 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 19:15:04,139 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 19:15:04,143 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 19:15:04,143 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 19:15:04,148 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 19:15:04,149 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 19:15:04,166 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,166 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:04,207 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:04,207 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_circuit_breaker_trigger_degrade_recover_flow
+2026-06-25 19:15:04,208 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:04.208619
+2026-06-25 19:15:04,208 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:04,208 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化熔断器配置
+2026-06-25 19:15:04,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,208 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 19:15:04,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,208 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:04,208 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 熔断器初始状态: CLOSED
+2026-06-25 19:15:04,208 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 模拟连续失败触发熔断
+2026-06-25 19:15:04,209 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,209 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:15:04,209 [    INFO] test_circuit_breaker_degrade_flow:   第1次失败记录，当前状态: CLOSED
+2026-06-25 19:15:04,209 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,209 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:15:04,209 [    INFO] test_circuit_breaker_degrade_flow:   第2次失败记录，当前状态: CLOSED
+2026-06-25 19:15:04,209 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,209 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:15:04,209 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,210 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 3, "failures": 3, "failure_rate": 1.0}
+2026-06-25 19:15:04,210 [    INFO] test_circuit_breaker_degrade_flow:   第3次失败记录，当前状态: OPEN
+2026-06-25 19:15:04,210 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,210 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 4, "failures": 4, "failure_rate": 1.0}
+2026-06-25 19:15:04,210 [    INFO] test_circuit_breaker_degrade_flow:   第4次失败记录，当前状态: OPEN
+2026-06-25 19:15:04,210 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:04,210 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:15:04,210 [    INFO] test_circuit_breaker_degrade_flow:   第5次失败记录，当前状态: OPEN
+2026-06-25 19:15:04,210 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已触发熔断，状态: OPEN
+2026-06-25 19:15:04,210 [    INFO] test_circuit_breaker_degrade_flow: [步骤4] 等待 1.0s 后熔断器进入半开状态
+2026-06-25 19:15:05,711 [    INFO] test_circuit_breaker_degrade_flow: [步骤4完成] 等待耗时: 1.500s
+2026-06-25 19:15:05,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,711 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:15:05,711 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器进入半开状态: HALF_OPEN
+2026-06-25 19:15:05,711 [    INFO] test_circuit_breaker_degrade_flow: [步骤5] 模拟成功请求恢复熔断器
+2026-06-25 19:15:05,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,711 [    INFO] test_circuit_breaker_degrade_flow:   第1次成功记录，当前状态: HALF_OPEN
+2026-06-25 19:15:05,711 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow:   第2次成功记录，当前状态: HALF_OPEN
+2026-06-25 19:15:05,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,712 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-25 19:15:05,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow:   第3次成功记录，当前状态: CLOSED
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已恢复关闭状态: CLOSED
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_circuit_breaker_trigger_degrade_recover_flow
+2026-06-25 19:15:05,712 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:05,716 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_multi_level_degrade_order_correctness
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:05.717830
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化优雅降级组件
+2026-06-25 19:15:05,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,717 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 执行多次降级调用
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow:   第1次调用...
+2026-06-25 19:15:05,717 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,717 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #1，抛出异常
+2026-06-25 19:15:05,819 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,819 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,819 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:05,819 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #2，抛出异常
+2026-06-25 19:15:05,920 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,920 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:05,920 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:05,920 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #3，抛出异常
+2026-06-25 19:15:06,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,021 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,021 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #4，抛出异常
+2026-06-25 19:15:06,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,021 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,021 [    INFO] test_circuit_breaker_degrade_flow:   第1次调用完成，耗时: 0.303s，结果: fallback_result
+2026-06-25 19:15:06,021 [    INFO] test_circuit_breaker_degrade_flow:   第2次调用...
+2026-06-25 19:15:06,021 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,021 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #5，抛出异常
+2026-06-25 19:15:06,123 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,123 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,123 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,123 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #6，抛出异常
+2026-06-25 19:15:06,224 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,224 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,224 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,224 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #7，抛出异常
+2026-06-25 19:15:06,325 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,325 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,325 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,325 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #8，抛出异常
+2026-06-25 19:15:06,325 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,325 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,325 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,326 [    INFO] test_circuit_breaker_degrade_flow:   第2次调用完成，耗时: 0.305s，结果: fallback_result
+2026-06-25 19:15:06,326 [    INFO] test_circuit_breaker_degrade_flow:   第3次调用...
+2026-06-25 19:15:06,326 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,326 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #9，抛出异常
+2026-06-25 19:15:06,427 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,427 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,427 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,427 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #10，抛出异常
+2026-06-25 19:15:06,528 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,528 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,528 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,528 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #11，抛出异常
+2026-06-25 19:15:06,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,629 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,629 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #12，抛出异常
+2026-06-25 19:15:06,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,629 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,629 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,629 [    INFO] test_circuit_breaker_degrade_flow:   第3次调用完成，耗时: 0.303s，结果: fallback_result
+2026-06-25 19:15:06,629 [    INFO] test_circuit_breaker_degrade_flow:   第4次调用...
+2026-06-25 19:15:06,630 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,630 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #13，抛出异常
+2026-06-25 19:15:06,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,730 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,730 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,730 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #14，抛出异常
+2026-06-25 19:15:06,831 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,831 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,831 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,831 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #15，抛出异常
+2026-06-25 19:15:06,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,932 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,932 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #16，抛出异常
+2026-06-25 19:15:06,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,932 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,933 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:06,933 [    INFO] test_circuit_breaker_degrade_flow:   第4次调用完成，耗时: 0.304s，结果: fallback_result
+2026-06-25 19:15:06,933 [    INFO] test_circuit_breaker_degrade_flow:   第5次调用...
+2026-06-25 19:15:06,933 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:06,933 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #17，抛出异常
+2026-06-25 19:15:07,034 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,034 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,034 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,034 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #18，抛出异常
+2026-06-25 19:15:07,135 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,135 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,135 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,135 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #19，抛出异常
+2026-06-25 19:15:07,236 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,237 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,238 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,238 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #20，抛出异常
+2026-06-25 19:15:07,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,238 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,239 [    INFO] test_circuit_breaker_degrade_flow:   第5次调用完成，耗时: 0.306s，结果: fallback_result
+2026-06-25 19:15:07,239 [    INFO] test_circuit_breaker_degrade_flow:   第6次调用...
+2026-06-25 19:15:07,239 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,239 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #21，抛出异常
+2026-06-25 19:15:07,340 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,340 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,340 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,340 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #22，抛出异常
+2026-06-25 19:15:07,441 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,441 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,441 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,441 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #23，抛出异常
+2026-06-25 19:15:07,542 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,542 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,542 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,542 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #24，抛出异常
+2026-06-25 19:15:07,542 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,542 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,542 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,543 [    INFO] test_circuit_breaker_degrade_flow:   第6次调用完成，耗时: 0.304s，结果: fallback_result
+2026-06-25 19:15:07,543 [    INFO] test_circuit_breaker_degrade_flow:   第7次调用...
+2026-06-25 19:15:07,543 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,543 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #25，抛出异常
+2026-06-25 19:15:07,645 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,645 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,645 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,645 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #26，抛出异常
+2026-06-25 19:15:07,746 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,746 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,746 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,746 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #27，抛出异常
+2026-06-25 19:15:07,847 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,847 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,847 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,847 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #28，抛出异常
+2026-06-25 19:15:07,847 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,847 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,847 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,847 [    INFO] test_circuit_breaker_degrade_flow:   第7次调用完成，耗时: 0.304s，结果: fallback_result
+2026-06-25 19:15:07,848 [    INFO] test_circuit_breaker_degrade_flow:   第8次调用...
+2026-06-25 19:15:07,848 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,848 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #29，抛出异常
+2026-06-25 19:15:07,949 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,949 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:07,949 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:07,949 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #30，抛出异常
+2026-06-25 19:15:08,050 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,050 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,050 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,050 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #31，抛出异常
+2026-06-25 19:15:08,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,151 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,151 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #32，抛出异常
+2026-06-25 19:15:08,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,151 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,151 [    INFO] test_circuit_breaker_degrade_flow:   第8次调用完成，耗时: 0.304s，结果: fallback_result
+2026-06-25 19:15:08,151 [    INFO] test_circuit_breaker_degrade_flow:   第9次调用...
+2026-06-25 19:15:08,152 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,152 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #33，抛出异常
+2026-06-25 19:15:08,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,253 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,253 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #34，抛出异常
+2026-06-25 19:15:08,354 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,355 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,355 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,355 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #35，抛出异常
+2026-06-25 19:15:08,456 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,456 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,456 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,457 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #36，抛出异常
+2026-06-25 19:15:08,457 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,457 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,457 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,457 [    INFO] test_circuit_breaker_degrade_flow:   第9次调用完成，耗时: 0.305s，结果: fallback_result
+2026-06-25 19:15:08,457 [    INFO] test_circuit_breaker_degrade_flow:   第10次调用...
+2026-06-25 19:15:08,457 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,457 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #37，抛出异常
+2026-06-25 19:15:08,558 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,558 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,558 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,558 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #38，抛出异常
+2026-06-25 19:15:08,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,658 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,658 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,658 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #39，抛出异常
+2026-06-25 19:15:08,759 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,759 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,759 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,759 [    INFO] test_circuit_breaker_degrade_flow:   函数调用 #40，抛出异常
+2026-06-25 19:15:08,759 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,759 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,759 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow:   第10次调用完成，耗时: 0.303s，结果: fallback_result
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 验证降级指标
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow:   retry_count: 30
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow:   total_degrades: 40
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 重试次数 >= 3
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 降级次数 > 0
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 返回降级结果
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_multi_level_degrade_order_correctness
+2026-06-25 19:15:08,760 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_degraded_function_availability
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:08.765414
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化优雅降级组件
+2026-06-25 19:15:08,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,765 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 定义两种场景：正常函数和失败函数
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 测试正常函数
+2026-06-25 19:15:08,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow:   函数正常返回
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow:   正常函数结果: source=primary
+2026-06-25 19:15:08,765 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 正常函数返回真实结果
+2026-06-25 19:15:08,766 [    INFO] test_circuit_breaker_degrade_flow: [步骤4] 测试失败函数的降级
+2026-06-25 19:15:08,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,767 [    INFO] test_circuit_breaker_degrade_flow:   函数调用失败
+2026-06-25 19:15:08,867 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,867 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,867 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,867 [    INFO] test_circuit_breaker_degrade_flow:   函数调用失败
+2026-06-25 19:15:08,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:08,968 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:08,968 [    INFO] test_circuit_breaker_degrade_flow:   函数调用失败
+2026-06-25 19:15:09,069 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,069 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,069 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:09,069 [    INFO] test_circuit_breaker_degrade_flow:   函数调用失败
+2026-06-25 19:15:09,069 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,069 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,069 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Always failing"}
+2026-06-25 19:15:09,069 [    INFO] test_circuit_breaker_degrade_flow:   失败函数结果: source=cache
+2026-06-25 19:15:09,069 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 失败函数返回降级结果
+2026-06-25 19:15:09,069 [    INFO] test_circuit_breaker_degrade_flow: [步骤5] 验证降级指标
+2026-06-25 19:15:09,070 [    INFO] test_circuit_breaker_degrade_flow:   total_degrades: 4
+2026-06-25 19:15:09,070 [    INFO] test_circuit_breaker_degrade_flow:   retry_count: 3
+2026-06-25 19:15:09,070 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 降级计数正确
+2026-06-25 19:15:09,070 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:09,070 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_degraded_function_availability
+2026-06-25 19:15:09,071 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:09,074 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:09,075 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_circuit_breaker_recovery_self_verification
+2026-06-25 19:15:09,075 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:09.075119
+2026-06-25 19:15:09,075 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:09,075 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化熔断器
+2026-06-25 19:15:09,075 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,075 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 19:15:09,075 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 触发熔断
+2026-06-25 19:15:09,075 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,075 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:15:09,076 [    INFO] test_circuit_breaker_degrade_flow:   第1次失败，状态: CLOSED
+2026-06-25 19:15:09,076 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,076 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:15:09,076 [    INFO] test_circuit_breaker_degrade_flow:   第2次失败，状态: CLOSED
+2026-06-25 19:15:09,076 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,076 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:15:09,076 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:09,076 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 3, "failures": 3, "failure_rate": 1.0}
+2026-06-25 19:15:09,076 [    INFO] test_circuit_breaker_degrade_flow:   第3次失败，状态: OPEN
+2026-06-25 19:15:09,076 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已打开
+2026-06-25 19:15:09,077 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 等待 1.0s 超时
+2026-06-25 19:15:10,577 [    INFO] test_circuit_breaker_degrade_flow: [步骤3完成] 等待耗时: 1.500s
+2026-06-25 19:15:10,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,577 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:15:10,577 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器进入半开状态
+2026-06-25 19:15:10,578 [    INFO] test_circuit_breaker_degrade_flow: [步骤4] 验证恢复
+2026-06-25 19:15:10,578 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,578 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,578 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-25 19:15:10,579 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已恢复关闭状态
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: [步骤5] 检查状态指标
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow:   state: closed
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow:   successes: 2
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 状态指标验证通过
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_circuit_breaker_recovery_self_verification
+2026-06-25 19:15:10,579 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_degrade_status_monitoring_alert
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:10.587774
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化优雅降级组件
+2026-06-25 19:15:10,587 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,587 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:10,587 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 持续触发降级
+2026-06-25 19:15:10,588 [    INFO] test_circuit_breaker_degrade_flow:   第1次调用...
+2026-06-25 19:15:10,588 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,689 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,689 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:10,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,789 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:10,890 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,890 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,890 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:10,890 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,890 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,890 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:10,890 [    INFO] test_circuit_breaker_degrade_flow:   第1次调用完成，耗时: 0.302s
+2026-06-25 19:15:10,890 [    INFO] test_circuit_breaker_degrade_flow:   第2次调用...
+2026-06-25 19:15:10,890 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,992 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,992 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:10,992 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,093 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,093 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,093 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,194 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,194 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,194 [    INFO] test_circuit_breaker_degrade_flow:   第2次调用完成，耗时: 0.304s
+2026-06-25 19:15:11,194 [    INFO] test_circuit_breaker_degrade_flow:   第3次调用...
+2026-06-25 19:15:11,194 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,296 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,296 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,296 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,397 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,398 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,498 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,498 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,498 [    INFO] test_circuit_breaker_degrade_flow:   第3次调用完成，耗时: 0.304s
+2026-06-25 19:15:11,498 [    INFO] test_circuit_breaker_degrade_flow:   第4次调用...
+2026-06-25 19:15:11,498 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,600 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,701 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,701 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,801 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,801 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,801 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,801 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,801 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,803 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:11,803 [    INFO] test_circuit_breaker_degrade_flow:   第4次调用完成，耗时: 0.305s
+2026-06-25 19:15:11,803 [    INFO] test_circuit_breaker_degrade_flow:   第5次调用...
+2026-06-25 19:15:11,803 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,904 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,905 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:11,905 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,005 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,005 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,005 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,107 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,107 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,107 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,107 [    INFO] test_circuit_breaker_degrade_flow:   第5次调用完成，耗时: 0.303s
+2026-06-25 19:15:12,107 [    INFO] test_circuit_breaker_degrade_flow:   第6次调用...
+2026-06-25 19:15:12,108 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,208 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,309 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,309 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,309 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,410 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,410 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,410 [    INFO] test_circuit_breaker_degrade_flow:   第6次调用完成，耗时: 0.302s
+2026-06-25 19:15:12,410 [    INFO] test_circuit_breaker_degrade_flow:   第7次调用...
+2026-06-25 19:15:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,511 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,612 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,612 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,612 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,712 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,712 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,712 [    INFO] test_circuit_breaker_degrade_flow:   第7次调用完成，耗时: 0.303s
+2026-06-25 19:15:12,712 [    INFO] test_circuit_breaker_degrade_flow:   第8次调用...
+2026-06-25 19:15:12,712 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,814 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,814 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,814 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:12,915 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,915 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:12,915 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:13,016 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,016 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,016 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:13,016 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,016 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,016 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Continuous failure"}
+2026-06-25 19:15:13,016 [    INFO] test_circuit_breaker_degrade_flow:   第8次调用完成，耗时: 0.304s
+2026-06-25 19:15:13,016 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 检查降级指标
+2026-06-25 19:15:13,016 [    INFO] test_circuit_breaker_degrade_flow:   total_degrades: 32
+2026-06-25 19:15:13,016 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 降级次数 >= 8
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow: [步骤4] 检查监控状态
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow:   module_states keys: ['critic']
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow:   critic error_count: 32
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow:   critic consecutive_errors: 32
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 监控告警状态验证通过
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_degrade_status_monitoring_alert
+2026-06-25 19:15:13,017 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:13,021 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:13,021 [    INFO] test_circuit_breaker_degrade_flow: [测试开始] test_manual_intervention_circuit_degrade_state
+2026-06-25 19:15:13,021 [    INFO] test_circuit_breaker_degrade_flow: [时间戳] 2026-06-25T19:15:13.021823
+2026-06-25 19:15:13,021 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:13,022 [    INFO] test_circuit_breaker_degrade_flow: [步骤1] 初始化熔断器和降级组件
+2026-06-25 19:15:13,022 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,022 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 60.0, "state": "closed"}
+2026-06-25 19:15:13,022 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,022 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:15:13,022 [    INFO] test_circuit_breaker_degrade_flow: [步骤2] 触发熔断
+2026-06-25 19:15:13,022 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,022 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:15:13,022 [    INFO] test_circuit_breaker_degrade_flow:   第1次失败，状态: CLOSED
+2026-06-25 19:15:13,022 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,023 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:15:13,023 [    INFO] test_circuit_breaker_degrade_flow:   第2次失败，状态: CLOSED
+2026-06-25 19:15:13,023 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,023 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:15:13,023 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,023 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 3, "failures": 3, "failure_rate": 1.0}
+2026-06-25 19:15:13,023 [    INFO] test_circuit_breaker_degrade_flow:   第3次失败，状态: OPEN
+2026-06-25 19:15:13,023 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已打开
+2026-06-25 19:15:13,023 [    INFO] test_circuit_breaker_degrade_flow: [步骤3] 手动重置熔断器
+2026-06-25 19:15:13,023 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,024 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "reset", "duration_ms": 0, "name": "default"}
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器已重置为关闭状态
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [步骤4] 验证重置后的状态
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow:   total_requests: 0
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow:   failures: 0
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 熔断器指标已清零
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [步骤5] 重置降级组件
+2026-06-25 19:15:13,024 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,024 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "reset", "duration_ms": 0}
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow:   total_degrades after reset: 0
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 降级指标已清零
+2026-06-25 19:15:13,024 [    INFO] test_circuit_breaker_degrade_flow: [步骤6] 验证功能恢复
+2026-06-25 19:15:13,025 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:15:13,025 [    INFO] test_circuit_breaker_degrade_flow: [断言通过] 功能已恢复正常
+2026-06-25 19:15:13,025 [    INFO] test_circuit_breaker_degrade_flow: ============================================================
+2026-06-25 19:15:13,025 [    INFO] test_circuit_breaker_degrade_flow: [测试完成] test_manual_intervention_circuit_degrade_state
+2026-06-25 19:15:13,025 [    INFO] test_circuit_breaker_degrade_flow: ============================================================

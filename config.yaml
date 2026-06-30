@@ -322,7 +322,7 @@ visibility_thresholds:
     # 实测 26.5%（2026-06-28），阶段 1 提升到 26（略低于实测值确保 CI 通过）
     # 阶段 1 目标：50%（需补齐 600+ logger 调用为 JSON 格式）
     # 阶段 2 目标：70% | 最终目标：80%
-    structured_log_coverage: 26
+    structured_log_coverage: 55
     # 链路追踪覆盖率（使用 @trace_route 的路由占比）
     # 实测 16.7%（2026-06-28），阶段 1 提升到 16（略低于实测值确保 CI 通过）
     # 阶段 1 目标：50%（需为 72 个路由添加 @trace_route 装饰器）
@@ -351,14 +351,14 @@ visibility_thresholds:
     # 异常处理覆盖率（含 try/except/raise 的核心模块占比）
     # 实测 71.6%（2026-06-28），阶段 1 已达标
     # 阶段 1 目标：70%（已达成）| 阶段 2 目标：80% | 最终目标：90%
-    exception_coverage: 70
+    exception_coverage: 80
 
   # 第三层：业务价值可见
   business:
     # 埋点覆盖率（含 trackEvent/track( 调用的核心模块占比）
     # 实测 7.4%（2026-06-28），不在本阶段收敛范围，保持阶段 0 阈值
     # 阶段 2 计划提升到 50%
-    track_event_coverage: 7
+    track_event_coverage: 50
     # 监控看板数量
     # 实测 9 个，达标
     dashboard_count: 3
@@ -377,4 +377,85 @@ visibility_thresholds:
     # 变更影响分析报告覆盖率
     # 实测 100.0%，达标
     impact_analysis_coverage: 80
+
+# ═══════════════════════════════════════════════════════════════
+#  综合技能管理系统配置 (Skills Management)
+#  灵感来源：Claude Skills / Code Skills / Trae / OpenClaw / Hermes
+#  模块入口：agent/skills_mgmt/service.py
+# ═══════════════════════════════════════════════════════════════
+skills_mgmt:
+  # 全局开关 - 关闭后所有 skills-mgmt API 返回 503
+  enabled: true
+  # 技能持久化存储路径（JSON 文件，原子写入）
+  store_path: ./data/skills_mgmt.json
+  # 是否同步到旧版 data/skills.json（向后兼容 routes_skills.py）
+  sync_legacy: true
+
+  # 审核阈值（0-100）
+  review_thresholds:
+    # 重复度上限：超过此值则拒绝（Jaccard 相似度 * 100）
+    duplicate_max: 60
+    # 安全分下限：低于此值则拒绝（安全扫描得分）
+    security_min: 70
+    # 质量分下限：低于此值则要求人工复核
+    quality_min: 50
+    # 综合分下限：低于此值则拒绝
+    overall_min: 60
+
+  # 安装器配置
+  installer:
+    # HTTP 下载超时（秒）
+    http_timeout: 30
+    # 最大文件大小（MB），防止下载超大文件
+    max_file_size_mb: 10
+    # 允许的安装源协议
+    allowed_schemes:
+      - github
+      - url
+      - local
+      - registry
+
+  # AI 辅助生成配置
+  ai_assist:
+    enabled: true
+    # 模板兜底模式（LLM 不可用时使用模板生成）
+    template_fallback: true
+
+# ═══════════════════════════════════════════════════════════════
+#  智能工作流学习系统配置 (Workflow Learning)
+#  从大模型成功交互中学习方法，自动生成可执行工作流
+#  模块入口：agent/workflow_learning/service.py
+# ═══════════════════════════════════════════════════════════════
+workflow_learning:
+  # 全局开关
+  enabled: true
+  # 工作流持久化存储路径
+  repo_path: ./data/learned_workflows.json
+
+  # 匹配器配置
+  matcher:
+    # TF-IDF 相似度下限（0-1），低于此值不进入候选
+    min_similarity: 0.3
+    # 置信度下限（0-1），低于此值的候选被丢弃
+    min_confidence: 0.4
+    # 返回 Top-K 候选
+    top_k: 5
+
+  # 执行器配置
+  executor:
+    # 综合得分下限（相似度 * 置信度 * 优先级权重），低于此值不自动执行
+    min_score: 0.25
+    # 单步执行超时（毫秒）
+    step_timeout_ms: 30000
+    # 工作流最大步数（防止过长链路）
+    max_steps: 12
+
+  # 学习器配置
+  learner:
+    # 触发学习的最小工具调用次数
+    min_tool_calls: 2
+    # 关键词提取最大数量
+    max_keywords: 8
+    # 同任务签名去重窗口（天）
+    dedup_window_days: 7
 

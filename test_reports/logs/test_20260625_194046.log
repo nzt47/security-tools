@@ -1,0 +1,61 @@
+2026-06-25 19:40:47,369 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 19:40:47,375 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 19:40:47,376 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 19:40:47,503 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 19:40:47,520 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 19:40:47,524 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 19:40:47,559 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 19:40:47,561 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:40:47,561 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 19:40:47,562 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 19:40:47,569 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 19:40:47,574 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 19:40:47,592 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 19:40:47,592 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 19:40:47,593 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 19:40:47,594 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 19:40:47,595 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 19:40:47,769 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 19:40:47,774 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 19:40:47,774 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:40:47,790 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:40:47,790 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 19:40:47,790 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 19:40:47,790 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 19:40:47,791 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:40:47,792 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 19:40:47,792 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 19:40:47,792 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 19:40:47,809 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:40:47,809 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:40:48,173 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6515e063", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6515e063\\baseline.db"}
+2026-06-25 19:40:48,218 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 44.39, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6515e063\\baseline.db"}
+2026-06-25 19:40:48,219 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "collect_snapshot_start", "duration_ms": 0, "level": "INFO"}
+2026-06-25 19:40:48,220 [   ERROR] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "collect_snapshot_fetch_failed", "error": "connection timeout", "duration_ms": 0, "level": "ERROR", "error_type": "Exception", "collector_type": "BusinessMetricsCollector"}
+2026-06-25 19:40:48,273 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6a375063", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6a375063\\baseline.db"}
+2026-06-25 19:40:48,293 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 19.4, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\6a375063\\baseline.db"}
+2026-06-25 19:40:48,319 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\449f5c10", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\449f5c10\\baseline.db"}
+2026-06-25 19:40:48,343 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 24.03, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\449f5c10\\baseline.db"}
+2026-06-25 19:40:48,349 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\61405ea3", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\61405ea3\\baseline.db"}
+2026-06-25 19:40:48,369 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 20.24, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\61405ea3\\baseline.db"}
+2026-06-25 19:40:48,382 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\cdfad22b", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\cdfad22b\\baseline.db"}
+2026-06-25 19:40:48,404 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 22.89, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\cdfad22b\\baseline.db"}
+2026-06-25 19:40:48,414 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042\\baseline.db"}
+2026-06-25 19:40:48,434 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 19.91, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042\\baseline.db"}
+2026-06-25 19:40:48,434 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042\\baseline.db"}
+2026-06-25 19:40:48,434 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 0.0, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\aacf0042\\baseline.db"}
+2026-06-25 19:40:48,434 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "calculate_baseline_start", "duration_ms": 0, "level": "INFO", "days": 7}
+2026-06-25 19:40:48,443 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\7bffd831", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\7bffd831\\baseline.db"}
+2026-06-25 19:40:48,464 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 21.43, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\7bffd831\\baseline.db"}
+2026-06-25 19:40:48,465 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "collect_snapshot_start", "duration_ms": 0, "level": "INFO"}
+2026-06-25 19:40:48,469 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "collect_snapshot_saved", "duration_ms": 0, "level": "INFO", "snapshot_id": "snap_1782387648", "record_count": 0}
+2026-06-25 19:40:48,470 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "collect_snapshot_complete", "duration_ms": 5.01, "level": "INFO", "snapshot_id": "snap_1782387648", "record_count": 0, "collected_at": "2026-06-25T19:40:48.465556"}
+2026-06-25 19:40:48,474 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_start", "duration_ms": 0, "level": "INFO", "storage_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\2ad4cf46", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\2ad4cf46\\baseline.db"}
+2026-06-25 19:40:48,498 [    INFO] baseline_collector: {"trace_id": "", "module_name": "baseline_collector", "action": "initialize_complete", "duration_ms": 24.16, "level": "INFO", "db_path": "C:\\Users\\Administrator\\agent\\tests\\unit\\temp\\2ad4cf46\\baseline.db"}

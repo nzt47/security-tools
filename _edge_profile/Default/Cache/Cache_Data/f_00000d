@@ -1,0 +1,121 @@
+import { createHotContext as __vite__createHotContext } from "/static/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/Chat/ToolStepsDisplay.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/static/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=da804fa9"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/static/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+import "/static/src/components/Chat/ToolStepsDisplay.css";
+const ToolStepsDisplay = ({ steps }) => {
+  if (!steps || steps.length === 0) return null;
+  return /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "22", "trae-inspector-start-column": "4", "trae-inspector-end-line": "63", "trae-inspector-end-column": "10", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-steps", children: steps.map((step, idx) => {
+    if (step.type === "tool_call") {
+      return /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "26", "trae-inspector-start-column": "12", "trae-inspector-end-line": "40", "trae-inspector-end-column": "18", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step tool-call", children: [
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "27", "trae-inspector-start-column": "14", "trae-inspector-end-line": "27", "trae-inspector-end-column": "55", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E2%9A%A1%22%2C%22textStartLine%22%3A%2227%22%2C%22textStartColumn%22%3A%2247%22%2C%22textEndLine%22%3A%2227%22%2C%22textEndColumn%22%3A%2248%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-icon", children: "⚡" }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 46,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "28", "trae-inspector-start-column": "14", "trae-inspector-end-line": "28", "trae-inspector-end-column": "65", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-name", children: step.tool }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 47,
+          columnNumber: 15
+        }, this),
+        step.args && /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "30", "trae-inspector-start-column": "16", "trae-inspector-end-line": "37", "trae-inspector-end-column": "23", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-args", children: Object.entries(step.args).map(
+          ([k, v]) => /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "32", "trae-inspector-start-column": "20", "trae-inspector-end-line": "35", "trae-inspector-end-column": "27", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-arg", children: [
+            /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "33", "trae-inspector-start-column": "22", "trae-inspector-end-line": "33", "trae-inspector-end-column": "63", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-arg-key", children: k }, void 0, false, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+              lineNumber: 52,
+              columnNumber: 23
+            }, this),
+            "=",
+            /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "34", "trae-inspector-start-column": "22", "trae-inspector-end-line": "34", "trae-inspector-end-column": "84", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-arg-val", children: String(v).slice(0, 60) }, void 0, false, {
+              fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+              lineNumber: 53,
+              columnNumber: 23
+            }, this)
+          ] }, k, true, {
+            fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+            lineNumber: 51,
+            columnNumber: 17
+          }, this)
+        ) }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 49,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "39", "trae-inspector-start-column": "14", "trae-inspector-end-line": "39", "trae-inspector-end-column": "70", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22text%22%3A%22%E6%89%A7%E8%A1%8C%E4%B8%AD...%22%2C%22textStartLine%22%3A%2239%22%2C%22textStartColumn%22%3A%2257%22%2C%22textEndLine%22%3A%2239%22%2C%22textEndColumn%22%3A%2263%22%2C%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-status running", children: "执行中..." }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 58,
+          columnNumber: 15
+        }, this)
+      ] }, idx, true, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+        lineNumber: 45,
+        columnNumber: 13
+      }, this);
+    }
+    if (step.type === "tool_result") {
+      return /* @__PURE__ */ jsxDEV("div", { "trae-inspector-start-line": "45", "trae-inspector-start-column": "12", "trae-inspector-end-line": "58", "trae-inspector-end-column": "18", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `tool-step tool-result ${step.status}`, children: [
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "46", "trae-inspector-start-column": "14", "trae-inspector-end-line": "48", "trae-inspector-end-column": "21", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-icon", children: step.status === "success" ? "✅" : "❌" }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 65,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "49", "trae-inspector-start-column": "14", "trae-inspector-end-line": "49", "trae-inspector-end-column": "65", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-name", children: step.tool }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 68,
+          columnNumber: 15
+        }, this),
+        step.summary && /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "51", "trae-inspector-start-column": "16", "trae-inspector-end-line": "53", "trae-inspector-end-column": "23", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: "tool-step-summary", children: step.summary.slice(0, 80) }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 70,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { "trae-inspector-start-line": "55", "trae-inspector-start-column": "14", "trae-inspector-end-line": "57", "trae-inspector-end-column": "21", "trae-inspector-file-path": "src\\\\components\\\\Chat\\\\ToolStepsDisplay.tsx", "trae-inspector-static-props": "%7B%22cwd%22%3A%22C%3A%5C%5CUsers%5C%5CAdministrator%5C%5Cagent%5C%5Cyunshu-ui%22%7D", className: `tool-step-status ${step.status}`, children: step.status === "success" ? "完成" : "失败" }, void 0, false, {
+          fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+          lineNumber: 74,
+          columnNumber: 15
+        }, this)
+      ] }, idx, true, {
+        fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+        lineNumber: 64,
+        columnNumber: 13
+      }, this);
+    }
+    return null;
+  }) }, void 0, false, {
+    fileName: "C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx",
+    lineNumber: 41,
+    columnNumber: 5
+  }, this);
+};
+_c = ToolStepsDisplay;
+export default ToolStepsDisplay;
+var _c;
+$RefreshReg$(_c, "ToolStepsDisplay");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Administrator/agent/yunshu-ui/src/components/Chat/ToolStepsDisplay.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBMEJjOzs7Ozs7Ozs7Ozs7Ozs7O0FBekJkLE9BQU87QUFnQlAsTUFBTUEsbUJBQW9EQSxDQUFDLEVBQUVDLE1BQU0sTUFBTTtBQUN2RSxNQUFJLENBQUNBLFNBQVNBLE1BQU1DLFdBQVcsRUFBRyxRQUFPO0FBRXpDLFNBQ0UsdUJBQUMsU0FBRyxtVkFBQyxXQUFVLGNBQ1pELGdCQUFNRSxJQUFJLENBQUNDLE1BQU1DLFFBQVE7QUFDeEIsUUFBSUQsS0FBS0UsU0FBUyxhQUFhO0FBQzdCLGFBQ0UsdUJBQUMsU0FBRyxvVkFBVyxXQUFVLHVCQUN2QjtBQUFBLCtCQUFDLFVBQUksdWZBQUMsV0FBVSxrQkFBaUIsaUJBQWpDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBa0M7QUFBQSxRQUNsQyx1QkFBQyxVQUFJLG9WQUFDLFdBQVUsa0JBQWtCRixlQUFLRyxRQUF2QztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQTRDO0FBQUEsUUFDM0NILEtBQUtJLFFBQ0osdUJBQUMsVUFBSSxvVkFBQyxXQUFVLGtCQUNiQyxpQkFBT0MsUUFBUU4sS0FBS0ksSUFBSSxFQUFFTDtBQUFBQSxVQUFJLENBQUMsQ0FBQ1EsR0FBR0MsQ0FBQyxNQUNuQyx1QkFBQyxVQUFJLG9WQUFTLFdBQVUsWUFDdEI7QUFBQSxtQ0FBQyxVQUFJLG9WQUFDLFdBQVUsZ0JBQWdCRCxlQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFrQztBQUFBLFlBQU87QUFBQSxZQUN6Qyx1QkFBQyxVQUFJLG9WQUFDLFdBQVUsZ0JBQWdCRSxpQkFBT0QsQ0FBQyxFQUFFRSxNQUFNLEdBQUcsRUFBRSxLQUFyRDtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1RDtBQUFBLGVBRjlDSCxHQUFYO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBR0E7QUFBQSxRQUNELEtBTkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQU9BO0FBQUEsUUFFRix1QkFBQyxVQUFJLDRnQkFBQyxXQUFVLDRCQUEyQixzQkFBM0M7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFpRDtBQUFBLFdBYnpDTixLQUFWO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFjQTtBQUFBLElBRUo7QUFDQSxRQUFJRCxLQUFLRSxTQUFTLGVBQWU7QUFDL0IsYUFDRSx1QkFBQyxTQUFHLG9WQUFXLFdBQVcseUJBQXlCRixLQUFLVyxNQUFNLElBQzVEO0FBQUEsK0JBQUMsVUFBSSxvVkFBQyxXQUFVLGtCQUNiWCxlQUFLVyxXQUFXLFlBQVksTUFBTSxPQURyQztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBRUE7QUFBQSxRQUNBLHVCQUFDLFVBQUksb1ZBQUMsV0FBVSxrQkFBa0JYLGVBQUtHLFFBQXZDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBNEM7QUFBQSxRQUMzQ0gsS0FBS1ksV0FDSix1QkFBQyxVQUFJLG9WQUFDLFdBQVUscUJBQ2JaLGVBQUtZLFFBQVFGLE1BQU0sR0FBRyxFQUFFLEtBRDNCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFFQTtBQUFBLFFBRUYsdUJBQUMsVUFBSSxvVkFBQyxXQUFXLG9CQUFvQlYsS0FBS1csTUFBTSxJQUM3Q1gsZUFBS1csV0FBVyxZQUFZLE9BQU8sUUFEdEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUVBO0FBQUEsV0FaUVYsS0FBVjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBYUE7QUFBQSxJQUVKO0FBQ0EsV0FBTztBQUFBLEVBQ1QsQ0FBQyxLQXhDSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBeUNBO0FBRUo7QUFBRVksS0EvQ0lqQjtBQWlETixlQUFlQTtBQUFpQixJQUFBaUI7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsiVG9vbFN0ZXBzRGlzcGxheSIsInN0ZXBzIiwibGVuZ3RoIiwibWFwIiwic3RlcCIsImlkeCIsInR5cGUiLCJ0b29sIiwiYXJncyIsIk9iamVjdCIsImVudHJpZXMiLCJrIiwidiIsIlN0cmluZyIsInNsaWNlIiwic3RhdHVzIiwic3VtbWFyeSIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIlRvb2xTdGVwc0Rpc3BsYXkudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCBmcm9tICdyZWFjdCc7XG5pbXBvcnQgJy4vVG9vbFN0ZXBzRGlzcGxheS5jc3MnO1xuXG5leHBvcnQgaW50ZXJmYWNlIFRvb2xTdGVwIHtcbiAgdHlwZTogJ3Rvb2xfY2FsbCcgfCAndG9vbF9yZXN1bHQnIHwgJ3RleHQnIHwgJ2Vycm9yJztcbiAgdG9vbD86IHN0cmluZztcbiAgYXJncz86IFJlY29yZDxzdHJpbmcsIGFueT47XG4gIHN0YXR1cz86IHN0cmluZztcbiAgc3VtbWFyeT86IHN0cmluZztcbiAgY29udGVudD86IHN0cmluZztcbn1cblxuZXhwb3J0IGludGVyZmFjZSBUb29sU3RlcHNEaXNwbGF5UHJvcHMge1xuICBzdGVwczogVG9vbFN0ZXBbXTtcbn1cblxuLyoqIOW3peWFt+iwg+eUqOatpemqpOWxleekuue7hOS7tiDigJQg5a6e5pe25pi+56S65pCc57SiL+ivu+aWh+S7tuetieaTjeS9nCAqL1xuY29uc3QgVG9vbFN0ZXBzRGlzcGxheTogUmVhY3QuRkM8VG9vbFN0ZXBzRGlzcGxheVByb3BzPiA9ICh7IHN0ZXBzIH0pID0+IHtcbiAgaWYgKCFzdGVwcyB8fCBzdGVwcy5sZW5ndGggPT09IDApIHJldHVybiBudWxsO1xuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJ0b29sLXN0ZXBzXCI+XG4gICAgICB7c3RlcHMubWFwKChzdGVwLCBpZHgpID0+IHtcbiAgICAgICAgaWYgKHN0ZXAudHlwZSA9PT0gJ3Rvb2xfY2FsbCcpIHtcbiAgICAgICAgICByZXR1cm4gKFxuICAgICAgICAgICAgPGRpdiBrZXk9e2lkeH0gY2xhc3NOYW1lPVwidG9vbC1zdGVwIHRvb2wtY2FsbFwiPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0b29sLXN0ZXAtaWNvblwiPuKaoTwvc3Bhbj5cbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidG9vbC1zdGVwLW5hbWVcIj57c3RlcC50b29sfTwvc3Bhbj5cbiAgICAgICAgICAgICAge3N0ZXAuYXJncyAmJiAoXG4gICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidG9vbC1zdGVwLWFyZ3NcIj5cbiAgICAgICAgICAgICAgICAgIHtPYmplY3QuZW50cmllcyhzdGVwLmFyZ3MpLm1hcCgoW2ssIHZdKSA9PiAoXG4gICAgICAgICAgICAgICAgICAgIDxzcGFuIGtleT17a30gY2xhc3NOYW1lPVwidG9vbC1hcmdcIj5cbiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0b29sLWFyZy1rZXlcIj57a308L3NwYW4+PVxuICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRvb2wtYXJnLXZhbFwiPntTdHJpbmcodikuc2xpY2UoMCwgNjApfTwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICAgICAgKSl9XG4gICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0b29sLXN0ZXAtc3RhdHVzIHJ1bm5pbmdcIj7miafooYzkuK0uLi48L3NwYW4+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICApO1xuICAgICAgICB9XG4gICAgICAgIGlmIChzdGVwLnR5cGUgPT09ICd0b29sX3Jlc3VsdCcpIHtcbiAgICAgICAgICByZXR1cm4gKFxuICAgICAgICAgICAgPGRpdiBrZXk9e2lkeH0gY2xhc3NOYW1lPXtgdG9vbC1zdGVwIHRvb2wtcmVzdWx0ICR7c3RlcC5zdGF0dXN9YH0+XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRvb2wtc3RlcC1pY29uXCI+XG4gICAgICAgICAgICAgICAge3N0ZXAuc3RhdHVzID09PSAnc3VjY2VzcycgPyAn4pyFJyA6ICfinYwnfVxuICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRvb2wtc3RlcC1uYW1lXCI+e3N0ZXAudG9vbH08L3NwYW4+XG4gICAgICAgICAgICAgIHtzdGVwLnN1bW1hcnkgJiYgKFxuICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRvb2wtc3RlcC1zdW1tYXJ5XCI+XG4gICAgICAgICAgICAgICAgICB7c3RlcC5zdW1tYXJ5LnNsaWNlKDAsIDgwKX1cbiAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgICl9XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT17YHRvb2wtc3RlcC1zdGF0dXMgJHtzdGVwLnN0YXR1c31gfT5cbiAgICAgICAgICAgICAgICB7c3RlcC5zdGF0dXMgPT09ICdzdWNjZXNzJyA/ICflrozmiJAnIDogJ+Wksei0pSd9XG4gICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICk7XG4gICAgICAgIH1cbiAgICAgICAgcmV0dXJuIG51bGw7XG4gICAgICB9KX1cbiAgICA8L2Rpdj5cbiAgKTtcbn07XG5cbmV4cG9ydCBkZWZhdWx0IFRvb2xTdGVwc0Rpc3BsYXk7XG4iXSwiZmlsZSI6IkM6L1VzZXJzL0FkbWluaXN0cmF0b3IvYWdlbnQveXVuc2h1LXVpL3NyYy9jb21wb25lbnRzL0NoYXQvVG9vbFN0ZXBzRGlzcGxheS50c3gifQ==

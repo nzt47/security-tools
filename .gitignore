@@ -4,3 +4,9 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+
+# 环境变量配置（含 Token，禁止提交）
+scripts/setup_env_vars.ps1
+scripts/setup_env_vars.sh
+scripts/_token.txt
+.env

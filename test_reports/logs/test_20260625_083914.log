@@ -1,0 +1,260 @@
+2026-06-25 08:39:14,930 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 08:39:14,934 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 08:39:14,936 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 08:39:15,058 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 08:39:15,075 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 08:39:15,079 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 08:39:15,133 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 08:39:15,135 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:39:15,135 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 08:39:15,137 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 08:39:15,148 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 08:39:15,228 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 08:39:15,247 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 08:39:15,247 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 08:39:15,248 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 08:39:15,248 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 08:39:15,250 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 08:39:15,266 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 08:39:15,272 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 08:39:15,272 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:15,277 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 08:39:15,277 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 08:39:15,278 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 08:39:15,289 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:39:15,289 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 08:39:15,753 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 08:39:15,757 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 08:39:15,759 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 08:39:15,912 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 08:39:15,933 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 08:39:15,936 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 08:39:15,984 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 08:39:15,986 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:39:15,987 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 08:39:15,988 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 08:39:15,997 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 08:39:16,004 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 08:39:16,029 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 08:39:16,029 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 08:39:16,029 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 08:39:16,030 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 08:39:16,032 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 08:39:16,056 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 08:39:16,064 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 08:39:16,064 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:16,067 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:16,067 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 08:39:16,068 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 08:39:16,069 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 08:39:16,069 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 08:39:16,135 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 08:39:16,135 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 08:39:16,379 [ WARNING] agent.utils.sensitive_data_filter: [SensitiveFilter] 无效的正则表达式: [invalid
+2026-06-25 08:39:16,628 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid, error=unterminated character set at position 0
+2026-06-25 08:39:16,876 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid_pattern, error=unterminated character set at position 0
+2026-06-25 08:39:16,947 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:16,948 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,951 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,951 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=Nk9BQk9sVjZMUWpzOFdGNFVuQWtrVUsxVHJJUWhrTm5FUkRaRlFtVXFfcz0=
+2026-06-25 08:39:16,951 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,951 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,958 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,961 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,961 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=eFlDQkhxUDVDQUw5WUlIWl9PdFpkVUlWZllFcTh4dTBWd2RJMU5ObjhoYz0=
+2026-06-25 08:39:16,962 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,962 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,966 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,968 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,968 [ WARNING] agent.security_utils:   CUSTOM_ENCRYPT_KEY=VXlEVy1UeHZhUjNIdTVSWDhtTUlSVWlVN25oSFIyTjVwY083elFGRjViOD0=
+2026-06-25 08:39:16,968 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,968 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,973 [ WARNING] agent.security_utils: 加载密钥失败: Incorrect padding，将生成新密钥
+2026-06-25 08:39:16,973 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,976 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,976 [ WARNING] agent.security_utils:   TEST_INVALID_KEY=Rl96ZHZLeGdzUW50T19EM1dXanZlUHh5ZW1iNTUydW94NE1Kei1WQ0o0RT0=
+2026-06-25 08:39:16,976 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,976 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,981 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,983 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,983 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=aUhUajJaNUd2MFhiQWh4U09VbkN4SGlmMy1KMzEyc3Z2Q0dFdTV4RC1iST0=
+2026-06-25 08:39:16,983 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,983 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,988 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,990 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,991 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=bFJhdGV1LURqSkdqb2dMVldUNVlrZnBpVGE2WE9ic21weVdldEFQWFZVRT0=
+2026-06-25 08:39:16,991 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,991 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:16,995 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,997 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:16,998 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=OGRkS3dlVHRJU2tCcXlBWTZLNkZDZG9tdjZOdkJxMnk0azgzWGZoSXRDQT0=
+2026-06-25 08:39:16,998 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:16,998 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,002 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,004 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,004 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=LWl5bTBWQ0Q2VVNXMS1zN05TRVRYSmtqbXRQR1hRTXFReXpKSkh3ODY1WT0=
+2026-06-25 08:39:17,005 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,005 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,008 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,012 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,012 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=OXFrX1BIVzhsaFVQMDI4ajBLT2hkQmU4VkVWRkRNTnpnWW9FS1ZqeVJKOD0=
+2026-06-25 08:39:17,012 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,012 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,016 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,018 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,018 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=TkdzRm9XYmpEUmI1ZlFHM1gxcHprTThsYk9VN0hpT0hDdngyQ3VRSjlqcz0=
+2026-06-25 08:39:17,018 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,018 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,018 [   ERROR] agent.security_utils: 解密失败: 
+2026-06-25 08:39:17,022 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,024 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,025 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=dGtuT2dUMFVKcXhwaVRtaUpKVjlMWGFHTS1OV00wUDlWMzlwZXlRYUhIVT0=
+2026-06-25 08:39:17,025 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,025 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,030 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,032 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,032 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=S2VsblRmcWQtaVhyZUdvUm92VFVZbl9PcERtbHRoS3g2VUZ6M0Z6Y3VIcz0=
+2026-06-25 08:39:17,032 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,032 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,037 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,039 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,039 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=QVJDWG5lWnZwckNaeUFNQ0VTRXMxcmNGWE15bms2Wmk2NU9yVF9xSnFtOD0=
+2026-06-25 08:39:17,039 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,040 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,044 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,047 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,048 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=Tno4SWlWaWQ5SW8wS0Z1bzJEYWsxNW9UWnZZdlN2RGZhZ01hdmdEWkY4ND0=
+2026-06-25 08:39:17,048 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,048 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,052 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,055 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,055 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=V2NwUXBobVUyQmhHNEtxR2RFVjVZUk53WS1sUTRwT19jNHdJM3BPVGprOD0=
+2026-06-25 08:39:17,055 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,055 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,059 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,061 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,061 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=U0NRck1WeVJiRU44OFRNcTFoTHAwTEdqRWc1bUtJeW04RXhKNXU4dWY1QT0=
+2026-06-25 08:39:17,062 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,062 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,066 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,068 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,068 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=d0lIZlUzaHZ4Mm9QTm50eFQ2alBVS0Fnc0NDczZGR3VjcE9xQW1EbDdlST0=
+2026-06-25 08:39:17,068 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,069 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,073 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,075 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,075 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=b0I2MUIyVnhta1h4V0hnOFdscVNFaldTSVE5bXhCZ1R1WWJUbzJMMS1mYz0=
+2026-06-25 08:39:17,075 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,076 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,081 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,087 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,089 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,089 [ WARNING] agent.security_utils:   NONEXISTENT_KEY_VAR_12345=NWRGMng2NTZnSGloVW9odWExbExOLWhCM3FQQ0luWHVzTDZmdmhPa0ZUWT0=
+2026-06-25 08:39:17,089 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,089 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,094 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,098 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,102 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,107 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,111 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,116 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,120 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,124 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,128 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,133 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,137 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,142 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,146 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,151 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,155 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,159 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,163 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,168 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,172 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,177 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,181 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,186 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,191 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,195 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,199 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,204 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,208 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,213 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,217 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,221 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,226 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,231 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,235 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,238 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,411 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,416 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,428 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,437 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,470 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,470 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,472 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,472 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=QlVZcTlrVER0cFVMUDdjT2E5QWFVUDFFU1BUVFVxUHBEaXJlblhoT2QtYz0=
+2026-06-25 08:39:17,472 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,472 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,486 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,488 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,488 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=enVNNjl1T3lqUzI4TjR5M3lQZ0tVM01XMUNHbFhNUWhwS0M3THhsc1NJYz0=
+2026-06-25 08:39:17,488 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,488 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,493 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,495 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,495 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=dWlHbGVYbFB3VExiUHJEZmQwNERJcExZWE5ESG1GMzBSTnVOel8xRWhYND0=
+2026-06-25 08:39:17,495 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,496 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,499 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,501 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,502 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=R25WemJXaVNyRWRBVFRFUnJaS1lBT3NZRENGeHFIcDU4bFlDSDV3Tm4zST0=
+2026-06-25 08:39:17,502 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,502 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,506 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,508 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,509 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=NjBlOXV0MEI5YWtlbmNEWnpQV25zUE03Mm9ZTHRGNXhCM1BlVjgzMmZGOD0=
+2026-06-25 08:39:17,509 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,509 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,514 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,516 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,516 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=bzAyMVRmRkZIZDJ5WW1FeXZ6RGhqMm5xejZmb25xTGEyTThZcTljYkNGRT0=
+2026-06-25 08:39:17,516 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,516 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,520 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,523 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,523 [ WARNING] agent.security_utils:   Yunshu_ENCRYPT_KEY=cm9Eb3I3QVNkdHpYUy1GXzlpaHAwbXRQVll6U1NWb0hYaWJLUEppZ3pXTT0=
+2026-06-25 08:39:17,523 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,523 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,528 [ WARNING] agent.security_utils: 加载密钥失败: Incorrect padding，将生成新密钥
+2026-06-25 08:39:17,528 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,530 [ WARNING] agent.security_utils:  请将以下环境变量添加到您的配置中：
+2026-06-25 08:39:17,530 [ WARNING] agent.security_utils:   TEST_INVALID_KEY=dEhOU1YwaFZnc0FoSUJwOC1rWnp0LWpqT0QxV0pJeVU0YTE5Z21mUnU5QT0=
+2026-06-25 08:39:17,530 [ WARNING] agent.security_utils: ======================================================================
+2026-06-25 08:39:17,530 [    INFO] agent.security_utils: 日志加密器已初始化
+2026-06-25 08:39:17,535 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,539 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,543 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-25 08:39:17,548 [    INFO] agent.security_utils: 数据脱敏器已初始化
