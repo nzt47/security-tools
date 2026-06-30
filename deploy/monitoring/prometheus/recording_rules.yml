@@ -1,0 +1,34 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：四层可见性预聚合录制规则（5 条），降低看板查询负载
+# - 生成参数：interval 30s、yunshu_visibility_ 前缀
+# - 模型配置：GLM-5.2
+# - 关键状态变化：health_score 综合评分 = 通过层数 / 总层数 * 100
+
+groups:
+  - name: visibility_recording_rules
+    interval: 30s
+    rules:
+      # 1. 运行时层覆盖率均值（结构化日志 + 链路追踪）
+      #    使用 `or` 合并两个指标的向量，再用 avg 聚合
+      #    任一指标缺失时仍可计算（or 保留存在的那个）
+      - record: yunshu_visibility_runtime_coverage_avg
+        expr: avg(yunshu_visibility_runtime_structured_log_coverage or yunshu_visibility_runtime_trace_coverage)
+
+      # 2. 业务价值层覆盖率（埋点覆盖率）
+      - record: yunshu_visibility_business_coverage_avg
+        expr: yunshu_visibility_business_track_event_coverage
+
+      # 3. 通过的层数计数
+      - record: yunshu_visibility_passing_layers_count
+        expr: count(yunshu_visibility_layer_passed == 1)
+
+      # 4. 总层数计数
+      - record: yunshu_visibility_total_layers
+        expr: count(yunshu_visibility_layer_passed)
+
+      # 5. 健康综合评分（0-100）：通过层数 / 总层数 * 100
+      #    边界显性化：分母为 0 时返回 0，避免 NaN
+      - record: yunshu_visibility_health_score
+        expr: (yunshu_visibility_passing_layers_count / clamp_min(yunshu_visibility_total_layers, 1)) * 100

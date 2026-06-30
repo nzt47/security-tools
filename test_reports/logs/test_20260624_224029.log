@@ -1,0 +1,107 @@
+2026-06-24 22:40:30,123 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 22:40:30,126 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 22:40:30,128 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 22:40:30,254 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 22:40:30,270 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 22:40:30,273 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 22:40:30,310 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 22:40:30,312 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,312 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:40:30,313 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 22:40:30,319 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 22:40:30,325 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 22:40:30,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 22:40:30,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 22:40:30,343 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 22:40:30,344 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 22:40:30,345 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 22:40:30,477 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 22:40:30,481 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 22:40:30,481 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:40:30,491 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 22:40:30,492 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 22:40:30,543 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,543 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 22:40:30,576 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "schema_validation", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker_manager", "action": "register", "duration_ms": 0, "name": "schema_validation"}
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,577 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['trace_id', 'timestamp', 'version']"}
+2026-06-24 22:40:30,678 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,678 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,678 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: \u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 22:40:30,678 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,678 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['trace_id', 'timestamp', 'version']"}
+2026-06-24 22:40:30,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,779 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: \u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 22:40:30,779 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,779 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['trace_id', 'timestamp', 'version']"}
+2026-06-24 22:40:30,880 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,880 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,880 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: \u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 22:40:30,880 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,880 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['trace_id', 'timestamp', 'version']"}
+2026-06-24 22:40:30,880 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,880 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,880 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: \u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 22:40:30,881 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,881 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "schema_validation", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 22:40:30,881 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,881 [    INFO] agent.tool_calling: {"trace_id": "", "module_name": "tool_calling", "action": "_validate_output_with_schema", "duration_ms": 0, "output_type": "text_response", "result": "success"}
+2026-06-24 22:40:30,944 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-24 22:40:30,993 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:30,994 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:40:30,994 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,994 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "tool_calling", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-24 22:40:30,994 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,994 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker_manager", "action": "register", "duration_ms": 0, "name": "tool_calling"}
+2026-06-24 22:40:30,994 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,994 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:40:30,994 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:30,994 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter_manager", "action": "register", "duration_ms": 0, "name": "tool_calling", "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:40:31,002 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,034 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-24 22:40:31,035 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 22:40:31,035 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 22:40:31,039 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,039 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 22:40:31,039 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 22:40:31,047 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 22:40:31,049 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 22:40:31,052 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,052 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 22:40:31,052 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 22:40:31,052 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:40:31,052 [ WARNING] agent.memory.router: {"trace_id": "", "module_name": "memory_router", "action": "_filter_sensitive_info", "duration_ms": 0, "detected_patterns": ["password", "\u5bc6\u7801"], "result": "filtered"}
+2026-06-24 22:40:31,060 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 22:40:31,061 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 22:40:31,063 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,063 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 22:40:31,063 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 22:40:31,072 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,087 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,096 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 22:40:31,097 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 22:40:31,101 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:40:31,101 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 22:40:31,101 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 22:40:31,101 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockAdapter

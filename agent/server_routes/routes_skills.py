@@ -3,6 +3,7 @@ import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.tools import list_tools
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/skills", methods=["GET"])
+    @trace_route("Skills")
     @log_request(show_response=False)
     def api_skills_get():
         """获取技能列表（分类：已安装 + 可安装的内置技能）"""
@@ -85,6 +87,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/skills/toggle", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_skills_toggle():
@@ -95,6 +98,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/skills/params", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_skills_params():
@@ -102,12 +106,14 @@ def register_routes(app, state):
         return jsonify(skills_mgr.update_params(data.get("id", ""), data.get("params", {})))
 
     @app.route("/api/skills/add", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_skills_add():
         return jsonify(skills_mgr.add(request.get_json() or {}))
 
     @app.route("/api/skills/delete", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_skills_delete():
@@ -151,6 +157,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/tools/config", methods=["GET"])
+    @trace_route("Skills")
     @log_request(show_response=False)
     def api_tools_config():
         """获取工具列表及使用统计"""
@@ -173,6 +180,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/tools/toggle", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_tools_toggle():
@@ -188,6 +196,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/tools/categories", methods=["GET"])
+    @trace_route("Skills")
     @log_request(show_response=False)
     def api_tools_categories():
         from ..tool_router import get_categorized_tools, get_keywords
@@ -197,6 +206,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/tools/keywords", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_tools_keywords_add():
@@ -210,6 +220,7 @@ def register_routes(app, state):
         return jsonify({"ok": ok})
 
     @app.route("/api/tools/keywords", methods=["DELETE"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_tools_keywords_remove():
@@ -223,6 +234,7 @@ def register_routes(app, state):
         return jsonify({"ok": ok})
 
     @app.route("/api/tools/keywords/update", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_tools_keywords_update():
@@ -237,6 +249,7 @@ def register_routes(app, state):
         return jsonify({"ok": ok})
 
     @app.route("/api/tools/keywords/reset", methods=["POST"])
+    @trace_route("Skills")
     @require_token
     @log_request()
     def api_tools_keywords_reset():
@@ -244,6 +257,7 @@ def register_routes(app, state):
         ok = reset_keywords()
         return jsonify({"ok": ok})
     @app.route("/api/tools/status-batch", methods=["GET"])
+    @trace_route("Skills")
     @log_request(show_response=False)
     def api_tools_status_batch():
         """获取所有工具和技能的启用状态摘要"""

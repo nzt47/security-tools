@@ -1,0 +1,32 @@
+{
+  "report_type": "daily",
+  "generated_at": "2026-06-25T11:47:29.050493",
+  "period": {
+    "start": "2026-06-25T00:00:00",
+    "end": "2026-06-25T11:47:29.049494"
+  },
+  "summary": {
+    "overall_status": "FAIL",
+    "quality_score": 0,
+    "coverage_status": "UNKNOWN"
+  },
+  "test_performance": {
+    "total_tests": 0,
+    "passed_tests": 0,
+    "failed_tests": 0,
+    "pass_rate": 0.0,
+    "execution_time_minutes": 0.0
+  },
+  "coverage": {},
+  "security": {
+    "high_vulnerabilities": 0
+  },
+  "defects": {
+    "total_open": 0,
+    "total_fixed": 0,
+    "escape_rate": 0.0
+  },
+  "recommendations": [
+    "✅ 今日测试质量良好，继续保持！"
+  ]
+}

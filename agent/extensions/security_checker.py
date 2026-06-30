@@ -13,12 +13,18 @@
 import os
 import re
 import json
+import uuid
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 危险代码模式
 DANGEROUS_PATTERNS = [
@@ -167,7 +173,7 @@ class SkillSecurityChecker:
     
     def __init__(self, extension_store=None):
         self._store = extension_store
-        logger.info("[安全检查器] 已初始化")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_checker", "action": "log", "msg": "[安全检查器] 已初始化"}, ensure_ascii=False))
     
     def scan_code_for_threats(self, code_content: str, file_path: str = "") -> List[Dict]:
         """扫描代码中的威胁模式"""
@@ -194,7 +200,7 @@ class SkillSecurityChecker:
                 findings = self.scan_code_for_threats(content, str(py_file))
                 all_findings.extend(findings)
             except Exception as e:
-                logger.warning(f"扫描文件失败: {py_file} - {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_checker", "action": "py_file", "msg": f"扫描文件失败: {py_file} - {e}"}, ensure_ascii=False))
         return all_findings
     
     def check_permissions(self, skill_info: Dict) -> List[Dict]:
@@ -343,7 +349,7 @@ class SkillSecurityChecker:
     
     def perform_full_check(self, source: str, skill_info: Dict, temp_dir: Optional[Path] = None) -> Dict[str, Any]:
         """执行完整的安装前检查"""
-        logger.info(f"[安全检查器] 开始检查技能: {skill_info.get('name', source)}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_checker", "action": "skill_info.get", "msg": f"[安全检查器] 开始检查技能: {skill_info.get('name', source)}"}, ensure_ascii=False))
         
         # 执行安全评估
         security = self.assess_security(source, skill_info, temp_dir)
@@ -363,7 +369,7 @@ class SkillSecurityChecker:
             "compatibility": compatibility.to_dict(),
         }
         
-        logger.info(f"[安全检查器] 检查完成 - 可安装: {can_install}, 安全等级: {security.level}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_checker", "action": "can_install.security.level", "msg": f"[安全检查器] 检查完成 - 可安装: {can_install}, 安全等级: {security.level}"}, ensure_ascii=False))
         return result
 
 

@@ -1,3 +1,15 @@
+
+import logging
+import json
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 """DAG 引擎（增强版）— 管理任务依赖和执行顺序
 
 增强功能：
@@ -388,3 +400,21 @@ class EnhancedDAG:
             "execution_path": self.get_execution_path(),
             "summary": self.get_plan_summary(),
         }
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "enhanced_dag",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise

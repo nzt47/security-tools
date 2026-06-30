@@ -1,0 +1,16 @@
+{
+  "experiment_id": "4bc0dd10",
+  "total_users": 1000,
+  "traffic_ratio_config": 0.2,
+  "actual_ratio": 0.2,
+  "ratio_error": 0.0,
+  "assignments": {
+    "control": 95,
+    "treatment": 105,
+    "excluded": 800
+  },
+  "whitelist_users": 0,
+  "blacklist_users": 0,
+  "consistency_violations": 0,
+  "duration_ms": 1163.61
+}

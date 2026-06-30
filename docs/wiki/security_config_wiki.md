@@ -123,6 +123,81 @@ logger.info(f"API Key: sk-proj-abc123def456")
 # 输出: API Key: ***
 ```
 
+### P0 安全修复记录（2026-06-28）
+
+> **本节为团队知识库同步条目，记录 error_reporting_config.py 中两处 P0 级安全缺陷的修复细节，供团队成员学习参考，避免类似问题再次发生。**
+
+#### P0-SEC-001：Bearer Token 脱敏失败
+
+**缺陷位置：** [agent/error_reporting_config.py 行 366-384](file:///c:/Users/Administrator/agent/agent/error_reporting_config.py)
+
+**问题根因：**
+`_filter_sensitive_recursive` 函数中，字符串内嵌 Bearer Token 的替换逻辑使用 `m.group(0).split("=")[0] + "=[REDACTED]"`。该逻辑假设匹配格式为 `key=value`，但 Bearer Token 格式为 `Bearer <token>`，`split("=")` 会将 token 值保留在 `split("=")[0]` 中，导致敏感 token 泄露。
+
+**修复前（有缺陷）：**
+```python
+redacted = pat.sub(
+    lambda m: m.group(0).split("=")[0] + "=[REDACTED]"
+    if "=" in m.group(0) else m.group(0).split(":")[0] + ": [REDACTED]",
+    redacted,
+)
+```
+
+**修复后：** 新增 `_redact_token_match` 函数，Bearer 模式独立判断
+```python
+def _redact_token_match(m):
+    matched = m.group(0)
+    if matched.lower().startswith("bearer"):
+        return "Bearer [REDACTED]"  # Bearer 模式：整段替换
+    if "=" in matched:
+        return matched.split("=")[0] + "=[REDACTED]"
+    if ":" in matched:
+        return matched.split(":")[0] + ": [REDACTED]"
+    return "[REDACTED]"
+```
+
+**经验教训：** 正则替换 lambda 中不应假设所有匹配都遵循同一格式，需针对不同模式（Bearer vs key=value）分支处理。
+
+---
+
+#### P0-SEC-002：贪婪正则吞噬相邻 URL 参数
+
+**缺陷位置：** [agent/error_reporting_config.py 行 360](file:///c:/Users/Administrator/agent/agent/error_reporting_config.py)
+
+**问题根因：**
+敏感 token 正则 `\S+` 为贪婪匹配，会消耗所有非空白字符。当敏感值后紧跟 `&page=1` 等 URL 参数（无空格分隔）时，这些参数会被一并替换为 `[REDACTED]`，导致非敏感数据丢失。
+
+**修复前（有缺陷）：**
+```python
+re.compile(r"(?i)(token|api[_-]?key|secret|password)\s*[=:]\s*\S+")
+```
+
+**修复后：** 改用 `[^&\s]+`，遇 `&` 或空白字符停止
+```python
+re.compile(r"(?i)(token|api[_-]?key|secret|password)\s*[=:]\s*[^&\s]+")
+```
+
+**经验教训：** URL 查询参数场景下，`\S+` 会吞噬 `&` 分隔的相邻参数，应使用 `[^&\s]+` 限定匹配边界。
+
+---
+
+#### 防复发回归测试
+
+专项回归测试文件：[tests/regression/test_p0_security_fix.py](file:///c:/Users/Administrator/agent/tests/regression/test_p0_security_fix.py)
+
+包含 41 个参数化测试用例，覆盖：
+- Bearer Token 各变体（JWT/Base64/超长/特殊字符）完全脱敏验证
+- `&` 分隔和空格分隔的 URL 参数保留验证
+- `_sentry_before_send` 钩子集成场景
+- 边界场景（空字符串/Unicode/多分隔符混合）
+
+**运行命令：**
+```bash
+python -m pytest tests/regression/test_p0_security_fix.py -v
+```
+
+**修复验证结果：** 192 passed, 0 failed（151 原有 + 41 新增回归）
+
 ---
 
 ## 审计日志

@@ -1,13 +1,27 @@
 """对话 & 语音 & Web 工具 API 路由"""
 import os
 import json
+import uuid
 import time
 import datetime as dt
 import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
+from agent.server_routes.tracing_decorator import trace_route
+# 业务埋点（TE-001）：trackEvent 失败不影响主流程
+try:
+    from agent.server_routes.observability import trackEvent
+except Exception:
+    def trackEvent(event_name, payload=None):
+        """埋点降级：仅日志记录"""
+        logger.debug(f"[trackEvent degraded] {event_name}: {payload}")
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def _save_conversation_record(user_input, response, Yunshu, mode="normal", health_data=None):
@@ -120,6 +134,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/voice/listen", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_voice_listen():
@@ -134,24 +149,35 @@ def register_routes(app, state):
             if not stt_available:
                 return jsonify({"ok": False, "error": "语音识别引擎不可用，请检查SpeechRecognition库"}), 500
 
-            logger.info(f"[VOICE] 开始语音识别，时长: {duration}秒")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "duration", "msg": f"[VOICE] 开始语音识别，时长: {duration}秒"}, ensure_ascii=False))
             result = Yunshu._voice_manager.listen(duration=duration)
 
             if result.success:
-                logger.info(f"[VOICE] 语音识别成功: {result.text[:50]}...")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.text", "msg": f"[VOICE] 语音识别成功: {result.text[:50]}..."}, ensure_ascii=False))
+                # 埋点：语音识别成功
+                trackEvent('voice_listen_success', {
+                    'duration': duration,
+                    'text_length': len(result.text or ''),
+                })
                 return jsonify({
                     "ok": True,
                     "text": result.text,
                     "duration": duration
                 })
             else:
-                logger.warning(f"[VOICE] 语音识别失败: {result.error}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.error", "msg": f"[VOICE] 语音识别失败: {result.error}"}, ensure_ascii=False))
+                # 埋点：语音识别失败
+                trackEvent('voice_listen_failed', {
+                    'duration': duration,
+                    'error': result.error,
+                })
                 return jsonify({"ok": False, "error": result.error}), 400
         except Exception as e:
-            logger.error(f"[VOICE] 语音识别异常: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "log", "msg": f"[VOICE] 语音识别异常: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/voice/status")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_voice_status():
         try:
@@ -172,6 +198,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/chat", methods=["POST"])
+    @trace_route("Chat")
     def api_chat():
         start_time = time.time()
 
@@ -190,6 +217,14 @@ def register_routes(app, state):
         logs.append(f"[START] 收到对话请求 - 时间: {dt.datetime.now().isoformat()}")
         logs.append(f"[INPUT] 用户输入: {user_input[:100]}{'...' if len(user_input) > 100 else ''}")
         logs.append(f"[CONFIG] 语音模式: {voice_mode}")
+
+        # 埋点：用户提交对话消息（关键交互点）
+        trackEvent('chat_submit', {
+            'session_id': session_id,
+            'message_length': len(user_input),
+            'voice_mode': voice_mode,
+            'mode': Yunshu.get_behavior_mode().value,
+        })
 
         if not user_input:
             return jsonify({"error": "消息不能为空"}), 400
@@ -214,6 +249,14 @@ def register_routes(app, state):
                 f"\n\n此操作已被拦截。如需执行，请确认您了解相关风险。"
             )
             logs.append(f"[BLOCKED] 安全拦截触发")
+
+            # 埋点：安全拦截触发（关键决策点）
+            trackEvent('safety_block', {
+                'session_id': session_id,
+                'level': safety_result['level'],
+                'match_count': len(safety_result.get('matches', [])),
+                'categories': [m.get('category', 'unknown') for m in safety_result.get('matches', [])[:5]],
+            })
 
             if PROMETHEUS_AVAILABLE and SECURITY_BLOCKS:
                 for match in safety_result["matches"]:
@@ -291,6 +334,17 @@ def register_routes(app, state):
         total_time = (time.time() - start_time) * 1000
         logs.append(f"[END] 请求处理完成 - 总耗时: {total_time:.2f}ms")
 
+        # 埋点：对话响应完成（关键交互点）
+        trackEvent('chat_complete', {
+            'session_id': session_id,
+            'safety_level': safety_result['level'],
+            'response_length': len(response),
+            'total_duration_ms': round(total_time, 2),
+            'chat_duration_ms': round(chat_time, 2),
+            'voice_synthesis': voice_mode,
+            'mode': Yunshu.get_behavior_mode().value,
+        })
+
         print("\n" + "=" * 80)
         print(f"📊 对话请求日志 [{dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
         print("-" * 80)
@@ -322,6 +376,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/web/get", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_get():
@@ -330,13 +385,28 @@ def register_routes(app, state):
         timeout = data.get("timeout", 30)
         if not url:
             return jsonify({"ok": False, "error": "缺少 url"}), 400
+        # 埋点：网页抓取请求（关键交互点）
+        trackEvent('web_scrape_request', {
+            'url_length': len(url),
+            'timeout': timeout,
+        })
+        scrape_start = time.time()
         result = web_http.get(url, timeout=timeout)
+        scrape_duration_ms = (time.time() - scrape_start) * 1000
         if result.get("ok") and result.get("text"):
             parsed = web_scraper.parse(result["text"], url=result.get("url", url))
             result["parsed"] = {k: parsed.get(k) for k in ("title", "text", "links", "images", "meta", "headings") if k != "html"}
+        # 埋点：网页抓取结果
+        trackEvent('web_scrape_result', {
+            'url_length': len(url),
+            'success': result.get("ok", False),
+            'text_length': len(result.get("text", "")),
+            'duration_ms': round(scrape_duration_ms, 2),
+        })
         return jsonify(result)
 
     @app.route("/api/web/post", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_post():
@@ -353,6 +423,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/web/xpath", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_xpath():
@@ -374,6 +445,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "results": results, "count": len(results)})
 
     @app.route("/api/web/css", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_css():
@@ -396,6 +468,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "results": results, "count": len(results)})
 
     @app.route("/api/web/search", methods=["GET"])
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_search():
         query = request.args.get("query", "")
@@ -403,15 +476,31 @@ def register_routes(app, state):
         engine = request.args.get("engine", "")
         if not query:
             return jsonify({"ok": False, "error": "缺少 query"}), 400
+        # 埋点：搜索请求提交（关键交互点）
+        trackEvent('web_search_submit', {
+            'query_length': len(query),
+            'num_results': num,
+            'engine': engine or 'default',
+        })
+        search_start = time.time()
         result = web_search.search(query, engine=engine, num_results=num)
+        search_duration_ms = (time.time() - search_start) * 1000
         if result.get("ok") and result.get("results"):
             processed = web_processor.process(result["results"])
             result["results"] = processed
             from agent.web import DataProcessor
             result["summary"] = DataProcessor.summarize_results(processed)
+        # 埋点：搜索结果返回
+        trackEvent('web_search_result', {
+            'query_length': len(query),
+            'result_count': len(result.get("results", [])),
+            'duration_ms': round(search_duration_ms, 2),
+            'success': result.get("ok", False),
+        })
         return jsonify(result)
 
     @app.route("/api/web/clean", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_clean():
@@ -432,6 +521,7 @@ def register_routes(app, state):
         return jsonify({"ok": False, "error": "请提供 text 或 items"}), 400
 
     @app.route("/api/web/download", methods=["POST"])
+    @trace_route("Chat")
     @require_token
     @log_request()
     def api_web_download():
@@ -443,6 +533,7 @@ def register_routes(app, state):
         return jsonify(web_http.download(url, filepath))
 
     @app.route("/api/web/stats")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_stats():
         return jsonify({
@@ -453,6 +544,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/web/search/status")
+    @trace_route("Chat")
     @log_request(show_response=False)
     def api_web_search_status():
         try:

@@ -1,0 +1,92 @@
+2026-06-26 13:29:06,615 [ WARNING] boundary_coverage: 语法错误 C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_parse_syntax_error_file0\test_bad.py: '(' was never closed (test_bad.py, line 1)
+2026-06-26 13:29:06,628 [ WARNING] boundary_coverage: 读取文件失败 C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_parse_nonexistent_file0\nonexistent.py: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-392\\test_parse_nonexistent_file0\\nonexistent.py'
+2026-06-26 13:29:06,697 [    INFO] boundary_coverage: {"trace_id": "11ef49e86f1043bc", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T13:29:06.697802"}
+2026-06-26 13:29:06,698 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 13:29:06,702 [    INFO] boundary_coverage: {"trace_id": "11ef49e86f1043bc", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.23, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 13:29:06,712 [    INFO] boundary_coverage: {"trace_id": "1f5625c29f724c40", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T13:29:06.712765"}
+2026-06-26 13:29:06,713 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 13:29:06,717 [    INFO] boundary_coverage: {"trace_id": "1f5625c29f724c40", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 5.0, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": ["new_module"], "overall_status": "fail"}
+2026-06-26 13:29:06,727 [    INFO] boundary_coverage: {"trace_id": "ec33d2ee2c414663", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T13:29:06.727799"}
+2026-06-26 13:29:06,728 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 13:29:06,731 [    INFO] boundary_coverage: {"trace_id": "ec33d2ee2c414663", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.0, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 13:29:06,742 [    INFO] boundary_coverage: {"trace_id": "3fc94e6c26064d9d", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T13:29:06.742093"}
+2026-06-26 13:29:06,743 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 13:29:06,746 [    INFO] boundary_coverage: {"trace_id": "3fc94e6c26064d9d", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.04, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 13:29:06,829 [ WARNING] boundary_coverage: 新增模块检测失败: mock error
+2026-06-26 13:29:06,862 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_degraded_report_generated0\degraded.md
+2026-06-26 13:29:06,870 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_degraded_report_with_trac0\degraded.md
+2026-06-26 13:29:06,960 [    INFO] boundary_coverage: {"trace_id": "b4004b84f1894aa8", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T13:29:06.960352"}
+2026-06-26 13:29:06,961 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 13:29:06,965 [    INFO] boundary_coverage: {"trace_id": "b4004b84f1894aa8", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.81, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 13:29:06,972 [   ERROR] boundary_coverage: 扫描异常: 边界覆盖配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_returns_2_on_config_m0\nonexistent.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 754, in main
+    config = ConfigLoader(config_path).load()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 122, in load
+    raise FileNotFoundError(
+FileNotFoundError: 边界覆盖配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_returns_2_on_config_m0\nonexistent.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+2026-06-26 13:29:06,974 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_returns_2_on_config_m0\docs\observability\boundary_coverage_report.md
+2026-06-26 13:29:07,250 [    INFO] visibility_report: {"trace_id": "784d3110ed364f5f", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.250839"}
+2026-06-26 13:29:07,255 [    INFO] visibility_report: {"trace_id": "784d3110ed364f5f", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.48, "overall_status": "pass", "violations_count": 0}
+2026-06-26 13:29:07,265 [    INFO] visibility_report: {"trace_id": "d3320dd0db7c424b", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.265318"}
+2026-06-26 13:29:07,270 [    INFO] visibility_report: {"trace_id": "d3320dd0db7c424b", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 5.07, "overall_status": "fail", "violations_count": 6}
+2026-06-26 13:29:07,301 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_degraded_report_written0\report.md
+2026-06-26 13:29:07,308 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_degraded_report_includes_0\report.md
+2026-06-26 13:29:07,315 [   ERROR] visibility_report: 降级报告输出失败: [WinError 3] 系统找不到指定的路径。: 'Z:\\'
+2026-06-26 13:29:07,328 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_load_missing_file0\nonexistent.yaml，使用默认阈值
+2026-06-26 13:29:07,362 [    INFO] visibility_report: {"trace_id": "382998a31bd44137", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.362729"}
+2026-06-26 13:29:07,367 [    INFO] visibility_report: {"trace_id": "382998a31bd44137", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 5.04, "overall_status": "fail", "violations_count": 4}
+2026-06-26 13:29:07,378 [    INFO] visibility_report: {"trace_id": "3c6e5ec74107486e", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.378845"}
+2026-06-26 13:29:07,383 [    INFO] visibility_report: {"trace_id": "3c6e5ec74107486e", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 5.04, "overall_status": "fail", "violations_count": 6}
+2026-06-26 13:29:07,397 [    INFO] visibility_report: {"trace_id": "fe2443e94f254ad9", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.397250"}
+2026-06-26 13:29:07,401 [    INFO] visibility_report: {"trace_id": "fe2443e94f254ad9", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.04, "overall_status": "pass", "violations_count": 0}
+2026-06-26 13:29:07,414 [    INFO] visibility_report: {"trace_id": "316f8b8ce8d74a24", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.414988"}
+2026-06-26 13:29:07,418 [    INFO] visibility_report: {"trace_id": "316f8b8ce8d74a24", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 3.61, "overall_status": "fail", "violations_count": 6}
+2026-06-26 13:29:07,433 [    INFO] visibility_report: {"trace_id": "0bb97ff8a76641e7", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.433679"}
+2026-06-26 13:29:07,438 [    INFO] visibility_report: {"trace_id": "0bb97ff8a76641e7", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4.06, "overall_status": "fail", "violations_count": 5}
+2026-06-26 13:29:07,439 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_markdown_output0\out\report.md
+2026-06-26 13:29:07,439 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_markdown_output0\out\report.json
+2026-06-26 13:29:07,439 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 5 项
+2026-06-26 13:29:07,439 [   ERROR] visibility_report:   - 验证过程可见.test_coverage: 实际=0.0%, 阈值=40%
+2026-06-26 13:29:07,439 [   ERROR] visibility_report:   - 验证过程可见.boundary_test_coverage: 实际=0.0%, 阈值=10%
+2026-06-26 13:29:07,439 [   ERROR] visibility_report:   - 验证过程可见.contract_test_count: 实际=1个, 阈值=3个
+2026-06-26 13:29:07,439 [   ERROR] visibility_report:   - 业务价值可见.track_event_coverage: 实际=0.0%, 阈值=50%
+2026-06-26 13:29:07,439 [   ERROR] visibility_report:   - 业务价值可见.dashboard_count: 实际=0个, 阈值=1个
+2026-06-26 13:29:07,451 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_cli_missing_config_uses_d0\nonexistent.yaml，使用默认阈值
+2026-06-26 13:29:07,452 [    INFO] visibility_report: {"trace_id": "10b09cdafa7b4de5", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:29:07.452042"}
+2026-06-26 13:29:07,456 [    INFO] visibility_report: {"trace_id": "10b09cdafa7b4de5", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 3.59, "overall_status": "fail", "violations_count": 6}
+2026-06-26 13:30:07,293 [    INFO] visibility_report: {"trace_id": "5888274bd09e4af9", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:30:07.292589"}
+2026-06-26 13:31:06,033 [    INFO] visibility_report: {"trace_id": "5888274bd09e4af9", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 58741.14, "overall_status": "fail", "violations_count": 4}
+2026-06-26 13:31:06,034 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_real_project_full_report_0\real_report.md
+2026-06-26 13:31:06,034 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-392\test_real_project_full_report_0\real_report.json
+2026-06-26 13:31:06,034 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 4 项
+2026-06-26 13:31:06,034 [   ERROR] visibility_report:   - 运行时可见.structured_log_coverage: 实际=21.4%, 阈值=30%
+2026-06-26 13:31:06,034 [   ERROR] visibility_report:   - 运行时可见.trace_coverage: 实际=17.8%, 阈值=30%
+2026-06-26 13:31:06,034 [   ERROR] visibility_report:   - 验证过程可见.test_coverage: 实际=0.0%, 阈值=40%
+2026-06-26 13:31:06,034 [   ERROR] visibility_report:   - 业务价值可见.track_event_coverage: 实际=7.4%, 阈值=30%
+2026-06-26 13:31:06,053 [    INFO] visibility_report: {"trace_id": "9825bc173e104386", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T13:31:06.053422"}
+2026-06-26 13:32:05,076 [    INFO] visibility_report: {"trace_id": "9825bc173e104386", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 59022.59, "overall_status": "fail", "violations_count": 4}
+2026-06-26 13:32:05,212 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-26 13:32:05,215 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-26 13:32:05,218 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-26 13:32:05,227 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-26 13:32:05,230 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-26 13:32:05,233 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-26 13:32:05,310 [    INFO] contract_framework: {"trace_id": "42203f7092b4401e", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息"}
+2026-06-26 13:32:05,310 [    INFO] contract_framework: {"trace_id": "42203f7092b4401e", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息", "passed": true, "duration_ms": 1.0}
+2026-06-26 13:32:05,310 [    INFO] contract_framework: {"trace_id": "dbc8ef0da7db46a8", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误"}
+2026-06-26 13:32:05,310 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=400, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-26 13:32:05,310 [    INFO] contract_framework: {"trace_id": "dbc8ef0da7db46a8", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误", "passed": false, "duration_ms": 0.0}
+2026-06-26 13:32:05,310 [    INFO] contract_framework: {"trace_id": "a212145b0c51417f", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断"}
+2026-06-26 13:32:05,310 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=403, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-26 13:32:05,311 [    INFO] contract_framework: {"trace_id": "a212145b0c51417f", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断", "passed": false, "duration_ms": 1.0}
+2026-06-26 13:32:05,319 [    INFO] contract_framework: {"trace_id": "8ccaa6773ef84e44", "module_name": "contract_verification", "action": "verify.start", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组"}
+2026-06-26 13:32:05,319 [ WARNING] contract_framework: 契约验证失败: 契约 'health_api' 违反: 字段 '$.status' 期望=200, 实际=500 [error_code=CONTRACT_VIOLATION]
+2026-06-26 13:32:05,320 [    INFO] contract_framework: {"trace_id": "8ccaa6773ef84e44", "module_name": "contract_verification", "action": "verify.complete", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组", "passed": false, "duration_ms": 0.0}
+2026-06-26 13:32:05,331 [    INFO] contract_framework: {"trace_id": "edb71461bfa44382", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标"}
+2026-06-26 13:32:05,331 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'success_count' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-26 13:32:05,331 [    INFO] contract_framework: {"trace_id": "edb71461bfa44382", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标", "passed": false, "duration_ms": 0.0}
+2026-06-26 13:32:05,332 [    INFO] contract_framework: {"trace_id": "9d9cad591fea45e3", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录"}
+2026-06-26 13:32:05,332 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'total' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-26 13:32:05,332 [    INFO] contract_framework: {"trace_id": "9d9cad591fea45e3", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录", "passed": false, "duration_ms": 0.0}

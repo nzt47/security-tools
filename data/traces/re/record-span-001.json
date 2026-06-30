@@ -1,0 +1,14 @@
+{
+  "trace_id": "record-span-001",
+  "spans": [
+    {
+      "span_id": "span-1",
+      "service": "TestService",
+      "operation": "record_test"
+    }
+  ],
+  "span_count": 1,
+  "created_at": 1782312150.0113864,
+  "updated_at": 1782312150.0113864,
+  "duration_ms": 0
+}

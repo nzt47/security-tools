@@ -1,0 +1,31 @@
+2026-06-26 17:55:47,950 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_return_empty_dict_0\nonexistent.yaml，使用默认阈值
+2026-06-26 17:55:47,961 [    INFO] visibility_report: {"trace_id": "606af9469ac845ea", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T17:55:47.961332"}
+2026-06-26 17:55:47,962 [   ERROR] visibility_report: {"trace_id": "5619e45c2a7347e9", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-424\\test_should_return_pass_status0\\coverage.xml", "reason": "coverage.xml 不存在，请检查 CI 中 observability-unit-tests 是否上传 coverage-report artifact 且 visibility-report 已下载"}
+2026-06-26 17:55:47,962 [   ERROR] visibility_report: {"trace_id": "99ebd4d157684559", "module_name": "visibility_report", "action": "read_test_coverage.pyproject_missing", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-424\\test_should_return_pass_status0\\pyproject.toml", "reason": "pyproject.toml 不存在，无法降级"}
+2026-06-26 17:55:47,963 [    INFO] visibility_report: {"trace_id": "606af9469ac845ea", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 2.56, "overall_status": "fail", "violations_count": 11}
+2026-06-26 17:55:48,232 [    INFO] visibility_report: {"trace_id": "6a985da375ba446c", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-26T17:55:48.232715"}
+2026-06-26 17:55:48,232 [   ERROR] visibility_report: {"trace_id": "b9ab2a13f3b248af", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-424\\test_should_return_fail_status0\\coverage.xml", "reason": "coverage.xml 不存在，请检查 CI 中 observability-unit-tests 是否上传 coverage-report artifact 且 visibility-report 已下载"}
+2026-06-26 17:55:48,232 [   ERROR] visibility_report: {"trace_id": "ece421ed3e114e78", "module_name": "visibility_report", "action": "read_test_coverage.pyproject_missing", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-424\\test_should_return_fail_status0\\pyproject.toml", "reason": "pyproject.toml 不存在，无法降级"}
+2026-06-26 17:55:48,233 [    INFO] visibility_report: {"trace_id": "6a985da375ba446c", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 1.0, "overall_status": "fail", "violations_count": 11}
+2026-06-26 17:55:48,286 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_exit_zero_when_all0\report.md
+2026-06-26 17:55:48,286 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_exit_zero_when_all0\report.json
+2026-06-26 17:55:48,294 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_exit_one_when_thre0\report.md
+2026-06-26 17:55:48,294 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_exit_one_when_thre0\report.json
+2026-06-26 17:55:48,301 [   ERROR] visibility_report:   - L.m: 实际=10, 阈值=80
+2026-06-26 17:55:48,308 [   ERROR] visibility_report: 报告生成异常: boom
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\visibility_report.py", line 884, in main
+    report = generate_report(PROJECT_ROOT, thresholds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+2026-06-26 17:55:48,310 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_exit_two_when_exce0\degraded.md
+2026-06-26 17:55:48,325 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_should_write_degraded_rep0\degraded\report.md
+2026-06-26 17:55:48,332 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-424\test_degraded_report_should_cr0\deep\nested\path\report.md

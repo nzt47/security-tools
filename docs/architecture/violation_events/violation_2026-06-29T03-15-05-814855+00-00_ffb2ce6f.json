@@ -1,0 +1,41 @@
+{
+  "event_id": "ffb2ce6f71e94ed8b71eac4727825996",
+  "trace_id": "pr_merge_violation_sim_001",
+  "timestamp": "2026-06-29T03:15:05.814855+00:00",
+  "event_type": "architecture_violation_detected",
+  "repo": "unknown",
+  "pr_number": null,
+  "pr_url": null,
+  "branch": "main",
+  "total_violations": 3,
+  "active_violations_count": 2,
+  "exempted_violations_count": 1,
+  "violations": [
+    {
+      "rule_id": "no_orchestrator_to_dao",
+      "rule_desc": "禁止 orchestrator 直接访问 dao 层",
+      "source": "agent.orchestrator.core",
+      "target": "agent.data.repository",
+      "source_file": "agent/orchestrator/core.py",
+      "line": 128,
+      "severity": "high",
+      "suggestion": "orchestrator 应通过 service 或 business 层访问数据，避免业务逻辑与数据访问耦合"
+    },
+    {
+      "rule_id": "no_cognitive_to_server_routes",
+      "rule_desc": "禁止 cognitive 直接访问 server_routes",
+      "source": "agent.cognitive.loop",
+      "target": "agent.server_routes.routes_api",
+      "source_file": "agent/cognitive/loop.py",
+      "line": 45,
+      "severity": "high",
+      "suggestion": "cognitive 应通过 orchestrator 协调 HTTP 路由，不应直接依赖表现层"
+    }
+  ],
+  "graph_stats": {
+    "total_nodes": 220,
+    "total_edges": 403,
+    "cross_layer_edges": 237,
+    "violation_edges": 2
+  }
+}

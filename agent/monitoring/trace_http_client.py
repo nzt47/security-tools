@@ -13,6 +13,7 @@ HTTP 客户端追踪上下文自动注入工具
 """
 
 import logging
+import json
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,8 @@ class TraceHTTPAdapter(HTTPAdapter):
         url = str(request.url)
         
         # 记录请求开始
-        logger.info(f"[TraceHTTPAdapter] 开始处理请求: {method} {url}")
-        logger.debug(f"[TraceHTTPAdapter] 请求头(注入前): {dict(request.headers)}")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url", "msg": f"[TraceHTTPAdapter] 开始处理请求: {method} {url}"}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHTTPAdapter] 请求头(注入前): {dict(request.headers)}"}, ensure_ascii=False))
         
         try:
             # 获取当前追踪上下文
@@ -59,26 +60,26 @@ class TraceHTTPAdapter(HTTPAdapter):
             
             # 注入追踪上下文
             trace_headers = inject_trace_context()
-            logger.debug(f"[TraceHTTPAdapter] 生成的追踪上下文: {trace_headers}")
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "trace_headers", "msg": f"[TraceHTTPAdapter] 生成的追踪上下文: {trace_headers}"}, ensure_ascii=False))
             
             # 更新请求头
             request.headers.update(trace_headers)
-            logger.info(f"[TraceHTTPAdapter] ✅ 追踪上下文注入成功")
-            logger.debug(f"[TraceHTTPAdapter] 请求头(注入后): {dict(request.headers)}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "log", "msg": f"[TraceHTTPAdapter] ✅ 追踪上下文注入成功"}, ensure_ascii=False))
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHTTPAdapter] 请求头(注入后): {dict(request.headers)}"}, ensure_ascii=False))
             
         except Exception as e:
-            logger.error(f"[TraceHTTPAdapter] ❌ 注入追踪上下文失败: {str(e)}")
-            logger.error(f"[TraceHTTPAdapter] 错误详情: {type(e).__name__} - {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "str", "msg": f"[TraceHTTPAdapter] ❌ 注入追踪上下文失败: {str(e)}"}, ensure_ascii=False))
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "type.__name__", "msg": f"[TraceHTTPAdapter] 错误详情: {type(e).__name__} - {e}"}, ensure_ascii=False))
             import traceback
-            logger.error(f"[TraceHTTPAdapter] 错误堆栈: {traceback.format_exc()}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "traceback.format_exc", "msg": f"[TraceHTTPAdapter] 错误堆栈: {traceback.format_exc()}"}, ensure_ascii=False))
         
         # 调用父类方法发送请求
         try:
             response = super().send(request, **kwargs)
-            logger.info(f"[TraceHTTPAdapter] 请求完成: {method} {url}, 状态码: {response.status_code}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.response", "msg": f"[TraceHTTPAdapter] 请求完成: {method} {url}, 状态码: {response.status_code}"}, ensure_ascii=False))
             return response
         except Exception as e:
-            logger.error(f"[TraceHTTPAdapter] 请求发送失败: {method} {url}, 错误: {str(e)}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.str", "msg": f"[TraceHTTPAdapter] 请求发送失败: {method} {url}, 错误: {str(e)}"}, ensure_ascii=False))
             raise
 
 
@@ -124,32 +125,32 @@ class TraceHttpxClient(httpx.Client):
         method = request.method
         url = str(request.url)
         
-        logger.info(f"[TraceHttpxClient] 开始处理请求: {method} {url}")
-        logger.debug(f"[TraceHttpxClient] 请求头(注入前): {dict(request.headers)}")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url", "msg": f"[TraceHttpxClient] 开始处理请求: {method} {url}"}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHttpxClient] 请求头(注入前): {dict(request.headers)}"}, ensure_ascii=False))
         
         try:
             current_trace_id = get_trace_id()
             logger.debug(f"[TraceHttpxClient] 当前 trace_id: {current_trace_id}")
             
             trace_headers = inject_trace_context()
-            logger.debug(f"[TraceHttpxClient] 生成的追踪上下文: {trace_headers}")
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "trace_headers", "msg": f"[TraceHttpxClient] 生成的追踪上下文: {trace_headers}"}, ensure_ascii=False))
             
             request.headers.update(trace_headers)
-            logger.info(f"[TraceHttpxClient] ✅ 追踪上下文注入成功")
-            logger.debug(f"[TraceHttpxClient] 请求头(注入后): {dict(request.headers)}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "log", "msg": f"[TraceHttpxClient] ✅ 追踪上下文注入成功"}, ensure_ascii=False))
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHttpxClient] 请求头(注入后): {dict(request.headers)}"}, ensure_ascii=False))
             
         except Exception as e:
-            logger.error(f"[TraceHttpxClient] ❌ 注入追踪上下文失败: {str(e)}")
-            logger.error(f"[TraceHttpxClient] 错误详情: {type(e).__name__} - {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "str", "msg": f"[TraceHttpxClient] ❌ 注入追踪上下文失败: {str(e)}"}, ensure_ascii=False))
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "type.__name__", "msg": f"[TraceHttpxClient] 错误详情: {type(e).__name__} - {e}"}, ensure_ascii=False))
             import traceback
-            logger.error(f"[TraceHttpxClient] 错误堆栈: {traceback.format_exc()}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "traceback.format_exc", "msg": f"[TraceHttpxClient] 错误堆栈: {traceback.format_exc()}"}, ensure_ascii=False))
         
         try:
             response = super().send(request, **kwargs)
-            logger.info(f"[TraceHttpxClient] 请求完成: {method} {url}, 状态码: {response.status_code}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.response", "msg": f"[TraceHttpxClient] 请求完成: {method} {url}, 状态码: {response.status_code}"}, ensure_ascii=False))
             return response
         except Exception as e:
-            logger.error(f"[TraceHttpxClient] 请求发送失败: {method} {url}, 错误: {str(e)}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.str", "msg": f"[TraceHttpxClient] 请求发送失败: {method} {url}, 错误: {str(e)}"}, ensure_ascii=False))
             raise
 
 
@@ -164,32 +165,32 @@ class TraceHttpxAsyncClient(httpx.AsyncClient):
         method = request.method
         url = str(request.url)
         
-        logger.info(f"[TraceHttpxAsyncClient] 开始处理请求: {method} {url}")
-        logger.debug(f"[TraceHttpxAsyncClient] 请求头(注入前): {dict(request.headers)}")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url", "msg": f"[TraceHttpxAsyncClient] 开始处理请求: {method} {url}"}, ensure_ascii=False))
+        logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHttpxAsyncClient] 请求头(注入前): {dict(request.headers)}"}, ensure_ascii=False))
         
         try:
             current_trace_id = get_trace_id()
             logger.debug(f"[TraceHttpxAsyncClient] 当前 trace_id: {current_trace_id}")
             
             trace_headers = inject_trace_context()
-            logger.debug(f"[TraceHttpxAsyncClient] 生成的追踪上下文: {trace_headers}")
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "trace_headers", "msg": f"[TraceHttpxAsyncClient] 生成的追踪上下文: {trace_headers}"}, ensure_ascii=False))
             
             request.headers.update(trace_headers)
-            logger.info(f"[TraceHttpxAsyncClient] ✅ 追踪上下文注入成功")
-            logger.debug(f"[TraceHttpxAsyncClient] 请求头(注入后): {dict(request.headers)}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "log", "msg": f"[TraceHttpxAsyncClient] ✅ 追踪上下文注入成功"}, ensure_ascii=False))
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "dict.request.headers", "msg": f"[TraceHttpxAsyncClient] 请求头(注入后): {dict(request.headers)}"}, ensure_ascii=False))
             
         except Exception as e:
-            logger.error(f"[TraceHttpxAsyncClient] ❌ 注入追踪上下文失败: {str(e)}")
-            logger.error(f"[TraceHttpxAsyncClient] 错误详情: {type(e).__name__} - {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "str", "msg": f"[TraceHttpxAsyncClient] ❌ 注入追踪上下文失败: {str(e)}"}, ensure_ascii=False))
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "type.__name__", "msg": f"[TraceHttpxAsyncClient] 错误详情: {type(e).__name__} - {e}"}, ensure_ascii=False))
             import traceback
-            logger.error(f"[TraceHttpxAsyncClient] 错误堆栈: {traceback.format_exc()}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "traceback.format_exc", "msg": f"[TraceHttpxAsyncClient] 错误堆栈: {traceback.format_exc()}"}, ensure_ascii=False))
         
         try:
             response = await super().send(request, **kwargs)
-            logger.info(f"[TraceHttpxAsyncClient] 请求完成: {method} {url}, 状态码: {response.status_code}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.response", "msg": f"[TraceHttpxAsyncClient] 请求完成: {method} {url}, 状态码: {response.status_code}"}, ensure_ascii=False))
             return response
         except Exception as e:
-            logger.error(f"[TraceHttpxAsyncClient] 请求发送失败: {method} {url}, 错误: {str(e)}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "trace_http_client", "action": "method.url.str", "msg": f"[TraceHttpxAsyncClient] 请求发送失败: {method} {url}, 错误: {str(e)}"}, ensure_ascii=False))
             raise
 
 

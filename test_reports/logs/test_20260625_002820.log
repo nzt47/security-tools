@@ -1,0 +1,592 @@
+2026-06-25 00:28:21,058 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 00:28:21,063 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 00:28:21,065 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 00:28:21,226 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 00:28:21,248 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 00:28:21,251 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 00:28:21,303 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 00:28:21,305 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:21,306 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 00:28:21,307 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 00:28:21,316 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 00:28:21,322 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 00:28:21,346 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 00:28:21,346 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 00:28:21,346 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 00:28:21,347 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 00:28:21,348 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 00:28:21,526 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 00:28:21,531 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 00:28:21,531 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 00:28:21,546 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 00:28:21,547 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 00:28:21,547 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 00:28:21,547 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 00:28:21,547 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 00:28:21,597 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:21,597 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 00:28:21,713 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:21,846 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-25 00:28:22,488 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-25 00:28:22,593 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=3600s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:22,593 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-25 00:28:23,103 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-25 00:28:23,106 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-25 00:28:23,108 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-25 00:28:23,109 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-25 00:28:23,109 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-25 00:28:23,594 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-25 00:28:23,677 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:23,677 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警规则已添加
+2026-06-25 00:28:23,678 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:23,681 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:23,681 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:23,685 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:23,685 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:23,690 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:23,690 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:23,694 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:23,694 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警规则已添加
+2026-06-25 00:28:23,694 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警规则已移除
+2026-06-25 00:28:23,694 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:23,698 [    INFO] agent.monitoring.alert_notifier: [Alert] 告警通知器已初始化
+2026-06-25 00:28:23,702 [    INFO] agent.monitoring.alert_notifier: [Alert] 告警通知器已初始化
+2026-06-25 00:28:23,705 [    INFO] agent.monitoring.alert_notifier: [Alert] 告警通知器已初始化
+2026-06-25 00:28:27,830 [ WARNING] agent.monitoring.alert_notifier: [Webhook] 发送失败 (尝试 1/3): HTTPConnectionPool(host='localhost', port=9999): Max retries exceeded with url: /webhook (Caused by NewConnectionError("HTTPConnection(host='localhost', port=9999): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))
+2026-06-25 00:28:32,915 [ WARNING] agent.monitoring.alert_notifier: [Webhook] 发送失败 (尝试 2/3): HTTPConnectionPool(host='localhost', port=9999): Max retries exceeded with url: /webhook (Caused by NewConnectionError("HTTPConnection(host='localhost', port=9999): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))
+2026-06-25 00:28:38,999 [ WARNING] agent.monitoring.alert_notifier: [Webhook] 发送失败 (尝试 3/3): HTTPConnectionPool(host='localhost', port=9999): Max retries exceeded with url: /webhook (Caused by NewConnectionError("HTTPConnection(host='localhost', port=9999): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))
+2026-06-25 00:28:38,999 [   ERROR] agent.monitoring.alert_notifier: [Webhook] 通知发送最终失败: HTTPConnectionPool(host='localhost', port=9999): Max retries exceeded with url: /webhook (Caused by NewConnectionError("HTTPConnection(host='localhost', port=9999): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))
+2026-06-25 00:28:39,009 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,010 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: clear_cache
+2026-06-25 00:28:39,113 [    INFO] agent.monitoring.self_healer: [Heal] GC 回收: 523 对象, 活动对象 232315 -> 231786
+2026-06-25 00:28:39,113 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.0s < 5s)
+2026-06-25 00:28:39,114 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,117 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,117 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: clear_memory
+2026-06-25 00:28:39,185 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,188 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,189 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: gc_collect
+2026-06-25 00:28:39,311 [    INFO] agent.monitoring.self_healer: [Heal] GC 回收完成
+2026-06-25 00:28:39,312 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,315 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,316 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: gc_collect
+2026-06-25 00:28:39,412 [    INFO] agent.monitoring.self_healer: [Heal] GC 回收完成
+2026-06-25 00:28:39,412 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,415 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,416 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: gc_collect
+2026-06-25 00:28:39,522 [    INFO] agent.monitoring.self_healer: [Heal] GC 回收完成
+2026-06-25 00:28:39,522 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,526 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,526 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:39,529 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:39,529 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: clear_cache
+2026-06-25 00:28:39,632 [    INFO] agent.monitoring.self_healer: [Heal] GC 回收: 0 对象, 活动对象 231873 -> 231849
+2026-06-25 00:28:39,733 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.1s < 5s)
+2026-06-25 00:28:39,834 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.2s < 5s)
+2026-06-25 00:28:39,935 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.3s < 5s)
+2026-06-25 00:28:40,036 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.4s < 5s)
+2026-06-25 00:28:40,136 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.5s < 5s)
+2026-06-25 00:28:40,237 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.6s < 5s)
+2026-06-25 00:28:40,338 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.7s < 5s)
+2026-06-25 00:28:40,439 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.8s < 5s)
+2026-06-25 00:28:40,541 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (0.9s < 5s)
+2026-06-25 00:28:40,641 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.0s < 5s)
+2026-06-25 00:28:40,743 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.1s < 5s)
+2026-06-25 00:28:40,843 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.2s < 5s)
+2026-06-25 00:28:40,944 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.3s < 5s)
+2026-06-25 00:28:41,044 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.4s < 5s)
+2026-06-25 00:28:41,145 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.5s < 5s)
+2026-06-25 00:28:41,245 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.6s < 5s)
+2026-06-25 00:28:41,346 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.7s < 5s)
+2026-06-25 00:28:41,447 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.8s < 5s)
+2026-06-25 00:28:41,547 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (1.9s < 5s)
+2026-06-25 00:28:41,648 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (2.0s < 5s)
+2026-06-25 00:28:41,748 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (2.1s < 5s)
+2026-06-25 00:28:41,848 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (2.2s < 5s)
+2026-06-25 00:28:41,949 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (2.3s < 5s)
+2026-06-25 00:28:42,050 [    INFO] agent.monitoring.self_healer: [Heal] 动作 clear_cache 在冷却时间内 (2.4s < 5s)
+2026-06-25 00:28:42,151 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:42,154 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已初始化
+2026-06-25 00:28:42,154 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警规则已添加
+2026-06-25 00:28:42,155 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已初始化
+2026-06-25 00:28:42,155 [   ERROR] agent.monitoring.alert_evaluator: [Alert] 评估循环异常: list index out of range
+2026-06-25 00:28:42,155 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已启动
+2026-06-25 00:28:42,156 [    INFO] agent.monitoring.self_healer: [Heal] 开始执行自愈动作: recover_circuit_breaker
+2026-06-25 00:28:42,156 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已启动
+2026-06-25 00:28:43,156 [   ERROR] agent.monitoring.alert_evaluator: [Alert] 评估循环异常: list index out of range
+2026-06-25 00:28:44,157 [   ERROR] agent.monitoring.alert_evaluator: [Alert] 评估循环异常: list index out of range
+2026-06-25 00:28:45,159 [    INFO] agent.monitoring.alert_evaluator: [Alert] 告警评估器已停止
+2026-06-25 00:28:50,161 [    INFO] agent.monitoring.self_healer: [Heal] 自愈管理器已停止
+2026-06-25 00:28:50,165 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,173 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,179 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,185 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,186 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,187 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,188 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,190 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,196 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,206 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,215 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,221 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,223 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,228 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,229 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,231 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,235 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,237 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,238 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,240 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,241 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,242 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,243 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,244 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,245 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,246 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,247 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,248 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,252 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,253 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,254 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,255 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,256 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,267 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,268 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,270 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,273 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,274 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,275 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,276 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,277 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,278 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,280 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,281 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,283 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,284 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,285 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,286 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,287 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,288 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,290 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,296 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,297 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,298 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,299 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,301 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,313 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,315 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,320 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,321 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,326 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,328 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,329 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,330 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,332 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,333 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,334 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,335 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,336 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,337 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,338 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,339 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,339 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,340 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,342 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,343 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,344 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,345 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,346 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,347 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,348 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,349 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,350 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,351 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,352 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,353 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,355 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,355 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,357 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,358 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,359 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,360 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,361 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,362 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,363 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,364 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,365 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,366 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,367 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,367 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,368 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,369 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,371 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,372 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,373 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,374 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,375 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,377 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,378 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,379 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,380 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,381 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,381 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,382 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,384 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,385 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,387 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,388 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,389 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,391 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,391 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,392 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,394 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,395 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,397 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,399 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,400 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,401 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,403 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,405 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,406 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,409 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,411 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,413 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,415 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,417 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,417 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,418 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,419 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,421 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,422 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,423 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,424 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,425 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,426 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,427 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,428 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,429 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,430 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,435 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,451 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 00:28:50,473 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,476 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=False)
+2026-06-25 00:28:50,479 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,482 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,484 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,487 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,490 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,493 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,496 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,500 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,503 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,505 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,508 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,511 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:50,515 [    INFO] agent.web.browser_agent: BrowserAgent 已初始化 (headless=True)
+2026-06-25 00:28:51,015 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_init0\cache, max=10MB)
+2026-06-25 00:28:51,022 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=10, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_l1_hit0\cache, max=100MB)
+2026-06-25 00:28:51,030 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_l2_hit0\cache, max=100MB)
+2026-06-25 00:28:51,040 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_miss0\cache, max=100MB)
+2026-06-25 00:28:51,046 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_delete0\cache, max=100MB)
+2026-06-25 00:28:51,054 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_clear0\cache, max=100MB)
+2026-06-25 00:28:51,058 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-25 00:28:51,063 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_stats0\cache, max=100MB)
+2026-06-25 00:28:51,067 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:51,073 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_warmup0\cache, max=100MB)
+2026-06-25 00:28:51,073 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 开始缓存预热...
+2026-06-25 00:28:51,075 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热完成: 2 条数据
+2026-06-25 00:28:51,075 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存预热耗时: 0.00s
+2026-06-25 00:28:51,084 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_cache_manager_get_cache0\cache, max=100MB)
+2026-06-25 00:28:51,084 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: test_cache
+2026-06-25 00:28:51,089 [    INFO] agent.caching.multi_level_cache: [CacheManager] 删除缓存: test_cache
+2026-06-25 00:28:51,094 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_cache_manager_clear_all0\cache1, max=100MB)
+2026-06-25 00:28:51,095 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache1
+2026-06-25 00:28:51,095 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_cache_manager_clear_all0\cache2, max=100MB)
+2026-06-25 00:28:51,095 [    INFO] agent.caching.multi_level_cache: [CacheManager] 创建缓存: cache2
+2026-06-25 00:28:51,096 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-25 00:28:51,096 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-25 00:28:51,096 [    INFO] agent.caching.multi_level_cache: [CacheManager] 所有缓存已清空
+2026-06-25 00:28:51,111 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=300s), L2(enabled=True, dir=C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_multi_level_cache_thread_0\cache, max=100MB)
+2026-06-25 00:28:52,246 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-25 00:28:52,249 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,252 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,256 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,260 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,264 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,268 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-25 00:28:52,272 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,276 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-25 00:28:52,279 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,279 [    INFO] test_code_review: 开始测试: test_code_review_no_input
+2026-06-25 00:28:52,279 [    INFO] test_code_review: 调用 code_review() 无参数...
+2026-06-25 00:28:52,279 [    INFO] test_code_review: 返回结果: ok=True, available_dimensions=['安全', '性能', '可维护性', 'API兼容性', '测试']
+2026-06-25 00:28:52,279 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,279 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,282 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,283 [    INFO] test_code_review: 开始测试: test_code_review_empty_content
+2026-06-25 00:28:52,283 [    INFO] test_code_review: 调用 code_review() 空内容...
+2026-06-25 00:28:52,283 [    INFO] test_code_review: 返回结果: ok=False, error=审查内容为空，请提供待审查的 path 或 diff
+2026-06-25 00:28:52,283 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,283 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,286 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,286 [    INFO] test_code_review: 开始测试: test_code_review_security_dimension
+2026-06-25 00:28:52,286 [    INFO] test_code_review: 测试代码:
+password = "secret123"
+api_key = "sk-abcdefghijklmnopqrstuvwxyz"
+2026-06-25 00:28:52,286 [    INFO] test_code_review: 调用安全维度审查...
+2026-06-25 00:28:52,287 [    INFO] test_code_review: 返回结果: ok=True
+2026-06-25 00:28:52,287 [    INFO] test_code_review: 维度数量: 1
+2026-06-25 00:28:52,287 [    INFO] test_code_review: 维度: 安全, 严重程度: CRITICAL
+2026-06-25 00:28:52,287 [    INFO] test_code_review: 发现数量: 3
+2026-06-25 00:28:52,287 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,287 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,290 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,290 [    INFO] test_code_review: 开始测试: test_code_review_sql_injection_pattern
+2026-06-25 00:28:52,290 [    INFO] test_code_review: 测试代码: query = f"SELECT * FROM users WHERE id={user_id}"
+2026-06-25 00:28:52,290 [    INFO] test_code_review: 调用安全维度审查检测 SQL 注入...
+2026-06-25 00:28:52,291 [    INFO] test_code_review: 发现数量: 1
+2026-06-25 00:28:52,291 [    INFO] test_code_review:   发现 1: SQL注入风险: f-string 拼接 SQL 参数
+2026-06-25 00:28:52,291 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,291 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,294 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,294 [    INFO] test_code_review: 开始测试: test_code_review_xss_pattern
+2026-06-25 00:28:52,294 [    INFO] test_code_review: 测试代码: element.innerHTML = "<div>" + user_input + "</div>"
+2026-06-25 00:28:52,295 [    INFO] test_code_review: 调用安全维度审查检测 XSS...
+2026-06-25 00:28:52,295 [    INFO] test_code_review: 发现数量: 1
+2026-06-25 00:28:52,295 [    INFO] test_code_review:   发现 1: XSS风险: innerHTML 字符串拼接
+2026-06-25 00:28:52,295 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,295 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,299 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,300 [    INFO] test_code_review: 开始测试: test_code_review_command_injection
+2026-06-25 00:28:52,300 [    INFO] test_code_review: 测试代码: subprocess.run("ls " + path, shell=True)
+2026-06-25 00:28:52,300 [    INFO] test_code_review: 调用安全维度审查检测命令注入...
+2026-06-25 00:28:52,300 [    INFO] test_code_review: 发现数量: 1
+2026-06-25 00:28:52,300 [    INFO] test_code_review:   发现 1: 命令注入风险: shell=True 命令注入风险
+2026-06-25 00:28:52,300 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,300 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,303 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,304 [    INFO] test_code_review: 开始测试: test_code_review_performance_dimension
+2026-06-25 00:28:52,304 [    INFO] test_code_review: 测试代码:
+
+async def slow_function():
+    time.sleep(5)
+    requests.get("http://example.com")
+
+2026-06-25 00:28:52,304 [    INFO] test_code_review: 调用性能维度审查...
+2026-06-25 00:28:52,305 [    INFO] test_code_review: 维度: 性能
+2026-06-25 00:28:52,305 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,305 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,309 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,309 [    INFO] test_code_review: 开始测试: test_code_review_maintainability_dimension
+2026-06-25 00:28:52,309 [    INFO] test_code_review: 测试代码:
+
+# This is commented code
+# def old_function():
+#     return 42
+
+MAGIC_NUMBER = 42
+
+2026-06-25 00:28:52,309 [    INFO] test_code_review: 调用可维护性维度审查...
+2026-06-25 00:28:52,310 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,310 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,314 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,314 [    INFO] test_code_review: 开始测试: test_code_review_api_compatibility
+2026-06-25 00:28:52,314 [    INFO] test_code_review: 测试 diff:
+
+-def old_function():
++def new_function():
+    pass
+
+2026-06-25 00:28:52,314 [    INFO] test_code_review: 调用 API 兼容性维度审查...
+2026-06-25 00:28:52,315 [    INFO] test_code_review: 发现数量: 2
+2026-06-25 00:28:52,315 [    INFO] test_code_review:   发现 1: API兼容性: 函数 `old_function` 被移除（破坏性变更）
+2026-06-25 00:28:52,315 [    INFO] test_code_review:   发现 2: API兼容性: 函数签名变更（破坏性变更）
+2026-06-25 00:28:52,315 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,315 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,319 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,320 [    INFO] test_code_review: 开始测试: test_code_review_testing_dimension
+2026-06-25 00:28:52,320 [    INFO] test_code_review: 测试代码:
+
+def test_something():
+    assert 1 == 1
+    assert 2 == 2
+
+2026-06-25 00:28:52,320 [    INFO] test_code_review: 调用测试维度审查...
+2026-06-25 00:28:52,320 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,320 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,324 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,324 [    INFO] test_code_review: 开始测试: test_code_review_multiple_dimensions
+2026-06-25 00:28:52,324 [    INFO] test_code_review: 测试代码: password = "secret"
+2026-06-25 00:28:52,324 [    INFO] test_code_review: 调用多维度审查: 安全、性能、可维护性...
+2026-06-25 00:28:52,324 [    INFO] test_code_review: 维度数量: 3
+2026-06-25 00:28:52,324 [    INFO] test_code_review:   维度: 安全, 发现数: 1
+2026-06-25 00:28:52,324 [    INFO] test_code_review:   维度: 性能, 发现数: 0
+2026-06-25 00:28:52,324 [    INFO] test_code_review:   维度: 可维护性, 发现数: 0
+2026-06-25 00:28:52,324 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,325 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,328 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,328 [    INFO] test_code_review: 开始测试: test_code_review_unknown_dimension
+2026-06-25 00:28:52,328 [    INFO] test_code_review: 调用未知维度审查...
+2026-06-25 00:28:52,328 [    INFO] test_code_review: 维度: 未知维度, 严重程度: UNKNOWN
+2026-06-25 00:28:52,328 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,328 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,332 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,332 [    INFO] test_code_review: 开始测试: test_read_file_content_not_exists
+2026-06-25 00:28:52,332 [    INFO] test_code_review: 读取不存在的文件: /nonexistent/path/to/file.py
+2026-06-25 00:28:52,332 [    INFO] test_code_review: 返回内容: ''
+2026-06-25 00:28:52,332 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,332 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,338 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,339 [    INFO] test_code_review: 开始测试: test_read_file_content_exists
+2026-06-25 00:28:52,339 [    INFO] test_code_review: 创建测试文件: C:\Windows\Temp\pytest-of-AdminWT\pytest-347\test_read_file_content_exists0\test.py
+2026-06-25 00:28:52,339 [    INFO] test_code_review: 读取内容: 'print('hello')'
+2026-06-25 00:28:52,339 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,339 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,343 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,343 [    INFO] test_code_review: 开始测试: test_iter_lines
+2026-06-25 00:28:52,343 [    INFO] test_code_review: 测试内容: 'line1
+line2
+line3'
+2026-06-25 00:28:52,343 [    INFO] test_code_review: 行列表: [(1, 'line1'), (2, 'line2'), (3, 'line3')]
+2026-06-25 00:28:52,343 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,343 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,347 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,347 [    INFO] test_code_review: 开始测试: test_make_finding
+2026-06-25 00:28:52,347 [    INFO] test_code_review: 创建发现: line=42, description='描述', suggestion='建议'
+2026-06-25 00:28:52,347 [    INFO] test_code_review: 发现: {'line': 42, 'description': '描述', 'suggestion': '建议'}
+2026-06-25 00:28:52,347 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,347 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,351 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,351 [    INFO] test_code_review: 开始测试: test_parse_python_ast_valid
+2026-06-25 00:28:52,351 [    INFO] test_code_review: 解析有效代码: 'x = 1'
+2026-06-25 00:28:52,351 [    INFO] test_code_review: AST: <ast.Module object at 0x00000171BCF7B6D0>
+2026-06-25 00:28:52,351 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,351 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,355 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,355 [    INFO] test_code_review: 开始测试: test_parse_python_ast_invalid
+2026-06-25 00:28:52,355 [    INFO] test_code_review: 解析无效代码: 'def foo('
+2026-06-25 00:28:52,357 [    INFO] test_code_review: AST: None
+2026-06-25 00:28:52,357 [    INFO] test_code_review: 测试通过!
+2026-06-25 00:28:52,357 [    INFO] test_code_review: ============================================================
+2026-06-25 00:28:52,390 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t1, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,394 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t2, score=0.50, retry=1/3
+2026-06-25 00:28:52,394 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t2, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,398 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t3, score=0.70, passed=True, retry=False (0/3), issues=1
+2026-06-25 00:28:52,401 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t4, score=0.80, passed=True, retry=False (0/3), issues=1
+2026-06-25 00:28:52,404 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t5, score=0.90, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,407 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t6, score=0.40, retry=1/3
+2026-06-25 00:28:52,407 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t6, score=0.40, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,411 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=1/3
+2026-06-25 00:28:52,411 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,412 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=2/3
+2026-06-25 00:28:52,412 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (1/3), issues=1
+2026-06-25 00:28:52,412 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=retry1, score=0.50, retry=3/3
+2026-06-25 00:28:52,412 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=True (2/3), issues=1
+2026-06-25 00:28:52,412 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=retry1, score=0.50, passed=False, retry=False (3/3), issues=1
+2026-06-25 00:28:52,415 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t7, score=0.70, passed=True, retry=False (0/3), issues=1
+2026-06-25 00:28:52,418 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=reset1, score=0.50, retry=1/3
+2026-06-25 00:28:52,418 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=reset1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,422 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=clear1, score=0.50, retry=1/3
+2026-06-25 00:28:52,422 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=clear1, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,422 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=clear1, score=1.00, passed=True, retry=False (1/3), issues=0
+2026-06-25 00:28:52,429 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-25 00:28:52,431 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-25 00:28:52,434 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=1, entities=2, confidence=0.70
+2026-06-25 00:28:52,438 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=4, entities=0, confidence=0.70
+2026-06-25 00:28:52,447 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-25 00:28:52,454 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,461 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=write_file, approved=False, score=0.60, issues=1
+2026-06-25 00:28:52,468 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.70, issues=1
+2026-06-25 00:28:52,471 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.70, issues=1
+2026-06-25 00:28:52,474 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-25 00:28:52,474 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-25 00:28:52,474 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=delete_file, approved=False, score=0.50, issues=1
+2026-06-25 00:28:52,478 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=browser_navigate, approved=True, score=0.80, issues=1
+2026-06-25 00:28:52,482 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.85, recommendation=推荐执行
+2026-06-25 00:28:52,485 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.57, recommendation=不推荐执行（安全视角评分过低: 0.20）
+2026-06-25 00:28:52,490 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-25 00:28:52,494 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-25 00:28:52,497 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-25 00:28:52,502 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.74, recommendation=建议修改后执行
+2026-06-25 00:28:52,502 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.46, recommendation=不推荐执行（安全视角评分过低: 0.20）
+2026-06-25 00:28:52,506 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t1, type=chat, complexity=simple
+2026-06-25 00:28:52,507 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t1, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,507 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t1, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-25 00:28:52,510 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t2, type=chat, complexity=normal
+2026-06-25 00:28:52,510 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t2, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,510 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.60
+2026-06-25 00:28:52,510 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t2, decision=continue, reflection_score=1.00, knowledge=yes, review=N/A, debate=no
+2026-06-25 00:28:52,513 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t3, type=execute_shell, complexity=high_risk
+2026-06-25 00:28:52,513 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t3, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,514 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=execute_shell, facts=1, entities=0, confidence=0.50
+2026-06-25 00:28:52,514 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-25 00:28:52,514 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t3, decision=escalate, reflection_score=1.00, knowledge=yes, review=False, debate=no
+2026-06-25 00:28:52,517 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t4, type=chat, complexity=complex
+2026-06-25 00:28:52,518 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t4, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,518 [    INFO] agent.cognitive.knowledge: [Cognitive] 知识沉淀: type=chat, facts=3, entities=0, confidence=0.70
+2026-06-25 00:28:52,518 [    INFO] agent.cognitive.debate: [Cognitive] Debate: consensus=0.85, recommendation=推荐执行
+2026-06-25 00:28:52,518 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t4, decision=continue, reflection_score=1.00, knowledge=yes, review=N/A, debate=yes
+2026-06-25 00:28:52,522 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t5, type=chat, complexity=simple
+2026-06-25 00:28:52,522 [    INFO] agent.cognitive.reflection: [Cognitive] 触发重试: task_id=t5, score=0.50, retry=1/3
+2026-06-25 00:28:52,522 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t5, score=0.50, passed=False, retry=True (0/3), issues=1
+2026-06-25 00:28:52,522 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t5, decision=retry, reflection_score=0.50, knowledge=no, review=N/A, debate=no
+2026-06-25 00:28:52,525 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t6, type=execute_shell, complexity=high_risk
+2026-06-25 00:28:52,525 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t6, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,525 [ WARNING] agent.cognitive.actor_critic: [Cognitive] ActorCritic: tool=execute_shell, approved=False, score=0.50, issues=2
+2026-06-25 00:28:52,525 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t6, decision=escalate, reflection_score=1.00, knowledge=no, review=False, debate=no
+2026-06-25 00:28:52,528 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t7, type=chat, complexity=simple
+2026-06-25 00:28:52,529 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=t7, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-25 00:28:52,529 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=t7, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-25 00:28:52,616 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmps84ig5p2.key
+2026-06-25 00:28:52,626 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpp0_q7fgo.key
+2026-06-25 00:28:52,632 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp5focs3o7.key
+2026-06-25 00:28:52,632 [ WARNING] config_secure: [安全配置] 解密失败：Base64解码错误 - Invalid base64-encoded string: number of data characters (13) cannot be 1 more than a multiple of 4
+2026-06-25 00:28:52,638 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpzyrn3wof.key_1
+2026-06-25 00:28:52,640 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpzyrn3wof.key_2
+2026-06-25 00:28:52,640 [ WARNING] config_secure: [安全配置] 解密失败：无效的认证标签（密钥不匹配或数据被篡改）
+2026-06-25 00:28:52,645 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp2agln_rg.key
+2026-06-25 00:28:52,653 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmp0cwac0du.key
+2026-06-25 00:28:52,661 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpz7n5bfwo.key
+2026-06-25 00:28:52,668 [    INFO] config_secure: [安全配置] 已创建加密密钥文件: C:\Windows\TEMP\tmpwxm9uq6i.key

@@ -1,0 +1,356 @@
+2026-06-24 22:46:24,606 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 22:46:24,614 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 22:46:24,615 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 22:46:24,724 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 22:46:24,737 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 22:46:24,740 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 22:46:24,772 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 22:46:24,814 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:24,814 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:46:24,815 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 22:46:24,822 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 22:46:24,826 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 22:46:24,896 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 22:46:24,896 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 22:46:24,896 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 22:46:24,897 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 22:46:24,898 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 22:46:24,916 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-24 22:46:24,921 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 22:46:24,921 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:24,939 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:24,940 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-24 22:46:24,940 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-24 22:46:24,941 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 22:46:24,955 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:24,955 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 22:46:25,123 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 22:46:25,128 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 22:46:25,130 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 22:46:25,300 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 22:46:25,322 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 22:46:25,327 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 22:46:25,383 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 22:46:25,384 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,385 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:46:25,386 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 22:46:25,397 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 22:46:25,404 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 22:46:25,433 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 22:46:25,433 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 22:46:25,434 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 22:46:25,435 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 22:46:25,438 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 22:46:25,464 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-24 22:46:25,472 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 22:46:25,473 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:25,476 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 22:46:25,477 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 22:46:25,478 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-24 22:46:25,478 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 22:46:25,478 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:46:25,478 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-24 22:46:25,478 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-24 22:46:25,478 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 22:46:25,496 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,496 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 22:46:25,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,598 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,599 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,605 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,605 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,605 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,605 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,605 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-24 22:46:25,606 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,606 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,606 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,611 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,611 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,611 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,612 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-24 22:46:25,612 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-24 22:46:25,612 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-24 22:46:25,612 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,612 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,617 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,617 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-24 22:46:25,617 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-24 22:46:25,617 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,618 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,619 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-24 22:46:25,619 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-24 22:46:25,619 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-24 22:46:25,619 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,619 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-24 22:46:25,624 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,624 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 1234567890abcdef
+2026-06-24 22:46:25,624 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: runtrace0011234567890abcdef
+2026-06-24 22:46:25,624 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: runtrace0011234567890abcdef
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: runspan001abcdef
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: runspan001abcdef
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: runtrace0011234567890abcdef
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: runspan001abcdef
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def45678901234567890123456
+2026-06-24 22:46:25,625 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def45678901234567890123456
+2026-06-24 22:46:25,626 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 1234567890abcdef
+2026-06-24 22:46:25,626 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 1234567890abcdef
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: injecttrace0011234567890abcdef
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: injecttrace0011234567890abcdef
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: injectspan001abcdef
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: injectspan001abcdef
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 22:46:25,654 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: injecttrace0011234567890abcdef
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: injectspan001abcdef
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: injecttrace0011234567890abcdef, span_id: injectspan001abcdef
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-injecttrace0011234567890abcdef-injectspan001abcdef-01', 'tracestate': ''}
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,655 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,675 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: None, span_id: None
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 trace_id，生成新的: 209c8d0da9224ef8
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] 当前无 span_id，生成新的: 4fe73bf2daca4f41
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-209c8d0da9224ef8-4fe73bf2daca4f41-01', 'tracestate': ''}
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: safeinject0011234567890abcdef
+2026-06-24 22:46:25,676 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: safeinject0011234567890abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: safespan001abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: safespan001abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: safeinject0011234567890abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: safespan001abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: safeinject0011234567890abcdef, span_id: safespan001abcdef
+2026-06-24 22:46:25,677 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-safeinject0011234567890abcdef-safespan001abcdef-01', 'tracestate': ''}
+2026-06-24 22:46:25,678 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,678 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,678 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,678 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,696 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: detect0011234567890abcdef
+2026-06-24 22:46:25,697 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: detect0011234567890abcdef
+2026-06-24 22:46:25,697 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: detectspan001abcdef
+2026-06-24 22:46:25,697 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: detectspan001abcdef
+2026-06-24 22:46:25,700 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: detect0011234567890abcdef
+2026-06-24 22:46:25,701 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,701 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,701 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 22:46:25,701 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 22:46:25,714 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,714 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,714 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:46:25,715 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,720 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: health0011234567890abcdef
+2026-06-24 22:46:25,720 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: health0011234567890abcdef
+2026-06-24 22:46:25,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: health0011234567890abcdef
+2026-06-24 22:46:25,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: health0011234567890abcdef
+2026-06-24 22:46:25,721 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 22:46:25,721 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 22:46:25,721 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 22:46:25,730 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-343\test_search_traces0
+2026-06-24 22:46:25,732 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest000, spans: 1
+2026-06-24 22:46:25,733 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest001, spans: 1
+2026-06-24 22:46:25,734 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest002, spans: 1
+2026-06-24 22:46:25,736 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest003, spans: 1
+2026-06-24 22:46:25,737 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: searchtest004, spans: 1
+2026-06-24 22:46:25,746 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-343\test_get_decision_sequence0
+2026-06-24 22:46:25,747 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: decisiontest001, spans: 2
+2026-06-24 22:46:25,754 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-343\test_get_recent_traces0
+2026-06-24 22:46:25,756 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent000, spans: 1
+2026-06-24 22:46:25,757 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent001, spans: 1
+2026-06-24 22:46:25,758 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent002, spans: 1
+2026-06-24 22:46:25,759 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent003, spans: 1
+2026-06-24 22:46:25,760 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent004, spans: 1
+2026-06-24 22:46:25,761 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent005, spans: 1
+2026-06-24 22:46:25,762 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent006, spans: 1
+2026-06-24 22:46:25,763 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent007, spans: 1
+2026-06-24 22:46:25,763 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent008, spans: 1
+2026-06-24 22:46:25,764 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recent009, spans: 1
+2026-06-24 22:46:25,765 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Users\Administrator\agent\agent\monitoring\..\..\data\traces
+2026-06-24 22:46:25,767 [    INFO] agent.monitoring.tracing: [Tracing] 获取最近 4 条追踪数据
+2026-06-24 22:46:25,773 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-343\test_get_trace_detail0
+2026-06-24 22:46:25,775 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: detailtest001, spans: 1
+2026-06-24 22:46:25,782 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\Temp\pytest-of-AdminWT\pytest-343\test_record_trace_span0
+2026-06-24 22:46:25,784 [    INFO] agent.monitoring.tracing: [Tracing] Trace 加载成功: recordspan001
+2026-06-24 22:46:25,785 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: recordspan001, spans: 3
+2026-06-24 22:46:25,785 [    INFO] agent.monitoring.tracing: [Tracing] 获取追踪详情成功: recordspan001
+2026-06-24 22:46:25,805 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0001234567890abcdef
+2026-06-24 22:46:25,805 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0011234567890abcdef
+2026-06-24 22:46:25,806 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0001234567890abcdef
+2026-06-24 22:46:25,806 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0021234567890abcdef
+2026-06-24 22:46:25,806 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0011234567890abcdef
+2026-06-24 22:46:25,807 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0031234567890abcdef
+2026-06-24 22:46:25,807 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0021234567890abcdef
+2026-06-24 22:46:25,807 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0031234567890abcdef
+2026-06-24 22:46:25,808 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: concurrent0041234567890abcdef
+2026-06-24 22:46:25,808 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: concurrent0041234567890abcdef
+2026-06-24 22:46:25,817 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0001234567890abcdef
+2026-06-24 22:46:25,817 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0011234567890abcdef
+2026-06-24 22:46:25,818 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0031234567890abcdef
+2026-06-24 22:46:25,818 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0021234567890abcdef
+2026-06-24 22:46:25,818 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: concurrent0041234567890abcdef
+2026-06-24 22:46:25,861 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpohj6apax
+2026-06-24 22:46:25,862 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: flow-test-001, spans: 2
+2026-06-24 22:46:25,869 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmp40lzb2bf
+2026-06-24 22:46:25,875 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpdly5rt6t
+2026-06-24 22:46:25,876 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-000, spans: 1
+2026-06-24 22:46:25,877 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-001, spans: 1
+2026-06-24 22:46:25,879 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-002, spans: 1
+2026-06-24 22:46:25,887 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmpp0q4dejl
+2026-06-24 22:46:25,893 [    INFO] agent.monitoring.tracing: [Tracing] TraceStorage 初始化，存储路径: C:\Windows\TEMP\tmp0nhjw6qo
+2026-06-24 22:46:25,894 [    INFO] agent.monitoring.tracing: [Tracing] Trace 保存成功: test-trace-003, spans: 1
+2026-06-24 22:46:25,919 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpbur_xz9b
+2026-06-24 22:46:25,942 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 22:46:25,942 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u8c03\u7528\u4e0d\u5b58\u5728\u7684API", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,946 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: (调用|使用|调用了).*不存在.*API
+2026-06-24 22:46:25,946 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 调用不存在的API
+2026-06-24 22:46:25,947 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u5b57\u6bb5\u7c7b\u578b\u9519\u8bef", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,952 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 字段.*类型错误
+2026-06-24 22:46:25,952 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 字段类型错误
+2026-06-24 22:46:25,953 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u8df3\u8fc7\u5fc5\u8981\u6b65\u9aa4", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,956 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 跳过.*步骤
+2026-06-24 22:46:25,957 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 跳过必要步骤
+2026-06-24 22:46:25,957 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u865a\u6784\u6570\u636e", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,961 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 虚构数据
+2026-06-24 22:46:25,961 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 虚构数据
+2026-06-24 22:46:25,961 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u5de5\u5177\u4f7f\u7528\u9519\u8bef", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,964 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 工具.*使用错误
+2026-06-24 22:46:25,964 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 工具使用错误
+2026-06-24 22:46:25,964 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u4e0a\u4e0b\u6587\u4e22\u5931", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,968 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配模式: 上下文.*丢失
+2026-06-24 22:46:25,968 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   匹配内容: 上下文丢失
+2026-06-24 22:46:25,968 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "", "module_name": "failure_analysis", "action": "classify_failure", "message": "\u672a\u77e5\u9519\u8bef", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:25,979 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpecoy_ubp
+2026-06-24 22:46:26,014 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 22:46:26,020 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpu8ccgbsr
+2026-06-24 22:46:26,045 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 22:46:26,048 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: trace-0
+2026-06-24 22:46:26,048 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: api_fiction
+2026-06-24 22:46:26,048 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: medium
+2026-06-24 22:46:26,048 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test
+2026-06-24 22:46:26,049 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: Test failure 0...
+2026-06-24 22:46:26,049 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,070 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-0", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,075 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: trace-1
+2026-06-24 22:46:26,075 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: field_error
+2026-06-24 22:46:26,075 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: medium
+2026-06-24 22:46:26,075 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test
+2026-06-24 22:46:26,075 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: Test failure 1...
+2026-06-24 22:46:26,076 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,087 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-1", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,092 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: trace-2
+2026-06-24 22:46:26,092 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: api_fiction
+2026-06-24 22:46:26,092 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: medium
+2026-06-24 22:46:26,092 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test
+2026-06-24 22:46:26,092 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: Test failure 2...
+2026-06-24 22:46:26,093 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,101 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-2", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: trace-3
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: field_error
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: medium
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: Test failure 3...
+2026-06-24 22:46:26,106 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,116 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-3", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "field_error", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: trace-4
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: api_fiction
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: medium
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: Test failure 4...
+2026-06-24 22:46:26,122 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,133 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "trace-4", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "medium", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,143 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Windows\TEMP\tmpvjheasi1
+2026-06-24 22:46:26,177 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 数据库初始化完成
+2026-06-24 22:46:26,180 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   trace_id: test-trace-001
+2026-06-24 22:46:26,180 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   failure_type: api_fiction
+2026-06-24 22:46:26,180 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   severity: high
+2026-06-24 22:46:26,180 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   source: test_module
+2026-06-24 22:46:26,181 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   message: 调用不存在的 API: get_user_info...
+2026-06-24 22:46:26,181 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis]   evidence_count: 0
+2026-06-24 22:46:26,190 [    INFO] agent.cognitive.failure_analysis: {"trace_id": "test-trace-001", "module_name": "failure_analysis", "action": "record_failure", "failure_type": "api_fiction", "severity": "high", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,207 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpokwgr0ug
+2026-06-24 22:46:26,240 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:26,243 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-006
+2026-06-24 22:46:26,246 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-006", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,251 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpxl7yf125
+2026-06-24 22:46:26,272 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:26,273 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-004
+2026-06-24 22:46:26,276 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-004", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,291 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 29c5a77c-4936-44d8-a10a-104e43ad4538, prompt_id=test-prompt-004
+2026-06-24 22:46:26,291 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-004", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,293 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-004
+2026-06-24 22:46:26,297 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-004", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,300 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: d16b9031-a601-4cc1-84c6-5064d0606adb, prompt_id=test-prompt-004
+2026-06-24 22:46:26,301 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-004", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,310 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpuh_2egzv
+2026-06-24 22:46:26,678 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:26,680 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-002
+2026-06-24 22:46:26,682 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-002", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,686 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 851f82d8-f278-4701-bcec-5aa714debb2e, prompt_id=test-prompt-002
+2026-06-24 22:46:26,686 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-002", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,693 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmp0pubys_f
+2026-06-24 22:46:26,756 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:26,758 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-001
+2026-06-24 22:46:26,773 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-001", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,780 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpx615cz0o
+2026-06-24 22:46:26,881 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:26,882 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-005
+2026-06-24 22:46:26,888 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-005", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,904 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: e12992a0-b41a-436c-bca5-9f482ea61099, prompt_id=test-prompt-005
+2026-06-24 22:46:26,905 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,906 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-005
+2026-06-24 22:46:26,912 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-005", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,929 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 499932b1-293b-43c9-a0ba-66b00306bc48, prompt_id=test-prompt-005
+2026-06-24 22:46:26,930 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,932 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-005
+2026-06-24 22:46:26,994 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 04a361c9-05be-46f3-886f-7fe535eb28ee, prompt_id=test-prompt-005
+2026-06-24 22:46:26,994 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-005", "version": "1.0.2", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:26,994 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "rollback", "prompt_id": "test-prompt-005", "target_version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:27,001 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmp30tnqgyz
+2026-06-24 22:46:27,169 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:27,171 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-007
+2026-06-24 22:46:27,177 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-007", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:27,285 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: b4a45eb0-86c3-4252-a98b-14c6741af0ef, prompt_id=test-prompt-007
+2026-06-24 22:46:27,285 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-007", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:28,436 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新版本测试结果: b4a45eb0-86c3-4252-a98b-14c6741af0ef
+2026-06-24 22:46:28,443 [    INFO] agent.prompt_manager.storage: [PromptManager] 初始化存储，路径: C:\Windows\TEMP\tmpmd2e0l71
+2026-06-24 22:46:28,495 [    INFO] agent.prompt_manager.storage: [PromptManager] 数据库初始化完成
+2026-06-24 22:46:28,497 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建提示词: test-prompt-003
+2026-06-24 22:46:28,500 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "register_prompt", "prompt_id": "test-prompt-003", "prompt_type": "system", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:28,504 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: fd0db478-d11b-4724-83ec-aa566dcccc75, prompt_id=test-prompt-003
+2026-06-24 22:46:28,504 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-003", "version": "1.0.0", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:28,505 [    INFO] agent.prompt_manager.storage: [PromptManager] 更新提示词: test-prompt-003
+2026-06-24 22:46:28,519 [    INFO] agent.prompt_manager.registry: {"trace_id": "", "module_name": "prompt_manager", "action": "update_prompt", "prompt_id": "test-prompt-003", "duration_ms": 0, "level": "INFO"}
+2026-06-24 22:46:28,523 [    INFO] agent.prompt_manager.storage: [PromptManager] 创建版本: 0cd5d98d-7aa2-4393-b3d3-ae88b5903fb2, prompt_id=test-prompt-003
+2026-06-24 22:46:28,524 [    INFO] agent.prompt_manager.version_control: {"trace_id": "", "module_name": "prompt_manager", "action": "create_version", "prompt_id": "test-prompt-003", "version": "1.0.1", "duration_ms": 0, "level": "INFO"}

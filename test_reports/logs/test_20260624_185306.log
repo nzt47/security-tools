@@ -1,0 +1,38 @@
+2026-06-24 18:53:06,549 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 18:53:06,552 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 18:53:06,554 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 18:53:06,657 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 18:53:06,671 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 18:53:06,674 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 18:53:06,703 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 18:53:06,710 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 18:53:06,716 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 18:53:06,797 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 18:53:06,797 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 18:53:06,800 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 18:53:06,800 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 18:53:06,805 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 18:53:06,948 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 18:53:06,954 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 18:53:06,955 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:53:06,963 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:53:06,963 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 18:53:06,963 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 18:53:06,963 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 18:53:06,963 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 18:53:06,965 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 18:53:06,965 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 18:53:06,965 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 18:53:06,965 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 18:53:06,965 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:53:06,966 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 18:53:06,966 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 18:53:06,966 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 18:53:07,492 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Users\Administrator\agent\agent\cognitive\..\..\data\failures
+2026-06-24 18:53:07,521 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:53:07,522 [    INFO] agent.cognitive.failure_analysis: [FailureAnalysis] 初始化失败分析器，存储路径: C:\Users\Administrator\agent\agent\cognitive\..\..\data\failures
+2026-06-24 18:53:07,523 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "get_quality_metrics", "duration_ms": 1.0, "status": "success"}
+2026-06-24 18:53:07,526 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:53:07,527 [    INFO] agent.server_routes.routes_dashboard: {"trace_id": null, "module_name": "dashboard", "action": "get_memory_stats", "duration_ms": 0.47, "status": "success"}
