@@ -1,8 +1,8 @@
 # 边界覆盖扫描报告
 
-- **生成时间**：2026-07-01T02:49:12.205273
-- **Trace ID**：`56fb587bfdfc43c2`
-- **扫描耗时**：1719.33 ms
+- **生成时间**：2026-07-01T02:52:02.584115
+- **Trace ID**：`d0b17e2d572a46e4`
+- **扫描耗时**：1725.44 ms
 - **总体状态**：⚠️ 警告
 
 ## 总览
@@ -10,9 +10,9 @@
 | 指标 | 数值 |
 | --- | --- |
 | 模块总数 | 66 |
-| 测试用例总数 | 5673 |
-| 边界测试用例数 | 959 |
-| 边界测试覆盖率 | 16.9% |
+| 测试用例总数 | 5702 |
+| 边界测试用例数 | 987 |
+| 边界测试覆盖率 | 17.3% |
 | 阻断模块数 | 0 |
 
 ## 模块详情
@@ -54,7 +54,7 @@
 | `network` |  | 18 | 7 | extreme, timeout | — | ✅ | — |
 | `network_config` |  | 66 | 9 | boundary, empty, extreme, invalid, timeout | — | ✅ | — |
 | `observability` | 可观测性工具 | 247 | 42 | boundary, empty, extreme, invalid, null, underflow | — | ✅ | — |
-| `orchestrator` | 任务编排 | 119 | 6 | boundary, null | timeout, invalid, extreme | ⚠️ | 建议补充边界场景: timeout, invalid, extreme |
+| `orchestrator` | 任务编排 | 148 | 34 | boundary, empty, extreme, invalid, null, overflow, timeout | — | ✅ | — |
 | `p6_config_loader` |  | 12 | 2 | invalid, null | — | ✅ | — |
 | `p6_snapshot` |  | 151 | 12 | boundary, empty, extreme, null | — | ✅ | — |
 | `pdf_tools` |  | 14 | 4 | empty | — | ✅ | — |
@@ -92,15 +92,15 @@
 | --- | --- | --- | --- |
 | `core` | `test_empty_registry_get_returns_default` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_list_returns_empty_list` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_registry_count_zero` | tests\boundary\test_core_boundary.py | extreme, empty |
+| `core` | `test_empty_registry_count_zero` | tests\boundary\test_core_boundary.py | empty, extreme |
 | `core` | `test_empty_registry_has_returns_false` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_remove_returns_false` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_all_returns_empty_dict` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_clear_no_error` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
-| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
+| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
 | `core` | `test_empty_registry_update_empty_dict` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | null, empty |
+| `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | empty, null |
 | `core` | `test_invalid_name_none_register` | tests\boundary\test_core_boundary.py | invalid, null |
 | `core` | `test_invalid_name_empty_string_register` | tests\boundary\test_core_boundary.py | invalid, empty |
 | `core` | `test_invalid_get_with_none_name` | tests\boundary\test_core_boundary.py | invalid, null |
@@ -132,7 +132,7 @@
 | `core` | `test_type_registry_create_nonexistent` | tests\unit\test_core_comprehensive.py | null |
 | `cognitive` | `test_timeout_inject_empty_data` | tests\boundary\test_cognitive_boundary.py | timeout, empty |
 | `cognitive` | `test_timeout_inject_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
-| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | null, timeout |
+| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | timeout, null |
 | `cognitive` | `test_timeout_translate_all_large_batch` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_get_summary_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_should_reject_task_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
@@ -141,7 +141,7 @@
 | `cognitive` | `test_empty_sensor_data_inject` | tests\boundary\test_cognitive_boundary.py | empty |
 | `cognitive` | `test_empty_sensor_data_get_summary` | tests\boundary\test_cognitive_boundary.py | empty |
 
-> 仅展示前 50 条，共 959 条边界测试用例
+> 仅展示前 50 条，共 987 条边界测试用例
 
 ## CI 阻断策略
 
