@@ -259,9 +259,16 @@ class TestFileParser:
 class ModuleResolver:
     """将测试文件归属到 agent/ 下的业务模块"""
 
-    def __init__(self, module_root: Path, test_root: Path):
+    def __init__(
+        self,
+        module_root: Path,
+        test_root: Path,
+        extra_candidates: Optional[List[str]] = None,
+    ):
         self.module_root = module_root
         self.test_root = test_root
+        # 配置中声明的模块名（支持项目根目录的模块，如 config.py 不在 agent/ 下）
+        self.extra_candidates = extra_candidates or []
         # 性能优化缓存：避免对同一文件/目录重复扫描与解析
         self._candidates_cache: Optional[List[str]] = None
         self._resolve_cache: Dict[str, Optional[str]] = {}  # 按文件路径缓存归属结果
@@ -335,6 +342,10 @@ class ModuleResolver:
                 candidates.append(p.name)
             elif p.is_file() and p.suffix == ".py":
                 candidates.append(p.stem)
+        # 合并配置中声明的模块名（支持项目根目录的模块，如 config.py 不在 agent/ 下）
+        for name in self.extra_candidates:
+            if name not in candidates:
+                candidates.append(name)
         self._candidates_cache = candidates
         return self._candidates_cache
 
@@ -369,16 +380,24 @@ class ModuleResolver:
 
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module and node.module.startswith("agent."):
-                    parts = node.module.split(".")
-                    if len(parts) >= 2 and parts[1] in candidates:
-                        return parts[1]
+                if node.module:
+                    # 匹配 agent.<module> 的子模块
+                    if node.module.startswith("agent."):
+                        parts = node.module.split(".")
+                        if len(parts) >= 2 and parts[1] in candidates:
+                            return parts[1]
+                    # 匹配项目根目录模块（如 from config import ...）
+                    elif node.module in candidates:
+                        return node.module
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name.startswith("agent."):
                         parts = alias.name.split(".")
                         if len(parts) >= 2 and parts[1] in candidates:
                             return parts[1]
+                    # 匹配项目根目录模块（如 import config）
+                    elif alias.name in candidates:
+                        return alias.name
         return None
 
 
@@ -471,8 +490,13 @@ class BoundaryScanner:
         self.keywords_map: Dict[str, List[str]] = global_cfg["keywords"]
 
         self.parser = TestFileParser(self.keywords_map)
-        self.resolver = ModuleResolver(self.module_root, self.test_root)
         self.modules_cfg: Dict[str, Any] = config.get("modules", {})
+        # 将配置中声明的模块名传递给 resolver，支持项目根目录模块（如 config.py）
+        self.resolver = ModuleResolver(
+            self.module_root,
+            self.test_root,
+            extra_candidates=list(self.modules_cfg.keys()),
+        )
         self.ci_policy: Dict[str, Any] = config.get("ci_policy", {})
 
     def scan(self) -> ScanResult:
