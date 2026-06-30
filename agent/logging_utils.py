@@ -2,9 +2,14 @@
 
 提供统一的日志配置和安全保护机制，包括：
 - 日志系统配置（支持日志轮转）
+- 结构化日志格式化（StructuredLogFormatter，对 JSON 日志美化显示）
 - 敏感信息自动脱敏
 - 权限操作审计日志
 - Windows GBK 编码兼容（emoji 自动替换）
+
+setup_agent_logging() 会在控制台 handler 上自动启用 StructuredLogFormatter：
+- JSON 日志：格式化为 [trace_id] module | action | duration_ms 多行显示
+- 非 JSON 日志：回退到带时间戳的标准格式
 """
 
 import os
@@ -229,11 +234,16 @@ def setup_agent_logging(
     """
     配置 Agent 模块的日志系统
 
+    当 enable_console=True 时，控制台 handler 自动启用 StructuredLogFormatter：
+    - JSON 日志（含 trace_id/module_name/action/duration_ms）会被美化显示
+    - 非 JSON 日志回退到带时间戳的标准格式
+    - 文件 handler 始终使用标准 Formatter（保证日志文件可解析）
+
     Args:
         debug_mode: 是否启用调试模式
         log_file: 日志文件路径（如果启用文件日志）
         rotation_config: 日志轮转配置
-        enable_console: 是否启用控制台输出
+        enable_console: 是否启用控制台输出（默认启用 StructuredLogFormatter）
         enable_file: 是否启用文件输出
 
     Returns:

@@ -6,6 +6,34 @@
 
 ---
 
+## [Unreleased] - 2026-06-30 网络配置保存逻辑修复 + 结构化日志增强
+
+### Fixed — 网络配置缓存污染与 api_key 泄漏
+- `network_config.py`: `_save()` 自动剥离 `search_instances.api_key` 并同步更新缓存
+- `network_config.py`: `get_raw_config()`/`get_all()` 返回 deepcopy 防止缓存污染
+- `network_config.py`: `_update_search_instances()` 移除 api_key 字段避免脱敏值写入
+- `network_config.py`: `apply_search_instances()` 简化 + 验证 default_engine 有效性
+- `app_server.py`: 搜索实例 POST/PUT 响应中 api_key 脱敏
+- `app_server.py`: 删除实例时清理 engine_priority 残留 id + default_engine
+- `app_server.py`: 设置默认引擎时同步 default_engine 字段
+- `routes_dashboard.py`: 修复 `trace_id` 为 null 时的空值处理
+
+### Added — 结构化日志与测试
+- `app_server.py`: 5 个排序/保存接口补充结构化日志（`_log_struct` 函数）
+- `network-config.js`: 新增 `NetworkConfigStateManager` 状态管理器（Observer 模式）
+- `network-config.js`: `saveNetworkConfig`/`refreshPriorityWithInstances` 添加结构化日志
+- `scripts/struct_log_formatter.py`: 结构化日志控制台格式化器（priority/default 变化高亮）
+- `tests/unit/test_network_config_save_regression.py`: 24 个回归测试覆盖所有修复点
+
+### Changed — 日志系统集成
+- `logging_utils.py`: `setup_agent_logging` 集成 `StructuredLogFormatter`，所有入口点默认使用
+- `struct_log_formatter.py`: 非 JSON 日志回退格式含时间戳；兼容 `msg`/`message` 字段
+
+### Verified — 测试无回归
+- 67 个测试全部通过（24 新增 + 43 原有）
+
+---
+
 ## [M2 里程碑] - 2026-06-29 可见性指标收敛 structured_log 55% + exception 80% + track_event 50%
 
 ### 指标达标
