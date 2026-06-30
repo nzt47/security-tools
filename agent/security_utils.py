@@ -9,6 +9,7 @@
 import os
 import sys
 import json
+import uuid
 import base64
 import logging
 import re
@@ -22,6 +23,11 @@ except ImportError:
     HAS_CRYPTO = False
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 敏感数据模式 - 改进版，避免分组问题
 SENSITIVE_PATTERNS = [
@@ -49,14 +55,14 @@ class LogEncryptor:
             key_env_var: 加密密钥的环境变量名
         """
         if not HAS_CRYPTO:
-            logger.warning("cryptography库未安装，加密功能不可用")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "cryptography", "msg": "cryptography库未安装，加密功能不可用"}, ensure_ascii=False))
             self._cipher = None
             return
             
         self._key = self._load_or_generate_key(key_env_var)
         if self._key:
             self._cipher = Fernet(self._key)
-            logger.info("日志加密器已初始化")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": "日志加密器已初始化"}, ensure_ascii=False))
         else:
             self._cipher = None
         
@@ -68,19 +74,19 @@ class LogEncryptor:
             try:
                 return base64.urlsafe_b64decode(key_str)
             except Exception as e:
-                logger.warning(f"加载密钥失败: {e}，将生成新密钥")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": f"加载密钥失败: {e}，将生成新密钥"}, ensure_ascii=False))
         
         # 生成新密钥
         try:
             new_key = Fernet.generate_key()
-            logger.warning("=" * 70)
-            logger.warning("⚠️ 已生成新的加密密钥！")
-            logger.warning(f" 请将以下环境变量添加到您的配置中：")
-            logger.warning(f"  {key_env_var}={base64.urlsafe_b64encode(new_key).decode()}")
-            logger.warning("=" * 70)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": "=" * 70}, ensure_ascii=False))
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": "⚠️ 已生成新的加密密钥！"}, ensure_ascii=False))
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": f" 请将以下环境变量添加到您的配置中："}, ensure_ascii=False))
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "key_env_var.base64.urlsafe_b64encode", "msg": f"  {key_env_var}={base64.urlsafe_b64encode(new_key).decode()}"}, ensure_ascii=False))
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": "=" * 70}, ensure_ascii=False))
             return new_key
         except Exception as e:
-            logger.error(f"生成密钥失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": f"生成密钥失败: {e}"}, ensure_ascii=False))
             return None
     
     def encrypt_string(self, plaintext: str) -> str:
@@ -91,7 +97,7 @@ class LogEncryptor:
             ciphertext = self._cipher.encrypt(plaintext.encode("utf-8"))
             return base64.urlsafe_b64encode(ciphertext).decode()
         except Exception as e:
-            logger.error(f"加密失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": f"加密失败: {e}"}, ensure_ascii=False))
             return plaintext
     
     def decrypt_string(self, ciphertext: str) -> str:
@@ -103,7 +109,7 @@ class LogEncryptor:
             plaintext = self._cipher.decrypt(decoded)
             return plaintext.decode("utf-8")
         except Exception as e:
-            logger.error(f"解密失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": f"解密失败: {e}"}, ensure_ascii=False))
             return ciphertext
     
     def encrypt_dict(self, data: Dict[str, Any], fields: list) -> Dict[str, Any]:
@@ -150,7 +156,7 @@ class DataSanitizer:
     
     def __init__(self):
         self._patterns = SENSITIVE_PATTERNS
-        logger.info("数据脱敏器已初始化")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_utils", "action": "log", "msg": "数据脱敏器已初始化"}, ensure_ascii=False))
     
     def sanitize_string(self, text: str, placeholder: str = "[REDACTED]") -> str:
         """脱敏字符串"""

@@ -20,21 +20,9 @@ from flask import request, jsonify
 
 from agent.server_auth import require_token, log_request
 from agent.monitoring.tracing import get_trace_id, TraceContext
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
-
-
-def trace_route(service_name="BusinessDashboard"):
-    """追踪路由装饰器"""
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            operation = func.__name__.replace("api_", "").replace("_", ".")
-            with TraceContext(service_name, operation):
-                return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
 
 
 def _parse_time_range(time_range):
@@ -250,7 +238,7 @@ def _get_business_health():
         }
         
     except Exception as e:
-        logger.error(f"获取业务指标健康状态失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取业务指标健康状态失败: {e}"}, ensure_ascii=False))
         return {
             "status": "error",
             "error": str(e),
@@ -294,7 +282,7 @@ def _get_metric_definitions():
         }
         
     except Exception as e:
-        logger.error(f"获取指标定义失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取指标定义失败: {e}"}, ensure_ascii=False))
         return {
             "definitions": [],
             "total": 0,
@@ -437,4 +425,4 @@ def register_routes(app, state):
         result = _get_metric_definitions()
         return jsonify(result)
     
-    logger.info("[Routes] 业务仪表盘端点已注册")
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": "[Routes] 业务仪表盘端点已注册"}, ensure_ascii=False))

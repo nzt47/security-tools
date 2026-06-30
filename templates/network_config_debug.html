@@ -281,10 +281,10 @@
       
       // 验证逻辑
       const errors = [];
-      if (config.network.proxy_enabled && config.network.proxy_url) {
+      if (config.network.proxy_enabled && config.network.proxy_url && !config.network.proxy_url.startsWith('***')) {
         try { new URL(config.network.proxy_url); } catch { errors.push('代理 URL 格式无效'); }
       }
-      if (config.external_services.error_reporting.enabled && config.external_services.error_reporting.webhook_url) {
+      if (config.external_services.error_reporting.enabled && config.external_services.error_reporting.webhook_url && !config.external_services.error_reporting.webhook_url.startsWith('***')) {
         try { new URL(config.external_services.error_reporting.webhook_url); } catch { errors.push('Webhook URL 格式无效'); }
       }
       

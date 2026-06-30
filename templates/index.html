@@ -400,6 +400,123 @@
 .view-help {
   margin-bottom: 12px;
 }
+
+/* ═══ 技能管理 v2 样式 ═══ */
+.skmgmt-tabbar{display:flex;align-items:center;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border-color,#30363d);background:var(--bg-secondary,#161b22)}
+.skmgmt-tabbtn{background:transparent;border:1px solid transparent;color:var(--text-secondary,#8b949e);padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-size:13px;transition:all .15s}
+.skmgmt-tabbtn:hover{color:var(--text-primary,#c9d1d9);background:var(--bg-hover,#21262d)}
+.skmgmt-tabbtn.active{color:var(--text-primary,#c9d1d9);background:var(--bg-primary,#0d1117);border-color:var(--border-color,#30363d);border-bottom-color:var(--bg-primary,#0d1117)}
+.skmgmt-badge{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:9px;background:rgba(74,158,255,.2);color:#4a9eff;font-size:11px;text-align:center;margin-left:4px}
+.skmgmt-health{margin-left:auto;font-size:14px;color:#9e9e9e;cursor:help}
+.skmgmt-health.online{color:#66bb6a}
+.skmgmt-health.offline{color:#ef5350}
+.skmgmt-pane{flex:1;min-height:0}
+.skmgmt-help-tip{padding:8px 14px;font-size:12px;color:var(--text-secondary,#8b949e);background:var(--bg-secondary,#161b22);border-bottom:1px solid var(--border-color,#30363d)}
+.skmgmt-toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border-color,#30363d);flex-wrap:wrap}
+.skmgmt-search{flex:1;min-width:200px;background:var(--bg-primary,#0d1117);border:1px solid var(--border-color,#30363d);color:var(--text-primary,#c9d1d9);padding:6px 10px;border-radius:6px;font-size:13px}
+.skmgmt-search:focus{outline:none;border-color:var(--accent-primary,#4a9eff)}
+.skmgmt-check{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary,#8b949e);cursor:pointer}
+.skmgmt-split{flex:1;display:flex;min-height:0}
+.skmgmt-list-pane{width:320px;min-width:240px;border-right:1px solid var(--border-color,#30363d);overflow-y:auto}
+.skmgmt-detail-pane{flex:1;overflow-y:auto;padding:16px}
+.skmgmt-item{padding:10px 14px;border-bottom:1px solid var(--border-color,#30363d);cursor:pointer;transition:background .12s}
+.skmgmt-item:hover{background:var(--bg-hover,#21262d)}
+.skmgmt-item.active{background:rgba(74,158,255,.12);border-left:3px solid #4a9eff;padding-left:11px}
+.skmgmt-item-name{font-size:13px;font-weight:600;color:var(--text-primary,#c9d1d9);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.skmgmt-item-desc{font-size:11px;color:var(--text-secondary,#8b949e);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skmgmt-item-meta{display:flex;gap:8px;margin-top:4px;font-size:10px;color:var(--text-tertiary,#6e7681)}
+.skmgmt-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:var(--bg-hover,#21262d);color:var(--text-secondary,#8b949e)}
+.skmgmt-status{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.skmgmt-status.draft{background:rgba(158,158,158,.2);color:#9e9e9e}
+.skmgmt-status.pending_review{background:rgba(255,193,7,.2);color:#ffc107}
+.skmgmt-status.approved{background:rgba(102,187,106,.2);color:#66bb6a}
+.skmgmt-status.published{background:rgba(33,150,243,.2);color:#2196f3}
+.skmgmt-status.rejected{background:rgba(239,83,80,.2);color:#ef5350}
+.skmgmt-status.deprecated{background:rgba(158,158,158,.15);color:#9e9e9e}
+.skmgmt-status.archived{background:rgba(158,158,158,.1);color:#6e7681}
+.skmgmt-detail h3{font-size:16px;color:var(--text-primary,#c9d1d9);margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.skmgmt-detail-desc{font-size:12px;color:var(--text-secondary,#8b949e);margin-bottom:12px;line-height:1.5}
+.skmgmt-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.skmgmt-meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:14px}
+.skmgmt-meta-item{background:var(--bg-secondary,#161b22);padding:8px 10px;border-radius:6px;border:1px solid var(--border-color,#30363d)}
+.skmgmt-meta-label{font-size:10px;color:var(--text-tertiary,#6e7681);text-transform:uppercase;letter-spacing:.5px}
+.skmgmt-meta-value{font-size:12px;color:var(--text-primary,#c9d1d9);margin-top:2px;word-break:break-all}
+.skmgmt-section{margin-bottom:16px}
+.skmgmt-section-title{font-size:12px;font-weight:600;color:var(--text-secondary,#8b949e);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border-color,#30363d)}
+.skmgmt-code{background:#0d1117;border:1px solid var(--border-color,#30363d);border-radius:6px;padding:10px;font-family:Consolas,Monaco,monospace;font-size:12px;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+.skmgmt-score{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.skmgmt-score.good{background:rgba(102,187,106,.2);color:#66bb6a}
+.skmgmt-score.warn{background:rgba(255,193,7,.2);color:#ffc107}
+.skmgmt-score.bad{background:rgba(239,83,80,.2);color:#ef5350}
+.skmgmt-finding{padding:6px 10px;margin-bottom:4px;border-radius:4px;font-size:12px;border-left:3px solid}
+.skmgmt-finding.warn{background:rgba(255,193,7,.08);border-color:#ffc107;color:#ffd54f}
+.skmgmt-finding.error{background:rgba(239,83,80,.08);border-color:#ef5350;color:#ef9a9a}
+.skmgmt-finding.info{background:rgba(74,158,255,.08);border-color:#4a9eff;color:#90caf9}
+.skmgmt-version{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border-color,#30363d);font-size:12px}
+.skmgmt-version-cur{background:rgba(74,158,255,.1);border-radius:4px}
+.skmgmt-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.skmgmt-modal{background:var(--bg-elevated,#1a1d24);border:1px solid var(--border-color,#30363d);border-radius:10px;width:90%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.skmgmt-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-color,#30363d)}
+.skmgmt-modal-title{font-size:15px;font-weight:600;color:var(--text-primary,#c9d1d9)}
+.skmgmt-modal-body{flex:1;overflow-y:auto;padding:16px 18px}
+.skmgmt-modal-footer{padding:12px 18px;border-top:1px solid var(--border-color,#30363d);display:flex;justify-content:flex-end;gap:8px}
+.skmgmt-form-row{margin-bottom:12px}
+.skmgmt-form-label{display:block;font-size:12px;color:var(--text-secondary,#8b949e);margin-bottom:4px}
+.skmgmt-form-input,.skmgmt-form-select,.skmgmt-form-textarea{width:100%;background:var(--bg-primary,#0d1117);border:1px solid var(--border-color,#30363d);color:var(--text-primary,#c9d1d9);padding:7px 10px;border-radius:6px;font-size:13px;box-sizing:border-box}
+.skmgmt-form-input:focus,.skmgmt-form-select:focus,.skmgmt-form-textarea:focus{outline:none;border-color:var(--accent-primary,#4a9eff)}
+.skmgmt-form-textarea{min-height:120px;font-family:Consolas,Monaco,monospace;resize:vertical}
+.skmgmt-mode-tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border-color,#30363d)}
+.skmgmt-mode-tab{padding:6px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary,#8b949e);cursor:pointer;font-size:12px}
+.skmgmt-mode-tab.active{color:var(--text-primary,#c9d1d9);border-bottom-color:#4a9eff}
+.skmgmt-wf-card{background:var(--bg-secondary,#161b22);border:1px solid var(--border-color,#30363d);border-radius:8px;padding:12px;margin-bottom:10px}
+.skmgmt-wf-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.skmgmt-wf-name{font-size:13px;font-weight:600;color:var(--text-primary,#c9d1d9)}
+.skmgmt-wf-desc{font-size:11px;color:var(--text-secondary,#8b949e);margin-bottom:8px;line-height:1.4}
+.skmgmt-wf-meta{display:flex;gap:10px;font-size:10px;color:var(--text-tertiary,#6e7681);flex-wrap:wrap}
+.skmgmt-wf-steps{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-color,#30363d)}
+.skmgmt-wf-step{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text-secondary,#8b949e)}
+.skmgmt-wf-step-num{width:18px;height:18px;border-radius:50%;background:var(--bg-hover,#21262d);display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-primary,#c9d1d9)}
+.skmgmt-wf-result-box{padding:10px 14px;margin:10px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border-color,#30363d);background:var(--bg-secondary,#161b22)}
+.skmgmt-wf-result-box.success{border-color:#66bb6a;background:rgba(102,187,106,.08)}
+.skmgmt-wf-result-box.fail{border-color:#ef5350;background:rgba(239,83,80,.08)}
+.skmgmt-cand{padding:8px 10px;border:1px solid var(--border-color,#30363d);border-radius:6px;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.skmgmt-loading{padding:30px;text-align:center;color:var(--text-secondary,#8b949e);font-size:13px}
+.skmgmt-empty{padding:30px;text-align:center;color:var(--text-secondary,#8b949e);font-size:13px}
+.skmgmt-error{padding:12px 14px;background:rgba(239,83,80,.1);border:1px solid #ef5350;border-radius:6px;color:#ef9a9a;font-size:12px;margin:10px 0}
+/* ─── 三层架构 ─── */
+.tl-summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:12px;border-bottom:1px solid var(--border-color,#30363d)}
+.tl-card{background:var(--bg-secondary,#161b22);border:1px solid var(--border-color,#30363d);border-radius:8px;padding:12px}
+.tl-card-head{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-secondary,#8b949e);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.tl-card-value{font-size:22px;font-weight:700;color:var(--text-primary,#c9d1d9)}
+.tl-card-sub{font-size:10px;color:var(--text-tertiary,#6e7681);margin-top:2px}
+.tl-section{padding:12px 14px;border-bottom:1px solid var(--border-color,#30363d)}
+.tl-section-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tl-layer-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;border-radius:4px;font-size:11px;font-weight:700;color:#fff}
+.tl-layer-badge.l1{background:linear-gradient(135deg,#4a9eff,#2196f3)}
+.tl-layer-badge.l2{background:linear-gradient(135deg,#66bb6a,#43a047)}
+.tl-layer-badge.l3{background:linear-gradient(135deg,#ff9800,#f57c00)}
+.tl-section-title{font-size:13px;font-weight:600;color:var(--text-primary,#c9d1d9)}
+.tl-section-hint{font-size:11px;color:var(--text-tertiary,#6e7681);margin-left:auto}
+.tl-match-list{margin-top:8px}
+.tl-match-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-secondary,#161b22);border:1px solid var(--border-color,#30363d);border-radius:6px;margin-bottom:6px;font-size:12px}
+.tl-match-name{font-weight:600;color:var(--text-primary,#c9d1d9)}
+.tl-match-score{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:rgba(74,158,255,.2);color:#4a9eff}
+.tl-match-meta{color:var(--text-tertiary,#6e7681);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl-instruction-box{background:#0d1117;border:1px solid var(--border-color,#30363d);border-radius:6px;padding:12px;font-size:12px;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow-y:auto;font-family:Consolas,Monaco,monospace}
+.tl-scripts-box{margin-top:8px}
+.tl-script-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-secondary,#161b22);border:1px solid var(--border-color,#30363d);border-radius:6px;margin-bottom:6px;font-size:12px}
+.tl-script-name{font-family:Consolas,Monaco,monospace;color:#90caf9;flex:1}
+.tl-script-size{color:var(--text-tertiary,#6e7681);font-size:10px}
+.tl-exec-result{margin-top:10px;padding:12px;background:var(--bg-secondary,#161b22);border:1px solid var(--border-color,#30363d);border-radius:6px;font-size:12px}
+.tl-exec-result.success{border-color:#66bb6a;background:rgba(102,187,106,.08)}
+.tl-exec-result.fail{border-color:#ef5350;background:rgba(239,83,80,.08)}
+.tl-exec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tl-exec-status{font-weight:600}
+.tl-exec-status.ok{color:#66bb6a}
+.tl-exec-status.err{color:#ef5350}
+.tl-exec-result pre{background:#0d1117;padding:8px;border-radius:4px;font-size:11px;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;margin:0;font-family:Consolas,Monaco,monospace}
+.tl-params-input{width:100%;background:var(--bg-primary,#0d1117);border:1px solid var(--border-color,#30363d);color:var(--text-primary,#c9d1d9);padding:6px 10px;border-radius:6px;font-size:12px;font-family:Consolas,Monaco,monospace;margin-top:6px;box-sizing:border-box}
+.tl-params-input:focus{outline:none;border-color:var(--accent-primary,#4a9eff)}
 </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260617">
@@ -864,24 +981,114 @@
 
       <!-- 技能管理视图 -->
       <div id="view-skills" class="view">
-        <div class="view-body" style="flex:1;min-height:0;overflow-y:auto;padding:20px">
-          <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
-          <div class="help-tip view-help">
-            <span class="help-icon">💡</span>
-            <div>
-              在对话中让云枢自主安装技能
-              <div class="help-examples">
-                <span class="help-example" onclick="fillSuggestion(&#39;帮我安装自省反思技能&#39;)">💬 安装自省反思</span>
-                <span class="help-example" onclick="fillSuggestion(&#39;帮我安装记忆摘要技能&#39;)">💬 安装记忆摘要</span>
-                <span class="help-example" onclick="fillSuggestion(&#39;禁用自省反思技能&#39;)">💬 禁用/启用</span>
-                <span class="help-example" onclick="fillSuggestion(&#39;列出已安装的技能&#39;)">💬 查看已安装</span>
+        <div class="view-body" style="flex:1;min-height:0;display:flex;flex-direction:column;padding:0">
+          <!-- Tab 切换栏 -->
+          <div class="skmgmt-tabbar">
+            <button class="skmgmt-tabbtn active" data-sktab="basic" onclick="skmgmtSwitchTab('basic')">📦 基础技能</button>
+            <button class="skmgmt-tabbtn" data-sktab="v2" onclick="skmgmtSwitchTab('v2')">🛠 技能管理 v2 <span class="skmgmt-badge" id="skmgmt-v2-count" style="display:none"></span></button>
+            <button class="skmgmt-tabbtn" data-sktab="workflow" onclick="skmgmtSwitchTab('workflow')">🔄 工作流学习 <span class="skmgmt-badge" id="skmgmt-wf-count" style="display:none"></span></button>
+            <button class="skmgmt-tabbtn" data-sktab="threelayer" onclick="skmgmtSwitchTab('threelayer')">🧱 三层架构</button>
+            <span class="skmgmt-health" id="skmgmt-health" title="后端服务健康状态">●</span>
+          </div>
+
+          <!-- Tab 1: 基础技能（原有内容，向后兼容） -->
+          <div class="skmgmt-pane active" id="sktab-basic" style="overflow-y:auto;padding:20px">
+            <h3 style="font-size:16px;color:#c9d1d9;margin:0 0 12px">🔧 技能管理</h3>
+            <div class="help-tip view-help">
+              <span class="help-icon">💡</span>
+              <div>
+                在对话中让云枢自主安装技能
+                <div class="help-examples">
+                  <span class="help-example" onclick="fillSuggestion(&#39;帮我安装自省反思技能&#39;)">💬 安装自省反思</span>
+                  <span class="help-example" onclick="fillSuggestion(&#39;帮我安装记忆摘要技能&#39;)">💬 安装记忆摘要</span>
+                  <span class="help-example" onclick="fillSuggestion(&#39;禁用自省反思技能&#39;)">💬 禁用/启用</span>
+                  <span class="help-example" onclick="fillSuggestion(&#39;列出已安装的技能&#39;)">💬 查看已安装</span>
+                </div>
               </div>
             </div>
+            <div class="panel-actions">
+              <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+            </div>
+            <div id="skills-list"></div>
           </div>
-          <div class="panel-actions">
-            <button class="btn-sm primary" onclick="showAddSkill()">+ 添加技能</button>
+
+          <!-- Tab 2: 技能管理 v2（完整技能生命周期：创建/审核/版本/搜索） -->
+          <div class="skmgmt-pane" id="sktab-v2" style="display:none;flex:1;flex-direction:column;min-height:0">
+            <div class="skmgmt-help-tip">💡 提示：v2 支持三重审核（重复/安全/质量）、SemVer 版本管理、多格式安装、参数优化。点击左侧技能查看详情。</div>
+            <div class="skmgmt-toolbar">
+              <input class="skmgmt-search" id="skmgmt-search" placeholder="搜索技能名称/描述/标签..." oninput="skmgmtDebouncedSearch()">
+              <select id="skmgmt-cat-filter" onchange="skmgmtLoadSkills()"><option value="">全部分类</option></select>
+              <select id="skmgmt-status-filter" onchange="skmgmtLoadSkills()"><option value="">全部状态</option><option value="draft">草稿</option><option value="pending_review">待审</option><option value="approved">已通过</option><option value="published">已发布</option><option value="rejected">已拒绝</option><option value="deprecated">已弃用</option><option value="archived">已归档</option></select>
+              <label class="skmgmt-check"><input type="checkbox" id="skmgmt-enabled-only" onchange="skmgmtLoadSkills()"> 仅启用</label>
+              <button class="btn-sm" onclick="skmgmtOpenCreator()">+ 新建技能</button>
+              <button class="btn-sm" onclick="skmgmtBatchReview()">批量审核</button>
+            </div>
+            <div class="skmgmt-split">
+              <div class="skmgmt-list-pane" id="skmgmt-list"></div>
+              <div class="skmgmt-detail-pane" id="skmgmt-detail"><div class="view-empty">点击左侧技能查看详情</div></div>
+            </div>
           </div>
-          <div id="skills-list"></div>
+
+          <!-- Tab 3: 工作流学习（从大模型交互学习方法，本地优先执行） -->
+          <div class="skmgmt-pane" id="sktab-workflow" style="display:none;flex:1;flex-direction:column;min-height:0">
+            <div class="skmgmt-help-tip">💡 提示：智能体从大模型成功交互中学习方法，自动生成可执行工作流。匹配到的本地工作流会优先执行，避免冗余 LLM 调用。</div>
+            <div class="skmgmt-toolbar">
+              <input class="skmgmt-search" id="wf-match-input" placeholder="输入任务描述测试匹配..." style="flex:1">
+              <button class="btn-sm" onclick="wfMatchOnly()">只匹配</button>
+              <button class="btn-sm primary" onclick="wfMatchAndExecute()">匹配并执行</button>
+              <button class="btn-sm" onclick="loadWorkflows()">刷新</button>
+            </div>
+            <div class="skmgmt-wf-result" id="wf-match-result" style="display:none"></div>
+            <div id="wf-list" style="flex:1;overflow-y:auto;padding:12px"></div>
+          </div>
+
+          <!-- Tab 4: 三层架构（元数据/说明/脚本 分层检索 + 沙箱执行） -->
+          <div class="skmgmt-pane" id="sktab-threelayer" style="display:none;flex:1;flex-direction:column;min-height:0">
+            <div class="skmgmt-help-tip">💡 三层架构：L1 元数据快速匹配（~100 token/技能）→ L2 按需加载使用说明 → L3 脚本后台沙箱执行，仅结果进入 LLM 上下文。</div>
+
+            <!-- 三层统计卡片 -->
+            <div id="tl-summary" class="tl-summary-cards"></div>
+
+            <!-- L1 意图匹配 -->
+            <div class="tl-section">
+              <div class="tl-section-head">
+                <span class="tl-layer-badge l1">L1</span>
+                <span class="tl-section-title">意图匹配（元数据层）</span>
+                <span class="tl-section-hint">输入自然语言意图，在元数据索引上做快速检索</span>
+              </div>
+              <div class="skmgmt-toolbar">
+                <input class="skmgmt-search" id="tl-intent-input" placeholder="如：帮我解析 PDF 文件 / 生成代码审查报告..." style="flex:1" oninput="tlDebouncedMatch()">
+                <button class="btn-sm primary" onclick="tlMatch()" id="tl-match-btn">匹配</button>
+                <button class="btn-sm" onclick="tlInject()">构建上下文</button>
+              </div>
+              <div id="tl-match-result" class="tl-match-list"></div>
+            </div>
+
+            <!-- L2 使用说明（按需加载） -->
+            <div class="tl-section">
+              <div class="tl-section-head">
+                <span class="tl-layer-badge l2">L2</span>
+                <span class="tl-section-title">使用说明（按需加载）</span>
+                <span class="tl-section-hint">点击 L1 命中技能的「加载说明」按钮，加载 skill.md 正文</span>
+              </div>
+              <div id="tl-instruction" class="tl-instruction-box">
+                <div class="skmgmt-empty">尚未加载任何技能说明</div>
+              </div>
+            </div>
+
+            <!-- L3 脚本执行 -->
+            <div class="tl-section">
+              <div class="tl-section-head">
+                <span class="tl-layer-badge l3">L3</span>
+                <span class="tl-section-title">脚本沙箱执行</span>
+                <span class="tl-section-hint">脚本在独立子进程执行，stdin 接收 JSON，stdout 返回 JSON 结果</span>
+              </div>
+              <div id="tl-scripts" class="tl-scripts-box">
+                <div class="skmgmt-empty">尚未选择技能</div>
+              </div>
+              <div id="tl-exec-result" class="tl-exec-result" style="display:none"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3422,6 +3629,7 @@ document.getElementById('chat-input').addEventListener('input', function() {
 <script src="{{ url_for('static', filename='js/nav.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/status-panel.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/skills.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/sidebar/skills-mgmt.js') }}?v=20260629v2"></script>
 <script src="{{ url_for('static', filename='js/sidebar/tools.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/personality.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/system-prompt.js') }}?v=20260620"></script>
@@ -3429,7 +3637,7 @@ document.getElementById('chat-input').addEventListener('input', function() {
 <script src="{{ url_for('static', filename='js/sidebar/memory.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/permission-control.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260617"></script>
-<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260620"></script>
+<script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260630b"></script>
 <script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260617"></script>
 <script>
 // ═══════════════════════════════════════════════

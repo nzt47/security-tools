@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统健康度仪表盘 — 云枢</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=20260624">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=20260624">
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #1c2128;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --blue: #58a6ff;
+      --purple: #a371f7;
+      --cyan: #39d353;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 24px; border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+    }
+    .header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header h1 span { font-size: 24px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .back-link { color: var(--blue); text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+    .main-container { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+    
+    /* 健康度概览区 */
+    .health-overview {
+      display: grid; grid-template-columns: 200px 1fr; gap: 20px; margin-bottom: 24px;
+    }
+    .health-score-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 24px; text-align: center;
+    }
+    .health-score-value {
+      font-size: 72px; font-weight: 700; line-height: 1;
+      margin-bottom: 8px;
+    }
+    .health-score-value.excellent { color: var(--cyan); text-shadow: 0 0 30px var(--cyan); }
+    .health-score-value.good { color: var(--green); text-shadow: 0 0 30px var(--green); }
+    .health-score-value.fair { color: var(--yellow); text-shadow: 0 0 30px var(--yellow); }
+    .health-score-value.warning { color: #f0883e; text-shadow: 0 0 30px #f0883e; }
+    .health-score-value.critical { color: var(--red); text-shadow: 0 0 30px var(--red); }
+    .health-score-label {
+      font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;
+      padding: 4px 12px; border-radius: 12px; display: inline-block;
+    }
+    .health-score-label.excellent { background: rgba(57, 211, 83, 0.15); color: var(--cyan); }
+    .health-score-label.good { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+    .health-score-label.fair { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
+    .health-score-label.warning { background: rgba(240, 136, 62, 0.15); color: #f0883e; }
+    .health-score-label.critical { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+    .health-timestamp { font-size: 12px; color: var(--text-secondary); margin-top: 12px; }
+    
+    .health-dimensions-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+    }
+    .dimension-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 16px; text-align: center;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .dimension-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+    .dimension-card .dim-icon { font-size: 24px; margin-bottom: 8px; }
+    .dimension-card .dim-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .dimension-card .dim-score {
+      font-size: 28px; font-weight: 600; margin-bottom: 4px;
+    }
+    .dimension-card .dim-bar {
+      height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden;
+    }
+    .dimension-card .dim-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+    
+    /* Tab导航 */
+    .tab-nav {
+      display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .tab-btn {
+      background: transparent; border: 1px solid transparent; padding: 8px 16px;
+      color: var(--text-secondary); cursor: pointer; border-radius: 6px;
+      font-size: 13px; display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+    .tab-btn.active { background: var(--bg-card); color: var(--blue); border-color: var(--blue); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* 指标卡片网格 */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;
+    }
+    .metric-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 14px 16px;
+    }
+    .metric-card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+    .metric-card .value { font-size: 24px; font-weight: 600; }
+    .metric-card .sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+    .metric-card.success .value { color: var(--green); }
+    .metric-card.warning .value { color: var(--yellow); }
+    .metric-card.error .value { color: var(--red); }
+    .metric-card.info .value { color: var(--blue); }
+    
+    /* 状态指示器 */
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+    .dot-excellent, .dot-ok { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+    .dot-good { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot-fair, .dot-warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    .dot-warning { background: #f0883e; box-shadow: 0 0 6px #f0883e; }
+    .dot-critical, .dot-error { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    
+    /* 分区标题 */
+    .section-title {
+      font-size: 16px; font-weight: 600; margin: 24px 0 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title .icon { font-size: 18px; }
+    
+    /* 图表容器 */
+    .chart-container {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 16px; margin-bottom: 20px;
+    }
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .chart-title { font-size: 14px; font-weight: 500; }
+    .chart-actions { display: flex; gap: 8px; }
+    #health-trend-chart, #dimension-chart, #latency-chart { width: 100%; height: 250px; }
+    
+    /* 表格样式 */
+    .table-wrap {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 8px; overflow: hidden; margin-bottom: 20px;
+    }
+    table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    th { color: var(--text-secondary); background: var(--bg-secondary); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(88, 166, 255, 0.05); }
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500;
+    }
+    .tag.success { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+    .tag.warning { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
+    .tag.error { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+    .tag.info { background: rgba(88, 166, 255, 0.15); color: var(--blue); }
+    
+    /* 按钮样式 */
+    .btn {
+      background: #21262d; border: 1px solid var(--border-color); padding: 6px 12px;
+      border-radius: 6px; color: var(--text-primary); cursor: pointer; font-size: 12px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn:hover { background: #30363d; }
+    .btn-primary { background: var(--green); border-color: var(--green); color: #fff; }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-sm { padding: 4px 8px; font-size: 11px; }
+    
+    /* 告警列表 */
+    .alert-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border-color);
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item .alert-content { display: flex; align-items: center; gap: 10px; }
+    .alert-item .alert-title { font-weight: 500; }
+    .alert-item .alert-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .alert-severity.critical { color: var(--red); }
+    .alert-severity.warning { color: var(--yellow); }
+    .alert-severity.info { color: var(--blue); }
+    
+    /* 进度条 */
+    .progress-bar {
+      height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .progress-fill.excellent { background: linear-gradient(90deg, var(--cyan), var(--green)); }
+    .progress-fill.good { background: var(--green); }
+    .progress-fill.fair { background: var(--yellow); }
+    .progress-fill.warning { background: #f0883e; }
+    .progress-fill.critical { background: var(--red); }
+    
+    /* 搜索栏 */
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;
+    }
+    .search-bar input, .search-bar select {
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      padding: 6px 10px; border-radius: 6px; color: var(--text-primary); font-size: 13px;
+    }
+    .search-bar input:focus, .search-bar select:focus { outline: none; border-color: var(--blue); }
+    
+    /* 加载状态 */
+    .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .empty-state { padding: 32px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+    
+    /* 实时状态栏 */
+    .realtime-bar {
+      background: var(--bg-secondary); padding: 10px 24px; display: flex;
+      justify-content: space-between; align-items: center; font-size: 12px;
+      color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
+    }
+    .realtime-bar .status-item { display: flex; align-items: center; gap: 6px; }
+    .realtime-bar .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+  <!-- 页头 -->
+  <div class="header">
+    <h1><span>💚</span> 系统健康度仪表盘 <small style="font-size: 14px; color: var(--text-secondary); font-weight: 400; margin-left: 8px;">云枢智能体监控中心</small></h1>
+    <div class="header-actions">
+      <button class="btn" onclick="refreshAll()">🔄 刷新</button>
+      <button class="btn" onclick="exportReport()">📥 导出报告</button>
+      <a href="/" class="back-link">← 返回主界面</a>
+    </div>
+  </div>
+  
+  <!-- 实时状态栏 -->
+  <div class="realtime-bar">
+    <div style="display: flex; gap: 20px;">
+      <div class="status-item">
+        <span class="status-dot dot-ok pulse"></span>
+        <span>数据实时更新中</span>
+      </div>
+      <div class="status-item">
+        <span>上次更新: </span>
+        <span id="last-update-time">-</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 20px;">
+      <div class="status-item">
+        <span>API响应: </span>
+        <span id="api-latency">-</span>
+      </div>
+      <div class="status-item">
+        <span>历史数据: </span>
+        <span id="history-count">-</span> 条
+      </div>
+    </div>
+  </div>
+  
+  <div class="main-container">
+    <!-- 健康度概览 -->
+    <div class="health-overview">
+      <div class="health-score-card">
+        <div class="health-score-value good" id="health-score">--</div>
+        <div class="health-score-label good" id="health-label">计算中</div>
+        <div class="health-timestamp" id="health-timestamp">-</div>
+      </div>
+      <div class="health-dimensions-grid" id="dimensions-grid">
+        <div class="dimension-card" data-dim="stability">
+          <div class="dim-icon">🛡️</div>
+          <div class="dim-name">稳定性</div>
+          <div class="dim-score" id="dim-stability-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-stability-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+        <div class="dimension-card" data-dim="performance">
+          <div class="dim-icon">⚡</div>
+          <div class="dim-name">性能</div>
+          <div class="dim-score" id="dim-performance-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-performance-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+        <div class="dimension-card" data-dim="quality">
+          <div class="dim-icon">✨</div>
+          <div class="dim-name">质量</div>
+          <div class="dim-score" id="dim-quality-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-quality-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+        <div class="dimension-card" data-dim="efficiency">
+          <div class="dim-icon">📊</div>
+          <div class="dim-name">效率</div>
+          <div class="dim-score" id="dim-efficiency-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-efficiency-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+        <div class="dimension-card" data-dim="availability">
+          <div class="dim-icon">🌐</div>
+          <div class="dim-name">可用性</div>
+          <div class="dim-score" id="dim-availability-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-availability-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+        <div class="dimension-card" data-dim="security">
+          <div class="dim-icon">🔒</div>
+          <div class="dim-name">安全性</div>
+          <div class="dim-score" id="dim-security-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-security-bar" style="width: 0%; background: var(--green)"></div></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab导航 -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('overview')">📊 概览</button>
+      <button class="tab-btn" onclick="switchTab('metrics')">📈 指标</button>
+      <button class="tab-btn" onclick="switchTab('stability')">🛡️ 稳定性</button>
+      <button class="tab-btn" onclick="switchTab('performance')">⚡ 性能</button>
+      <button class="tab-btn" onclick="switchTab('quality')">✨ 质量</button>
+      <button class="tab-btn" onclick="switchTab('alerts')">🔔 告警</button>
+      <button class="tab-btn" onclick="switchTab('history')">📜 历史</button>
+    </div>
+    
+    <!-- 概览Tab -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="metrics-grid" id="overview-metrics">
+        <div class="metric-card info">
+          <div class="label">系统状态</div>
+          <div class="value" id="sys-status">-</div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">CPU 使用率</div>
+          <div class="value" id="metric-cpu">-</div>
+          <div class="sub">核心数: <span id="cpu-cores">-</span></div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">内存使用率</div>
+          <div class="value" id="metric-memory">-</div>
+          <div class="sub">可用: <span id="mem-available">-</span></div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">磁盘使用率</div>
+          <div class="value" id="metric-disk">-</div>
+          <div class="sub">可用: <span id="disk-available">-</span></div>
+        </div>
+        <div class="metric-card success">
+          <div class="label">请求总数</div>
+          <div class="value" id="metric-requests">-</div>
+        </div>
+        <div class="metric-card success">
+          <div class="label">任务完成率</div>
+          <div class="value" id="metric-task-success">-</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="label">平均延迟</div>
+          <div class="value" id="metric-latency">-</div>
+          <div class="sub">P99: <span id="metric-p99">-</span></div>
+        </div>
+        <div class="metric-card error">
+          <div class="label">错误率</div>
+          <div class="value" id="metric-error-rate">-</div>
+        </div>
+      </div>
+      
+      <div class="section-title"><span class="icon">📈</span> 健康度趋势（最近24小时）</div>
+      <div class="chart-container">
+        <div class="chart-header">
+          <div class="chart-title">综合健康度与各维度得分趋势</div>
+          <div class="chart-actions">
+            <select id="trend-range" onchange="loadTrendData()">
+              <option value="1">最近1小时</option>
+              <option value="6">最近6小时</option>
+              <option value="24" selected>最近24小时</option>
+              <option value="168">最近7天</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="health-trend-chart"></canvas>
+      </div>
+      
+      <div class="section-title"><span class="icon">📋</span> 近期摘要</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>类型</th><th>消息</th><th>时间</th></tr></thead>
+          <tbody id="summary-table">
+            <tr><td colspan="3" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 指标Tab -->
+    <div id="tab-metrics" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="metric-search" placeholder="搜索指标名称..." oninput="filterMetrics()">
+        <select id="metric-type-filter" onchange="filterMetrics()">
+          <option value="">所有类型</option>
+          <option value="counter">计数器</option>
+          <option value="gauge">仪表</option>
+          <option value="histogram">直方图</option>
+        </select>
+        <button class="btn" onclick="loadAllMetrics()">🔄 刷新</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>指标名称</th><th>类型</th><th>当前值</th><th>描述</th></tr></thead>
+          <tbody id="metrics-table">
+            <tr><td colspan="4" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 稳定性Tab -->
+    <div id="tab-stability" class="tab-content">
+      <div class="metrics-grid">
+        <div class="metric-card info">
+          <div class="label">错误率</div>
+          <div class="value" id="stab-error-rate">-</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="label">崩溃次数</div>
+          <div class="value" id="stab-crash-count">-</div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">重试次数</div>
+          <div class="value" id="stab-retry-count">-</div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">重试率</div>
+          <div class="value" id="stab-retry-rate">-</div>
+        </div>
+      </div>
+      <div class="section-title"><span class="icon">🔄</span> 错误率趋势</div>
+      <div class="chart-container">
+        <canvas id="error-rate-chart"></canvas>
+      </div>
+    </div>
+    
+    <!-- 性能Tab -->
+    <div id="tab-performance" class="tab-content">
+      <div class="metrics-grid">
+        <div class="metric-card info">
+          <div class="label">P50 延迟</div>
+          <div class="value" id="perf-p50">-</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="label">P95 延迟</div>
+          <div class="value" id="perf-p95">-</div>
+        </div>
+        <div class="metric-card error">
+          <div class="label">P99 延迟</div>
+          <div class="value" id="perf-p99">-</div>
+        </div>
+        <div class="metric-card success">
+          <div class="label">吞吐量</div>
+          <div class="value" id="perf-throughput">-</div>
+        </div>
+      </div>
+      <div class="section-title"><span class="icon">📊</span> 延迟分布</div>
+      <div class="chart-container">
+        <canvas id="latency-chart"></canvas>
+      </div>
+    </div>
+    
+    <!-- 质量Tab -->
+    <div id="tab-quality" class="tab-content">
+      <div class="metrics-grid">
+        <div class="metric-card success">
+          <div class="label">Schema通过率</div>
+          <div class="value" id="qual-schema">-</div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">Critic评分</div>
+          <div class="value" id="qual-critic">-</div>
+        </div>
+        <div class="metric-card success">
+          <div class="label">任务完成率</div>
+          <div class="value" id="qual-task">-</div>
+        </div>
+        <div class="metric-card info">
+          <div class="label">工具成功率</div>
+          <div class="value" id="qual-tools">-</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 告警Tab -->
+    <div id="tab-alerts" class="tab-content">
+      <div class="search-bar">
+        <select id="alert-severity-filter" onchange="loadAlerts()">
+          <option value="">所有级别</option>
+          <option value="critical">严重</option>
+          <option value="warning">警告</option>
+          <option value="info">信息</option>
+        </select>
+        <button class="btn" onclick="loadAlerts()">🔄 刷新</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>级别</th><th>规则名称</th><th>描述</th><th>状态</th><th>触发时间</th></tr></thead>
+          <tbody id="alerts-table">
+            <tr><td colspan="5" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 历史Tab -->
+    <div id="tab-history" class="tab-content">
+      <div class="search-bar">
+        <select id="history-level-filter" onchange="loadHealthHistory()">
+          <option value="">所有等级</option>
+          <option value="excellent">优秀</option>
+          <option value="good">良好</option>
+          <option value="fair">一般</option>
+          <option value="warning">警告</option>
+          <option value="critical">危险</option>
+        </select>
+        <button class="btn" onclick="exportHistory()">📥 导出CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>时间</th><th>综合得分</th><th>等级</th><th>稳定性</th><th>性能</th><th>质量</th><th>效率</th><th>可用性</th><th>安全</th></tr></thead>
+          <tbody id="history-table">
+            <tr><td colspan="9" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════════════════════
+    // 全局状态
+    // ════════════════════════════════════════════════════════════
+    const API_BASE = '/api';
+    let healthData = null;
+    let metricsData = null;
+    let historyData = [];
+    let alertsData = [];
+    let trendChart = null;
+    let errorChart = null;
+    let latencyChart = null;
+    
+    // ════════════════════════════════════════════════════════════
+    // 初始化
+    // ════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+      setInterval(loadAllData, 30000);
+      setInterval(updateTime, 1000);
+    });
+    
+    async function loadAllData() {
+      const startTime = Date.now();
+      try {
+        const [health, metrics, status, alerts] = await Promise.all([
+          fetch(API_BASE + '/health/score').then(r => r.ok ? r.json() : getDefaultHealth()),
+          fetch(API_BASE + '/diagnostics/metrics').then(r => r.json()),
+          fetch(API_BASE + '/heartbeat').then(r => r.json()),
+          fetch(API_BASE + '/observability/alerts').then(r => r.json()).catch(() => ({groups: []}))
+        ]);
+        
+        healthData = health;
+        metricsData = metrics;
+        alertsData = alerts;
+        
+        document.getElementById('api-latency').textContent = (Date.now() - startTime) + 'ms';
+        document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
+        
+        updateHealthScore(health);
+        updateOverview(status, metrics);
+        updateStabilityMetrics(health);
+        updatePerformanceMetrics(metrics);
+        updateQualityMetrics(health);
+        loadTrendData();
+        loadAlerts();
+        loadHealthHistory();
+        loadSummaryTable(health);
+      } catch (e) {
+        console.error('加载数据失败:', e);
+      }
+    }
+    
+    function getDefaultHealth() {
+      return {
+        overall_score: 85,
+        level: 'good',
+        timestamp: new Date().toISOString(),
+        dimensions: {
+          stability: { score: 90, indicators: {} },
+          performance: { score: 85, indicators: {} },
+          quality: { score: 88, indicators: {} },
+          efficiency: { score: 82, indicators: {} },
+          availability: { score: 95, indicators: {} },
+          security: { score: 90, indicators: {} }
+        }
+      };
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 健康度评分更新
+    // ════════════════════════════════════════════════════════════
+    function updateHealthScore(data) {
+      const score = data.overall_score || 0;
+      const level = data.level || 'good';
+      
+      // 更新综合得分
+      const scoreEl = document.getElementById('health-score');
+      const labelEl = document.getElementById('health-label');
+      const timestampEl = document.getElementById('health-timestamp');
+      
+      scoreEl.textContent = score.toFixed(0);
+      scoreEl.className = 'health-score-value ' + level;
+      labelEl.className = 'health-score-label ' + level;
+      labelEl.textContent = getLevelText(level);
+      
+      const levelMap = { excellent: '优秀', good: '良好', fair: '一般', warning: '警告', critical: '危险' };
+      timestampEl.textContent = '评估时间: ' + new Date(data.timestamp).toLocaleString();
+      
+      // 更新各维度
+      const dims = data.dimensions || {};
+      const dimColors = {
+        excellent: 'var(--cyan)',
+        good: 'var(--green)',
+        fair: 'var(--yellow)',
+        warning: '#f0883e',
+        critical: 'var(--red)'
+      };
+      
+      ['stability', 'performance', 'quality', 'efficiency', 'availability', 'security'].forEach(dim => {
+        const dimData = dims[dim] || { score: 0 };
+        const dimScore = dimData.score || 0;
+        const dimLevel = getDimLevel(dimScore);
+        const color = dimColors[dimLevel];
+        
+        document.getElementById(`dim-${dim}-score`).textContent = dimScore.toFixed(0);
+        document.getElementById(`dim-${dim}-score`).style.color = color;
+        document.getElementById(`dim-${dim}-bar`).style.width = dimScore + '%';
+        document.getElementById(`dim-${dim}-bar`).style.background = color;
+      });
+    }
+    
+    function getLevelText(level) {
+      const map = { excellent: '🏆 优秀', good: '✅ 良好', fair: '⚠️ 一般', warning: '⚡ 警告', critical: '🔴 危险' };
+      return map[level] || '未知';
+    }
+    
+    function getDimLevel(score) {
+      if (score >= 90) return 'excellent';
+      if (score >= 70) return 'good';
+      if (score >= 50) return 'fair';
+      if (score >= 30) return 'warning';
+      return 'critical';
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 概览更新
+    // ════════════════════════════════════════════════════════════
+    function updateOverview(status, metrics) {
+      const checks = status.checks || {};
+      const sys = checks.system || {};
+      
+      document.getElementById('sys-status').innerHTML = getStatusDot(status.status) + getStatusText(status.status);
+      document.getElementById('metric-cpu').textContent = sys.cpu ? sys.cpu + '%' : '-';
+      document.getElementById('cpu-cores').textContent = sys.cpu_cores || navigator.hardwareConcurrency || '-';
+      document.getElementById('metric-memory').textContent = sys.memory ? sys.memory + '%' : '-';
+      document.getElementById('metric-disk').textContent = sys.disk ? sys.disk + '%' : '-';
+      
+      const reqCount = metrics.counters?.['count.chat.total'] || 0;
+      document.getElementById('metric-requests').textContent = reqCount > 1000 ? (reqCount/1000).toFixed(1) + 'k' : reqCount;
+      
+      const lat = metrics.histograms?.['latency.digital_life.chat'];
+      if (lat) {
+        document.getElementById('metric-latency').textContent = (lat.avg * 1000).toFixed(0) + 'ms';
+        document.getElementById('metric-p99').textContent = (lat.p99 * 1000).toFixed(0) + 'ms';
+      }
+      
+      if (healthData?.dimensions?.stability?.indicators) {
+        const errRate = healthData.dimensions.stability.indicators.error_rate;
+        document.getElementById('metric-error-rate').textContent = errRate ? (100 - errRate).toFixed(1) + '%' : '-';
+      }
+      
+      if (healthData?.dimensions?.quality?.indicators) {
+        const taskRate = healthData.dimensions.quality.indicators.task_success_rate;
+        document.getElementById('metric-task-success').textContent = taskRate ? (taskRate * 100).toFixed(1) + '%' : '-';
+      }
+    }
+    
+    function getStatusDot(status) {
+      const cls = status === 'healthy' ? 'dot-ok' : status === 'degraded' ? 'dot-warn' : 'dot-error';
+      return `<span class="status-dot ${cls}"></span>`;
+    }
+    
+    function getStatusText(status) {
+      return status === 'healthy' ? '健康' : status === 'degraded' ? '亚健康' : '异常';
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 各维度指标更新
+    // ════════════════════════════════════════════════════════════
+    function updateStabilityMetrics(health) {
+      const dims = health.dimensions || {};
+      const stab = dims.stability?.indicators || {};
+      document.getElementById('stab-error-rate').textContent = stab.error_rate ? stab.error_rate.toFixed(1) + '%' : '-';
+      document.getElementById('stab-crash-count').textContent = health.crash_count || 0;
+      document.getElementById('stab-retry-count').textContent = health.retry_count || 0;
+      document.getElementById('stab-retry-rate').textContent = stab.retry_rate ? stab.retry_rate.toFixed(1) + '%' : '-';
+    }
+    
+    function updatePerformanceMetrics(metrics) {
+      const hist = metrics.histograms || {};
+      const lat = hist['latency.digital_life.chat'] || {};
+      document.getElementById('perf-p50').textContent = lat.p50 ? (lat.p50 * 1000).toFixed(0) + 'ms' : '-';
+      document.getElementById('perf-p95').textContent = lat.p95 ? (lat.p95 * 1000).toFixed(0) + 'ms' : '-';
+      document.getElementById('perf-p99').textContent = lat.p99 ? (lat.p99 * 1000).toFixed(0) + 'ms' : '-';
+      document.getElementById('perf-throughput').textContent = metrics.gauges?.['throughput.current'] || '-';
+    }
+    
+    function updateQualityMetrics(health) {
+      const dims = health.dimensions || {};
+      const qual = dims.quality?.indicators || {};
+      document.getElementById('qual-schema').textContent = qual.schema_pass_rate ? (qual.schema_pass_rate * 100).toFixed(1) + '%' : '-';
+      document.getElementById('qual-critic').textContent = qual.critic_score ? qual.critic_score.toFixed(1) : '-';
+      document.getElementById('qual-task').textContent = qual.task_success_rate ? (qual.task_success_rate * 100).toFixed(1) + '%' : '-';
+      document.getElementById('qual-tools').textContent = qual.tool_success_rate ? (qual.tool_success_rate * 100).toFixed(1) + '%' : '-';
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 图表渲染
+    // ════════════════════════════════════════════════════════════
+    async function loadTrendData() {
+      try {
+        const resp = await fetch(API_BASE + '/health/history?limit=100');
+        const data = await resp.json();
+        historyData = data.history || [];
+        document.getElementById('history-count').textContent = historyData.length;
+        renderTrendChart(historyData.slice(-50));
+      } catch (e) {
+        console.error('加载趋势数据失败:', e);
+      }
+    }
+    
+    function renderTrendChart(data) {
+      const canvas = document.getElementById('health-trend-chart');
+      if (!canvas || data.length < 2) return;
+      
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 250 * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = '250px';
+      ctx.scale(dpr, dpr);
+      
+      const w = rect.width;
+      const h = 250;
+      const pad = { top: 20, right: 20, bottom: 40, left: 50 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      // 网格线
+      ctx.strokeStyle = '#21262d';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 100; i += 25) {
+        const y = pad.top + chartH - (i / 100) * chartH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(i + '', pad.left - 8, y + 3);
+      }
+      
+      // 数据线
+      const dimensions = ['overall_score', 'stability', 'performance', 'quality'];
+      const colors = ['#58a6ff', '#3fb950', '#d29922', '#a371f7'];
+      
+      dimensions.forEach((dim, idx) => {
+        const values = data.map(d => {
+          if (dim === 'overall_score') return d.overall_score || 0;
+          return d.dimensions?.[dim]?.score || 0;
+        });
+        
+        ctx.strokeStyle = colors[idx];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        values.forEach((v, i) => {
+          const x = pad.left + (i / (values.length - 1)) * chartW;
+          const y = pad.top + chartH - (v / 100) * chartH;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        
+        // 标签
+        ctx.fillStyle = colors[idx];
+        ctx.font = '11px sans-serif';
+        ctx.fillText(getDimLabel(dim), w - 80, pad.top + 15 + idx * 16);
+      });
+      
+      // X轴标签
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      const step = Math.max(1, Math.floor(data.length / 6));
+      data.forEach((d, i) => {
+        if (i % step === 0 || i === data.length - 1) {
+          const x = pad.left + (i / (data.length - 1)) * chartW;
+          const time = new Date(d.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          ctx.fillText(time, x, h - 10);
+        }
+      });
+    }
+    
+    function getDimLabel(dim) {
+      const map = {
+        overall_score: '综合',
+        stability: '稳定性',
+        performance: '性能',
+        quality: '质量',
+        efficiency: '效率',
+        availability: '可用性',
+        security: '安全'
+      };
+      return map[dim] || dim;
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 告警列表
+    // ════════════════════════════════════════════════════════════
+    async function loadAlerts() {
+      const tbody = document.getElementById('alerts-table');
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">加载中...</td></tr>';
+      
+      try {
+        const resp = await fetch(API_BASE + '/observability/alerts');
+        const data = await resp.json();
+        
+        let rows = [];
+        (data.groups || []).forEach(g => {
+          (g.rules || []).forEach(r => {
+            const severity = r.labels?.severity || 'info';
+            rows.push(`
+              <tr>
+                <td><span class="tag ${severity === 'critical' ? 'error' : severity === 'warning' ? 'warning' : 'info'}">${severity}</span></td>
+                <td>${escHtml(r.alert)}</td>
+                <td>${escHtml(r.expr || '')}</td>
+                <td>${r.state === 'firing' ? '<span class="tag error">触发</span>' : '<span class="tag success">正常</span>'}</td>
+                <td>${r.activeAt ? new Date(r.activeAt).toLocaleString() : '-'}</td>
+              </tr>
+            `);
+          });
+        });
+        
+        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5" class="empty-state">暂无告警</td></tr>';
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">加载失败</td></tr>';
+      }
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 历史记录
+    // ════════════════════════════════════════════════════════════
+    async function loadHealthHistory() {
+      const tbody = document.getElementById('history-table');
+      tbody.innerHTML = '<tr><td colspan="9" class="loading">加载中...</td></tr>';
+      
+      try {
+        const resp = await fetch(API_BASE + '/health/history?limit=50');
+        const data = await resp.json();
+        const history = data.history || [];
+        
+        if (history.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="empty-state">暂无历史数据</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = history.map(h => {
+          const dims = h.dimensions || {};
+          const level = h.level || 'good';
+          return `
+            <tr>
+              <td>${new Date(h.timestamp).toLocaleString()}</td>
+              <td><strong>${(h.overall_score || 0).toFixed(1)}</strong></td>
+              <td><span class="tag ${level === 'excellent' ? 'success' : level === 'good' ? 'success' : level === 'fair' ? 'warning' : level === 'warning' ? 'warning' : 'error'}">${getLevelText(level)}</span></td>
+              <td>${(dims.stability?.score || 0).toFixed(1)}</td>
+              <td>${(dims.performance?.score || 0).toFixed(1)}</td>
+              <td>${(dims.quality?.score || 0).toFixed(1)}</td>
+              <td>${(dims.efficiency?.score || 0).toFixed(1)}</td>
+              <td>${(dims.availability?.score || 0).toFixed(1)}</td>
+              <td>${(dims.security?.score || 0).toFixed(1)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">加载失败</td></tr>';
+      }
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 摘要表格
+    // ════════════════════════════════════════════════════════════
+    function loadSummaryTable(health) {
+      const tbody = document.getElementById('summary-table');
+      const summary = health.summary || [];
+      const recommendations = health.recommendations || [];
+      
+      if (summary.length === 0 && recommendations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无摘要信息</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = summary.map(s => `<tr><td>📋 摘要</td><td>${escHtml(s)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('') +
+        recommendations.map(r => `<tr><td>💡 建议</td><td>${escHtml(r)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('');
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 指标搜索
+    // ════════════════════════════════════════════════════════════
+    async function loadAllMetrics() {
+      const tbody = document.getElementById('metrics-table');
+      tbody.innerHTML = '<tr><td colspan="4" class="loading">加载中...</td></tr>';
+      
+      try {
+        const resp = await fetch(API_BASE + '/diagnostics/metrics');
+        const data = await resp.json();
+        
+        let rows = [];
+        Object.entries(data.counters || {}).forEach(([name, val]) => {
+          rows.push(`<tr><td style="font-family:monospace">${escHtml(name)}</td><td><span class="tag info">counter</span></td><td>${val}</td><td>-</td></tr>`);
+        });
+        Object.entries(data.gauges || {}).forEach(([name, val]) => {
+          rows.push(`<tr><td style="font-family:monospace">${escHtml(name)}</td><td><span class="tag success">gauge</span></td><td>${typeof val === 'number' ? val.toFixed(2) : val}</td><td>-</td></tr>`);
+        });
+        Object.entries(data.histograms || {}).forEach(([name, stats]) => {
+          const desc = `avg: ${(stats.avg*1000).toFixed(0)}ms, p95: ${(stats.p95*1000).toFixed(0)}ms`;
+          rows.push(`<tr><td style="font-family:monospace">${escHtml(name)}</td><td><span class="tag warning">histogram</span></td><td>${(stats.avg*1000).toFixed(0)}ms</td><td>${desc}</td></tr>`);
+        });
+        
+        tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" class="empty-state">暂无指标数据</td></tr>';
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">加载失败</td></tr>';
+      }
+    }
+    
+    function filterMetrics() {
+      const search = document.getElementById('metric-search').value.toLowerCase();
+      const typeFilter = document.getElementById('metric-type-filter').value;
+      const rows = document.querySelectorAll('#metrics-table tr');
+      
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const typeMatch = !typeFilter || row.querySelector(`.tag.${typeFilter}`) !== null;
+        row.style.display = text.includes(search) && typeMatch ? '' : 'none';
+      });
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // Tab切换
+    // ════════════════════════════════════════════════════════════
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+      
+      if (name === 'metrics' && !metricsData) loadAllMetrics();
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 工具函数
+    // ════════════════════════════════════════════════════════════
+    function updateTime() {
+      // 时间更新由自动刷新处理
+    }
+    
+    function refreshAll() {
+      loadAllData();
+      loadTrendData();
+    }
+    
+    function exportReport() {
+      const data = healthData || {};
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `health-report-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+    
+    function exportHistory() {
+      const csv = ['时间,综合得分,等级,稳定性,性能,质量,效率,可用性,安全'];
+      historyData.forEach(h => {
+        const d = h.dimensions || {};
+        csv.push([
+          h.timestamp,
+          h.overall_score?.toFixed(1) || 0,
+          h.level || '',
+          d.stability?.score?.toFixed(1) || 0,
+          d.performance?.score?.toFixed(1) || 0,
+          d.quality?.score?.toFixed(1) || 0,
+          d.efficiency?.score?.toFixed(1) || 0,
+          d.availability?.score?.toFixed(1) || 0,
+          d.security?.score?.toFixed(1) || 0
+        ].join(','));
+      });
+      const blob = new Blob([csv.join('\n')], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `health-history-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+    
+    function escHtml(s) {
+      if (!s) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    
+    // 图表自适应
+    window.addEventListener('resize', () => {
+      if (historyData.length > 0) {
+        renderTrendChart(historyData.slice(-50));
+      }
+    });
+  </script>
+</body>
+</html>

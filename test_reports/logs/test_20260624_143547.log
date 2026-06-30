@@ -1,0 +1,517 @@
+2026-06-24 14:35:47,613 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 14:35:47,617 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 14:35:47,619 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 14:35:47,628 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,628 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpmqj21dnp
+2026-06-24 14:35:47,628 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpmqj21dnp\messages.jsonl
+2026-06-24 14:35:47,629 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpmqj21dnp\summary.txt
+2026-06-24 14:35:47,629 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpmqj21dnp\summary_version.txt
+2026-06-24 14:35:47,629 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,630 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,635 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,636 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpckorsa5u
+2026-06-24 14:35:47,636 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpckorsa5u\messages.jsonl
+2026-06-24 14:35:47,637 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpckorsa5u\summary.txt
+2026-06-24 14:35:47,637 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpckorsa5u\summary_version.txt
+2026-06-24 14:35:47,637 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,638 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,638 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpckorsa5u\messages.jsonl
+2026-06-24 14:35:47,639 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,639 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.638500+00:00
+2026-06-24 14:35:47,645 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,645 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpmfevqhtw
+2026-06-24 14:35:47,645 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpmfevqhtw\messages.jsonl
+2026-06-24 14:35:47,646 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpmfevqhtw\summary.txt
+2026-06-24 14:35:47,646 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpmfevqhtw\summary_version.txt
+2026-06-24 14:35:47,646 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,647 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,647 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpmfevqhtw\messages.jsonl
+2026-06-24 14:35:47,652 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,652 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpn82xk2y5
+2026-06-24 14:35:47,653 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpn82xk2y5\messages.jsonl
+2026-06-24 14:35:47,653 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpn82xk2y5\summary.txt
+2026-06-24 14:35:47,654 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpn82xk2y5\summary_version.txt
+2026-06-24 14:35:47,654 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,655 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,658 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpn82xk2y5\messages.jsonl
+2026-06-24 14:35:47,665 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,665 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.655691+00:00
+2026-06-24 14:35:47,670 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,671 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmp7p3tykby
+2026-06-24 14:35:47,671 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmp7p3tykby\messages.jsonl
+2026-06-24 14:35:47,671 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmp7p3tykby\summary.txt
+2026-06-24 14:35:47,671 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmp7p3tykby\summary_version.txt
+2026-06-24 14:35:47,672 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,673 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,697 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp7p3tykby\messages.jsonl
+2026-06-24 14:35:47,727 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,727 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.673783+00:00
+2026-06-24 14:35:47,734 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,734 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmp8wd6l_t1
+2026-06-24 14:35:47,735 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,735 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmp8wd6l_t1\summary.txt
+2026-06-24 14:35:47,735 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmp8wd6l_t1\summary_version.txt
+2026-06-24 14:35:47,735 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,736 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,736 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,737 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,737 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.736907+00:00
+2026-06-24 14:35:47,737 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,737 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,738 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,738 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.737907+00:00
+2026-06-24 14:35:47,738 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,739 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,739 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,739 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.739907+00:00
+2026-06-24 14:35:47,739 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,740 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,740 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,740 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.740908+00:00
+2026-06-24 14:35:47,740 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,742 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,742 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,742 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.742281+00:00
+2026-06-24 14:35:47,742 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,742 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmp8wd6l_t1\summary.txt
+2026-06-24 14:35:47,743 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmp8wd6l_t1\summary_version.txt
+2026-06-24 14:35:47,744 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,745 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 0 条消息
+2026-06-24 14:35:47,745 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmp8wd6l_t1\messages.jsonl
+2026-06-24 14:35:47,745 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 5 行
+2026-06-24 14:35:47,746 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 5 条消息
+2026-06-24 14:35:47,751 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,752 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpop17ioyh
+2026-06-24 14:35:47,752 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,752 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpop17ioyh\summary.txt
+2026-06-24 14:35:47,753 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpop17ioyh\summary_version.txt
+2026-06-24 14:35:47,753 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,753 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,753 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,754 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,754 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.753404+00:00
+2026-06-24 14:35:47,754 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,755 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,755 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,755 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.755507+00:00
+2026-06-24 14:35:47,756 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,756 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,756 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,756 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.756506+00:00
+2026-06-24 14:35:47,757 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,757 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,757 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,758 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.757506+00:00
+2026-06-24 14:35:47,758 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,758 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,759 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,759 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.758507+00:00
+2026-06-24 14:35:47,759 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,759 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpop17ioyh\summary.txt
+2026-06-24 14:35:47,760 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpop17ioyh\summary_version.txt
+2026-06-24 14:35:47,761 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,762 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 -1 条消息
+2026-06-24 14:35:47,762 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpop17ioyh\messages.jsonl
+2026-06-24 14:35:47,763 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 5 行
+2026-06-24 14:35:47,763 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 4 条消息
+2026-06-24 14:35:47,769 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,769 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpue29wbym
+2026-06-24 14:35:47,769 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,770 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpue29wbym\summary.txt
+2026-06-24 14:35:47,770 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpue29wbym\summary_version.txt
+2026-06-24 14:35:47,770 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,770 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,771 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,771 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,771 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.771082+00:00
+2026-06-24 14:35:47,772 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,772 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,772 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.772080+00:00
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.773679+00:00
+2026-06-24 14:35:47,773 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,774 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,774 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,774 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.774671+00:00
+2026-06-24 14:35:47,775 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,775 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,775 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,776 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.775667+00:00
+2026-06-24 14:35:47,776 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,776 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpue29wbym\summary.txt
+2026-06-24 14:35:47,777 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpue29wbym\summary_version.txt
+2026-06-24 14:35:47,778 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,779 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 100 条消息
+2026-06-24 14:35:47,779 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpue29wbym\messages.jsonl
+2026-06-24 14:35:47,779 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 5 行
+2026-06-24 14:35:47,780 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 5 条消息
+2026-06-24 14:35:47,785 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,785 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpnqi86f3i
+2026-06-24 14:35:47,785 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpnqi86f3i\messages.jsonl
+2026-06-24 14:35:47,785 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpnqi86f3i\summary.txt
+2026-06-24 14:35:47,786 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpnqi86f3i\summary_version.txt
+2026-06-24 14:35:47,786 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,786 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,787 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpnqi86f3i\messages.jsonl
+2026-06-24 14:35:47,788 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,788 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.787668+00:00
+2026-06-24 14:35:47,788 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 1 条消息
+2026-06-24 14:35:47,789 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpnqi86f3i\messages.jsonl
+2026-06-24 14:35:47,789 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 1 行
+2026-06-24 14:35:47,789 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 1 条消息
+2026-06-24 14:35:47,795 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,795 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmp3wyesghr
+2026-06-24 14:35:47,796 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmp3wyesghr\messages.jsonl
+2026-06-24 14:35:47,796 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmp3wyesghr\summary.txt
+2026-06-24 14:35:47,796 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmp3wyesghr\summary_version.txt
+2026-06-24 14:35:47,796 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,797 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,797 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3wyesghr\messages.jsonl
+2026-06-24 14:35:47,798 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,798 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.797320+00:00
+2026-06-24 14:35:47,803 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,803 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpbuuj1sap
+2026-06-24 14:35:47,803 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpbuuj1sap\messages.jsonl
+2026-06-24 14:35:47,804 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpbuuj1sap\summary.txt
+2026-06-24 14:35:47,804 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpbuuj1sap\summary_version.txt
+2026-06-24 14:35:47,804 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,805 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,805 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbuuj1sap\messages.jsonl
+2026-06-24 14:35:47,806 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,806 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.805320+00:00
+2026-06-24 14:35:47,810 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,811 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmp3g7ccuta
+2026-06-24 14:35:47,811 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,812 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmp3g7ccuta\summary.txt
+2026-06-24 14:35:47,812 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmp3g7ccuta\summary_version.txt
+2026-06-24 14:35:47,812 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,813 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,814 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,814 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,814 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,815 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,815 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.814321+00:00
+2026-06-24 14:35:47,815 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,816 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,816 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,817 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.814321+00:00
+2026-06-24 14:35:47,817 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,817 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,818 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,818 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.815321+00:00
+2026-06-24 14:35:47,818 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,818 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,819 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,819 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.816360+00:00
+2026-06-24 14:35:47,819 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,819 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,820 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,820 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.818360+00:00
+2026-06-24 14:35:47,820 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,820 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,821 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,821 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.819355+00:00
+2026-06-24 14:35:47,821 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,821 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,821 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,822 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.820356+00:00
+2026-06-24 14:35:47,822 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,822 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,822 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,823 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.821355+00:00
+2026-06-24 14:35:47,823 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,823 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,823 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,824 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.822355+00:00
+2026-06-24 14:35:47,824 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,824 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,824 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,825 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.822355+00:00
+2026-06-24 14:35:47,825 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,825 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,825 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,826 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.823355+00:00
+2026-06-24 14:35:47,826 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,826 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,826 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,827 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.824356+00:00
+2026-06-24 14:35:47,827 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,827 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,827 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,828 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.825356+00:00
+2026-06-24 14:35:47,828 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,828 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,828 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.826355+00:00
+2026-06-24 14:35:47,828 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,829 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,829 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.828361+00:00
+2026-06-24 14:35:47,829 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 100 条消息
+2026-06-24 14:35:47,830 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmp3g7ccuta\messages.jsonl
+2026-06-24 14:35:47,830 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 15 行
+2026-06-24 14:35:47,830 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 15 条消息
+2026-06-24 14:35:47,835 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,835 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpvrf__9zw
+2026-06-24 14:35:47,836 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,836 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpvrf__9zw\summary.txt
+2026-06-24 14:35:47,836 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpvrf__9zw\summary_version.txt
+2026-06-24 14:35:47,836 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,837 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,837 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,838 [ WARNING] memory.storage: [Storage.load_recent_messages] 文件不存在: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,838 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,838 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,838 [ WARNING] memory.storage: [Storage.load_recent_messages] 文件不存在: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,838 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.838880+00:00
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 1 行
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,839 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 1 条消息
+2026-06-24 14:35:47,840 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,840 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,840 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,841 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,841 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 2 行
+2026-06-24 14:35:47,841 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.840879+00:00
+2026-06-24 14:35:47,841 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 2 条消息
+2026-06-24 14:35:47,841 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,842 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,842 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,842 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,843 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,843 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 3 行
+2026-06-24 14:35:47,843 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.842879+00:00
+2026-06-24 14:35:47,843 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 3 条消息
+2026-06-24 14:35:47,843 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,844 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,844 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,844 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,845 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,845 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 4 行
+2026-06-24 14:35:47,845 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.844981+00:00
+2026-06-24 14:35:47,845 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 4 条消息
+2026-06-24 14:35:47,846 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,846 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,846 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,847 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,847 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,847 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 5 行
+2026-06-24 14:35:47,847 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.846981+00:00
+2026-06-24 14:35:47,848 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 5 条消息
+2026-06-24 14:35:47,848 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,848 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,848 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,849 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,849 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,849 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 6 行
+2026-06-24 14:35:47,849 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.848978+00:00
+2026-06-24 14:35:47,849 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 6 条消息
+2026-06-24 14:35:47,850 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,850 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,850 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,850 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,851 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,851 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.850979+00:00
+2026-06-24 14:35:47,851 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 7 行
+2026-06-24 14:35:47,851 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,851 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 7 条消息
+2026-06-24 14:35:47,852 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 10 条消息
+2026-06-24 14:35:47,852 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,852 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,852 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,854 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 8 行
+2026-06-24 14:35:47,854 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.852978+00:00
+2026-06-24 14:35:47,854 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 8 条消息
+2026-06-24 14:35:47,854 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,855 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,855 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,855 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.855089+00:00
+2026-06-24 14:35:47,855 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,856 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpvrf__9zw\messages.jsonl
+2026-06-24 14:35:47,856 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,857 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.856090+00:00
+2026-06-24 14:35:47,862 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,862 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpgx7ue9b8\level1\level2\level3
+2026-06-24 14:35:47,863 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpgx7ue9b8\level1\level2\level3\messages.jsonl
+2026-06-24 14:35:47,863 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpgx7ue9b8\level1\level2\level3\summary.txt
+2026-06-24 14:35:47,863 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpgx7ue9b8\level1\level2\level3\summary_version.txt
+2026-06-24 14:35:47,863 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,863 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,864 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpgx7ue9b8\level1\level2\level3\messages.jsonl
+2026-06-24 14:35:47,865 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,865 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.864090+00:00
+2026-06-24 14:35:47,870 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,870 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmps7brje8n
+2026-06-24 14:35:47,870 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmps7brje8n\messages.jsonl
+2026-06-24 14:35:47,871 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmps7brje8n\summary.txt
+2026-06-24 14:35:47,871 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmps7brje8n\summary_version.txt
+2026-06-24 14:35:47,871 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,872 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 50 条消息
+2026-06-24 14:35:47,872 [ WARNING] memory.storage: [Storage.load_recent_messages] 文件不存在: C:\Windows\TEMP\tmps7brje8n\messages.jsonl
+2026-06-24 14:35:47,872 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,873 [ WARNING] memory.storage: [Storage.load_summary] 摘要或版本文件不存在
+2026-06-24 14:35:47,877 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,878 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmppg58y12w
+2026-06-24 14:35:47,878 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmppg58y12w\messages.jsonl
+2026-06-24 14:35:47,878 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmppg58y12w\summary.txt
+2026-06-24 14:35:47,879 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmppg58y12w\summary_version.txt
+2026-06-24 14:35:47,879 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,880 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,880 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmppg58y12w\summary.txt
+2026-06-24 14:35:47,881 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmppg58y12w\summary_version.txt
+2026-06-24 14:35:47,881 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,881 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,882 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmppg58y12w\summary.txt
+2026-06-24 14:35:47,882 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmppg58y12w\summary_version.txt
+2026-06-24 14:35:47,882 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: 1
+2026-06-24 14:35:47,889 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,889 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmphzfsmp2t
+2026-06-24 14:35:47,889 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmphzfsmp2t\messages.jsonl
+2026-06-24 14:35:47,890 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmphzfsmp2t\summary.txt
+2026-06-24 14:35:47,890 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmphzfsmp2t\summary_version.txt
+2026-06-24 14:35:47,890 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,891 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,891 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmphzfsmp2t\summary.txt
+2026-06-24 14:35:47,892 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmphzfsmp2t\summary_version.txt
+2026-06-24 14:35:47,893 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,893 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,893 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmphzfsmp2t\summary.txt
+2026-06-24 14:35:47,894 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmphzfsmp2t\summary_version.txt
+2026-06-24 14:35:47,894 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: 1
+2026-06-24 14:35:47,900 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,900 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpkav6nzg_
+2026-06-24 14:35:47,901 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpkav6nzg_\messages.jsonl
+2026-06-24 14:35:47,901 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpkav6nzg_\summary.txt
+2026-06-24 14:35:47,901 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpkav6nzg_\summary_version.txt
+2026-06-24 14:35:47,901 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,902 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 0
+2026-06-24 14:35:47,902 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpkav6nzg_\summary.txt
+2026-06-24 14:35:47,903 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpkav6nzg_\summary_version.txt
+2026-06-24 14:35:47,904 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,904 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,904 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpkav6nzg_\summary.txt
+2026-06-24 14:35:47,905 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpkav6nzg_\summary_version.txt
+2026-06-24 14:35:47,905 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: 0
+2026-06-24 14:35:47,909 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,910 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpeaaf8ja6
+2026-06-24 14:35:47,910 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpeaaf8ja6\messages.jsonl
+2026-06-24 14:35:47,911 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpeaaf8ja6\summary.txt
+2026-06-24 14:35:47,911 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpeaaf8ja6\summary_version.txt
+2026-06-24 14:35:47,911 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,912 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: -1
+2026-06-24 14:35:47,913 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpeaaf8ja6\summary.txt
+2026-06-24 14:35:47,913 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpeaaf8ja6\summary_version.txt
+2026-06-24 14:35:47,914 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,914 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,915 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpeaaf8ja6\summary.txt
+2026-06-24 14:35:47,915 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpeaaf8ja6\summary_version.txt
+2026-06-24 14:35:47,915 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: -1
+2026-06-24 14:35:47,921 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,922 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpln3b7rds
+2026-06-24 14:35:47,922 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpln3b7rds\messages.jsonl
+2026-06-24 14:35:47,922 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpln3b7rds\summary.txt
+2026-06-24 14:35:47,923 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpln3b7rds\summary_version.txt
+2026-06-24 14:35:47,923 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,924 [    INFO] memory.storage: [Storage.clear_summary] 开始清空摘要
+2026-06-24 14:35:47,924 [    INFO] memory.storage: [Storage.clear_summary] 摘要清空成功
+2026-06-24 14:35:47,929 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,930 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpacq753bh
+2026-06-24 14:35:47,930 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpacq753bh\messages.jsonl
+2026-06-24 14:35:47,930 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpacq753bh\summary.txt
+2026-06-24 14:35:47,931 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpacq753bh\summary_version.txt
+2026-06-24 14:35:47,931 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,932 [    INFO] memory.storage: [Storage.clear_messages] 开始清空消息
+2026-06-24 14:35:47,932 [ WARNING] memory.storage: [Storage.clear_messages] 文件不存在，无需清空
+2026-06-24 14:35:47,937 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,937 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpbiksff01
+2026-06-24 14:35:47,938 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpbiksff01\messages.jsonl
+2026-06-24 14:35:47,938 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpbiksff01\summary.txt
+2026-06-24 14:35:47,938 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpbiksff01\summary_version.txt
+2026-06-24 14:35:47,939 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,939 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,940 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpbiksff01\summary.txt
+2026-06-24 14:35:47,941 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpbiksff01\summary_version.txt
+2026-06-24 14:35:47,941 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,942 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,942 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpbiksff01\summary.txt
+2026-06-24 14:35:47,943 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpbiksff01\summary_version.txt
+2026-06-24 14:35:47,943 [   ERROR] memory.storage: [Storage.load_summary] 加载失败: invalid literal for int() with base 10: 'not_a_number'
+2026-06-24 14:35:47,950 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,951 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpo5q46lz_
+2026-06-24 14:35:47,951 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpo5q46lz_\messages.jsonl
+2026-06-24 14:35:47,951 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpo5q46lz_\summary.txt
+2026-06-24 14:35:47,952 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpo5q46lz_\summary_version.txt
+2026-06-24 14:35:47,952 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,953 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,953 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpo5q46lz_\messages.jsonl
+2026-06-24 14:35:47,954 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,954 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.953631+00:00
+2026-06-24 14:35:47,955 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 50 条消息
+2026-06-24 14:35:47,955 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpo5q46lz_\messages.jsonl
+2026-06-24 14:35:47,956 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 2 行
+2026-06-24 14:35:47,956 [   ERROR] memory.storage: [Storage.load_recent_messages] 加载失败: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-06-24 14:35:47,963 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,963 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmp0ns0844h
+2026-06-24 14:35:47,964 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmp0ns0844h\messages.jsonl
+2026-06-24 14:35:47,965 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmp0ns0844h\summary.txt
+2026-06-24 14:35:47,965 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmp0ns0844h\summary_version.txt
+2026-06-24 14:35:47,965 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,967 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,967 [ WARNING] memory.storage: [Storage.load_summary] 摘要或版本文件不存在
+2026-06-24 14:35:47,972 [    INFO] memory.storage: [Storage] __init__ 开始初始化
+2026-06-24 14:35:47,973 [    INFO] memory.storage: [Storage] 数据目录: C:\Windows\TEMP\tmpbho94koj
+2026-06-24 14:35:47,973 [    INFO] memory.storage: [Storage] 消息文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,974 [    INFO] memory.storage: [Storage] 摘要文件: C:\Windows\TEMP\tmpbho94koj\summary.txt
+2026-06-24 14:35:47,974 [    INFO] memory.storage: [Storage] 版本文件: C:\Windows\TEMP\tmpbho94koj\summary_version.txt
+2026-06-24 14:35:47,974 [    INFO] memory.storage: [Storage] __init__ 初始化完成
+2026-06-24 14:35:47,975 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,975 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,976 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,976 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.975376+00:00
+2026-06-24 14:35:47,977 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,977 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,979 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,979 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.977376+00:00
+2026-06-24 14:35:47,980 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,980 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,981 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,981 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.980379+00:00
+2026-06-24 14:35:47,982 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,982 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,983 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,983 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.982377+00:00
+2026-06-24 14:35:47,983 [    INFO] memory.storage: [Storage.save_message] 开始保存消息
+2026-06-24 14:35:47,984 [    INFO] memory.storage: [Storage.save_message] 追加写入文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,984 [    INFO] memory.storage: [Storage.save_message] 消息写入成功
+2026-06-24 14:35:47,985 [    INFO] memory.storage: [Storage.save_message] 返回消息ID: 2026-06-24T06:35:47.984521+00:00
+2026-06-24 14:35:47,985 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 20 条消息
+2026-06-24 14:35:47,985 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,986 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 5 行
+2026-06-24 14:35:47,986 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 5 条消息
+2026-06-24 14:35:47,986 [    INFO] memory.storage: [Storage.save_summary] 开始保存摘要，版本: 1
+2026-06-24 14:35:47,987 [    INFO] memory.storage: [Storage.save_summary] 写入摘要文件: C:\Windows\TEMP\tmpbho94koj\summary.txt
+2026-06-24 14:35:47,987 [    INFO] memory.storage: [Storage.save_summary] 写入版本文件: C:\Windows\TEMP\tmpbho94koj\summary_version.txt
+2026-06-24 14:35:47,988 [    INFO] memory.storage: [Storage.save_summary] 摘要保存成功
+2026-06-24 14:35:47,988 [    INFO] memory.storage: [Storage.clear_messages] 开始清空消息
+2026-06-24 14:35:47,989 [    INFO] memory.storage: [Storage.clear_messages] 清空文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,989 [    INFO] memory.storage: [Storage.clear_messages] 消息清空成功
+2026-06-24 14:35:47,990 [    INFO] memory.storage: [Storage.load_recent_messages] 开始加载最近 50 条消息
+2026-06-24 14:35:47,990 [    INFO] memory.storage: [Storage.load_recent_messages] 读取文件: C:\Windows\TEMP\tmpbho94koj\messages.jsonl
+2026-06-24 14:35:47,990 [    INFO] memory.storage: [Storage.load_recent_messages] 共读取 0 行
+2026-06-24 14:35:47,991 [    INFO] memory.storage: [Storage.load_recent_messages] 成功加载 0 条消息
+2026-06-24 14:35:47,991 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,991 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpbho94koj\summary.txt
+2026-06-24 14:35:47,992 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpbho94koj\summary_version.txt
+2026-06-24 14:35:47,992 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: 1
+2026-06-24 14:35:47,992 [    INFO] memory.storage: [Storage.clear_summary] 开始清空摘要
+2026-06-24 14:35:47,993 [    INFO] memory.storage: [Storage.clear_summary] 摘要文件已清空
+2026-06-24 14:35:47,994 [    INFO] memory.storage: [Storage.clear_summary] 版本号已重置为 0
+2026-06-24 14:35:47,995 [    INFO] memory.storage: [Storage.clear_summary] 摘要清空成功
+2026-06-24 14:35:47,995 [    INFO] memory.storage: [Storage.load_summary] 开始加载摘要
+2026-06-24 14:35:47,995 [    INFO] memory.storage: [Storage.load_summary] 读取摘要: C:\Windows\TEMP\tmpbho94koj\summary.txt
+2026-06-24 14:35:47,996 [    INFO] memory.storage: [Storage.load_summary] 读取版本: C:\Windows\TEMP\tmpbho94koj\summary_version.txt
+2026-06-24 14:35:47,996 [    INFO] memory.storage: [Storage.load_summary] 加载成功，版本: 0

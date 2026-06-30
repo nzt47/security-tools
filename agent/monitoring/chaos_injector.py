@@ -32,12 +32,15 @@ import time
 import random
 import threading
 import logging
+import json
+import uuid
 import gc
 import functools
 from typing import Dict, Optional, Callable, Any, List
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +114,13 @@ class ChaosInjector:
         self._memory_pressure_thread: Optional[threading.Thread] = None
         self._memory_pressure_stop_event = threading.Event()
         self._memory_hold_list: List[bytearray] = []
-        
+
         # 初始化默认配置
         for fault_type in FaultType:
             self._fault_configs[fault_type] = FaultConfig(fault_type=fault_type)
+
+        # 后台故障注入线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._chaos_trace_id = f"chaos-injector-{uuid.uuid4().hex[:16]}"
     
     def _check_probability(self, config: FaultConfig) -> bool:
         """检查是否应该触发故障（基于概率）"""
@@ -164,7 +170,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入网络延迟故障: delay={delay_ms}ms, probability={probability}, duration={duration_ms}ms")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "delay.delay_ms", "msg": f"[Chaos] 已注入网络延迟故障: delay={delay_ms}ms, probability={probability}, duration={duration_ms}ms"}, ensure_ascii=False))
     
     def inject_network_timeout(self, probability: float = 1.0, duration_ms: Optional[int] = None):
         """
@@ -190,7 +196,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入网络超时故障: probability={probability}, duration={duration_ms}ms")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "probability.probability.duration", "msg": f"[Chaos] 已注入网络超时故障: probability={probability}, duration={duration_ms}ms"}, ensure_ascii=False))
     
     def inject_service_unavailable(self, service_name: str, error_code: int = 503, 
                                   probability: float = 1.0, duration_ms: Optional[int] = None):
@@ -221,7 +227,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入服务不可用故障: service={service_name}, error_code={error_code}, probability={probability}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "service.service_name.error_code", "msg": f"[Chaos] 已注入服务不可用故障: service={service_name}, error_code={error_code}, probability={probability}"}, ensure_ascii=False))
     
     def inject_memory_pressure(self, target_mb: int, duration_ms: Optional[int] = None):
         """
@@ -259,15 +265,16 @@ class ChaosInjector:
                     chunk = bytearray(chunk_size)
                     self._memory_hold_list.append(chunk)
                     current_mb = len(self._memory_hold_list) * 50
-                    logger.debug(f"[Chaos] 内存压力: 已分配 {current_mb} MB")
+                    logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "current_mb", "msg": f"[Chaos] 内存压力: 已分配 {current_mb} MB"}, ensure_ascii=False))
                 except MemoryError:
-                    logger.warning("[Chaos] 内存分配失败，已达到系统限制")
+                    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "log", "msg": "[Chaos] 内存分配失败，已达到系统限制"}, ensure_ascii=False))
                     break
             
             # 如果需要持续一段时间，启动维护线程
             if duration_ms:
                 def memory_maintainer():
                     """内存维护线程，保持内存占用直到超时"""
+                    set_trace_id(self._chaos_trace_id)
                     start = time.time()
                     while not self._memory_pressure_stop_event.is_set():
                         if (time.time() - start) * 1000 >= duration_ms:
@@ -277,7 +284,7 @@ class ChaosInjector:
                     # 清理内存
                     self._memory_hold_list.clear()
                     gc.collect()
-                    logger.info(f"[Chaos] 内存压力线程已停止")
+                    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "log", "msg": f"[Chaos] 内存压力线程已停止"}, ensure_ascii=False))
                 
                 self._memory_pressure_thread = threading.Thread(target=memory_maintainer, daemon=True)
                 self._memory_pressure_thread.start()
@@ -288,7 +295,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入内存压力故障: target={target_mb}MB, duration={duration_ms}ms")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "target.target_mb", "msg": f"[Chaos] 已注入内存压力故障: target={target_mb}MB, duration={duration_ms}ms"}, ensure_ascii=False))
     
     def inject_cpu_pressure(self, duration_ms: Optional[int] = None):
         """
@@ -323,11 +330,12 @@ class ChaosInjector:
             if duration_ms:
                 def cleanup_monitor():
                     """监控并清理CPU压力进程"""
+                    set_trace_id(self._chaos_trace_id)
                     time.sleep(duration_ms / 1000.0 + 1)
                     for p in processes:
                         if p.is_alive():
                             p.terminate()
-                    logger.info(f"[Chaos] 所有CPU压力进程已终止")
+                    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "cpu", "msg": f"[Chaos] 所有CPU压力进程已终止"}, ensure_ascii=False))
                 
                 threading.Thread(target=cleanup_monitor, daemon=True).start()
             
@@ -337,7 +345,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入CPU压力故障: duration={duration_ms}ms, processes={num_cores}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "cpu.duration.duration_ms", "msg": f"[Chaos] 已注入CPU压力故障: duration={duration_ms}ms, processes={num_cores}"}, ensure_ascii=False))
     
     def inject_disk_io_delay(self, delay_ms: int, io_operation: str = "both", 
                             probability: float = 1.0, duration_ms: Optional[int] = None):
@@ -368,7 +376,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入磁盘IO延迟故障: delay={delay_ms}ms, operation={io_operation}, probability={probability}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "delay.delay_ms", "msg": f"[Chaos] 已注入磁盘IO延迟故障: delay={delay_ms}ms, operation={io_operation}, probability={probability}"}, ensure_ascii=False))
     
     def inject_disk_full(self, disk_usage_percent: int = 95, duration_ms: Optional[int] = None):
         """
@@ -395,7 +403,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入磁盘满故障: usage={disk_usage_percent}%")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "usage.disk_usage_percent", "msg": f"[Chaos] 已注入磁盘满故障: usage={disk_usage_percent}%"}, ensure_ascii=False))
     
     def inject_connection_pool_exhausted(self, pool_size: int = 0, 
                                         probability: float = 1.0, duration_ms: Optional[int] = None):
@@ -424,7 +432,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入连接池耗尽故障: remaining={pool_size}, probability={probability}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "remaining.pool_size.probability", "msg": f"[Chaos] 已注入连接池耗尽故障: remaining={pool_size}, probability={probability}"}, ensure_ascii=False))
     
     def inject_message_loss(self, loss_percent: int = 10, duration_ms: Optional[int] = None):
         """
@@ -451,7 +459,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入消息丢失故障: loss={loss_percent}%")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "loss.loss_percent", "msg": f"[Chaos] 已注入消息丢失故障: loss={loss_percent}%"}, ensure_ascii=False))
     
     def inject_message_out_of_order(self, probability: float = 0.5, duration_ms: Optional[int] = None):
         """
@@ -477,7 +485,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入消息乱序故障: probability={probability}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "probability.probability", "msg": f"[Chaos] 已注入消息乱序故障: probability={probability}"}, ensure_ascii=False))
     
     def inject_message_duplicate(self, duplicate_count: int = 2, 
                                 probability: float = 0.5, duration_ms: Optional[int] = None):
@@ -506,7 +514,7 @@ class ChaosInjector:
                 injected_at=datetime.now()
             ))
             
-            logger.info(f"[Chaos] 已注入消息重复故障: duplicates={duplicate_count}, probability={probability}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "duplicates.duplicate_count.probability", "msg": f"[Chaos] 已注入消息重复故障: duplicates={duplicate_count}, probability={probability}"}, ensure_ascii=False))
     
     def trigger_if_active(self, fault_type: FaultType, target_service: Optional[str] = None) -> bool:
         """
@@ -577,7 +585,7 @@ class ChaosInjector:
                     self._memory_hold_list.clear()
                     gc.collect()
             
-            logger.info(f"[Chaos] 已清除故障: {fault_type.value}")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "fault_type.value", "msg": f"[Chaos] 已清除故障: {fault_type.value}"}, ensure_ascii=False))
     
     def clear_all(self):
         """清除所有故障"""
@@ -592,7 +600,7 @@ class ChaosInjector:
             self._memory_hold_list.clear()
             gc.collect()
         
-        logger.info("[Chaos] 已清除所有故障")
+        logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "log", "msg": "[Chaos] 已清除所有故障"}, ensure_ascii=False))
     
     def get_active_faults(self) -> List[FaultConfig]:
         """获取当前活跃的故障配置"""
@@ -633,7 +641,7 @@ def get_chaos_injector() -> ChaosInjector:
         with _global_chaos_lock:
             if _global_chaos_injector is None:
                 _global_chaos_injector = ChaosInjector()
-                logger.info("[Chaos] 全局故障注入器已初始化")
+                logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "log", "msg": "[Chaos] 全局故障注入器已初始化"}, ensure_ascii=False))
     return _global_chaos_injector
 
 
@@ -657,18 +665,18 @@ def with_chaos_injection(fault_type: FaultType, target_service: Optional[str] = 
             if fault_type == FaultType.NETWORK_DELAY and injector.trigger_if_active(FaultType.NETWORK_DELAY, target_service):
                 delay_ms = injector.get_delay_ms(FaultType.NETWORK_DELAY)
                 if delay_ms:
-                    logger.info(f"[Chaos] 触发网络延迟: {delay_ms}ms")
+                    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "delay_ms", "msg": f"[Chaos] 触发网络延迟: {delay_ms}ms"}, ensure_ascii=False))
                     time.sleep(delay_ms / 1000.0)
             
             # 检查网络超时
             if injector.trigger_if_active(FaultType.NETWORK_TIMEOUT, target_service):
-                logger.info("[Chaos] 触发网络超时")
+                logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "log", "msg": "[Chaos] 触发网络超时"}, ensure_ascii=False))
                 raise TimeoutError("Chaos injection: Network timeout")
             
             # 检查服务不可用
             if injector.trigger_if_active(FaultType.SERVICE_UNAVAILABLE, target_service):
                 config = injector._fault_configs[FaultType.SERVICE_UNAVAILABLE]
-                logger.info(f"[Chaos] 触发服务不可用: {config.target_service}")
+                logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "chaos_injector", "action": "config.target_service", "msg": f"[Chaos] 触发服务不可用: {config.target_service}"}, ensure_ascii=False))
                 raise ConnectionError(f"Chaos injection: Service unavailable ({config.error_code})")
             
             return func(*args, **kwargs)

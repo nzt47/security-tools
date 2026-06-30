@@ -12,6 +12,7 @@
 
 import time
 import json
+import uuid
 import logging
 import threading
 import platform
@@ -27,13 +28,18 @@ from .analyzer import LogAnalyzer
 
 logger = logging.getLogger(__name__)
 
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
+
 # 尝试引入 LLM 工具（可选）
 try:
     from agent.tool_calling import ToolCallingService
     _LLM_AVAILABLE = True
 except ImportError:
     _LLM_AVAILABLE = False
-    logger.info("[Introspection] ToolCallingService 不可用，将仅使用规则引擎分析")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "toolcallingservice", "msg": "[Introspection] ToolCallingService 不可用，将仅使用规则引擎分析"}, ensure_ascii=False))
 
 
 class IdleDetector:
@@ -449,7 +455,7 @@ class IntrospectionEngine:
     def start_background_loop(self, interval_seconds: int = 1800):
         """启动后台循环（在独立线程中定期执行）"""
         if self._thread and self._thread.is_alive():
-            logger.warning("[Introspection] 后台循环已在运行")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "log", "msg": "[Introspection] 后台循环已在运行"}, ensure_ascii=False))
             return
 
         def _loop():
@@ -467,7 +473,7 @@ class IntrospectionEngine:
     def stop_background_loop(self):
         """停止后台循环"""
         self._thread = None
-        logger.info("[Introspection] 后台循环已停止")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "log", "msg": "[Introspection] 后台循环已停止"}, ensure_ascii=False))
 
     def get_status(self) -> dict:
         """获取内省引擎状态"""

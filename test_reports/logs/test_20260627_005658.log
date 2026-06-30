@@ -1,0 +1,151 @@
+2026-06-27 00:56:58,245 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 00:56:58,248 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 00:56:58,250 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 00:56:58,263 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 00:56:58,278 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 00:56:58,281 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-27 00:56:58,308 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 00:56:58,317 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 00:56:58,322 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 00:56:58,323 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 规划引擎 模块导入失败 (ImportError): cannot import name 'PlanningCore' from partially initialized module 'planning' (most likely due to a...
+2026-06-27 00:56:58,323 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 00:56:58,323 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 00:56:58,325 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 00:56:58,326 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 00:56:58,455 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 00:56:58,459 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [FAIL] planning: 未加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:56:58,460 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-27 00:56:58,461 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-27 00:56:58,461 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 00:56:58,547 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:56:58,547 [    INFO] test_memory_consistency: [测试开始] test_sensitive_info_filtering_in_memory
+2026-06-27 00:56:58,547 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:56:58.547663
+2026-06-27 00:56:58,547 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:56:58,547 [    INFO] test_memory_consistency: [步骤1] 初始化数据脱敏器
+2026-06-27 00:56:58,547 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [步骤2] 准备包含敏感信息的测试数据
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency:   原始敏感数据: {'user': 'admin', 'password': 'secret123', 'api_key': 'sk-12345-secret-key', 'email': 'admin@example.com', 'phone': '13800138000', 'normal_field': 'safe_value'}
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [步骤3] 执行脱敏处理
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency:   脱敏后数据: {'user': 'admin', 'password': '[REDACTED]', 'api_key': '[REDACTED]', 'email': '[REDACTED]', 'phone': '[REDACTED]', 'normal_field': 'safe_value'}
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [断言通过] 密码已脱敏
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [断言通过] API密钥已脱敏
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [断言通过] 普通字段保持不变
+2026-06-27 00:56:58,548 [    INFO] test_memory_consistency: [步骤4] 测试记忆过滤器
+2026-06-27 00:56:58,554 [    INFO] test_memory_consistency:   过滤后数据: {'user': 'admin', 'password': '********', 'api_key': '********', 'email': 'ad***@example.com', 'phone': '138****8000', 'normal_field': 'safe_value'}
+2026-06-27 00:56:58,554 [    INFO] test_memory_consistency: [断言通过] 敏感信息过滤成功
+2026-06-27 00:56:58,554 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:56:58,554 [    INFO] test_memory_consistency: [测试完成] test_sensitive_info_filtering_in_memory
+2026-06-27 00:56:58,554 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:56:58,578 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,578 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:56:58,578 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:56:58,578 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:56:58,578 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:56:58,578 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:56:58,588 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:56:58,589 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:56:58,589 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 10
+2026-06-27 00:56:58,589 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 2
+2026-06-27 00:56:58,589 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:56:58,589 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:56:58,590 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:56:58,590 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:56:58,590 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:56:58,590 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,593 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,593 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: create_file
+2026-06-27 00:56:58,593 [    INFO] planning.executor: 工具已注册: create_file
+2026-06-27 00:56:58,593 [    INFO] planning.core: 工具已注册到规划引擎: create_file
+2026-06-27 00:56:58,593 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: write_file
+2026-06-27 00:56:58,593 [    INFO] planning.executor: 工具已注册: write_file
+2026-06-27 00:56:58,593 [    INFO] planning.core: 工具已注册到规划引擎: write_file
+2026-06-27 00:56:58,593 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: read_file
+2026-06-27 00:56:58,593 [    INFO] planning.executor: 工具已注册: read_file
+2026-06-27 00:56:58,594 [    INFO] planning.core: 工具已注册到规划引擎: read_file
+2026-06-27 00:56:58,594 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 00:56:58,594 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 00:56:58,594 [    INFO] planning.core: 工具已注册到规划引擎: search
+2026-06-27 00:56:58,594 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: send_email
+2026-06-27 00:56:58,594 [    INFO] planning.executor: 工具已注册: send_email
+2026-06-27 00:56:58,594 [    INFO] planning.core: 工具已注册到规划引擎: send_email
+2026-06-27 00:56:58,594 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,596 [    INFO] planning.core:    任务描述: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员
+2026-06-27 00:56:58,596 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:56:58,596 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:56:58,598 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:56:58,601 [    INFO] planning.decomposer:    原始任务: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员
+2026-06-27 00:56:58,601 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:56:58,601 [    INFO] planning.decomposer:    最大子任务数: 10
+2026-06-27 00:56:58,601 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:56:58,605 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-27 00:56:58,607 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    使用分隔符 '接着' 分割任务
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    子任务4: 发送邮件通知管理员...
+2026-06-27 00:56:58,608 [    INFO] planning.decomposer:    规则分解完成，共 4 个子任务
+2026-06-27 00:56:58,614 [    INFO] planning.decomposer:    原始数据中包含 4 个子任务
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:    解析得到 4 个子任务
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:       子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:       子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:       子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:          依赖: ['step_2']
+2026-06-27 00:56:58,617 [    INFO] planning.decomposer:       子任务4: 发送邮件通知管理员...
+2026-06-27 00:56:58,618 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:56:58,618 [    INFO] planning.decomposer:          依赖: ['step_3']
+2026-06-27 00:56:58,621 [    INFO] planning.decomposer:    子任务总数: 4
+2026-06-27 00:56:58,621 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:56:58,622 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:56:58,623 [    INFO] planning.core:    计划ID: plan_995e689a
+2026-06-27 00:56:58,624 [    INFO] planning.core:    子任务数: 4
+2026-06-27 00:56:58,624 [    INFO] planning.core:       子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:56:58,624 [    INFO] planning.core:       子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:56:58,624 [    INFO] planning.core:       子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:56:58,624 [    INFO] planning.core:       子任务4: 发送邮件通知管理员...
+2026-06-27 00:56:58,626 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,626 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,628 [    INFO] planning.core:    计划ID: plan_995e689a
+2026-06-27 00:56:58,628 [    INFO] planning.core:    任务描述: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员...
+2026-06-27 00:56:58,628 [    INFO] planning.core:    任务数: 4
+2026-06-27 00:56:58,628 [    INFO] planning.core:    当前状态: ready
+2026-06-27 00:56:58,629 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: [状态转换] INFO: 计划ID: plan_995
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: [状态转换] INFO: 当前状态: ready (计划就绪)
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: [状态转换] INFO: 目标状态: executing (执行中)
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: [状态转换] SUCCESS: 转换成功: ready -> executing
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: [状态转换] INFO: 转换原因: 开始执行
+2026-06-27 00:56:58,631 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:56:58,635 [    INFO] planning.executor: 开始执行计划: plan_995e689a
+2026-06-27 00:56:58,635 [    INFO] planning.executor: [工具调用] INFO: 开始执行: create_file
+2026-06-27 00:56:58,635 [    INFO] planning.executor: [工具调用] SUCCESS: create_file
+2026-06-27 00:56:58,636 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 00:56:58,636 [    INFO] planning.executor: [工具调用] SUCCESS: search
+2026-06-27 00:56:58,636 [    INFO] planning.executor: [工具调用] INFO: 开始执行: write_file
+2026-06-27 00:56:58,636 [    INFO] planning.executor: [工具调用] SUCCESS: write_file
+2026-06-27 00:56:58,637 [    INFO] planning.executor: [工具调用] INFO: 开始执行: send_email
+2026-06-27 00:56:58,637 [    INFO] planning.executor: [工具调用] SUCCESS: send_email
+2026-06-27 00:56:58,637 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 00:56:58,655 [    INFO] planning.core: ============================================================
+2026-06-27 00:56:58,655 [    INFO] planning.core: ============================================================

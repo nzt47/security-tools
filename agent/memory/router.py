@@ -18,6 +18,8 @@
 """
 
 import logging
+import json
+import uuid
 from typing import Optional, Tuple, Any, List
 
 from agent.memory.base import MemoryInterface, MemoryResult
@@ -28,6 +30,11 @@ from agent.memory.adapters.mem0_adapter import Mem0Adapter
 # SensitiveDataFilter 来自 agent.utils.sensitive_data_filter（统一实现）
 # 通过 agent.memory.filter 兼容层导入（向后兼容别名）
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def _get_sensitive_filter():
@@ -177,12 +184,12 @@ class MemoryRouter:
             cache: MultiLevelCache 实例
         """
         self._cache_layer = cache
-        logger.info("[MemoryRouter] 缓存层已附加")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "router", "action": "log", "msg": "[MemoryRouter] 缓存层已附加"}, ensure_ascii=False))
 
     def detach_cache_layer(self):
         """移除缓存层"""
         self._cache_layer = None
-        logger.info("[MemoryRouter] 缓存层已移除")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "router", "action": "log", "msg": "[MemoryRouter] 缓存层已移除"}, ensure_ascii=False))
 
     # ── 敏感信息过滤 ──
 

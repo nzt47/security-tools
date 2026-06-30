@@ -468,17 +468,17 @@ class SensitiveDataFilter(logging.Filter):
         result = text
 
         result = re.sub(
-            r'(?i)(password|passwd|pwd|secret)["\']?\s*[:=]\s*["\']?([^"\']*)["\']?',
+            r'(?i)(password|passwd|pwd|secret)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?',
             r'\1="' + REDACTED_VALUE + '"',
             result,
         )
         result = re.sub(
-            r'(?i)(api[_-]?key|secret_key|access_token|refresh_token)["\']?\s*[:=]\s*["\']?([^"\']*)["\']?',
+            r'(?i)(api[_-]?key|secret_key|access_token|refresh_token)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?',
             r'\1="' + REDACTED_VALUE + '"',
             result,
         )
         result = re.sub(
-            r'([?&])(api_key|key|secret|token)\s*=\s*[^&]*',
+            r'([?&])(api_key|key|secret|token)\s*=\s*[^&\s]*',
             r'\1\2=' + REDACTED_VALUE,
             result,
             flags=re.IGNORECASE,

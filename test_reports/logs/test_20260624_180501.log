@@ -1,0 +1,67 @@
+2026-06-24 18:05:01,519 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 18:05:01,524 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 18:05:01,524 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 18:05:01,632 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 18:05:01,646 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 18:05:01,649 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 18:05:01,680 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 18:05:01,688 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 18:05:01,691 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 18:05:01,710 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 18:05:01,711 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 18:05:01,711 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 18:05:01,711 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 18:05:01,713 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 18:05:01,887 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 18:05:01,891 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 18:05:01,891 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 18:05:01,898 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 18:05:01,900 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 18:05:01,954 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:05:01,954 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:05:01,955 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:05:01,955 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['trace_id', 'timestamp', 'version']"}
+2026-06-24 18:05:01,955 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 0.0, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 18:05:01,955 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 18:05:01,955 [    INFO] agent.tool_calling: {"trace_id": "", "module_name": "tool_calling", "action": "_validate_output_with_schema", "duration_ms": 0, "output_type": "error_message", "result": "success"}
+2026-06-24 18:05:02,022 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-24 18:05:02,068 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,068 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 18:05:02,077 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,100 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-24 18:05:02,102 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 18:05:02,103 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 18:05:02,106 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,106 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 18:05:02,106 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 18:05:02,110 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 18:05:02,114 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 18:05:02,116 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,116 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 18:05:02,116 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 18:05:02,428 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 18:05:02,429 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 18:05:02,432 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,432 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 18:05:02,432 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 18:05:02,439 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,453 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,458 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 18:05:02,460 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-24 18:05:02,460 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 18:05:02,463 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-24 18:05:02,463 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 18:05:02,463 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockAdapter

@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
       - 'release/**'
     paths:
@@ -48,6 +49,8 @@ on:
   schedule:
     - cron: '0 3 * * *'  # 每天凌晨3点运行完整可观测性验证
     - cron: '0 2 * * *'  # 每天凌晨2点运行混沌测试
+    - cron: '0 4 * * 1'  # 每周一凌晨4点生成可见性趋势周报
+    - cron: '0 4 1 * *'  # 每月1日凌晨4点生成可见性趋势月报
 
   # 手动触发：支持选择测试范围和详细程度
   workflow_dispatch:
@@ -71,6 +74,20 @@ on:
         required: false
         default: '0'
         type: string
+      trend_period:
+        description: '可见性趋势报告周期（仅影响 visibility-trend-report job，其他 job 不受影响）'
+        required: false
+        default: 'skip'
+        type: choice
+        options:
+          - skip
+          - weekly
+          - monthly
+      mock_test_enable:
+        description: '是否运行 visibility-trend-mock-test（Mock 服务趋势报告测试）'
+        required: false
+        default: false
+        type: boolean
 
 env:
   PYTHON_VERSION: '3.11'
@@ -274,7 +291,8 @@ jobs:
         run: |
           echo "=== 运行可观测性单元测试 ==="
           # --cov-fail-under=0：本 job 仅测可观测性子模块，覆盖率不用于阻断
-          # 全项目覆盖率由 visibility-report job 读取 pyproject.toml fail_under 作为基线
+          # 全项目覆盖率由 full-project-tests job 生成 coverage.xml，
+          # visibility-report job 下载后由 visibility_report.py 读取 line-rate（不再降级到 pyproject.toml）
           python -m pytest \
             tests/unit/test_monitoring_tracing.py \
             tests/unit/test_prometheus_exporter.py \
@@ -377,8 +395,9 @@ jobs:
       # 原因：本 job 仅测 5 个可观测性测试文件，生成的 coverage.xml 只覆盖
       #       agent.monitoring/agent.observability/agent.prometheus_exporter 三个子模块，
       #       line-rate≈19.7%，远低于全项目 40% 阈值，会导致 visibility-report 误判失败。
-      # 修复：visibility-report job 不再下载部分覆盖的 coverage.xml，
-      #       而是由 visibility_report.py 降级读取 pyproject.toml fail_under=40 作为基线。
+      # 修复：visibility-report job 改为下载 full-project-tests job 生成的 full-coverage-report
+      #       artifact（覆盖 agent + scripts 全量代码），visibility_report.py 直接读取
+      #       coverage.xml 的 line-rate；缺失时返回 0.0 并输出 error 日志（不再降级到 pyproject.toml）。
 
   # ============================================================================
   # 阶段3：可观测性集成测试
@@ -815,7 +834,46 @@ jobs:
             echo "✅ coverage.xml 已从 full-project-tests 下载"
             python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
           else
-            echo "⚠️ coverage.xml 未就位，visibility_report.py 将降级到 pyproject.toml fail_under=40"
+            echo "⚠️ coverage.xml 未就位，visibility_report.py 将返回 0.0 并输出 error 日志（不再降级到 pyproject.toml fail_under）"
+          fi
+
+      # ── 回归检查：防止 _read_test_coverage 降级逻辑被意外回滚 ──
+      # 原理：临时移走 coverage.xml，调用 _read_test_coverage()，
+      #       验证返回 0.0（非降级）而非 40.0（pyproject.toml fail_under 降级值）。
+      # 如果返回 40.0，说明降级逻辑又回来了，检查失败，阻断合并。
+      - name: 回归检查 - coverage.xml 缺失时不降级
+        run: |
+          echo "=== 回归检查：_read_test_coverage 不应降级到 pyproject.toml fail_under ==="
+          # 临时移走 coverage.xml（如果存在）
+          if [ -f coverage.xml ]; then
+            mv coverage.xml coverage.xml.bak
+            echo "coverage.xml 已临时移走"
+          fi
+          # 调用 _read_test_coverage，捕获返回值（stderr 日志不干扰）
+          RESULT=$(python -c "
+          import sys; sys.path.insert(0, 'scripts')
+          from visibility_report import MetricCollector
+          from pathlib import Path
+          mc = MetricCollector(Path('.'), {})
+          v = mc._read_test_coverage()
+          print(v)
+          " 2>/dev/null)
+          echo "_read_test_coverage 返回值: $RESULT"
+          # 恢复 coverage.xml
+          if [ -f coverage.xml.bak ]; then
+            mv coverage.xml.bak coverage.xml
+            echo "coverage.xml 已恢复"
+          fi
+          # 验证：缺失时必须返回 0.0，不能是 40.0（降级值）
+          if [ "$RESULT" = "40.0" ] || [ "$RESULT" = "40" ]; then
+            echo "❌ 回归失败：coverage.xml 缺失时返回 40.0，说明降级逻辑又回来了"
+            echo "   请检查 scripts/visibility_report.py 的 _read_test_coverage 方法是否被意外回滚"
+            exit 1
+          elif [ "$RESULT" = "0.0" ] || [ "$RESULT" = "0" ]; then
+            echo "✅ 回归通过：coverage.xml 缺失时返回 0.0（不降级到 pyproject.toml）"
+          else
+            echo "⚠️ 异常返回值：$RESULT（期望 0.0），请检查 _read_test_coverage 实现"
+            exit 1
           fi
 
       - name: 生成四层可见性报告
@@ -1065,9 +1123,11 @@ jobs:
       - name: 运行混沌测试
         id: run_tests
         run: |
+          set +e  # 禁用 errexit，确保 exit_code 总能写入 output
           echo "=== 运行混沌测试 ==="
           python -m pytest ${{ steps.params.outputs.pytest_args }} 2>&1 | tee chaos_test_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
+          # 确保 exit_code 总能写入 output（即使 pytest 崩溃）
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "测试退出码: $EXIT_CODE"
           exit $EXIT_CODE
@@ -1127,7 +1187,7 @@ jobs:
             body += `| 跳过 | ${skipped} |\n`;
             body += `| 退出码 | ${exitCode} |\n`;
             body += `\n> ℹ️ 混沌测试使用 \`continue-on-error: true\`，**不会阻塞 PR 合并**。\n`;
-            body += `> 完整日志请查看 [Artifact](../runs/${{ github.run_id }}) 中的 \`chaos-test-logs\`。\n`;
+            body += `> 完整日志请查看 [Action 运行记录](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 中的 \`chaos-test-logs\` artifact。\n`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -1139,23 +1199,315 @@ jobs:
       - name: 手动触发确认信息
         if: github.event_name == 'workflow_dispatch'
         run: |
+          # 空值保护：如果上游 step 输出为空，使用默认值
+          SCOPE="${{ steps.params.outputs.scope }}"
+          VERBOSE="${{ steps.params.outputs.verbose }}"
+          MAX_FAIL="${{ steps.params.outputs.max_fail }}"
+          PASSED="${{ steps.parse_results.outputs.passed }}"
+          FAILED="${{ steps.parse_results.outputs.failed }}"
+          SKIPPED="${{ steps.parse_results.outputs.skipped }}"
+          EXIT_CODE="${{ steps.run_tests.outputs.exit_code }}"
+          # 默认值
+          SCOPE="${SCOPE:-unknown}"
+          VERBOSE="${VERBOSE:-unknown}"
+          MAX_FAIL="${MAX_FAIL:-unknown}"
+          PASSED="${PASSED:-0}"
+          FAILED="${FAILED:-0}"
+          SKIPPED="${SKIPPED:-0}"
+          EXIT_CODE="${EXIT_CODE:-unknown}"
+
           echo "=============================================="
           echo "  workflow_dispatch 手动触发确认"
           echo "=============================================="
           echo "触发者: ${{ github.actor }}"
           echo "分支: ${{ github.ref_name }}"
           echo "提交: ${{ github.sha }}"
-          echo "测试范围: ${{ steps.params.outputs.scope }}"
-          echo "详细输出: ${{ steps.params.outputs.verbose }}"
-          echo "最大失败: ${{ steps.params.outputs.max_fail }}"
+          echo "测试范围: $SCOPE"
+          echo "详细输出: $VERBOSE"
+          echo "最大失败: $MAX_FAIL"
           echo "----------------------------------------------"
           echo "测试结果:"
-          echo "  通过: ${{ steps.parse_results.outputs.passed }}"
-          echo "  失败: ${{ steps.parse_results.outputs.failed }}"
-          echo "  跳过: ${{ steps.parse_results.outputs.skipped }}"
-          echo "  退出码: ${{ steps.run_tests.outputs.exit_code }}"
+          echo "  通过: $PASSED"
+          echo "  失败: $FAILED"
+          echo "  跳过: $SKIPPED"
+          echo "  退出码: $EXIT_CODE"
           echo "=============================================="
           echo ""
-          echo "✅ workflow_dispatch 手动触发已生效！"
-          echo "✅ 测试范围选择功能正常！"
-          echo "✅ 结果解析功能正常！"
+          # 验证手动触发是否真正生效
+          if [ "$SCOPE" != "unknown" ] && [ -n "$PASSED" ]; then
+            echo "✅ workflow_dispatch 手动触发已生效！"
+            echo "✅ 测试范围选择功能正常（scope=$SCOPE）！"
+            echo "✅ 结果解析功能正常（passed=$PASSED, failed=$FAILED）！"
+            echo "✅ 参数传递链路完整：inputs → 参数构建 → pytest 执行 → 结果解析"
+          else
+            echo "⚠️ workflow_dispatch 触发可能异常，请检查上游 step 输出"
+          fi
+
+  # ============================================================================
+  # 阶段11：可见性趋势报告（周报/月报，定时触发，不阻塞 PR）
+  # - 触发条件：schedule cron 或 workflow_dispatch 手动选择 trend_period
+  # - 报告周期：schedule 触发时按日期判断（1号→月报，其他→周报）；
+  #             workflow_dispatch 时使用 inputs.trend_period
+  # - 失败不阻塞：continue-on-error + if: always() 保证后续步骤执行
+  # ============================================================================
+  visibility-trend-report:
+    name: 可见性趋势报告
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.trend_period != 'skip')
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 确定报告周期
+        id: period
+        run: |
+          # 优先使用 workflow_dispatch 手动选择的周期
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PERIOD="${{ inputs.trend_period }}"
+          elif [ "$(date +%d)" = "01" ]; then
+            # 每月1日的 cron 触发 → monthly
+            PERIOD="monthly"
+          else
+            # 每周一的 cron 触发 → weekly
+            PERIOD="weekly"
+          fi
+          echo "period=$PERIOD" >> $GITHUB_OUTPUT
+          echo "报告周期: $PERIOD"
+
+      - name: 创建输出目录
+        run: mkdir -p docs/observability/trends/
+
+      - name: 生成可见性趋势报告
+        id: generate
+        run: |
+          python scripts/generate_visibility_trend.py \
+            --prometheus-url "${{ secrets.PROMETHEUS_URL }}" \
+            --period ${{ steps.period.outputs.period }} \
+            --output docs/observability/trends/ \
+            --non-interactive
+        continue-on-error: true  # 不阻塞工作流，趋势报告失败不影响其他任务
+
+      - name: 上传趋势报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visibility-trend-${{ steps.period.outputs.period }}-${{ github.run_id }}
+          path: docs/observability/trends/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 提交趋势报告到仓库
+        if: github.event_name == 'schedule' && steps.generate.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/observability/trends/ || true
+          if git diff --staged --quiet; then
+            echo "无趋势报告变更，跳过提交"
+          else
+            git commit -m "docs(observability): 自动生成 ${{ steps.period.outputs.period }} 可见性趋势报告 [skip ci]"
+            git push
+          fi
+
+      - name: 生成摘要
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "  可见性趋势报告生成完成"
+          echo "=============================================="
+          echo "触发方式: ${{ github.event_name }}"
+          echo "报告周期: ${{ steps.period.outputs.period }}"
+          echo "生成状态: ${{ steps.generate.outcome }}"
+          echo "输出目录: docs/observability/trends/"
+          echo "=============================================="
+
+  # ============================================================================
+  # 阶段12：可见性趋势报告 Mock 测试（每次 PR/push 运行，不阻塞合并）
+  # 用 mock_prometheus_server.py 提供可预测的 7 天历史数据，验证
+  # generate_visibility_trend.py 的端到端流程：查询→渲染→JSON→退出码
+  # ============================================================================
+  visibility-trend-mock-test:
+    name: 可见性趋势报告 Mock 测试
+    runs-on: ubuntu-latest
+    # push/PR 时运行（验证代码变更不破坏趋势报告逻辑）
+    # workflow_dispatch 时通过 mock_test_enable 开关控制
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mock_test_enable == true)
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 语法检查
+        run: |
+          python -c "import ast; ast.parse(open('scripts/mock_prometheus_server.py', encoding='utf-8').read()); print('mock_prometheus_server.py SYNTAX_OK')"
+          python -c "import ast; ast.parse(open('scripts/generate_visibility_trend.py', encoding='utf-8').read()); print('generate_visibility_trend.py SYNTAX_OK')"
+
+      - name: 启动 Mock Prometheus 服务
+        run: |
+          # 后台启动 mock 服务（端口 9099）
+          python scripts/mock_prometheus_server.py --port 9099 > mock_server.log 2>&1 &
+          MOCK_PID=$!
+          echo "MOCK_PID=$MOCK_PID" >> $GITHUB_ENV
+          echo "Mock 服务 PID: $MOCK_PID"
+
+          # 等待服务就绪（最多 15 秒）
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:9099/-/healthy > /dev/null 2>&1; then
+              echo "Mock 服务已就绪（尝试 $i 次）"
+              break
+            fi
+            sleep 1
+          done
+
+          # 最终确认
+          if ! curl -sf http://localhost:9099/-/healthy > /dev/null 2>&1; then
+            echo "❌ Mock 服务启动失败"
+            cat mock_server.log
+            exit 1
+          fi
+          echo "✅ Mock Prometheus 服务运行中"
+
+      - name: 验证 Mock 服务 query_range 端点
+        run: |
+          # 用一个测试查询验证 query_range 返回正确的 matrix 数据
+          END=$(date +%s)
+          START=$((END - 7*24*3600))
+          RESP=$(curl -s "http://localhost:9099/api/v1/query_range?query=max_over_time(yunshu_visibility_runtime_structured_log_coverage{success=\"true\"}[7d])&start=$START&end=$END&step=1h")
+          STATUS=$(echo "$RESP" | python -c "import sys, json; print(json.load(sys.stdin)['status'])")
+          POINTS=$(echo "$RESP" | python -c "import sys, json; r=json.load(sys.stdin)['data']['result']; print(len(r[0]['values']) if r else 0)")
+          echo "query_range 状态: $STATUS"
+          echo "数据点数: $POINTS"
+          if [ "$STATUS" != "success" ] || [ "$POINTS" -lt 100 ]; then
+            echo "❌ Mock 服务 query_range 验证失败（期望 status=success, points>=100）"
+            exit 1
+          fi
+          echo "✅ Mock 服务 query_range 验证通过"
+
+      - name: 生成周报（weekly）
+        id: gen_weekly
+        run: |
+          mkdir -p docs/observability/trends_mock/
+          python scripts/generate_visibility_trend.py \
+            --prometheus-url http://localhost:9099 \
+            --period weekly \
+            --output docs/observability/trends_mock/ \
+            --non-interactive
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: 生成月报（monthly）
+        id: gen_monthly
+        run: |
+          python scripts/generate_visibility_trend.py \
+            --prometheus-url http://localhost:9099 \
+            --period monthly \
+            --output docs/observability/trends_mock/ \
+            --non-interactive
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: 验证报告文件完整性
+        run: |
+          echo "=== 验证周报文件 ==="
+          WEEKLY_MD="docs/observability/trends_mock/visibility_trend_weekly_$(date +%Y%m%d).md"
+          WEEKLY_HTML="docs/observability/trends_mock/visibility_trend_weekly_$(date +%Y%m%d).html"
+          WEEKLY_JSON="docs/observability/trends_mock/visibility_trend_weekly_$(date +%Y%m%d).json"
+
+          for f in "$WEEKLY_MD" "$WEEKLY_HTML" "$WEEKLY_JSON"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ 文件不存在: $f"
+              exit 1
+            fi
+            SIZE=$(wc -c < "$f")
+            echo "  ✅ $(basename $f) ($SIZE bytes)"
+          done
+
+          echo "=== 验证月报文件 ==="
+          MONTHLY_JSON="docs/observability/trends_mock/visibility_trend_monthly_$(date +%Y%m%d).json"
+          if [ ! -f "$MONTHLY_JSON" ]; then
+            echo "❌ 文件不存在: $MONTHLY_JSON"
+            exit 1
+          fi
+          echo "  ✅ $(basename $MONTHLY_JSON)"
+
+      - name: 验证 JSON 元数据
+        run: |
+          WEEKLY_JSON="docs/observability/trends_mock/visibility_trend_weekly_$(date +%Y%m%d).json"
+          python -c "
+          import json, sys
+          with open('$WEEKLY_JSON', encoding='utf-8') as f:
+              data = json.load(f)
+          series_count = len(data['series'])
+          failed = len(data['errors'])
+          status = data['overall_status']
+          print(f'series_count: {series_count}')
+          print(f'failed_count: {failed}')
+          print(f'overall_status: {status}')
+          # 验证：16 个指标全部成功，无错误
+          assert series_count == 16, f'期望 16 个 series，实际 {series_count}'
+          assert failed == 0, f'期望 0 个错误，实际 {failed}'
+          assert status == 'pass', f'期望 status=pass，实际 {status}'
+          print('✅ JSON 元数据验证通过')
+          "
+
+      - name: 验证 SVG 趋势图数据点
+        run: |
+          WEEKLY_HTML="docs/observability/trends_mock/visibility_trend_weekly_$(date +%Y%m%d).html"
+          python -c "
+          import re
+          with open('$WEEKLY_HTML', encoding='utf-8') as f:
+              content = f.read()
+          paths = re.findall(r'<path d=\"([^\"]+)\"', content)
+          print(f'SVG path 数量: {len(paths)}')
+          assert len(paths) == 16, f'期望 16 个 path，实际 {len(paths)}'
+          # 验证每个 path 的数据点数（weekly: 169 点 = 1 M + 168 L）
+          for i, path in enumerate(paths):
+              m_count = path.count('M ')
+              l_count = path.count(' L ')
+              total = m_count + l_count
+              assert total == 169, f'path[{i}] 期望 169 点，实际 {total}'
+          print('✅ 16 个 SVG path 各 169 个数据点，验证通过')
+          "
+
+      - name: 停止 Mock 服务
+        if: always()
+        run: |
+          if [ -n "$MOCK_PID" ]; then
+            kill $MOCK_PID 2>/dev/null || true
+            echo "Mock 服务已停止 (PID=$MOCK_PID)"
+          fi
+
+      - name: 上传趋势报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visibility-trend-mock-test-${{ github.run_id }}
+          path: |
+            docs/observability/trends_mock/
+            mock_server.log
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: 生成摘要
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "  可见性趋势报告 Mock 测试完成"
+          echo "=============================================="
+          echo "周报退出码: ${{ steps.gen_weekly.outputs.exit_code }}"
+          echo "月报退出码: ${{ steps.gen_monthly.outputs.exit_code }}"
+          echo "=============================================="

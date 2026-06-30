@@ -14,6 +14,7 @@
 import logging
 import time
 import json
+import uuid
 import os
 import subprocess
 import threading
@@ -22,6 +23,11 @@ from pathlib import Path
 from typing import Callable, Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 数据文件路径
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -46,7 +52,7 @@ class TaskScheduler:
         self._thread: Optional[threading.Thread] = None
         self._heartbeat_func: Optional[Callable] = None  # 由外部注入的心跳函数
         self._yunshu_ref = None  # DigitalLife 引用，供心跳使用
-        logger.info("[TaskScheduler] 初始化完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 初始化完成"}, ensure_ascii=False))
 
     def add_cron_task(self, name: str, func: Callable, day_of_week: int = None,
                       hour: int = 0, minute: int = 0) -> None:
@@ -61,7 +67,7 @@ class TaskScheduler:
             "task_id": self._generate_task_id("py"),
         }
         self.tasks.append(task)
-        logger.info(f"[TaskScheduler] 添加任务: {name} (cron)")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "name.cron", "msg": f"[TaskScheduler] 添加任务: {name} (cron)"}, ensure_ascii=False))
 
     def add_interval_task(self, name: str, func: Callable, interval_seconds: int) -> None:
         """添加 Python 函数间隔任务"""
@@ -75,7 +81,7 @@ class TaskScheduler:
             "task_id": self._generate_task_id("py"),
         }
         self.tasks.append(task)
-        logger.info(f"[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "name.interval_seconds", "msg": f"[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)"}, ensure_ascii=False))
 
     def add_command_task(self, name: str, command: str, interval_sec: int,
                          task_id: str = "", enabled: bool = True) -> None:
@@ -90,7 +96,7 @@ class TaskScheduler:
             "task_id": task_id or self._generate_task_id("cmd"),
         }
         self.tasks.append(task)
-        logger.info(f"[TaskScheduler] 添加命令任务: {name} (每{interval_sec}秒)")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "name.interval_sec", "msg": f"[TaskScheduler] 添加命令任务: {name} (每{interval_sec}秒)"}, ensure_ascii=False))
 
     def _generate_task_id(self, prefix: str = "task") -> str:
         """生成唯一任务 ID"""
@@ -178,7 +184,7 @@ class TaskScheduler:
 
             elif task["type"] == "system_command":
                 command = task.get("command", "")
-                logger.info(f"[TaskScheduler] 执行命令: {command}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "command", "msg": f"[TaskScheduler] 执行命令: {command}"}, ensure_ascii=False))
                 proc = subprocess.Popen(
                     command,
                     shell=True,
@@ -209,7 +215,7 @@ class TaskScheduler:
         except Exception as e:
             result["status"] = "failed"
             result["error"] = str(e)[:500]
-            logger.error(f"[TaskScheduler] 任务执行失败: {task['name']}: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "task", "msg": f"[TaskScheduler] 任务执行失败: {task['name']}: {e}"}, ensure_ascii=False))
 
         end_time = datetime.now()
         result["end_time"] = end_time.isoformat()
@@ -225,7 +231,7 @@ class TaskScheduler:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
             self._trim_history()
         except Exception as e:
-            logger.error(f"[TaskScheduler] 写入历史失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 写入历史失败: {e}"}, ensure_ascii=False))
 
     def _trim_history(self) -> None:
         """保留最近 MAX_HISTORY_LINES 条记录"""
@@ -237,7 +243,7 @@ class TaskScheduler:
                     with open(TASK_HISTORY_FILE, "w", encoding="utf-8") as f:
                         f.writelines(lines[-MAX_HISTORY_LINES:])
         except Exception as e:
-            logger.error(f"[TaskScheduler] 裁剪历史失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 裁剪历史失败: {e}"}, ensure_ascii=False))
 
     def get_history(self, limit: int = 100, offset: int = 0,
                     task_type: str = "") -> List[Dict[str, Any]]:
@@ -258,7 +264,7 @@ class TaskScheduler:
             records.reverse()
             return records[offset:offset + limit]
         except Exception as e:
-            logger.error(f"[TaskScheduler] 读取历史失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 读取历史失败: {e}"}, ensure_ascii=False))
             return []
 
     def _save_heartbeat(self, hb_data: Dict) -> None:
@@ -284,7 +290,7 @@ class TaskScheduler:
             with open(HEARTBEAT_HISTORY_FILE, "w", encoding="utf-8") as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"[TaskScheduler] 保存心跳失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 保存心跳失败: {e}"}, ensure_ascii=False))
 
     def get_heartbeat_status(self) -> Dict:
         """获取心跳概览"""
@@ -316,15 +322,15 @@ class TaskScheduler:
                     enabled=t.get("enabled", True),
                 )
                 count += 1
-            logger.info(f"[TaskScheduler] 从 JSON 加载了 {count} 个任务")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "json.count", "msg": f"[TaskScheduler] 从 JSON 加载了 {count} 个任务"}, ensure_ascii=False))
         except Exception as e:
-            logger.error(f"[TaskScheduler] 加载 JSON 任务失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "json", "msg": f"[TaskScheduler] 加载 JSON 任务失败: {e}"}, ensure_ascii=False))
         return count
 
     def start_daemon(self, check_interval: int = DEFAULT_CHECK_INTERVAL) -> None:
         """以 daemon 线程方式启动调度器（非阻塞）"""
         if self.running:
-            logger.warning("[TaskScheduler] 调度器已在运行")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 调度器已在运行"}, ensure_ascii=False))
             return
         self.running = True
         self._thread = threading.Thread(
@@ -334,7 +340,7 @@ class TaskScheduler:
             name="task-scheduler",
         )
         self._thread.start()
-        logger.info(f"[TaskScheduler] 调度器 daemon 线程已启动 (检查间隔={check_interval}秒)")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "daemon.check_interval", "msg": f"[TaskScheduler] 调度器 daemon 线程已启动 (检查间隔={check_interval}秒)"}, ensure_ascii=False))
 
     def _run_loop(self, check_interval: int) -> None:
         """调度器主循环"""
@@ -342,9 +348,9 @@ class TaskScheduler:
             try:
                 self.tick()
             except Exception as e:
-                logger.error(f"[TaskScheduler] tick 错误: {e}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "tick", "msg": f"[TaskScheduler] tick 错误: {e}"}, ensure_ascii=False))
             time.sleep(check_interval)
-        logger.info("[TaskScheduler] 调度器已停止")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 调度器已停止"}, ensure_ascii=False))
 
     def tick(self) -> None:
         """检查并执行到期的任务"""
@@ -362,7 +368,7 @@ class TaskScheduler:
     def stop(self) -> None:
         """停止调度器"""
         self.running = False
-        logger.info("[TaskScheduler] 调度器已停止")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 调度器已停止"}, ensure_ascii=False))
 
     def list_tasks(self) -> List[Dict[str, Any]]:
         """列出所有任务（序列化版本，不含 func）"""
@@ -419,21 +425,21 @@ def get_scheduler() -> TaskScheduler:
 
 def generate_weekly_report():
     """生成周报"""
-    logger.info("[TaskScheduler] 生成周报任务")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 生成周报任务"}, ensure_ascii=False))
     try:
         from agent.weekly_report_generator import run_weekly_report
         report, files = run_weekly_report(
             output_dir=str(DATA_DIR / "reports"),
             save_formats=["json", "html", "text"],
         )
-        logger.info(f"[TaskScheduler] 周报生成完成: {len(files)} 个文件")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "len.files", "msg": f"[TaskScheduler] 周报生成完成: {len(files)} 个文件"}, ensure_ascii=False))
     except Exception as e:
-        logger.error(f"[TaskScheduler] 周报生成失败: {e}")
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 周报生成失败: {e}"}, ensure_ascii=False))
 
 
 def cleanup_old_logs():
     """清理旧日志"""
-    logger.info("[TaskScheduler] 清理旧日志任务")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 清理旧日志任务"}, ensure_ascii=False))
     try:
         import shutil
         log_dir = DATA_DIR / "blackbox"
@@ -442,10 +448,10 @@ def cleanup_old_logs():
             for file in log_dir.glob("blackbox_*.jsonl"):
                 if file.stat().st_mtime < cutoff_date:
                     file.unlink()
-                    logger.info(f"[TaskScheduler] 删除旧日志: {file.name}")
-        logger.info("[TaskScheduler] 日志清理完成")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "file.name", "msg": f"[TaskScheduler] 删除旧日志: {file.name}"}, ensure_ascii=False))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 日志清理完成"}, ensure_ascii=False))
     except Exception as e:
-        logger.error(f"[TaskScheduler] 日志清理失败: {e}")
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 日志清理失败: {e}"}, ensure_ascii=False))
 
 
 # ── 心跳检测函数 ──

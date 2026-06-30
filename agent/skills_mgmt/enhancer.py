@@ -1,0 +1,274 @@
+"""技能增强器 — 版本管理 / 参数优化 / 性能追踪 / 集成钩子
+
+能力:
+    1. 版本管理: bump_version (major/minor/patch)，自动保存旧版本快照
+    2. 参数优化: 基于使用指标推荐参数调整 (简化版: 高失败率→重置默认)
+    3. 性能追踪: record_execution 累积指标
+    4. 集成钩子: register_integration_hook — 与云枢其他组件 (chat / memory / tool_router) 联动
+"""
+
+from __future__ import annotations
+import hashlib
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+from .models import Skill, SkillVersion, SkillStatus, SkillMetrics
+from .exceptions import (
+    SkillNotFoundError,
+    SkillValidationError,
+    ErrorCode,
+)
+from .observability import logger, emit_metric, track_event, traced_action
+from .store import SkillStore
+
+
+# ──────────────────────────────────────────────
+# 版本管理
+# ──────────────────────────────────────────────
+
+@dataclass
+class VersionBump:
+    """版本升级结果"""
+    old_version: str
+    new_version: str
+    changelog: str
+
+
+def _bump_semver(version: str, kind: str) -> str:
+    """计算升级后的版本号"""
+    major, minor, patch = (int(x) for x in version.split("-", 1)[0].split("."))
+    if kind == "major":
+        major += 1
+        minor = 0
+        patch = 0
+    elif kind == "minor":
+        minor += 1
+        patch = 0
+    elif kind == "patch":
+        patch += 1
+    else:
+        raise SkillValidationError(f"非法版本升级类型: {kind} (major/minor/patch)")
+    return f"{major}.{minor}.{patch}"
+
+
+# ──────────────────────────────────────────────
+# 集成钩子
+# ──────────────────────────────────────────────
+
+@dataclass
+class IntegrationHook:
+    """集成钩子 — 技能被触发时调用的回调"""
+    name: str
+    event: str  # on_enabled / on_disabled / on_executed / on_updated
+    callback: Callable[[Skill], None]
+    description: str = ""
+
+
+# ──────────────────────────────────────────────
+# 增强器
+# ──────────────────────────────────────────────
+
+class SkillEnhancer:
+    """技能增强器"""
+
+    def __init__(self, store: SkillStore):
+        self._store = store
+        self._hooks: Dict[str, List[IntegrationHook]] = {}
+
+    # ─── 版本管理 ───
+
+    def bump_version(self, skill_id: str, kind: str, *,
+                     changelog: str = "",
+                     content: Optional[str] = None) -> VersionBump:
+        """升级技能版本
+
+        Args:
+            skill_id: 技能ID
+            kind: major / minor / patch
+            changelog: 变更说明
+            content: 新内容 (None 表示保持不变)
+        """
+        with traced_action("skill_bump_version", skill_id=skill_id, kind=kind) as ctx:
+            skill = self._require(skill_id)
+            old_ver = skill.version
+            new_ver = _bump_semver(old_ver, kind)
+            # 保存旧版本快照
+            snapshot = SkillVersion(
+                version=old_ver,
+                content=skill.content,
+                changelog=changelog or f"升级到 {new_ver} 前的快照",
+                created_by="system",
+                hash=hashlib.sha256(
+                    skill.content.encode("utf-8")).hexdigest()[:16],
+            )
+            skill.versions.append(snapshot)
+            skill.version = new_ver
+            if content is not None:
+                skill.content = content
+            skill.touch()
+            self._store.upsert(skill)
+            self._fire_hooks("on_updated", skill)
+            ctx["old_version"] = old_ver
+            ctx["new_version"] = new_ver
+            emit_metric("yunshu_skill_version_bump_total",
+                        labels={"success": "true", "kind": kind},
+                        kind="counter")
+            track_event("skill_version_bumped", {
+                "skill_id": skill_id, "old": old_ver, "new": new_ver,
+            })
+            return VersionBump(old_version=old_ver, new_version=new_ver,
+                               changelog=changelog)
+
+    def list_versions(self, skill_id: str) -> List[SkillVersion]:
+        """列出技能的所有历史版本 (按时间倒序)"""
+        skill = self._require(skill_id)
+        # 当前版本也加入列表头部
+        current = SkillVersion(
+            version=skill.version,
+            content=skill.content,
+            changelog="当前版本",
+            created_at=skill.updated_at,
+            created_by=skill.author,
+            hash=hashlib.sha256(
+                skill.content.encode("utf-8")).hexdigest()[:16],
+        )
+        return [current] + list(reversed(skill.versions))
+
+    def rollback_version(self, skill_id: str, target_version: str) -> Skill:
+        """回滚到指定历史版本"""
+        with traced_action("skill_rollback", skill_id=skill_id,
+                           target=target_version):
+            skill = self._require(skill_id)
+            target = next(
+                (v for v in skill.versions if v.version == target_version),
+                None,
+            )
+            if not target:
+                raise SkillValidationError(
+                    f"未找到版本 {target_version}",
+                    code=ErrorCode.NOT_FOUND,
+                )
+            # 当前版本先存档
+            current = SkillVersion(
+                version=skill.version,
+                content=skill.content,
+                changelog=f"回滚到 {target_version} 前的快照",
+                hash=hashlib.sha256(
+                    skill.content.encode("utf-8")).hexdigest()[:16],
+            )
+            skill.versions.append(current)
+            # 应用目标版本
+            skill.version = target.version
+            skill.content = target.content
+            skill.touch()
+            self._store.upsert(skill)
+            self._fire_hooks("on_updated", skill)
+            return skill
+
+    # ─── 参数优化 ───
+
+    def optimize_params(self, skill_id: str) -> Dict[str, Any]:
+        """基于使用指标推荐参数调整
+
+        简化版策略:
+            - 失败率 > 30% → 重置到默认参数
+            - 平均延迟 > 5s → 标记需要优化 (返回建议)
+            - 成功率 100% & 使用次数 >= 10 → 建议升级状态为 PUBLISHED
+        """
+        with traced_action("skill_optimize_params", skill_id=skill_id):
+            skill = self._require(skill_id)
+            m = skill.metrics
+            recommendations: List[str] = []
+            actions: Dict[str, Any] = {}
+
+            if m.usage_count == 0:
+                recommendations.append("暂无使用数据，保持当前参数")
+            else:
+                if m.success_rate < 0.7:
+                    recommendations.append(
+                        f"失败率 {(1 - m.success_rate) * 100:.1f}% 过高，"
+                        "建议重置到默认参数"
+                    )
+                    actions["reset_to_defaults"] = True
+                    skill.default_params = dict(skill.default_params)
+                if m.avg_latency_ms > 5000:
+                    recommendations.append(
+                        f"平均延迟 {m.avg_latency_ms:.0f}ms 过高，"
+                        "建议优化内容或拆分子任务"
+                    )
+                    actions["high_latency"] = True
+                if (m.success_rate >= 0.99 and m.usage_count >= 10
+                        and skill.status == SkillStatus.APPROVED.value):
+                    recommendations.append("表现稳定，建议升级状态为 PUBLISHED")
+                    actions["promote_to_published"] = True
+
+            if actions.get("promote_to_published"):
+                skill.status = SkillStatus.PUBLISHED
+                skill.touch()
+                self._store.upsert(skill)
+
+            return {
+                "skill_id": skill_id,
+                "recommendations": recommendations,
+                "actions_taken": actions,
+                "metrics_snapshot": m.model_dump(),
+            }
+
+    # ─── 性能追踪 ───
+
+    def record_execution(self, skill_id: str, *,
+                         success: bool, latency_ms: float) -> None:
+        """记录一次技能执行"""
+        skill = self._require(skill_id)
+        skill.metrics.record(success=success, latency_ms=latency_ms)
+        skill.touch()
+        self._store.upsert(skill)
+        self._fire_hooks("on_executed", skill)
+        emit_metric(
+            "yunshu_skill_execution_latency_ms",
+            value=latency_ms,
+            labels={"success": "true" if success else "failure",
+                    "skill_id": skill_id},
+            kind="histogram",
+        )
+
+    # ─── 启用/禁用 ───
+
+    def set_enabled(self, skill_id: str, enabled: bool) -> Skill:
+        """启用/禁用技能"""
+        skill = self._require(skill_id)
+        skill.enabled = enabled
+        skill.touch()
+        self._store.upsert(skill)
+        self._fire_hooks("on_enabled" if enabled else "on_disabled", skill)
+        emit_metric(
+            "yunshu_skill_toggle_total",
+            labels={"success": "true",
+                    "enabled": "true" if enabled else "false"},
+            kind="counter",
+        )
+        return skill
+
+    # ─── 集成钩子 ───
+
+    def register_hook(self, hook: IntegrationHook) -> None:
+        """注册集成钩子"""
+        self._hooks.setdefault(hook.event, []).append(hook)
+        logger.info("[Enhancer] 已注册钩子: %s @ %s", hook.name, hook.event)
+
+    def _fire_hooks(self, event: str, skill: Skill) -> None:
+        """触发钩子 (失败不阻塞主流程)"""
+        for hook in self._hooks.get(event, []):
+            try:
+                hook.callback(skill)
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "[Enhancer] 钩子 %s 执行失败: %s", hook.name, e)
+
+    # ─── 内部 ───
+
+    def _require(self, skill_id: str) -> Skill:
+        skill = self._store.get(skill_id)
+        if not skill:
+            raise SkillNotFoundError(skill_id)
+        return skill

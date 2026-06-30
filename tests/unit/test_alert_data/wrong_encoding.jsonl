@@ -1,0 +1,2 @@
+{"role": "user", "content": "中文测试消息"}
+{"role": "assistant", "content": "收到中文"}

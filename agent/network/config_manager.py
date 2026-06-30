@@ -433,7 +433,7 @@ class NetworkConfigManager:
         self._merge(config, updates)
 
         # 保存到文件
-        logger.info("[网络配置] 保存配置到文件: %s", self._config_file)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 保存配置到文件: %s" % (self._config_file)}, ensure_ascii=False))
         self._save(config)
 
         # 清除缓存
@@ -590,7 +590,7 @@ class NetworkConfigManager:
             config['search_instances'] = instances
             self._save(config)
 
-        logger.info("[网络配置] 开始注册 %d 个搜索实例...", len(instances))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "apply_search_instances", "msg": "[网络配置] 开始注册 %d 个搜索实例..." % (len(instances))}, ensure_ascii=False))
 
         # 先清理之前已注册的引擎
         for inst in instances:
@@ -651,7 +651,7 @@ class NetworkConfigManager:
         # 更新 SearchEngine 的优先级
         search_engine.set_engine_priority(new_priority)
 
-        logger.info("[网络配置] 搜索实例注册完成，优先级: %s", new_priority)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 搜索实例注册完成，优先级: %s" % (new_priority)}, ensure_ascii=False))
 
         # 同步到 web_search 工具的 engine 参数 enum
         try:
@@ -681,7 +681,7 @@ class NetworkConfigManager:
                 "created_at": datetime.datetime.now().isoformat(),
                 "updated_at": datetime.datetime.now().isoformat(),
             })
-        logger.info("[网络配置] 已创建 %d 个内置搜索引擎实例", len(instances))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 已创建 %d 个内置搜索引擎实例" % (len(instances))}, ensure_ascii=False))
         return instances
 
     def reset(self) -> dict:
@@ -1024,8 +1024,8 @@ class NetworkConfigManager:
             app_instance: 应用实例（如 DigitalLife），用于即时生效配置
         """
         logger.info(json.dumps({"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 开始将配置应用到应用实例...", "duration_ms": 0}, ensure_ascii=False))
-        logger.info("[网络配置] 应用实例: %s", app_instance)
-        logger.info("[网络配置] 应用实例类型: %s", type(app_instance))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "apply_to_app", "msg": "[网络配置] 应用实例: %s" % (app_instance)}, ensure_ascii=False))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "apply_to_app", "msg": "[网络配置] 应用实例类型: %s" % (type(app_instance))}, ensure_ascii=False))
         
         config = self.get_raw_config()
 
@@ -1035,15 +1035,13 @@ class NetworkConfigManager:
                 old_timeout = getattr(app_instance._web_http, 'timeout', None)
                 new_timeout = config['network']['timeout']
                 app_instance._web_http.timeout = new_timeout
-                logger.info("[网络配置] [即时生效] HTTP 客户端超时已更新: %s → %ss",
-                           old_timeout, new_timeout)
-                logger.info("[网络配置] HTTP 客户端当前状态: timeout=%s, max_retries=%s",
-                           app_instance._web_http.timeout,
-                           getattr(app_instance._web_http, 'max_retries', 'N/A'))
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "apply_to_app", "msg": "[网络配置] [即时生效] HTTP 客户端超时已更新: %s → %ss" % (old_timeout, new_timeout)}, ensure_ascii=False))
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] HTTP 客户端当前状态: timeout=%s, max_retries=%s" % (app_instance._web_http.timeout,
+                           getattr(app_instance._web_http, 'max_retries', 'N/A'))}, ensure_ascii=False))
             else:
                 logger.warning(json.dumps({"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 应用实例无 _web_http 属性，跳过 HTTP 配置应用", "duration_ms": 0}, ensure_ascii=False))
         except Exception as e:
-            logger.warning("[网络配置] 应用 HTTP 配置失败: %s", e, exc_info=True)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 应用 HTTP 配置失败: %s" % (e,), "exc_info": True}, ensure_ascii=False))
 
         # 应用到搜索引擎配置
         try:
@@ -1067,7 +1065,7 @@ class NetworkConfigManager:
             else:
                 logger.warning(json.dumps({"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用", "duration_ms": 0}, ensure_ascii=False))
         except Exception as e:
-            logger.warning("[网络配置] 应用搜索引擎配置失败: %s", e, exc_info=True)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 应用搜索引擎配置失败: %s" % (e,), "exc_info": True}, ensure_ascii=False))
 
         # 注册搜索实例
         try:
@@ -1077,7 +1075,7 @@ class NetworkConfigManager:
             else:
                 logger.warning(json.dumps({"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册", "duration_ms": 0}, ensure_ascii=False))
         except Exception as e:
-            logger.warning("[网络配置] 注册搜索实例失败: %s", e, exc_info=True)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 注册搜索实例失败: %s" % (e,), "exc_info": True}, ensure_ascii=False))
 
         # 应用到 LLM 配置
         if app_instance and hasattr(app_instance, 'configure_llm'):
@@ -1117,16 +1115,14 @@ class NetworkConfigManager:
                     api_key = selected.get('api_key') or api_key
                     model = selected.get('model') or model
                     base_url = selected.get('api_endpoint') or base_url
-                    logger.info("[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s",
-                               instance_source, selected.get('name'), provider, model)
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s" % (instance_source, selected.get('name'), provider, model)}, ensure_ascii=False))
 
-            logger.info("[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s",
-                       llm['enabled'], provider,
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s" % (llm['enabled'], provider,
                        '***' if api_key and not api_key.startswith('***') else 'no',
-                       model)
+                       model)}, ensure_ascii=False))
 
             if llm['enabled'] and provider and api_key:
-                logger.info("[网络配置] 正在调用 configure_llm (来源: %s)...", instance_source)
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 正在调用 configure_llm (来源: %s)..." % (instance_source)}, ensure_ascii=False))
                 try:
                     result = app_instance.configure_llm(
                         provider=provider,
@@ -1135,15 +1131,13 @@ class NetworkConfigManager:
                         base_url=base_url,
                     )
                     if result.get('ok'):
-                        logger.info("[网络配置] [即时生效] LLM 配置已应用: %s/%s",
-                                   provider, model)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] [即时生效] LLM 配置已应用: %s/%s" % (provider, model)}, ensure_ascii=False))
                     else:
-                        logger.warning("[网络配置] LLM 配置应用失败: %s", result.get('error'))
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] LLM 配置应用失败: %s" % (result.get('error'))}, ensure_ascii=False))
                 except Exception as e:
-                    logger.warning("[网络配置] 应用 LLM 配置失败: %s", e, exc_info=True)
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] 应用 LLM 配置失败: %s" % (e,), "exc_info": True}, ensure_ascii=False))
             else:
-                logger.info("[网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=%s, provider=%s, api_key=%s)",
-                           llm['enabled'], bool(provider), bool(api_key))
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "log", "msg": "[网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=%s, provider=%s, api_key=%s)" % (llm['enabled'], bool(provider), bool(api_key))}, ensure_ascii=False))
 
         logger.info(json.dumps({"trace_id": "", "module_name": "network_config", "action": "log", "msg": "[网络配置] 配置应用完成", "duration_ms": 0}, ensure_ascii=False))
 
@@ -1164,7 +1158,7 @@ class NetworkConfigManager:
 
     def update_search_config(self, search_updates: dict) -> dict:
         """更新搜索引擎配置（即时生效）"""
-        logger.info("[网络配置] 更新搜索引擎配置: %s", search_updates)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "config_manager", "action": "update_search_config", "msg": "[网络配置] 更新搜索引擎配置: %s" % (search_updates)}, ensure_ascii=False))
         
         # 构建更新字典
         updates = {}

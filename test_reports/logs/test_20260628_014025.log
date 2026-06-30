@@ -1,0 +1,630 @@
+2026-06-28 01:40:25,561 [    INFO] visibility_report: {"trace_id": "731b355c74e04b64", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_line_rate_85_percent0\\coverage.xml", "line_rate": 0.85, "coverage_percent": 85.0, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:25,567 [    INFO] visibility_report: {"trace_id": "3ebcd5a1abba49b1", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_line_rate_100_percent0\\coverage.xml", "line_rate": 1.0, "coverage_percent": 100.0, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:25,576 [    INFO] visibility_report: {"trace_id": "20a75b6808c34ba1", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_line_rate_low_value0\\coverage.xml", "line_rate": 0.123, "coverage_percent": 12.3, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:25,588 [ WARNING] visibility_report: {"trace_id": "e68b5f63e53c42c0", "module_name": "visibility_report", "action": "read_test_coverage.invalid_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_zero_line_rate_returns_ze0\\coverage.xml", "line_rate": 0.0, "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0"}
+2026-06-28 01:40:25,593 [ WARNING] visibility_report: {"trace_id": "bc9f3bf90fb140f8", "module_name": "visibility_report", "action": "read_test_coverage.invalid_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_zero_line_rate_emits_warn0\\coverage.xml", "line_rate": 0.0, "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0"}
+2026-06-28 01:40:25,598 [   ERROR] visibility_report: {"trace_id": "f17caa38a4f74f02", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_missing_xml_returns_zero0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,603 [   ERROR] visibility_report: {"trace_id": "3c35b43f9bca4dc1", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_missing_xml_emits_error_l0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,608 [   ERROR] visibility_report: {"trace_id": "1c8592429fda4cfe", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_missing_xml_error_include0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,614 [   ERROR] visibility_report: {"trace_id": "7ae01d897f6849ab", "module_name": "visibility_report", "action": "read_test_coverage.parse_failed", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_malformed_xml_returns_zer0\\coverage.xml", "error": "ParseError: syntax error: line 1, column 0", "reason": "coverage.xml 解析失败，返回 0.0"}
+2026-06-28 01:40:25,619 [   ERROR] visibility_report: {"trace_id": "fc66d6812fc54446", "module_name": "visibility_report", "action": "read_test_coverage.parse_failed", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_malformed_xml_emits_parse0\\coverage.xml", "error": "ParseError: syntax error: line 1, column 0", "reason": "coverage.xml 解析失败，返回 0.0"}
+2026-06-28 01:40:25,625 [   ERROR] visibility_report: {"trace_id": "65faa84bb83a4142", "module_name": "visibility_report", "action": "read_test_coverage.parse_failed", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_non_numeric_line_rate_ret0\\coverage.xml", "error": "ValueError: could not convert string to float: 'not-a-number'", "reason": "coverage.xml 解析失败，返回 0.0"}
+2026-06-28 01:40:25,630 [   ERROR] visibility_report: {"trace_id": "c0059645327c483c", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_no_coverage_xml_returns_z0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,635 [   ERROR] visibility_report: {"trace_id": "577bcfb81367421b", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_no_coverage_xml_emits_err0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,640 [   ERROR] visibility_report: {"trace_id": "8340d8456db94c01", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_zero_return_is_explicit_n0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,645 [   ERROR] visibility_report: {"trace_id": "be76cdf7d46b45a0", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_error_log_is_valid_json_w0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,671 [    INFO] visibility_report: {"trace_id": "521b1ebb31674ba6", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 2.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:25,676 [ WARNING] visibility_report: {"trace_id": "a2fca7cc2c694d57", "module_name": "visibility_report", "action": "calc_structured_log.agent_dir_missing", "duration_ms": 1.0, "reason": "agent/ 目录不存在，返回 0.0"}
+2026-06-28 01:40:25,685 [    INFO] visibility_report: {"trace_id": "79a1f64f8b4a4ab0", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:25,697 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 01:40:25,700 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 01:40:25,701 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 01:40:25,705 [    INFO] visibility_report: {"trace_id": "8adde7b35dec4049", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:25,706 [    INFO] visibility_report: {"trace_id": "5abf36310c1a4ee4", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.97, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:25,713 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 01:40:25,716 [    INFO] visibility_report: {"trace_id": "dbb555dfa43b48e0", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_contract_count0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:25,721 [    INFO] visibility_report: {"trace_id": "bfb0b173015a4b1b", "module_name": "visibility_report", "action": "count_contract_tests.dir_missing", "duration_ms": 0.0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_contract_count_empty0\\tests\\contract", "reason": "tests/contract/ 目录不存在，返回 0"}
+2026-06-28 01:40:25,729 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 01:40:25,731 [    INFO] visibility_report: {"trace_id": "c8ec1b9141a641c2", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_test_coverage_from_covera0\\coverage.xml", "line_rate": 0.85, "coverage_percent": 85.0, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:25,732 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 01:40:25,741 [ WARNING] visibility_report: {"trace_id": "d56ba82405d24996", "module_name": "visibility_report", "action": "read_test_coverage.invalid_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_test_coverage_zero_line_r0\\coverage.xml", "line_rate": 0.0, "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0"}
+2026-06-28 01:40:25,751 [   ERROR] visibility_report: {"trace_id": "3a6117644aa34d77", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_test_coverage_no_xml_retu0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,757 [   ERROR] visibility_report: {"trace_id": "d96137a698664718", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_test_coverage_no_source0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,763 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 01:40:25,766 [   ERROR] visibility_report: {"trace_id": "7ff28f30592342b9", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_verification_layer_full_c0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,766 [ WARNING] visibility_report: {"trace_id": "8b49718c0b69462e", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_verification_layer_full_c0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:25,767 [    INFO] visibility_report: {"trace_id": "4e4a41987b614e1b", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_verification_layer_full_c0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:25,769 [    INFO] visibility_report: {"trace_id": "bafdcf93f4304dee", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.96, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:25,771 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 01:40:25,777 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 01:40:25,795 [    INFO] visibility_report: {"trace_id": "b29182d745b04280", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 2.05, "total_modules": 1, "tracked_modules": 1, "untracked_modules": [], "coverage_percent": 100.0}
+2026-06-28 01:40:25,795 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 01:40:25,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 01:40:25,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 01:40:25,798 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 01:40:25,799 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 01:40:25,807 [    INFO] visibility_report: {"trace_id": "6c1bb06c579d4723", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 2.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:25,862 [    INFO] visibility_report: {"trace_id": "f5b079fbe785418a", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:25,862 [    INFO] visibility_report: {"trace_id": "ee5c1843201d49fd", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:25,863 [   ERROR] visibility_report: {"trace_id": "2c34e90c8a2c4330", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_collect_all_returns_four_0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,863 [ WARNING] visibility_report: {"trace_id": "54de38c754c54c6b", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_collect_all_returns_four_0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:25,863 [    INFO] visibility_report: {"trace_id": "31c31d82b46b4a4e", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_collect_all_returns_four_0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:25,864 [    INFO] visibility_report: {"trace_id": "7ac63075e5534f88", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 0.0, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:25,866 [    INFO] visibility_report: {"trace_id": "5dbaf2b9004f4b9a", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 1.5, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:25,894 [    INFO] visibility_report: {"trace_id": "51a5d8cc38184b42", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:25.894528"}
+2026-06-28 01:40:25,896 [    INFO] visibility_report: {"trace_id": "818708f3cf7b49dd", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 2.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:25,897 [    INFO] visibility_report: {"trace_id": "1a005858a178435a", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:25,897 [   ERROR] visibility_report: {"trace_id": "76be76d7f6ad421c", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_all_pass_returns_pass0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,897 [ WARNING] visibility_report: {"trace_id": "48dec35efb554fe5", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_all_pass_returns_pass0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:25,898 [    INFO] visibility_report: {"trace_id": "0a3307f3e0ef40f2", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.33, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_all_pass_returns_pass0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:25,900 [    INFO] visibility_report: {"trace_id": "76605939ef614927", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.01, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:25,901 [    INFO] visibility_report: {"trace_id": "725f456bbb5e4e04", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 1.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:25,902 [    INFO] visibility_report: {"trace_id": "51a5d8cc38184b42", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 7.88, "overall_status": "pass", "violations_count": 0}
+2026-06-28 01:40:25,911 [    INFO] visibility_report: {"trace_id": "5edef6661e654421", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:25.911433"}
+2026-06-28 01:40:25,912 [    INFO] visibility_report: {"trace_id": "63585881dbbe4a34", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:25,913 [    INFO] visibility_report: {"trace_id": "230324bb920c4fb4", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:25,913 [   ERROR] visibility_report: {"trace_id": "8da03be7fecc443f", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_threshold_violation_colle0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:25,914 [ WARNING] visibility_report: {"trace_id": "5ede7e5cd7ed45d1", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 1.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_threshold_violation_colle0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:25,914 [    INFO] visibility_report: {"trace_id": "973a55c0c47d400d", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_threshold_violation_colle0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:25,916 [    INFO] visibility_report: {"trace_id": "b242adf6abae4b95", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.01, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:25,916 [    INFO] visibility_report: {"trace_id": "5917de995c224412", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 0.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:25,917 [    INFO] visibility_report: {"trace_id": "5edef6661e654421", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 6.01, "overall_status": "fail", "violations_count": 7}
+2026-06-28 01:40:25,933 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 01:40:25,937 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 01:40:25,937 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:40:25,937 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 01:40:25,937 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 01:40:25,938 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 01:40:25,943 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_degraded_report_written0\report.md
+2026-06-28 01:40:25,950 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_degraded_report_includes_0\report.md
+2026-06-28 01:40:25,954 [   ERROR] visibility_report: 降级报告输出失败: [WinError 3] 系统找不到指定的路径。: 'Z:\\'
+2026-06-28 01:40:25,988 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_load_missing_file0\nonexistent.yaml，使用默认阈值
+2026-06-28 01:40:26,014 [    INFO] visibility_report: {"trace_id": "40dae4d9a78a4306", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.014994"}
+2026-06-28 01:40:26,016 [    INFO] visibility_report: {"trace_id": "4236afdc52b84a30", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.06, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,017 [    INFO] visibility_report: {"trace_id": "df35b9be6dc542f4", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.03, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,017 [   ERROR] visibility_report: {"trace_id": "b3d76a2c991b4ebf", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_structure0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,017 [ WARNING] visibility_report: {"trace_id": "fa999fa0444442f3", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_structure0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,018 [    INFO] visibility_report: {"trace_id": "28adce8b1547468a", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.01, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_structure0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,019 [    INFO] visibility_report: {"trace_id": "bfdf1575506c4fa1", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.03, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,020 [    INFO] visibility_report: {"trace_id": "3135680071654cb6", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 1.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,021 [    INFO] visibility_report: {"trace_id": "40dae4d9a78a4306", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 6.1, "overall_status": "fail", "violations_count": 5}
+2026-06-28 01:40:26,022 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-28 01:40:26,029 [    INFO] visibility_report: {"trace_id": "23784c204da74645", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.029199"}
+2026-06-28 01:40:26,030 [    INFO] visibility_report: {"trace_id": "5391867f04a54bd8", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.0, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,031 [    INFO] visibility_report: {"trace_id": "aba0498a333a401e", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,031 [   ERROR] visibility_report: {"trace_id": "dea32b2599504f7f", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_violation0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,032 [ WARNING] visibility_report: {"trace_id": "bdaefe94b41f401a", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_violation0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,032 [    INFO] visibility_report: {"trace_id": "771dff178e1f4fa3", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_generate_report_violation0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,033 [    INFO] visibility_report: {"trace_id": "0fd2abf12ebe43fa", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.01, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,034 [    INFO] visibility_report: {"trace_id": "a30a8c3d18614821", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 0.97, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,035 [    INFO] visibility_report: {"trace_id": "23784c204da74645", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 5.97, "overall_status": "fail", "violations_count": 7}
+2026-06-28 01:40:26,049 [    INFO] visibility_report: {"trace_id": "b5f0a6c9ad0d4b70", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.049247"}
+2026-06-28 01:40:26,051 [    INFO] visibility_report: {"trace_id": "20a945db09f24936", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 2.03, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,052 [    INFO] visibility_report: {"trace_id": "cd12bb89756f4874", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,053 [   ERROR] visibility_report: {"trace_id": "e8334dbc70d449b4", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_pass0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,053 [ WARNING] visibility_report: {"trace_id": "cbe759a579b74d5e", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_pass0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,054 [    INFO] visibility_report: {"trace_id": "8795ad0b5ab24ecb", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.03, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_pass0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,056 [    INFO] visibility_report: {"trace_id": "5a211523eb934f3f", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 2.12, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,057 [    INFO] visibility_report: {"trace_id": "f93e8bc0bf214fc9", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 1.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,058 [    INFO] visibility_report: {"trace_id": "b5f0a6c9ad0d4b70", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 9.15, "overall_status": "pass", "violations_count": 0}
+2026-06-28 01:40:26,072 [    INFO] visibility_report: {"trace_id": "d65f4b7ee9304c61", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.072509"}
+2026-06-28 01:40:26,074 [    INFO] visibility_report: {"trace_id": "fed3f4ac938f469d", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.01, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,075 [    INFO] visibility_report: {"trace_id": "b328a06a02914afc", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.03, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,075 [   ERROR] visibility_report: {"trace_id": "8793faec305c412f", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_fail0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,076 [ WARNING] visibility_report: {"trace_id": "af99b81d743045a8", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_fail0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,076 [    INFO] visibility_report: {"trace_id": "e87046b94b8e44c6", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_json_only_fail0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,078 [    INFO] visibility_report: {"trace_id": "0a286adb08674fac", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.0, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,078 [    INFO] visibility_report: {"trace_id": "859ee9f99e3f405d", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 0.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,080 [    INFO] visibility_report: {"trace_id": "d65f4b7ee9304c61", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 8.08, "overall_status": "fail", "violations_count": 7}
+2026-06-28 01:40:26,092 [    INFO] visibility_report: {"trace_id": "4245d9fc546646c4", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.092652"}
+2026-06-28 01:40:26,093 [    INFO] visibility_report: {"trace_id": "78913497658f4467", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 0.99, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,094 [    INFO] visibility_report: {"trace_id": "9989171627e44033", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.0, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,094 [   ERROR] visibility_report: {"trace_id": "85d4b690a5dc4623", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_markdown_output0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,094 [ WARNING] visibility_report: {"trace_id": "f8588fd8cf574c8c", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_markdown_output0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,095 [    INFO] visibility_report: {"trace_id": "bbf3b4e153b84ca1", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.03, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_markdown_output0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,096 [    INFO] visibility_report: {"trace_id": "c4d64ec029124f94", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.0, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,097 [    INFO] visibility_report: {"trace_id": "b08a959229734461", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 0.97, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,098 [    INFO] visibility_report: {"trace_id": "4245d9fc546646c4", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 6.03, "overall_status": "fail", "violations_count": 6}
+2026-06-28 01:40:26,099 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_cli_markdown_output0\out\report.md
+2026-06-28 01:40:26,099 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_cli_markdown_output0\out\report.json
+2026-06-28 01:40:26,100 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 6 项
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 验证过程可见.test_coverage: 实际=0.0%, 阈值=40%
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 验证过程可见.boundary_test_coverage: 实际=0.0%, 阈值=10%
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 验证过程可见.contract_test_count: 实际=1个, 阈值=3个
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 验证过程可见.exception_coverage: 实际=0.0%, 阈值=60%
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 业务价值可见.track_event_coverage: 实际=0.0%, 阈值=50%
+2026-06-28 01:40:26,100 [   ERROR] visibility_report:   - 业务价值可见.dashboard_count: 实际=0个, 阈值=1个
+2026-06-28 01:40:26,111 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_cli_missing_config_uses_d0\nonexistent.yaml，使用默认阈值
+2026-06-28 01:40:26,111 [    INFO] visibility_report: {"trace_id": "e8c23eb5f6bf4ec4", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:26.111438"}
+2026-06-28 01:40:26,112 [    INFO] visibility_report: {"trace_id": "b830a4fdec194361", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.04, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:26,113 [    INFO] visibility_report: {"trace_id": "eccc17d00f824fba", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.97, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:26,113 [   ERROR] visibility_report: {"trace_id": "5db207645ce546a7", "module_name": "visibility_report", "action": "read_test_coverage.missing_xml", "duration_ms": 0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_missing_config_uses_d0\\coverage.xml", "reason": "coverage.xml 不存在，返回 0.0", "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录", "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml"}
+2026-06-28 01:40:26,113 [ WARNING] visibility_report: {"trace_id": "6982e0724b4a48e7", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_missing_config_uses_d0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-28 01:40:26,114 [    INFO] visibility_report: {"trace_id": "9a390552943746fb", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-508\\test_cli_missing_config_uses_d0\\tests\\contract\\contracts", "contract_count": 1}
+2026-06-28 01:40:26,115 [    INFO] visibility_report: {"trace_id": "a5501af2e3b44b13", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 1.0, "total_files": 3, "handled_files": 0, "skipped_files": 0, "coverage_percent": 0.0}
+2026-06-28 01:40:26,116 [    INFO] visibility_report: {"trace_id": "b5954a98c54246eb", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 1.0, "total_modules": 1, "tracked_modules": 0, "untracked_modules": ["server_routes"], "coverage_percent": 0.0}
+2026-06-28 01:40:26,117 [    INFO] visibility_report: {"trace_id": "e8c23eb5f6bf4ec4", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 6.01, "overall_status": "fail", "violations_count": 7}
+2026-06-28 01:40:26,117 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,117 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-28 01:40:26,120 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,123 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,124 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-28 01:40:26,124 [    INFO] agent.memory.router: [MemoryRouter] 注销适配器: test_adapter
+2026-06-28 01:40:26,126 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,129 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,130 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-28 01:40:26,132 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,133 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: mem0 = MockMemoryAdapter
+2026-06-28 01:40:26,136 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,138 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,141 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,141 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockMemoryAdapter
+2026-06-28 01:40:26,144 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,147 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,147 [    INFO] agent.memory.router: [MemoryRouter] 更新默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,150 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,154 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,154 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-28 01:40:26,156 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,157 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-28 01:40:26,157 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已移除
+2026-06-28 01:40:26,159 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,160 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-28 01:40:26,166 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,166 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-28 01:40:26,171 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,176 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,179 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,187 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,190 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,192 [ WARNING] agent.memory.router: [MemoryRouter] 边界约束拦截敏感数据写入: key=test_key, task_type=local_privacy
+2026-06-28 01:40:26,195 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,199 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,203 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-28 01:40:26,203 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test = MockMemoryAdapter
+2026-06-28 01:40:26,230 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=15 days
+2026-06-28 01:40:26,233 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,235 [    INFO] agent.memory.reviewer: [review_1782582026] [MemoryReviewer] 开始审查记忆库: trace_id=review_1782582026
+2026-06-28 01:40:26,236 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找陈旧记忆失败: error=no such table: long_term_memory
+2026-06-28 01:40:26,236 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找重复记忆失败: error=no such table: long_term_memory
+2026-06-28 01:40:26,236 [    INFO] agent.memory.reviewer: [review_1782582026] [MemoryReviewer] 审查完成: total=0, healthy=0, stale=0, duplicates=0, duration_ms=1.07
+2026-06-28 01:40:26,240 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,241 [    INFO] agent.memory.reviewer: [quick_1782582026] [MemoryReviewer] 快速审查完成: duration_ms=0.00
+2026-06-28 01:40:26,245 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,247 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,250 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,254 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,257 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,261 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,264 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,267 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-28 01:40:26,287 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=50, default_ttl=600s
+2026-06-28 01:40:26,290 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,293 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,298 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,299 [ WARNING] agent.memory.short_term_memory: [ShortTermMemory] save 失败: key 为空
+2026-06-28 01:40:26,303 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,308 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,313 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,320 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,325 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,329 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,332 [    INFO] visibility_report: {"trace_id": "85a0dfab165941ad", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 210.86, "scanned_files": 288, "total_logs": 2552, "structured_logs": 680, "coverage_percent": 26.6}
+2026-06-28 01:40:26,336 [    INFO] visibility_report: {"trace_id": "2b1450e54e4e441f", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 3.01, "scanned_files": 19, "total_routes": 216, "traced_routes": 36, "coverage_percent": 16.7}
+2026-06-28 01:40:26,350 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,356 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,361 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,366 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 清除任务记忆: task_id=task1, count=2
+2026-06-28 01:40:26,369 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,374 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:26,378 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 已清空所有临时记忆: count=3
+2026-06-28 01:40:26,381 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=0s
+2026-06-28 01:40:26,406 [    INFO] visibility_report: {"trace_id": "f03ac12cad3d414e", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Users\\Administrator\\agent\\coverage.xml", "line_rate": 0.005513, "coverage_percent": 0.6, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:26,415 [    INFO] visibility_report: {"trace_id": "69f36a0212604c68", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Users\\Administrator\\agent", "timeout_sec": 60}
+2026-06-28 01:40:27,488 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:28,613 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=3, default_ttl=0s
+2026-06-28 01:40:28,624 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-28 01:40:28,636 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-28 01:40:28,643 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:28,646 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s
+2026-06-28 01:40:28,653 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-28 01:40:28,660 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s
+2026-06-28 01:40:28,672 [ WARNING] agent.utils.sensitive_data_filter: [SensitiveFilter] 无效的正则表达式: [invalid
+2026-06-28 01:40:28,817 [    INFO] visibility_report: {"trace_id": "69f36a0212604c68", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_done", "duration_ms": 2402.34, "returncode": 0, "stdout_len": 13965, "stderr_len": 852, "stderr_preview": "01:40:26 [    INFO] boundary_coverage             : {\"trace_id\": \"ba1c4888969640ed\", \"module_name\": \"boundary_coverage\", \"action\": \"scan.start\", \"timestamp\": \"2026-06-28T01:40:26.846451\"}\n01:40:26 [    INFO] boundary_coverage             : 发现测试文件: 235 个\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid escape sequence '\\d'\n  \"\"\"离线工作流 E2E 测试——验证 WorkflowEngine 的全能力\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid esc"}
+2026-06-28 01:40:28,817 [    INFO] visibility_report: {"trace_id": "69f36a0212604c68", "module_name": "visibility_report", "action": "calc_boundary_coverage.parsed", "duration_ms": 2402.34, "total_tests": 3812, "total_boundary_tests": 465, "overall_status": "warn", "blocked_modules": [], "total_modules": 32}
+2026-06-28 01:40:28,818 [    INFO] visibility_report: {"trace_id": "69f36a0212604c68", "module_name": "visibility_report", "action": "calc_boundary_coverage.success", "duration_ms": 2402.34, "total_tests": 3812, "total_boundary_tests": 465, "coverage_percent": 12.2}
+2026-06-28 01:40:28,818 [    INFO] visibility_report: {"trace_id": "947973b7be2c4e0f", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Users\\Administrator\\agent\\tests\\contract\\contracts", "contract_count": 3}
+2026-06-28 01:40:28,837 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid, error=unterminated character set at position 0
+2026-06-28 01:40:29,067 [   ERROR] agent.utils.sensitive_data_filter: [SensitiveFilter] 模式编译失败: invalid_pattern, error=unterminated character set at position 0
+2026-06-28 01:40:29,127 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,128 [    INFO] test_memory_consistency: [测试开始] test_concurrent_read_write_memory_consistency
+2026-06-28 01:40:29,128 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.128042
+2026-06-28 01:40:29,128 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,128 [    INFO] test_memory_consistency: [步骤1] 初始化内存存储和路由器
+2026-06-28 01:40:29,131 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-28 01:40:29,131 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-28 01:40:29,132 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-28 01:40:29,132 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-28 01:40:29,132 [    INFO] test_memory_consistency: [步骤2] 定义并发操作
+2026-06-28 01:40:29,132 [    INFO] test_memory_consistency: [步骤3] 创建并发线程
+2026-06-28 01:40:29,132 [    INFO] test_memory_consistency: [步骤4] 启动所有线程
+2026-06-28 01:40:29,134 [    INFO] test_memory_consistency: [步骤5] 等待所有线程完成
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: [步骤5完成] 并发操作完成，耗时: 0.210s
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency:   写入次数: 60
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency:   读取键数量: 1501
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency:   错误数量: 0
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: [断言通过] 无并发错误
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: [断言通过] 所有写入操作完成
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: [断言通过] 数据完整性验证通过
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: [测试完成] test_concurrent_read_write_memory_consistency
+2026-06-28 01:40:29,343 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,347 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,347 [    INFO] test_memory_consistency: [测试开始] test_memory_lifecycle_store_retrieve_delete
+2026-06-28 01:40:29,347 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.347610
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency: [步骤1] 初始化内存存储
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency: [步骤2] 存储记忆
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency:   存储记忆: id=1, type=user
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency:   存储记忆: id=2, type=system
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency:   存储记忆: id=3, type=conversation
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency: [断言通过] 记忆存储成功
+2026-06-28 01:40:29,348 [    INFO] test_memory_consistency: [步骤3] 检索记忆
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency:   检索成功: id=1, content=test_data_1
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency:   检索成功: id=2, content=test_data_2
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency:   检索成功: id=3, content=test_data_3
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [断言通过] 所有记忆均可检索
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [断言通过] 检索内容正确
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [步骤4] 删除记忆
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency:   删除记忆: id=1
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency:   删除记忆: id=3
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [断言通过] 记忆删除成功
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [断言通过] 指定记忆保留
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: [测试完成] test_memory_lifecycle_store_retrieve_delete
+2026-06-28 01:40:29,349 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,355 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,356 [    INFO] test_memory_consistency: [测试开始] test_sensitive_info_filtering_in_memory
+2026-06-28 01:40:29,356 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.356862
+2026-06-28 01:40:29,356 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,356 [    INFO] test_memory_consistency: [步骤1] 初始化数据脱敏器
+2026-06-28 01:40:29,356 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-28 01:40:29,356 [    INFO] test_memory_consistency: [步骤2] 准备包含敏感信息的测试数据
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency:   原始敏感数据: {'user': 'admin', 'password': 'secret123', 'api_key': 'sk-12345-secret-key', 'email': 'admin@example.com', 'phone': '13800138000', 'normal_field': 'safe_value'}
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency: [步骤3] 执行脱敏处理
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency:   脱敏后数据: {'user': 'admin', 'password': '[REDACTED]', 'api_key': '[REDACTED]', 'email': '[REDACTED]', 'phone': '[REDACTED]', 'normal_field': 'safe_value'}
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency: [断言通过] 密码已脱敏
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency: [断言通过] API密钥已脱敏
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency: [断言通过] 普通字段保持不变
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency: [步骤4] 测试记忆过滤器
+2026-06-28 01:40:29,357 [    INFO] test_memory_consistency:   过滤后数据: {'user': 'admin', 'password': '********', 'api_key': '********', 'email': 'ad***@example.com', 'phone': '138****8000', 'normal_field': 'safe_value'}
+2026-06-28 01:40:29,358 [    INFO] test_memory_consistency: [断言通过] 敏感信息过滤成功
+2026-06-28 01:40:29,358 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,358 [    INFO] test_memory_consistency: [测试完成] test_sensitive_info_filtering_in_memory
+2026-06-28 01:40:29,358 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,361 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,361 [    INFO] test_memory_consistency: [测试开始] test_memory_persistence_reliability
+2026-06-28 01:40:29,361 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.361862
+2026-06-28 01:40:29,361 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,362 [    INFO] test_memory_consistency: [步骤1] 创建临时数据库
+2026-06-28 01:40:29,362 [    INFO] test_memory_consistency: [步骤2] 模拟第一次进程启动 - 存储数据
+2026-06-28 01:40:29,368 [    INFO] test_memory_consistency:   存储记忆: id=mem_001
+2026-06-28 01:40:29,368 [    INFO] test_memory_consistency:   存储记忆: id=mem_002
+2026-06-28 01:40:29,368 [    INFO] test_memory_consistency:   存储记忆: id=mem_003
+2026-06-28 01:40:29,371 [    INFO] test_memory_consistency: [步骤2完成] 数据已持久化
+2026-06-28 01:40:29,371 [    INFO] test_memory_consistency: [步骤3] 模拟进程重启 - 恢复数据
+2026-06-28 01:40:29,372 [    INFO] test_memory_consistency:   恢复后记录数: 3
+2026-06-28 01:40:29,372 [    INFO] test_memory_consistency: [断言通过] 记录数量正确
+2026-06-28 01:40:29,372 [    INFO] test_memory_consistency:   验证记忆: id=mem_001, content=memory_content_1
+2026-06-28 01:40:29,373 [    INFO] test_memory_consistency:   验证记忆: id=mem_002, content=memory_content_2
+2026-06-28 01:40:29,373 [    INFO] test_memory_consistency:   验证记忆: id=mem_003, content=memory_content_3
+2026-06-28 01:40:29,373 [    INFO] test_memory_consistency: [断言通过] 所有数据恢复正确
+2026-06-28 01:40:29,374 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,374 [    INFO] test_memory_consistency: [测试完成] test_memory_persistence_reliability
+2026-06-28 01:40:29,374 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,377 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,377 [    INFO] test_memory_consistency: [测试开始] test_memory_capacity_limit_handling
+2026-06-28 01:40:29,377 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.377377
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency: [步骤1] 初始化带容量限制的内存存储
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency: [步骤2] 存储超过容量限制的数据 (15 条)
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_0
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_1
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_2
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_3
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_4
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_5
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_6
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_7
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_8
+2026-06-28 01:40:29,378 [    INFO] test_memory_consistency:   存储: key_9
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   存储: key_10
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   存储: key_11
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   存储: key_12
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   存储: key_13
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   存储: key_14
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency: [步骤3] 当前存储数量: 15
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency: [步骤4] 执行容量清理策略（保留最新的N条）
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   移除过期记忆: key_0
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   移除过期记忆: key_1
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   移除过期记忆: key_2
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   移除过期记忆: key_3
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency:   移除过期记忆: key_4
+2026-06-28 01:40:29,379 [    INFO] test_memory_consistency: [断言通过] 容量限制生效，当前存储: 10
+2026-06-28 01:40:29,380 [    INFO] test_memory_consistency: [断言通过] 保留的是最新的数据
+2026-06-28 01:40:29,380 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,380 [    INFO] test_memory_consistency: [测试完成] test_memory_capacity_limit_handling
+2026-06-28 01:40:29,380 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency: [测试开始] test_memory_search_result_sorting_correctness
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency: [时间戳] 2026-06-28T01:40:29.383408
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency: [步骤1] 创建测试搜索结果
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency:   原始结果:
+2026-06-28 01:40:29,383 [    INFO] test_memory_consistency:     confidence=0.9, timestamp=100
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.7, timestamp=300
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.95, timestamp=200
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.8, timestamp=50
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.6, timestamp=400
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency: [步骤2] 按置信度排序
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:   按置信度排序后:
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.95
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.9
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.8
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.7
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency:     confidence=0.6
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency: [断言通过] 置信度排序正确
+2026-06-28 01:40:29,384 [    INFO] test_memory_consistency: [步骤3] 按时间戳排序
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:   按时间戳排序后:
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     timestamp=400
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     timestamp=300
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     timestamp=200
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     timestamp=100
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     timestamp=50
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency: [断言通过] 时间戳排序正确
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency: [步骤4] 组合排序（置信度优先，时间戳次之）
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:   组合排序后:
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     confidence=0.95, timestamp=200
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     confidence=0.9, timestamp=100
+2026-06-28 01:40:29,385 [    INFO] test_memory_consistency:     confidence=0.8, timestamp=50
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency:     confidence=0.7, timestamp=300
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency:     confidence=0.6, timestamp=400
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency: [断言通过] 组合排序正确
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency: [测试完成] test_memory_search_result_sorting_correctness
+2026-06-28 01:40:29,386 [    INFO] test_memory_consistency: ============================================================
+2026-06-28 01:40:29,389 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,389 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,390 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,392 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,393 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,393 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,393 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-28 01:40:29,393 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-28 01:40:29,396 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,396 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,396 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,400 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,400 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,400 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,400 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-28 01:40:29,400 [    INFO] planning.executor: 工具已注册: search
+2026-06-28 01:40:29,400 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: analyze
+2026-06-28 01:40:29,400 [    INFO] planning.executor: 工具已注册: analyze
+2026-06-28 01:40:29,403 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,404 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,404 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,407 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,407 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,407 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,410 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,410 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,410 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,410 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-28 01:40:29,410 [    INFO] planning.executor: 工具已注册: search
+2026-06-28 01:40:29,414 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,414 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,414 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,417 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,417 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,417 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,422 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,422 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,422 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,422 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-28 01:40:29,422 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-28 01:40:29,422 [    INFO] planning.executor: [工具调用] INFO: 开始执行: test_tool
+2026-06-28 01:40:29,423 [    INFO] planning.executor: [工具调用] SUCCESS: test_tool
+2026-06-28 01:40:29,427 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,428 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,428 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,428 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: async_tool
+2026-06-28 01:40:29,428 [    INFO] planning.executor: 工具已注册: async_tool
+2026-06-28 01:40:29,428 [    INFO] planning.executor: [工具调用] INFO: 开始执行: async_tool
+2026-06-28 01:40:29,428 [    INFO] planning.executor: [工具调用] SUCCESS: async_tool
+2026-06-28 01:40:29,433 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,434 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,434 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,434 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-28 01:40:29,434 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-28 01:40:29,434 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-28 01:40:29,434 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-28 01:40:29,434 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-28 01:40:29,434 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-28 01:40:29,435 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 156, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-28 01:40:29,442 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,442 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,442 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,448 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,448 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,448 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,448 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-28 01:40:29,448 [    INFO] planning.executor: 工具已注册: search
+2026-06-28 01:40:29,448 [    INFO] planning.executor: 开始执行计划: plan_0dad00d2
+2026-06-28 01:40:29,448 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-28 01:40:29,448 [    INFO] planning.executor: [工具调用] SUCCESS: search
+2026-06-28 01:40:29,449 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-28 01:40:29,456 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:29,456 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:29,456 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:29,456 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-28 01:40:29,456 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-28 01:40:29,456 [    INFO] planning.executor: 开始执行计划: plan_9040cba4
+2026-06-28 01:40:29,457 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-28 01:40:29,457 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-28 01:40:29,457 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-28 01:40:29,457 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-28 01:40:29,457 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-28 01:40:29,458 [ WARNING] agent.error_handler: [async_with_retry] 第 1/3 次尝试失败, 等待 0.96s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:29,782 [    INFO] visibility_report: {"trace_id": "a4c0c26be54447a6", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 963.95, "total_files": 261, "handled_files": 187, "skipped_files": 0, "coverage_percent": 71.6}
+2026-06-28 01:40:30,180 [    INFO] visibility_report: {"trace_id": "c04613408b1b4979", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 396.9, "total_modules": 27, "tracked_modules": 2, "untracked_modules": ["audit", "caching", "cognitive", "data", "extensions", "guardrails", "health", "human_in_the_loop", "lazy_loader", "log_system", "memory", "model_router", "network", "observability", "orchestrator", "p6", "prompt_manager", "quality", "subagent", "task_planner", "tests", "tools", "utils", "web", "workflow_engine"], "coverage_percent": 7.4}
+2026-06-28 01:40:30,420 [    INFO] visibility_report: {"trace_id": "fa10626101a54891", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 232.51, "scanned_files": 288, "total_logs": 2552, "structured_logs": 680, "coverage_percent": 26.6}
+2026-06-28 01:40:30,433 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-28 01:40:30,433 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-28 01:40:30,433 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-28 01:40:30,433 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-28 01:40:30,434 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-28 01:40:30,435 [ WARNING] agent.error_handler: [async_with_retry] 第 2/3 次尝试失败, 等待 2.09s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:30,461 [    INFO] visibility_report: {"trace_id": "6eb60534346049c4", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:30.461033"}
+2026-06-28 01:40:30,733 [    INFO] visibility_report: {"trace_id": "c4581bdde1ce448c", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 271.98, "scanned_files": 288, "total_logs": 2552, "structured_logs": 680, "coverage_percent": 26.6}
+2026-06-28 01:40:30,739 [    INFO] visibility_report: {"trace_id": "7ea2bca0613445a8", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 6.16, "scanned_files": 19, "total_routes": 216, "traced_routes": 36, "coverage_percent": 16.7}
+2026-06-28 01:40:30,822 [    INFO] visibility_report: {"trace_id": "2fa6167ed0424bf6", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Users\\Administrator\\agent\\coverage.xml", "line_rate": 0.005513, "coverage_percent": 0.6, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:30,838 [    INFO] visibility_report: {"trace_id": "59b99219d0714f8e", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Users\\Administrator\\agent", "timeout_sec": 60}
+2026-06-28 01:40:32,539 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-28 01:40:32,539 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-28 01:40:32,539 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-28 01:40:32,539 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-28 01:40:32,540 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-28 01:40:32,540 [ WARNING] agent.error_handler: [async_with_retry] 第 3/3 次尝试失败, 等待 4.31s 后重试: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:33,592 [    INFO] visibility_report: {"trace_id": "59b99219d0714f8e", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_done", "duration_ms": 2754.96, "returncode": 0, "stdout_len": 13965, "stderr_len": 852, "stderr_preview": "01:40:31 [    INFO] boundary_coverage             : {\"trace_id\": \"3e890e697f2c4e74\", \"module_name\": \"boundary_coverage\", \"action\": \"scan.start\", \"timestamp\": \"2026-06-28T01:40:31.351059\"}\n01:40:31 [    INFO] boundary_coverage             : 发现测试文件: 235 个\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid escape sequence '\\d'\n  \"\"\"离线工作流 E2E 测试——验证 WorkflowEngine 的全能力\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid esc"}
+2026-06-28 01:40:33,593 [    INFO] visibility_report: {"trace_id": "59b99219d0714f8e", "module_name": "visibility_report", "action": "calc_boundary_coverage.parsed", "duration_ms": 2754.96, "total_tests": 3812, "total_boundary_tests": 465, "overall_status": "warn", "blocked_modules": [], "total_modules": 32}
+2026-06-28 01:40:33,593 [    INFO] visibility_report: {"trace_id": "59b99219d0714f8e", "module_name": "visibility_report", "action": "calc_boundary_coverage.success", "duration_ms": 2754.96, "total_tests": 3812, "total_boundary_tests": 465, "coverage_percent": 12.2}
+2026-06-28 01:40:33,593 [    INFO] visibility_report: {"trace_id": "f97b9f206db543f5", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Users\\Administrator\\agent\\tests\\contract\\contracts", "contract_count": 3}
+2026-06-28 01:40:34,382 [    INFO] visibility_report: {"trace_id": "79d4beeff74f48ea", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 787.63, "total_files": 261, "handled_files": 187, "skipped_files": 0, "coverage_percent": 71.6}
+2026-06-28 01:40:34,764 [    INFO] visibility_report: {"trace_id": "ab3b0fa246194304", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 381.48, "total_modules": 27, "tracked_modules": 2, "untracked_modules": ["audit", "caching", "cognitive", "data", "extensions", "guardrails", "health", "human_in_the_loop", "lazy_loader", "log_system", "memory", "model_router", "network", "observability", "orchestrator", "p6", "prompt_manager", "quality", "subagent", "task_planner", "tests", "tools", "utils", "web", "workflow_engine"], "coverage_percent": 7.4}
+2026-06-28 01:40:34,768 [    INFO] visibility_report: {"trace_id": "6eb60534346049c4", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4307.3, "overall_status": "fail", "violations_count": 1}
+2026-06-28 01:40:34,771 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_real_project_full_report_0\real_report.md
+2026-06-28 01:40:34,771 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-508\test_real_project_full_report_0\real_report.json
+2026-06-28 01:40:34,771 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 1 项
+2026-06-28 01:40:34,771 [   ERROR] visibility_report:   - 验证过程可见.test_coverage: 实际=0.6%, 阈值=40%
+2026-06-28 01:40:34,790 [    INFO] visibility_report: {"trace_id": "3ed6b9e8e875469d", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-28T01:40:34.790710"}
+2026-06-28 01:40:35,013 [    INFO] visibility_report: {"trace_id": "b737c95ee0064912", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 222.24, "scanned_files": 288, "total_logs": 2552, "structured_logs": 680, "coverage_percent": 26.6}
+2026-06-28 01:40:35,017 [    INFO] visibility_report: {"trace_id": "a8540965a05e48d8", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 4.41, "scanned_files": 19, "total_routes": 216, "traced_routes": 36, "coverage_percent": 16.7}
+2026-06-28 01:40:35,085 [    INFO] visibility_report: {"trace_id": "eac32302b8d44a89", "module_name": "visibility_report", "action": "read_test_coverage.success", "duration_ms": 0, "path": "C:\\Users\\Administrator\\agent\\coverage.xml", "line_rate": 0.005513, "coverage_percent": 0.6, "source": "full-project-tests artifact (CI) 或本地生成"}
+2026-06-28 01:40:35,094 [    INFO] visibility_report: {"trace_id": "d4135dbfb48d4cb5", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Users\\Administrator\\agent\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Users\\Administrator\\agent", "timeout_sec": 60}
+2026-06-28 01:40:36,855 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-28 01:40:36,855 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-28 01:40:36,855 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: ZeroDivisionError
+2026-06-28 01:40:36,855 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: division by zero
+2026-06-28 01:40:36,856 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\unit\test_planning_executor.py", line 204, in <lambda>
+    registry.register("bad_tool", lambda: 1/0)
+                                          ~^~
+ZeroDivisionError: division by zero
+
+2026-06-28 01:40:36,856 [   ERROR] agent.error_handler: [async_with_retry] 所有 3 次重试已用尽: func=_do_execute_task
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 758, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 244, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+agent.error_handler.RecoverableError: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:36,857 [ WARNING] agent.error_handler: [warning] unknown: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:36,857 [   ERROR] planning.executor: 任务执行失败: 任务执行失败: 工具执行失败: division by zero
+2026-06-28 01:40:36,857 [   ERROR] planning.executor: 高优先级任务失败: task1
+2026-06-28 01:40:36,857 [    INFO] planning.executor: 计划执行completed: 0.0%
+2026-06-28 01:40:36,865 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:36,865 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:36,865 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:36,865 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step1
+2026-06-28 01:40:36,865 [    INFO] planning.executor: 工具已注册: step1
+2026-06-28 01:40:36,865 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: step2
+2026-06-28 01:40:36,865 [    INFO] planning.executor: 工具已注册: step2
+2026-06-28 01:40:36,866 [    INFO] planning.executor: 开始执行计划: plan_c8297855
+2026-06-28 01:40:36,866 [    INFO] planning.executor: [工具调用] INFO: 开始执行: step1
+2026-06-28 01:40:36,866 [    INFO] planning.executor: [工具调用] SUCCESS: step1
+2026-06-28 01:40:36,866 [    INFO] planning.executor: [工具调用] INFO: 开始执行: step2
+2026-06-28 01:40:36,866 [    INFO] planning.executor: [工具调用] SUCCESS: step2
+2026-06-28 01:40:36,866 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-28 01:40:36,877 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:36,878 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:36,878 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:36,878 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-28 01:40:36,878 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-28 01:40:36,878 [    INFO] planning.executor: 开始执行计划: plan_a234559d
+2026-06-28 01:40:36,878 [    INFO] planning.executor: [工具调用] INFO: 开始执行: test_tool
+2026-06-28 01:40:36,878 [    INFO] planning.executor: [工具调用] SUCCESS: test_tool
+2026-06-28 01:40:36,879 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-28 01:40:36,901 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:36,902 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:36,902 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:36,902 [    INFO] planning.executor: 计划已取消: plan_9186c985
+2026-06-28 01:40:36,906 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-28 01:40:36,906 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-28 01:40:36,906 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-28 01:40:37,553 [    INFO] visibility_report: {"trace_id": "d4135dbfb48d4cb5", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_done", "duration_ms": 2459.09, "returncode": 0, "stdout_len": 13965, "stderr_len": 852, "stderr_preview": "01:40:35 [    INFO] boundary_coverage             : {\"trace_id\": \"14f3a30458164127\", \"module_name\": \"boundary_coverage\", \"action\": \"scan.start\", \"timestamp\": \"2026-06-28T01:40:35.542812\"}\n01:40:35 [    INFO] boundary_coverage             : 发现测试文件: 235 个\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid escape sequence '\\d'\n  \"\"\"离线工作流 E2E 测试——验证 WorkflowEngine 的全能力\nC:\\Users\\Administrator\\agent\\tests\\e2e\\test_offline_workflow.py:1: SyntaxWarning: invalid esc"}
+2026-06-28 01:40:37,553 [    INFO] visibility_report: {"trace_id": "d4135dbfb48d4cb5", "module_name": "visibility_report", "action": "calc_boundary_coverage.parsed", "duration_ms": 2459.09, "total_tests": 3812, "total_boundary_tests": 465, "overall_status": "warn", "blocked_modules": [], "total_modules": 32}
+2026-06-28 01:40:37,553 [    INFO] visibility_report: {"trace_id": "d4135dbfb48d4cb5", "module_name": "visibility_report", "action": "calc_boundary_coverage.success", "duration_ms": 2459.09, "total_tests": 3812, "total_boundary_tests": 465, "coverage_percent": 12.2}
+2026-06-28 01:40:37,554 [    INFO] visibility_report: {"trace_id": "03d0b5c577584a2d", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 1.0, "contracts_dir": "C:\\Users\\Administrator\\agent\\tests\\contract\\contracts", "contract_count": 3}
+2026-06-28 01:40:38,444 [    INFO] visibility_report: {"trace_id": "4d8d592cdd394661", "module_name": "visibility_report", "action": "calc_exception_coverage.success", "duration_ms": 890.36, "total_files": 261, "handled_files": 187, "skipped_files": 0, "coverage_percent": 71.6}
+2026-06-28 01:40:38,790 [    INFO] visibility_report: {"trace_id": "b069cfe1cc404dec", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 345.31, "total_modules": 27, "tracked_modules": 2, "untracked_modules": ["audit", "caching", "cognitive", "data", "extensions", "guardrails", "health", "human_in_the_loop", "lazy_loader", "log_system", "memory", "model_router", "network", "observability", "orchestrator", "p6", "prompt_manager", "quality", "subagent", "task_planner", "tests", "tools", "utils", "web", "workflow_engine"], "coverage_percent": 7.4}
+2026-06-28 01:40:38,793 [    INFO] visibility_report: {"trace_id": "3ed6b9e8e875469d", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 4003.07, "overall_status": "fail", "violations_count": 1}
+2026-06-28 01:40:38,804 [    INFO] visibility_report: {"trace_id": "25f14b6f1de24f70", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.03, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:38,814 [    INFO] visibility_report: {"trace_id": "ba036b5097c848b2", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.03, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:38,815 [    INFO] visibility_report: {"trace_id": "586d7a3978f4471c", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 1.15, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}
+2026-06-28 01:40:38,825 [    INFO] visibility_report: {"trace_id": "6533ef8637734e54", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 1.08, "scanned_files": 3, "total_logs": 2, "structured_logs": 1, "coverage_percent": 50.0}
+2026-06-28 01:40:38,826 [    INFO] visibility_report: {"trace_id": "9583ee6856ee4bc7", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.92, "scanned_files": 1, "total_routes": 1, "traced_routes": 1, "coverage_percent": 100.0}

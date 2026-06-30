@@ -1,0 +1,142 @@
+{
+  "timestamp": 1782301622.6960921,
+  "generated_at": "2026-06-24T19:47:02.696092",
+  "scenarios": [
+    {
+      "name": "基准测试（无可观测性）",
+      "timestamp": 1782301621.0531526,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 17.520599998533726,
+        "avg_duration_ms": 0.0002834001643350348,
+        "p50_duration_ms": 0.000300002284348011,
+        "p90_duration_ms": 0.000300002284348011,
+        "p95_duration_ms": 0.000300002284348011,
+        "p99_duration_ms": 0.0007999915396794677,
+        "min_duration_ms": 0.00019998697098344564,
+        "max_duration_ms": 0.001300009898841381,
+        "throughput": 57075.6709292883,
+        "avg_memory_mb": 18.46484375,
+        "max_memory_mb": 18.46484375,
+        "avg_cpu_percent": 97.7,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 0.0,
+      "baseline_comparison": {}
+    },
+    {
+      "name": "追踪启用",
+      "timestamp": 1782301622.0475986,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 361.37939999753144,
+        "avg_duration_ms": 3.302374399951077,
+        "p50_duration_ms": 0.109200002043508,
+        "p90_duration_ms": 0.3512999974191189,
+        "p95_duration_ms": 24.88580001227092,
+        "p99_duration_ms": 66.145000004326,
+        "min_duration_ms": 0.09809999028220773,
+        "max_duration_ms": 104.41059998993296,
+        "throughput": 2767.174886025133,
+        "avg_memory_mb": 62.048583984375,
+        "max_memory_mb": 78.765625,
+        "avg_cpu_percent": 67.16875,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 1165169.0490493225,
+      "baseline_comparison": {
+        "latency_overhead_pct": 1165169.0490493225,
+        "throughput_ratio": 0.04848256430403451,
+        "memory_increase_pct": 236.03633382695156,
+        "cpu_increase_pct": -31.25
+      }
+    },
+    {
+      "name": "指标导出",
+      "timestamp": 1782301622.12107,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 17.786399999749847,
+        "avg_duration_ms": 0.003942499737604521,
+        "p50_duration_ms": 0.0023000029614195228,
+        "p90_duration_ms": 0.0025000044843181968,
+        "p95_duration_ms": 0.003000008291564882,
+        "p99_duration_ms": 0.00999998883344233,
+        "min_duration_ms": 0.0021999876480549574,
+        "max_duration_ms": 1.4060999965295196,
+        "throughput": 56222.73197578286,
+        "avg_memory_mb": 77.59765625,
+        "max_memory_mb": 77.59765625,
+        "avg_cpu_percent": 97.7,
+        "max_cpu_percent": 97.7
+      },
+      "overhead_percent": 1291.1423611398159,
+      "baseline_comparison": {
+        "latency_overhead_pct": 1291.1423611398159,
+        "throughput_ratio": 0.9850559977724632,
+        "memory_increase_pct": 320.2453987730062,
+        "cpu_increase_pct": 0.0
+      }
+    },
+    {
+      "name": "日志关联",
+      "timestamp": 1782301622.187495,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 27.627199990092777,
+        "avg_duration_ms": 0.0022527998662553728,
+        "p50_duration_ms": 0.001100008375942707,
+        "p90_duration_ms": 0.0040000013541430235,
+        "p95_duration_ms": 0.0042000028770416975,
+        "p99_duration_ms": 0.01889999839477241,
+        "min_duration_ms": 0.0009999930625781417,
+        "max_duration_ms": 0.030099996365606785,
+        "throughput": 36196.2124413116,
+        "avg_memory_mb": 77.68359375,
+        "max_memory_mb": 77.68359375,
+        "avg_cpu_percent": 0.0,
+        "max_cpu_percent": 0.0
+      },
+      "overhead_percent": 694.9183344834338,
+      "baseline_comparison": {
+        "latency_overhead_pct": 694.9183344834338,
+        "throughput_ratio": 0.6341793596461704,
+        "memory_increase_pct": 320.71081023905225,
+        "cpu_increase_pct": -100.0
+      }
+    },
+    {
+      "name": "全量可观测性",
+      "timestamp": 1782301622.692069,
+      "metrics": {
+        "request_count": 1000,
+        "total_duration_ms": 419.766899998649,
+        "avg_duration_ms": 3.7545768001727993,
+        "p50_duration_ms": 0.13339999713934958,
+        "p90_duration_ms": 12.667500006500632,
+        "p95_duration_ms": 24.606200007838197,
+        "p99_duration_ms": 57.2597999998834,
+        "min_duration_ms": 0.12070000229869038,
+        "max_duration_ms": 243.07019999832846,
+        "throughput": 2382.2745433315927,
+        "avg_memory_mb": 78.90087890625,
+        "max_memory_mb": 79.26171875,
+        "avg_cpu_percent": 49.6625,
+        "max_cpu_percent": 104.2
+      },
+      "overhead_percent": 1324732.2593540032,
+      "baseline_comparison": {
+        "latency_overhead_pct": 1324732.2593540032,
+        "throughput_ratio": 0.04173887936040243,
+        "memory_increase_pct": 327.3032578802623,
+        "cpu_increase_pct": -49.168372569089044
+      }
+    }
+  ],
+  "summary": {
+    "baseline_latency_ms": 0.0002834001643350348,
+    "full_observability_latency_ms": null,
+    "max_overhead_percent": 1324732.2593540032,
+    "recommendation": "未找到全量可观测性测试结果"
+  }
+}

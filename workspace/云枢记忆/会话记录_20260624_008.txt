@@ -1,0 +1,71 @@
+=============================================
+  会话记录 #8
+=============================================
+
+🕒 时间：2026年06月24日 13:58
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+帮我看看桌面上有什么文件
+
+🤖 云枢：
+📂 C:\Users\Administrator/Desktop 下的内容：
+📁 AI
+📁 EasySpider_Windows_x64
+📁 Link
+📁 YSmemory
+📁 主权AI多Agent系统
+📁 云枢记忆
+📁 器材站
+📁 广告
+📁 新建文件夹
+📁 新钱东监控
+📁 考公
+📁 证打印
+📁 选股工具
+📄 1. 感知与理解能力（眼睛和耳朵）.docx
+📄 1bdc6358273e2a5948ba8a2c8d1d1bd8.jpg
+📄 21日均线（ma20）从下跌转为回升.pdf
+📄 43874a3f7f56b5475f13f48b05e22c63.jpg
+📄 AI笔记.xlsx
+📄 A股智能选股助手.pdf
+📄 DeepSeek从入门到精通-清华大学版.pdf
+📄 Ollama_GPU 优化启动.bat
+📄 OpenClaw Gateway.lnk
+📄 WorkBuddy.lnk
+📄 ch1_251026-150528.TS
+📄 clawpanel.exe.lnk
+📄 deepseek赔我token.png
+📄 desktop.ini
+📄 start llama.bat.lnk
+📄 yunshu_menu.bat
+📄 yunshu_restart.bat
+📄 一、 核心架构蓝图：“感、知、行”三位一体.docx
+📄 云枢_永久记忆.md
+📄 云枢_永久记忆_安全兼容协议.md
+📄 云枢数字生命体 — 超详细系统架构图6 Architecture Diagram.html
+📄 云枢数字生命体_v7_终极架构图.html
+📄 云枢数字生命体架构图7.html
+📄 云枢管理.png
+📄 云枢系统架构图 - 副本 (2).html
+📄 云枢系统架构图.html
+📄 云枢系统架构图_紧凑版.html
+📄 云枢系统架构图_超详细版.html
+📄 你是一位.txt
+📄 定损清单.xlsx
+...及其他 17 项
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.24 13:58
+=============================================
+

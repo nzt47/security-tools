@@ -1,0 +1,145 @@
+2026-06-24 17:40:08,952 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:40:08,955 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:40:08,957 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:40:09,056 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:40:09,071 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:40:09,073 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:40:09,104 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:40:09,112 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:40:09,118 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:40:09,134 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:40:09,135 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:40:09,135 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:40:09,136 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:40:09,137 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:40:09,294 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:40:09,297 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:40:09,297 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:40:09,305 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:40:09,305 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:40:09,305 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:40:09,305 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:40:09,306 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:40:09,307 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:40:09,307 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:40:09,307 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:40:09,381 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,382 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,382 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:40:09,387 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,387 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,388 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "tool_call"}
+2026-06-24 17:40:09,392 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,392 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,392 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "error_message"}
+2026-06-24 17:40:09,395 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,395 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,396 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "summary_report"}
+2026-06-24 17:40:09,400 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,400 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u65e0\u6548\u7684 output_type: invalid_type, \u6709\u6548\u503c: ['text_response', 'tool_call', 'error_message', 'summary_report']"}
+2026-06-24 17:40:09,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,404 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "\u7f3a\u5c11\u5fc5\u9700\u5b57\u6bb5: ['timestamp', 'version']"}
+2026-06-24 17:40:09,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,407 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,408 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:40:09,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,408 [    INFO] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 1.0, "result": "success", "output_type": "text_response"}
+2026-06-24 17:40:09,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,413 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "validate", "duration_ms": 0, "error": "JSON \u89e3\u6790\u5931\u8d25: Expecting value: line 1 column 1 (char 0)"}
+2026-06-24 17:40:09,413 [   ERROR] agent.guardrails.output_schema: {"trace_id": null, "module_name": "output_schema", "action": "parse_and_validate", "duration_ms": 1.0, "error": "\u8f93\u51fa\u4e0d\u7b26\u5408 Schema"}
+2026-06-24 17:40:09,413 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,417 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,420 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,424 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,427 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,432 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,432 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:40:09,432 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,433 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "overall_score": 76, "passed": true, "retry_recommended": false, "dimension_scores": {"factual_accuracy": 100, "completeness": 100, "relevance": 20, "logic": 60, "clarity": 75}}
+2026-06-24 17:40:09,436 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,436 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:40:09,437 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,437 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "overall_score": 57, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 31, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:40:09,437 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 57, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96453\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:40:09,441 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,442 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:40:09,442 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,442 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 48, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 70, "completeness": 31, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:40:09,442 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 48, "threshold": 70, "feedback": ["\u5305\u542b\u9519\u8bef\u7684\u79d1\u5b66\u5e38\u8bc6", "\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1180\u5b57\u7b26\uff0c\u5b9e\u96455\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:40:09,445 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,446 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:40:09,446 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,446 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "overall_score": 57, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 32, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:40:09,446 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 57, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96456\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:40:09,450 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,450 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 0, "mode": "rule_based", "threshold": 70}
+2026-06-24 17:40:09,450 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,451 [    INFO] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "overall_score": 56, "passed": false, "retry_recommended": true, "dimension_scores": {"factual_accuracy": 100, "completeness": 30, "relevance": 20, "logic": 60, "clarity": 60}}
+2026-06-24 17:40:09,451 [ WARNING] agent.cognitive.critic: {"trace_id": null, "module_name": "critic", "action": "evaluate", "duration_ms": 1.0, "warning": "\u8bc4\u4f30\u672a\u901a\u8fc7\uff0c\u89e6\u53d1\u91cd\u8bd5\u6216\u964d\u7ea7", "overall_score": 56, "threshold": 70, "feedback": ["\u56de\u7b54\u53ef\u80fd\u4e0d\u591f\u5b8c\u6574\uff0c\u671f\u671b\u81f3\u5c1150\u5b57\u7b26\uff0c\u5b9e\u96452\u5b57\u7b26", "\u56de\u7b54\u4e0e\u95ee\u9898\u76f8\u5173\u6027\u8f83\u4f4e\uff0c\u672a\u5305\u542b\u67e5\u8be2\u4e2d\u7684\u5173\u952e\u8bcd", "\u53e5\u5b50\u8fc7\u77ed\uff0c\u53ef\u80fd\u5f71\u54cd\u8868\u8fbe\u7684\u8fde\u8d2f\u6027"]}
+2026-06-24 17:40:09,464 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,468 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,468 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:09,471 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,471 [ WARNING] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "execute_shell", "risk_level": "CRITICAL", "reason": "\u5305\u542b\u9ad8\u5371\u64cd\u4f5c: rm -rf /"}
+2026-06-24 17:40:09,475 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,475 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "insert", "risk_level": "MEDIUM", "reason": "\u5199\u5e93\u64cd\u4f5c"}
+2026-06-24 17:40:09,478 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,479 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,479 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_approval", "duration_ms": 0.0, "tool_name": "read_file", "risk_level": "LOW", "result": "auto_approved"}
+2026-06-24 17:40:09,483 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,483 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,483 [ WARNING] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "format", "risk_level": "CRITICAL", "reason": "\u5305\u542b\u9ad8\u5371\u64cd\u4f5c: format"}
+2026-06-24 17:40:09,483 [CRITICAL] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_approval", "duration_ms": 0.0, "tool_name": "format", "risk_level": "CRITICAL", "result": "rejected"}
+2026-06-24 17:40:09,487 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,487 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,487 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:09,488 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,488 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "47d0a437-35fc-461d-b5d1-3c0f0f8e3d06", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test.txt"}, "timeout_at": 1782294309.487694, "mode": "async"}}
+2026-06-24 17:40:09,488 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "47d0a437-35fc-461d-b5d1-3c0f0f8e3d06", "mode": "async"}
+2026-06-24 17:40:09,489 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,489 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "approve_request", "duration_ms": 0, "request_id": "47d0a437-35fc-461d-b5d1-3c0f0f8e3d06", "approver": "system"}
+2026-06-24 17:40:09,594 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,594 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,594 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:09,595 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,595 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "77bfb685-048b-400e-b8d5-71b4d8613155", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test.txt"}, "timeout_at": 1782294309.595063, "mode": "async"}}
+2026-06-24 17:40:09,595 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "77bfb685-048b-400e-b8d5-71b4d8613155", "mode": "async"}
+2026-06-24 17:40:09,595 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,596 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "approve_request", "duration_ms": 0, "request_id": "77bfb685-048b-400e-b8d5-71b4d8613155", "approver": "test_user"}
+2026-06-24 17:40:09,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,600 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,600 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:09,601 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:09,601 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "ee355ba2-46d2-45b8-bb46-724009328322", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test.txt"}, "timeout_at": 1782294010.1017487, "mode": "async"}}
+2026-06-24 17:40:09,601 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "ee355ba2-46d2-45b8-bb46-724009328322", "mode": "async"}
+2026-06-24 17:40:10,102 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,102 [ WARNING] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_timeout_handler", "duration_ms": 500.0, "request_id": "ee355ba2-46d2-45b8-bb46-724009328322", "warning": "\u8bf7\u6c42\u8d85\u65f6"}
+2026-06-24 17:40:10,206 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,206 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,206 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:10,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,208 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "8fe3a059-ddda-4a25-ab08-7bcc88771857", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test.txt"}, "timeout_at": 1782294310.2078044, "mode": "async"}}
+2026-06-24 17:40:10,208 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "8fe3a059-ddda-4a25-ab08-7bcc88771857", "mode": "async"}
+2026-06-24 17:40:10,208 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,209 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "cancel_request", "duration_ms": 0, "request_id": "8fe3a059-ddda-4a25-ab08-7bcc88771857"}
+2026-06-24 17:40:10,212 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,213 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,213 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:10,213 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,214 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "e02c9425-ebdd-43ab-bc30-4e45d981ccff", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test1.txt"}, "timeout_at": 1782294310.2133434, "mode": "async"}}
+2026-06-24 17:40:10,214 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "e02c9425-ebdd-43ab-bc30-4e45d981ccff", "mode": "async"}
+2026-06-24 17:40:10,215 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,215 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,215 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "assess", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "HIGH"}
+2026-06-24 17:40:10,216 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 17:40:10,216 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "_send_confirmation_notification", "duration_ms": 0, "notification": {"request_id": "5fc2e880-3284-4621-9ddb-d159ea2b094b", "action": "delete_file", "reason": "\u5220\u9664\u6587\u4ef6", "risk_level": "high", "details": {"path": "test2.txt"}, "timeout_at": 1782294310.2151937, "mode": "async"}}
+2026-06-24 17:40:10,216 [    INFO] agent.human_in_the_loop.hitl: {"trace_id": null, "module_name": "hitl", "action": "request_async_approval", "duration_ms": 0, "tool_name": "delete_file", "risk_level": "high", "request_id": "5fc2e880-3284-4621-9ddb-d159ea2b094b", "mode": "async"}

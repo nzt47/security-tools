@@ -1,0 +1,77 @@
+{
+  "test_module": "智能工具选择测试模块",
+  "summary": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "tests": [
+    {
+      "name": "关键词配置测试",
+      "passed": true
+    },
+    {
+      "name": "优先级顺序测试",
+      "passed": true
+    },
+    {
+      "name": "工具分类测试",
+      "passed": true
+    },
+    {
+      "name": "别名合并测试",
+      "passed": true
+    },
+    {
+      "name": "极端优先级冲突测试",
+      "passed": true
+    },
+    {
+      "name": "决策日志器测试",
+      "passed": true
+    },
+    {
+      "name": "工具数量一致性测试",
+      "passed": true
+    },
+    {
+      "name": "边界条件1-空工具集",
+      "passed": true
+    },
+    {
+      "name": "边界条件2-动态添加工具",
+      "passed": true
+    },
+    {
+      "name": "边界条件3-动态删除工具",
+      "passed": true
+    },
+    {
+      "name": "边界条件4-配置文件损坏",
+      "passed": true
+    },
+    {
+      "name": "边界条件5-工具名称冲突",
+      "passed": true
+    },
+    {
+      "name": "边界条件6-大量工具场景",
+      "passed": true
+    },
+    {
+      "name": "100并发压力测试",
+      "passed": true
+    },
+    {
+      "name": "性能指标测试",
+      "passed": true
+    }
+  ],
+  "config_info": {
+    "total_tools": 64,
+    "total_categories": 11,
+    "total_alias_rules": 6,
+    "file_priority": 2
+  }
+}

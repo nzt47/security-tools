@@ -505,3 +505,50 @@
 2026-06-17 19:51:40 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "***", "user": "admin"}
 2026-06-18 18:51:17 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
 2026-06-18 18:51:17 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-27 01:29:04 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-27 01:29:04 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-27 01:29:04 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-27 01:29:04 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-27 01:29:04 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-27 01:29:04 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-27 01:29:04 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "[REDACTED]", "user": "admin"}
+2026-06-27 01:29:46 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-27 01:29:46 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-27 01:46:49 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-27 01:46:49 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-27 01:46:49 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-27 01:46:49 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-27 01:46:49 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-27 01:46:49 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-27 01:46:49 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "[REDACTED]", "user": "admin"}
+2026-06-27 01:46:56 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-27 01:46:56 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-27 01:46:56 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-27 01:46:56 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-27 01:46:56 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-27 01:46:56 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-27 01:46:56 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "[REDACTED]", "user": "admin"}
+2026-06-27 02:04:35 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-27 02:04:35 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-27 02:04:35 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-27 02:04:35 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-27 02:04:35 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-27 02:04:35 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-27 02:04:35 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "[REDACTED]", "user": "admin"}
+2026-06-28 02:00:40 [INFO] CONFIG_ACCESS | user=admin | key=test_key
+2026-06-28 02:00:40 [INFO] CONFIG_MODIFY | user=admin | key=test_key
+2026-06-28 02:00:40 [INFO] SECURE_CONFIG_ACCESS | user=user1 | key=api_key | status=SUCCESS
+2026-06-28 02:00:40 [INFO] SECURE_CONFIG_ACCESS | user=user2 | key=api_key | status=FAILED
+2026-06-28 02:00:40 [INFO] AUTHENTICATION | username=admin | status=SUCCESS | ip=192.168.1.1
+2026-06-28 02:00:40 [INFO] AUTHENTICATION | username=user | status=FAILED
+2026-06-28 02:00:40 [INFO] SENSITIVE_OPERATION | user=system | operation=export_data | details={"api_key": "[REDACTED]", "user": "admin"}
+2026-06-28 08:57:25 [INFO] CONFIG_ACCESS | user=test_user | key=test_key
+2026-06-28 08:57:25 [INFO] AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1
+2026-06-29 01:43:46 [INFO] {"trace_id": "7f75dd70f9be47b0", "module_name": "logging_utils", "action": "logging_utils.log_config_access.config_access", "duration_ms": 0, "message": "CONFIG_ACCESS | user=test_user | key=test_key"}
+2026-06-29 01:43:46 [INFO] {"trace_id": "a75c5ae39ef14811", "module_name": "logging_utils", "action": "logging_utils.log_authentication.authentication", "duration_ms": 0, "message": "AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1"}
+2026-06-29 09:19:50 [INFO] {"trace_id": "7b43f887b93140db", "module_name": "logging_utils", "action": "logging_utils.log_config_access.config_access", "duration_ms": 0, "message": "CONFIG_ACCESS | user=test_user | key=test_key"}
+2026-06-29 09:19:50 [INFO] {"trace_id": "0ae4c5e7cbf7458f", "module_name": "logging_utils", "action": "logging_utils.log_authentication.authentication", "duration_ms": 0, "message": "AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1"}
+2026-06-29 10:12:10 [INFO] {"trace_id": "bb127e8a1da24af0", "module_name": "logging_utils", "action": "logging_utils.log_config_access.config_access", "duration_ms": 0, "message": "CONFIG_ACCESS | user=test_user | key=test_key"}
+2026-06-29 10:12:10 [INFO] {"trace_id": "fd61e0fa6873485f", "module_name": "logging_utils", "action": "logging_utils.log_authentication.authentication", "duration_ms": 0, "message": "AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1"}
+2026-06-29 10:15:04 [INFO] {"trace_id": "adaa240e6d2b4ccc", "module_name": "logging_utils", "action": "logging_utils.log_config_access.config_access", "duration_ms": 0, "message": "CONFIG_ACCESS | user=test_user | key=test_key"}
+2026-06-29 10:15:04 [INFO] {"trace_id": "3af42153b00b4c56", "module_name": "logging_utils", "action": "logging_utils.log_authentication.authentication", "duration_ms": 0, "message": "AUTHENTICATION | username=test_user | status=SUCCESS | ip=192.168.1.1"}

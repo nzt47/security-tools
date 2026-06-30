@@ -11,6 +11,8 @@
 
 import time
 import logging
+import json
+import uuid
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -18,6 +20,11 @@ from typing import Any, Optional
 from agent.memory.base import MemoryCapability
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 @dataclass
@@ -101,7 +108,7 @@ class ShortTermMemory:
             True 表示保存成功
         """
         if not key:
-            logger.warning("[ShortTermMemory] save 失败: key 为空")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "short_term_memory", "action": "save.key", "msg": "[ShortTermMemory] save 失败: key 为空"}, ensure_ascii=False))
             return False
 
         now = time.time()
@@ -296,3 +303,21 @@ class ShortTermMemory:
                 })
 
             return entries
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "short_term_memory",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise

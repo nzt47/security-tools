@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_188_20260623192722",
+  "content": "今晚的天气怎么样，这里是饶平县黄冈镇。",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 2,
+    "timestamp": "2026-06-23T11:27:22.920410+00:00"
+  },
+  "created_at": "2026-06-23T19:27:22.920410",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

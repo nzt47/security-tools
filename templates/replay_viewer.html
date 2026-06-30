@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户行为回放 — 云枢</title>
+  <!--
+    自解释 UI 设计原则：
+    1. 直观性 —— 输入框、查询按钮、播放器自上而下排列，新用户零学习成本
+    2. 一致性 —— 复用云枢 dark theme（与 health.html 一致）
+    3. 可发现性 —— 顶部"使用说明"折叠面板，内嵌操作指引；空状态提示查询方式
+    4. 状态反馈 —— 加载中/错误/空状态/成功均有视觉反馈
+  -->
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #1c2128;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header h1 small { font-size: 14px; color: var(--text-secondary); font-weight: 400; margin-left: 12px; }
+    .back-link { color: var(--blue); text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+
+    /* 自解释 UI：使用说明折叠面板 */
+    .help-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .help-toggle {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; cursor: pointer;
+      user-select: none;
+    }
+    .help-toggle:hover { background: rgba(88, 166, 255, 0.05); }
+    .help-toggle .title { font-size: 14px; font-weight: 500; color: var(--blue); }
+    .help-toggle .icon { color: var(--text-secondary); transition: transform 0.2s; }
+    .help-toggle.expanded .icon { transform: rotate(90deg); }
+    .help-content {
+      padding: 0 16px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+    }
+    .help-content.expanded {
+      max-height: 400px;
+      padding: 12px 16px 16px;
+      border-top: 1px solid var(--border-color);
+    }
+    .help-content ul { padding-left: 20px; }
+    .help-content code {
+      background: var(--bg-card); padding: 2px 6px;
+      border-radius: 4px; color: var(--purple); font-size: 12px;
+    }
+
+    /* 查询栏 */
+    .query-bar {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .query-input {
+      flex: 1; min-width: 280px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .query-input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+    .query-input::placeholder { color: var(--text-secondary); }
+    .btn {
+      background: var(--blue); color: #fff;
+      border: none; padding: 10px 20px;
+      border-radius: 6px; font-size: 14px;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #4c9aed; }
+    .btn:disabled { background: #444c56; cursor: not-allowed; }
+    .btn.secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .btn.secondary:hover { background: var(--bg-secondary); }
+
+    /* 元数据卡片 */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .meta-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+    .meta-card .label {
+      font-size: 11px; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .meta-card .value {
+      font-size: 14px; font-weight: 500;
+      word-break: break-all;
+    }
+    .meta-card .value.mono { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; }
+
+    /* 播放器容器 */
+    .player-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .player-wrapper .loading {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .player-wrapper .error {
+      color: var(--red);
+      font-size: 14px;
+      text-align: center;
+    }
+    .player-wrapper .empty {
+      color: var(--text-secondary);
+      font-size: 14px;
+      text-align: center;
+    }
+    .player-wrapper .empty .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+    /* rrweb-player 容器 */
+    .rrweb-player-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 列表 */
+    .list-section {
+      margin-top: 24px;
+    }
+    .list-section h2 {
+      font-size: 16px; font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .list-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .list-table th, .list-table td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .list-table th {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .list-table tr:last-child td { border-bottom: none; }
+    .list-table tr:hover { background: rgba(88, 166, 255, 0.05); }
+    .list-table .link { color: var(--blue); cursor: pointer; text-decoration: none; }
+    .list-table .link:hover { text-decoration: underline; }
+    .list-table .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge.green { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+    .badge.yellow { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
+    .badge.gray { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+
+    /* 状态消息 */
+    .status-msg {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .status-msg.info { background: rgba(88, 166, 255, 0.1); color: var(--blue); }
+    .status-msg.error { background: rgba(248, 81, 73, 0.1); color: var(--red); }
+    .status-msg.success { background: rgba(63, 185, 80, 0.1); color: var(--green); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      用户行为回放
+      <small>rrweb Session Replay</small>
+    </h1>
+    <a href="/" class="back-link">← 返回首页</a>
+  </div>
+
+  <!-- 自解释 UI：使用说明 -->
+  <div class="help-panel">
+    <div class="help-toggle" id="helpToggle">
+      <span class="title">📖 使用说明（点击展开）</span>
+      <span class="icon">▶</span>
+    </div>
+    <div class="help-content" id="helpContent">
+      <ul>
+        <li><strong>按 replay_id 查询</strong>：在输入框中粘贴回放 ID，点击"加载回放"即可播放。</li>
+        <li><strong>按 trace_id 查询</strong>：在输入框中粘贴 trace_id，点击"查询列表"获取关联的所有回放。</li>
+        <li><strong>查看最近回放</strong>：点击"最近列表"按钮，按时间倒序展示最近 24 小时的回放。</li>
+        <li><strong>关联信息</strong>：每条回放包含 <code>trace_id</code>（链路追踪）、<code>user_session_id</code>（用户会话）、<code>error_id</code>（Sentry 事件）三个关联字段，可用于跨系统排查。</li>
+        <li><strong>脱敏说明</strong>：密码框、token 输入框在录制时已通过 <code>data-rrweb-mask</code> 遮罩，回放中显示为黑块。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 查询栏 -->
+  <div class="query-bar">
+    <input
+      type="text"
+      id="queryInput"
+      class="query-input"
+      placeholder="输入 replay_id 或 trace_id 进行查询..."
+      autocomplete="off"
+    />
+    <button class="btn" id="loadBtn" onclick="loadReplay()">加载回放</button>
+    <button class="btn secondary" onclick="searchByTraceId()">查询列表</button>
+    <button class="btn secondary" onclick="loadRecent()">最近列表</button>
+  </div>
+
+  <div id="statusMsg"></div>
+
+  <!-- 元数据卡片 -->
+  <div class="meta-grid" id="metaGrid" style="display: none;"></div>
+
+  <!-- 播放器 -->
+  <div class="player-wrapper" id="playerWrapper">
+    <div class="empty">
+      <div>请输入 replay_id 或点击"最近列表"开始查看回放</div>
+      <div class="hint">提示：回放数据来自 rrweb 录制，仅异常时上传最近 30 秒</div>
+    </div>
+  </div>
+
+  <!-- 列表区 -->
+  <div class="list-section" id="listSection" style="display: none;">
+    <h2>回放列表</h2>
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>replay_id</th>
+          <th>trace_id</th>
+          <th>error_id</th>
+          <th>时间</th>
+          <th>时长</th>
+          <th>事件数</th>
+          <th>大小</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="listBody"></tbody>
+    </table>
+  </div>
+
+  <!-- rrweb-player 通过 CDN 加载（避免 Flask 静态资源耦合） -->
+  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/index.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/style.css">
+
+  <script>
+    /**
+     * 回放查看器前端逻辑
+     *
+     * 状态同步机制说明：
+     * - 输入框同时支持 replay_id 与 trace_id，通过长度与格式自动判定查询类型；
+     * - 列表行点击后自动填充输入框并触发单条加载，避免用户手动复制粘贴；
+     * - 播放器实例每次加载前销毁旧实例，防止 DOM 残留。
+     */
+
+    const API_BASE = '';
+    let currentPlayer = null;
+
+    // ─── 自解释 UI：使用说明折叠 ──────────────────────────────────────
+    document.getElementById('helpToggle').addEventListener('click', function() {
+      this.classList.toggle('expanded');
+      document.getElementById('helpContent').classList.toggle('expanded');
+    });
+
+    // ─── 回车键触发查询 ───────────────────────────────────────────────
+    document.getElementById('queryInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') loadReplay();
+    });
+
+    // ─── URL 参数自动填充（支持 /replay?replay_id=xxx） ───────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(location.search);
+      const rid = params.get('replay_id');
+      const tid = params.get('trace_id');
+      if (rid) {
+        document.getElementById('queryInput').value = rid;
+        loadReplay();
+      } else if (tid) {
+        document.getElementById('queryInput').value = tid;
+        searchByTraceId();
+      }
+    });
+
+    // ─── 状态消息显示 ────────────────────────────────────────────────
+    function showStatus(msg, type = 'info') {
+      const el = document.getElementById('statusMsg');
+      if (!msg) { el.innerHTML = ''; return; }
+      el.innerHTML = `<div class="status-msg ${type}">${msg}</div>`;
+    }
+
+    // ─── 加载单条回放并播放 ──────────────────────────────────────────
+    async function loadReplay() {
+      const input = document.getElementById('queryInput').value.trim();
+      if (!input) {
+        showStatus('请输入 replay_id 或 trace_id', 'error');
+        return;
+      }
+
+      // 输入较长时判定为 trace_id（通常 16~32 位十六进制）
+      const isTraceId = /^[0-9a-f]{16,32}$/i.test(input);
+      if (isTraceId) {
+        searchByTraceId();
+        return;
+      }
+
+      // 按 replay_id 加载
+      showStatus('加载中...', 'info');
+      document.getElementById('metaGrid').style.display = 'none';
+      document.getElementById('listSection').style.display = 'none';
+      clearPlayer();
+
+      try {
+        // 先获取元数据
+        const metaResp = await fetch(`${API_BASE}/api/replay/${encodeURIComponent(input)}`);
+        if (!metaResp.ok) {
+          const err = await metaResp.json().catch(() => ({ error: metaResp.statusText }));
+          throw new Error(err.error || `HTTP ${metaResp.status}`);
+        }
+        const metaJson = await metaResp.json();
+        if (!metaJson.ok) throw new Error(metaJson.error);
+        const meta = metaJson.record;
+        renderMeta(meta);
+
+        // 获取回放数据
+        showStatus('获取回放数据中...', 'info');
+        const dataResp = await fetch(`${API_BASE}/api/replay/${encodeURIComponent(input)}/data`);
+        if (!dataResp.ok) {
+          const err = await dataResp.json().catch(() => ({ error: dataResp.statusText }));
+          throw new Error(err.error || `HTTP ${dataResp.status}`);
+        }
+        const events = await dataResp.json();
+
+        if (!Array.isArray(events) || events.length === 0) {
+          throw new Error('回放数据为空或格式非法');
+        }
+
+        showStatus(`已加载 ${events.length} 个事件，开始播放`, 'success');
+        renderPlayer(events);
+      } catch (err) {
+        showStatus(`加载失败: ${err.message}`, 'error');
+        document.getElementById('playerWrapper').innerHTML =
+          `<div class="error">加载失败: ${err.message}</div>`;
+      }
+    }
+
+    // ─── 按 trace_id 查询列表 ────────────────────────────────────────
+    async function searchByTraceId() {
+      const input = document.getElementById('queryInput').value.trim();
+      if (!input) {
+        showStatus('请输入 trace_id', 'error');
+        return;
+      }
+      showStatus('查询中...', 'info');
+      try {
+        const resp = await fetch(
+          `${API_BASE}/api/replay/list?trace_id=${encodeURIComponent(input)}&limit=50`
+        );
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (!json.ok) throw new Error(json.error);
+        renderList(json.records);
+        showStatus(`找到 ${json.total} 条回放记录`, json.total > 0 ? 'success' : 'info');
+      } catch (err) {
+        showStatus(`查询失败: ${err.message}`, 'error');
+      }
+    }
+
+    // ─── 最近列表 ────────────────────────────────────────────────────
+    async function loadRecent() {
+      showStatus('加载最近 24 小时回放...', 'info');
+      try {
+        const resp = await fetch(`${API_BASE}/api/replay/list?limit=20`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (!json.ok) throw new Error(json.error);
+        renderList(json.records);
+        showStatus(`找到 ${json.total} 条回放记录`, json.total > 0 ? 'success' : 'info');
+      } catch (err) {
+        showStatus(`查询失败: ${err.message}`, 'error');
+      }
+    }
+
+    // ─── 渲染元数据卡片 ──────────────────────────────────────────────
+    function renderMeta(meta) {
+      const grid = document.getElementById('metaGrid');
+      grid.style.display = 'grid';
+      const cards = [
+        { label: 'replay_id', value: meta.replay_id, mono: true },
+        { label: 'trace_id', value: meta.trace_id || '—', mono: true },
+        { label: 'user_session_id', value: meta.user_session_id || '—', mono: true },
+        { label: 'error_id', value: meta.error_id || '—', mono: true },
+        { label: '时间', value: meta.timestamp },
+        { label: '时长', value: `${meta.duration_sec}s` },
+        { label: '事件数', value: meta.event_count },
+        { label: '大小', value: formatBytes(meta.size_bytes) },
+      ];
+      grid.innerHTML = cards.map(c => `
+        <div class="meta-card">
+          <div class="label">${c.label}</div>
+          <div class="value ${c.mono ? 'mono' : ''}">${escapeHtml(c.value)}</div>
+        </div>
+      `).join('');
+    }
+
+    // ─── 渲染列表 ────────────────────────────────────────────────────
+    function renderList(records) {
+      const tbody = document.getElementById('listBody');
+      const section = document.getElementById('listSection');
+      if (!records || records.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      tbody.innerHTML = records.map(r => `
+        <tr>
+          <td><span class="link" onclick="loadById('${escapeAttr(r.replay_id)}')">${escapeHtml(r.replay_id.slice(0, 16))}...</span></td>
+          <td>${r.trace_id ? `<span class="badge gray">${escapeHtml(r.trace_id.slice(0, 12))}...</span>` : '—'}</td>
+          <td>${r.error_id ? `<span class="badge yellow">${escapeHtml(r.error_id.slice(0, 12))}...</span>` : '—'}</td>
+          <td>${escapeHtml(r.timestamp)}</td>
+          <td>${r.duration_sec}s</td>
+          <td>${r.event_count}</td>
+          <td>${formatBytes(r.size_bytes)}</td>
+          <td><button class="btn secondary" style="padding:4px 10px;font-size:12px;" onclick="loadById('${escapeAttr(r.replay_id)}')">播放</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function loadById(id) {
+      document.getElementById('queryInput').value = id;
+      loadReplay();
+    }
+
+    // ─── 渲染 rrweb-player ──────────────────────────────────────────
+    function renderPlayer(events) {
+      clearPlayer();
+      const wrapper = document.getElementById('playerWrapper');
+      wrapper.innerHTML = '<div class="rrweb-player-wrapper" id="playerHost"></div>';
+      const host = document.getElementById('playerHost');
+
+      try {
+        // rrweb-player 通过全局 rrwebPlayer 暴露
+        currentPlayer = new rrwebPlayer({
+          target: host,
+          props: {
+            events,
+            width: Math.min(window.innerWidth - 80, 1200),
+            height: 600,
+            autoPlay: true,
+            showController: true,
+          },
+        });
+      } catch (err) {
+        wrapper.innerHTML = `<div class="error">播放器初始化失败: ${err.message}</div>`;
+      }
+    }
+
+    function clearPlayer() {
+      if (currentPlayer) {
+        try { currentPlayer.$destroy?.(); } catch (e) {}
+        currentPlayer = null;
+      }
+      document.getElementById('playerWrapper').innerHTML =
+        '<div class="loading">准备播放器...</div>';
+    }
+
+    // ─── 工具函数 ────────────────────────────────────────────────────
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let i = 0;
+      while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
+      return `${bytes.toFixed(1)} ${units[i]}`;
+    }
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/`/g, '&#096;');
+    }
+  </script>
+</body>
+</html>

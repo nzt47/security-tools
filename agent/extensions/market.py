@@ -8,6 +8,7 @@
 """
 
 import json
+import uuid
 import logging
 import urllib.request
 import urllib.parse
@@ -17,6 +18,11 @@ from pathlib import Path
 from agent.extensions.base import BUILTIN_EXTENSIONS
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 社区扩展索引 URL（Json 格式）
 # 格式: { "skills": [...], "mcp": [...], "channels": [...], "plugins": [...] }
@@ -60,10 +66,10 @@ class ExtensionMarket:
                 with open(_LOCAL_INDEX_CACHE, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 self._cache = data
-                logger.info("[扩展市场] 已获取社区扩展索引")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": "[扩展市场] 已获取社区扩展索引"}, ensure_ascii=False))
                 return data
         except Exception as e:
-            logger.warning(f"[扩展市场] 获取社区索引失败: {e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": f"[扩展市场] 获取社区索引失败: {e}"}, ensure_ascii=False))
             return None
 
     def get_cached_community_index(self) -> Optional[Dict]:
@@ -76,7 +82,7 @@ class ExtensionMarket:
                     self._cache = json.load(f)
                 return self._cache
         except Exception as e:
-            logger.warning(f"[扩展市场] 加载缓存索引失败: {e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": f"[扩展市场] 加载缓存索引失败: {e}"}, ensure_ascii=False))
         return None
 
     def search_community(self, query: str, ext_type: str = None) -> List[Dict]:
@@ -176,7 +182,7 @@ class ExtensionMarket:
             return results
 
         except Exception as e:
-            logger.warning(f"[扩展市场] GitHub 搜索失败: {e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "github", "msg": f"[扩展市场] GitHub 搜索失败: {e}"}, ensure_ascii=False))
             return []
 
     # ── 统一搜索 ──

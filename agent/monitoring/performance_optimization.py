@@ -15,11 +15,16 @@ import threading
 import queue
 import json
 import hashlib
-import gc
+import uuid
+import logging
 from typing import Dict, Any, List, Optional, Callable, Tuple
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass
 from enum import Enum
+from agent.monitoring.tracing import get_trace_id, set_trace_id
+
+# 模块级 logger 定义（修复 NameError: name 'logger' is not defined）
+logger = logging.getLogger(__name__)
 
 
 class OptimizationLevel(Enum):
@@ -332,7 +337,10 @@ class BatchProcessor:
         
         # 线程本地存储用于追踪
         self._local = threading.local()
-    
+
+        # 后台刷新线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._flush_trace_id = f"perf-opt-flush-{uuid.uuid4().hex[:16]}"
+
     def start(self):
         """启动批量处理器"""
         if self._running:
@@ -413,6 +421,8 @@ class BatchProcessor:
     
     def _flush_loop(self):
         """后台刷新循环"""
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        set_trace_id(self._flush_trace_id)
         thread_id = threading.current_thread().ident
         flush_count = 0
         

@@ -6,12 +6,18 @@
 
 import logging
 import json
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
-logger.info("[WeeklyReportGenerator] 加载周报生成器")
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
+logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "[WeeklyReportGenerator] 加载周报生成器"}, ensure_ascii=False))
 
 
 class WeeklyReportGenerator:
@@ -35,7 +41,7 @@ class WeeklyReportGenerator:
             output_dir: 报告输出目录
             analytics: DataAnalytics 实例（可选）
         """
-        logger.info("[WeeklyReportGenerator] __init__ 开始初始化")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "__init__", "msg": "[WeeklyReportGenerator] __init__ 开始初始化"}, ensure_ascii=False))
         
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -44,14 +50,14 @@ class WeeklyReportGenerator:
         self._analytics = analytics
         self._analytics_loaded = False
         
-        logger.info(f"[WeeklyReportGenerator] 输出目录: {self.output_dir}")
-        logger.info("[WeeklyReportGenerator] __init__ 初始化完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "self.output_dir", "msg": f"[WeeklyReportGenerator] 输出目录: {self.output_dir}"}, ensure_ascii=False))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "__init__", "msg": "[WeeklyReportGenerator] __init__ 初始化完成"}, ensure_ascii=False))
     
     @property
     def analytics(self):
         """延迟加载 analytics"""
         if not self._analytics_loaded:
-            logger.info("[WeeklyReportGenerator] 延迟加载 analytics")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "analytics", "msg": "[WeeklyReportGenerator] 延迟加载 analytics"}, ensure_ascii=False))
             try:
                 from agent.data_analytics import DataAnalytics
                 from memory.vector_store import VectorStore
@@ -59,9 +65,9 @@ class WeeklyReportGenerator:
                 vs = VectorStore(collection_name="agent_memory")
                 self._analytics = DataAnalytics(vector_store=vs)
                 self._analytics_loaded = True
-                logger.info("[WeeklyReportGenerator] analytics 加载成功")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "analytics", "msg": "[WeeklyReportGenerator] analytics 加载成功"}, ensure_ascii=False))
             except Exception as e:
-                logger.error(f"[WeeklyReportGenerator] analytics 加载失败: {e}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "analytics", "msg": f"[WeeklyReportGenerator] analytics 加载失败: {e}"}, ensure_ascii=False))
         
         return self._analytics
     
@@ -74,7 +80,7 @@ class WeeklyReportGenerator:
         Returns:
             周报数据字典
         """
-        logger.info(f"[WeeklyReportGenerator] 生成周报: offset={week_offset}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "offset.week_offset", "msg": f"[WeeklyReportGenerator] 生成周报: offset={week_offset}"}, ensure_ascii=False))
         
         # 计算日期范围
         end_date = datetime.now() - timedelta(weeks=abs(week_offset))
@@ -87,7 +93,7 @@ class WeeklyReportGenerator:
         start_str = start_date.strftime("%Y-%m-%d")
         end_str = end_date.strftime("%Y-%m-%d")
         
-        logger.info(f"[WeeklyReportGenerator] 日期范围: {start_str} 至 {end_str}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "start_str.end_str", "msg": f"[WeeklyReportGenerator] 日期范围: {start_str} 至 {end_str}"}, ensure_ascii=False))
         
         report = {
             "meta": {
@@ -123,7 +129,7 @@ class WeeklyReportGenerator:
         # 生成建议
         report["recommendations"] = self._generate_recommendations(report)
         
-        logger.info("[WeeklyReportGenerator] 周报生成完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "[WeeklyReportGenerator] 周报生成完成"}, ensure_ascii=False))
         
         return report
     
@@ -230,7 +236,7 @@ class WeeklyReportGenerator:
         filename = f"weekly_report_{week_start}.{format}"
         filepath = self.output_dir / filename
         
-        logger.info(f"[WeeklyReportGenerator] 保存周报: {filepath}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "filepath", "msg": f"[WeeklyReportGenerator] 保存周报: {filepath}"}, ensure_ascii=False))
         
         try:
             if format == "json":
@@ -245,11 +251,11 @@ class WeeklyReportGenerator:
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(text_content)
             
-            logger.info(f"[WeeklyReportGenerator] 周报已保存: {filepath}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "filepath", "msg": f"[WeeklyReportGenerator] 周报已保存: {filepath}"}, ensure_ascii=False))
             return str(filepath)
             
         except Exception as e:
-            logger.error(f"[WeeklyReportGenerator] 保存失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": f"[WeeklyReportGenerator] 保存失败: {e}"}, ensure_ascii=False))
             return None
     
     def _generate_text_report(self, report: Dict) -> str:
@@ -360,14 +366,14 @@ def run_weekly_report(output_dir: str = "./data/reports", save_formats: List[str
         output_dir: 报告输出目录
         save_formats: 保存格式列表
     """
-    logger.info("=" * 80)
-    logger.info("  🚀 自动周报生成任务开始")
-    logger.info("=" * 80)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "  🚀 自动周报生成任务开始"}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
     
     generator = WeeklyReportGenerator(output_dir=output_dir)
     
     # 生成本周报告
-    logger.info("生成本周报告...")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "生成本周报告..."}, ensure_ascii=False))
     report = generator.generate_weekly_report(week_offset=0)
     
     # 保存到多种格式
@@ -377,12 +383,12 @@ def run_weekly_report(output_dir: str = "./data/reports", save_formats: List[str
         if filepath:
             saved_files.append(filepath)
     
-    logger.info("=" * 80)
-    logger.info("  ✅ 周报生成任务完成")
-    logger.info("=" * 80)
-    logger.info(f"已保存 {len(saved_files)} 个文件:")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "  ✅ 周报生成任务完成"}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "len.saved_files", "msg": f"已保存 {len(saved_files)} 个文件:"}, ensure_ascii=False))
     for f in saved_files:
-        logger.info(f"  - {f}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "weekly_report_generator", "action": "log", "msg": f"  - {f}"}, ensure_ascii=False))
     
     return report, saved_files
 

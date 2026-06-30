@@ -17,6 +17,7 @@
 """
 
 import json
+import uuid
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple, Callable
@@ -29,6 +30,11 @@ from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class ChannelInstaller:
@@ -48,7 +54,7 @@ class ChannelInstaller:
             handler: 处理函数，签名 (channel_config: dict, message: str, **kwargs) -> dict
         """
         self._handlers[channel_id] = handler
-        logger.info(f"[通道安装器] 已注册通道处理器: {channel_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id", "msg": f"[通道安装器] 已注册通道处理器: {channel_id}"}, ensure_ascii=False))
 
     def get_handler(self, channel_id: str) -> Optional[Callable]:
         """获取通道处理器"""
@@ -98,7 +104,7 @@ class ChannelInstaller:
         meta.installed_at = meta.created_at
         self._store.add(meta)
 
-        logger.info(f"[通道安装器] 已安装通道: {channel_id} (type={channel_type})")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id.type.channel_type", "msg": f"[通道安装器] 已安装通道: {channel_id} (type={channel_type})"}, ensure_ascii=False))
         return True, f"已安装通道: {name}"
 
     def install_builtin_channel(self, channel_id: str) -> Tuple[bool, str]:
@@ -151,14 +157,14 @@ class ChannelInstaller:
             return False, f"通道不存在: {channel_id}"
 
         self._store.update_config(ExtensionType.CHANNEL, channel_id, config)
-        logger.info(f"[通道安装器] 已配置通道: {channel_id}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id", "msg": f"[通道安装器] 已配置通道: {channel_id}"}, ensure_ascii=False))
         return True, f"已更新通道配置: {channel_id}"
 
     def uninstall_channel(self, channel_id: str) -> Tuple[bool, str]:
         """卸载通道"""
         success = self._store.remove(ExtensionType.CHANNEL, channel_id)
         if success:
-            logger.info(f"[通道安装器] 已卸载通道: {channel_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id", "msg": f"[通道安装器] 已卸载通道: {channel_id}"}, ensure_ascii=False))
             return True, f"已卸载通道: {channel_id}"
         return False, f"通道不存在: {channel_id}"
 
@@ -209,10 +215,10 @@ class ChannelInstaller:
         try:
             config = existing.get("config", {})
             result = handler(config, message, **kwargs)
-            logger.info(f"[通道安装器] 消息发送成功: {channel_id}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id", "msg": f"[通道安装器] 消息发送成功: {channel_id}"}, ensure_ascii=False))
             return True, f"消息已发送: {result}"
         except Exception as e:
-            logger.error(f"[通道安装器] 消息发送失败: {channel_id}: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "channels_installer", "action": "channel_id", "msg": f"[通道安装器] 消息发送失败: {channel_id}: {e}"}, ensure_ascii=False))
             return False, f"发送失败: {e}"
 
     def _get_default_handler(self, channel_type: str) -> Optional[Callable]:

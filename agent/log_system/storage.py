@@ -7,6 +7,7 @@
 
 import os
 import json
+import uuid
 import time
 import sqlite3
 import logging
@@ -23,6 +24,11 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 全局存储实例
 _global_storage = None
@@ -559,4 +565,4 @@ class LogStorage:
         """压缩数据库"""
         with self._cursor() as c:
             c.execute("VACUUM")
-        logger.info("[LogSystem] 数据库压缩完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "storage", "action": "log", "msg": "[LogSystem] 数据库压缩完成"}, ensure_ascii=False))

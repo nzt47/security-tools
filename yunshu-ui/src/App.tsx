@@ -4,6 +4,7 @@ import { ChatWindow, Message } from './components/Chat';
 import { StatusIndicator } from './components/Status';
 import { ToastContainer, ToastData } from './components/Status';
 import { useChatStream } from './hooks/useChatStream';
+import SkillManagement from './components/SkillsMgmt/SkillManagement';
 import './styles/theme.css';
 import './App.css';
 
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [sessionId, setSessionId] = useState<string>('');
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [systemStatus, setSystemStatus] = useState<string>('offline');
+  const [skillMgmtOpen, setSkillMgmtOpen] = useState(false);
 
   const { state, send, reset } = useChatStream(API_BASE);
 
@@ -202,6 +204,38 @@ const App: React.FC = () => {
             <StatusIndicator status={systemStatus as any} size="small" />
           </div>
 
+          {/* 技能管理入口 */}
+          <div style={{ padding: '8px 12px' }}>
+            <button
+              onClick={() => setSkillMgmtOpen(true)}
+              style={{
+                width: '100%',
+                background: 'var(--bg-hover, #232730)',
+                border: '1px solid var(--border-subtle, #2a2e38)',
+                color: 'var(--text-primary, #e8eaed)',
+                padding: '8px 12px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
+              }}
+              type="button"
+              title="打开技能管理与工作流学习面板"
+            >
+              <span>⚙</span> 技能管理
+            </button>
+          </div>
+
           <div className="mascot-wrapper">
             <Mascot
               initialMood={mood}
@@ -281,6 +315,11 @@ const App: React.FC = () => {
       </div>
 
       <ToastContainer toasts={toasts} onClose={handleCloseToast} />
+
+      {/* 技能管理与工作流学习面板 */}
+      {skillMgmtOpen && (
+        <SkillManagement onClose={() => setSkillMgmtOpen(false)} />
+      )}
     </div>
   );
 };

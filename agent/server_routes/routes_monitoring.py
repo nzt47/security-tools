@@ -10,6 +10,7 @@ from agent.system_tools import (
     list_scheduled_tasks, create_scheduled_task, delete_scheduled_task,
     toggle_scheduled_task,
 )
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/heartbeat")
+    @trace_route("Monitoring")
     @log_request(show_response=False)
     def api_heartbeat():
         try:
@@ -33,6 +35,7 @@ def register_routes(app, state):
             return jsonify({"status": "error", "error": str(e)}), 500
 
     @app.route("/api/heartbeat/history")
+    @trace_route("Monitoring")
     @log_request(show_response=False)
     def api_heartbeat_history():
         limit = request.args.get("limit", 100, type=int)
@@ -51,6 +54,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/heartbeat/status")
+    @trace_route("Monitoring")
     @log_request(show_response=False)
     def api_heartbeat_status():
         scheduler = get_scheduler()
@@ -71,11 +75,13 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/scheduler/tasks")
+    @trace_route("Monitoring")
     @log_request(show_response=False)
     def api_scheduler_list():
         return jsonify(list_scheduled_tasks())
 
     @app.route("/api/scheduler/create", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_scheduler_create():
@@ -92,6 +98,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/scheduler/delete", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_scheduler_delete():
@@ -100,6 +107,7 @@ def register_routes(app, state):
         return jsonify(delete_scheduled_task(task_id))
 
     @app.route("/api/scheduler/toggle", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_scheduler_toggle():
@@ -109,6 +117,7 @@ def register_routes(app, state):
         return jsonify(toggle_scheduled_task(task_id, enabled))
 
     @app.route("/api/scheduler/execute-now", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_scheduler_execute_now():
@@ -123,6 +132,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "result": result})
 
     @app.route("/api/scheduler/history")
+    @trace_route("Monitoring")
     @log_request(show_response=False)
     def api_scheduler_history():
         limit = request.args.get("limit", 100, type=int)
@@ -137,6 +147,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/search-performance/status")
+    @trace_route("Monitoring")
     @log_request()
     def api_search_performance_status():
         try:
@@ -147,6 +158,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search-performance/start", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_search_performance_start():
@@ -160,6 +172,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search-performance/stop", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_search_performance_stop():
@@ -171,6 +184,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search-performance/check", methods=["POST"])
+    @trace_route("Monitoring")
     @require_token
     @log_request()
     def api_search_performance_check():
@@ -182,6 +196,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search-performance/history")
+    @trace_route("Monitoring")
     @log_request()
     def api_search_performance_history():
         try:
@@ -193,6 +208,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search-performance/summary")
+    @trace_route("Monitoring")
     @log_request()
     def api_search_performance_summary():
         try:
@@ -207,18 +223,21 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/test/error")
+    @trace_route("Monitoring")
     @log_request()
     def api_test_error():
         x = 1 / 0
         return jsonify({"ok": True, "result": x})
 
     @app.route("/api/test/null")
+    @trace_route("Monitoring")
     @log_request()
     def api_test_null():
         obj = None
         return jsonify({"ok": True, "result": obj.some_method()})
 
     @app.route("/api/test/division")
+    @trace_route("Monitoring")
     @log_request()
     def api_test_division():
         a = request.args.get("a", 10, type=float)

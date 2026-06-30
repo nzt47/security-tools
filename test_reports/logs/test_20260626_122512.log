@@ -1,0 +1,92 @@
+2026-06-26 12:25:12,338 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 12:25:12,341 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 12:25:12,343 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 12:25:12,469 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 12:25:12,484 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 12:25:12,487 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 12:25:12,522 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 12:25:12,523 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:25:12,523 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 12:25:12,525 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 12:25:12,534 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 12:25:12,538 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 12:25:12,555 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 12:25:12,556 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 12:25:12,556 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 12:25:12,556 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 12:25:12,558 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 12:25:12,718 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 12:25:12,722 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 12:25:12,723 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 12:25:12,724 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 12:25:12,724 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 12:25:12,724 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 12:25:12,740 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 12:25:12,741 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 12:25:13,271 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "b71b7ffa815c41a8", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:13,271 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "b71b7ffa815c41a8", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:13,392 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "b71b7ffa815c41a8", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 2 个"}
+2026-06-26 12:25:13,393 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b71b7ffa815c41a8", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Users\\Administrator\\agent\\agent, trace_id=b71b7ffa815c41a8"}
+2026-06-26 12:25:13,393 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b71b7ffa815c41a8", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:25:13,394 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b71b7ffa815c41a8", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 3 个模块", "duration_ms": 1.03}
+2026-06-26 12:25:13,407 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b71b7ffa815c41a8", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 254 个 Python 文件"}
+2026-06-26 12:25:14,573 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "b71b7ffa815c41a8", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=210, edges=420, violations=0, duration_ms=1180.45", "duration_ms": 1180.45}
+2026-06-26 12:25:14,578 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "b71b7ffa815c41a8", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=2, impacted=0, tests=1, duration_ms=1307.12", "duration_ms": 1307.12}
+2026-06-26 12:25:15,078 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "8278b6dcd28b40ba", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:15,078 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "8278b6dcd28b40ba", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:15,201 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "8278b6dcd28b40ba", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 2 个"}
+2026-06-26 12:25:15,203 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8278b6dcd28b40ba", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Users\\Administrator\\agent\\agent, trace_id=8278b6dcd28b40ba"}
+2026-06-26 12:25:15,203 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8278b6dcd28b40ba", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:25:15,204 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8278b6dcd28b40ba", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 3 个模块", "duration_ms": 1.1}
+2026-06-26 12:25:15,213 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8278b6dcd28b40ba", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 254 个 Python 文件"}
+2026-06-26 12:25:16,564 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "8278b6dcd28b40ba", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=210, edges=420, violations=0, duration_ms=1360.87", "duration_ms": 1360.87}
+2026-06-26 12:25:16,568 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "8278b6dcd28b40ba", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=2, impacted=0, tests=1, duration_ms=1489.67", "duration_ms": 1489.67}
+2026-06-26 12:25:17,036 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a2791b3a9c644fb2", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:17,036 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a2791b3a9c644fb2", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:17,154 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a2791b3a9c644fb2", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 2 个"}
+2026-06-26 12:25:17,155 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "a2791b3a9c644fb2", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Users\\Administrator\\agent\\agent, trace_id=a2791b3a9c644fb2"}
+2026-06-26 12:25:17,155 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "a2791b3a9c644fb2", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:25:17,156 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "a2791b3a9c644fb2", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 3 个模块", "duration_ms": 0.8}
+2026-06-26 12:25:17,165 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "a2791b3a9c644fb2", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 254 个 Python 文件"}
+2026-06-26 12:25:18,377 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "a2791b3a9c644fb2", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=210, edges=420, violations=0, duration_ms=1221.53", "duration_ms": 1221.53}
+2026-06-26 12:25:18,381 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a2791b3a9c644fb2", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=2, impacted=0, tests=1, duration_ms=1344.94", "duration_ms": 1344.94}
+2026-06-26 12:25:19,150 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "409c97962e984fa9", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:19,150 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "409c97962e984fa9", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:19,269 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "409c97962e984fa9", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 2 个"}
+2026-06-26 12:25:19,270 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "409c97962e984fa9", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Users\\Administrator\\agent\\agent, trace_id=409c97962e984fa9"}
+2026-06-26 12:25:19,270 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "409c97962e984fa9", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:25:19,271 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "409c97962e984fa9", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 3 个模块", "duration_ms": 0.8}
+2026-06-26 12:25:19,283 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "409c97962e984fa9", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 254 个 Python 文件"}
+2026-06-26 12:25:20,523 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "409c97962e984fa9", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=210, edges=420, violations=0, duration_ms=1252.15", "duration_ms": 1252.15}
+2026-06-26 12:25:20,527 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "409c97962e984fa9", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=2, impacted=0, tests=1, duration_ms=1376.03", "duration_ms": 1376.03}
+2026-06-26 12:25:21,009 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cea4be18193d4ce3", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:21,009 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cea4be18193d4ce3", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:21,130 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cea4be18193d4ce3", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 2 个"}
+2026-06-26 12:25:21,130 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "cea4be18193d4ce3", "module_name": "dependency_graph", "action": "init", "message": "依赖图构建器初始化: root=C:\\Users\\Administrator\\agent\\agent, trace_id=cea4be18193d4ce3"}
+2026-06-26 12:25:21,130 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "cea4be18193d4ce3", "module_name": "dependency_graph", "action": "build_start", "message": "开始构建依赖图"}
+2026-06-26 12:25:21,131 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "cea4be18193d4ce3", "module_name": "dependency_graph", "action": "load_whitelist", "message": "加载 lazy_loader 白名单: 3 个模块", "duration_ms": 0.84}
+2026-06-26 12:25:21,145 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "cea4be18193d4ce3", "module_name": "dependency_graph", "action": "collect_files", "message": "扫描到 254 个 Python 文件"}
+2026-06-26 12:25:22,414 [    INFO] agent.observability.dependency_graph: [DependencyGraph] {"trace_id": "cea4be18193d4ce3", "module_name": "dependency_graph", "action": "build_complete", "message": "依赖图构建完成: nodes=210, edges=420, violations=0, duration_ms=1284.11", "duration_ms": 1284.11}
+2026-06-26 12:25:22,418 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cea4be18193d4ce3", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=2, impacted=0, tests=1, duration_ms=1409.69", "duration_ms": 1409.69}
+2026-06-26 12:25:22,881 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "ad83c6437b714dee", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD, head=HEAD"}
+2026-06-26 12:25:22,881 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "ad83c6437b714dee", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:22,919 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "ad83c6437b714dee", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 0 个"}
+2026-06-26 12:25:23,387 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "fbdd39697cfb4dfd", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/nonexistent-branch, head=HEAD"}
+2026-06-26 12:25:23,387 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "fbdd39697cfb4dfd", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 12:25:23,425 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "fbdd39697cfb4dfd", "module_name": "impact_analysis", "action": "git_fallback", "message": "基准 ref 不存在: origin/nonexistent-branch，返回空变更列表"}
+2026-06-26 12:25:23,425 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "fbdd39697cfb4dfd", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 0 个"}
+2026-06-26 12:25:23,432 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a396e73f2d0b4319", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=HEAD~1, head=HEAD"}
+2026-06-26 12:25:23,432 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "a396e73f2d0b4319", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}

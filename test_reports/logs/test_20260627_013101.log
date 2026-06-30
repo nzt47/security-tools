@@ -1,0 +1,96 @@
+2026-06-27 01:31:02,200 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 01:31:02,203 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 01:31:02,204 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 01:31:02,217 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 01:31:02,234 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:31:02,237 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 01:31:02,265 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 01:31:02,273 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 01:31:02,279 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 01:31:02,281 [ WARNING] agent.digital_life: [模块导入] [WARN] [警告] 规划引擎 模块导入失败 (ImportError): cannot import name 'PlanningCore' from partially initialized module 'planning' (most likely due to a...
+2026-06-27 01:31:02,281 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 01:31:02,281 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 01:31:02,282 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 01:31:02,284 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 01:31:02,415 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life:    [FAIL] planning: 未加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 01:31:02,419 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-27 01:31:02,420 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-27 01:31:02,420 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 01:31:02,471 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 01:31:02,478 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 01:31:02,478 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 01:31:02,478 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 01:31:02,479 [    INFO] planning.executor: 开始执行计划: plan_1005853f
+2026-06-27 01:31:02,479 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 01:31:02,479 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: search
+2026-06-27 01:31:02,479 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: TypeError
+2026-06-27 01:31:02,479 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:02,480 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+
+2026-06-27 01:31:02,480 [ WARNING] agent.error_handler: [async_with_retry] 第 1/3 次尝试失败, 等待 1.08s 后重试: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:03,564 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 01:31:03,564 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: search
+2026-06-27 01:31:03,564 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: TypeError
+2026-06-27 01:31:03,564 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:03,565 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+
+2026-06-27 01:31:03,565 [ WARNING] agent.error_handler: [async_with_retry] 第 2/3 次尝试失败, 等待 1.94s 后重试: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:05,514 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 01:31:05,514 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: search
+2026-06-27 01:31:05,514 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: TypeError
+2026-06-27 01:31:05,514 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:05,515 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+
+2026-06-27 01:31:05,515 [ WARNING] agent.error_handler: [async_with_retry] 第 3/3 次尝试失败, 等待 4.27s 后重试: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:09,791 [    INFO] planning.executor: [工具调用] INFO: 开始执行: search
+2026-06-27 01:31:09,791 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: search
+2026-06-27 01:31:09,791 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: TypeError
+2026-06-27 01:31:09,791 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:09,792 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 315, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+
+2026-06-27 01:31:09,792 [   ERROR] agent.error_handler: [async_with_retry] 所有 3 次重试已用尽: func=_do_execute_task
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 758, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 244, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+agent.error_handler.RecoverableError: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:09,793 [ WARNING] agent.error_handler: [warning] unknown: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:09,793 [   ERROR] planning.executor: 任务执行失败: 任务执行失败: 工具执行失败: TestPlanExecutor.test_execute_plan_success.<locals>.<lambda>() got an unexpected keyword argument 'query'
+2026-06-27 01:31:09,793 [    INFO] planning.executor: 计划执行completed: 0.0%

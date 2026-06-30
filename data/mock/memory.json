@@ -1,0 +1,491 @@
+{
+  "long_term_trend": [
+    {
+      "date": "06-17",
+      "count": 2707,
+      "size_mb": 54.14
+    },
+    {
+      "date": "06-18",
+      "count": 2608,
+      "size_mb": 52.160000000000004
+    },
+    {
+      "date": "06-19",
+      "count": 2512,
+      "size_mb": 50.24
+    },
+    {
+      "date": "06-20",
+      "count": 2385,
+      "size_mb": 47.7
+    },
+    {
+      "date": "06-21",
+      "count": 2295,
+      "size_mb": 45.9
+    },
+    {
+      "date": "06-22",
+      "count": 2211,
+      "size_mb": 44.22
+    },
+    {
+      "date": "06-23",
+      "count": 2080,
+      "size_mb": 41.6
+    },
+    {
+      "date": "06-24",
+      "count": 2003,
+      "size_mb": 40.06
+    }
+  ],
+  "short_term_trend": [
+    {
+      "time": "22:00",
+      "count": 47,
+      "hit_count": 36
+    },
+    {
+      "time": "23:00",
+      "count": 50,
+      "hit_count": 41
+    },
+    {
+      "time": "00:00",
+      "count": 55,
+      "hit_count": 30
+    },
+    {
+      "time": "01:00",
+      "count": 41,
+      "hit_count": 33
+    },
+    {
+      "time": "02:00",
+      "count": 41,
+      "hit_count": 43
+    },
+    {
+      "time": "03:00",
+      "count": 68,
+      "hit_count": 43
+    },
+    {
+      "time": "04:00",
+      "count": 42,
+      "hit_count": 25
+    },
+    {
+      "time": "05:00",
+      "count": 61,
+      "hit_count": 29
+    },
+    {
+      "time": "06:00",
+      "count": 61,
+      "hit_count": 43
+    },
+    {
+      "time": "07:00",
+      "count": 46,
+      "hit_count": 39
+    },
+    {
+      "time": "08:00",
+      "count": 47,
+      "hit_count": 34
+    },
+    {
+      "time": "09:00",
+      "count": 66,
+      "hit_count": 25
+    },
+    {
+      "time": "10:00",
+      "count": 61,
+      "hit_count": 42
+    },
+    {
+      "time": "11:00",
+      "count": 58,
+      "hit_count": 38
+    },
+    {
+      "time": "12:00",
+      "count": 65,
+      "hit_count": 30
+    },
+    {
+      "time": "13:00",
+      "count": 49,
+      "hit_count": 32
+    },
+    {
+      "time": "14:00",
+      "count": 63,
+      "hit_count": 42
+    },
+    {
+      "time": "15:00",
+      "count": 66,
+      "hit_count": 34
+    },
+    {
+      "time": "16:00",
+      "count": 57,
+      "hit_count": 27
+    },
+    {
+      "time": "17:00",
+      "count": 44,
+      "hit_count": 38
+    },
+    {
+      "time": "18:00",
+      "count": 46,
+      "hit_count": 30
+    },
+    {
+      "time": "19:00",
+      "count": 44,
+      "hit_count": 35
+    },
+    {
+      "time": "20:00",
+      "count": 59,
+      "hit_count": 40
+    },
+    {
+      "time": "21:00",
+      "count": 54,
+      "hit_count": 45
+    },
+    {
+      "time": "22:00",
+      "count": 56,
+      "hit_count": 31
+    }
+  ],
+  "hit_rate_trend": [
+    {
+      "time": "22:00",
+      "hit_rate": 66,
+      "requests": 116
+    },
+    {
+      "time": "23:00",
+      "hit_rate": 69,
+      "requests": 94
+    },
+    {
+      "time": "00:00",
+      "hit_rate": 69,
+      "requests": 109
+    },
+    {
+      "time": "01:00",
+      "hit_rate": 66,
+      "requests": 119
+    },
+    {
+      "time": "02:00",
+      "hit_rate": 85,
+      "requests": 110
+    },
+    {
+      "time": "03:00",
+      "hit_rate": 64,
+      "requests": 101
+    },
+    {
+      "time": "04:00",
+      "hit_rate": 79,
+      "requests": 81
+    },
+    {
+      "time": "05:00",
+      "hit_rate": 71,
+      "requests": 107
+    },
+    {
+      "time": "06:00",
+      "hit_rate": 56,
+      "requests": 87
+    },
+    {
+      "time": "07:00",
+      "hit_rate": 78,
+      "requests": 82
+    },
+    {
+      "time": "08:00",
+      "hit_rate": 63,
+      "requests": 111
+    },
+    {
+      "time": "09:00",
+      "hit_rate": 69,
+      "requests": 108
+    },
+    {
+      "time": "10:00",
+      "hit_rate": 66,
+      "requests": 88
+    },
+    {
+      "time": "11:00",
+      "hit_rate": 77,
+      "requests": 86
+    },
+    {
+      "time": "12:00",
+      "hit_rate": 68,
+      "requests": 107
+    },
+    {
+      "time": "13:00",
+      "hit_rate": 81,
+      "requests": 99
+    },
+    {
+      "time": "14:00",
+      "hit_rate": 61,
+      "requests": 119
+    },
+    {
+      "time": "15:00",
+      "hit_rate": 57,
+      "requests": 86
+    },
+    {
+      "time": "16:00",
+      "hit_rate": 85,
+      "requests": 87
+    },
+    {
+      "time": "17:00",
+      "hit_rate": 66,
+      "requests": 107
+    },
+    {
+      "time": "18:00",
+      "hit_rate": 72,
+      "requests": 87
+    },
+    {
+      "time": "19:00",
+      "hit_rate": 55,
+      "requests": 102
+    },
+    {
+      "time": "20:00",
+      "hit_rate": 83,
+      "requests": 90
+    },
+    {
+      "time": "21:00",
+      "hit_rate": 59,
+      "requests": 96
+    },
+    {
+      "time": "22:00",
+      "hit_rate": 79,
+      "requests": 95
+    }
+  ],
+  "recent_access": [
+    {
+      "id": "a018a13a",
+      "type": "write",
+      "category": "知识库",
+      "content": "记忆条目 1: 用户偏好设置",
+      "timestamp": 1782311974.548874,
+      "duration_ms": 39
+    },
+    {
+      "id": "1579fbc7",
+      "type": "read",
+      "category": "系统配置",
+      "content": "记忆条目 2: 用户偏好设置",
+      "timestamp": 1782311794.548874,
+      "duration_ms": 30
+    },
+    {
+      "id": "e18146a3",
+      "type": "read",
+      "category": "任务状态",
+      "content": "记忆条目 3: 任务执行状态",
+      "timestamp": 1782311614.548874,
+      "duration_ms": 28
+    },
+    {
+      "id": "afce7f4b",
+      "type": "update",
+      "category": "用户偏好",
+      "content": "记忆条目 4: 系统配置信息",
+      "timestamp": 1782311434.548874,
+      "duration_ms": 38
+    },
+    {
+      "id": "41dfd263",
+      "type": "delete",
+      "category": "知识库",
+      "content": "记忆条目 5: 系统配置信息",
+      "timestamp": 1782311254.548874,
+      "duration_ms": 23
+    },
+    {
+      "id": "d8c0dcbd",
+      "type": "read",
+      "category": "知识库",
+      "content": "记忆条目 6: 用户对话记录",
+      "timestamp": 1782311074.548874,
+      "duration_ms": 40
+    },
+    {
+      "id": "5caa4f4b",
+      "type": "update",
+      "category": "系统配置",
+      "content": "记忆条目 7: 知识库文档",
+      "timestamp": 1782310894.548874,
+      "duration_ms": 29
+    },
+    {
+      "id": "6715d7da",
+      "type": "read",
+      "category": "系统配置",
+      "content": "记忆条目 8: 用户对话记录",
+      "timestamp": 1782310714.548874,
+      "duration_ms": 35
+    },
+    {
+      "id": "976cf39f",
+      "type": "write",
+      "category": "知识库",
+      "content": "记忆条目 9: 任务执行状态",
+      "timestamp": 1782310534.548874,
+      "duration_ms": 23
+    },
+    {
+      "id": "2399267e",
+      "type": "read",
+      "category": "系统配置",
+      "content": "记忆条目 10: 任务执行状态",
+      "timestamp": 1782310354.548874,
+      "duration_ms": 33
+    },
+    {
+      "id": "dcbaf2c2",
+      "type": "read",
+      "category": "知识库",
+      "content": "记忆条目 11: 系统配置信息",
+      "timestamp": 1782310174.548874,
+      "duration_ms": 16
+    },
+    {
+      "id": "09149401",
+      "type": "update",
+      "category": "知识库",
+      "content": "记忆条目 12: 用户对话记录",
+      "timestamp": 1782309994.548874,
+      "duration_ms": 16
+    },
+    {
+      "id": "c0202953",
+      "type": "update",
+      "category": "用户偏好",
+      "content": "记忆条目 13: 系统配置信息",
+      "timestamp": 1782309814.548874,
+      "duration_ms": 39
+    },
+    {
+      "id": "97bf0f8f",
+      "type": "read",
+      "category": "知识库",
+      "content": "记忆条目 14: 系统配置信息",
+      "timestamp": 1782309634.548874,
+      "duration_ms": 33
+    },
+    {
+      "id": "624da482",
+      "type": "read",
+      "category": "用户偏好",
+      "content": "记忆条目 15: 任务执行状态",
+      "timestamp": 1782309454.548874,
+      "duration_ms": 22
+    },
+    {
+      "id": "6736d50a",
+      "type": "read",
+      "category": "任务状态",
+      "content": "记忆条目 16: 知识库文档",
+      "timestamp": 1782309274.548874,
+      "duration_ms": 40
+    },
+    {
+      "id": "9fdf5b58",
+      "type": "write",
+      "category": "用户偏好",
+      "content": "记忆条目 17: 任务执行状态",
+      "timestamp": 1782309094.548874,
+      "duration_ms": 27
+    },
+    {
+      "id": "5e8f0484",
+      "type": "write",
+      "category": "对话历史",
+      "content": "记忆条目 18: 用户对话记录",
+      "timestamp": 1782308914.548874,
+      "duration_ms": 35
+    },
+    {
+      "id": "9b1d7b4c",
+      "type": "read",
+      "category": "对话历史",
+      "content": "记忆条目 19: 用户对话记录",
+      "timestamp": 1782308734.548874,
+      "duration_ms": 15
+    },
+    {
+      "id": "ce1a8673",
+      "type": "read",
+      "category": "知识库",
+      "content": "记忆条目 20: 任务执行状态",
+      "timestamp": 1782308554.548874,
+      "duration_ms": 40
+    }
+  ],
+  "category_distribution": [
+    {
+      "name": "对话历史",
+      "count": 1250,
+      "percentage": 50
+    },
+    {
+      "name": "知识库",
+      "count": 550,
+      "percentage": 22
+    },
+    {
+      "name": "用户偏好",
+      "count": 350,
+      "percentage": 14
+    },
+    {
+      "name": "任务状态",
+      "count": 200,
+      "percentage": 8
+    },
+    {
+      "name": "其他",
+      "count": 150,
+      "percentage": 6
+    }
+  ],
+  "long_term_count": 2500,
+  "short_term_count": 150,
+  "overall_hit_rate": 73.5,
+  "total_size_mb": 50.5
+}

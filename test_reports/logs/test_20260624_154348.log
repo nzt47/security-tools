@@ -1,0 +1,702 @@
+2026-06-24 15:43:48,268 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 15:43:48,272 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 15:43:48,274 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 15:43:48,389 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 15:43:48,405 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 15:43:48,408 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 15:43:48,444 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 15:43:48,451 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 15:43:48,458 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 15:43:48,476 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 15:43:48,476 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 15:43:48,477 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 15:43:48,477 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 15:43:48,479 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 15:43:48,619 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 15:43:48,623 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 15:43:48,624 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 15:43:48,639 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 15:43:48,639 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 15:43:48,640 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 15:43:48,640 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 15:43:48,640 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 15:43:48,640 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 15:43:48,640 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 15:43:48,641 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 15:43:48,641 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 15:43:48,641 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 15:43:48,641 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 15:43:48,642 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 15:43:48,642 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 15:43:48,688 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,688 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,689 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,689 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,689 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,690 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,691 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,691 [    INFO] agent.monitoring.tracing: [Tracing] 使用配置文件中的采样器: ALWAYS_ON
+2026-06-24 15:43:48,691 [    INFO] agent.monitoring.tracing: [Tracing] 调试模式：强制使用 ALWAYS_ON 采样器
+2026-06-24 15:43:48,692 [    INFO] agent.monitoring.tracing: [Tracing] 创建 TracerProvider，采样器: StaticSampler
+2026-06-24 15:43:48,727 [    INFO] agent.monitoring.tracing: [Tracing] 添加 ConsoleSpanExporter...
+2026-06-24 15:43:48,728 [    INFO] agent.monitoring.tracing: [Tracing] 设置全局 TracerProvider...
+2026-06-24 15:43:48,728 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 初始化成功，Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,735 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=ServiceA, operation=entry
+2026-06-24 15:43:48,735 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,736 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: a0feba93, 使用 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,737 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=abc123def4567890abc123def4567890, span_id=a0feba93
+2026-06-24 15:43:48,737 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=ServiceA.entry
+2026-06-24 15:43:48,738 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="ServiceA.entry", context=SpanContext(trace_id=0x121d4dcdbafcc60cc5294be00cd2d815, span_id=0x4b814cb756dc1db9, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,738 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'ServiceA', 'operation': 'entry'}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,738 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,739 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,739 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "a0feba93", "service": "ServiceA", "operation": "entry", "event": "start", "timestamp": 1782287028.7374313, "level": "INFO"}
+2026-06-24 15:43:48,739 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 15:43:48,739 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,740 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: a0feba93
+2026-06-24 15:43:48,740 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: abc123def4567890abc123def4567890, span_id: a0feba93
+2026-06-24 15:43:48,740 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-abc123def4567890abc123def4567890-a0feba93-01', 'tracestate': ''}
+2026-06-24 15:43:48,741 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890abc123def4567890-a0feba93-01', 'tracestate': ''}
+2026-06-24 15:43:48,741 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,741 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-a0feba93-01
+2026-06-24 15:43:48,741 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', 'a0feba93', '01'] (数量: 4)
+2026-06-24 15:43:48,742 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=a0feba93, flags=01
+2026-06-24 15:43:48,742 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:48,744 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,745 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,745 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: a0feba93
+2026-06-24 15:43:48,745 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: a0feba93
+2026-06-24 15:43:48,746 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,746 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,746 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=ServiceB, operation=process
+2026-06-24 15:43:48,746 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,747 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 5918ec86, 使用 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,747 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=abc123def4567890abc123def4567890, span_id=5918ec86
+2026-06-24 15:43:48,747 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=ServiceB.process
+2026-06-24 15:43:48,748 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="ServiceB.process", context=SpanContext(trace_id=0xfa99f295ad47be8971f8884f9630375d, span_id=0x7ca8a115df8f8063, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,748 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'ServiceB', 'operation': 'process'}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,748 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,749 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,749 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "5918ec86", "service": "ServiceB", "operation": "process", "event": "start", "timestamp": 1782287028.7470126, "level": "INFO"}
+2026-06-24 15:43:48,749 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 15:43:48,749 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,750 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 5918ec86
+2026-06-24 15:43:48,750 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: abc123def4567890abc123def4567890, span_id: 5918ec86
+2026-06-24 15:43:48,750 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-abc123def4567890abc123def4567890-5918ec86-01', 'tracestate': ''}
+2026-06-24 15:43:48,750 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890abc123def4567890-5918ec86-01', 'tracestate': ''}
+2026-06-24 15:43:48,750 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,751 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-5918ec86-01
+2026-06-24 15:43:48,751 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', '5918ec86', '01'] (数量: 4)
+2026-06-24 15:43:48,751 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=5918ec86, flags=01
+2026-06-24 15:43:48,751 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:48,753 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,754 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,754 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 5918ec86
+2026-06-24 15:43:48,754 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 5918ec86
+2026-06-24 15:43:48,754 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,754 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,755 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=ServiceC, operation=exit
+2026-06-24 15:43:48,755 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,755 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 293b1ce5, 使用 trace_id: abc123def4567890abc123def4567890
+2026-06-24 15:43:48,755 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=abc123def4567890abc123def4567890, span_id=293b1ce5
+2026-06-24 15:43:48,755 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=ServiceC.exit
+2026-06-24 15:43:48,756 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="ServiceC.exit", context=SpanContext(trace_id=0xa39ba9e372da07759d1b6e844a457157, span_id=0x29e4b91bd2ab6b79, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,756 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'ServiceC', 'operation': 'exit'}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,756 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,756 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,757 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "293b1ce5", "service": "ServiceC", "operation": "exit", "event": "start", "timestamp": 1782287028.7551153, "level": "INFO"}
+2026-06-24 15:43:48,757 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=ServiceC, operation=exit, duration_ms=2.0
+2026-06-24 15:43:48,757 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,757 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,757 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,758 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 2.0}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,758 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,758 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,758 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "293b1ce5", "service": "ServiceC", "operation": "exit", "event": "end", "duration_ms": 2.0, "level": "INFO"}
+2026-06-24 15:43:48,758 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,759 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,759 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=abc123def4567890abc123def4567890, span_id=293b1ce5
+2026-06-24 15:43:48,759 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=ServiceB, operation=process, duration_ms=12.1
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 12.1}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,760 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,761 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "5918ec86", "service": "ServiceB", "operation": "process", "event": "end", "duration_ms": 12.1, "level": "INFO"}
+2026-06-24 15:43:48,761 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,761 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,761 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=abc123def4567890abc123def4567890, span_id=5918ec86
+2026-06-24 15:43:48,762 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=ServiceA, operation=entry, duration_ms=24.68
+2026-06-24 15:43:48,762 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,762 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,762 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,762 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 24.68}, trace_id=abc123def4567890abc123def4567890
+2026-06-24 15:43:48,763 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,763 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,763 [    INFO] agent.monitoring.tracing: {"trace_id": "abc123def4567890abc123def4567890", "span_id": "a0feba93", "service": "ServiceA", "operation": "entry", "event": "end", "duration_ms": 24.68, "level": "INFO"}
+2026-06-24 15:43:48,763 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=abc123def4567890abc123def4567890, span_id=a0feba93
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,764 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,769 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,769 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,769 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,769 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,770 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,770 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,770 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=ServiceA, operation=operation
+2026-06-24 15:43:48,770 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:48,770 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 60fa0a66, 使用 trace_id: e06399c526d44ab3
+2026-06-24 15:43:48,771 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=e06399c526d44ab3, span_id=60fa0a66
+2026-06-24 15:43:48,771 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=ServiceA.operation
+2026-06-24 15:43:48,771 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="ServiceA.operation", context=SpanContext(trace_id=0xef834e42ed6176ac5476d1d5c06d8e6e, span_id=0x9505e6f3ed1883bb, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,771 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'ServiceA', 'operation': 'operation'}, trace_id=e06399c526d44ab3
+2026-06-24 15:43:48,771 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,772 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,772 [    INFO] agent.monitoring.tracing: {"trace_id": "e06399c526d44ab3", "span_id": "60fa0a66", "service": "ServiceA", "operation": "operation", "event": "start", "timestamp": 1782287028.7714252, "level": "INFO"}
+2026-06-24 15:43:48,772 [    INFO] agent.monitoring.tracing: [Tracing] 开始注入追踪上下文
+2026-06-24 15:43:48,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: e06399c526d44ab3
+2026-06-24 15:43:48,772 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 60fa0a66
+2026-06-24 15:43:48,773 [    INFO] agent.monitoring.tracing: [Tracing] 当前上下文 - trace_id: e06399c526d44ab3, span_id: 60fa0a66
+2026-06-24 15:43:48,773 [    INFO] agent.monitoring.tracing: [Tracing] 生成追踪上下文请求头: {'traceparent': '00-e06399c526d44ab3-60fa0a66-01', 'tracestate': ''}
+2026-06-24 15:43:48,773 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-e06399c526d44ab3-60fa0a66-01', 'tracestate': ''}
+2026-06-24 15:43:48,773 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,773 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-e06399c526d44ab3-60fa0a66-01
+2026-06-24 15:43:48,774 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'e06399c526d44ab3', '60fa0a66', '01'] (数量: 4)
+2026-06-24 15:43:48,774 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=e06399c526d44ab3, span_id=60fa0a66, flags=01
+2026-06-24 15:43:48,774 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:48,776 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: e06399c526d44ab3
+2026-06-24 15:43:48,776 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: e06399c526d44ab3
+2026-06-24 15:43:48,776 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: 60fa0a66
+2026-06-24 15:43:48,777 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: 60fa0a66
+2026-06-24 15:43:48,777 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,777 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,778 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=ServiceB, operation=sub_operation
+2026-06-24 15:43:48,778 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: e06399c526d44ab3
+2026-06-24 15:43:48,778 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 1968f443, 使用 trace_id: e06399c526d44ab3
+2026-06-24 15:43:48,778 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=e06399c526d44ab3, span_id=1968f443
+2026-06-24 15:43:48,778 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=ServiceB.sub_operation
+2026-06-24 15:43:48,779 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="ServiceB.sub_operation", context=SpanContext(trace_id=0x15a8c2c4cce07d559b20b38184c1a045, span_id=0x99c6a3b3d211b011, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,779 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'ServiceB', 'operation': 'sub_operation'}, trace_id=e06399c526d44ab3
+2026-06-24 15:43:48,779 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,779 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,780 [    INFO] agent.monitoring.tracing: {"trace_id": "e06399c526d44ab3", "span_id": "1968f443", "service": "ServiceB", "operation": "sub_operation", "event": "start", "timestamp": 1782287028.7781472, "level": "INFO"}
+2026-06-24 15:43:48,780 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=ServiceB, operation=sub_operation, duration_ms=2.0
+2026-06-24 15:43:48,780 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,780 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,780 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,781 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 2.0}, trace_id=e06399c526d44ab3
+2026-06-24 15:43:48,781 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,781 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,781 [    INFO] agent.monitoring.tracing: {"trace_id": "e06399c526d44ab3", "span_id": "1968f443", "service": "ServiceB", "operation": "sub_operation", "event": "end", "duration_ms": 2.0, "level": "INFO"}
+2026-06-24 15:43:48,781 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,782 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,782 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=e06399c526d44ab3, span_id=1968f443
+2026-06-24 15:43:48,782 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=ServiceA, operation=operation, duration_ms=10.72
+2026-06-24 15:43:48,782 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,783 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,783 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,783 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 10.72}, trace_id=e06399c526d44ab3
+2026-06-24 15:43:48,783 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,783 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,784 [    INFO] agent.monitoring.tracing: {"trace_id": "e06399c526d44ab3", "span_id": "60fa0a66", "service": "ServiceA", "operation": "operation", "event": "end", "duration_ms": 10.72, "level": "INFO"}
+2026-06-24 15:43:48,784 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,784 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,785 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=e06399c526d44ab3, span_id=60fa0a66
+2026-06-24 15:43:48,785 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,785 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,785 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,785 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,789 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,789 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,789 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,789 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,789 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {}
+2026-06-24 15:43:48,790 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 不存在
+2026-06-24 15:43:48,790 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 uber-trace-id: 不存在
+2026-06-24 15:43:48,792 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:48,792 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:48,792 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service, operation=test
+2026-06-24 15:43:48,793 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:48,793 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: f31c3ad3, 使用 trace_id: 1b19da5a784346f8
+2026-06-24 15:43:48,793 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=1b19da5a784346f8, span_id=f31c3ad3
+2026-06-24 15:43:48,794 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service.test
+2026-06-24 15:43:48,794 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service.test", context=SpanContext(trace_id=0xa392eb8ada0466630f2d49349e7e5a81, span_id=0xd4a38dfd6111181a, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:48,794 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service', 'operation': 'test'}, trace_id=1b19da5a784346f8
+2026-06-24 15:43:48,794 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: {"trace_id": "1b19da5a784346f8", "span_id": "f31c3ad3", "service": "Service", "operation": "test", "event": "start", "timestamp": 1782287028.7936885, "level": "INFO"}
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service, operation=test, duration_ms=2.17
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 2.17}, trace_id=1b19da5a784346f8
+2026-06-24 15:43:48,795 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:48,796 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:48,796 [    INFO] agent.monitoring.tracing: {"trace_id": "1b19da5a784346f8", "span_id": "f31c3ad3", "service": "Service", "operation": "test", "event": "end", "duration_ms": 2.17, "level": "INFO"}
+2026-06-24 15:43:48,796 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=1b19da5a784346f8, span_id=f31c3ad3
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,797 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,801 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,801 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,802 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,802 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:48,802 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': 'invalid-format'}
+2026-06-24 15:43:48,802 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,802 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: invalid-format
+2026-06-24 15:43:48,803 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['invalid', 'format'] (数量: 2)
+2026-06-24 15:43:48,804 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 uber-trace-id: 不存在
+2026-06-24 15:43:48,807 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-trace-id-only'}
+2026-06-24 15:43:48,807 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,807 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-trace-id-only
+2026-06-24 15:43:48,807 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'trace', 'id', 'only'] (数量: 4)
+2026-06-24 15:43:48,808 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=trace, span_id=id, flags=only
+2026-06-24 15:43:48,808 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: False, span_id 有效: False
+2026-06-24 15:43:48,811 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 uber-trace-id: 不存在
+2026-06-24 15:43:48,813 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123-456-01'}
+2026-06-24 15:43:48,813 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:48,813 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123-456-01
+2026-06-24 15:43:48,814 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123', '456', '01'] (数量: 4)
+2026-06-24 15:43:48,814 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123, span_id=456, flags=01
+2026-06-24 15:43:48,814 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:48,816 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:48,816 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:48,816 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:48,816 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,116 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,116 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,116 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,117 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,117 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890abc123def4567890-1234567812345678-01'}
+2026-06-24 15:43:49,117 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:49,118 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-1234567812345678-01
+2026-06-24 15:43:49,118 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', '1234567812345678', '01'] (数量: 4)
+2026-06-24 15:43:49,118 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=1234567812345678, flags=01
+2026-06-24 15:43:49,119 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:49,121 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'uber-trace-id': 'abc123def4567890:12345678:0:1'}
+2026-06-24 15:43:49,121 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 不存在
+2026-06-24 15:43:49,121 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 uber-trace-id: 存在
+2026-06-24 15:43:49,121 [   DEBUG] agent.monitoring.tracing: [Tracing] uber-trace-id 值: abc123def4567890:12345678:0:1
+2026-06-24 15:43:49,122 [   DEBUG] agent.monitoring.tracing: [Tracing] uber-trace-id 分割后: ['abc123def4567890', '12345678', '0', '1'] (数量: 4)
+2026-06-24 15:43:49,122 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id=abc123def4567890, span_id=12345678, 有效: True
+2026-06-24 15:43:49,125 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,126 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,126 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,126 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,131 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,131 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,131 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,131 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,132 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: initial-trace
+2026-06-24 15:43:49,132 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: initial-trace
+2026-06-24 15:43:49,132 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: initial-span
+2026-06-24 15:43:49,132 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: initial-span
+2026-06-24 15:43:49,132 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,133 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,133 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Test, operation=operation
+2026-06-24 15:43:49,133 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: initial-trace
+2026-06-24 15:43:49,133 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 2ad7d16d, 使用 trace_id: initial-trace
+2026-06-24 15:43:49,134 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=initial-trace, span_id=2ad7d16d
+2026-06-24 15:43:49,134 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Test.operation
+2026-06-24 15:43:49,134 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Test.operation", context=SpanContext(trace_id=0x607e55c1c5d4a14708ca93a825b27104, span_id=0xa15c5f1ff14d17a2, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,135 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Test', 'operation': 'operation'}, trace_id=initial-trace
+2026-06-24 15:43:49,135 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,135 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,135 [    INFO] agent.monitoring.tracing: {"trace_id": "initial-trace", "span_id": "2ad7d16d", "service": "Test", "operation": "operation", "event": "start", "timestamp": 1782287029.1340191, "level": "INFO"}
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Test, operation=operation, duration_ms=2.0
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 2.0}, trace_id=initial-trace
+2026-06-24 15:43:49,136 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,137 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,137 [    INFO] agent.monitoring.tracing: {"trace_id": "initial-trace", "span_id": "2ad7d16d", "service": "Test", "operation": "operation", "event": "end", "duration_ms": 2.0, "level": "INFO"}
+2026-06-24 15:43:49,137 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,138 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,138 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=initial-trace, span_id=2ad7d16d
+2026-06-24 15:43:49,138 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: initial-trace
+2026-06-24 15:43:49,138 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 2ad7d16d
+2026-06-24 15:43:49,138 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,139 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,139 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,139 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,147 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,148 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,148 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,148 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,148 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,149 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,149 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Outer, operation=operation
+2026-06-24 15:43:49,149 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,149 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 2dc89395, 使用 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,149 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=9e9ef81e5b724271, span_id=2dc89395
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Outer.operation
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Outer.operation", context=SpanContext(trace_id=0x96fd0d2110b518717eaae246fc5a0a23, span_id=0x0d5992bbcd8f9947, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Outer', 'operation': 'operation'}, trace_id=9e9ef81e5b724271
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: {"trace_id": "9e9ef81e5b724271", "span_id": "2dc89395", "service": "Outer", "operation": "operation", "event": "start", "timestamp": 1782287029.1490264, "level": "INFO"}
+2026-06-24 15:43:49,150 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 2dc89395
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Inner, operation=sub_operation
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,151 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 778972db, 使用 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,152 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=9e9ef81e5b724271, span_id=778972db
+2026-06-24 15:43:49,152 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Inner.sub_operation
+2026-06-24 15:43:49,152 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Inner.sub_operation", context=SpanContext(trace_id=0x8022b7af65ea64e37f8e241416a317bc, span_id=0x07e09337a47a3f2c, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,152 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Inner', 'operation': 'sub_operation'}, trace_id=9e9ef81e5b724271
+2026-06-24 15:43:49,152 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,153 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,153 [    INFO] agent.monitoring.tracing: {"trace_id": "9e9ef81e5b724271", "span_id": "778972db", "service": "Inner", "operation": "sub_operation", "event": "start", "timestamp": 1782287029.1525784, "level": "INFO"}
+2026-06-24 15:43:49,154 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,154 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 778972db
+2026-06-24 15:43:49,154 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Inner, operation=sub_operation, duration_ms=1.71
+2026-06-24 15:43:49,154 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,154 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,155 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,155 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 1.71}, trace_id=9e9ef81e5b724271
+2026-06-24 15:43:49,155 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,155 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,155 [    INFO] agent.monitoring.tracing: {"trace_id": "9e9ef81e5b724271", "span_id": "778972db", "service": "Inner", "operation": "sub_operation", "event": "end", "duration_ms": 1.71, "level": "INFO"}
+2026-06-24 15:43:49,156 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,156 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,156 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=9e9ef81e5b724271, span_id=778972db
+2026-06-24 15:43:49,156 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: 9e9ef81e5b724271
+2026-06-24 15:43:49,157 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: 778972db
+2026-06-24 15:43:49,157 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Outer, operation=operation, duration_ms=8.23
+2026-06-24 15:43:49,157 [   ERROR] agent.monitoring.tracing: [Tracing] 检测到异常: type=AssertionError, value='778972db' != '2dc89395'
+- 778972db
++ 2dc89395
+
+2026-06-24 15:43:49,158 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 错误状态
+2026-06-24 15:43:49,158 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 错误状态设置成功
+2026-06-24 15:43:49,159 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=error, attributes={'error': "'778972db' != '2dc89395'\n- 778972db\n+ 2dc89395\n", 'error_type': 'AssertionError', 'traceback': '  File "C:\\Users\\Administrator\\agent\\tests\\unit\\test_tracing_context_propagation.py", line 219, in test_context_nesting\n    self.assertEqual(get_span_id(), outer_span)\n  File "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\case.py", line 885, in assertEqual\n    assertion_func(first, second, msg=msg)\n  File "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\case.py", line 1251, in assertMultiLineEqual\n    self.fail(self._formatMessage(msg, standardMsg))\n  File "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\case.py", line 715, in fail\n    raise self.failureException(msg)\n'}, trace_id=9e9ef81e5b724271
+2026-06-24 15:43:49,159 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=error
+2026-06-24 15:43:49,160 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,160 [   ERROR] agent.monitoring.tracing: {"trace_id": "9e9ef81e5b724271", "span_id": "2dc89395", "service": "Outer", "operation": "operation", "event": "error", "duration_ms": 8.23, "error": "'778972db' != '2dc89395'\n- 778972db\n+ 2dc89395\n", "error_type": "AssertionError", "level": "ERROR"}
+2026-06-24 15:43:49,160 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,160 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,160 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=9e9ef81e5b724271, span_id=2dc89395
+2026-06-24 15:43:49,161 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,161 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,161 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,161 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,170 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,170 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,171 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,171 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,171 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,172 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,172 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,172 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,172 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Thread0, operation=operation
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Thread1, operation=operation
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Thread2, operation=operation
+2026-06-24 15:43:49,173 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,174 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 098efed2, 使用 trace_id: d850b172a06d4234
+2026-06-24 15:43:49,174 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,174 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 3a7f2b2a, 使用 trace_id: c216890cbfd54712
+2026-06-24 15:43:49,175 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=d850b172a06d4234, span_id=098efed2
+2026-06-24 15:43:49,175 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: e901617e, 使用 trace_id: bf427e5dab7841ff
+2026-06-24 15:43:49,175 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=c216890cbfd54712, span_id=3a7f2b2a
+2026-06-24 15:43:49,176 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Thread0.operation
+2026-06-24 15:43:49,176 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=bf427e5dab7841ff, span_id=e901617e
+2026-06-24 15:43:49,176 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Thread1.operation
+2026-06-24 15:43:49,176 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Thread0.operation", context=SpanContext(trace_id=0xf2a3503c2c59dcc9cac5268eff245778, span_id=0x5eefecd78b963340, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,176 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Thread2.operation
+2026-06-24 15:43:49,177 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Thread1.operation", context=SpanContext(trace_id=0xd0ca50860f4d6e256878d55dff4db7f1, span_id=0x7899fedad428d3f4, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,177 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Thread0', 'operation': 'operation'}, trace_id=d850b172a06d4234
+2026-06-24 15:43:49,177 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Thread2.operation", context=SpanContext(trace_id=0x38ed9f2cbb2f900f61a9d8921f2f8a89, span_id=0xaec5b9899ac3a6fb, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,178 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Thread1', 'operation': 'operation'}, trace_id=c216890cbfd54712
+2026-06-24 15:43:49,178 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,178 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Thread2', 'operation': 'operation'}, trace_id=bf427e5dab7841ff
+2026-06-24 15:43:49,178 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,178 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,179 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,179 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,179 [    INFO] agent.monitoring.tracing: {"trace_id": "d850b172a06d4234", "span_id": "098efed2", "service": "Thread0", "operation": "operation", "event": "start", "timestamp": 1782287029.1758947, "level": "INFO"}
+2026-06-24 15:43:49,180 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,180 [    INFO] agent.monitoring.tracing: {"trace_id": "c216890cbfd54712", "span_id": "3a7f2b2a", "service": "Thread1", "operation": "operation", "event": "start", "timestamp": 1782287029.1758947, "level": "INFO"}
+2026-06-24 15:43:49,180 [    INFO] agent.monitoring.tracing: {"trace_id": "bf427e5dab7841ff", "span_id": "e901617e", "service": "Thread2", "operation": "operation", "event": "start", "timestamp": 1782287029.1768916, "level": "INFO"}
+2026-06-24 15:43:49,191 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: c216890cbfd54712
+2026-06-24 15:43:49,191 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: d850b172a06d4234
+2026-06-24 15:43:49,191 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Thread1, operation=operation, duration_ms=15.66
+2026-06-24 15:43:49,191 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Thread0, operation=operation, duration_ms=15.66
+2026-06-24 15:43:49,192 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: bf427e5dab7841ff
+2026-06-24 15:43:49,192 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,192 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,192 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Thread2, operation=operation, duration_ms=15.46
+2026-06-24 15:43:49,193 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,193 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,193 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,193 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,194 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,194 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,194 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 15.66}, trace_id=c216890cbfd54712
+2026-06-24 15:43:49,194 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 15.66}, trace_id=d850b172a06d4234
+2026-06-24 15:43:49,194 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,195 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,195 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,195 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 15.46}, trace_id=bf427e5dab7841ff
+2026-06-24 15:43:49,195 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,196 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,196 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,196 [    INFO] agent.monitoring.tracing: {"trace_id": "c216890cbfd54712", "span_id": "3a7f2b2a", "service": "Thread1", "operation": "operation", "event": "end", "duration_ms": 15.66, "level": "INFO"}
+2026-06-24 15:43:49,196 [    INFO] agent.monitoring.tracing: {"trace_id": "d850b172a06d4234", "span_id": "098efed2", "service": "Thread0", "operation": "operation", "event": "end", "duration_ms": 15.66, "level": "INFO"}
+2026-06-24 15:43:49,196 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,197 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,197 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,197 [    INFO] agent.monitoring.tracing: {"trace_id": "bf427e5dab7841ff", "span_id": "e901617e", "service": "Thread2", "operation": "operation", "event": "end", "duration_ms": 15.46, "level": "INFO"}
+2026-06-24 15:43:49,197 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,198 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,198 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,198 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=c216890cbfd54712, span_id=3a7f2b2a
+2026-06-24 15:43:49,198 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=d850b172a06d4234, span_id=098efed2
+2026-06-24 15:43:49,199 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,199 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=bf427e5dab7841ff, span_id=e901617e
+2026-06-24 15:43:49,200 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,200 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,200 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,200 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,204 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,204 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,204 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,204 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,205 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890abc123def4567890-1234567812345678-01'}
+2026-06-24 15:43:49,205 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:49,205 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-1234567812345678-01
+2026-06-24 15:43:49,205 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', '1234567812345678', '01'] (数量: 4)
+2026-06-24 15:43:49,205 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=1234567812345678, flags=01
+2026-06-24 15:43:49,206 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:49,207 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'Traceparent': '00-abc123def4567890abc123def4567890-1234567812345678-01'}
+2026-06-24 15:43:49,208 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:49,208 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-1234567812345678-01
+2026-06-24 15:43:49,208 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', '1234567812345678', '01'] (数量: 4)
+2026-06-24 15:43:49,208 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=1234567812345678, flags=01
+2026-06-24 15:43:49,208 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:49,210 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,210 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,210 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,211 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,214 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,214 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,215 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,215 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,215 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,215 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service0, operation=op
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,216 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,217 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service1, operation=op
+2026-06-24 15:43:49,217 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,217 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,217 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,218 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service2, operation=op
+2026-06-24 15:43:49,218 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,218 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service3, operation=op
+2026-06-24 15:43:49,218 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 77df9071, 使用 trace_id: d01c2fc0ec084602
+2026-06-24 15:43:49,218 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Service4, operation=op
+2026-06-24 15:43:49,219 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,219 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: a5e0fb18, 使用 trace_id: a172067a54834e47
+2026-06-24 15:43:49,219 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,219 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=d01c2fc0ec084602, span_id=77df9071
+2026-06-24 15:43:49,219 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,220 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 74a14a48, 使用 trace_id: 65ce39c2a6ae4410
+2026-06-24 15:43:49,220 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=a172067a54834e47, span_id=a5e0fb18
+2026-06-24 15:43:49,220 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: ad776055, 使用 trace_id: 2aaead548e5945af
+2026-06-24 15:43:49,220 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service0.op
+2026-06-24 15:43:49,221 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 0586ea93, 使用 trace_id: fd3ea87bdd164acd
+2026-06-24 15:43:49,221 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=65ce39c2a6ae4410, span_id=74a14a48
+2026-06-24 15:43:49,221 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service1.op
+2026-06-24 15:43:49,221 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=2aaead548e5945af, span_id=ad776055
+2026-06-24 15:43:49,221 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service0.op", context=SpanContext(trace_id=0xcf58cd7966cd38e6fbf605820ed61ca2, span_id=0x5482f0984f5aed76, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,222 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=fd3ea87bdd164acd, span_id=0586ea93
+2026-06-24 15:43:49,222 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service2.op
+2026-06-24 15:43:49,222 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service1.op", context=SpanContext(trace_id=0x31c4cbccc071c5306da9845bb25b28dc, span_id=0x2bb94f0f29d0a7e4, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,222 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service3.op
+2026-06-24 15:43:49,222 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service0', 'operation': 'op'}, trace_id=d01c2fc0ec084602
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Service4.op
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service2.op", context=SpanContext(trace_id=0x4842b7e71725349d7db263eb43d7cfb0, span_id=0xc076516e41380ba0, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service1', 'operation': 'op'}, trace_id=a172067a54834e47
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service3.op", context=SpanContext(trace_id=0xc4e11a0d46c5dc3a67c25abf471c4a4d, span_id=0xe8e284f3fa22de9d, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,223 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Service4.op", context=SpanContext(trace_id=0x98e4236481e1ac5237110199f41dfe36, span_id=0x7b6253a3b2b6f460, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,225 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service2', 'operation': 'op'}, trace_id=65ce39c2a6ae4410
+2026-06-24 15:43:49,225 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,225 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service3', 'operation': 'op'}, trace_id=2aaead548e5945af
+2026-06-24 15:43:49,225 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,225 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Service4', 'operation': 'op'}, trace_id=fd3ea87bdd164acd
+2026-06-24 15:43:49,226 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,226 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,226 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,226 [    INFO] agent.monitoring.tracing: {"trace_id": "d01c2fc0ec084602", "span_id": "77df9071", "service": "Service0", "operation": "op", "event": "start", "timestamp": 1782287029.2192852, "level": "INFO"}
+2026-06-24 15:43:49,227 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,227 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,227 [    INFO] agent.monitoring.tracing: {"trace_id": "a172067a54834e47", "span_id": "a5e0fb18", "service": "Service1", "operation": "op", "event": "start", "timestamp": 1782287029.2202883, "level": "INFO"}
+2026-06-24 15:43:49,227 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,228 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,228 [    INFO] agent.monitoring.tracing: {"trace_id": "65ce39c2a6ae4410", "span_id": "74a14a48", "service": "Service2", "operation": "op", "event": "start", "timestamp": 1782287029.2212868, "level": "INFO"}
+2026-06-24 15:43:49,228 [    INFO] agent.monitoring.tracing: {"trace_id": "2aaead548e5945af", "span_id": "ad776055", "service": "Service3", "operation": "op", "event": "start", "timestamp": 1782287029.2212868, "level": "INFO"}
+2026-06-24 15:43:49,229 [    INFO] agent.monitoring.tracing: {"trace_id": "fd3ea87bdd164acd", "span_id": "0586ea93", "service": "Service4", "operation": "op", "event": "start", "timestamp": 1782287029.2222848, "level": "INFO"}
+2026-06-24 15:43:49,233 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service0, operation=op, duration_ms=14.58
+2026-06-24 15:43:49,233 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,233 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service1, operation=op, duration_ms=14.1
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service2, operation=op, duration_ms=13.61
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 14.58}, trace_id=d01c2fc0ec084602
+2026-06-24 15:43:49,234 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service4, operation=op, duration_ms=13.12
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Service3, operation=op, duration_ms=14.12
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,235 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,236 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,236 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,236 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 14.1}, trace_id=a172067a54834e47
+2026-06-24 15:43:49,236 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,236 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,237 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,237 [    INFO] agent.monitoring.tracing: {"trace_id": "d01c2fc0ec084602", "span_id": "77df9071", "service": "Service0", "operation": "op", "event": "end", "duration_ms": 14.58, "level": "INFO"}
+2026-06-24 15:43:49,237 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,237 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,238 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,238 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 13.61}, trace_id=65ce39c2a6ae4410
+2026-06-24 15:43:49,238 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,238 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,238 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 13.12}, trace_id=fd3ea87bdd164acd
+2026-06-24 15:43:49,239 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 14.12}, trace_id=2aaead548e5945af
+2026-06-24 15:43:49,239 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,239 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,240 [    INFO] agent.monitoring.tracing: {"trace_id": "a172067a54834e47", "span_id": "a5e0fb18", "service": "Service1", "operation": "op", "event": "end", "duration_ms": 14.1, "level": "INFO"}
+2026-06-24 15:43:49,240 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,240 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,240 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,240 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=d01c2fc0ec084602, span_id=77df9071
+2026-06-24 15:43:49,241 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,241 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,241 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,241 [    INFO] agent.monitoring.tracing: {"trace_id": "65ce39c2a6ae4410", "span_id": "74a14a48", "service": "Service2", "operation": "op", "event": "end", "duration_ms": 13.61, "level": "INFO"}
+2026-06-24 15:43:49,242 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,242 [    INFO] agent.monitoring.tracing: {"trace_id": "fd3ea87bdd164acd", "span_id": "0586ea93", "service": "Service4", "operation": "op", "event": "end", "duration_ms": 13.12, "level": "INFO"}
+2026-06-24 15:43:49,242 [    INFO] agent.monitoring.tracing: {"trace_id": "2aaead548e5945af", "span_id": "ad776055", "service": "Service3", "operation": "op", "event": "end", "duration_ms": 14.12, "level": "INFO"}
+2026-06-24 15:43:49,243 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,243 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=a172067a54834e47, span_id=a5e0fb18
+2026-06-24 15:43:49,243 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,243 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,243 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,244 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,244 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,244 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=65ce39c2a6ae4410, span_id=74a14a48
+2026-06-24 15:43:49,244 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=fd3ea87bdd164acd, span_id=0586ea93
+2026-06-24 15:43:49,245 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=2aaead548e5945af, span_id=ad776055
+2026-06-24 15:43:49,245 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,245 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,246 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,246 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,250 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,250 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,251 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,251 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,251 [    INFO] agent.monitoring.tracing: [Tracing] 获取 span_id: None
+2026-06-24 15:43:49,251 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,251 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,252 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Test, operation=operation
+2026-06-24 15:43:49,252 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,252 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: cb926075, 使用 trace_id: 3b06f58a225e490e
+2026-06-24 15:43:49,252 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=3b06f58a225e490e, span_id=cb926075
+2026-06-24 15:43:49,252 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Test.operation
+2026-06-24 15:43:49,253 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Test.operation", context=SpanContext(trace_id=0x79cee335c6e6737b72b3cf508411041b, span_id=0xb974f4b125916afa, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,253 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Test', 'operation': 'operation'}, trace_id=3b06f58a225e490e
+2026-06-24 15:43:49,253 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,253 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,253 [    INFO] agent.monitoring.tracing: {"trace_id": "3b06f58a225e490e", "span_id": "cb926075", "service": "Test", "operation": "operation", "event": "start", "timestamp": 1782287029.2529356, "level": "INFO"}
+2026-06-24 15:43:49,254 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Test, operation=operation, duration_ms=2.0
+2026-06-24 15:43:49,254 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,254 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,254 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,254 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 2.0}, trace_id=3b06f58a225e490e
+2026-06-24 15:43:49,255 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,255 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,255 [    INFO] agent.monitoring.tracing: {"trace_id": "3b06f58a225e490e", "span_id": "cb926075", "service": "Test", "operation": "operation", "event": "end", "duration_ms": 2.0, "level": "INFO"}
+2026-06-24 15:43:49,255 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,256 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,256 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=3b06f58a225e490e, span_id=cb926075
+2026-06-24 15:43:49,256 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,256 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,257 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,257 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,261 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,261 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,261 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,261 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 15:43:49,262 [    INFO] agent.monitoring.tracing: [Tracing] 开始初始化 OpenTelemetry... [环境: development, 日志级别: DEBUG]
+2026-06-24 15:43:49,262 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry 已初始化，复用现有 Tracer: <opentelemetry.sdk.trace.Tracer object at 0x00000228FF0191F0>
+2026-06-24 15:43:49,262 [    INFO] agent.monitoring.tracing: [Tracing] 进入 TraceContext, service=Test, operation=operation
+2026-06-24 15:43:49,262 [    INFO] agent.monitoring.tracing: [Tracing] 现有 trace_id: None
+2026-06-24 15:43:49,263 [    INFO] agent.monitoring.tracing: [Tracing] 生成新 span_id: 126164b8, 使用 trace_id: dfc5f9b209cf4f34
+2026-06-24 15:43:49,263 [    INFO] agent.monitoring.tracing: [Tracing] 上下文变量已设置 - trace_id=dfc5f9b209cf4f34, span_id=126164b8
+2026-06-24 15:43:49,263 [    INFO] agent.monitoring.tracing: [Tracing] 创建 OpenTelemetry Span, name=Test.operation
+2026-06-24 15:43:49,264 [    INFO] agent.monitoring.tracing: [Tracing] OpenTelemetry Span 创建成功: _Span(name="Test.operation", context=SpanContext(trace_id=0xe7823e8cd1f839f470efc73b820124bf, span_id=0xaffbbbe8d4e898fa, trace_flags=0x03, trace_state=[], is_remote=False))
+2026-06-24 15:43:49,264 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=start, attributes={'service': 'Test', 'operation': 'operation'}, trace_id=dfc5f9b209cf4f34
+2026-06-24 15:43:49,264 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=start
+2026-06-24 15:43:49,264 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: {"trace_id": "dfc5f9b209cf4f34", "span_id": "126164b8", "service": "Test", "operation": "operation", "event": "start", "timestamp": 1782287029.263911, "level": "INFO"}
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: [Tracing] 退出 TraceContext, service=Test, operation=operation, duration_ms=1.55
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: [Tracing] 操作成功完成
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: [Tracing] 设置 OTel Span 成功状态
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 成功状态设置成功
+2026-06-24 15:43:49,265 [    INFO] agent.monitoring.tracing: [Tracing] 添加事件, name=end, attributes={'duration_ms': 1.55}, trace_id=dfc5f9b209cf4f34
+2026-06-24 15:43:49,266 [    INFO] agent.monitoring.tracing: [Tracing] 将事件添加到 OTel Span, name=end
+2026-06-24 15:43:49,266 [    INFO] agent.monitoring.tracing: [Tracing] 事件成功添加到 OTel Span
+2026-06-24 15:43:49,266 [    INFO] agent.monitoring.tracing: {"trace_id": "dfc5f9b209cf4f34", "span_id": "126164b8", "service": "Test", "operation": "operation", "event": "end", "duration_ms": 1.55, "level": "INFO"}
+2026-06-24 15:43:49,266 [    INFO] agent.monitoring.tracing: [Tracing] 结束 OTel Span
+2026-06-24 15:43:49,267 [    INFO] agent.monitoring.tracing: [Tracing] OTel Span 结束成功
+2026-06-24 15:43:49,267 [    INFO] agent.monitoring.tracing: [Tracing] TraceContext 退出完成, trace_id=dfc5f9b209cf4f34, span_id=126164b8
+2026-06-24 15:43:49,267 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,267 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,267 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,268 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,271 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,271 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,272 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,272 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None
+2026-06-24 15:43:49,272 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890abc123def4567890-1234567812345678-01'}
+2026-06-24 15:43:49,273 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:49,273 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890abc123def4567890-1234567812345678-01
+2026-06-24 15:43:49,273 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890abc123def4567890', '1234567812345678', '01'] (数量: 4)
+2026-06-24 15:43:49,273 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890abc123def4567890, span_id=1234567812345678, flags=01
+2026-06-24 15:43:49,273 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:49,275 [   DEBUG] agent.monitoring.tracing: [Tracing] 开始提取追踪上下文，输入 headers: {'traceparent': '00-abc123def4567890-1234567812345678-01'}
+2026-06-24 15:43:49,275 [   DEBUG] agent.monitoring.tracing: [Tracing] 检测到 traceparent: 存在
+2026-06-24 15:43:49,276 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 值: 00-abc123def4567890-1234567812345678-01
+2026-06-24 15:43:49,276 [   DEBUG] agent.monitoring.tracing: [Tracing] traceparent 分割后: ['00', 'abc123def4567890', '1234567812345678', '01'] (数量: 4)
+2026-06-24 15:43:49,276 [   DEBUG] agent.monitoring.tracing: [Tracing] version=00, trace_id=abc123def4567890, span_id=1234567812345678, flags=01
+2026-06-24 15:43:49,276 [   DEBUG] agent.monitoring.tracing: [Tracing] trace_id 有效: True, span_id 有效: True
+2026-06-24 15:43:49,279 [    INFO] agent.monitoring.tracing: [Tracing] 设置 trace_id: None
+2026-06-24 15:43:49,279 [    INFO] agent.monitoring.tracing: [Tracing] trace_id 设置成功，当前值: None
+2026-06-24 15:43:49,279 [    INFO] agent.monitoring.tracing: [Tracing] 设置 span_id: None
+2026-06-24 15:43:49,279 [    INFO] agent.monitoring.tracing: [Tracing] span_id 设置成功，当前值: None

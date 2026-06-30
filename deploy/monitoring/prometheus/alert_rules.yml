@@ -1,0 +1,141 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：四层可见性告警规则（10 条），覆盖服务存活、报告陈旧、总体失败、层失败、覆盖率不足、违规超限
+# - 生成参数：for 持续时间、severity 标签、runbook_url 注解
+# - 模型配置：GLM-5.2
+# - 关键状态变化：所有规则均带 for + labels + annotations，便于 Alertmanager 路由
+
+groups:
+  - name: visibility_alerts
+    interval: 30s
+    rules:
+      # 1. 可见性导出器宕机
+      - alert: VisibilityExporterDown
+        expr: yunshu_visibility_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: visibility
+          layer: runtime
+        annotations:
+          summary: "可见性导出器已宕机"
+          description: "visibility-exporter 服务（端口 9101）在过去 1 分钟内不可达，yunshu_visibility_up == 0。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/visibility-exporter-down"
+
+      # 2. 可见性报告陈旧（超过 10 分钟未刷新）
+      - alert: VisibilityReportStale
+        expr: time() - yunshu_visibility_report_timestamp_seconds > 600
+        for: 5m
+        labels:
+          severity: warning
+          category: visibility
+          layer: runtime
+        annotations:
+          summary: "可见性报告数据陈旧"
+          description: "visibility-report 已超过 10 分钟未刷新（阈值 600s），可能因源码扫描失败或进程卡死。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/visibility-report-stale"
+
+      # 3. 总体状态失败
+      - alert: VisibilityOverallFailed
+        expr: yunshu_visibility_overall_status == 1
+        for: 5m
+        labels:
+          severity: critical
+          category: visibility
+          layer: overall
+        annotations:
+          summary: "四层可见性总体状态失败"
+          description: "yunshu_visibility_overall_status == 1（fail）持续 5 分钟，存在阈值违规未修复。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/visibility-overall-failed"
+
+      # 4. 任一层失败
+      - alert: VisibilityLayerFailed
+        expr: yunshu_visibility_layer_passed == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: visibility
+          layer: "{{ $labels.layer }}"
+        annotations:
+          summary: "可见性层 {{ $labels.layer }} 未达标"
+          description: "层 {{ $labels.layer }} 的可见性检查持续 5 分钟未通过（yunshu_visibility_layer_passed == 0）。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/visibility-layer-failed"
+
+      # 5. 结构化日志覆盖率过低
+      - alert: StructuredLogCoverageLow
+        expr: yunshu_visibility_runtime_structured_log_coverage < 30
+        for: 10m
+        labels:
+          severity: warning
+          category: visibility
+          layer: runtime
+        annotations:
+          summary: "结构化日志覆盖率过低"
+          description: "运行时层结构化日志覆盖率低于 30%（当前 {{ $value }}%），违反可观测性强制约束。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/structured-log-coverage-low"
+
+      # 6. 链路追踪覆盖率过低
+      - alert: TraceCoverageLow
+        expr: yunshu_visibility_runtime_trace_coverage < 30
+        for: 10m
+        labels:
+          severity: warning
+          category: visibility
+          layer: runtime
+        annotations:
+          summary: "链路追踪覆盖率过低"
+          description: "运行时层链路追踪覆盖率低于 30%（当前 {{ $value }}%），需补充 trace 注入。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/trace-coverage-low"
+
+      # 7. 测试覆盖率过低
+      - alert: TestCoverageLow
+        expr: yunshu_visibility_verification_test_coverage < 40
+        for: 10m
+        labels:
+          severity: warning
+          category: visibility
+          layer: verification
+        annotations:
+          summary: "测试覆盖率过低"
+          description: "验证过程层测试覆盖率低于 40%（当前 {{ $value }}%），需补充单元测试。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/test-coverage-low"
+
+      # 8. 埋点覆盖率过低
+      - alert: TrackEventCoverageLow
+        expr: yunshu_visibility_business_track_event_coverage < 30
+        for: 10m
+        labels:
+          severity: warning
+          category: visibility
+          layer: business
+        annotations:
+          summary: "埋点覆盖率过低"
+          description: "业务价值层埋点（trackEvent）覆盖率低于 30%（当前 {{ $value }}%），关键交互点缺失埋点。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/track-event-coverage-low"
+
+      # 9. 架构规则违规过多
+      - alert: ArchRuleViolationsHigh
+        expr: yunshu_visibility_architecture_rule_violations > 10
+        for: 15m
+        labels:
+          severity: warning
+          category: visibility
+          layer: architecture
+        annotations:
+          summary: "架构规则违规数过多"
+          description: "架构影响层规则违规数超过 10（当前 {{ $value }}），需排查依赖方向与分层约束。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/arch-rule-violations-high"
+
+      # 10. 阈值违规项数过多
+      - alert: ThresholdViolationsIncreased
+        expr: yunshu_visibility_threshold_violations_total > 3
+        for: 10m
+        labels:
+          severity: warning
+          category: visibility
+          layer: overall
+        annotations:
+          summary: "阈值违规项数过多"
+          description: "四层可见性阈值违规项总数超过 3（当前 {{ $value }}），应作为 PR 合并门槛阻断。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/threshold-violations-increased"

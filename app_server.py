@@ -73,6 +73,35 @@ from agent.log_system.dashboard import register_log_system
 
 logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
 logger = logging.getLogger(__name__)
+
+# 启用结构化日志易读格式（控制台显示优化，不影响 JSON 原始内容）
+try:
+    from scripts.struct_log_formatter import setup_readable_logging
+    setup_readable_logging()
+except Exception as _e:
+    logger.debug(f"结构化日志格式化器加载失败（不影响功能）: {_e}")
+
+
+def _trace_id():
+    """生成 trace_id（结构化日志用）"""
+    import uuid as _uuid
+    return _uuid.uuid4().hex[:16]
+
+
+def _log_struct(action: str, message: str, duration_ms: int = 0, **extra):
+    """输出结构化 JSON 日志（符合可观测性约束：trace_id/module_name/action/duration_ms）"""
+    import json as _json
+    payload = {
+        "trace_id": _trace_id(),
+        "module_name": "app_server",
+        "action": action,
+        "duration_ms": duration_ms,
+        "message": message,
+    }
+    payload.update(extra)
+    logger.info(_json.dumps(payload, ensure_ascii=False))
+
+
 app = Flask(__name__)
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
@@ -1703,6 +1732,30 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  技能管理系统 v1 路由（/api/skills-mgmt/*）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_skills_mgmt import register_routes as reg_skills_mgmt
+    reg_skills_mgmt(app, lambda: None)
+    logger.info("技能管理系统路由已注册 (/api/skills-mgmt/*)")
+except Exception as e:
+    logger.error("加载技能管理路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  工作流学习系统路由（/api/workflow-learning/*）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_workflow_learning import register_routes as reg_workflow_learning
+    reg_workflow_learning(app, lambda: None)
+    logger.info("工作流学习系统路由已注册 (/api/workflow-learning/*)")
+except Exception as e:
+    logger.error("加载工作流学习路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 
@@ -2109,13 +2162,33 @@ def api_network_config_get():
 @log_request()
 def api_network_config_update():
     """更新网络配置"""
+    import time as _time
+    t0 = _time.time()
     data = request.get_json() or {}
     try:
+        # 记录保存前的 priority（便于排查排序不生效问题）
+        before = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
         result = _network_config_mgr.update(data)
         # 即时生效：将配置应用到应用实例
         _network_config_mgr.apply_to_app(_Yunshu)
+        after = result.get('search', {}).get('engine_priority', [])
+        _log_struct(
+            'api_network_config_update.done',
+            '网络配置已更新',
+            duration_ms=int((_time.time() - t0) * 1000),
+            priority_before=before,
+            priority_after=after,
+            priority_changed=before != after,
+            default_engine=result.get('search', {}).get('default_engine', ''),
+        )
         return jsonify({"ok": True, "config": result})
     except Exception as e:
+        _log_struct(
+            'api_network_config_update.failed',
+            f'更新失败: {e}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            error=str(e),
+        )
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2387,6 +2460,8 @@ def api_search_instances_get():
 @require_token
 @log_request()
 def api_search_instance_add():
+    import time as _time
+    t0 = _time.time()
     try:
         data = request.get_json() or {}
         instance = data.get("instance", {})
@@ -2394,6 +2469,7 @@ def api_search_instance_add():
         if errors:
             return jsonify({"ok": False, "errors": errors}), 400
 
+        priority_before = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
         config = _network_config_mgr.get_raw_config()
         new_inst = dict(_DEFAULT_SEARCH_INSTANCE)
         new_inst.update(instance)
@@ -2412,8 +2488,30 @@ def api_search_instance_add():
             _network_config_mgr._register_search_instance(new_inst, _web_search)
             _network_config_mgr.apply_search_instances(_web_search)
 
-        return jsonify({"ok": True, "instance": new_inst})
+        priority_after = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
+        _log_struct(
+            'api_search_instance_add.done',
+            '搜索实例已新增',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=new_inst['id'],
+            instance_name=new_inst.get('name', ''),
+            engine_type=new_inst.get('engine_type', ''),
+            priority_before=priority_before,
+            priority_after=priority_after,
+        )
+
+        # 返回前脱敏 api_key（避免明文返回前端）
+        resp_inst = dict(new_inst)
+        if resp_inst.get('api_key'):
+            resp_inst['api_key'] = '***' + resp_inst['api_key'][-4:] if len(resp_inst['api_key']) > 4 else '***'
+        return jsonify({"ok": True, "instance": resp_inst})
     except Exception as e:
+        _log_struct(
+            'api_search_instance_add.failed',
+            f'新增搜索实例失败: {e}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            error=str(e),
+        )
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2421,26 +2519,58 @@ def api_search_instance_add():
 @require_token
 @log_request()
 def api_search_instance_update(instance_id):
+    import time as _time
+    t0 = _time.time()
     try:
         data = request.get_json() or {}
         updates = data.get("updates", {})
+        priority_before = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
         config = _network_config_mgr.get_raw_config()
         for inst in config.get('search_instances', []):
             if inst.get('id') == instance_id:
                 ak = updates.get('api_key', '')
                 if ak and ak != '***' and not ak.startswith('***'):
                     _network_config_mgr._save_secure(f'search_{instance_id}_api_key', ak)
-                elif ak and ak.startswith('***'):
-                    updates.pop('api_key', None)
-                inst.update(updates)
+                # 移除 api_key 字段，避免脱敏值/明文写入缓存（_save 会再次剥离，这里防御性处理）
+                updates_clean = {k: v for k, v in updates.items() if k != 'api_key'}
+                inst.update(updates_clean)
                 inst['updated_at'] = datetime.datetime.now().isoformat()
                 _network_config_mgr._save(config)
                 _network_config_mgr._add_change_log('update', 'search_instance', {'id': instance_id, 'name': inst.get('name')})
                 if _web_search:
                     _network_config_mgr.apply_search_instances(_web_search)
-                return jsonify({"ok": True, "instance": inst})
+                priority_after = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
+                _log_struct(
+                    'api_search_instance_update.done',
+                    '搜索实例已更新',
+                    duration_ms=int((_time.time() - t0) * 1000),
+                    instance_id=instance_id,
+                    instance_name=inst.get('name', ''),
+                    updated_fields=list(updates_clean.keys()),
+                    priority_before=priority_before,
+                    priority_after=priority_after,
+                    priority_changed=priority_before != priority_after,
+                )
+                # 返回前脱敏 api_key
+                resp_inst = dict(inst)
+                if resp_inst.get('api_key'):
+                    resp_inst['api_key'] = '***' + resp_inst['api_key'][-4:] if len(resp_inst['api_key']) > 4 else '***'
+                return jsonify({"ok": True, "instance": resp_inst})
+        _log_struct(
+            'api_search_instance_update.not_found',
+            f'搜索实例不存在: {instance_id}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+        )
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except Exception as e:
+        _log_struct(
+            'api_search_instance_update.failed',
+            f'更新搜索实例失败: {e}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+            error=str(e),
+        )
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2448,22 +2578,60 @@ def api_search_instance_update(instance_id):
 @require_token
 @log_request()
 def api_search_instance_delete(instance_id):
+    import time as _time
+    t0 = _time.time()
     try:
         config = _network_config_mgr.get_raw_config()
         before = len(config.get('search_instances', []))
+        priority_before = config.get('search', {}).get('engine_priority', [])
         config['search_instances'] = [i for i in config.get('search_instances', []) if i.get('id') != instance_id]
         if len(config['search_instances']) < before:
+            # 修复：从 engine_priority 中移除已删除实例的 id（避免残留 UUID 导致前端空行/报错）
+            config.setdefault('search', {})['engine_priority'] = [
+                p for p in priority_before if p != instance_id
+            ]
+            # 修复：如果删除的是默认引擎，清理 default_engine 字段（避免指向不存在的实例）
+            default_before = config.get('search', {}).get('default_engine', '')
+            default_changed = False
+            if default_before == instance_id:
+                config['search']['default_engine'] = ''
+                default_changed = True
             _network_config_mgr._save(config)
             _network_config_mgr._save_secure(f'search_{instance_id}_api_key', '')
             _network_config_mgr._add_change_log('delete', 'search_instance', {'id': instance_id})
             if _web_search:
                 _web_search.remove_engine(instance_id)
-                # 同步更新 web_search 工具的 engine enum
+                # 同步更新 web_search 工具的 engine enum + 重建 priority
                 from agent.tools import sync_web_search_engines
                 sync_web_search_engines([], search_engine=_web_search)
+                _network_config_mgr.apply_search_instances(_web_search)
+            priority_after = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
+            _log_struct(
+                'api_search_instance_delete.done',
+                '搜索实例已删除',
+                duration_ms=int((_time.time() - t0) * 1000),
+                instance_id=instance_id,
+                priority_before=priority_before,
+                priority_after=priority_after,
+                priority_changed=priority_before != priority_after,
+                default_engine_cleared=default_changed,
+            )
             return jsonify({"ok": True})
+        _log_struct(
+            'api_search_instance_delete.not_found',
+            f'搜索实例不存在: {instance_id}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+        )
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except Exception as e:
+        _log_struct(
+            'api_search_instance_delete.failed',
+            f'删除搜索实例失败: {e}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+            error=str(e),
+        )
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2471,19 +2639,46 @@ def api_search_instance_delete(instance_id):
 @require_token
 @log_request()
 def api_search_instance_set_default(instance_id):
+    import time as _time
+    t0 = _time.time()
     try:
         config = _network_config_mgr.get_raw_config()
+        default_before = config.get('search', {}).get('default_engine', '')
         inst = next((i for i in config.get('search_instances', []) if i.get('id') == instance_id), None)
         if not inst:
+            _log_struct(
+                'api_search_instance_set_default.not_found',
+                f'搜索实例不存在: {instance_id}',
+                duration_ms=int((_time.time() - t0) * 1000),
+                instance_id=instance_id,
+            )
             return jsonify({"ok": False, "error": "实例不存在"}), 404
         if _web_search:
             _web_search.set_default_engine(instance_id if inst.get('engine_type') == 'custom' else inst['engine_type'])
         for i in config.get('search_instances', []):
             i['is_default'] = (i.get('id') == instance_id)
+        # 同步 default_engine 字段（确保 search.default_engine 与 is_default 一致）
+        config.setdefault('search', {})['default_engine'] = instance_id
         _network_config_mgr._save(config)
         _network_config_mgr._add_change_log('update', 'search_instance', {'id': instance_id, 'action': 'set_default'})
+        _log_struct(
+            'api_search_instance_set_default.done',
+            '已设为默认搜索引擎',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+            instance_name=inst.get('name', ''),
+            default_before=default_before,
+            default_after=instance_id,
+        )
         return jsonify({"ok": True, "message": "已设为默认搜索引擎"})
     except Exception as e:
+        _log_struct(
+            'api_search_instance_set_default.failed',
+            f'设置默认搜索引擎失败: {e}',
+            duration_ms=int((_time.time() - t0) * 1000),
+            instance_id=instance_id,
+            error=str(e),
+        )
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

@@ -356,10 +356,28 @@ def _is_sensitive_key(key: Any) -> bool:
 
 
 # 敏感 token 模式（用于字符串内嵌场景，如 "token=abc123"）
+# P0-SEC-002 修复：\S+ 改为 [^&\s]+，避免贪婪匹配吞噬 & 分隔的相邻 URL 参数
+# 注意：通用工具位于 agent/utils/token_redactor.py，可供新模块复用
 _SENSITIVE_TOKEN_PATTERNS = [
-    re.compile(r"(?i)(token|api[_-]?key|secret|password)\s*[=:]\s*\S+"),
+    re.compile(r"(?i)(token|api[_-]?key|secret|password)\s*[=:]\s*[^&\s]+"),
     re.compile(r"(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*"),
 ]
+
+
+def _redact_token_match(m: "re.Match[str]") -> str:
+    """敏感 token 匹配替换函数
+
+    P0-SEC-001 修复：Bearer 模式独立处理，避免 split("=") 保留 token 值。
+    通用版本位于 agent/utils/token_redactor.py，可供新模块复用。
+    """
+    matched = m.group(0)
+    if matched.lower().startswith("bearer"):
+        return "Bearer [REDACTED]"
+    if "=" in matched:
+        return matched.split("=")[0] + "=[REDACTED]"
+    if ":" in matched:
+        return matched.split(":")[0] + ": [REDACTED]"
+    return "[REDACTED]"
 
 
 def _filter_sensitive_recursive(obj: Any) -> Any:
@@ -369,6 +387,10 @@ def _filter_sensitive_recursive(obj: Any) -> Any:
     - list/tuple：递归每个元素
     - str：内嵌 token=xxx 模式 → 替换为 token=[REDACTED]
     - 其他：原样返回
+
+    状态同步机制说明：
+    - 纯函数无副作用，输入不被修改（返回新对象）
+    - Bearer 模式独立处理，确保 token 值完全脱敏
     """
     if isinstance(obj, dict):
         return {
@@ -382,11 +404,7 @@ def _filter_sensitive_recursive(obj: Any) -> Any:
     if isinstance(obj, str):
         redacted = obj
         for pat in _SENSITIVE_TOKEN_PATTERNS:
-            redacted = pat.sub(
-                lambda m: m.group(0).split("=")[0] + "=[REDACTED]"
-                if "=" in m.group(0) else m.group(0).split(":")[0] + ": [REDACTED]",
-                redacted,
-            )
+            redacted = pat.sub(_redact_token_match, redacted)
         return redacted
     return obj
 

@@ -2,10 +2,18 @@
 import os
 import asyncio
 import logging
+import json
+import uuid
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def register_routes(app, state):
@@ -19,6 +27,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/memory/overview")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_memory_overview():
         try:
@@ -40,6 +49,7 @@ def register_routes(app, state):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/memory/manual", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_memory_manual():
@@ -58,6 +68,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/memory/compress", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_memory_compress():
@@ -71,12 +82,14 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/memory/<int:index>", methods=["DELETE"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_memory_delete_index(index):
         return jsonify({"ok": True})
 
     @app.route("/api/memory/clear-summary", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_memory_clear_summary():
@@ -88,6 +101,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/memory/summary", methods=["PUT"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_memory_update_summary():
@@ -108,6 +122,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/vector/stats")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_vector_stats():
         """获取向量记忆统计"""
@@ -120,6 +135,7 @@ def register_routes(app, state):
         return jsonify(stats)
 
     @app.route("/api/vector/search", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_vector_search():
@@ -146,6 +162,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/vector/add", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_vector_add():
@@ -168,6 +185,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/vector/batch_add", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_vector_batch_add():
@@ -189,6 +207,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/vector/item/<item_id>")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_vector_get_item(item_id):
         """按 ID 获取记忆项"""
@@ -202,6 +221,7 @@ def register_routes(app, state):
         return jsonify(item.to_dict())
 
     @app.route("/api/vector/recent")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_vector_recent():
         """获取最近的向量记忆"""
@@ -221,6 +241,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/vector/clear", methods=["DELETE"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_vector_clear():
@@ -237,6 +258,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/knowledge/query", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_knowledge_query():
@@ -260,6 +282,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/knowledge/add", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_knowledge_add():
@@ -288,6 +311,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/memory/windows/events")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_window_events():
         limit = request.args.get("limit", 50, type=int)
@@ -301,6 +325,7 @@ def register_routes(app, state):
             return jsonify({"events": [], "error": str(e)})
 
     @app.route("/api/memory/windows/stats")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_window_stats():
         try:
@@ -339,6 +364,7 @@ def register_routes(app, state):
             return jsonify({"total_duration_sec": 0, "total_switches": 0, "apps": [], "error": str(e)})
 
     @app.route("/api/memory/windows/current")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_window_current():
         if window_sensor:
@@ -346,6 +372,7 @@ def register_routes(app, state):
         return jsonify({"process": None, "title": None, "elapsed_sec": 0, "is_idle": False})
 
     @app.route("/api/memory/windows/config", methods=["GET", "POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_window_config():
@@ -361,6 +388,7 @@ def register_routes(app, state):
         return jsonify(window_sensor.get_config())
 
     @app.route("/api/memory/windows/clear", methods=["POST"])
+    @trace_route("Memory")
     @require_token
     @log_request()
     def api_window_clear():
@@ -374,6 +402,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/window/consent", methods=["POST"])
+    @trace_route("Memory")
     @log_request()
     def api_window_consent():
         data = request.get_json() or {}
@@ -387,13 +416,13 @@ def register_routes(app, state):
                 window_sensor.save_config(config)
                 if not window_sensor.is_running:
                     window_sensor.start()
-                logger.info("用户已同意窗口监控")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_memory", "action": "log", "msg": "用户已同意窗口监控"}, ensure_ascii=False))
             else:
                 config["enabled"] = False
                 window_sensor.save_config(config)
                 if window_sensor.is_running:
                     window_sensor.stop()
-                logger.info("用户已拒绝窗口监控")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_memory", "action": "log", "msg": "用户已拒绝窗口监控"}, ensure_ascii=False))
             return jsonify({"ok": True, "consent": consent, "enabled": consent})
 
         return jsonify({"ok": False, "error": "窗口传感器未初始化"})
@@ -403,6 +432,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/privacy/info")
+    @trace_route("Memory")
     @log_request(show_response=False)
     def api_privacy_info():
         from sensor.window_sensor import HAS_WIN32

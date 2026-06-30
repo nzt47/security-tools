@@ -1,0 +1,83 @@
+2026-06-24 22:54:47,139 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 22:54:47,141 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 22:54:47,143 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 22:54:47,246 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 22:54:47,261 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 22:54:47,263 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 22:54:47,323 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 22:54:47,324 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:47,325 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 22:54:47,325 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 22:54:47,332 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 22:54:47,337 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 22:54:47,353 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 22:54:47,354 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 22:54:47,354 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 22:54:47,354 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 22:54:47,356 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 22:54:47,479 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 22:54:47,484 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 22:54:47,484 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 22:54:47,489 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 22:54:47,490 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 22:54:47,490 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 22:54:47,490 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 22:54:47,490 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 22:54:47,504 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:47,504 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 22:54:47,640 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-24 22:54:47,687 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,687 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,690 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,690 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,699 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,699 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,704 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,704 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,710 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,710 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,715 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,715 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,722 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,722 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,730 [    INFO] agent.tools: 工具注册: test_tool — 
+2026-06-24 22:54:47,732 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 22:54:47,732 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 22:54:47,733 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:47,733 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "test_tool", "user_id": null, "current_concurrent": 1, "max_concurrent": 100, "global_tokens": 99.0, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 22:54:47,733 [    INFO] agent.tools: [5bc69084d8d2] 调用工具: test_tool, 参数: {'key': 'value'}
+2026-06-24 22:54:47,733 [    INFO] agent.tools: [5bc69084d8d2] 工具返回: test_tool → {'result': 'success'}
+2026-06-24 22:54:48,057 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:48,057 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "nonexistent_tool_xyz", "user_id": null, "current_concurrent": 2, "max_concurrent": 100, "global_tokens": 99.0, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 22:54:48,077 [    INFO] agent.tools: 工具注册: error_tool — 
+2026-06-24 22:54:48,077 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:48,078 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "error_tool", "user_id": null, "current_concurrent": 3, "max_concurrent": 100, "global_tokens": 99.0, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 22:54:48,078 [    INFO] agent.tools: [70695f6438c9] 调用工具: error_tool, 参数: {}
+2026-06-24 22:54:48,078 [   ERROR] agent.tools: [70695f6438c9] 工具执行失败: error_tool — test error
+2026-06-24 22:54:48,101 [    INFO] agent.tools: 工具注册: test_tool — 测试工具
+2026-06-24 22:54:48,114 [    INFO] agent.tools: 工具注册: decorator_tool — 
+2026-06-24 22:54:48,127 [    INFO] agent.tools: 工具注册: to_remove — 
+2026-06-24 22:54:48,127 [    INFO] agent.tools: 工具注销: to_remove
+2026-06-24 22:54:48,132 [    INFO] agent.tools: 工具注册: tool_a — 
+2026-06-24 22:54:48,132 [    INFO] agent.tools: 工具注册: tool_b — 
+2026-06-24 22:54:48,159 [    INFO] agent.tools: 工具注册: health_test_tool — 
+2026-06-24 22:54:48,160 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 22:54:48,160 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "health_test_tool", "user_id": null, "current_concurrent": 4, "max_concurrent": 100, "global_tokens": 99.0, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 22:54:48,160 [    INFO] agent.tools: [14aea5fa3476] 调用工具: health_test_tool, 参数: {}
+2026-06-24 22:54:48,160 [    INFO] agent.tools: [14aea5fa3476] 工具返回: health_test_tool → {'ok': True}
+2026-06-24 22:54:48,169 [    INFO] agent.tools: 工具注册: web_search — 
+2026-06-24 22:54:48,169 [    INFO] agent.tools: 工具注册: file_read — 
+2026-06-24 22:54:48,169 [    INFO] agent.tools: 工具注册: code_exec — 
+2026-06-24 22:54:48,184 [    INFO] agent.tools: 工具注册: cat1_tool — 
+2026-06-24 22:54:48,184 [    INFO] agent.tools: 工具注册: cat1_another — 
+2026-06-24 22:54:48,185 [    INFO] agent.tools: 工具注册: cat2_tool — 

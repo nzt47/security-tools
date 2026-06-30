@@ -1,0 +1,69 @@
+2026-06-28 01:47:09,892 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 01:47:09,896 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 01:47:09,897 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 01:47:09,914 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 01:47:09,928 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 01:47:09,932 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 01:47:09,963 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 01:47:09,973 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 01:47:09,978 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 01:47:09,995 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 01:47:09,996 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 01:47:09,996 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 01:47:09,998 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 01:47:10,000 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 01:47:10,171 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 01:47:10,175 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 01:47:10,176 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:47:10,176 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 01:47:10,176 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:47:10,176 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 01:47:10,177 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 01:47:10,177 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 01:47:10,177 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 01:47:10,177 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 01:47:10,178 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 01:47:10,178 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 01:47:10,179 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 01:47:10,179 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 01:47:10,179 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 01:47:10,179 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 01:47:10,179 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 01:47:10,356 [    INFO] agent.monitoring.replay_storage: {"trace_id": "48117060427a498c95492b5582de0625", "module_name": "replay_storage", "action": "init", "result": "initialized", "duration_ms": 22.57, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-510\\test_store_failure_rolls_back_0\\replays"}
+2026-06-28 01:47:10,362 [    INFO] agent.monitoring.replay_storage: {"trace_id": "0cb86285b99344fdb9e9ec38644d9d49", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.58, "replay_id": "r-normal", "size_bytes": 223, "compressed": false}
+2026-06-28 01:47:10,364 [ WARNING] agent.monitoring.replay_storage: {"trace_id": "8a6090c7e82a42328027d5357c02a40b", "module_name": "replay_storage", "action": "store", "result": "file_rolled_back", "file_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-510\\test_store_failure_rolls_back_0\\replays\\20260628\\r-rollback.json"}
+2026-06-28 01:47:10,364 [   ERROR] agent.monitoring.replay_storage: {"trace_id": "8a6090c7e82a42328027d5357c02a40b", "module_name": "replay_storage", "action": "store", "result": "db_write_failed", "duration_ms": 2.0, "error": "SQLite 写入失败: DB error", "code": "REPLAY_ERR_003", "exception_type": "Error"}
+2026-06-28 01:47:10,676 [    INFO] agent.monitoring.replay_storage: {"trace_id": "5b8ce8fa949440f4bcca7a6adc9374da", "module_name": "replay_storage", "action": "close", "result": "closed", "duration_ms": 0.0}
+2026-06-28 01:47:10,702 [    INFO] agent.monitoring.replay_storage: {"trace_id": "17f8c01d98f54251b292751827206c2c", "module_name": "replay_storage", "action": "init", "result": "initialized", "duration_ms": 20.52, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-510\\test_empty_gzip_file_raises_de0\\replays"}
+2026-06-28 01:47:10,707 [    INFO] agent.monitoring.replay_storage: {"trace_id": "3fa5502ad3ae44bea6869e2df213285e", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-empty-gz", "size_bytes": 129, "compressed": true}
+2026-06-28 01:47:10,722 [    INFO] agent.monitoring.replay_storage: {"trace_id": "54627b246a5a42b1a72eb8effb315bd8", "module_name": "replay_storage", "action": "close", "result": "closed", "duration_ms": 1.0}
+2026-06-28 01:47:10,744 [    INFO] agent.monitoring.replay_storage: {"trace_id": "929df44305aa40458a8f1e37b886fcdb", "module_name": "replay_storage", "action": "init", "result": "initialized", "duration_ms": 18.51, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-510\\test_with_error_id_count0\\replays"}
+2026-06-28 01:47:10,752 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-001", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 7.0, "replay_id": "r-full-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,756 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-002", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.02, "replay_id": "r-full-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,761 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-003", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.03, "replay_id": "r-full-003", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,765 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-101", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 3.98, "replay_id": "r-no-err-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,770 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-102", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.52, "replay_id": "r-no-err-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,774 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-201", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-no-sess-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,778 [    INFO] agent.monitoring.replay_storage: {"trace_id": "18a622ab6c17413196528a6cd7abedf5", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-no-trace-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,783 [    INFO] agent.monitoring.replay_storage: {"trace_id": "262819716e024de0bdcb2c3bedf24318", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.51, "replay_id": "r-only-err-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,788 [    INFO] agent.monitoring.replay_storage: {"trace_id": "ecad049851f14ac8b3e4d73be0c310b6", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 5.0, "replay_id": "r-empty-fields-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,793 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-old", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 3.99, "replay_id": "r-old-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,798 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-old-2", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.51, "replay_id": "r-old-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,800 [    INFO] agent.monitoring.replay_storage: {"trace_id": "f8d7c174669d424e9cbbc95150ce5841", "module_name": "replay_storage", "action": "get_correlation_stats", "result": "ok", "duration_ms": 1.0, "total": 9, "fully_correlated": 3}
+2026-06-28 01:47:10,801 [    INFO] agent.monitoring.replay_storage: {"trace_id": "a0d2a6b13919446aaa9a524bd8d78dbf", "module_name": "replay_storage", "action": "close", "result": "closed", "duration_ms": 0.0}
+2026-06-28 01:47:10,824 [    INFO] agent.monitoring.replay_storage: {"trace_id": "97cc415b5e2745c08e172cdeabda0734", "module_name": "replay_storage", "action": "init", "result": "initialized", "duration_ms": 17.63, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-510\\test_comprehensive_stats_summa0\\replays"}
+2026-06-28 01:47:10,829 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-001", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-full-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,835 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-002", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 5.31, "replay_id": "r-full-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,840 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-003", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.99, "replay_id": "r-full-003", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,844 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-101", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-no-err-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,849 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-102", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 5.03, "replay_id": "r-no-err-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,853 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-201", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 3.97, "replay_id": "r-no-sess-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,859 [    INFO] agent.monitoring.replay_storage: {"trace_id": "5721e7851a8a465e946d2733607746a9", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 5.0, "replay_id": "r-no-trace-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,866 [    INFO] agent.monitoring.replay_storage: {"trace_id": "05f31b5c385247e7aa340e5d42075fc2", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 7.14, "replay_id": "r-only-err-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,871 [    INFO] agent.monitoring.replay_storage: {"trace_id": "b08b134ad3504cbea1195663ecf321f8", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-empty-fields-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,877 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-old", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 6.06, "replay_id": "r-old-001", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,881 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-old-2", "module_name": "replay_storage", "action": "store", "result": "stored", "duration_ms": 4.0, "replay_id": "r-old-002", "size_bytes": 29, "compressed": false}
+2026-06-28 01:47:10,882 [    INFO] agent.monitoring.replay_storage: {"trace_id": "6ae71ca030f547afa3672dfa53f2f64a", "module_name": "replay_storage", "action": "get_correlation_stats", "result": "ok", "duration_ms": 0.0, "total": 9, "fully_correlated": 3}
+2026-06-28 01:47:10,884 [    INFO] agent.monitoring.replay_storage: {"trace_id": "2da4a7e770b3453b9ce984f7c1918e7e", "module_name": "replay_storage", "action": "close", "result": "closed", "duration_ms": 0.0}

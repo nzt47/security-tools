@@ -1,0 +1,75 @@
+2026-06-27 01:07:04,866 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 01:07:04,869 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 01:07:04,871 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 01:07:04,884 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 01:07:04,904 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:07:04,907 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 01:07:04,942 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 01:07:04,949 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 01:07:04,955 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 01:07:04,976 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 01:07:04,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 01:07:04,977 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 01:07:04,981 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 01:07:04,983 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 01:07:05,120 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 01:07:05,123 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 01:07:09,724 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-27 01:07:09,982 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:09,984 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-27 01:07:09,984 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-27 01:07:09,984 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-27 01:07:09,984 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-27 01:07:09,984 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-27 01:07:09,984 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:09,989 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:09,989 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-27 01:07:09,990 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-27 01:07:09,990 [    INFO] agent.network_config: [网络配置] 应用实例: <test_network_config_integration.MockApp object at 0x000002657F697FE0>
+2026-06-27 01:07:09,990 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'test_network_config_integration.MockApp'>
+2026-06-27 01:07:09,991 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s
+2026-06-27 01:07:09,991 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3
+2026-06-27 01:07:09,991 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用
+2026-06-27 01:07:09,991 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册
+2026-06-27 01:07:09,991 [    INFO] agent.network_config: [网络配置] 使用 LLM 实例 [default(Deepseek-flash)]: name=Deepseek-flash, provider=deepseek, model=deepseek-v4-flash
+2026-06-27 01:07:09,991 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=deepseek, api_key_set=***, model=deepseek-v4-flash
+2026-06-27 01:07:09,991 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm (来源: default(Deepseek-flash))...
+2026-06-27 01:07:09,991 [ WARNING] agent.network_config: [网络配置] 应用 LLM 配置失败: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\network_config.py", line 1120, in apply_to_app
+    result = app_instance.configure_llm(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+2026-06-27 01:07:09,993 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-27 01:07:09,995 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:09,996 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:09,996 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-27 01:07:09,997 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:07:10,800 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-27 01:07:11,780 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-27 01:07:11,822 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=3600s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-27 01:07:11,822 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-27 01:07:12,448 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-27 01:07:12,454 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-27 01:07:12,458 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-27 01:07:12,458 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-27 01:07:12,458 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-27 01:07:12,952 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-27 01:07:13,292 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器

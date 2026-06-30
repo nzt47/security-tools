@@ -1,0 +1,36 @@
+2026-06-29 09:37:48,710 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 09:37:48,714 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 09:37:48,716 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 09:37:48,728 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 09:37:48,743 [    INFO] agent.error_handler: {"trace_id": "7fface69865144c2", "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}
+2026-06-29 09:37:48,746 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 09:37:48,782 [    INFO] agent.digital_life: {"trace_id": "unknown", "module_name": "digital_life", "action": "log", "msg": "[ok] 核心模块全部加载成功"}
+2026-06-29 09:37:48,789 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 09:37:48,794 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 09:37:48,811 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 09:37:48,812 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 09:37:48,812 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 09:37:48,814 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "[ok] 错误报告配置已加载"}
+2026-06-29 09:37:48,815 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 09:37:48,972 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 09:37:48,976 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 09:37:48,976 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 09:37:48,976 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "[模块导入] 模块导入状态汇总"}
+2026-06-29 09:37:48,976 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 09:37:48,976 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "════════════════════════════════════════════════════════════════════════════════"}
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life: {"trace_id": null, "module_name": "digital_life", "action": "log", "msg": "   [OK] 所有可选模块加载成功"}
+2026-06-29 09:37:48,977 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 09:37:49,349 [    INFO] agent.monitoring.business_metrics: {"trace_id": "e1b8f68213ba4aa6", "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}
+2026-06-29 09:37:49,350 [    INFO] agent.monitoring.business_metrics: {"trace_id": "1eee66f139fd4cbc", "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}
+2026-06-29 09:37:49,571 [    INFO] agent.caching.multi_level_cache: {"trace_id": "57c53a5c634943bf", "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)"}

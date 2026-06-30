@@ -17,6 +17,7 @@
 
 import os
 import json
+import uuid
 import time
 import sqlite3
 import logging
@@ -31,6 +32,11 @@ from agent.memory.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class HolographicAdapter(MemoryInterface):
@@ -74,7 +80,7 @@ class HolographicAdapter(MemoryInterface):
                     l2_enabled=False,
                 )
             except ImportError:
-                logger.warning("[HolographicAdapter] MultiLevelCache 不可用，跳过缓存")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "multilevelcache", "msg": "[HolographicAdapter] MultiLevelCache 不可用，跳过缓存"}, ensure_ascii=False))
 
         # 确保目录存在并初始化数据库
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -119,7 +125,7 @@ class HolographicAdapter(MemoryInterface):
                 ON {self._CONTENT_TABLE}(created_at)
             """)
             conn.commit()
-        logger.debug("[HolographicAdapter] 数据库表结构已就绪")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "log", "msg": "[HolographicAdapter] 数据库表结构已就绪"}, ensure_ascii=False))
 
     # ── MemoryInterface 实现 ──
 
@@ -131,7 +137,7 @@ class HolographicAdapter(MemoryInterface):
     ) -> bool:
         """保存记忆到本地 SQLite + 同步 FTS5 索引"""
         if not key:
-            logger.warning("[HolographicAdapter] save 失败: key 为空")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "save.key", "msg": "[HolographicAdapter] save 失败: key 为空"}, ensure_ascii=False))
             return False
 
         # 序列化 data（如果非字符串）
@@ -415,7 +421,7 @@ class HolographicAdapter(MemoryInterface):
 
                 if self._cache:
                     self._cache.clear()
-                logger.info("[HolographicAdapter] 已清空所有记忆")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "log", "msg": "[HolographicAdapter] 已清空所有记忆"}, ensure_ascii=False))
                 return True
             except Exception as e:
                 logger.error("[HolographicAdapter] 清空失败: %s", e)

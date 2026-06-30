@@ -1,0 +1,12 @@
+2026-06-25 10:50:39,256 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:50:39,259 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:50:39,261 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:50:39,402 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:50:39,417 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:50:39,421 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 10:50:39,777 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:50:39,783 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:50:39,785 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:50:39,939 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:50:39,958 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:50:39,963 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s

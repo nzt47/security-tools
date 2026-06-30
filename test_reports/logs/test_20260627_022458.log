@@ -1,0 +1,99 @@
+2026-06-27 02:24:59,579 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 02:24:59,582 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 02:24:59,584 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 02:24:59,599 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 02:24:59,614 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 02:24:59,618 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 02:24:59,648 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 02:24:59,656 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 02:24:59,661 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 02:24:59,679 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 02:24:59,680 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 02:24:59,680 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 02:24:59,681 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 02:24:59,681 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 02:24:59,853 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 02:24:59,857 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 02:24:59,857 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 02:24:59,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 02:25:00,530 [    INFO] agent.tools: 工具注册: decorator_tool — 
+2026-06-27 02:25:00,530 [    INFO] agent.tools: [32e0e9f00315] 调用工具: decorator_tool, 参数: {}
+2026-06-27 02:25:00,530 [    INFO] agent.tools: [32e0e9f00315] 工具返回: decorator_tool → {'result': 'decorated'}
+2026-06-27 02:25:00,531 [    INFO] agent.tools: 工具注册: to_remove — 
+2026-06-27 02:25:00,531 [    INFO] agent.tools: 工具注销: to_remove
+2026-06-27 02:25:00,540 [    INFO] agent.tools: 工具注册: tool_a — 
+2026-06-27 02:25:00,540 [    INFO] agent.tools: 工具注册: tool_b — 
+2026-06-27 02:25:00,541 [    INFO] agent.tools: 工具注册: health_test_tool — 
+2026-06-27 02:25:00,541 [    INFO] agent.tools: [8fd007e7b341] 调用工具: health_test_tool, 参数: {}
+2026-06-27 02:25:00,541 [    INFO] agent.tools: [8fd007e7b341] 工具返回: health_test_tool → {'ok': True}
+2026-06-27 02:25:00,546 [    INFO] agent.tools: 工具注册: list_tool_1 — 
+2026-06-27 02:25:00,546 [    INFO] agent.tools: 工具注册: list_tool_2 — 
+2026-06-27 02:25:00,549 [    INFO] agent.tools: 工具注册: defs_tool — 
+2026-06-27 02:25:00,617 [    INFO] agent.monitoring.tracing: [0c569701fe464860] START TestService.sample.handler
+2026-06-27 02:25:00,617 [    INFO] agent.monitoring.tracing: [0c569701fe464860] END TestService.sample.handler (duration=0.00ms)
+2026-06-27 02:25:00,623 [    INFO] agent.monitoring.tracing: [0c569701fe464860] START APIService.user.login
+2026-06-27 02:25:00,623 [    INFO] agent.monitoring.tracing: [0c569701fe464860] END APIService.user.login (duration=0.00ms)
+2026-06-27 02:25:00,626 [    INFO] agent.monitoring.tracing: [0c569701fe464860] START TestService.failing.handler
+2026-06-27 02:25:00,626 [   ERROR] agent.monitoring.tracing: [0c569701fe464860] ERROR TestService.failing.handler (duration=0.00ms, error=测试异常)
+2026-06-27 02:25:00,628 [    INFO] agent.monitoring.tracing: [0c569701fe464860] START TestService.handler.with.args
+2026-06-27 02:25:00,629 [    INFO] agent.monitoring.tracing: [0c569701fe464860] END TestService.handler.with.args (duration=1.00ms)
+2026-06-27 02:25:00,703 [    INFO] visibility_report: {"trace_id": "70c307d0e84f48c5", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 4.0, "scanned_files": 19, "total_routes": 215, "traced_routes": 36, "coverage_percent": 16.7}
+2026-06-27 02:25:00,725 [    INFO] visibility_report: {"trace_id": "e2a3eb08aeb7478a", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 4.0, "scanned_files": 19, "total_routes": 215, "traced_routes": 36, "coverage_percent": 16.7}
+2026-06-27 02:25:00,882 [    INFO] visibility_report: {"trace_id": "445bb0c86d1144bd", "module_name": "visibility_report", "action": "count_contract_tests.success", "duration_ms": 0.0, "contracts_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_count_contract_jso0\\tests\\contract\\contracts", "contract_count": 3}
+2026-06-27 02:25:00,886 [    INFO] visibility_report: {"trace_id": "3eb15b96b2614b45", "module_name": "visibility_report", "action": "count_contract_tests.dir_missing", "duration_ms": 0.0, "path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_c0\\tests\\contract", "reason": "tests/contract/ 目录不存在，返回 0"}
+2026-06-27 02:25:00,936 [ WARNING] visibility_report: 配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_return_empty_dict_0\nonexistent.yaml，使用默认阈值
+2026-06-27 02:25:00,948 [    INFO] visibility_report: {"trace_id": "1af1528a069644ab", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-27T02:25:00.948615"}
+2026-06-27 02:25:00,949 [    INFO] visibility_report: {"trace_id": "1af1528a069644ab", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 1.0, "overall_status": "pass", "violations_count": 0}
+2026-06-27 02:25:00,954 [    INFO] visibility_report: {"trace_id": "ec8fe957efc342b6", "module_name": "visibility_report", "action": "generate.start", "timestamp": "2026-06-27T02:25:00.954615"}
+2026-06-27 02:25:00,955 [    INFO] visibility_report: {"trace_id": "ec8fe957efc342b6", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 1.0, "overall_status": "fail", "violations_count": 1}
+2026-06-27 02:25:00,991 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_exit_zero_when_all0\report.md
+2026-06-27 02:25:00,991 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_exit_zero_when_all0\report.json
+2026-06-27 02:25:00,997 [    INFO] visibility_report: Markdown 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_exit_one_when_thre0\report.md
+2026-06-27 02:25:00,997 [    INFO] visibility_report: JSON 报告: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_exit_one_when_thre0\report.json
+2026-06-27 02:25:00,997 [   ERROR] visibility_report: ❌ 可见性阈值未达标: 1 项
+2026-06-27 02:25:01,001 [   ERROR] visibility_report:   - L.m: 实际=10, 阈值=80
+2026-06-27 02:25:01,006 [   ERROR] visibility_report: 报告生成异常: boom
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\visibility_report.py", line 1167, in main
+    report = generate_report(PROJECT_ROOT, thresholds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1193, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+2026-06-27 02:25:01,011 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_exit_two_when_exce0\degraded.md
+2026-06-27 02:25:01,026 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_should_write_degraded_rep0\degraded\report.md
+2026-06-27 02:25:01,032 [   ERROR] visibility_report: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-473\test_degraded_report_should_cr0\deep\nested\path\report.md
+2026-06-27 02:25:01,037 [    INFO] visibility_report: {"trace_id": "e964eeb6c55c4ce2", "module_name": "visibility_report", "action": "calc_structured_log.no_logs", "duration_ms": 0.55, "scanned_files": 1, "total_logs": 0, "coverage_percent": 100.0, "reason": "无日志调用，视为通过（100%）"}
+2026-06-27 02:25:01,042 [    INFO] visibility_report: {"trace_id": "b3b632f51a734f4e", "module_name": "visibility_report", "action": "calc_structured_log.success", "duration_ms": 0.0, "scanned_files": 1, "total_logs": 3, "structured_logs": 1, "coverage_percent": 33.3}
+2026-06-27 02:25:01,048 [ WARNING] visibility_report: {"trace_id": "c9d1ef93af1c4f73", "module_name": "visibility_report", "action": "calc_structured_log.agent_dir_missing", "duration_ms": 0.51, "reason": "agent/ 目录不存在，返回 0.0"}
+2026-06-27 02:25:01,053 [    INFO] visibility_report: {"trace_id": "c690b3b401714bbe", "module_name": "visibility_report", "action": "calc_trace.success", "duration_ms": 0.0, "scanned_files": 1, "total_routes": 2, "traced_routes": 1, "coverage_percent": 50.0}
+2026-06-27 02:25:01,059 [    INFO] visibility_report: {"trace_id": "712a5d38f6a04610", "module_name": "visibility_report", "action": "calc_trace.no_routes", "duration_ms": 1.03, "scanned_files": 0, "reason": "未扫描到 @app.route 装饰器，视为通过（100%）"}
+2026-06-27 02:25:01,064 [ WARNING] visibility_report: {"trace_id": "b10db497c83244d6", "module_name": "visibility_report", "action": "calc_trace.routes_dir_missing", "duration_ms": 0.0, "reason": "agent/server_routes/ 目录不存在，返回 0.0"}
+2026-06-27 02:25:01,071 [    INFO] visibility_report: {"trace_id": "d08ecccab7f54a8e", "module_name": "visibility_report", "action": "calc_track.success", "duration_ms": 2.54, "total_modules": 2, "tracked_modules": 1, "untracked_modules": ["module_b"], "coverage_percent": 50.0}
+2026-06-27 02:25:01,076 [    INFO] visibility_report: {"trace_id": "2fbcb4cbb6984879", "module_name": "visibility_report", "action": "calc_track.no_modules", "duration_ms": 0.0, "reason": "agent/ 下无业务子目录，视为通过（100%）"}
+2026-06-27 02:25:01,082 [    INFO] visibility_report: {"trace_id": "f8c3bf61ff4043b0", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_parse_boundary_cov0\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_parse_boundary_cov0", "timeout_sec": 60}
+2026-06-27 02:25:01,090 [ WARNING] visibility_report: {"trace_id": "b9197ded14a2415a", "module_name": "visibility_report", "action": "calc_boundary_coverage.script_not_found", "duration_ms": 0.0, "script_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_s0\\scripts\\check_boundary_coverage.py", "reason": "check_boundary_coverage.py 不存在，返回 0.0"}
+2026-06-27 02:25:01,095 [    INFO] visibility_report: {"trace_id": "3ef8512e1df442a4", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_s1\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_s1", "timeout_sec": 60}
+2026-06-27 02:25:01,095 [ WARNING] visibility_report: {"trace_id": "3ef8512e1df442a4", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_error", "duration_ms": 0.0, "error": "SubprocessError: timeout", "reason": "subprocess 执行失败，返回 0.0"}
+2026-06-27 02:25:01,101 [    INFO] visibility_report: {"trace_id": "810f6ce076444833", "module_name": "visibility_report", "action": "calc_boundary_coverage.subprocess_start", "duration_ms": 0, "cmd": ["C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe", "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_n1\\scripts\\check_boundary_coverage.py", "--json-only"], "cwd": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-473\\test_should_return_zero_when_n1", "timeout_sec": 60}

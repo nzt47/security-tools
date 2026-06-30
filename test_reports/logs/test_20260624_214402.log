@@ -1,0 +1,440 @@
+2026-06-24 21:44:02,888 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 21:44:02,892 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 21:44:02,894 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 21:44:03,000 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 21:44:03,018 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 21:44:03,020 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 21:44:03,056 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 21:44:03,058 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,058 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:03,060 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 21:44:03,067 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 21:44:03,072 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 21:44:03,091 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 21:44:03,091 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 21:44:03,091 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 21:44:03,092 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 21:44:03,094 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 21:44:03,228 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 21:44:03,232 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 21:44:03,232 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:44:03,239 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:44:03,239 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 21:44:03,239 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 21:44:03,239 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 21:44:03,240 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 21:44:03,240 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 21:44:03,240 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 21:44:03,240 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 21:44:03,241 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 21:44:03,241 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:44:03,241 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 21:44:03,242 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 21:44:03,242 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 21:44:03,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,413 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:03,440 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,442 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-24 21:44:03,483 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,484 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-24 21:44:03,484 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,485 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:03,485 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,485 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,486 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:03,486 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,486 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,486 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:03,487 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,487 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 3, "failure_rate": 0.6}
+2026-06-24 21:44:03,488 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,488 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,488 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 7, "failures": 4, "failure_rate": 0.5714285714285714}
+2026-06-24 21:44:03,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,491 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 9, "failures": 5, "failure_rate": 0.5555555555555556}
+2026-06-24 21:44:03,491 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,499 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,500 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-24 21:44:03,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,500 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:03,501 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,501 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:03,501 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,501 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:03,501 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,502 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:03,502 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,502 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:03,502 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,503 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:03,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,503 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:03,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,503 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,509 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,509 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-24 21:44:03,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,510 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:03,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,510 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:03,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,511 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:03,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,511 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:03,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,512 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:03,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,512 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:03,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:03,513 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:04,114 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,115 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-24 21:44:04,127 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,128 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-24 21:44:04,129 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,129 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:04,130 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,130 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:04,131 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,131 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:04,132 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,132 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:04,132 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,132 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:04,133 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,133 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:04,133 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,134 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:04,735 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,735 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-24 21:44:04,735 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,735 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,736 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,736 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-24 21:44:04,736 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,741 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,741 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-24 21:44:04,742 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,742 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:04,742 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,743 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:04,743 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,743 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:04,743 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,743 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:04,744 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,744 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:04,744 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,744 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:04,744 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:04,744 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:05,345 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,345 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-24 21:44:05,347 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,348 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "open"}
+2026-06-24 21:44:05,349 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,350 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 7, "failures": 7, "failure_rate": 1.0}
+2026-06-24 21:44:05,357 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,357 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-24 21:44:05,358 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,358 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:05,358 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,359 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:05,359 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,359 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:05,359 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,359 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:05,359 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,360 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:05,360 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,360 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:05,360 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,361 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:05,962 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,963 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-24 21:44:05,963 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,963 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,963 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,967 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,968 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-24 21:44:05,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,969 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:05,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,969 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:05,970 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,970 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:05,970 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,970 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:05,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,971 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:05,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,971 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:05,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,971 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-24 21:44:05,971 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,973 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "reset", "duration_ms": 0, "name": "default"}
+2026-06-24 21:44:05,977 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,978 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-24 21:44:05,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,979 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-24 21:44:05,979 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,979 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,979 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-24 21:44:05,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,980 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-24 21:44:05,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,980 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-24 21:44:05,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,981 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-24 21:44:05,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,981 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-24 21:44:05,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,986 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:05,986 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 2, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:05,987 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,038 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,038 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,038 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: validation failed"}
+2026-06-24 21:44:06,090 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,090 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,091 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: validation failed"}
+2026-06-24 21:44:06,094 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,095 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 1, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,095 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,196 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,196 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,197 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: \u6570\u636e\u5fc5\u987b\u662f\u5b57\u5178\u7c7b\u578b"}
+2026-06-24 21:44:06,197 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,197 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,197 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: \u6570\u636e\u5fc5\u987b\u662f\u5b57\u5178\u7c7b\u578b"}
+2026-06-24 21:44:06,201 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,201 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,202 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,202 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,203 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "skip", "reason": "Critic \u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u8df3\u8fc7\u8bc4\u4f30"}
+2026-06-24 21:44:06,206 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,206 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 1, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,207 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,308 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,308 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,308 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: memory service timeout"}
+2026-06-24 21:44:06,309 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,309 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,309 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "memory", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: memory service timeout"}
+2026-06-24 21:44:06,314 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,314 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,315 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,315 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,662 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,663 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,663 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,663 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,764 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,764 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "dashboard", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: dashboard service unavailable"}
+2026-06-24 21:44:06,867 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,867 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,867 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "dashboard", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: dashboard service unavailable"}
+2026-06-24 21:44:06,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,968 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,968 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "dashboard", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: dashboard service unavailable"}
+2026-06-24 21:44:06,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,969 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,969 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "dashboard", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: dashboard service unavailable"}
+2026-06-24 21:44:06,980 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,980 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 0, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,981 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,982 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:06,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,982 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:06,982 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,983 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:06,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,984 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:06,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,985 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,985 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:06,991 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,992 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,998 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,998 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 0, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 21:44:06,999 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,999 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:06,999 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,000 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "schema", "level": "text_only", "reason": "\u4f7f\u7528\u9ed8\u8ba4\u964d\u7ea7\u8fd4\u56de\u503c\uff0c\u9519\u8bef: always fails"}
+2026-06-24 21:44:07,000 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,000 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "reset", "duration_ms": 0}
+2026-06-24 21:44:07,014 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,014 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_backup_creation_and_verif0", "auto_recover": true}}
+2026-06-24 21:44:07,015 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,015 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test_data"}
+2026-06-24 21:44:07,017 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,018 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,018 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.05, "backup_id": "backup_20260624_214407", "type": "full", "files": ["test_data"], "size_bytes": 159}
+2026-06-24 21:44:07,026 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,026 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_incremental_backup0", "auto_recover": true}}
+2026-06-24 21:44:07,026 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,027 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "versioned_data"}
+2026-06-24 21:44:07,028 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,029 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,029 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260624_214407", "type": "incremental", "files": ["versioned_data"], "size_bytes": 169}
+2026-06-24 21:44:07,131 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,131 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,131 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260624_214407", "type": "incremental", "files": ["versioned_data"], "size_bytes": 168}
+2026-06-24 21:44:07,234 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,234 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,235 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260624_214407", "type": "incremental", "files": ["versioned_data"], "size_bytes": 169}
+2026-06-24 21:44:07,345 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,346 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 3, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_backup_cleanup_old_backup0", "auto_recover": true}}
+2026-06-24 21:44:07,347 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,347 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "data"}
+2026-06-24 21:44:07,349 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,350 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,350 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.62, "backup_id": "backup_20260624_214407", "type": "full", "files": ["data"], "size_bytes": 153}
+2026-06-24 21:44:07,553 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,553 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,553 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260624_214407", "type": "full", "files": ["data"], "size_bytes": 154}
+2026-06-24 21:44:07,756 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,757 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.03, "backup_id": "backup_20260624_214407", "type": "full", "files": ["data"], "size_bytes": 154}
+2026-06-24 21:44:07,960 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,960 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:07,960 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.27, "backup_id": "backup_20260624_214407", "type": "full", "files": ["data"], "size_bytes": 154}
+2026-06-24 21:44:08,163 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,163 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,163 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.97, "backup_id": "backup_20260624_214408", "type": "full", "files": ["data"], "size_bytes": 153}
+2026-06-24 21:44:08,371 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,371 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_restore_from_backup0", "auto_recover": true}}
+2026-06-24 21:44:08,372 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,372 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-24 21:44:08,373 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,374 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,374 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260624_214408", "type": "full", "files": ["test"], "size_bytes": 172}
+2026-06-24 21:44:08,375 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,375 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 1.0, "backup_id": "backup_20260624_214408", "restored_files": ["test"]}
+2026-06-24 21:44:08,382 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,383 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_restore_from_invalid_back0", "auto_recover": true}}
+2026-06-24 21:44:08,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,383 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0, "error": "\u5907\u4efd invalid_backup_id \u65e0\u6548\u6216\u5df2\u635f\u574f", "backup_id": "invalid_backup_id"}
+2026-06-24 21:44:08,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,398 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_database_repair0", "auto_recover": true}}
+2026-06-24 21:44:08,408 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,408 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_database_repair_corrupted0", "auto_recover": true}}
+2026-06-24 21:44:08,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,410 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "repair_database", "duration_ms": 0, "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_database_repair_corrupted0\\corrupted.db", "error": "file is not a database"}
+2026-06-24 21:44:08,416 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,416 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_config_hot_reloader0\\config.json"}
+2026-06-24 21:44:08,417 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:08,417 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_config_hot_reloader0\\config.json"]}
+2026-06-24 21:44:10,429 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:10,430 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_config_hot_reloader0\\config.json"}
+2026-06-24 21:44:11,919 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,919 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-24 21:44:11,925 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,925 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-24 21:44:11,926 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,926 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-24 21:44:11,927 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,927 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,927 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.57, "backup_id": "backup_20260624_214411", "type": "full", "files": ["auto_recover_test"], "size_bytes": 170}
+2026-06-24 21:44:11,928 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,928 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-24 21:44:11,928 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,928 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-24 21:44:11,929 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,929 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u5c1d\u8bd5\u81ea\u52a8\u6062\u590d\u5907\u4efd backup_20260624_214411"}
+2026-06-24 21:44:11,930 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,930 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260624_214411", "restored_files": ["auto_recover_test"]}
+2026-06-24 21:44:11,936 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,937 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 0.01, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-337\\test_backup_scheduler0", "auto_recover": true}}
+2026-06-24 21:44:11,937 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,937 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "scheduler_test"}
+2026-06-24 21:44:11,938 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,938 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "interval_minutes": 0.01}
+2026-06-24 21:44:11,939 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,939 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:11,940 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260624_214411", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 181}
+2026-06-24 21:44:12,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:12,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:12,555 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260624_214412", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 181}
+2026-06-24 21:44:13,161 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,161 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,161 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260624_214413", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 183}
+2026-06-24 21:44:13,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,774 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.86, "backup_id": "backup_20260624_214413", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 179}
+2026-06-24 21:44:13,939 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,939 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "stop_backup_scheduler", "duration_ms": 0}
+2026-06-24 21:44:13,945 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,946 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:13,946 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,946 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "global", "allowed": false, "reason": "global_rate_limit_exceeded"}
+2026-06-24 21:44:13,950 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,950 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:13,950 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,950 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 2, "refill_rate": 0.1}
+2026-06-24 21:44:13,951 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,951 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,973 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,978 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:13,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,979 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "user/user123", "capacity": 1, "refill_rate": 0.1}
+2026-06-24 21:44:13,979 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,979 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,979 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "user", "user_id": "user123", "allowed": false, "reason": "user_rate_limit_exceeded"}
+2026-06-24 21:44:13,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,983 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 2, "strategy": "reject"}
+2026-06-24 21:44:13,983 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,984 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "concurrent", "allowed": false, "reason": "max_concurrent_exceeded"}
+2026-06-24 21:44:13,984 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,988 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,988 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 1, "strategy": "queue"}
+2026-06-24 21:44:13,989 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,989 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:13,990 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,295 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,295 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:14,295 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,296 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 5, "refill_rate": 1.0}
+2026-06-24 21:44:14,296 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,296 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "user/user123", "capacity": 2, "refill_rate": 0.5}
+2026-06-24 21:44:14,296 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,297 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,297 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,297 [ WARNING] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0, "level": "user", "user_id": "user123", "allowed": false, "reason": "user_rate_limit_exceeded"}
+2026-06-24 21:44:14,297 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,301 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,301 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 1, "strategy": "reject"}
+2026-06-24 21:44:14,301 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,305 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,305 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:14,306 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,307 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 1, "refill_rate": 1.0}
+2026-06-24 21:44:14,307 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,311 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,311 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:44:14,311 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,312 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "register_rule", "duration_ms": 0, "key": "endpoint/api/chat", "capacity": 1, "refill_rate": 0.1}
+2026-06-24 21:44:14,312 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,312 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:44:14,312 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "reset", "duration_ms": 0}
+2026-06-24 21:44:14,313 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
