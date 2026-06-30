@@ -67,8 +67,10 @@ def format_structured_log(record: logging.LogRecord) -> str:
         if not isinstance(data, dict) or 'action' not in data:
             raise ValueError("非结构化日志")
     except (json.JSONDecodeError, ValueError):
-        # 非 JSON 日志，使用标准格式
-        return f"{record.levelname} {record.name}:{record.lineno} - {msg}"
+        # 非 JSON 日志，保留时间戳的标准格式（与 setup_agent_logging 的默认格式对齐）
+        import time as _time
+        asctime = _time.strftime("%H:%M:%S")
+        return f"{asctime} [{record.levelname:8s}] {record.name:25s}: {msg}"
 
     # 提取标准字段（trace_id 可能为 None，做防御性处理）
     # 兼容 message 和 msg 两种字段名（不同模块使用不同命名）
