@@ -1,12 +1,12 @@
 {
-  "trace_id": "f407649c5d7f430c",
-  "timestamp": "2026-07-01T02:35:56.235097",
-  "duration_ms": 1718.65,
+  "trace_id": "9d83231a89cb4492",
+  "timestamp": "2026-07-01T02:39:11.938691",
+  "duration_ms": 1683.62,
   "overall_status": "warn",
   "total_modules": 66,
-  "total_tests": 5537,
-  "total_boundary_tests": 856,
-  "coverage_percent": 15.5,
+  "total_tests": 5597,
+  "total_boundary_tests": 892,
+  "coverage_percent": 15.9,
   "threshold": 5,
   "threshold_source": "ci_policy",
   "passed": true,
@@ -15,27 +15,25 @@
     {
       "module_name": "core",
       "description": "核心调度与状态机",
-      "total_tests": 29,
-      "boundary_tests": 4,
+      "total_tests": 89,
+      "boundary_tests": 40,
       "covered_scenes": [
-        "null"
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
       ],
       "required_scenes": [
         "empty",
         "timeout",
         "invalid"
       ],
-      "missing_scenes": [
-        "empty",
-        "timeout",
-        "invalid"
-      ],
+      "missing_scenes": [],
       "min_tests": 4,
-      "status": "⚠️",
+      "status": "✅",
       "is_new_module": false,
-      "suggestions": [
-        "建议补充边界场景: empty, timeout, invalid"
-      ]
+      "suggestions": []
     },
     {
       "module_name": "cognitive",

@@ -1,8 +1,8 @@
 # 边界覆盖扫描报告
 
-- **生成时间**：2026-07-01T02:35:56.235097
-- **Trace ID**：`f407649c5d7f430c`
-- **扫描耗时**：1718.65 ms
+- **生成时间**：2026-07-01T02:39:11.938691
+- **Trace ID**：`9d83231a89cb4492`
+- **扫描耗时**：1683.62 ms
 - **总体状态**：⚠️ 警告
 
 ## 总览
@@ -10,9 +10,9 @@
 | 指标 | 数值 |
 | --- | --- |
 | 模块总数 | 66 |
-| 测试用例总数 | 5537 |
-| 边界测试用例数 | 856 |
-| 边界测试覆盖率 | 15.5% |
+| 测试用例总数 | 5597 |
+| 边界测试用例数 | 892 |
+| 边界测试覆盖率 | 15.9% |
 | 阻断模块数 | 0 |
 
 ## 模块详情
@@ -28,7 +28,7 @@
 | `code_review` |  | 28 | 3 | empty, invalid | — | ✅ | — |
 | `cognitive` | 认知循环与决策 | 72 | 18 | boundary, empty, extreme, invalid, null | timeout | ⚠️ | 建议补充边界场景: timeout |
 | `config` | 配置加载与校验 | 192 | 76 | boundary, empty, extreme, invalid, null, timeout | — | ✅ | — |
-| `core` | 核心调度与状态机 | 29 | 4 | null | empty, timeout, invalid | ⚠️ | 建议补充边界场景: empty, timeout, invalid |
+| `core` | 核心调度与状态机 | 89 | 40 | empty, extreme, invalid, null, timeout | — | ✅ | — |
 | `data_analytics` |  | 22 | 1 | empty | — | ✅ | — |
 | `detailed_profiler` |  | 19 | 2 | extreme | — | ✅ | — |
 | `diagram_tools` |  | 12 | 3 | empty | — | ✅ | — |
@@ -90,6 +90,42 @@
 
 | 模块 | 测试名 | 文件 | 场景 |
 | --- | --- | --- | --- |
+| `core` | `test_empty_registry_get_returns_default` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_list_returns_empty_list` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_count_zero` | tests\boundary\test_core_boundary.py | extreme, empty |
+| `core` | `test_empty_registry_has_returns_false` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_remove_returns_false` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_all_returns_empty_dict` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_clear_no_error` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_empty_registry_update_empty_dict` | tests\boundary\test_core_boundary.py | empty |
+| `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_invalid_name_none_register` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_invalid_name_empty_string_register` | tests\boundary\test_core_boundary.py | invalid, empty |
+| `core` | `test_invalid_get_with_none_name` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_invalid_has_with_empty_name` | tests\boundary\test_core_boundary.py | invalid, empty |
+| `core` | `test_invalid_remove_nonexistent` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_invalid_callback_not_callable` | tests\boundary\test_core_boundary.py | invalid |
+| `core` | `test_invalid_type_not_type` | tests\boundary\test_core_boundary.py | invalid |
+| `core` | `test_invalid_create_instance_with_wrong_args` | tests\boundary\test_core_boundary.py | invalid |
+| `core` | `test_invalid_update_with_none` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_invalid_trigger_with_wrong_args` | tests\boundary\test_core_boundary.py | invalid |
+| `core` | `test_invalid_register_decorator_with_invalid_registry` | tests\boundary\test_core_boundary.py | invalid |
+| `core` | `test_null_callback_trigger_returns_none` | tests\boundary\test_core_boundary.py | null |
+| `core` | `test_null_create_instance_returns_none` | tests\boundary\test_core_boundary.py | null |
+| `core` | `test_null_get_returns_none_without_default` | tests\boundary\test_core_boundary.py | null |
+| `core` | `test_timeout_callback_raises_timeout_error` | tests\boundary\test_core_boundary.py | timeout |
+| `core` | `test_timeout_long_running_callback` | tests\boundary\test_core_boundary.py | timeout |
+| `core` | `test_timeout_create_instance_raises_timeout` | tests\boundary\test_core_boundary.py | timeout |
+| `core` | `test_timeout_trigger_with_timeout_exception` | tests\boundary\test_core_boundary.py | timeout |
+| `core` | `test_extreme_many_items_register` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_extreme_long_name` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_extreme_large_item` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_extreme_update_large_dict` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_extreme_repeated_register_same_key` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_extreme_repeated_remove_same_key` | tests\boundary\test_core_boundary.py | extreme |
+| `core` | `test_register_decorator_with_none_name` | tests\boundary\test_core_boundary.py | null |
 | `core` | `test_cancel_nonexistent_plan` | tests\integration\test_planning_core.py | null |
 | `core` | `test_get_plan_status_nonexistent` | tests\integration\test_planning_core.py | null |
 | `core` | `test_callback_registry_trigger_nonexistent` | tests\unit\test_core_comprehensive.py | null |
@@ -104,44 +140,8 @@
 | `cognitive` | `test_extreme_value` | tests\test_cognitive_boundary.py | extreme |
 | `cognitive` | `test_zero_value` | tests\test_cognitive_boundary.py | extreme |
 | `cognitive` | `test_empty_list` | tests\test_cognitive_boundary.py | empty |
-| `cognitive` | `test_none_input` | tests\test_cognitive_boundary.py | null |
-| `cognitive` | `test_empty_dict` | tests\test_cognitive_boundary.py | empty |
-| `cognitive` | `test_max_float_value` | tests\test_cognitive_boundary.py | extreme |
-| `cognitive` | `test_min_float_value` | tests\test_cognitive_boundary.py | extreme |
-| `cognitive` | `test_empty_output_fails` | tests\unit\test_cognitive_loop.py | empty |
-| `cognitive` | `test_no_facts_returns_none` | tests\unit\test_cognitive_loop.py | null |
-| `cognitive` | `test_navigate_empty_url` | tests\unit\test_cognitive_loop.py | empty |
-| `cognitive` | `test_normal_task_has_knowledge` | tests\unit\test_cognitive_loop.py | boundary |
-| `orchestrator` | `test_orchestrator_check_context_usage_无记忆时返回None` | tests\unit\test_orchestrator_refactor.py | null |
-| `orchestrator` | `test_orchestrator_check_context_usage_低使用率返回None` | tests\unit\test_orchestrator_refactor.py | null |
-| `orchestrator` | `test_orchestrator_check_context_usage_异常时返回None` | tests\unit\test_orchestrator_refactor.py | null |
-| `orchestrator` | `test_subagent_manager_get_不存在时返回None` | tests\unit\test_orchestrator_refactor.py | null |
-| `orchestrator` | `test_subagent_manager_get_系统未启用时返回None` | tests\unit\test_orchestrator_refactor.py | null |
-| `orchestrator` | `test_init_custom_limit` | tests\unit\test_prompt_builder.py | boundary |
-| `circuit_breaker` | `test_below_min_calls_no_trip_even_all_failures` | tests\boundary\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_exact_min_calls_below_threshold_no_trip` | tests\boundary\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_zero_failures_never_trips` | tests\boundary\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_half_open_max_calls_boundary` | tests\boundary\test_circuit_breaker_boundary.py | boundary, extreme |
-| `circuit_breaker` | `test_invalid_failure_threshold_raises` | tests\boundary\test_circuit_breaker_boundary.py | invalid |
-| `circuit_breaker` | `test_invalid_min_calls_raises` | tests\boundary\test_circuit_breaker_boundary.py | invalid, extreme |
-| `circuit_breaker` | `test_error_rate_spike_from_zero_to_full_should_open_circuit` | tests\chaos\test_circuit_breaker_chaos.py | extreme |
-| `circuit_breaker` | `test_burst_failures_below_min_calls_should_not_open` | tests\chaos\test_circuit_breaker_chaos.py | extreme |
-| `circuit_breaker` | `test_half_open_concurrent_probes_should_be_limited` | tests\chaos\test_circuit_breaker_chaos.py | boundary |
-| `circuit_breaker` | `test_circuit_breaker_zero_requests_stays_closed` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_below_min_requests_no_trip` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_below_min_requests_no_trip` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_exact_min_requests_at_threshold_trips` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_cooldown_just_before_timeout_stays_open` | tests\unit\test_circuit_breaker_boundary.py | timeout |
-| `circuit_breaker` | `test_circuit_breaker_cooldown_just_after_timeout_goes_half_open` | tests\unit\test_circuit_breaker_boundary.py | timeout |
-| `circuit_breaker` | `test_circuit_breaker_half_open_max_attempts_exact` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_half_open_exceed_max_attempts_rejects` | tests\unit\test_circuit_breaker_boundary.py | extreme |
-| `circuit_breaker` | `test_circuit_breaker_empty_name_defaults` | tests\unit\test_circuit_breaker_boundary.py | empty |
-| `circuit_breaker` | `test_circuit_breaker_protect_async_success` | tests\unit\test_circuit_breaker_boundary.py | timeout |
-| `circuit_breaker` | `test_circuit_breaker_protect_async_failure` | tests\unit\test_circuit_breaker_boundary.py | timeout |
-| `rate_limiter` | `test_wait_time_zero_when_tokens_available` | tests\boundary\test_rate_limiter_boundary.py | extreme |
-| `rate_limiter` | `test_overflow_tokens_dropped` | tests\boundary\test_rate_limiter_boundary.py | overflow |
 
-> 仅展示前 50 条，共 856 条边界测试用例
+> 仅展示前 50 条，共 892 条边界测试用例
 
 ## CI 阻断策略
 
