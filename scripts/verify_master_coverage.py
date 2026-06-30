@@ -599,7 +599,7 @@ class MasterCoverageVerifier:
         try:
             result["boundary_check"] = self.coverage.run_boundary_check()
             boundary_passed = result["boundary_check"]["coverage_percent"] >= self.coverage.thresholds.get(
-                "boundary_test_coverage", 5
+                "boundary_test_coverage", 12
             )
             log("phase.complete", phase="boundary_check", passed=boundary_passed)
         except VerifyError as e:
