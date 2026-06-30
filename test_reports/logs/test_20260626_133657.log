@@ -1,0 +1,175 @@
+2026-06-26 13:36:57,749 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 13:36:57,753 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 13:36:57,754 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 13:36:57,879 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 13:36:57,892 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 13:36:57,895 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 13:36:57,928 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 13:36:57,930 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:57,930 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 13:36:57,930 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 13:36:57,938 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 13:36:57,992 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 13:36:58,009 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 13:36:58,009 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 13:36:58,009 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 13:36:58,010 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 13:36:58,011 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 13:36:58,028 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 13:36:58,034 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-26 13:36:58,035 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-26 13:36:58,035 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 13:36:58,047 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,047 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 13:36:58,348 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 13:36:58,356 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 13:36:58,359 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 13:36:58,534 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 13:36:58,554 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 13:36:58,558 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 13:36:58,607 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 13:36:58,609 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,610 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 13:36:58,611 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 13:36:58,621 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 13:36:58,628 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 13:36:58,653 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 13:36:58,653 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 13:36:58,653 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 13:36:58,655 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 13:36:58,657 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 13:36:58,682 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-26 13:36:58,690 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 13:36:58,690 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,690 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-26 13:36:58,691 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 13:36:58,692 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 13:36:58,692 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-26 13:36:58,692 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-26 13:36:58,692 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 13:36:58,708 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,708 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 13:36:58,841 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,841 [   ERROR] agent.error_reporting_config: {"trace_id": "", "module_name": "error_reporting_config", "action": "init_sentry_invalid_dsn", "duration_ms": 0, "error_code": "SENTRY_ERR_001", "result": "skip"}
+2026-06-26 13:36:58,848 [ WARNING] agent.error_reporting_config: [Sentry] sentry-sdk 未安装，错误上报已降级为关闭。安装命令: pip install sentry-sdk
+2026-06-26 13:36:58,860 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,860 [    INFO] agent.error_reporting_config: {"trace_id": "", "module_name": "error_reporting_config", "action": "init_sentry", "duration_ms": 1.0, "environment": "dev", "sample_rate": 1.0, "result": "success"}
+2026-06-26 13:36:58,869 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,870 [    INFO] agent.error_reporting_config: {"trace_id": "", "module_name": "error_reporting_config", "action": "init_sentry", "duration_ms": 0.0, "environment": "dev", "sample_rate": 1.0, "result": "success"}
+2026-06-26 13:36:58,945 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,952 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,965 [ WARNING] agent.error_reporting_config: [Sentry] before_send 过滤失败，跳过过滤: 'str' object has no attribute 'get'
+2026-06-26 13:36:58,989 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:58,990 [    INFO] agent.error_reporting_config: {"trace_id": "", "module_name": "error_reporting_config", "action": "init_sentry", "duration_ms": 0.0, "environment": "dev", "sample_rate": 1.0, "result": "success"}
+2026-06-26 13:36:58,990 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:59,002 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:59,003 [    INFO] agent.error_reporting_config: {"trace_id": "", "module_name": "error_reporting_config", "action": "init_sentry", "duration_ms": 1.0, "environment": "dev", "sample_rate": 1.0, "result": "success"}
+2026-06-26 13:36:59,006 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 13:36:59,007 [ WARNING] agent.error_reporting_config: [Sentry] capture_error 失败，已降级为关闭: network error
+2026-06-26 13:36:59,031 [    INFO] agent.monitoring.error_reporter: [SentryReporter] 已上报错误 event_id=event-abc trace_id=trace-123
+2026-06-26 13:36:59,038 [ WARNING] agent.monitoring.error_reporter: [SentryReporter] 上报失败（已降级）: boom
+2026-06-26 13:36:59,105 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_storage_root0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_storage_root0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,131 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_db_file0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_db_file0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,157 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_schema0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_init_creates_schema0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,191 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_global_singleton0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_global_singleton0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,217 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_basic0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_basic0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,262 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-abc", "module_name": "replay_storage", "action": "store", "duration_ms": 43.26, "replay_id": "r-001", "size_bytes": 140, "event_count": 3}
+2026-06-26 13:36:59,295 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_creates_date_dir0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_creates_date_dir0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,301 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 3.95, "replay_id": "r-date", "size_bytes": 142, "event_count": 0}
+2026-06-26 13:36:59,330 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_compressed_data0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_compressed_data0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,335 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.02, "replay_id": "r-gz", "size_bytes": 139, "event_count": 0}
+2026-06-26 13:36:59,364 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_size_under_500kb0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_size_under_500kb0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,374 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 6.7, "replay_id": "r-size", "size_bytes": 7961, "event_count": 1000}
+2026-06-26 13:36:59,403 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_empty_replay_id_rai0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_empty_replay_id_rai0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,436 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_none_replay_id_rais0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_none_replay_id_rais0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,465 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_empty_data_raises0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_empty_data_raises0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,496 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_invalid_timestamp_r0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_invalid_timestamp_r0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,526 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_replaces_existing0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_replaces_existing0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,533 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.32, "replay_id": "r-dup", "size_bytes": 140, "event_count": 0}
+2026-06-26 13:36:59,539 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 6.01, "replay_id": "r-dup", "size_bytes": 144, "event_count": 0}
+2026-06-26 13:36:59,570 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_exists0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_exists0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,576 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 4.63, "replay_id": "r-000", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,606 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_not_exists0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_not_exists0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,612 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 5.02, "replay_id": "r-000", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,645 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_decodes_gz0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_decodes_gz0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,650 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.0, "replay_id": "r-data", "size_bytes": 141, "event_count": 0}
+2026-06-26 13:36:59,680 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_not_exists0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_not_exists0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,712 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_file_missi0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_data_by_id_file_missi0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,718 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.56, "replay_id": "r-missing", "size_bytes": 144, "event_count": 0}
+2026-06-26 13:36:59,748 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,753 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 4.21, "replay_id": "r-000", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,759 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-1", "module_name": "replay_storage", "action": "store", "duration_ms": 3.29, "replay_id": "r-001", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,762 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-2", "module_name": "replay_storage", "action": "store", "duration_ms": 3.68, "replay_id": "r-002", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,795 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id_empty_re0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id_empty_re0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,801 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 5.06, "replay_id": "r-000", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,806 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-1", "module_name": "replay_storage", "action": "store", "duration_ms": 4.06, "replay_id": "r-001", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,837 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id_limit0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_trace_id_limit0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,842 [    INFO] agent.monitoring.replay_storage: {"trace_id": "same-trace", "module_name": "replay_storage", "action": "store", "duration_ms": 4.41, "replay_id": "r-lim-0", "size_bytes": 46, "event_count": 0}
+2026-06-26 13:36:59,847 [    INFO] agent.monitoring.replay_storage: {"trace_id": "same-trace", "module_name": "replay_storage", "action": "store", "duration_ms": 4.96, "replay_id": "r-lim-1", "size_bytes": 46, "event_count": 0}
+2026-06-26 13:36:59,853 [    INFO] agent.monitoring.replay_storage: {"trace_id": "same-trace", "module_name": "replay_storage", "action": "store", "duration_ms": 5.97, "replay_id": "r-lim-2", "size_bytes": 46, "event_count": 0}
+2026-06-26 13:36:59,858 [    INFO] agent.monitoring.replay_storage: {"trace_id": "same-trace", "module_name": "replay_storage", "action": "store", "duration_ms": 4.0, "replay_id": "r-lim-3", "size_bytes": 46, "event_count": 0}
+2026-06-26 13:36:59,862 [    INFO] agent.monitoring.replay_storage: {"trace_id": "same-trace", "module_name": "replay_storage", "action": "store", "duration_ms": 4.24, "replay_id": "r-lim-4", "size_bytes": 46, "event_count": 0}
+2026-06-26 13:36:59,891 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_time_range0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_time_range0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,896 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.0, "replay_id": "r-old", "size_bytes": 33, "event_count": 0}
+2026-06-26 13:36:59,901 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 3.89, "replay_id": "r-new", "size_bytes": 33, "event_count": 0}
+2026-06-26 13:36:59,931 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_user_session0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_user_session0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,937 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 4.37, "replay_id": "r-000", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,942 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-1", "module_name": "replay_storage", "action": "store", "duration_ms": 5.12, "replay_id": "r-001", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,949 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-2", "module_name": "replay_storage", "action": "store", "duration_ms": 5.49, "replay_id": "r-002", "size_bytes": 58, "event_count": 0}
+2026-06-26 13:36:59,980 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_recent_24h0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_recent_24h0\\replays\\replay_meta.db"}
+2026-06-26 13:36:59,987 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 6.21, "replay_id": "r-recent", "size_bytes": 36, "event_count": 0}
+2026-06-26 13:36:59,993 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 5.65, "replay_id": "r-old24", "size_bytes": 35, "event_count": 0}
+2026-06-26 13:37:00,027 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_empty_stats0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_empty_stats0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,061 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_counts0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_counts0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,066 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-0", "module_name": "replay_storage", "action": "store", "duration_ms": 4.09, "replay_id": "r-full-0", "size_bytes": 47, "event_count": 0}
+2026-06-26 13:37:00,070 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-1", "module_name": "replay_storage", "action": "store", "duration_ms": 4.29, "replay_id": "r-full-1", "size_bytes": 47, "event_count": 0}
+2026-06-26 13:37:00,075 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-2", "module_name": "replay_storage", "action": "store", "duration_ms": 4.16, "replay_id": "r-full-2", "size_bytes": 47, "event_count": 0}
+2026-06-26 13:37:00,079 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-partial", "module_name": "replay_storage", "action": "store", "duration_ms": 4.34, "replay_id": "r-partial", "size_bytes": 48, "event_count": 0}
+2026-06-26 13:37:00,109 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_by_error_id0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_by_error_id0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,114 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.77, "replay_id": "r-A-0", "size_bytes": 44, "event_count": 0}
+2026-06-26 13:37:00,118 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.0, "replay_id": "r-A-1", "size_bytes": 44, "event_count": 0}
+2026-06-26 13:37:00,123 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.43, "replay_id": "r-B-0", "size_bytes": 44, "event_count": 0}
+2026-06-26 13:37:00,152 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_excludes_old_record0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_stats_excludes_old_record0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,158 [    INFO] agent.monitoring.replay_storage: {"trace_id": "trace-old", "module_name": "replay_storage", "action": "store", "duration_ms": 4.87, "replay_id": "r-old-stats", "size_bytes": 50, "event_count": 0}
+2026-06-26 13:37:00,188 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_cleanup_removes_old_recor0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_cleanup_removes_old_recor0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,194 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.58, "replay_id": "r-old-clean", "size_bytes": 147, "event_count": 0}
+2026-06-26 13:37:00,198 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 4.73, "replay_id": "r-new-clean", "size_bytes": 147, "event_count": 0}
+2026-06-26 13:37:00,203 [    INFO] agent.monitoring.replay_storage: [ReplayStorage] 已清理 1 条过期记录（>30天）
+2026-06-26 13:37:00,232 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_cleanup_with_default_days0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_cleanup_with_default_days0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,237 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 3.81, "replay_id": "r-recent-clean", "size_bytes": 149, "event_count": 0}
+2026-06-26 13:37:00,238 [    INFO] agent.monitoring.replay_storage: [ReplayStorage] 已清理 0 条过期记录（>30天）
+2026-06-26 13:37:00,266 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_failure_rolls_back_0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_store_failure_rolls_back_0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,300 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_empty_storage0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_empty_storage0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,332 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_user_session_with0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_list_by_user_session_with0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,361 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_db_failure_retu0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_by_id_db_failure_retu0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,368 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "store", "duration_ms": 5.7, "replay_id": "r-db-fail", "size_bytes": 144, "event_count": 0}
+2026-06-26 13:37:00,369 [ WARNING] agent.monitoring.replay_storage: [ReplayStorage] 查询失败 replay_id=r-db-fail: DB error
+2026-06-26 13:37:00,369 [ WARNING] agent.monitoring.replay_storage: [ReplayStorage] 按 trace_id 查询失败: DB error
+2026-06-26 13:37:00,399 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_correlation_stats_db_0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_get_correlation_stats_db_0\\replays\\replay_meta.db"}
+2026-06-26 13:37:00,401 [ WARNING] agent.monitoring.replay_storage: [ReplayStorage] 关联统计查询失败: DB error
+2026-06-26 13:37:00,430 [    INFO] agent.monitoring.replay_storage: {"trace_id": "", "module_name": "replay_storage", "action": "init", "duration_ms": 0, "storage_root": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_close_is_idempotent0\\replays", "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-396\\test_close_is_idempotent0\\replays\\replay_meta.db"}

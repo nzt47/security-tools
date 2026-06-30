@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可观测性仪表盘 - 云枢</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0d1117; color: #e6edf3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; }
+        .header h1 { font-size: 22px; color: #58a6ff; }
+        .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; }
+        .tab-btn { background: #161b22; border: 1px solid #30363d; padding: 8px 16px; color: #8b949e; cursor: pointer; border-radius: 6px; font-size: 13px; }
+        .tab-btn.active { background: #1c2128; color: #58a6ff; border-color: #58a6ff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .card { background: #1c2128; border: 1px solid #30363d; border-radius: 8px; padding: 14px; }
+        .card .label { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+        .card .value { font-size: 24px; font-weight: 600; }
+        .card.success .value { color: #3fb950; }
+        .card.warning .value { color: #d29922; }
+        .card.error .value { color: #f85149; }
+        .table-wrap { background: #1c2128; border-radius: 8px; overflow: hidden; }
+        table { width: 100%; font-size: 13px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { color: #8b949e; background: #161b22; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+        .tag.success { background: #1b3a2a; color: #3fb950; }
+        .tag.warning { background: #3d2e1e; color: #d29922; }
+        .tag.error { background: #3a1b1b; color: #f85149; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-bar input, .search-bar select { background: #161b22; border: 1px solid #30363d; padding: 6px 10px; border-radius: 6px; color: #e6edf3; font-size: 13px; }
+        .search-bar button { background: #21262d; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; color: #e6edf3; cursor: pointer; }
+        .trace-node { padding: 10px; border-bottom: 1px solid #30363d; }
+        .trace-node:last-child { border-bottom: none; }
+        .trace-node-header { display: flex; justify-content: space-between; }
+        .log-entry { font-family: monospace; font-size: 12px; padding: 8px; border-bottom: 1px solid #30363d; display: flex; gap: 10px; }
+        .log-time { color: #8b949e; min-width: 130px; }
+        .log-level { min-width: 50px; }
+        .log-level.ERROR { color: #f85149; }
+        .log-level.WARNING { color: #d29922; }
+        .log-level.INFO { color: #3fb950; }
+        .log-level.DEBUG { color: #58a6ff; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 可观测性仪表盘</h1>
+        <div style="font-size: 12px; color: #8b949e;">指标 · 日志 · 追踪</div>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('overview')">总览</button>
+        <button class="tab-btn" onclick="switchTab('metrics')">指标</button>
+        <button class="tab-btn" onclick="switchTab('traces')">追踪</button>
+        <button class="tab-btn" onclick="switchTab('logs')">日志</button>
+        <button class="tab-btn" onclick="switchTab('alerts')">告警</button>
+    </div>
+
+    <div id="tab-overview" class="tab-content active">
+        <div class="grid">
+            <div class="card success"><div class="label">请求总数</div><div class="value" id="m-req">--</div></div>
+            <div class="card"><div class="label">平均延迟</div><div class="value" id="m-lat">--</div></div>
+            <div class="card warning"><div class="label">错误率</div><div class="value" id="m-err">--</div></div>
+            <div class="card"><div class="label">活跃追踪</div><div class="value" id="m-traces">--</div></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>组件</th><th>状态</th><th>详情</th></tr></thead><tbody id="health-body"><tr><td colspan="3" style="text-align:center;color:#8b949e">加载中...</td></tr></tbody></table></div>
+    </div>
+
+    <div id="tab-metrics" class="tab-content">
+        <div class="search-bar"><input id="metric-search" placeholder="搜索指标"><button onclick="loadMetrics()">刷新</button></div>
+        <div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>值</th></tr></thead><tbody id="metrics-body"><tr><td colspan="3" style="text-align:center;color:#8b949e">加载中...</td></tr></tbody></table></div>
+    </div>
+
+    <div id="tab-traces" class="tab-content">
+        <div class="search-bar"><input id="trace-search" placeholder="搜索Trace ID"><button onclick="loadTraces()">刷新</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Trace ID</th><th>操作数</th><th>耗时</th><th>时间</th></tr></thead><tbody id="traces-body"><tr><td colspan="4" style="text-align:center;color:#8b949e">加载中...</td></tr></tbody></table></div>
+        <div id="trace-detail" style="display:none;margin-top:20px;background:#1c2128;border-radius:8px;padding:15px;"><h3 style="margin-bottom:10px;">追踪详情</h3><div id="trace-content"></div></div>
+    </div>
+
+    <div id="tab-logs" class="tab-content">
+        <div class="search-bar">
+            <input id="log-search" placeholder="搜索日志">
+            <select id="log-level">
+                <option value="">所有级别</option>
+                <option value="ERROR">ERROR</option>
+                <option value="WARNING">WARNING</option>
+                <option value="INFO">INFO</option>
+                <option value="DEBUG">DEBUG</option>
+            </select>
+            <select id="log-limit">
+                <option value="50">50条</option>
+                <option value="100">100条</option>
+                <option value="200">200条</option>
+            </select>
+            <button onclick="loadLogs()">刷新</button>
+        </div>
+        <div style="margin-bottom:10px;font-size:12px;color:#8b949e;">
+            数据源: <span id="log-source">-</span>
+        </div>
+        <div id="logs-body">加载中...</div>
+    </div>
+
+    <div id="tab-alerts" class="tab-content">
+        <div class="search-bar"><input id="alert-search" placeholder="搜索规则"><button onclick="loadAlerts()">刷新</button><button onclick="addAlert()">添加规则</button></div>
+        <div class="table-wrap"><table><thead><tr><th>规则名称</th><th>表达式</th><th>级别</th><th>操作</th></tr></thead><tbody id="alerts-body"><tr><td colspan="4" style="text-align:center;color:#8b949e">加载中...</td></tr></tbody></table></div>
+    </div>
+
+    <script>
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(`tab-${name}`).classList.add('active');
+            if (name === 'overview') loadOverview();
+            if (name === 'metrics') loadMetrics();
+            if (name === 'traces') loadTraces();
+            if (name === 'logs') loadLogs();
+            if (name === 'alerts') loadAlerts();
+        }
+
+        async function loadOverview() {
+            const [metrics, health, traces] = await Promise.all([
+                fetch('/api/diagnostics/metrics').then(r => r.json()),
+                fetch('/api/diagnostics/health').then(r => r.json()),
+                fetch('/api/observability/traces?limit=1').then(r => r.json())
+            ]);
+            document.getElementById('m-req').textContent = metrics.counters?.['count.chat.total'] || '--';
+            const lat = metrics.histograms?.['latency.digital_life.chat'];
+            document.getElementById('m-lat').textContent = lat ? (lat.avg*1000).toFixed(0)+'ms' : '--';
+            document.getElementById('m-err').textContent = health.overall_health < 1 ? ((1-health.overall_health)*100).toFixed(1)+'%' : '0%';
+            document.getElementById('m-traces').textContent = traces.total || 0;
+            
+            const dims = health.dimensions || {};
+            document.getElementById('health-body').innerHTML = Object.entries(dims).map(([name, score]) => `<tr><td>${name}</td><td><span class="tag ${score>=0.8?'success':score>=0.5?'warning':'error'}">${(score*100).toFixed(0)}%</span></td><td>${score>=0.8?'健康':score>=0.5?'降级':'异常'}</td></tr>`).join('');
+        }
+
+        async function loadMetrics() {
+            const search = document.getElementById('metric-search').value.toLowerCase();
+            const data = await fetch('/api/diagnostics/metrics').then(r => r.json());
+            let rows = [];
+            Object.entries(data.counters || {}).forEach(([name, val]) => { if (name.includes(search)) rows.push(`<tr><td>${name}</td><td><span class="tag success">counter</span></td><td>${val}</td></tr>`); });
+            Object.entries(data.histograms || {}).forEach(([name, stats]) => { if (name.includes(search)) rows.push(`<tr><td>${name}</td><td><span class="tag warning">histogram</span></td><td>avg:${(stats.avg*1000).toFixed(0)}ms p95:${(stats.p95*1000).toFixed(0)}ms</td></tr>`); });
+            document.getElementById('metrics-body').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" style="text-align:center;color:#8b949e">无数据</td></tr>';
+        }
+
+        async function loadTraces() {
+            const search = document.getElementById('trace-search').value;
+            const url = search ? `/api/observability/traces?trace_id=${search}` : '/api/observability/traces';
+            const data = await fetch(url).then(r => r.json());
+            document.getElementById('trace-detail').style.display = 'none';
+            if (!data.traces?.length) { document.getElementById('traces-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8b949e">无数据</td></tr>'; return; }
+            document.getElementById('traces-body').innerHTML = data.traces.map(t => `<tr onclick="showTrace('${t.trace_id}')" style="cursor:pointer;"><td style="font-family:monospace;font-size:11px;">${t.trace_id}</td><td>${t.span_count}</td><td>${t.duration_ms?.toFixed(0)}ms</td><td>${new Date(t.created_at*1000).toLocaleString()}</td></tr>`).join('');
+        }
+
+        async function showTrace(traceId) {
+            const data = await fetch(`/api/observability/traces/${traceId}`).then(r => r.json());
+            document.getElementById('trace-detail').style.display = 'block';
+            document.getElementById('trace-content').innerHTML = (data.spans || []).map(s => `<div class="trace-node"><div class="trace-node-header"><span>${s.service}.${s.operation}</span><span>${s.duration_ms?.toFixed(0)}ms</span></div>${s.attributes ? '<div style="font-size:12px;color:#8b949e;">'+JSON.stringify(s.attributes)+'</div>' : ''}</div>`).join('');
+        }
+
+        async function loadLogs() {
+            const limit = document.getElementById('log-limit').value;
+            const search = document.getElementById('log-search').value;
+            const level = document.getElementById('log-level').value;
+            
+            let url = `/api/observability/logs?limit=${limit}`;
+            if (search) url += `&query=${encodeURIComponent(search)}`;
+            if (level) url += `&level=${level}`;
+            
+            const data = await fetch(url).then(r => r.json());
+            
+            document.getElementById('log-source').textContent = 'Loki/本地存储';
+            
+            if (!data.logs?.length) {
+                document.getElementById('logs-body').innerHTML = '<div style="color:#8b949e;padding:15px;text-align:center;">无数据</div>';
+                return;
+            }
+            
+            document.getElementById('logs-body').innerHTML = data.logs.map(l => `
+                <div class="log-entry">
+                    <span class="log-time">${new Date((l.timestamp||Date.now())*1000).toLocaleString()}</span>
+                    <span class="log-level ${l.level||'INFO'}">${l.level||'INFO'}</span>
+                    <span title="${l.source}">${l.message||JSON.stringify(l)}</span>
+                    ${l.source ? `<span style="color:#8b949e;font-size:11px;">[${l.source}]</span>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function loadAlerts() {
+            const search = document.getElementById('alert-search').value.toLowerCase();
+            const data = await fetch('/api/observability/alerts').then(r => r.json());
+            let rows = [];
+            (data.groups || []).forEach(g => (g.rules || []).forEach(r => { if (!search || r.alert.includes(search)) rows.push(`<tr><td>${r.alert}</td><td style="font-family:monospace;font-size:11px;">${r.expr}</td><td><span class="tag ${r.labels?.severity==='critical'?'error':r.labels?.severity==='warning'?'warning':'success'}">${r.labels?.severity||'info'}</span></td><td><button onclick="delAlert('${r.alert}')" style="color:#f85149;">删除</button></td></tr>`); }));
+            document.getElementById('alerts-body').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" style="text-align:center;color:#8b949e">无数据</td></tr>';
+        }
+
+        function addAlert() {
+            const name = prompt('规则名称');
+            const expr = prompt('PromQL表达式');
+            if (!name || !expr) return;
+            fetch('/api/observability/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, expr, for: '5m', severity: 'warning' }) }).then(() => loadAlerts());
+        }
+
+        function delAlert(name) {
+            if (!confirm(`删除 ${name}?`)) return;
+            fetch(`/api/observability/alerts/${name}`, { method: 'DELETE' }).then(() => loadAlerts());
+        }
+
+        loadOverview();
+        setInterval(loadOverview, 30000);
+    </script>
+</body>
+</html>

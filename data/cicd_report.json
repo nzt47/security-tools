@@ -1,0 +1,48 @@
+{
+  "pipeline_version": "1.0.0",
+  "run_time": "2026-06-23T14:09:05.455482",
+  "duration_seconds": 23.92,
+  "stages": [
+    {
+      "name": "代码风格检查",
+      "success": true,
+      "returncode": 28,
+      "tests_passed": 0,
+      "tests_total": 0
+    },
+    {
+      "name": "类型检查",
+      "success": true,
+      "returncode": 1,
+      "tests_passed": 0,
+      "tests_total": 0
+    },
+    {
+      "name": "单元测试",
+      "success": true,
+      "returncode": 0,
+      "tests_passed": 15,
+      "tests_total": 15
+    },
+    {
+      "name": "边界条件测试",
+      "success": true,
+      "returncode": 0,
+      "tests_passed": 6,
+      "tests_total": 6
+    },
+    {
+      "name": "集成测试",
+      "success": true,
+      "returncode": 0,
+      "tests_passed": 15,
+      "tests_total": 15
+    }
+  ],
+  "summary": {
+    "all_passed": true,
+    "total_tests": 36,
+    "passed_tests": 36,
+    "success_rate": 100.0
+  }
+}

@@ -1,0 +1,83 @@
+2026-06-22 23:17:28,864 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-22 23:17:28,871 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-22 23:17:28,871 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-22 23:17:28,895 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-22 23:17:28,911 [    INFO] agent.error_handler: Error handler initialized
+2026-06-22 23:17:28,916 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-22 23:17:28,945 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-22 23:17:28,952 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-22 23:17:28,957 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-22 23:17:28,971 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-22 23:17:28,971 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-22 23:17:28,971 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-22 23:17:28,971 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-22 23:17:28,971 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-22 23:17:29,144 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-22 23:17:29,155 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-22 23:17:29,155 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:17:29,161 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:17:29,161 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-22 23:17:29,162 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-22 23:17:29,265 [    INFO] test_logging_utils: 测试: 默认日志轮转配置
+2026-06-22 23:17:29,266 [    INFO] test_logging_utils:   max_bytes: 52428800, 预期: 52428800
+2026-06-22 23:17:29,266 [    INFO] test_logging_utils:   backup_count: 5, 预期: 5
+2026-06-22 23:17:29,266 [    INFO] test_logging_utils:   encoding: utf-8, 预期: utf-8
+2026-06-22 23:17:29,269 [    INFO] test_logging_utils: 测试: 自定义日志轮转配置
+2026-06-22 23:17:29,269 [    INFO] test_logging_utils:   max_bytes: 10485760, 预期: 10485760
+2026-06-22 23:17:29,269 [    INFO] test_logging_utils:   backup_count: 10, 预期: 10
+2026-06-22 23:17:29,269 [    INFO] test_logging_utils:   use_timed_rotation: True, 预期: True
+2026-06-22 23:17:29,272 [    INFO] test_logging_utils: 测试: 转换为字典
+2026-06-22 23:17:29,273 [    INFO] test_logging_utils:   config_dict: {'max_bytes': 52428800, 'backup_count': 5, 'encoding': 'utf-8', 'when': 'midnight', 'interval': 1, 'utc': False, 'use_timed_rotation': False}
+2026-06-22 23:17:29,279 [    INFO] test_logging_utils: 测试: 创建轮转文件处理器
+2026-06-22 23:17:29,279 [    INFO] test_logging_utils:   log_file: C:\Users\Administrator\AppData\Local\Temp\pytest-of-AdminWT\pytest-23\test_create_rotating_file_hand0\test.log
+2026-06-22 23:17:29,281 [    INFO] test_logging_utils:   handler创建成功: True
+2026-06-22 23:17:29,285 [    INFO] test_logging_utils: 测试: 脱敏API密钥
+2026-06-22 23:17:29,288 [    INFO] test_logging_utils:   原文: 'API Key=sk-abcdefghijklmnopqrstuvwxyz123456'
+2026-06-22 23:17:29,289 [    INFO] test_logging_utils:   脱敏后: 'API Key=***'
+2026-06-22 23:17:29,292 [    INFO] test_logging_utils: 测试: 脱敏密码
+2026-06-22 23:17:29,292 [    INFO] test_logging_utils:   原文: 'password="my_secret_password"'
+2026-06-22 23:17:29,292 [    INFO] test_logging_utils:   脱敏后: 'password="***"'
+2026-06-22 23:17:29,296 [    INFO] test_logging_utils: 测试: 脱敏手机号
+2026-06-22 23:17:29,296 [    INFO] test_logging_utils:   原文: '联系电话：13812345678'
+2026-06-22 23:17:29,296 [    INFO] test_logging_utils:   脱敏后: '联系电话：138****5678'
+2026-06-22 23:17:29,301 [    INFO] test_logging_utils: 测试: 脱敏身份证号
+2026-06-22 23:17:29,301 [    INFO] test_logging_utils:   原文: '身份证：110101199001011234'
+2026-06-22 23:17:29,301 [    INFO] test_logging_utils:   脱敏后: '身份证：110101********1234'
+2026-06-22 23:17:29,304 [    INFO] test_logging_utils: 测试: 脱敏邮箱
+2026-06-22 23:17:29,306 [    INFO] test_logging_utils:   原文: '邮箱：user@example.com'
+2026-06-22 23:17:29,306 [    INFO] test_logging_utils:   脱敏后: '邮箱：***@***.com'
+2026-06-22 23:17:29,309 [    INFO] test_logging_utils: 测试: 脱敏字典
+2026-06-22 23:17:29,309 [    INFO] test_logging_utils:   原数据: {'api_key': 'sk-test123456', 'password': 'secret123', 'normal_field': 'value'}
+2026-06-22 23:17:29,309 [    INFO] test_logging_utils:   脱敏后: {'api_key': '***', 'password': '***', 'normal_field': 'value'}
+2026-06-22 23:17:29,312 [    INFO] test_logging_utils: 测试: 脱敏列表
+2026-06-22 23:17:29,312 [    INFO] test_logging_utils:   原数据: {'items': ['password=secret', 'normal text']}
+2026-06-22 23:17:29,312 [    INFO] test_logging_utils:   脱敏后: {'items': ['password="***"', 'normal text']}
+2026-06-22 23:17:29,315 [    INFO] test_logging_utils: 测试: 审计日志记录配置访问
+2026-06-22 23:17:29,316 [    INFO] test_logging_utils:   已记录配置访问: test_key, test_user
+2026-06-22 23:17:29,319 [    INFO] test_logging_utils: 测试: 审计日志记录认证
+2026-06-22 23:17:29,319 [    INFO] test_logging_utils:   已记录认证: test_user, True, 192.168.1.1
+2026-06-22 23:17:29,322 [    INFO] test_logging_utils: 测试: 全局审计日志实例
+2026-06-22 23:17:29,631 [    INFO] test_logging_utils: 测试: 安全监控器记录迭代
+2026-06-22 23:17:29,632 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-22 23:17:29,632 [    INFO] test_logging_utils:   record_iteration结果: True
+2026-06-22 23:17:29,635 [    INFO] test_logging_utils: 测试: 安全监控器检查状态
+2026-06-22 23:17:29,635 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-22 23:17:29,635 [    INFO] test_logging_utils:   check_state结果: True
+2026-06-22 23:17:29,638 [    INFO] test_logging_utils: 测试: 全局安全监控器实例
+2026-06-22 23:17:29,653 [    INFO] test_logging_utils: 测试: 安全执行包装器
+2026-06-22 23:17:29,671 [    INFO] test_logging_utils: 测试: 安全执行包装器（超时测试）
+2026-06-22 23:17:29,690 [    INFO] test_logging_utils: 测试: 安全执行包装器（异常处理）
+2026-06-22 23:17:29,712 [    INFO] test_logging_utils: 测试: 设置Agent日志系统
+2026-06-22 23:17:29,712 [    INFO] test_logging_utils:   log_file: C:\Users\Administrator\AppData\Local\Temp\pytest-of-AdminWT\pytest-23\test_setup_agent_logging0\agent.log

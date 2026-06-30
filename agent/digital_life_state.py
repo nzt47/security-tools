@@ -14,6 +14,8 @@ DigitalLife 状态与快照管理 Mixin
 """
 
 import logging
+import json
+import uuid
 from typing import Optional
 
 from agent.state_manager import (
@@ -23,6 +25,11 @@ from agent.state_manager import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class DigitalLifeStateMixin:
@@ -98,7 +105,7 @@ class DigitalLifeStateMixin:
             from agent.p6_snapshot import SnapshotResult
             return SnapshotResult(success=False, error_message="P6快照管理器未启用")
 
-        logger.info("[P6] 保存状态快照...")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] 保存状态快照..."}, ensure_ascii=False))
         result = sm.save_snapshot(self, snapshot_id=snapshot_id,
                                   incremental=incremental, force=force)
         if result.success:
@@ -111,15 +118,15 @@ class DigitalLifeStateMixin:
         """从快照恢复状态"""
         sm = getattr(self, '_snapshot_manager', None)
         if not sm:
-            logger.error("[P6] [FAIL] P6快照管理器未启用")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "fail", "msg": "[P6] [FAIL] P6快照管理器未启用"}, ensure_ascii=False))
             return None
-        logger.info("[P6] 从快照恢复状态...")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] 从快照恢复状态..."}, ensure_ascii=False))
         restored = sm.load_snapshot(digital_life_class=self.__class__,
                                      snapshot_id=snapshot_id)
         if restored:
-            logger.info("[P6] [OK] 快照恢复成功")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] [OK] 快照恢复成功"}, ensure_ascii=False))
         else:
-            logger.error("[P6] [FAIL] 快照恢复失败")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "fail", "msg": "[P6] [FAIL] 快照恢复失败"}, ensure_ascii=False))
         return restored
 
     def list_snapshots(self) -> list:

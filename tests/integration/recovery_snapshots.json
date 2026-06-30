@@ -1,0 +1,57 @@
+[
+  {
+    "timestamp": "2026-06-25T19:02:19.466438",
+    "error_rate": 0.0156794425087108,
+    "stability_score": 90.0,
+    "overall_score": 98.0,
+    "total_alerts": 0,
+    "error_alerts": 0,
+    "error_alert_details": []
+  },
+  {
+    "timestamp": "2026-06-25T19:04:19.557778",
+    "error_rate": 0.019337016574585635,
+    "stability_score": 90.0,
+    "overall_score": 98.0,
+    "total_alerts": 0,
+    "error_alerts": 0,
+    "error_alert_details": []
+  },
+  {
+    "timestamp": "2026-06-25T19:06:19.579798",
+    "error_rate": 0.03401360544217687,
+    "stability_score": 90.0,
+    "overall_score": 98.0,
+    "total_alerts": 0,
+    "error_alerts": 0,
+    "error_alert_details": []
+  },
+  {
+    "timestamp": "2026-06-25T19:08:19.632214",
+    "error_rate": 0.05319148936170213,
+    "stability_score": 50.0,
+    "overall_score": 90.0,
+    "total_alerts": 1,
+    "error_alerts": 1,
+    "error_alert_details": [
+      {
+        "name": "YunshuHighErrorRate",
+        "state": "pending"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-25T19:10:19.673086",
+    "error_rate": 0.05263157894736841,
+    "stability_score": 50.0,
+    "overall_score": 90.0,
+    "total_alerts": 1,
+    "error_alerts": 1,
+    "error_alert_details": [
+      {
+        "name": "YunshuHighErrorRate",
+        "state": "pending"
+      }
+    ]
+  }
+]

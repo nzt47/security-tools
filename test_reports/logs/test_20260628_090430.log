@@ -1,0 +1,184 @@
+2026-06-28 09:04:30,659 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 09:04:30,663 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 09:04:30,664 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 09:04:30,678 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 09:04:30,708 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 09:04:30,711 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 09:04:30,714 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 09:04:30,715 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 09:04:30,721 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 09:04:30,726 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 09:04:30,744 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 09:04:30,745 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 09:04:30,745 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 09:04:30,747 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 09:04:30,749 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 09:04:30,847 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 09:04:30,869 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 09:04:30,870 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=test_start, test_name=test_schema_standard_fail_then_relaxed_succeed
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=degrade_created, max_retries=2, degrade_seconds=30.0
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=schema_validate_call_begin, input={'foo': 'bar'}
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=strict_validator_failed, attempt=1, error=strict validation failed
+2026-06-28 09:04:30,899 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-001", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.8996186, "attempt": 0, "error": "strict validation failed"}
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=strict_validator_failed, attempt=2, error=strict validation failed
+2026-06-28 09:04:30,899 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-001", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.8998287, "attempt": 1, "error": "strict validation failed"}
+2026-06-28 09:04:30,899 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=strict_validator_failed, attempt=3, error=strict validation failed
+2026-06-28 09:04:30,900 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-001", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.9000237, "attempt": 2, "error": "strict validation failed"}
+2026-06-28 09:04:30,900 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=relaxed_validator_called, input_data={'foo': 'bar'}
+2026-06-28 09:04:30,900 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=relaxed_validator_return, result={'relaxed': True, 'data': {'foo': 'bar'}}
+2026-06-28 09:04:30,900 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=schema_validate_call_end, is_valid=True, result={'relaxed': True, 'data': {'foo': 'bar'}}
+2026-06-28 09:04:30,900 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=assert_before, field=is_valid, expected=True, actual=True
+2026-06-28 09:04:30,900 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-001 - action=assert_before, field=result, expected={'relaxed': True, 'data': {'foo': 'bar'}}, actual={'relaxed': True, 'data': {'foo': 'bar'}}
+2026-06-28 09:04:30,904 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=test_start, test_name=test_schema_all_fail_should_fallback_to_text
+2026-06-28 09:04:30,904 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=degrade_created, max_retries=2, degrade_seconds=30.0
+2026-06-28 09:04:30,904 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=schema_validate_call_begin, input={'key': 'value'}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=validator_failed, call_no=1, error=always fails
+2026-06-28 09:04:30,905 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-002", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.9050903, "attempt": 0, "error": "always fails"}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=validator_failed, call_no=2, error=always fails
+2026-06-28 09:04:30,905 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-002", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.9052563, "attempt": 1, "error": "always fails"}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=validator_failed, call_no=3, error=always fails
+2026-06-28 09:04:30,905 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-002", "module_name": "graceful_degrade", "action": "schema_validate_fail", "duration_ms": 0, "timestamp": 1782608670.9054506, "attempt": 2, "error": "always fails"}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=validator_failed, call_no=4, error=always fails
+2026-06-28 09:04:30,905 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-002", "module_name": "graceful_degrade", "action": "schema_relaxed_fail", "duration_ms": 0, "timestamp": 1782608670.9056075, "error": "always fails"}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=degrade_triggered, component=schema_validator, degrade_level=fallback
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=schema_validate_call_end, is_valid=False, result={'key': 'value'}
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=assert_before, field=is_valid, expected=False, actual=False
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=assert_before, field=result_type, expected=str, actual=str
+2026-06-28 09:04:30,905 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=assert_before, field=result_contains_key, expected=True, actual=True
+2026-06-28 09:04:30,906 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-002 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:30,908 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=test_start, test_name=test_degraded_schema_should_short_circuit_to_text
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=degrade_created, max_retries=0, degrade_seconds=30
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=degrade_triggered, component=schema_validator, degrade_level=fallback
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=schema_validate_call_begin, input=test_data
+2026-06-28 09:04:30,909 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-schema-003", "module_name": "graceful_degrade", "action": "schema_degrade_short_circuit", "duration_ms": 0, "timestamp": 1782608670.909268, "component": "schema_validator", "level": "fallback"}
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=short_circuit_hit, component=schema_validator, level=fallback, return_value=test_data
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=schema_validate_call_end, is_valid=False, result=test_data
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=assert_before, field=validator_call_count, expected=0, actual=0
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=assert_before, field=is_valid, expected=False, actual=False
+2026-06-28 09:04:30,909 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-schema-003 - action=assert_before, field=result, expected=test_data, actual=test_data
+2026-06-28 09:04:30,912 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=test_start, test_name=test_critic_unavailable_should_return_none_fallback
+2026-06-28 09:04:30,912 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=degrade_created, max_retries=2, degrade_seconds=30.0
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=call_with_fallback_begin, component=critic_engine, input=input_data
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=critic_call_failed, attempt=1, error=critic service unavailable
+2026-06-28 09:04:30,913 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-critic-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9131887, "component": "critic_engine", "attempt": 0, "error": "critic service unavailable"}
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=critic_call_failed, attempt=2, error=critic service unavailable
+2026-06-28 09:04:30,913 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-critic-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9133563, "component": "critic_engine", "attempt": 1, "error": "critic service unavailable"}
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=critic_call_failed, attempt=3, error=critic service unavailable
+2026-06-28 09:04:30,913 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-critic-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9135108, "component": "critic_engine", "attempt": 2, "error": "critic service unavailable"}
+2026-06-28 09:04:30,913 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-critic-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9135952, "component": "critic_engine", "failures": 3}
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=degrade_triggered, component=critic_engine, degrade_level=fallback
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=call_with_fallback_end, component=critic_engine, result=None
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=assert_before, field=result, expected=None, actual=None
+2026-06-28 09:04:30,913 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-critic-001 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:30,916 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=test_start, test_name=test_memory_timeout_should_return_empty_list
+2026-06-28 09:04:30,916 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=degrade_created, max_retries=2, degrade_seconds=30.0
+2026-06-28 09:04:30,916 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=call_with_fallback_begin, component=memory_router, input=query
+2026-06-28 09:04:30,916 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=memory_query_timeout, attempt=1, error=memory query timed out
+2026-06-28 09:04:30,917 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-memory-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9170673, "component": "memory_router", "attempt": 0, "error": "memory query timed out"}
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=memory_query_timeout, attempt=2, error=memory query timed out
+2026-06-28 09:04:30,917 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-memory-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9172287, "component": "memory_router", "attempt": 1, "error": "memory query timed out"}
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=memory_query_timeout, attempt=3, error=memory query timed out
+2026-06-28 09:04:30,917 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-memory-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9174278, "component": "memory_router", "attempt": 2, "error": "memory query timed out"}
+2026-06-28 09:04:30,917 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-memory-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.91751, "component": "memory_router", "failures": 3}
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=degrade_triggered, component=memory_router, degrade_level=fallback
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=call_with_fallback_end, component=memory_router, result=[]
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=assert_before, field=result, expected=[], actual=[]
+2026-06-28 09:04:30,917 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-memory-001 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:30,920 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=test_start, test_name=test_dashboard_fail_should_return_cached_data
+2026-06-28 09:04:30,920 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=degrade_created, max_retries=0, degrade_seconds=30.0
+2026-06-28 09:04:30,920 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=call_with_fallback_begin, component=dashboard_loader, call_round=1
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=dashboard_loader_success, call_no=1
+2026-06-28 09:04:30,921 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-001", "module_name": "graceful_degrade", "action": "degrade_call_success", "duration_ms": 0, "timestamp": 1782608670.9210725, "component": "dashboard_loader", "attempt": 0}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=call_with_fallback_end, component=dashboard_loader, call_round=1, result={'metric1': 100, 'metric2': 200}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=assert_before, field=result1, expected={'metric1': 100, 'metric2': 200}, actual={'metric1': 100, 'metric2': 200}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=call_with_fallback_begin, component=dashboard_loader, call_round=2
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=dashboard_loader_failed, call_no=2, error=dashboard service down
+2026-06-28 09:04:30,921 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9214804, "component": "dashboard_loader", "attempt": 0, "error": "dashboard service down"}
+2026-06-28 09:04:30,921 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9215662, "component": "dashboard_loader", "failures": 1}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=degrade_triggered, component=dashboard_loader, degrade_level=fallback
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=call_with_fallback_end, component=dashboard_loader, call_round=2, result={}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=cache_hit, component=dashboard_loader, cached_value={'metric1': 100, 'metric2': 200}
+2026-06-28 09:04:30,921 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-001 - action=assert_before, field=cached, expected={'metric1': 100, 'metric2': 200}, actual={'metric1': 100, 'metric2': 200}
+2026-06-28 09:04:30,924 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=test_start, test_name=test_dashboard_first_load_fail_should_return_empty
+2026-06-28 09:04:30,924 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=degrade_created, max_retries=1, degrade_seconds=30.0
+2026-06-28 09:04:30,924 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=call_with_fallback_begin, component=dashboard_loader
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=dashboard_loader_failed, attempt=1, error=always fails
+2026-06-28 09:04:30,925 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-002", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9251382, "component": "dashboard_loader", "attempt": 0, "error": "always fails"}
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=dashboard_loader_failed, attempt=2, error=always fails
+2026-06-28 09:04:30,925 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-002", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.925308, "component": "dashboard_loader", "attempt": 1, "error": "always fails"}
+2026-06-28 09:04:30,925 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-dashboard-002", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9253912, "component": "dashboard_loader", "failures": 2}
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=degrade_triggered, component=dashboard_loader, degrade_level=fallback
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=call_with_fallback_end, component=dashboard_loader, result={}
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=assert_before, field=result, expected={}, actual={}
+2026-06-28 09:04:30,925 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-dashboard-002 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:30,928 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=test_start, test_name=test_multiple_components_fail_simultaneously
+2026-06-28 09:04:30,928 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=degrade_created, max_retries=0, degrade_seconds=30.0
+2026-06-28 09:04:30,928 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=call_with_fallback_begin, component=schema_validator
+2026-06-28 09:04:30,928 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=component_call_failed, call_no=1, error=fail
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9290662, "component": "schema_validator", "attempt": 0, "error": "fail"}
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.929155, "component": "schema_validator", "failures": 1}
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=degrade_triggered, component=schema_validator, degrade_level=fallback, result=None
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=call_with_fallback_begin, component=critic_engine
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=component_call_failed, call_no=2, error=fail
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.929461, "component": "critic_engine", "attempt": 0, "error": "fail"}
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9295437, "component": "critic_engine", "failures": 1}
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=degrade_triggered, component=critic_engine, degrade_level=fallback, result=None
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=call_with_fallback_begin, component=memory_router
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=component_call_failed, call_no=3, error=fail
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9298224, "component": "memory_router", "attempt": 0, "error": "fail"}
+2026-06-28 09:04:30,929 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-cascade-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9299035, "component": "memory_router", "failures": 1}
+2026-06-28 09:04:30,929 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=degrade_triggered, component=memory_router, degrade_level=fallback, result=[]
+2026-06-28 09:04:30,930 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=assert_before, field=r1, expected=None, actual=None
+2026-06-28 09:04:30,930 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=assert_before, field=r2, expected=None, actual=None
+2026-06-28 09:04:30,930 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=assert_before, field=r3, expected=[], actual=[]
+2026-06-28 09:04:30,930 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-cascade-001 - action=assert_before, field=is_degraded_all, expected=(True,True,True), actual=(True,True,True)
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=test_start, test_name=test_degrade_expiry_should_allow_retry
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=degrade_created, max_retries=0, degrade_seconds=0.5
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=call_with_fallback_begin, component=memory_router, call_round=1
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=memory_call_failed, call_no=1, error=first fail
+2026-06-28 09:04:30,933 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-expire-001", "module_name": "graceful_degrade", "action": "degrade_call_failure", "duration_ms": 0, "timestamp": 1782608670.9334095, "component": "memory_router", "attempt": 0, "error": "first fail"}
+2026-06-28 09:04:30,933 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-expire-001", "module_name": "graceful_degrade", "action": "degrade_triggered", "duration_ms": 0, "timestamp": 1782608670.9334993, "component": "memory_router", "failures": 1}
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=degrade_triggered, component=memory_router, degrade_level=fallback, result=[]
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=assert_before, field=result1, expected=[], actual=[]
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:30,933 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=sleep_for_degrade_expiry, seconds=0.6
+2026-06-28 09:04:31,534 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=call_with_fallback_begin, component=memory_router, call_round=2
+2026-06-28 09:04:31,535 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=memory_call_success, call_no=2
+2026-06-28 09:04:31,535 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-expire-001", "module_name": "graceful_degrade", "action": "degrade_call_success", "duration_ms": 0, "timestamp": 1782608671.5352266, "component": "memory_router", "attempt": 0}
+2026-06-28 09:04:31,535 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=degrade_recovered, component=memory_router, is_degraded=False, result=recovered
+2026-06-28 09:04:31,535 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=assert_before, field=result2, expected=recovered, actual=recovered
+2026-06-28 09:04:31,535 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-001 - action=assert_before, field=is_degraded, expected=False, actual=False
+2026-06-28 09:04:31,538 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=test_start, test_name=test_force_degrade_then_recover
+2026-06-28 09:04:31,538 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=degrade_created, max_retries=0, degrade_seconds=30
+2026-06-28 09:04:31,538 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=degrade_triggered, component=critic_engine, degrade_level=fallback
+2026-06-28 09:04:31,538 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=is_degraded, expected=True, actual=True
+2026-06-28 09:04:31,538 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=call_with_fallback_begin, component=critic_engine, call_round=1
+2026-06-28 09:04:31,538 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-expire-002", "module_name": "graceful_degrade", "action": "degrade_hit", "duration_ms": 0, "timestamp": 1782608671.5389407, "component": "critic_engine", "level": "fallback"}
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=short_circuit_hit, component=critic_engine, level=fallback, return_value=None
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=result, expected=None, actual=None
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=call_count, expected=0, actual=0
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=degrade_recovered, component=critic_engine, is_degraded=False
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=is_degraded, expected=False, actual=False
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=call_with_fallback_begin, component=critic_engine, call_round=2
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=critic_func_called_unexpectedly, call_no=1
+2026-06-28 09:04:31,539 [    INFO] agent.graceful_degrade: {"trace_id": "chaos-degrade-expire-002", "module_name": "graceful_degrade", "action": "degrade_call_success", "duration_ms": 0, "timestamp": 1782608671.5395372, "component": "critic_engine", "attempt": 0}
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=call_with_fallback_end, component=critic_engine, result=should_not_reach
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=result, expected=should_not_reach, actual=should_not_reach
+2026-06-28 09:04:31,539 [    INFO] chaos.test_degrade_chaos: [DEGRADE_CHAOS] chaos-degrade-expire-002 - action=assert_before, field=call_count, expected=1, actual=1

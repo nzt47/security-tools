@@ -1,0 +1,179 @@
+2026-06-28 09:09:34,547 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-28 09:09:34,550 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-28 09:09:34,552 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-28 09:09:34,562 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-28 09:09:34,578 [    INFO] agent.error_handler: Error handler initialized
+2026-06-28 09:09:34,580 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-28 09:09:34,583 [ WARNING] agent.monitoring.prometheus: [WARN] prometheus_client not installed, Prometheus export disabled
+2026-06-28 09:09:34,583 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-28 09:09:34,589 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-28 09:09:34,594 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-28 09:09:34,610 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-28 09:09:34,610 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-28 09:09:34,610 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-28 09:09:34,611 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-28 09:09:34,613 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-28 09:09:34,707 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-28 09:09:34,739 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-28 09:09:34,740 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-28 09:09:34,852 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-28 09:09:34,852 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\TEMP\tmp_08buy09
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: DigitalLife
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ├─ ✓ 频率检查通过
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260628_090934_853886
+2026-06-28 09:09:34,853 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-28 09:09:34,854 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-28 09:09:34,854 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-28 09:09:34,854 [    INFO] agent.p6_snapshot: [P6] Phase 2/4: 开始序列化核心模块...
+2026-06-28 09:09:34,855 [    INFO] agent.p6_snapshot: [P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='1964800352544'>
+2026-06-28 09:09:34,855 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:34,855 [   ERROR] agent.p6_snapshot: [P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+2026-06-28 09:09:34,855 [   ERROR] agent.p6_snapshot: [P6] 异常类型: PicklingError
+2026-06-28 09:09:34,856 [   ERROR] agent.p6_snapshot: [P6] 异常堆栈:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 506, in save_snapshot
+    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 599, in _save_core_modules_with_delta
+    state_data = pickle.dumps(body_state)
+_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+when serializing unittest.mock.MagicMock class
+when serializing unittest.mock.MagicMock object
+when serializing dict item 'initialized'
+
+2026-06-28 09:09:34,856 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,022 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-28 09:09:35,023 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\TEMP\tmph5sgoqvd
+2026-06-28 09:09:35,023 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: DigitalLife
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ ✓ 频率检查通过
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260628_090935_24428
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-28 09:09:35,024 [    INFO] agent.p6_snapshot: [P6] Phase 2/4: 开始序列化核心模块...
+2026-06-28 09:09:35,025 [    INFO] agent.p6_snapshot: [P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='1964800357920'>
+2026-06-28 09:09:35,025 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,025 [   ERROR] agent.p6_snapshot: [P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+2026-06-28 09:09:35,025 [   ERROR] agent.p6_snapshot: [P6] 异常类型: PicklingError
+2026-06-28 09:09:35,026 [   ERROR] agent.p6_snapshot: [P6] 异常堆栈:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 506, in save_snapshot
+    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 599, in _save_core_modules_with_delta
+    state_data = pickle.dumps(body_state)
+_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+when serializing unittest.mock.MagicMock class
+when serializing unittest.mock.MagicMock object
+when serializing dict item 'initialized'
+
+2026-06-28 09:09:35,026 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,054 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-28 09:09:35,054 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\TEMP\tmp5kkhdshx
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: DigitalLife
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ ✓ 频率检查通过
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260628_090935_55584
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-28 09:09:35,055 [    INFO] agent.p6_snapshot: [P6] Phase 2/4: 开始序列化核心模块...
+2026-06-28 09:09:35,056 [    INFO] agent.p6_snapshot: [P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='1964815124528'>
+2026-06-28 09:09:35,056 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,056 [   ERROR] agent.p6_snapshot: [P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+2026-06-28 09:09:35,056 [   ERROR] agent.p6_snapshot: [P6] 异常类型: PicklingError
+2026-06-28 09:09:35,057 [   ERROR] agent.p6_snapshot: [P6] 异常堆栈:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 506, in save_snapshot
+    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 599, in _save_core_modules_with_delta
+    state_data = pickle.dumps(body_state)
+_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+when serializing unittest.mock.MagicMock class
+when serializing unittest.mock.MagicMock object
+when serializing dict item 'initialized'
+
+2026-06-28 09:09:35,057 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,084 [    INFO] agent.p6_snapshot: [P6] 性能监控器初始化完成
+2026-06-28 09:09:35,085 [    INFO] agent.p6_snapshot: [P6] 快照管理器初始化完成，目录: C:\Windows\TEMP\tmpgt3no0nx
+2026-06-28 09:09:35,085 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=False
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: DigitalLife
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ ✓ 频率检查通过
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260628_090935_86311
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-28 09:09:35,086 [    INFO] agent.p6_snapshot: [P6] Phase 2/4: 开始序列化核心模块...
+2026-06-28 09:09:35,087 [    INFO] agent.p6_snapshot: [P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='1964815128560'>
+2026-06-28 09:09:35,087 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,087 [   ERROR] agent.p6_snapshot: [P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+2026-06-28 09:09:35,087 [   ERROR] agent.p6_snapshot: [P6] 异常类型: PicklingError
+2026-06-28 09:09:35,088 [   ERROR] agent.p6_snapshot: [P6] 异常堆栈:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 506, in save_snapshot
+    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 599, in _save_core_modules_with_delta
+    state_data = pickle.dumps(body_state)
+_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+when serializing unittest.mock.MagicMock class
+when serializing unittest.mock.MagicMock object
+when serializing dict item 'initialized'
+
+2026-06-28 09:09:35,088 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] 快照保存流程开始
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 参数: force=True, incremental=True
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 目标对象: DigitalLife
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ ✓ 频率检查通过
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 生成新快照ID: snap_20260628_090935_88708
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 创建快照对象成功，版本: p6.2.0
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 配置保存成功，键数: 1
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] ├─ 开始序列化核心模块...
+2026-06-28 09:09:35,088 [    INFO] agent.p6_snapshot: [P6] Phase 2/4: 开始序列化核心模块...
+2026-06-28 09:09:35,089 [    INFO] agent.p6_snapshot: [P6] BodySensor 序列化完成，状态: <MagicMock name='mock.get().is_initialized' id='1964815128560'>
+2026-06-28 09:09:35,089 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,089 [   ERROR] agent.p6_snapshot: [P6] 快照保存异常: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+2026-06-28 09:09:35,089 [   ERROR] agent.p6_snapshot: [P6] 异常类型: PicklingError
+2026-06-28 09:09:35,089 [   ERROR] agent.p6_snapshot: [P6] 异常堆栈:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 506, in save_snapshot
+    space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
+  File "C:\Users\Administrator\agent\agent\p6_snapshot.py", line 599, in _save_core_modules_with_delta
+    state_data = pickle.dumps(body_state)
+_pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+when serializing unittest.mock.MagicMock class
+when serializing unittest.mock.MagicMock object
+when serializing dict item 'initialized'
+
+2026-06-28 09:09:35,089 [   ERROR] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,090 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════
+2026-06-28 09:09:35,090 [    INFO] agent.p6_snapshot: [P6] 快照加载流程开始（Phase 3 完整版）
+2026-06-28 09:09:35,090 [    INFO] agent.p6_snapshot: [P6] ├─ 步骤1: 定位快照文件...
+2026-06-28 09:09:35,090 [    INFO] agent.p6_snapshot: [P6] │   └─ 未指定快照ID，将使用最新快照
+2026-06-28 09:09:35,090 [ WARNING] agent.p6_snapshot: [P6] ├─ ✗ 未找到可用快照
+2026-06-28 09:09:35,090 [ WARNING] agent.p6_snapshot: [P6] └─ 可能原因: 快照目录为空或文件损坏
+2026-06-28 09:09:35,090 [    INFO] agent.p6_snapshot: [P6] ═══════════════════════════════════════════════════════

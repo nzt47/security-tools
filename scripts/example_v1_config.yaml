@@ -1,0 +1,31 @@
+memory:
+  max_tokens: 8000
+  enable_long_term: false
+  summary_threshold: 5000
+behavior:
+  default_mode: NORMAL
+  allow_reflection: true
+  max_iterations: 10
+planning:
+  enabled: false
+  max_depth: 5
+  timeout_seconds: 30
+llm:
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+  api_key: ${OPENAI_API_KEY}
+tools:
+  enabled: true
+  whitelist:
+  - web_search
+  - calculator
+  - file_read
+session:
+  auto_save: true
+  save_interval: 300
+features:
+  v2_lifetrace: true
+  v2_persona: true
+  v2_distillation: false
+  v2_lazy_loader: true

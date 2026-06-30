@@ -1,0 +1,258 @@
+2026-06-25 10:48:10,707 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:48:10,712 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:48:10,714 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:48:10,851 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:48:10,868 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:48:10,870 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 10:48:10,904 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 10:48:10,906 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:10,906 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 10:48:10,907 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 10:48:10,914 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 10:48:10,919 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 10:48:10,937 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 10:48:10,938 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 10:48:10,938 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 10:48:10,939 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 10:48:10,941 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 10:48:10,959 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 10:48:11,023 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 10:48:11,024 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,029 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,030 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 10:48:11,030 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 10:48:11,030 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 10:48:11,031 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 10:48:11,031 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 10:48:11,031 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 10:48:11,031 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 10:48:11,032 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 10:48:11,032 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,032 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 10:48:11,032 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 10:48:11,033 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 10:48:11,046 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,046 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:48:11,325 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 10:48:11,331 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 10:48:11,333 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 10:48:11,495 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 10:48:11,515 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 10:48:11,521 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 10:48:11,575 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 10:48:11,577 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,578 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 10:48:11,580 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 10:48:11,589 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 10:48:11,597 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 10:48:11,622 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 10:48:11,622 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 10:48:11,623 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 10:48:11,624 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 10:48:11,626 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 10:48:11,651 [   ERROR] agent.digital_life: [模块导入] [FAIL] [错误] OCR 模块加载异常: NameError: name 'np' is not defined
+2026-06-25 10:48:11,658 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 10:48:11,658 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,662 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,663 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 10:48:11,663 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 10:48:11,664 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 10:48:11,664 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 10:48:11,664 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 10:48:11,665 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 10:48:11,665 [    INFO] agent.digital_life:    [FAIL] ocr: 未加载
+2026-06-25 10:48:11,665 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 10:48:11,666 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 10:48:11,666 [    INFO] agent.digital_life:    总计: 7/8 模块加载成功
+2026-06-25 10:48:11,666 [ WARNING] agent.digital_life:    [WARN]  1 个可选模块未加载，相关功能将被禁用
+2026-06-25 10:48:11,667 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 10:48:11,684 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,684 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 10:48:11,727 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,728 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 10:48:11,758 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,759 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 10:48:11,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,765 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 10, "max_backups": 5, "backup_dir": "./data/backups", "auto_recover": false}}
+2026-06-25 10:48:11,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,776 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./tmp_backup_test", "auto_recover": true}}
+2026-06-25 10:48:11,777 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,777 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test_data"}
+2026-06-25 10:48:11,788 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,788 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_trigger_backup_full0", "auto_recover": true}}
+2026-06-25 10:48:11,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,789 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:11,791 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,791 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,791 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104811", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:11,801 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,802 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_trigger_backup_incrementa0", "auto_recover": true}}
+2026-06-25 10:48:11,802 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,803 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "incr"}
+2026-06-25 10:48:11,804 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,804 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,805 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.1, "backup_id": "backup_20260625_104811", "type": "incremental", "files": ["incr"], "size_bytes": 165}
+2026-06-25 10:48:11,812 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,812 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_trigger_backup_disabled0", "auto_recover": true}}
+2026-06-25 10:48:11,813 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,813 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 0, "warning": "\u5907\u4efd\u672a\u542f\u7528"}
+2026-06-25 10:48:11,820 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,821 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_backup_with_multiple_prov0", "auto_recover": true}}
+2026-06-25 10:48:11,821 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,822 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "provider1"}
+2026-06-25 10:48:11,822 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,822 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "provider2"}
+2026-06-25 10:48:11,824 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,824 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,824 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.21, "backup_id": "backup_20260625_104811", "type": "full", "files": ["provider1", "provider2"], "size_bytes": 218}
+2026-06-25 10:48:11,832 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,833 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_verify_backup0", "auto_recover": true}}
+2026-06-25 10:48:11,833 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,833 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:11,835 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,835 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,837 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104811", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:11,844 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,845 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 3, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_get_backup_list0", "auto_recover": true}}
+2026-06-25 10:48:11,845 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,846 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:11,848 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,849 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,849 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104811", "type": "full", "files": ["test"], "size_bytes": 153}
+2026-06-25 10:48:11,951 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,952 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:11,952 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.01, "backup_id": "backup_20260625_104811", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:12,055 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,055 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,056 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.01, "backup_id": "backup_20260625_104812", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:12,159 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,159 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,160 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.01, "backup_id": "backup_20260625_104812", "type": "full", "files": ["test"], "size_bytes": 153}
+2026-06-25 10:48:12,263 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,264 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 3.0, "backup_id": "backup_20260625_104812", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:12,373 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,373 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_restore_from_backup0", "auto_recover": true}}
+2026-06-25 10:48:12,374 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,374 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:12,376 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,376 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,376 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.04, "backup_id": "backup_20260625_104812", "type": "full", "files": ["test"], "size_bytes": 173}
+2026-06-25 10:48:12,378 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,378 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.97, "backup_id": "backup_20260625_104812", "restored_files": ["test"]}
+2026-06-25 10:48:12,386 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,387 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_restore_from_invalid_back0", "auto_recover": true}}
+2026-06-25 10:48:12,387 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,388 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0, "error": "\u5907\u4efd invalid_backup_id \u65e0\u6548\u6216\u5df2\u635f\u574f", "backup_id": "invalid_backup_id"}
+2026-06-25 10:48:12,395 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,396 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-25 10:48:12,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,396 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-25 10:48:12,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,398 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,398 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.01, "backup_id": "backup_20260625_104812", "type": "full", "files": ["auto_recover_test"], "size_bytes": 170}
+2026-06-25 10:48:12,399 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,400 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_auto_recover_on_startup0", "auto_recover": true}}
+2026-06-25 10:48:12,400 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,400 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "auto_recover_test"}
+2026-06-25 10:48:12,401 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,401 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u5c1d\u8bd5\u81ea\u52a8\u6062\u590d\u5907\u4efd backup_20260625_104812"}
+2026-06-25 10:48:12,402 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,403 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260625_104812", "restored_files": ["auto_recover_test"]}
+2026-06-25 10:48:12,410 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,410 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_restore_from_backup_provi0", "auto_recover": true}}
+2026-06-25 10:48:12,411 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,411 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:12,413 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,413 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,413 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.03, "backup_id": "backup_20260625_104812", "type": "full", "files": ["test"], "size_bytes": 153}
+2026-06-25 10:48:12,414 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,415 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0, "error": "\u6062\u590d test \u5931\u8d25: restore error", "backup_id": "backup_20260625_104812"}
+2026-06-25 10:48:12,415 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,415 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104812", "restored_files": []}
+2026-06-25 10:48:12,423 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,423 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_auto_recover_no_backups0", "auto_recover": true}}
+2026-06-25 10:48:12,424 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,424 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u65e0\u53ef\u7528\u5907\u4efd"}
+2026-06-25 10:48:12,440 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,441 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_repair_valid_database0", "auto_recover": true}}
+2026-06-25 10:48:12,452 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,452 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_repair_corrupted_database0", "auto_recover": true}}
+2026-06-25 10:48:12,453 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,454 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "repair_database", "duration_ms": 0, "db_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_repair_corrupted_database0\\corrupted.db", "error": "file is not a database"}
+2026-06-25 10:48:12,462 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,462 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_repair_nonexistent_databa0", "auto_recover": true}}
+2026-06-25 10:48:12,482 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,482 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config0\\config.json"}
+2026-06-25 10:48:12,484 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:12,484 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config0\\config.json"]}
+2026-06-25 10:48:14,485 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:14,486 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config0\\config.json"}
+2026-06-25 10:48:15,987 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:15,987 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 10:48:15,996 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:15,996 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "watch_config", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config_callback_err0\\config.json"}
+2026-06-25 10:48:15,998 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:15,998 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "start", "duration_ms": 0, "watched_files": ["C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config_callback_err0\\config.json"]}
+2026-06-25 10:48:18,012 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,013 [   ERROR] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "config_changed", "duration_ms": 0, "config_path": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_watch_config_callback_err0\\config.json", "error": "callback error"}
+2026-06-25 10:48:18,500 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,500 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "config_hot_reloader", "action": "stop", "duration_ms": 0}
+2026-06-25 10:48:18,508 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,508 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 0.01, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_start_stop_scheduler0", "auto_recover": true}}
+2026-06-25 10:48:18,509 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,509 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "scheduler_test"}
+2026-06-25 10:48:18,510 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,510 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "interval_minutes": 0.01}
+2026-06-25 10:48:18,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,512 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:18,512 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.03, "backup_id": "backup_20260625_104818", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 183}
+2026-06-25 10:48:19,117 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,118 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,118 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.99, "backup_id": "backup_20260625_104819", "type": "incremental", "files": ["scheduler_test"], "size_bytes": 183}
+2026-06-25 10:48:19,511 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,512 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "stop_backup_scheduler", "duration_ms": 0}
+2026-06-25 10:48:19,521 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,522 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": false, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_start_scheduler_disabled0", "auto_recover": true}}
+2026-06-25 10:48:19,522 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,522 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "warning": "\u5907\u4efd\u672a\u542f\u7528\uff0c\u8df3\u8fc7\u8c03\u5ea6\u5668\u542f\u52a8"}
+2026-06-25 10:48:19,531 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,532 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 0.01, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_start_scheduler_already_r0", "auto_recover": true}}
+2026-06-25 10:48:19,532 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,533 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:19,534 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,534 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "interval_minutes": 0.01}
+2026-06-25 10:48:19,535 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,535 [ WARNING] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "start_backup_scheduler", "duration_ms": 0, "warning": "\u5907\u4efd\u8c03\u5ea6\u5668\u5df2\u8fd0\u884c"}
+2026-06-25 10:48:19,536 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,536 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,537 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 3.0, "backup_id": "backup_20260625_104819", "type": "incremental", "files": ["test"], "size_bytes": 161}
+2026-06-25 10:48:19,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,538 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "stop_backup_scheduler", "duration_ms": 0}
+2026-06-25 10:48:19,546 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,547 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_get_recovery_status0", "auto_recover": true}}
+2026-06-25 10:48:19,555 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,556 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-356\\test_get_status0", "auto_recover": true}}
+2026-06-25 10:48:19,556 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,556 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test"}
+2026-06-25 10:48:19,558 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,559 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,559 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 2.0, "backup_id": "backup_20260625_104819", "type": "full", "files": ["test"], "size_bytes": 154}
+2026-06-25 10:48:19,565 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,566 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_test"}
+2026-06-25 10:48:19,576 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,577 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_backup"}
+2026-06-25 10:48:19,580 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,580 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,581 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.78, "backup_id": "backup_20260625_104819", "type": "full", "files": ["convenience_test", "convenience_backup"], "size_bytes": 222}
+2026-06-25 10:48:19,590 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,590 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "convenience_restore"}
+2026-06-25 10:48:19,592 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,592 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,593 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260625_104819", "type": "full", "files": ["convenience_test", "convenience_backup", "convenience_restore"], "size_bytes": 279}
+2026-06-25 10:48:19,594 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 10:48:19,594 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.63, "backup_id": "backup_20260625_104819", "restored_files": ["convenience_test", "convenience_backup", "convenience_restore"]}

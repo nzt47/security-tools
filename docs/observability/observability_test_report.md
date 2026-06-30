@@ -1,5 +1,12 @@
 # 可观测性验证测试报告
 
+> **⚠️ 过时声明（2026-06-28 更新）**
+> 本报告生成于 2026-06-27，当时 `_read_test_coverage()` 在 coverage.xml 缺失时会降级到
+> `pyproject.toml fail_under=40` 作为基线。该降级逻辑已于 2026-06-28 彻底移除
+> （commit 2e8521fc），现在 coverage.xml 缺失时直接返回 0.0 并输出 error 日志。
+> 下方涉及 `fallback_pyproject` / `baseline: 40.0` / "降级值" 的内容均为历史记录，
+> 仅供追溯，不代表当前行为。CI 中已增加回归检查步骤防止降级逻辑回滚。
+
 **生成时间**：2026-06-27
 **执行环境**：本地 Windows（模拟 CI 环境）
 **Trace ID**：ed82d63e384644c2
@@ -180,8 +187,8 @@ push/PR → observability-config-validation
 
 ### 4.2 已知限制
 
-1. **test_coverage 为降级值**：本地无 coverage.xml，使用 pyproject.toml fail_under=40 作为基线
-2. **CI 环境差异**：CI 中 observability-unit-tests 会生成真实 coverage.xml，覆盖率可能不同
+1. **test_coverage 为降级值（已过时）**：~~本地无 coverage.xml，使用 pyproject.toml fail_under=40 作为基线~~。该降级逻辑已于 2026-06-28 移除（commit 2e8521fc），现在 coverage.xml 缺失时返回 0.0。
+2. **CI 环境差异**：CI 中 full-project-tests job 生成全项目 coverage.xml（覆盖 agent + scripts），visibility-report job 下载后读取真实 line-rate
 3. **boundary_test_coverage 已修复**：编码问题修复后 returncode=0，覆盖率 11.8%（438/3718）真实反映边界测试情况，超过 5% 阈值
 
 ### 4.3 后续建议

@@ -1,0 +1,389 @@
+2026-06-27 01:11:51,433 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 01:11:51,436 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 01:11:51,438 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 01:11:51,449 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 01:11:51,463 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:11:51,465 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 01:11:51,499 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 01:11:51,505 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 01:11:51,510 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 01:11:51,529 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 01:11:51,529 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 01:11:51,529 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 01:11:51,529 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 01:11:51,532 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 01:11:51,662 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 01:11:51,665 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 01:11:51,665 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 01:11:51,666 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 01:11:51,667 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 01:11:56,707 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-27 01:11:57,081 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 已从文件加载: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 开始更新配置...
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 检测到新的 LLM API Key，准备加密保存...
+2026-06-27 01:11:57,171 [ WARNING] agent.network_config: [网络配置] SecureManager 未初始化，敏感信息将明文存储
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] LLM API Key 已加密保存
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 合并配置到当前配置...
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 保存配置到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:57,171 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:57,173 [    INFO] agent.network_config: [网络配置] 配置已更新到文件
+2026-06-27 01:11:57,173 [    INFO] agent.network_config: [网络配置] 开始将配置应用到应用实例...
+2026-06-27 01:11:57,173 [    INFO] agent.network_config: [网络配置] 应用实例: <test_network_config_integration.MockApp object at 0x000002CA33AC7320>
+2026-06-27 01:11:57,173 [    INFO] agent.network_config: [网络配置] 应用实例类型: <class 'test_network_config_integration.MockApp'>
+2026-06-27 01:11:57,173 [    INFO] agent.network_config: [网络配置] [即时生效] HTTP 客户端超时已更新: 30 → 45s
+2026-06-27 01:11:57,174 [    INFO] agent.network_config: [网络配置] HTTP 客户端当前状态: timeout=45, max_retries=3
+2026-06-27 01:11:57,174 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用
+2026-06-27 01:11:57,174 [ WARNING] agent.network_config: [网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册
+2026-06-27 01:11:57,174 [    INFO] agent.network_config: [网络配置] LLM 配置状态: enabled=True, provider=openai, api_key_set=***, model=gpt-4
+2026-06-27 01:11:57,174 [    INFO] agent.network_config: [网络配置] 正在调用 configure_llm (来源: legacy)...
+2026-06-27 01:11:57,174 [ WARNING] agent.network_config: [网络配置] 应用 LLM 配置失败: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\network_config.py", line 1120, in apply_to_app
+    result = app_instance.configure_llm(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MockApp.configure_llm() got an unexpected keyword argument 'base_url'
+2026-06-27 01:11:57,175 [    INFO] agent.network_config: [网络配置] 配置应用完成
+2026-06-27 01:11:57,176 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:57,177 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:57,177 [    INFO] agent.network_config: [网络配置] 已重置为默认配置
+2026-06-27 01:11:57,178 [    INFO] agent.network_config: [网络配置] 已保存到文件: C:\Users\Administrator\agent\agent\data\network_config.json
+2026-06-27 01:11:58,251 [    INFO] agent.data_analytics: [DataAnalytics] 加载数据分析模块
+2026-06-27 01:11:58,674 [    INFO] agent.utils.index_manager: [IndexManager] 加载索引管理器
+2026-06-27 01:11:58,720 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=3600s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-27 01:11:58,720 [    INFO] agent.llm_response_cache: [LLMCache] 初始化完成，max_size=1000, ttl=3600s
+2026-06-27 01:11:59,387 [    INFO] agent.utils.serialization: [Serialization] 加载序列化工具
+2026-06-27 01:11:59,396 [ WARNING] agent.utils.serialization: [Serialization] msgpack 不可用
+2026-06-27 01:11:59,405 [ WARNING] agent.utils.serialization: [Serialization] cbor2 不可用
+2026-06-27 01:11:59,405 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=json, compress=False
+2026-06-27 01:11:59,405 [    INFO] agent.utils.serialization: [Serialization] 初始化完成: format=pickle, compress=False
+2026-06-27 01:11:59,738 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-27 01:12:00,007 [    INFO] agent.weekly_report_generator: [WeeklyReportGenerator] 加载周报生成器
+2026-06-27 01:12:00,109 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-spike-001", "module_name": "circuit_breaker.chaos_spike", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493920.1092637, "from": "closed", "to": "open"}
+2026-06-27 01:12:00,109 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-spike-001", "module_name": "circuit_breaker.chaos_spike", "action": "circuit_blocked", "duration_ms": 0, "timestamp": 1782493920.1092637, "state": "open"}
+2026-06-27 01:12:00,117 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-halfopen-001", "module_name": "circuit_breaker.chaos_half_open", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493920.1178052, "from": "closed", "to": "open"}
+2026-06-27 01:12:00,719 [    INFO] agent.circuit_breaker: {"trace_id": "", "module_name": "circuit_breaker.chaos_half_open", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493920.719959, "from": "open", "to": "half_open"}
+2026-06-27 01:12:00,725 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-001", "module_name": "circuit_breaker.chaos_recover", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493920.725841, "from": "closed", "to": "open"}
+2026-06-27 01:12:01,126 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-001", "module_name": "circuit_breaker.chaos_recover", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.1263018, "from": "open", "to": "half_open"}
+2026-06-27 01:12:01,126 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-001", "module_name": "circuit_breaker.chaos_recover", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.1263018, "from": "half_open", "to": "closed"}
+2026-06-27 01:12:01,129 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-002", "module_name": "circuit_breaker.chaos_reopen", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.1293619, "from": "closed", "to": "open"}
+2026-06-27 01:12:01,530 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-002", "module_name": "circuit_breaker.chaos_reopen", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.530967, "from": "open", "to": "half_open"}
+2026-06-27 01:12:01,530 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-recover-002", "module_name": "circuit_breaker.chaos_reopen", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.530967, "from": "half_open", "to": "open"}
+2026-06-27 01:12:01,532 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-cycle-001", "module_name": "circuit_breaker.chaos_cycle", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.532985, "from": "closed", "to": "open"}
+2026-06-27 01:12:01,785 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-cycle-001", "module_name": "circuit_breaker.chaos_cycle", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.785553, "from": "open", "to": "half_open"}
+2026-06-27 01:12:01,785 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-cycle-001", "module_name": "circuit_breaker.chaos_cycle", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.785553, "from": "half_open", "to": "open"}
+2026-06-27 01:12:01,785 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-cycle-001", "module_name": "circuit_breaker.chaos_cycle", "action": "circuit_blocked", "duration_ms": 0, "timestamp": 1782493921.785553, "state": "open"}
+2026-06-27 01:12:01,791 [    INFO] agent.circuit_breaker: {"trace_id": "chaos-cb-cooldown-001", "module_name": "circuit_breaker.chaos_cooldown", "action": "circuit_state_changed", "duration_ms": 0, "timestamp": 1782493921.7918086, "from": "closed", "to": "open"}
+2026-06-27 01:12:01,986 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-27 01:12:01,988 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-27 01:12:01,990 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-27 01:12:01,995 [    INFO] contract_framework: 契约已保存: chat_api_pact.json, chat_api_contract.json
+2026-06-27 01:12:01,997 [    INFO] contract_framework: 契约已保存: health_api_pact.json, health_api_contract.json
+2026-06-27 01:12:01,998 [    INFO] contract_framework: 契约已保存: dashboard_api_pact.json, dashboard_api_contract.json
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "156dcb71c68649a6", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息"}
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "156dcb71c68649a6", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "正常对话请求 - 返回响应文本与模式信息", "passed": true, "duration_ms": 0.0}
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "2e3624899ad2455e", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误"}
+2026-06-27 01:12:02,030 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=400, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "2e3624899ad2455e", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "空消息请求 - 返回 400 错误", "passed": false, "duration_ms": 0.0}
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "65dc6d94c78443ff", "module_name": "contract_verification", "action": "verify.start", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断"}
+2026-06-27 01:12:02,030 [ WARNING] contract_framework: 契约验证失败: 契约 'chat_api' 违反: 字段 '$.status' 期望=403, 实际=200 [error_code=CONTRACT_VIOLATION]
+2026-06-27 01:12:02,030 [    INFO] contract_framework: {"trace_id": "65dc6d94c78443ff", "module_name": "contract_verification", "action": "verify.complete", "contract": "chat_api", "interaction": "安全拦截请求 - 返回 403 阻断", "passed": false, "duration_ms": 0.0}
+2026-06-27 01:12:02,032 [    INFO] contract_framework: {"trace_id": "35fd9008c35c4084", "module_name": "contract_verification", "action": "verify.start", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组"}
+2026-06-27 01:12:02,032 [ WARNING] contract_framework: 契约验证失败: 契约 'health_api' 违反: 字段 '$.status' 期望=200, 实际=500 [error_code=CONTRACT_VIOLATION]
+2026-06-27 01:12:02,032 [    INFO] contract_framework: {"trace_id": "35fd9008c35c4084", "module_name": "contract_verification", "action": "verify.complete", "contract": "health_api", "interaction": "获取身体状态读数 - 返回读数数组", "passed": false, "duration_ms": 0.0}
+2026-06-27 01:12:02,037 [    INFO] contract_framework: {"trace_id": "847cbcbf676d4b23", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标"}
+2026-06-27 01:12:02,037 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'success_count' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-27 01:12:02,037 [    INFO] contract_framework: {"trace_id": "847cbcbf676d4b23", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取质量监控数据 - 返回质量指标", "passed": false, "duration_ms": 0.0}
+2026-06-27 01:12:02,037 [    INFO] contract_framework: {"trace_id": "1c7d43c3fafc4ce9", "module_name": "contract_verification", "action": "verify.start", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录"}
+2026-06-27 01:12:02,037 [ WARNING] contract_framework: 契约验证失败: 契约 'dashboard_api' 违反: 字段 'total' 期望=非空值, 实际=None/缺失 [error_code=CONTRACT_VIOLATION]
+2026-06-27 01:12:02,037 [    INFO] contract_framework: {"trace_id": "1c7d43c3fafc4ce9", "module_name": "contract_verification", "action": "verify.complete", "contract": "dashboard_api", "interaction": "获取追踪数据列表 - 返回追踪记录", "passed": false, "duration_ms": 0.0}
+2026-06-27 01:12:02,042 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-27 01:12:02,042 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,042 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-27 星期六
+2026-06-27 01:12:02,046 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-27 01:12:02,093 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=C:\Windows\TEMP\tmp5d36h5f0\test.db
+2026-06-27 01:12:02,103 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-27 01:12:02,114 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 指令忽略: 'ignore all previous instructions'
+2026-06-27 01:12:02,117 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=test, type=chat, complexity=simple
+2026-06-27 01:12:02,118 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=test, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-27 01:12:02,118 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=test, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-27 01:12:02,121 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-27 01:12:02,121 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,122 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-27 星期六
+2026-06-27 01:12:02,122 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-27 星期六
+2026-06-27 01:12:02,134 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: simple_calc → 1+1 = 2
+2026-06-27 01:12:02,134 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: simple_calc → 25*4 = 100
+2026-06-27 01:12:02,137 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,138 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,139 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,139 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,139 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,139 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,139 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,140 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,141 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,142 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,143 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,144 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,145 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,146 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,147 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,147 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,147 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,147 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,147 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,149 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,151 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:12
+2026-06-27 01:12:02,155 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-27 01:12:02,497 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,497 [    INFO] test_agent_integration: [集成测试] 开始测试错误处理器与熔断器集成
+2026-06-27 01:12:02,497 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,497 [    INFO] test_agent_integration: [步骤1] 初始化错误处理器和熔断器
+2026-06-27 01:12:02,497 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:12:02,497 [    INFO] agent.error_handler: Circuit breaker 'test_cb' initialized: max_failures=2
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 错误处理器已初始化
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 熔断器 'test_cb' 已创建，max_failures=2
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration: [步骤2] 注册熔断器到错误处理器
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 熔断器注册成功
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration: [步骤3] 测试熔断器跳闸机制
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 记录第 1 次失败，当前状态: CLOSED
+2026-06-27 01:12:02,498 [ WARNING] agent.error_handler: Circuit breaker 'test_cb': OPENED after 2 failures
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 记录第 2 次失败，当前状态: OPEN
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 记录第 3 次失败，当前状态: OPEN
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 熔断器已成功跳闸
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration: [步骤4] 验证熔断器状态查询
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration:   - 熔断器状态查询成功: {'test_cb': {'name': 'test_cb', 'state': 'open', 'failure_count': 3, 'success_count': 0, 'max_failures': 2, 'last_failure_time': '2026-06-27T01:12:02.498980', 'last_success_time': None}}
+2026-06-27 01:12:02,498 [    INFO] test_agent_integration: [集成测试] 错误处理器与熔断器集成测试通过
+2026-06-27 01:12:02,499 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration: [集成测试] 开始测试全局错误处理器
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration: [步骤1] 获取全局错误处理器实例
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration:   - 第一次获取: 3067071325600
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration:   - 第二次获取: 3067071325600
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration:   - 验证通过: 全局错误处理器是单例
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration: [步骤2] 记录错误并验证指标
+2026-06-27 01:12:02,503 [   ERROR] agent.error_handler: [error] unknown: test error
+2026-06-27 01:12:02,503 [    INFO] test_agent_integration:   - 错误已记录
+2026-06-27 01:12:02,504 [    INFO] test_agent_integration:   - 指标验证成功: {'key': 'YunshuError', 'total_count': 1, 'count_by_severity': {'debug': 0, 'info': 0, 'warning': 0, 'error': 1, 'critical': 0}, 'count_by_category': {'network_temporary': 0, 'network_timeout': 0, 'network_connection': 0, 'resource_memory': 0, 'resource_disk': 0, 'resource_cpu': 0, 'external_service': 0, 'external_api': 0, 'data_invalid': 0, 'data_missing': 0, 'data_corrupt': 0, 'permission_denied': 0, 'security_alert': 0, 'config_error': 0, 'unknown': 1}, 'first_occurrence': '2026-06-27T01:12:02.503011', 'last_occurrence': '2026-06-27T01:12:02.503011'}
+2026-06-27 01:12:02,504 [    INFO] test_agent_integration: [集成测试] 全局错误处理器测试通过
+2026-06-27 01:12:02,504 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,506 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,506 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器依赖管理
+2026-06-27 01:12:02,506 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,506 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器
+2026-06-27 01:12:02,507 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-27 01:12:02,507 [    INFO] test_agent_integration:   - 懒加载器已初始化
+2026-06-27 01:12:02,507 [    INFO] test_agent_integration: [步骤2] 定义测试模块和依赖
+2026-06-27 01:12:02,507 [    INFO] test_agent_integration:   - 依赖模块加载函数已定义
+2026-06-27 01:12:02,507 [    INFO] test_agent_integration:   - 主模块加载函数已定义
+2026-06-27 01:12:02,507 [    INFO] test_agent_integration: [步骤3] 注册模块（带依赖关系）
+2026-06-27 01:12:02,507 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: dependency, level=CRITICAL, deps=[], has_async=False
+2026-06-27 01:12:02,507 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: main, level=IMPORTANT, deps=['dependency'], has_async=False
+2026-06-27 01:12:02,508 [    INFO] test_agent_integration:   - 依赖模块 'dependency' 已注册 (CRITICAL级别)
+2026-06-27 01:12:02,508 [    INFO] test_agent_integration:   - 主模块 'main' 已注册 (IMPORTANT级别, 依赖: dependency)
+2026-06-27 01:12:02,508 [    INFO] test_agent_integration: [步骤4] 加载主模块（应自动加载依赖）
+2026-06-27 01:12:02,512 [    INFO] test_agent_integration:   - 主模块加载结果: main
+2026-06-27 01:12:02,513 [    INFO] test_agent_integration:   - 依赖加载次数: 1
+2026-06-27 01:12:02,513 [    INFO] test_agent_integration:   - 依赖自动加载验证通过
+2026-06-27 01:12:02,513 [    INFO] test_agent_integration: [集成测试] 懒加载器依赖管理测试通过
+2026-06-27 01:12:02,513 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: [集成测试] 开始测试懒加载器并行加载
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: [步骤1] 初始化懒加载器（4个工作线程）
+2026-06-27 01:12:02,516 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration:   - 懒加载器已初始化, max_workers=4
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: [步骤2] 定义并行加载的模块
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration:   - 三个测试模块加载函数已定义
+2026-06-27 01:12:02,516 [    INFO] test_agent_integration: [步骤3] 注册模块
+2026-06-27 01:12:02,516 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod1, level=CRITICAL, deps=[], has_async=False
+2026-06-27 01:12:02,517 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod2, level=CRITICAL, deps=[], has_async=False
+2026-06-27 01:12:02,517 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: mod3, level=CRITICAL, deps=[], has_async=False
+2026-06-27 01:12:02,517 [    INFO] test_agent_integration:   - 三个CRITICAL级别模块已注册
+2026-06-27 01:12:02,517 [    INFO] test_agent_integration: [步骤4] 执行并行加载
+2026-06-27 01:12:02,517 [    INFO] agent.lazy_loader: [LazyLoader] 开始加载级别: CRITICAL
+2026-06-27 01:12:02,521 [    INFO] agent.lazy_loader: [LazyLoader] 级别 CRITICAL 加载完成: 成功=3, 失败=0
+2026-06-27 01:12:02,521 [    INFO] test_agent_integration:   - 加载结果: ['mod1', 'mod2', 'mod3']
+2026-06-27 01:12:02,521 [    INFO] test_agent_integration:   - 实际加载顺序: ['mod1', 'mod2', 'mod3']
+2026-06-27 01:12:02,521 [    INFO] test_agent_integration:   - 并行加载验证通过
+2026-06-27 01:12:02,521 [    INFO] test_agent_integration: [集成测试] 懒加载器并行加载测试通过
+2026-06-27 01:12:02,521 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,524 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,525 [    INFO] test_agent_integration: [集成测试] 开始测试全局懒加载器
+2026-06-27 01:12:02,525 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,525 [    INFO] test_agent_integration: [步骤1] 获取全局懒加载器实例
+2026-06-27 01:12:02,525 [    INFO] agent.lazy_loader: [LazyLoader] 初始化完成: max_workers=4
+2026-06-27 01:12:02,525 [    INFO] test_agent_integration:   - 第一次获取: 3067491904128
+2026-06-27 01:12:02,525 [    INFO] test_agent_integration:   - 第二次获取: 3067491904128
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration:   - 验证通过: 全局懒加载器是单例
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration: [步骤2] 在一个实例上注册模块
+2026-06-27 01:12:02,526 [    INFO] agent.lazy_loader: [LazyLoader] 注册模块: test_mod, level=OPTIONAL, deps=[], has_async=False
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration:   - 测试模块 'test_mod' 已注册
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration: [步骤3] 在另一个实例上验证
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration:   - 模块共享验证通过
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration: [集成测试] 全局懒加载器测试通过
+2026-06-27 01:12:02,526 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,529 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,529 [    INFO] test_agent_integration: [集成测试] 开始测试数据脱敏器与日志过滤器集成
+2026-06-27 01:12:02,529 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,529 [    INFO] test_agent_integration: [步骤1] 初始化脱敏器和日志过滤器
+2026-06-27 01:12:02,529 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-27 01:12:02,531 [    INFO] test_agent_integration:   - 数据脱敏器已初始化
+2026-06-27 01:12:02,531 [    INFO] test_agent_integration:   - 敏感数据过滤器已初始化
+2026-06-27 01:12:02,531 [    INFO] test_agent_integration: [步骤2] 准备测试数据
+2026-06-27 01:12:02,531 [    INFO] test_agent_integration:   - 原始数据: API Key=sk-12345, password=secret
+2026-06-27 01:12:02,531 [    INFO] test_agent_integration: [步骤3] 使用脱敏器处理
+2026-06-27 01:12:02,532 [    INFO] test_agent_integration:   - 脱敏器处理结果: API Key=[REDACTED], password=[REDACTED]
+2026-06-27 01:12:02,532 [    INFO] test_agent_integration: [步骤4] 使用日志过滤器处理
+2026-06-27 01:12:02,534 [    INFO] test_agent_integration:   - 过滤器处理结果: API Key=[REDACTED], password="[REDACTED]"
+2026-06-27 01:12:02,535 [    INFO] test_agent_integration:   - 脱敏效果验证通过
+2026-06-27 01:12:02,535 [    INFO] test_agent_integration: [集成测试] 数据脱敏器与日志过滤器集成测试通过
+2026-06-27 01:12:02,535 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,538 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: [集成测试] 开始测试加密器与脱敏器配合使用
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: [步骤1] 初始化数据脱敏器
+2026-06-27 01:12:02,539 [    INFO] agent.security_utils: 数据脱敏器已初始化
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration:   - 数据脱敏器已初始化
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: [步骤2] 准备测试数据
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration:   - 原始数据: {'user': 'admin', 'api_key': 'sk-secret-key', 'password': 'secret123'}
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: [步骤3] 执行脱敏处理
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration:   - 脱敏后数据: {'user': 'admin', 'api_key': '[REDACTED]', 'password': '[REDACTED]'}
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration:   - 脱敏验证通过
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: [集成测试] 加密器与脱敏器配合测试通过
+2026-06-27 01:12:02,539 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration: [集成测试] 开始测试安全监控器与日志系统集成
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration: [步骤1] 获取安全监控器
+2026-06-27 01:12:02,543 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration:   - 安全监控器已获取
+2026-06-27 01:12:02,543 [    INFO] test_agent_integration: [步骤2] 测试监控器记录功能
+2026-06-27 01:12:02,544 [    INFO] test_agent_integration:   - 监控器记录成功
+2026-06-27 01:12:02,544 [    INFO] test_agent_integration: [集成测试] 安全监控器与日志系统集成测试通过
+2026-06-27 01:12:02,544 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: [集成测试] 开始测试敏感数据过滤器在日志中的应用
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: [步骤1] 配置测试日志器
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration:   - 测试日志器配置完成
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: [步骤2] 测试日志记录（包含敏感数据）
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration:   - 日志记录成功
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: [集成测试] 敏感数据过滤器在日志中的应用测试通过
+2026-06-27 01:12:02,546 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: [集成测试] 开始测试错误处理完整工作流
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: ============================================================
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: [步骤1] 初始化错误处理器
+2026-06-27 01:12:02,549 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration:   - 错误处理器已初始化
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: [步骤2] 导入错误类
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration:   - 错误类导入完成
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: [步骤3] 记录普通错误
+2026-06-27 01:12:02,549 [   ERROR] agent.error_handler: [error] unknown: 普通错误
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration:   - 普通错误已记录
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration: [步骤4] 记录可恢复错误
+2026-06-27 01:12:02,549 [ WARNING] agent.error_handler: [warning] unknown: 可恢复错误
+2026-06-27 01:12:02,549 [    INFO] test_agent_integration:   - 可恢复错误已记录
+2026-06-27 01:12:02,552 [    INFO] test_agent_integration: [步骤5] 记录严重错误
+2026-06-27 01:12:02,552 [CRITICAL] agent.error_handler: [critical] unknown: 严重错误
+2026-06-27 01:12:02,552 [    INFO] test_agent_integration:   - 严重错误已记录
+2026-06-27 01:12:02,552 [    INFO] test_agent_integration: [步骤6] 注册熔断器
+2026-06-27 01:12:02,552 [    INFO] agent.error_handler: Circuit breaker 'workflow_cb' initialized: max_failures=5
+2026-06-27 01:12:02,552 [    INFO] test_agent_integration:   - 熔断器 'workflow_cb' 已注册
+2026-06-27 01:12:02,552 [    INFO] test_agent_integration: [步骤7] 验证指标

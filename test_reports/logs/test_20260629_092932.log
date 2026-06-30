@@ -1,0 +1,6 @@
+2026-06-29 09:29:32,574 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 09:29:32,577 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 09:29:32,578 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 09:29:32,589 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 09:29:32,605 [    INFO] agent.error_handler: {"trace_id": "91b65352a0844527", "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}
+2026-06-29 09:29:32,608 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}

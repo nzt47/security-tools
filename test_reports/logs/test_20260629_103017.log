@@ -1,0 +1,88 @@
+2026-06-29 10:30:19,319 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-29 10:30:19,322 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-29 10:30:19,323 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-29 10:30:19,334 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:19,350 [    INFO] agent.error_handler: {"trace_id": "c9b256e4ff7e4838", "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}
+2026-06-29 10:30:19,352 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-29 10:30:19,397 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-29 10:30:19,404 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-29 10:30:19,409 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-29 10:30:19,428 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-29 10:30:19,429 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-29 10:30:19,429 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-29 10:30:19,430 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-29 10:30:19,432 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-29 10:30:19,558 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-29 10:30:19,561 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-29 10:30:19,561 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-29 10:30:19,562 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-29 10:30:20,161 [    INFO] agent.monitoring.business_metrics: {"trace_id": "563b8b2512914e77", "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}
+2026-06-29 10:30:20,208 [    INFO] agent.monitoring.observability_config: {"trace_id": null, "module_name": "observability_config", "action": "init", "duration_ms": 0, "config_items": 16, "config": {"tracing": {"env": "development", "log_level": "INFO", "sampler_ratio": 0.1}, "logging": {"level": "INFO", "output_path": ""}, "metrics": {"enabled": true}, "health_check": {"interval_sec": 60}, "resource_monitor": {"enabled": true, "sample_interval_sec": 60, "stress_test_interval_sec": 1.0, "leak_slope_threshold": 1.0, "history_size": 1440, "persist_enabled": true, "persist_path": "", "persist_max_age_hours": 168, "persist_batch_size": 100}}}
+2026-06-29 10:30:20,539 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START TestService.test_operation
+2026-06-29 10:30:20,539 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END TestService.test_operation (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,545 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,546 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,546 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,546 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,546 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,890 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,891 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=0.92ms)
+2026-06-29 10:30:20,898 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,899 [   ERROR] agent.monitoring.tracing: [f40132cc7edf41e3] ERROR Service.op (duration=1.00ms, error=test error)
+2026-06-29 10:30:20,906 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,918 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=11.52ms)
+2026-06-29 10:30:20,929 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] START Service.op
+2026-06-29 10:30:20,940 [    INFO] agent.monitoring.tracing: [f40132cc7edf41e3] END Service.op (duration=11.25ms)
+2026-06-29 10:30:20,961 [    INFO] agent.monitoring.tracing: [external-trace-id] START Service.op
+2026-06-29 10:30:20,961 [    INFO] agent.monitoring.tracing: [external-trace-id] END Service.op (duration=0.00ms)
+2026-06-29 10:30:20,969 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] START Service.operation
+2026-06-29 10:30:20,969 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] END Service.operation (duration=0.55ms)
+2026-06-29 10:30:20,977 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] START Service.operation
+2026-06-29 10:30:20,977 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] END Service.operation (duration=0.00ms)
+2026-06-29 10:30:20,982 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] START Service.op
+2026-06-29 10:30:20,983 [   ERROR] agent.monitoring.tracing: [c6bdd8c683a9495b] ERROR Service.op (duration=1.00ms, error=test error)
+2026-06-29 10:30:21,017 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] START Outer.op
+2026-06-29 10:30:21,018 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] START Inner.op
+2026-06-29 10:30:21,018 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] END Inner.op (duration=0.00ms)
+2026-06-29 10:30:21,018 [    INFO] agent.monitoring.tracing: [c6bdd8c683a9495b] END Outer.op (duration=1.00ms)
+2026-06-29 10:30:21,031 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,041 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,046 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,051 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,056 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,061 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,067 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,073 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,078 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,083 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-29 10:30:21,090 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化

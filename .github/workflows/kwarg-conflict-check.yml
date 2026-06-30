@@ -1,0 +1,185 @@
+# 关键字参数冲突扫描 CI 工作流
+#
+# 在每次 push 和 pull request 时自动运行 kwarg 冲突扫描器，
+# 发现 HIGH 风险时阻断 CI（exit code 1）。
+# 同时生成变更清单报告供代码审查。
+
+name: 关键字参数冲突扫描
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'test/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:  # 支持手动触发
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # ============================================================================
+  # HIGH 风险扫描（阻断式）
+  # ============================================================================
+  kwarg-high-risk-scan:
+    name: HIGH 风险扫描 (阻断)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整 git 历史用于变更报告
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 验证扫描器存在
+        run: |
+          if [ ! -f scripts/scan_kwarg_conflicts.py ]; then
+            echo "::error::扫描器脚本不存在: scripts/scan_kwarg_conflicts.py"
+            exit 1
+          fi
+          echo "✓ 扫描器脚本存在"
+
+      - name: 运行 HIGH 风险扫描
+        run: |
+          echo "=== 关键字参数冲突扫描 (HIGH) ==="
+          python scripts/scan_kwarg_conflicts.py \
+            --path agent/ \
+            --min-risk HIGH \
+            --format text \
+            --output kwarg-high-risk-report.txt
+          echo "✓ HIGH 风险扫描通过（0 处发现）"
+
+      - name: 上传 HIGH 风险报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwarg-high-risk-report
+          path: kwarg-high-risk-report.txt
+          retention-days: 30
+
+      - name: HIGH 风险阻断检查
+        if: failure()
+        run: |
+          echo "::error::检测到 HIGH 级别关键字参数冲突风险，CI 已阻断"
+          echo "::error::请修复后重新提交，或使用 safe_kwargs 过滤保留键"
+          echo "::error::扫描命令: python scripts/scan_kwarg_conflicts.py --min-risk HIGH"
+          exit 1
+
+  # ============================================================================
+  # MEDIUM 风险扫描（非阻断，仅提醒）
+  # ============================================================================
+  kwarg-medium-risk-scan:
+    name: MEDIUM 风险扫描 (提醒)
+    runs-on: ubuntu-latest
+    needs: kwarg-high-risk-scan
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 运行 MEDIUM 风险扫描
+        run: |
+          echo "=== 关键字参数冲突扫描 (MEDIUM) ==="
+          python scripts/scan_kwarg_conflicts.py \
+            --path agent/ \
+            --min-risk MEDIUM \
+            --format json \
+            --output kwarg-medium-risk-report.json
+          echo "✓ MEDIUM 风险扫描完成"
+
+      - name: 上传 MEDIUM 风险报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwarg-medium-risk-report
+          path: kwarg-medium-risk-report.json
+          retention-days: 30
+
+      - name: MEDIUM 风险提醒
+        run: |
+          COUNT=$(python -c "import json; d=json.load(open('kwarg-medium-risk-report.json')); print(d['summary']['MEDIUM'])")
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::检测到 $COUNT 处 MEDIUM 级别风险（不阻断，建议审查）"
+            echo "::warning::查看报告: kwarg-medium-risk-report.json"
+          else
+            echo "✓ 无 MEDIUM 级别风险"
+          fi
+
+  # ============================================================================
+  # 变更清单报告（仅 pull request 时生成）
+  # ============================================================================
+  fix-report:
+    name: 变更清单报告
+    runs-on: ubuntu-latest
+    needs: kwarg-high-risk-scan
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 生成变更清单报告
+        run: |
+          echo "=== 生成变更清单报告 ==="
+          # 获取最近 3 个 fix: 开头的提交
+          COMMITS=$(git log --oneline --grep="^fix.*kwargs" | head -3 | awk '{print $1}' | tr '\n' ',' | sed 's/,$//')
+          if [ -z "$COMMITS" ]; then
+            echo "未找到 kwargs 修复提交，跳过报告生成"
+            exit 0
+          fi
+          echo "分析提交: $COMMITS"
+          python scripts/generate_fix_report.py \
+            --commits "$COMMITS" \
+            --format markdown \
+            --output kwarg-fix-report.md
+          echo "✓ 变更清单报告已生成"
+
+      - name: 上传变更清单报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwarg-fix-report
+          path: kwarg-fix-report.md
+          retention-days: 90
+
+      - name: 在 PR 中评论报告
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const report = fs.readFileSync('kwarg-fix-report.md', 'utf8');
+              if (report.length > 0) {
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: report.substring(0, 65000)  // GitHub 评论限制
+                });
+              }
+            } catch (e) {
+              console.log('报告文件不存在或为空，跳过评论');
+            }

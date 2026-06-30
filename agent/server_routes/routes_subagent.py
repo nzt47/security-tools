@@ -6,6 +6,7 @@
 import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/subagent/list")
+    @trace_route("Subagent")
     @log_request(show_response=False)
     def api_subagent_list():
         """获取所有活跃分身列表"""
@@ -31,6 +33,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/subagent/<name>")
+    @trace_route("Subagent")
     @log_request(show_response=False)
     def api_subagent_get(name):
         """获取指定分身详情"""
@@ -47,6 +50,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/subagent/create", methods=["POST"])
+    @trace_route("Subagent")
     @require_token
     @log_request()
     def api_subagent_create():
@@ -92,6 +96,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 400
 
     @app.route("/api/subagent/<name>/destroy", methods=["POST"])
+    @trace_route("Subagent")
     @require_token
     @log_request()
     def api_subagent_destroy(name):
@@ -113,6 +118,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/subagent/<name>/execute", methods=["POST"])
+    @trace_route("Subagent")
     @require_token
     @log_request()
     def api_subagent_execute(name):
@@ -139,6 +145,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/subagent/<name>/reload", methods=["POST"])
+    @trace_route("Subagent")
     @require_token
     @log_request()
     def api_subagent_reload(name):

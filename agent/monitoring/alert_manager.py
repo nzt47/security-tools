@@ -12,12 +12,15 @@
 5. 告警历史和统计
 """
 
+import json
 import logging
 import time
 import threading
 import os
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass
+
+from agent.monitoring.tracing import get_trace_id
 
 try:
     import yaml
@@ -90,16 +93,15 @@ class AlertManager:
         # 初始化组件
         self._init_components()
 
-        logger.info(
-            "[AlertManager] 告警系统管理器已初始化",
-            extra={
-                "trace_id": None,
-                "module_name": "alert_manager",
-                "action": "init",
-                "config_path": config_path,
-                "rules_count": len(self._config.get("groups", []))
-            }
-        )
+        # 结构化日志（使用 json.dumps 输出，trace_id 通过 get_trace_id 获取）
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "init",
+            "duration_ms": 0,
+            "config_path": config_path,
+            "rules_count": len(self._config.get("groups", []))
+        }, ensure_ascii=False))
 
     def _load_config(self):
         """加载告警配置"""
@@ -111,15 +113,15 @@ class AlertManager:
             )
 
         if not os.path.exists(self.config_path):
-            logger.warning(
-                f"[AlertManager] 配置文件不存在: {self.config_path}",
-                extra={
-                    "trace_id": None,
-                    "module_name": "alert_manager",
-                    "action": "config_load_failed",
-                    "error": "file_not_found"
-                }
-            )
+            # 结构化日志：边界显性化 - 文件不存在时记录明确错误码 file_not_found
+            logger.warning(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "alert_manager",
+                "action": "config_load_failed",
+                "duration_ms": 0,
+                "config_path": self.config_path,
+                "error": "file_not_found"
+            }, ensure_ascii=False))
             # 使用默认配置
             self._config = self._get_default_config()
             return
@@ -128,15 +130,15 @@ class AlertManager:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self._config = yaml.safe_load(f) or {}
 
-            logger.info(
-                f"[AlertManager] 配置已加载: {self.config_path}",
-                extra={
-                    "trace_id": None,
-                    "module_name": "alert_manager",
-                    "action": "config_loaded",
-                    "groups_count": len(self._config.get("groups", []))
-                }
-            )
+            # 结构化日志：配置加载成功
+            logger.info(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "alert_manager",
+                "action": "config_loaded",
+                "duration_ms": 0,
+                "config_path": self.config_path,
+                "groups_count": len(self._config.get("groups", []))
+            }, ensure_ascii=False))
         except Exception as e:
             logger.error(f"[AlertManager] 配置加载失败: {e}")
             self._config = self._get_default_config()
@@ -278,17 +280,16 @@ class AlertManager:
 
     def _on_heal_executed(self, record):
         """自愈执行完成回调"""
-        logger.info(
-            f"[AlertManager] 自愈动作执行完成: {record.action} - {record.status.value}",
-            extra={
-                "trace_id": None,
-                "module_name": "alert_manager",
-                "action": "heal_executed",
-                "action": record.action,
-                "status": record.status.value,
-                "message": record.message
-            }
-        )
+        # 结构化日志：自愈动作执行完成（修复原代码 action 键重复问题）
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "heal_executed",
+            "duration_ms": 0,
+            "heal_action": record.action,
+            "status": record.status.value,
+            "message": record.message
+        }, ensure_ascii=False))
 
     def _send_alert_notification(self, alert: Alert):
         """发送告警通知"""
@@ -369,14 +370,13 @@ class AlertManager:
         if self._healer:
             self._healer.start()
 
-        logger.info(
-            "[AlertManager] 告警管理系统已启动",
-            extra={
-                "trace_id": None,
-                "module_name": "alert_manager",
-                "action": "start"
-            }
-        )
+        # 结构化日志：告警管理系统启动完成
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "start",
+            "duration_ms": 0
+        }, ensure_ascii=False))
 
     def stop(self):
         """停止告警管理系统"""
@@ -390,14 +390,13 @@ class AlertManager:
         if self._healer:
             self._healer.stop()
 
-        logger.info(
-            "[AlertManager] 告警管理系统已停止",
-            extra={
-                "trace_id": None,
-                "module_name": "alert_manager",
-                "action": "stop"
-            }
-        )
+        # 结构化日志：告警管理系统停止完成
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "stop",
+            "duration_ms": 0
+        }, ensure_ascii=False))
 
     def get_alerts(
         self,

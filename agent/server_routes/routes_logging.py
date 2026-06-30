@@ -53,6 +53,7 @@ from agent.monitoring.prometheus import (
 )
 from agent.health.assessor import health_assessor
 from agent.tools import list_tools
+from agent.server_routes.tracing_decorator import trace_route
 from agent.monitoring.sensitive_data_filter import (
     filter_sensitive_data, 
     filter_dict,
@@ -78,9 +79,9 @@ def get_prometheus_exporter():
     if _prometheus_exporter is None:
         try:
             _prometheus_exporter = PrometheusMetricsExporter(port=0)  # 使用共享端口
-            logger.info("[Prometheus] 指标导出器已初始化")
+            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": "[Prometheus] 指标导出器已初始化"}, ensure_ascii=False))
         except Exception as e:
-            logger.warning(f"[Prometheus] 初始化失败: {e}")
+            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"[Prometheus] 初始化失败: {e}"}, ensure_ascii=False))
     return _prometheus_exporter
 
 # 告警规则存储
@@ -96,7 +97,7 @@ def _load_alert_rules():
             with open(_ALERT_RULES_FILE, 'r', encoding='utf-8') as f:
                 _ALERT_RULES_CACHE = yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"加载告警规则失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"加载告警规则失败: {e}"}, ensure_ascii=False))
             _ALERT_RULES_CACHE = {"groups": []}
     return _ALERT_RULES_CACHE
 
@@ -110,30 +111,8 @@ def _save_alert_rules(rules):
         _ALERT_RULES_CACHE = rules
         return True
     except Exception as e:
-        logger.error(f"保存告警规则失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"保存告警规则失败: {e}"}, ensure_ascii=False))
         return False
-
-
-def trace_route(service_name="API"):
-    """追踪路由装饰器
-    
-    自动为 API 路由添加追踪上下文，确保完整的链路追踪。
-    
-    Args:
-        service_name: 服务名称，用于追踪标识
-    
-    Returns:
-        装饰后的函数
-    """
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            operation = func.__name__.replace("api_", "").replace("_", ".")
-            with TraceContext(service_name, operation):
-                return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
 
 
 def _get_tool_summary():
@@ -171,7 +150,7 @@ def _get_tool_summary():
             "timestamp": time.time()
         }
     except Exception as e:
-        logger.error(f"获取工具摘要失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取工具摘要失败: {e}"}, ensure_ascii=False))
         return {"error": str(e), "timestamp": time.time()}
 
 
@@ -210,7 +189,7 @@ def _get_config_status():
         # 对配置进行敏感数据过滤
         return filter_dict(config_status)
     except Exception as e:
-        logger.error(f"获取配置状态失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取配置状态失败: {e}"}, ensure_ascii=False))
         return {"error": str(e), "timestamp": time.time()}
 
 
@@ -244,7 +223,7 @@ def _get_health_status():
             "timestamp": time.time()
         }
     except Exception as e:
-        logger.error(f"获取健康状态失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取健康状态失败: {e}"}, ensure_ascii=False))
         return {"error": str(e), "timestamp": time.time()}
 
 
@@ -276,7 +255,7 @@ def _get_error_correlation_stats(hours: int = 24) -> dict:
         storage = get_replay_storage()
         result["replay_stats"] = storage.get_correlation_stats(hours=hours)
     except Exception as e:
-        logger.debug(f"[HealthStatus] 回放关联统计获取失败（已降级）: {e}")
+        logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"[HealthStatus] 回放关联统计获取失败（已降级）: {e}"}, ensure_ascii=False))
         result["replay_stats"] = {
             "total_replays": 0,
             "with_trace_id": 0,
@@ -317,7 +296,7 @@ def _get_runtime_metrics():
             "timestamp": time.time()
         }
     except Exception as e:
-        logger.error(f"获取运行时指标失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取运行时指标失败: {e}"}, ensure_ascii=False))
         return {"error": str(e), "timestamp": time.time()}
 
 
@@ -367,7 +346,7 @@ def _get_recent_logs(limit=50):
                     "timestamp": time.time()
                 }
         except (ImportError, Exception) as e:
-            logger.debug(f"日志存储系统不可用: {e}")
+            logger.debug(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"日志存储系统不可用: {e}"}, ensure_ascii=False))
         
         # 降级方案：从性能记录器获取模块初始化记录
         recorder = get_performance_recorder()
@@ -392,7 +371,7 @@ def _get_recent_logs(limit=50):
             "timestamp": time.time()
         }
     except Exception as e:
-        logger.error(f"获取最近日志失败: {e}")
+        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取最近日志失败: {e}"}, ensure_ascii=False))
         return {"error": str(e), "timestamp": time.time()}
 
 
@@ -767,7 +746,7 @@ def register_routes(app, state):
                 "timestamp": time.time()
             })
         except Exception as e:
-            logger.error(f"查询日志失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"查询日志失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
     
     @app.route("/api/observability/logs/labels", methods=["GET"])
@@ -797,7 +776,7 @@ def register_routes(app, state):
                 "timestamp": time.time()
             })
         except Exception as e:
-            logger.error(f"获取日志标签失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取日志标签失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
     
     @app.route("/api/observability/logs", methods=["POST"])
@@ -839,7 +818,7 @@ def register_routes(app, state):
             
             return jsonify({"ok": True})
         except Exception as e:
-            logger.error(f"推送日志失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"推送日志失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
     
     # ═══════════════════════════════════════════════════
@@ -926,7 +905,7 @@ def register_routes(app, state):
                     time.sleep(1)
                     
                 except Exception as e:
-                    logger.error(f"日志流生成失败: {e}")
+                    logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"日志流生成失败: {e}"}, ensure_ascii=False))
                     yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
                     break
         
@@ -970,7 +949,7 @@ def register_routes(app, state):
                 content_type="text/plain; version=0.0.4; charset=utf-8"
             )
         except Exception as e:
-            logger.error(f"导出 Prometheus 指标失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "prometheus", "msg": f"导出 Prometheus 指标失败: {e}"}, ensure_ascii=False))
             return f"# Error: {e}", 500
     
     # ═══════════════════════════════════════════════════
@@ -1191,7 +1170,7 @@ def register_routes(app, state):
                 "timestamp": time.time()
             })
         except Exception as e:
-            logger.error(f"获取追踪数据失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取追踪数据失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
     
     @app.route("/api/observability/traces/<trace_id>", methods=["GET"])
@@ -1217,7 +1196,7 @@ def register_routes(app, state):
                 return jsonify(detail)
             return jsonify({"error": "追踪不存在"}), 404
         except Exception as e:
-            logger.error(f"获取追踪详情失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取追踪详情失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════
@@ -1235,7 +1214,7 @@ def register_routes(app, state):
             from flask import render_template
             return render_template("observability_dashboard.html")
         except Exception as e:
-            logger.error(f"加载仪表盘页面失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"加载仪表盘页面失败: {e}"}, ensure_ascii=False))
             return f"仪表盘加载失败: {e}", 500
 
     # ═══════════════════════════════════════════════════
@@ -1284,7 +1263,7 @@ def register_routes(app, state):
                 "timestamp": time.time()
             })
         except Exception as e:
-            logger.error(f"获取访问日志失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取访问日志失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/observability/access_stats", methods=["GET"])
@@ -1324,7 +1303,7 @@ def register_routes(app, state):
                 "timestamp": time.time()
             })
         except Exception as e:
-            logger.error(f"获取访问统计失败: {e}")
+            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": f"获取访问统计失败: {e}"}, ensure_ascii=False))
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    logger.info("[Routes] 运行时诊断端点已注册")
+    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_logging", "action": "log", "msg": "[Routes] 运行时诊断端点已注册"}, ensure_ascii=False))

@@ -1,0 +1,1404 @@
+2026-06-27 00:09:15,197 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 00:09:15,200 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 00:09:15,202 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 00:09:15,313 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 00:09:15,330 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 00:09:15,332 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-27 00:09:15,367 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-27 00:09:15,368 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:15,369 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-27 00:09:15,369 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 00:09:15,376 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 00:09:15,381 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 00:09:15,399 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 00:09:15,399 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 00:09:15,399 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 00:09:15,400 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 00:09:15,401 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 00:09:15,524 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 00:09:15,529 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 00:09:15,530 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 00:09:15,573 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:15,573 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-27 00:09:15,674 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:15,674 [    INFO] test_memory_consistency: [测试开始] test_concurrent_read_write_memory_consistency
+2026-06-27 00:09:15,674 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:09:15.674451
+2026-06-27 00:09:15,674 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:15,674 [    INFO] test_memory_consistency: [步骤1] 初始化内存存储和路由器
+2026-06-27 00:09:15,685 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-27 00:09:15,686 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-27 00:09:15,687 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=./data/memory/holographic.db
+2026-06-27 00:09:15,771 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-27 00:09:15,817 [    INFO] config: [配置校验] ⚠️ Pydantic 不可用，使用基础校验模式
+2026-06-27 00:09:15,817 [    INFO] config: [配置校验] 配置校验通过
+2026-06-27 00:09:15,817 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: HolographicAdapter
+2026-06-27 00:09:15,817 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-27 00:09:15,817 [    INFO] test_memory_consistency: [步骤2] 定义并发操作
+2026-06-27 00:09:15,817 [    INFO] test_memory_consistency: [步骤3] 创建并发线程
+2026-06-27 00:09:15,817 [    INFO] test_memory_consistency: [步骤4] 启动所有线程
+2026-06-27 00:09:15,819 [    INFO] test_memory_consistency: [步骤5] 等待所有线程完成
+2026-06-27 00:09:16,028 [    INFO] test_memory_consistency: [步骤5完成] 并发操作完成，耗时: 0.211s
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency:   写入次数: 60
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency:   读取键数量: 1473
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency:   错误数量: 0
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: [断言通过] 无并发错误
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: [断言通过] 所有写入操作完成
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: [断言通过] 数据完整性验证通过
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: [测试完成] test_concurrent_read_write_memory_consistency
+2026-06-27 00:09:16,029 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: [测试开始] test_memory_lifecycle_store_retrieve_delete
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:09:16.033084
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: [步骤1] 初始化内存存储
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: [步骤2] 存储记忆
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency:   存储记忆: id=1, type=user
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency:   存储记忆: id=2, type=system
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency:   存储记忆: id=3, type=conversation
+2026-06-27 00:09:16,033 [    INFO] test_memory_consistency: [断言通过] 记忆存储成功
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [步骤3] 检索记忆
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency:   检索成功: id=1, content=test_data_1
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency:   检索成功: id=2, content=test_data_2
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency:   检索成功: id=3, content=test_data_3
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [断言通过] 所有记忆均可检索
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [断言通过] 检索内容正确
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [步骤4] 删除记忆
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency:   删除记忆: id=1
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency:   删除记忆: id=3
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [断言通过] 记忆删除成功
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: [断言通过] 指定记忆保留
+2026-06-27 00:09:16,034 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,035 [    INFO] test_memory_consistency: [测试完成] test_memory_lifecycle_store_retrieve_delete
+2026-06-27 00:09:16,035 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,045 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,045 [    INFO] test_memory_consistency: [测试开始] test_memory_persistence_reliability
+2026-06-27 00:09:16,045 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:09:16.045084
+2026-06-27 00:09:16,045 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,045 [    INFO] test_memory_consistency: [步骤1] 创建临时数据库
+2026-06-27 00:09:16,046 [    INFO] test_memory_consistency: [步骤2] 模拟第一次进程启动 - 存储数据
+2026-06-27 00:09:16,053 [    INFO] test_memory_consistency:   存储记忆: id=mem_001
+2026-06-27 00:09:16,053 [    INFO] test_memory_consistency:   存储记忆: id=mem_002
+2026-06-27 00:09:16,053 [    INFO] test_memory_consistency:   存储记忆: id=mem_003
+2026-06-27 00:09:16,057 [    INFO] test_memory_consistency: [步骤2完成] 数据已持久化
+2026-06-27 00:09:16,057 [    INFO] test_memory_consistency: [步骤3] 模拟进程重启 - 恢复数据
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency:   恢复后记录数: 3
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency: [断言通过] 记录数量正确
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency:   验证记忆: id=mem_001, content=memory_content_1
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency:   验证记忆: id=mem_002, content=memory_content_2
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency:   验证记忆: id=mem_003, content=memory_content_3
+2026-06-27 00:09:16,059 [    INFO] test_memory_consistency: [断言通过] 所有数据恢复正确
+2026-06-27 00:09:16,061 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,061 [    INFO] test_memory_consistency: [测试完成] test_memory_persistence_reliability
+2026-06-27 00:09:16,061 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: [测试开始] test_memory_capacity_limit_handling
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:09:16.064600
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: [步骤1] 初始化带容量限制的内存存储
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency: [步骤2] 存储超过容量限制的数据 (15 条)
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency:   存储: key_0
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency:   存储: key_1
+2026-06-27 00:09:16,064 [    INFO] test_memory_consistency:   存储: key_2
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_3
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_4
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_5
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_6
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_7
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_8
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_9
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_10
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_11
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_12
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_13
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency:   存储: key_14
+2026-06-27 00:09:16,065 [    INFO] test_memory_consistency: [步骤3] 当前存储数量: 15
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency: [步骤4] 执行容量清理策略（保留最新的N条）
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency:   移除过期记忆: key_0
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency:   移除过期记忆: key_1
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency:   移除过期记忆: key_2
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency:   移除过期记忆: key_3
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency:   移除过期记忆: key_4
+2026-06-27 00:09:16,066 [    INFO] test_memory_consistency: [断言通过] 容量限制生效，当前存储: 10
+2026-06-27 00:09:16,067 [    INFO] test_memory_consistency: [断言通过] 保留的是最新的数据
+2026-06-27 00:09:16,067 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,067 [    INFO] test_memory_consistency: [测试完成] test_memory_capacity_limit_handling
+2026-06-27 00:09:16,067 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,070 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,070 [    INFO] test_memory_consistency: [测试开始] test_memory_search_result_sorting_correctness
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency: [时间戳] 2026-06-27T00:09:16.071224
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency: [步骤1] 创建测试搜索结果
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:   原始结果:
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.9, timestamp=100
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.7, timestamp=300
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.95, timestamp=200
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.8, timestamp=50
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.6, timestamp=400
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency: [步骤2] 按置信度排序
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:   按置信度排序后:
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.95
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.9
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.8
+2026-06-27 00:09:16,071 [    INFO] test_memory_consistency:     confidence=0.7
+2026-06-27 00:09:16,072 [    INFO] test_memory_consistency:     confidence=0.6
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency: [断言通过] 置信度排序正确
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency: [步骤3] 按时间戳排序
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:   按时间戳排序后:
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     timestamp=400
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     timestamp=300
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     timestamp=200
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     timestamp=100
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     timestamp=50
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency: [断言通过] 时间戳排序正确
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency: [步骤4] 组合排序（置信度优先，时间戳次之）
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:   组合排序后:
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     confidence=0.95, timestamp=200
+2026-06-27 00:09:16,073 [    INFO] test_memory_consistency:     confidence=0.9, timestamp=100
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency:     confidence=0.8, timestamp=50
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency:     confidence=0.7, timestamp=300
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency:     confidence=0.6, timestamp=400
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency: [断言通过] 组合排序正确
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency: [测试完成] test_memory_search_result_sorting_correctness
+2026-06-27 00:09:16,074 [    INFO] test_memory_consistency: ============================================================
+2026-06-27 00:09:16,104 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,104 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e: [测试开始] test_config_file_corruption_auto_repair
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:16.105228
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e: [步骤1] 创建临时目录
+2026-06-27 00:09:16,105 [    INFO] test_disaster_recovery_e2e:   临时目录: C:\Windows\TEMP\tmp_clk13fr
+2026-06-27 00:09:16,106 [    INFO] test_disaster_recovery_e2e: [步骤2] 初始化容灾恢复组件
+2026-06-27 00:09:16,106 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,106 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmp_clk13fr\\backups", "auto_recover": true}}
+2026-06-27 00:09:16,106 [    INFO] test_disaster_recovery_e2e: [步骤3] 准备原始配置数据
+2026-06-27 00:09:16,106 [    INFO] test_disaster_recovery_e2e:   原始数据: {'config': {'key1': 'value1', 'key2': 'value2'}}
+2026-06-27 00:09:16,106 [    INFO] test_disaster_recovery_e2e: [步骤4] 注册备份提供者
+2026-06-27 00:09:16,106 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,106 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "config"}
+2026-06-27 00:09:16,107 [    INFO] test_disaster_recovery_e2e: [步骤5] 执行全量备份
+2026-06-27 00:09:16,108 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,108 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,108 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000916", "type": "full", "files": ["config"], "size_bytes": 211}
+2026-06-27 00:09:16,108 [    INFO] test_disaster_recovery_e2e:   备份ID: backup_20260627_000916
+2026-06-27 00:09:16,108 [    INFO] test_disaster_recovery_e2e: [断言通过] 备份成功创建
+2026-06-27 00:09:16,108 [    INFO] test_disaster_recovery_e2e: [步骤6] 验证备份列表
+2026-06-27 00:09:16,109 [    INFO] test_disaster_recovery_e2e:   备份数量: 1
+2026-06-27 00:09:16,109 [    INFO] test_disaster_recovery_e2e: [断言通过] 备份记录正确
+2026-06-27 00:09:16,109 [    INFO] test_disaster_recovery_e2e: [步骤7] 模拟配置损坏，执行恢复
+2026-06-27 00:09:16,109 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,110 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.51, "backup_id": "backup_20260627_000916", "restored_files": ["config"]}
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e:   恢复结果: True
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e: [断言通过] 恢复成功
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e: [断言通过] 数据完整性验证通过
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e: [步骤8] 检查恢复状态
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e:   恢复状态: completed
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e:   恢复文件: ['config']
+2026-06-27 00:09:16,110 [    INFO] test_disaster_recovery_e2e: [断言通过] 恢复状态验证通过
+2026-06-27 00:09:16,111 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,111 [    INFO] test_disaster_recovery_e2e: [测试完成] test_config_file_corruption_auto_repair
+2026-06-27 00:09:16,111 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,114 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e: [测试开始] test_message_file_corruption_line_by_line_recovery
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:16.115865
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e: [步骤1] 创建临时目录
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e:   临时目录: C:\Windows\TEMP\tmp5afcx6_e
+2026-06-27 00:09:16,115 [    INFO] test_disaster_recovery_e2e: [步骤2] 初始化容灾恢复组件
+2026-06-27 00:09:16,116 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,116 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmp5afcx6_e\\backups", "auto_recover": true}}
+2026-06-27 00:09:16,116 [    INFO] test_disaster_recovery_e2e: [步骤3] 创建消息文件
+2026-06-27 00:09:16,116 [    INFO] test_disaster_recovery_e2e:   写入消息: id=0, content=message_0
+2026-06-27 00:09:16,116 [    INFO] test_disaster_recovery_e2e:   写入消息: id=1, content=message_1
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=2, content=message_2
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=3, content=message_3
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=4, content=message_4
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=5, content=message_5
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=6, content=message_6
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=7, content=message_7
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=8, content=message_8
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e:   写入消息: id=9, content=message_9
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e: [步骤4] 定义备份和恢复函数
+2026-06-27 00:09:16,117 [    INFO] test_disaster_recovery_e2e: [步骤5] 注册备份提供者并执行备份
+2026-06-27 00:09:16,117 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,118 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "messages"}
+2026-06-27 00:09:16,120 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,120 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,120 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.51, "backup_id": "backup_20260627_000916", "type": "full", "files": ["messages"], "size_bytes": 894}
+2026-06-27 00:09:16,120 [    INFO] test_disaster_recovery_e2e:   备份完成
+2026-06-27 00:09:16,120 [    INFO] test_disaster_recovery_e2e: [步骤6] 模拟消息文件损坏
+2026-06-27 00:09:16,120 [    INFO] test_disaster_recovery_e2e:   文件已损坏（前5条丢失，第1行是无效数据）
+2026-06-27 00:09:16,120 [    INFO] test_disaster_recovery_e2e: [步骤7] 执行恢复
+2026-06-27 00:09:16,121 [    INFO] test_disaster_recovery_e2e:   可用备份数: 1
+2026-06-27 00:09:16,122 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,122 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.63, "backup_id": "backup_20260627_000916", "restored_files": ["messages"]}
+2026-06-27 00:09:16,123 [    INFO] test_disaster_recovery_e2e: [步骤8] 验证恢复结果
+2026-06-27 00:09:16,123 [    INFO] test_disaster_recovery_e2e:   恢复消息数: 10
+2026-06-27 00:09:16,123 [    INFO] test_disaster_recovery_e2e: [断言通过] 所有消息已恢复
+2026-06-27 00:09:16,123 [    INFO] test_disaster_recovery_e2e: [断言通过] 消息完整性验证通过
+2026-06-27 00:09:16,125 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,125 [    INFO] test_disaster_recovery_e2e: [测试完成] test_message_file_corruption_line_by_line_recovery
+2026-06-27 00:09:16,125 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,128 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,128 [    INFO] test_disaster_recovery_e2e: [测试开始] test_database_corruption_rebuild_migration
+2026-06-27 00:09:16,129 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:16.129376
+2026-06-27 00:09:16,129 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,129 [    INFO] test_disaster_recovery_e2e: [步骤1] 创建临时目录
+2026-06-27 00:09:16,129 [    INFO] test_disaster_recovery_e2e:   数据库路径: C:\Windows\TEMP\tmpd112h3w1\test.db
+2026-06-27 00:09:16,129 [    INFO] test_disaster_recovery_e2e: [步骤2] 创建数据库并插入测试数据
+2026-06-27 00:09:16,135 [    INFO] test_disaster_recovery_e2e:   插入用户: user_0
+2026-06-27 00:09:16,135 [    INFO] test_disaster_recovery_e2e:   插入用户: user_1
+2026-06-27 00:09:16,135 [    INFO] test_disaster_recovery_e2e:   插入用户: user_2
+2026-06-27 00:09:16,135 [    INFO] test_disaster_recovery_e2e:   插入用户: user_3
+2026-06-27 00:09:16,135 [    INFO] test_disaster_recovery_e2e:   插入用户: user_4
+2026-06-27 00:09:16,140 [    INFO] test_disaster_recovery_e2e:   完整性检查: ok
+2026-06-27 00:09:16,140 [    INFO] test_disaster_recovery_e2e: [步骤3] 执行数据库修复
+2026-06-27 00:09:16,141 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,141 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-27 00:09:16,143 [    INFO] test_disaster_recovery_e2e:   修复结果: True
+2026-06-27 00:09:16,143 [    INFO] test_disaster_recovery_e2e: [断言通过] 数据库修复成功
+2026-06-27 00:09:16,144 [    INFO] test_disaster_recovery_e2e: [步骤4] 验证修复后的数据库
+2026-06-27 00:09:16,144 [    INFO] test_disaster_recovery_e2e:   修复后完整性检查: ok
+2026-06-27 00:09:16,144 [    INFO] test_disaster_recovery_e2e:   用户数量: 5
+2026-06-27 00:09:16,145 [    INFO] test_disaster_recovery_e2e:   用户列表: ['user_0', 'user_1', 'user_2', 'user_3', 'user_4']
+2026-06-27 00:09:16,146 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,146 [    INFO] test_disaster_recovery_e2e: [测试完成] test_database_corruption_rebuild_migration
+2026-06-27 00:09:16,146 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,149 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,150 [    INFO] test_disaster_recovery_e2e: [测试开始] test_service_crash_restart_state_recovery
+2026-06-27 00:09:16,150 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:16.150363
+2026-06-27 00:09:16,150 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,150 [    INFO] test_disaster_recovery_e2e: [步骤1] 创建临时目录
+2026-06-27 00:09:16,151 [    INFO] test_disaster_recovery_e2e:   临时目录: C:\Windows\TEMP\tmpek08mlty
+2026-06-27 00:09:16,151 [    INFO] test_disaster_recovery_e2e: [步骤2] 配置容灾恢复
+2026-06-27 00:09:16,151 [    INFO] test_disaster_recovery_e2e: [步骤3] 准备服务状态
+2026-06-27 00:09:16,151 [    INFO] test_disaster_recovery_e2e:   原始服务状态: {'running': True, 'requests_processed': 100, 'active_users': 10}
+2026-06-27 00:09:16,151 [    INFO] test_disaster_recovery_e2e: [步骤4] 模拟第一次启动 - 创建备份
+2026-06-27 00:09:16,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,151 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpek08mlty\\backups", "auto_recover": true}}
+2026-06-27 00:09:16,151 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,151 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "service"}
+2026-06-27 00:09:16,152 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,152 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,153 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000916", "type": "full", "files": ["service"], "size_bytes": 217}
+2026-06-27 00:09:16,153 [    INFO] test_disaster_recovery_e2e:   备份完成
+2026-06-27 00:09:16,153 [    INFO] test_disaster_recovery_e2e: [步骤5] 模拟服务崩溃重启
+2026-06-27 00:09:16,153 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,153 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 5, "backup_dir": "C:\\Windows\\TEMP\\tmpek08mlty\\backups", "auto_recover": true}}
+2026-06-27 00:09:16,153 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,153 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "service"}
+2026-06-27 00:09:16,153 [    INFO] test_disaster_recovery_e2e: [步骤6] 执行自动恢复
+2026-06-27 00:09:16,154 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,154 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "auto_recover_on_startup", "duration_ms": 0, "message": "\u5c1d\u8bd5\u81ea\u52a8\u6062\u590d\u5907\u4efd backup_20260627_000916"}
+2026-06-27 00:09:16,155 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,155 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000916", "restored_files": ["service"]}
+2026-06-27 00:09:16,155 [    INFO] test_disaster_recovery_e2e:   恢复结果: True
+2026-06-27 00:09:16,155 [    INFO] test_disaster_recovery_e2e: [断言通过] 自动恢复成功
+2026-06-27 00:09:16,155 [    INFO] test_disaster_recovery_e2e: [断言通过] 状态恢复完整
+2026-06-27 00:09:16,155 [    INFO] test_disaster_recovery_e2e: [步骤7] 检查恢复状态
+2026-06-27 00:09:16,156 [    INFO] test_disaster_recovery_e2e:   恢复状态: completed
+2026-06-27 00:09:16,156 [    INFO] test_disaster_recovery_e2e:   恢复文件: ['service']
+2026-06-27 00:09:16,156 [    INFO] test_disaster_recovery_e2e: [断言通过] 恢复状态验证通过
+2026-06-27 00:09:16,158 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,158 [    INFO] test_disaster_recovery_e2e: [测试完成] test_service_crash_restart_state_recovery
+2026-06-27 00:09:16,158 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,161 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,161 [    INFO] test_disaster_recovery_e2e: [测试开始] test_partial_module_failure_degrade_progressive_recovery
+2026-06-27 00:09:16,161 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:16.161605
+2026-06-27 00:09:16,161 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:16,161 [    INFO] test_disaster_recovery_e2e: [步骤1] 初始化组件
+2026-06-27 00:09:16,162 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,162 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-27 00:09:16,162 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,162 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-27 00:09:16,162 [    INFO] test_disaster_recovery_e2e: [步骤2] 模拟模块健康状态
+2026-06-27 00:09:16,162 [    INFO] test_disaster_recovery_e2e:   模块状态: {'memory': True, 'critic': False, 'schema': True}
+2026-06-27 00:09:16,162 [    INFO] test_disaster_recovery_e2e: [步骤3] 执行降级操作
+2026-06-27 00:09:16,162 [    INFO] test_disaster_recovery_e2e:   第1轮操作...
+2026-06-27 00:09:16,162 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,162 [    INFO] test_disaster_recovery_e2e:     memory: {'data': 'memory_result'}
+2026-06-27 00:09:16,162 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,264 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,264 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,365 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,365 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,365 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,466 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,466 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,467 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,468 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,468 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,468 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "normal", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,469 [    INFO] test_disaster_recovery_e2e:     critic: {'score': 70, 'degraded': True}
+2026-06-27 00:09:16,470 [    INFO] test_disaster_recovery_e2e:   第2轮操作...
+2026-06-27 00:09:16,471 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,471 [    INFO] test_disaster_recovery_e2e:     memory: {'data': 'memory_result'}
+2026-06-27 00:09:16,471 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,572 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,572 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,673 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,673 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,673 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,774 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,774 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,774 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,774 [    INFO] test_disaster_recovery_e2e:     critic: {'score': 70, 'degraded': True}
+2026-06-27 00:09:16,776 [    INFO] test_disaster_recovery_e2e:   第3轮操作...
+2026-06-27 00:09:16,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,776 [    INFO] test_disaster_recovery_e2e:     memory: {'data': 'memory_result'}
+2026-06-27 00:09:16,776 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,877 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,877 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,877 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:16,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,978 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:16,978 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,080 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,080 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,080 [    INFO] test_disaster_recovery_e2e:     critic: {'score': 70, 'degraded': True}
+2026-06-27 00:09:17,080 [    INFO] test_disaster_recovery_e2e:   第4轮操作...
+2026-06-27 00:09:17,080 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,081 [    INFO] test_disaster_recovery_e2e:     memory: {'data': 'memory_result'}
+2026-06-27 00:09:17,081 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,181 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,181 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,181 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,282 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,282 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,383 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,383 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,383 [    INFO] test_disaster_recovery_e2e:     critic: {'score': 70, 'degraded': True}
+2026-06-27 00:09:17,383 [    INFO] test_disaster_recovery_e2e:   第5轮操作...
+2026-06-27 00:09:17,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,384 [    INFO] test_disaster_recovery_e2e:     memory: {'data': 'memory_result'}
+2026-06-27 00:09:17,384 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,484 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,484 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,484 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 1 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,585 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,585 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,585 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 2 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,686 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "retry", "reason": "\u7b2c 3 \u6b21\u91cd\u8bd5\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,686 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,686 [ WARNING] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "degrade", "duration_ms": 0, "module": "critic", "level": "emergency", "reason": "\u6267\u884c\u56de\u9000\u51fd\u6570\uff0c\u9519\u8bef: Critic module failed"}
+2026-06-27 00:09:17,686 [    INFO] test_disaster_recovery_e2e:     critic: {'score': 70, 'degraded': True}
+2026-06-27 00:09:17,686 [    INFO] test_disaster_recovery_e2e: [步骤4] 验证降级结果
+2026-06-27 00:09:17,686 [    INFO] test_disaster_recovery_e2e: [断言通过] memory模块正常运行
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: [断言通过] critic模块降级运行
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: [步骤5] 模拟模块恢复
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e:   critic模块已恢复
+2026-06-27 00:09:17,687 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e:   恢复后结果: {'score': 90}
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: [断言通过] critic模块功能恢复正常
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: [测试完成] test_partial_module_failure_degrade_progressive_recovery
+2026-06-27 00:09:17,687 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:17,690 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:17,690 [    INFO] test_disaster_recovery_e2e: [测试开始] test_disaster_recovery_data_zero_loss
+2026-06-27 00:09:17,691 [    INFO] test_disaster_recovery_e2e: [时间戳] 2026-06-27T00:09:17.691840
+2026-06-27 00:09:17,691 [    INFO] test_disaster_recovery_e2e: ============================================================
+2026-06-27 00:09:17,691 [    INFO] test_disaster_recovery_e2e: [步骤1] 创建临时目录
+2026-06-27 00:09:17,691 [    INFO] test_disaster_recovery_e2e:   临时目录: C:\Windows\TEMP\tmp8cxi5mge
+2026-06-27 00:09:17,691 [    INFO] test_disaster_recovery_e2e: [步骤2] 配置容灾恢复
+2026-06-27 00:09:17,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,692 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 1, "max_backups": 10, "backup_dir": "C:\\Windows\\TEMP\\tmp8cxi5mge\\backups", "auto_recover": true}}
+2026-06-27 00:09:17,692 [    INFO] test_disaster_recovery_e2e: [步骤3] 准备测试数据
+2026-06-27 00:09:17,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,692 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "register_backup_provider", "duration_ms": 0, "name": "test_data"}
+2026-06-27 00:09:17,692 [    INFO] test_disaster_recovery_e2e: [步骤4] 逐步添加数据并执行增量备份
+2026-06-27 00:09:17,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,693 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,693 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000917", "type": "incremental", "files": ["test_data"], "size_bytes": 170}
+2026-06-27 00:09:17,693 [    INFO] test_disaster_recovery_e2e:   数据点0, 执行备份: backup_20260627_000917
+2026-06-27 00:09:17,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,694 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,694 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000917", "type": "incremental", "files": ["test_data"], "size_bytes": 300}
+2026-06-27 00:09:17,694 [    INFO] test_disaster_recovery_e2e:   数据点5, 执行备份: backup_20260627_000917
+2026-06-27 00:09:17,695 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,696 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,696 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000917", "type": "incremental", "files": ["test_data"], "size_bytes": 432}
+2026-06-27 00:09:17,696 [    INFO] test_disaster_recovery_e2e:   数据点10, 执行备份: backup_20260627_000917
+2026-06-27 00:09:17,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,697 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,697 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "trigger_backup", "duration_ms": 1.0, "backup_id": "backup_20260627_000917", "type": "incremental", "files": ["test_data"], "size_bytes": 572}
+2026-06-27 00:09:17,697 [    INFO] test_disaster_recovery_e2e:   数据点15, 执行备份: backup_20260627_000917
+2026-06-27 00:09:17,697 [    INFO] test_disaster_recovery_e2e:   总备份数: 4
+2026-06-27 00:09:17,697 [    INFO] test_disaster_recovery_e2e: [断言通过] 至少创建了一个备份
+2026-06-27 00:09:17,697 [    INFO] test_disaster_recovery_e2e: [步骤5] 恢复最新备份
+2026-06-27 00:09:17,698 [    INFO] test_disaster_recovery_e2e:   备份列表长度: 1
+2026-06-27 00:09:17,698 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,699 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "restore_from_backup", "duration_ms": 0.0, "backup_id": "backup_20260627_000917", "restored_files": ["test_data"]}
+2026-06-27 00:09:17,699 [    INFO] test_disaster_recovery_e2e:   从备份 backup_20260627_000917 恢复
+2026-06-27 00:09:17,699 [    INFO] test_disaster_recovery_e2e: [步骤6] 验证数据完整性
+2026-06-27 00:09:17,699 [    INFO] test_disaster_recovery_e2e:   恢复数据量: 16
+2026-06-27 00:09:17,708 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,708 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,708 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,708 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,708 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,708 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,708 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,708 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,708 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,708 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 10
+2026-06-27 00:09:17,708 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 2
+2026-06-27 00:09:17,709 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,709 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,709 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,709 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 5
+2026-06-27 00:09:17,709 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,709 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,709 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,710 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,713 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,713 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,714 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,714 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,714 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,714 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,714 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,714 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,714 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,714 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,714 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,715 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,715 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,715 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,715 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,715 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,715 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,715 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,715 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,715 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-27 00:09:17,715 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-27 00:09:17,716 [    INFO] planning.core: 工具已注册到规划引擎: test_tool
+2026-06-27 00:09:17,719 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,719 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,719 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,719 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,719 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,719 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,719 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,719 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,719 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,720 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,720 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,720 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,720 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,720 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,720 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,720 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,720 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,722 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,722 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,726 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,726 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,726 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,726 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,726 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,726 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,726 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,726 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,726 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,726 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,726 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,726 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,726 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,726 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,726 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,726 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,726 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,726 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,726 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,726 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,726 [    INFO] planning.core:    需要规划: True
+2026-06-27 00:09:17,726 [    INFO] planning.core:    复杂指示器匹配: 2 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    动作关键词匹配: 1 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,726 [    INFO] planning.core:    需要规划: True
+2026-06-27 00:09:17,726 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,726 [    INFO] planning.core:    需要规划: True
+2026-06-27 00:09:17,726 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    动作关键词匹配: 2 个
+2026-06-27 00:09:17,726 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,726 [    INFO] planning.core:    需要规划: True
+2026-06-27 00:09:17,733 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,733 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,733 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,733 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,733 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,733 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,733 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,733 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,733 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,733 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,733 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,733 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,733 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,733 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,733 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,733 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,733 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,733 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,733 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,733 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:17,733 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:17,735 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,735 [    INFO] planning.core:    需要规划: False
+2026-06-27 00:09:17,735 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:17,735 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:17,735 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,735 [    INFO] planning.core:    需要规划: False
+2026-06-27 00:09:17,735 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:17,735 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:17,735 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:17,735 [    INFO] planning.core:    需要规划: False
+2026-06-27 00:09:17,741 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,741 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,742 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,742 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,742 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,742 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,742 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,742 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,742 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,742 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,742 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,743 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,743 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,743 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,743 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,743 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,743 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,743 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,743 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,743 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,743 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:17,743 [    INFO] planning.core:    任务描述: 首先打开文件，然后保存
+2026-06-27 00:09:17,744 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:17,744 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,744 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer:    原始任务: 首先打开文件，然后保存
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer:    ⚠️ LLM服务不可用，使用规则降级分解
+2026-06-27 00:09:17,744 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer: 🔧 [规则分解] 开始基于关键词的任务分解
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    子任务1: 打开文件，...
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    子任务2: 保存...
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    规则分解完成，共 2 个子任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    ✅ 规则分解完成
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer: 📋 步骤2: 解析子任务...
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer: 🔄 [任务解析] 开始解析子任务数据...
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer: ✅ 解析完成，共 2 个有效子任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-27 00:09:17,745 [    INFO] planning.decomposer:       子任务1: 打开文件，...
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:       子任务2: 保存...
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer: 📋 步骤3: 更新计划状态...
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:    ✅ 任务分解完成!
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:09:17,746 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,746 [    INFO] planning.core: ✅ 任务分解成功!
+2026-06-27 00:09:17,746 [    INFO] planning.core:    计划ID: plan_b15053e5
+2026-06-27 00:09:17,746 [    INFO] planning.core:    子任务数: 2
+2026-06-27 00:09:17,746 [    INFO] planning.core:       子任务1: 打开文件，...
+2026-06-27 00:09:17,747 [    INFO] planning.core:       子任务2: 保存...
+2026-06-27 00:09:17,747 [    INFO] planning.core: ✅ 计划已添加到活跃计划列表 (当前活跃计划数: 1)
+2026-06-27 00:09:17,747 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,753 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,753 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,754 [    INFO] planning.core: LLM服务: 已配置
+2026-06-27 00:09:17,754 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,754 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,754 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,754 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,754 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,754 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,754 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,754 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,755 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,755 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,755 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,755 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,755 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,755 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,755 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,756 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,756 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,756 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:17,756 [    INFO] planning.core:    任务描述: 复杂任务
+2026-06-27 00:09:17,756 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:17,756 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,756 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer:    原始任务: 复杂任务
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:17,756 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:    ✅ LLM服务可用，使用LLM驱动分解
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:    ✅ LLM分解完成
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer: 📋 步骤2: 解析子任务...
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer: 🔄 [任务解析] 开始解析子任务数据...
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:    原始数据中包含 2 个子任务
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer: ✅ 解析完成，共 2 个有效子任务
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:    解析得到 2 个子任务
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:       子任务1: 第一步...
+2026-06-27 00:09:17,758 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:       子任务2: 第二步...
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer: 📋 步骤3: 更新计划状态...
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:    ✅ 任务分解完成!
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:    子任务总数: 2
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:09:17,759 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,759 [    INFO] planning.core: ✅ 任务分解成功!
+2026-06-27 00:09:17,759 [    INFO] planning.core:    计划ID: plan_21fd1b92
+2026-06-27 00:09:17,759 [    INFO] planning.core:    子任务数: 2
+2026-06-27 00:09:17,759 [    INFO] planning.core:       子任务1: 第一步...
+2026-06-27 00:09:17,759 [    INFO] planning.core:       子任务2: 第二步...
+2026-06-27 00:09:17,760 [    INFO] planning.core: ✅ 计划已添加到活跃计划列表 (当前活跃计划数: 1)
+2026-06-27 00:09:17,760 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,765 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,765 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,765 [    INFO] planning.core: LLM服务: 已配置
+2026-06-27 00:09:17,766 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,766 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,766 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,766 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,766 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,766 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,766 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,766 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,766 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,767 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,767 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,767 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,767 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,767 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,767 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,767 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,767 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,767 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:17,767 [    INFO] planning.core:    任务描述: 测试任务
+2026-06-27 00:09:17,767 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:17,768 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,768 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer:    原始任务: 测试任务
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer:    ✅ LLM服务可用，使用LLM驱动分解
+2026-06-27 00:09:17,768 [    INFO] planning.decomposer:    正在调用LLM进行任务分析...
+2026-06-27 00:09:17,769 [   ERROR] planning.decomposer: ❌ 任务分解失败: LLM错误
+2026-06-27 00:09:17,769 [   ERROR] planning.decomposer: 异常类型: Exception
+2026-06-27 00:09:17,773 [   ERROR] planning.decomposer: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 95, in decompose
+    subtasks_data = await self._llm_decompose(task_description, context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\decomposer.py", line 142, in _llm_decompose
+    response = await self.llm.chat([{"role": "user", "content": prompt}])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 2253, in _execute_mock_call
+    raise effect
+Exception: LLM错误
+
+2026-06-27 00:09:17,773 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,773 [   ERROR] planning.core: ❌ 任务分解失败: LLM错误
+2026-06-27 00:09:17,774 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,774 [   ERROR] planning.core: ❌ 创建计划异常: 任务分解失败: LLM错误
+2026-06-27 00:09:17,774 [   ERROR] planning.core: 异常类型: PlanningError
+2026-06-27 00:09:17,776 [   ERROR] planning.core: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\core.py", line 154, in plan
+    raise PlanningError(error_msg)
+planning.core.PlanningError: 任务分解失败: LLM错误
+
+2026-06-27 00:09:17,776 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,783 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,783 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,783 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,783 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,783 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,783 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,783 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,783 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,783 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,783 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,783 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,783 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,783 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,783 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,783 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,783 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,783 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,783 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,783 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,783 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: test_tool
+2026-06-27 00:09:17,786 [    INFO] planning.executor: 工具已注册: test_tool
+2026-06-27 00:09:17,786 [    INFO] planning.core: 工具已注册到规划引擎: test_tool
+2026-06-27 00:09:17,786 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,786 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:17,786 [    INFO] planning.core:    任务描述: 使用test_tool
+2026-06-27 00:09:17,786 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:17,786 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,786 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    原始任务: 使用test_tool
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    ⚠️ LLM服务不可用，使用规则降级分解
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 🔧 [规则分解] 开始基于关键词的任务分解
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    子任务1: 使用test_tool...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    ✅ 规则分解完成
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 📋 步骤2: 解析子任务...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 🔄 [任务解析] 开始解析子任务数据...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: ✅ 解析完成，共 1 个有效子任务
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    解析得到 1 个子任务
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:       子任务1: 使用test_tool...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: 📋 步骤3: 更新计划状态...
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    ✅ 任务分解完成!
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    子任务总数: 1
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:09:17,786 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,786 [    INFO] planning.core: ✅ 任务分解成功!
+2026-06-27 00:09:17,786 [    INFO] planning.core:    计划ID: plan_125d257e
+2026-06-27 00:09:17,786 [    INFO] planning.core:    子任务数: 1
+2026-06-27 00:09:17,786 [    INFO] planning.core:       子任务1: 使用test_tool...
+2026-06-27 00:09:17,786 [    INFO] planning.core: ✅ 计划已添加到活跃计划列表 (当前活跃计划数: 1)
+2026-06-27 00:09:17,786 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,786 [    INFO] planning.core: 计划 plan_125d257e 已添加到活跃计划列表
+2026-06-27 00:09:17,786 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,789 [    INFO] planning.core: 🚀 [规划引擎] 开始执行计划
+2026-06-27 00:09:17,789 [    INFO] planning.core:    计划ID: plan_125d257e
+2026-06-27 00:09:17,789 [    INFO] planning.core:    任务描述: 使用test_tool...
+2026-06-27 00:09:17,789 [    INFO] planning.core:    任务数: 1
+2026-06-27 00:09:17,789 [    INFO] planning.core:    当前状态: ready
+2026-06-27 00:09:17,789 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,789 [    INFO] planning.core: 📊 步骤1: 状态转换 INIT -> EXECUTING
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: [状态转换] INFO: 计划ID: plan_125
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: [状态转换] INFO: 当前状态: ready (计划就绪)
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: [状态转换] INFO: 目标状态: executing (执行中)
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: [状态转换] SUCCESS: 转换成功: ready -> executing
+2026-06-27 00:09:17,789 [    INFO] planning.state_machine: [状态转换] INFO: 转换原因: 开始执行
+2026-06-27 00:09:17,790 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:17,790 [    INFO] planning.core:    ✅ 状态已转换到: executing
+2026-06-27 00:09:17,790 [    INFO] planning.core: ⚙️ 步骤2: 调用执行引擎...
+2026-06-27 00:09:17,790 [    INFO] planning.executor: 开始执行计划: plan_125d257e
+2026-06-27 00:09:17,790 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,790 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=3, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:17,790 [    INFO] planning.executor: [工具调用] INFO: 开始执行: test_tool
+2026-06-27 00:09:17,790 [    INFO] planning.executor: [工具调用] SUCCESS: test_tool
+2026-06-27 00:09:17,790 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,790 [    INFO] agent.error_handler: [async_with_retry] 异步函数执行成功: func=_do_execute_task, trace_id=None, attempt=1
+2026-06-27 00:09:17,790 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 00:09:17,791 [    INFO] planning.core:    ✅ 执行引擎返回，任务完成数: 1/1
+2026-06-27 00:09:17,791 [    INFO] planning.core: 🧠 步骤3: 执行计划反思...
+2026-06-27 00:09:17,791 [    INFO] planning.core:    ✅ 反思完成
+2026-06-27 00:09:17,791 [    INFO] planning.core: 📋 步骤4: 最终状态判断...
+2026-06-27 00:09:17,791 [    INFO] planning.core: 📈 执行进度: 100.0%
+2026-06-27 00:09:17,791 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,791 [    INFO] planning.core: ✅ 计划执行完成
+2026-06-27 00:09:17,791 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,797 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,797 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:17,797 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:17,797 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:17,797 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:17,797 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:17,797 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:17,797 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:17,797 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:17,797 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:17,797 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:17,798 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:17,798 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:17,798 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:17,798 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:17,798 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:17,798 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,798 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:17,799 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,799 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: bad_tool
+2026-06-27 00:09:17,799 [    INFO] planning.executor: 工具已注册: bad_tool
+2026-06-27 00:09:17,799 [    INFO] planning.core: 工具已注册到规划引擎: bad_tool
+2026-06-27 00:09:17,799 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,799 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:17,799 [    INFO] planning.core:    任务描述: 使用bad_tool
+2026-06-27 00:09:17,799 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:17,799 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,799 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:17,799 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,799 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:17,799 [    INFO] planning.decomposer:    原始任务: 使用bad_tool
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    最大子任务数: 20
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    ⚠️ LLM服务不可用，使用规则降级分解
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer: 🔧 [规则分解] 开始基于关键词的任务分解
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    子任务1: 使用bad_tool...
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    规则分解完成，共 1 个子任务
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    ✅ 规则分解完成
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer: 📋 步骤2: 解析子任务...
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer: 🔄 [任务解析] 开始解析子任务数据...
+2026-06-27 00:09:17,800 [    INFO] planning.decomposer:    原始数据中包含 1 个子任务
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer: ✅ 解析完成，共 1 个有效子任务
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:    解析得到 1 个子任务
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:       子任务1: 使用bad_tool...
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer: 📋 步骤3: 更新计划状态...
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:    ✅ 任务分解完成!
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:    子任务总数: 1
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:09:17,801 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:17,801 [    INFO] planning.core: ✅ 任务分解成功!
+2026-06-27 00:09:17,801 [    INFO] planning.core:    计划ID: plan_af47957e
+2026-06-27 00:09:17,801 [    INFO] planning.core:    子任务数: 1
+2026-06-27 00:09:17,801 [    INFO] planning.core:       子任务1: 使用bad_tool...
+2026-06-27 00:09:17,801 [    INFO] planning.core: ✅ 计划已添加到活跃计划列表 (当前活跃计划数: 1)
+2026-06-27 00:09:17,802 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,802 [    INFO] planning.core: 计划 plan_af47957e 已添加到活跃计划列表
+2026-06-27 00:09:17,802 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:17,802 [    INFO] planning.core: 🚀 [规划引擎] 开始执行计划
+2026-06-27 00:09:17,802 [    INFO] planning.core:    计划ID: plan_af47957e
+2026-06-27 00:09:17,802 [    INFO] planning.core:    任务描述: 使用bad_tool...
+2026-06-27 00:09:17,802 [    INFO] planning.core:    任务数: 1
+2026-06-27 00:09:17,802 [    INFO] planning.core:    当前状态: ready
+2026-06-27 00:09:17,802 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:17,802 [    INFO] planning.core: 📊 步骤1: 状态转换 INIT -> EXECUTING
+2026-06-27 00:09:17,802 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:17,802 [    INFO] planning.state_machine: [状态转换] INFO: 计划ID: plan_af4
+2026-06-27 00:09:17,802 [    INFO] planning.state_machine: [状态转换] INFO: 当前状态: ready (计划就绪)
+2026-06-27 00:09:17,802 [    INFO] planning.state_machine: [状态转换] INFO: 目标状态: executing (执行中)
+2026-06-27 00:09:17,803 [    INFO] planning.state_machine: [状态转换] SUCCESS: 转换成功: ready -> executing
+2026-06-27 00:09:17,803 [    INFO] planning.state_machine: [状态转换] INFO: 转换原因: 开始执行
+2026-06-27 00:09:17,803 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:17,803 [    INFO] planning.core:    ✅ 状态已转换到: executing
+2026-06-27 00:09:17,803 [    INFO] planning.core: ⚙️ 步骤2: 调用执行引擎...
+2026-06-27 00:09:17,803 [    INFO] planning.executor: 开始执行计划: plan_af47957e
+2026-06-27 00:09:17,803 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,803 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=3, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:17,803 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 00:09:17,803 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 00:09:17,803 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: Exception
+2026-06-27 00:09:17,804 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: 工具执行失败
+2026-06-27 00:09:17,806 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 283, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\integration\test_planning_core.py", line 160, in bad_tool
+    raise Exception("工具执行失败")
+Exception: 工具执行失败
+
+2026-06-27 00:09:17,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,806 [    INFO] agent.error_handler: [async_with_retry] 捕获异常: func=_do_execute_task, trace_id=None, attempt=0, exception_type=RecoverableError, exception=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:17,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:17,806 [ WARNING] agent.error_handler: [async_with_retry] 第 1/3 次尝试失败, trace_id=None, delay=0.99s, func=_do_execute_task, exception_type=RecoverableError, exception_msg=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:18,802 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 00:09:18,802 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 00:09:18,802 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: Exception
+2026-06-27 00:09:18,802 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: 工具执行失败
+2026-06-27 00:09:18,802 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 283, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\integration\test_planning_core.py", line 160, in bad_tool
+    raise Exception("工具执行失败")
+Exception: 工具执行失败
+
+2026-06-27 00:09:18,802 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:18,802 [    INFO] agent.error_handler: [async_with_retry] 捕获异常: func=_do_execute_task, trace_id=None, attempt=1, exception_type=RecoverableError, exception=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:18,802 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:18,802 [ WARNING] agent.error_handler: [async_with_retry] 第 2/3 次尝试失败, trace_id=None, delay=1.98s, func=_do_execute_task, exception_type=RecoverableError, exception_msg=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:20,788 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 00:09:20,788 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 00:09:20,788 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: Exception
+2026-06-27 00:09:20,788 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: 工具执行失败
+2026-06-27 00:09:20,788 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 283, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\integration\test_planning_core.py", line 160, in bad_tool
+    raise Exception("工具执行失败")
+Exception: 工具执行失败
+
+2026-06-27 00:09:20,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:20,789 [    INFO] agent.error_handler: [async_with_retry] 捕获异常: func=_do_execute_task, trace_id=None, attempt=2, exception_type=RecoverableError, exception=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:20,789 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:20,789 [ WARNING] agent.error_handler: [async_with_retry] 第 3/3 次尝试失败, trace_id=None, delay=3.91s, func=_do_execute_task, exception_type=RecoverableError, exception_msg=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:24,718 [    INFO] planning.executor: [工具调用] INFO: 开始执行: bad_tool
+2026-06-27 00:09:24,718 [   ERROR] planning.executor: [工具调用] ERROR: 执行失败: bad_tool
+2026-06-27 00:09:24,718 [   ERROR] planning.executor: [工具调用] ERROR: 错误类型: Exception
+2026-06-27 00:09:24,718 [   ERROR] planning.executor: [工具调用] ERROR: 错误信息: 工具执行失败
+2026-06-27 00:09:24,719 [   ERROR] planning.executor: [工具调用] ERROR: 堆栈跟踪:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\planning\executor.py", line 283, in _execute_tool_call
+    output = tool(**action.tool_params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\tests\integration\test_planning_core.py", line 160, in bad_tool
+    raise Exception("工具执行失败")
+Exception: 工具执行失败
+
+2026-06-27 00:09:24,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,719 [    INFO] agent.error_handler: [async_with_retry] 捕获异常: func=_do_execute_task, trace_id=None, attempt=3, exception_type=RecoverableError, exception=任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:24,719 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,719 [   ERROR] agent.error_handler: [async_with_retry] 所有 3 次重试已用尽: func=_do_execute_task, trace_id=None, final_error_type=RecoverableError, final_error_msg=任务执行失败: 工具执行失败: 工具执行失败
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\agent\error_handler.py", line 1599, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\planning\executor.py", line 212, in _do_execute_task
+    raise RecoverableError(f"任务执行失败: {result.error}")
+agent.error_handler.RecoverableError: 任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:24,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,720 [    INFO] agent.error_handler: [ErrorHandler.record_error] 错误被记录: error_key=RecoverableError, trace_id=None, severity=warning, category=unknown, recoverable=True, retryable=True, message=任务执行失败: 工具执行失败: 工具执行失败, original_type=RecoverableError
+2026-06-27 00:09:24,721 [ WARNING] agent.error_handler: [warning] unknown: 任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:24,721 [   ERROR] planning.executor: 任务执行失败: 任务执行失败: 工具执行失败: 工具执行失败
+2026-06-27 00:09:24,721 [   ERROR] planning.executor: 高优先级任务失败: step_1
+2026-06-27 00:09:24,721 [    INFO] planning.executor: 计划执行completed: 0.0%
+2026-06-27 00:09:24,721 [    INFO] planning.core:    ✅ 执行引擎返回，任务完成数: 0/1
+2026-06-27 00:09:24,721 [    INFO] planning.core: 🧠 步骤3: 执行计划反思...
+2026-06-27 00:09:24,721 [    INFO] planning.core:    ✅ 反思完成
+2026-06-27 00:09:24,721 [    INFO] planning.core: 📋 步骤4: 最终状态判断...
+2026-06-27 00:09:24,721 [    INFO] planning.core: 📈 执行进度: 0.0%
+2026-06-27 00:09:24,721 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,721 [    INFO] planning.core: ✅ 计划执行完成
+2026-06-27 00:09:24,722 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,728 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,728 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,728 [    INFO] planning.core: LLM服务: 已配置
+2026-06-27 00:09:24,728 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,728 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,728 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,728 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,728 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,728 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,728 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,728 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,730 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,730 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,730 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,730 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,730 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,730 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,730 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,730 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,731 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,731 [    INFO] planning.core: 💬 [规划引擎] 收到对话请求
+2026-06-27 00:09:24,731 [    INFO] planning.core:    用户消息: 你好
+2026-06-27 00:09:24,731 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:24,731 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,731 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:24,731 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:24,731 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:24,731 [    INFO] planning.core:    需要规划: False
+2026-06-27 00:09:24,731 [    INFO] planning.core: 🤔 任务复杂度评估: 简单任务
+2026-06-27 00:09:24,731 [    INFO] planning.core: ✅ 决策: 直接执行模式
+2026-06-27 00:09:24,731 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,739 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,739 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,739 [    INFO] planning.core: LLM服务: 已配置
+2026-06-27 00:09:24,739 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,740 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,740 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,740 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,740 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,740 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,740 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,740 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,741 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,741 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,741 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,741 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,741 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,742 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,742 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,742 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,742 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,742 [    INFO] planning.core: 💬 [规划引擎] 收到对话请求
+2026-06-27 00:09:24,742 [    INFO] planning.core:    用户消息: 帮我完成一个复杂的任务
+2026-06-27 00:09:24,742 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:24,742 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,742 [    INFO] planning.core:    复杂指示器匹配: 1 个
+2026-06-27 00:09:24,742 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:24,742 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:24,743 [    INFO] planning.core:    需要规划: True
+2026-06-27 00:09:24,743 [    INFO] planning.core: 🤔 任务复杂度评估: 需要规划
+2026-06-27 00:09:24,743 [    INFO] planning.core: ✅ 决策: 启用规划模式
+2026-06-27 00:09:24,743 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,743 [    INFO] planning.core: 🧠 [规划模式] 开始处理复杂任务
+2026-06-27 00:09:24,743 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,743 [    INFO] planning.core: 🔄 步骤1: 启动ReAct循环...
+2026-06-27 00:09:24,743 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 00:09:24,743 [    INFO] planning.react: 🔄 [ReAct循环] =================================================
+2026-06-27 00:09:24,743 [    INFO] planning.react: 🔄 [ReAct循环] 开始执行
+2026-06-27 00:09:24,743 [    INFO] planning.react: 🔄 [ReAct循环] 任务: 帮我完成一个复杂的任务
+2026-06-27 00:09:24,743 [    INFO] planning.react: 🔄 [ReAct循环] 最大迭代次数: 10
+2026-06-27 00:09:24,743 [    INFO] planning.react: 🔄 [ReAct循环] 初始上下文键: []
+2026-06-27 00:09:24,744 [    INFO] planning.react: 🔄 [ReAct循环] 开始时间: 2026-06-27 00:09:24.743
+2026-06-27 00:09:24,744 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 00:09:24,744 [    INFO] planning.react: ──────────────────────────────────────────────────────────────────
+2026-06-27 00:09:24,744 [    INFO] planning.react: 🔁 [迭代 1/10] ────────────────
+2026-06-27 00:09:24,744 [    INFO] planning.react: 🔁 [迭代 1] 开始时间: 00:09:24.744
+2026-06-27 00:09:24,744 [    INFO] planning.react: 🔁 [迭代 1] 当前步骤数: 0
+2026-06-27 00:09:24,744 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 00:09:24,744 [    INFO] planning.react:    │ 💭 步骤1: 思考阶段                                      │
+2026-06-27 00:09:24,744 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 00:09:24,744 [    INFO] planning.react:    ✅ 思考完成
+2026-06-27 00:09:24,744 [    INFO] planning.react:       ├─ 推理: 分析任务
+2026-06-27 00:09:24,744 [    INFO] planning.react:       ├─ 行动类型: finish
+2026-06-27 00:09:24,744 [    INFO] planning.react:       ├─ 行动: 生成回复
+2026-06-27 00:09:24,744 [    INFO] planning.react:       └─ 置信度: 0.50
+2026-06-27 00:09:24,744 [    INFO] planning.react:    ┌──────────────────────────────────────────────────────────┐
+2026-06-27 00:09:24,744 [    INFO] planning.react:    │ 🎉 检测到完成信号，结束循环                             │
+2026-06-27 00:09:24,744 [    INFO] planning.react:    └──────────────────────────────────────────────────────────┘
+2026-06-27 00:09:24,744 [    INFO] planning.react:    ✅ 任务已完成
+2026-06-27 00:09:24,745 [    INFO] planning.react:       ├─ 执行步数: 1
+2026-06-27 00:09:24,745 [    INFO] planning.react:       ├─ 总时长: 1.51ms
+2026-06-27 00:09:24,745 [    INFO] planning.react:       └─ 结果: 任务完成
+2026-06-27 00:09:24,745 [    INFO] planning.react: ══════════════════════════════════════════════════════════════════
+2026-06-27 00:09:24,745 [    INFO] planning.core: 📊 步骤2: ReAct循环执行结果
+2026-06-27 00:09:24,745 [    INFO] planning.core:    成功: True
+2026-06-27 00:09:24,745 [    INFO] planning.core:    迭代次数: 1
+2026-06-27 00:09:24,745 [    INFO] planning.core:    执行时长: 1ms
+2026-06-27 00:09:24,745 [    INFO] planning.core: ✅ 任务执行成功，生成响应...
+2026-06-27 00:09:24,745 [    INFO] planning.core: ✅ 规划模式处理完成
+2026-06-27 00:09:24,745 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,752 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,752 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,752 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,752 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,752 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,752 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,752 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,752 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,752 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,752 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,752 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,753 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,753 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,753 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,753 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,753 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,753 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,753 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,754 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,754 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,754 [    INFO] planning.core: 💬 [规划引擎] 收到对话请求
+2026-06-27 00:09:24,754 [    INFO] planning.core:    用户消息: 你好
+2026-06-27 00:09:24,754 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:24,754 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,754 [    INFO] planning.core:    复杂指示器匹配: 0 个
+2026-06-27 00:09:24,755 [    INFO] planning.core:    动作关键词匹配: 0 个
+2026-06-27 00:09:24,755 [    INFO] planning.core:    阈值: 复杂>=1 或 动作>=2
+2026-06-27 00:09:24,755 [    INFO] planning.core:    需要规划: False
+2026-06-27 00:09:24,755 [    INFO] planning.core: 🤔 任务复杂度评估: 简单任务
+2026-06-27 00:09:24,755 [    INFO] planning.core: ✅ 决策: 直接执行模式
+2026-06-27 00:09:24,755 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,762 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,762 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,762 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,762 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,762 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,763 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,763 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,763 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,763 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,763 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,763 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,763 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,763 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,764 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,764 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,764 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,764 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,764 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,764 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: [状态转换] INFO: 计划ID: test_pla
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: [状态转换] INFO: 当前状态: ready (计划就绪)
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: [状态转换] INFO: 目标状态: cancelled (已取消)
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: [状态转换] SUCCESS: 转换成功: ready -> cancelled
+2026-06-27 00:09:24,764 [    INFO] planning.state_machine: [状态转换] INFO: 转换原因: 用户取消
+2026-06-27 00:09:24,765 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:24,765 [    INFO] planning.executor: 计划已取消: test_plan
+2026-06-27 00:09:24,769 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,769 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,769 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,769 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,769 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,769 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,769 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,770 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,770 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,770 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,770 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,770 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,770 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,770 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,770 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,771 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,771 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,771 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,771 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,771 [ WARNING] planning.core: 计划不存在: nonexistent
+2026-06-27 00:09:24,775 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,775 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,775 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,775 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,775 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,775 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,776 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,776 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,776 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,776 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,776 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,776 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,776 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,776 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,777 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,777 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,777 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,777 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,777 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,781 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,781 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,781 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,781 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,781 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,781 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,781 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,781 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,781 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,781 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,781 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,782 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,782 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,782 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,782 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,782 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,783 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,783 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,783 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,787 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,788 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,788 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,788 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,788 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,788 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,788 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,788 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,788 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,788 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 20
+2026-06-27 00:09:24,788 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 3
+2026-06-27 00:09:24,789 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,789 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,789 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,789 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,789 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,789 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,790 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,790 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,795 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,795 [    INFO] planning.core: 开始初始化规划引擎核心...
+2026-06-27 00:09:24,795 [    INFO] planning.core: LLM服务: 未配置 (将使用规则模式)
+2026-06-27 00:09:24,795 [    INFO] planning.core: 工具注册表: 新建空注册表
+2026-06-27 00:09:24,795 [    INFO] planning.core: 记忆管理器: 未配置
+2026-06-27 00:09:24,795 [    INFO] planning.executor: [ToolRegistry] __init__ 开始初始化
+2026-06-27 00:09:24,795 [    INFO] core.registry: 📋 ToolRegistry initialized
+2026-06-27 00:09:24,795 [    INFO] planning.executor: [ToolRegistry] __init__ 初始化完成
+2026-06-27 00:09:24,795 [    INFO] planning.core: 工具注册表初始化完成，当前工具数: 0
+2026-06-27 00:09:24,795 [    INFO] planning.core: 任务分解器初始化完成，最大子任务数: 10
+2026-06-27 00:09:24,795 [    INFO] planning.core: 执行引擎初始化完成，最大重试次数: 2
+2026-06-27 00:09:24,797 [    INFO] planning.reflector: 经验库目录: ./data/reflection
+2026-06-27 00:09:24,797 [    INFO] planning.core: 反思引擎初始化完成
+2026-06-27 00:09:24,797 [    INFO] planning.core: 状态机初始化完成
+2026-06-27 00:09:24,797 [    INFO] planning.core: ReAct循环初始化完成，最大迭代次数: 10
+2026-06-27 00:09:24,797 [    INFO] planning.core: 复杂度阈值: 0.5
+2026-06-27 00:09:24,797 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,797 [    INFO] planning.core: ✅ 规划引擎核心初始化完成
+2026-06-27 00:09:24,798 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: create_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: 工具已注册: create_file
+2026-06-27 00:09:24,798 [    INFO] planning.core: 工具已注册到规划引擎: create_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: write_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: 工具已注册: write_file
+2026-06-27 00:09:24,798 [    INFO] planning.core: 工具已注册到规划引擎: write_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: read_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: 工具已注册: read_file
+2026-06-27 00:09:24,798 [    INFO] planning.core: 工具已注册到规划引擎: read_file
+2026-06-27 00:09:24,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: search
+2026-06-27 00:09:24,798 [    INFO] planning.executor: 工具已注册: search
+2026-06-27 00:09:24,798 [    INFO] planning.core: 工具已注册到规划引擎: search
+2026-06-27 00:09:24,798 [    INFO] planning.executor: [ToolRegistry.register] 注册工具: send_email
+2026-06-27 00:09:24,798 [    INFO] planning.executor: 工具已注册: send_email
+2026-06-27 00:09:24,799 [    INFO] planning.core: 工具已注册到规划引擎: send_email
+2026-06-27 00:09:24,799 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,799 [    INFO] planning.core: 🔍 [规划引擎] 开始创建执行计划
+2026-06-27 00:09:24,799 [    INFO] planning.core:    任务描述: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员
+2026-06-27 00:09:24,799 [    INFO] planning.core:    上下文键: []
+2026-06-27 00:09:24,799 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,799 [    INFO] planning.core: 📋 步骤1: 调用任务分解器...
+2026-06-27 00:09:24,799 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:24,799 [    INFO] planning.decomposer: 🔍 [任务分解器] 开始分解任务
+2026-06-27 00:09:24,799 [    INFO] planning.decomposer:    原始任务: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员
+2026-06-27 00:09:24,799 [    INFO] planning.decomposer:    上下文键: []
+2026-06-27 00:09:24,799 [    INFO] planning.decomposer:    最大子任务数: 10
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer: ------------------------------------------------------------
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer: 📊 步骤1: 选择分解策略...
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    ⚠️ LLM服务不可用，使用规则降级分解
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    正在基于规则进行任务分解...
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer: 🔧 [规则分解] 开始基于关键词的任务分解
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    使用分隔符 '首先' 分割任务
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    使用分隔符 '然后' 分割任务
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    使用分隔符 '接着' 分割任务
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    使用分隔符 '最后' 分割任务
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:09:24,800 [    INFO] planning.decomposer:    子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:    子任务4: 发送邮件通知管理员...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:    规则分解完成，共 4 个子任务
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:    ✅ 规则分解完成
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer: 📋 步骤2: 解析子任务...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer: 🔄 [任务解析] 开始解析子任务数据...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:    原始数据中包含 4 个子任务
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer: ✅ 解析完成，共 4 个有效子任务
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:    解析得到 4 个子任务
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:       子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:       子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:09:24,801 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:          依赖: ['step_1']
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:       子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:          依赖: ['step_2']
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:       子任务4: 发送邮件通知管理员...
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:          类型: atomic, 优先级: 3
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:          依赖: ['step_3']
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer: 📋 步骤3: 更新计划状态...
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:    ✅ 任务分解完成!
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:    子任务总数: 4
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer:    计划状态: ready
+2026-06-27 00:09:24,802 [    INFO] planning.decomposer: ============================================================
+2026-06-27 00:09:24,803 [    INFO] planning.core: ✅ 任务分解成功!
+2026-06-27 00:09:24,803 [    INFO] planning.core:    计划ID: plan_c8243ef9
+2026-06-27 00:09:24,803 [    INFO] planning.core:    子任务数: 4
+2026-06-27 00:09:24,803 [    INFO] planning.core:       子任务1: 创建一个名为 report.txt 的文件，...
+2026-06-27 00:09:24,803 [    INFO] planning.core:       子任务2: 搜索关于销售数据的信息，...
+2026-06-27 00:09:24,803 [    INFO] planning.core:       子任务3: 将搜索结果写入 report.txt 文件，...
+2026-06-27 00:09:24,803 [    INFO] planning.core:       子任务4: 发送邮件通知管理员...
+2026-06-27 00:09:24,803 [    INFO] planning.core: ✅ 计划已添加到活跃计划列表 (当前活跃计划数: 1)
+2026-06-27 00:09:24,803 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,803 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,804 [    INFO] planning.core: 🚀 [规划引擎] 开始执行计划
+2026-06-27 00:09:24,804 [    INFO] planning.core:    计划ID: plan_c8243ef9
+2026-06-27 00:09:24,804 [    INFO] planning.core:    任务描述: 首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员...
+2026-06-27 00:09:24,804 [    INFO] planning.core:    任务数: 4
+2026-06-27 00:09:24,804 [    INFO] planning.core:    当前状态: ready
+2026-06-27 00:09:24,804 [    INFO] planning.core: ------------------------------------------------------------
+2026-06-27 00:09:24,804 [    INFO] planning.core: 📊 步骤1: 状态转换 INIT -> EXECUTING
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: [状态转换] INFO: 计划ID: plan_c82
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: [状态转换] INFO: 当前状态: ready (计划就绪)
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: [状态转换] INFO: 目标状态: executing (执行中)
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: [状态转换] SUCCESS: 转换成功: ready -> executing
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: [状态转换] INFO: 转换原因: 开始执行
+2026-06-27 00:09:24,804 [    INFO] planning.state_machine: ------------------------------------------------------------
+2026-06-27 00:09:24,805 [    INFO] planning.core:    ✅ 状态已转换到: executing
+2026-06-27 00:09:24,805 [    INFO] planning.core: ⚙️ 步骤2: 调用执行引擎...
+2026-06-27 00:09:24,805 [    INFO] planning.executor: 开始执行计划: plan_c8243ef9
+2026-06-27 00:09:24,805 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,805 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=2, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:24,805 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,805 [    INFO] agent.error_handler: [async_with_retry] 异步函数执行成功: func=_do_execute_task, trace_id=None, attempt=1
+2026-06-27 00:09:24,805 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,805 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=2, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:24,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,806 [    INFO] agent.error_handler: [async_with_retry] 异步函数执行成功: func=_do_execute_task, trace_id=None, attempt=1
+2026-06-27 00:09:24,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,806 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=2, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:24,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,806 [    INFO] agent.error_handler: [async_with_retry] 异步函数执行成功: func=_do_execute_task, trace_id=None, attempt=1
+2026-06-27 00:09:24,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,806 [    INFO] agent.error_handler: [async_with_retry] 开始执行异步函数: func=_do_execute_task, trace_id=None, max_retries=2, strategy=exponential, initial_delay=1.0, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=executor.task
+2026-06-27 00:09:24,806 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-27 00:09:24,806 [    INFO] agent.error_handler: [async_with_retry] 异步函数执行成功: func=_do_execute_task, trace_id=None, attempt=1
+2026-06-27 00:09:24,807 [    INFO] planning.executor: 计划执行completed: 100.0%
+2026-06-27 00:09:24,807 [    INFO] planning.core:    ✅ 执行引擎返回，任务完成数: 4/4
+2026-06-27 00:09:24,807 [    INFO] planning.core: 🧠 步骤3: 执行计划反思...
+2026-06-27 00:09:24,807 [    INFO] planning.core:    ✅ 反思完成
+2026-06-27 00:09:24,807 [    INFO] planning.core: 📋 步骤4: 最终状态判断...
+2026-06-27 00:09:24,807 [    INFO] planning.core: 📈 执行进度: 100.0%
+2026-06-27 00:09:24,807 [    INFO] planning.core: ============================================================
+2026-06-27 00:09:24,807 [    INFO] planning.core: ✅ 计划执行完成
+2026-06-27 00:09:24,807 [    INFO] planning.core: ============================================================

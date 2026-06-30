@@ -1,0 +1,21 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：Grafana 数据源自动配置（Prometheus）
+# - 生成参数：access=proxy、isDefault=true、editable=false、timeInterval=15s、httpMethod=POST
+# - 模型配置：GLM-5.2
+# - 关键状态变化：生产环境数据源不可在 UI 编辑，避免误改
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: '15s'
+      httpMethod: POST
+      manageAlerts: false

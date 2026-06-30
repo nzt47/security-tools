@@ -95,6 +95,11 @@ jobs:
           echo "=== 检查依赖安全 ==="
           safety check --json --output test_reports/safety_report.json || true
 
+      - name: 敏感数据正则静态扫描
+        run: |
+          echo "=== 敏感数据正则静态扫描 ==="
+          python scripts/scan_sensitive_regex.py --fix-hint
+
       - name: 上传安全报告
         uses: actions/upload-artifact@v3
         if: always()
@@ -155,6 +160,14 @@ jobs:
             tests/unit/test_guardrails.py \
             -v --tb=short -q
           echo "=== 新模块专项测试全部通过 ==="
+
+      - name: 运行安全回归测试（P0 防复发）
+        run: |
+          echo "=== 运行 P0 安全修复防复发回归测试 ==="
+          python -m pytest \
+            tests/regression/test_p0_security_fix.py \
+            -v --tb=short -q
+          echo "=== 安全回归测试全部通过 ==="
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v3
