@@ -1,8 +1,8 @@
 # 边界覆盖扫描报告
 
-- **生成时间**：2026-07-01T02:39:11.938691
-- **Trace ID**：`9d83231a89cb4492`
-- **扫描耗时**：1683.62 ms
+- **生成时间**：2026-07-01T02:44:40.473044
+- **Trace ID**：`06ffd0d74b024764`
+- **扫描耗时**：1713.28 ms
 - **总体状态**：⚠️ 警告
 
 ## 总览
@@ -10,9 +10,9 @@
 | 指标 | 数值 |
 | --- | --- |
 | 模块总数 | 66 |
-| 测试用例总数 | 5597 |
-| 边界测试用例数 | 892 |
-| 边界测试覆盖率 | 15.9% |
+| 测试用例总数 | 5641 |
+| 边界测试用例数 | 930 |
+| 边界测试覆盖率 | 16.5% |
 | 阻断模块数 | 0 |
 
 ## 模块详情
@@ -26,7 +26,7 @@
 | `caching` |  | 63 | 2 | empty, null | — | ✅ | — |
 | `circuit_breaker` | 熔断器 | 81 | 20 | boundary, empty, extreme, invalid, timeout | — | ✅ | — |
 | `code_review` |  | 28 | 3 | empty, invalid | — | ✅ | — |
-| `cognitive` | 认知循环与决策 | 72 | 18 | boundary, empty, extreme, invalid, null | timeout | ⚠️ | 建议补充边界场景: timeout |
+| `cognitive` | 认知循环与决策 | 93 | 36 | boundary, empty, extreme, invalid, null, timeout | — | ✅ | — |
 | `config` | 配置加载与校验 | 192 | 76 | boundary, empty, extreme, invalid, null, timeout | — | ✅ | — |
 | `core` | 核心调度与状态机 | 89 | 40 | empty, extreme, invalid, null, timeout | — | ✅ | — |
 | `data_analytics` |  | 22 | 1 | empty | — | ✅ | — |
@@ -46,7 +46,7 @@
 | `llm_response_cache` |  | 41 | 16 | boundary, empty, extreme, null, timeout | — | ✅ | — |
 | `log_system` |  | 93 | 7 | boundary, empty, extreme, timeout | — | ✅ | — |
 | `logging_utils` |  | 23 | 1 | timeout | — | ✅ | — |
-| `memory` | 记忆系统 | 256 | 47 | boundary, empty, extreme, invalid, null | overflow | ⚠️ | 建议补充边界场景: overflow |
+| `memory` | 记忆系统 | 279 | 67 | boundary, empty, extreme, invalid, null, overflow | — | ✅ | — |
 | `memory_optimized` |  | 32 | 4 | empty, timeout | — | ✅ | — |
 | `model_router` |  | 23 | 1 | extreme | — | ✅ | — |
 | `monitoring` | 监控埋点 | 448 | 38 | boundary, empty, extreme, invalid, null, timeout | — | ✅ | — |
@@ -130,18 +130,18 @@
 | `core` | `test_get_plan_status_nonexistent` | tests\integration\test_planning_core.py | null |
 | `core` | `test_callback_registry_trigger_nonexistent` | tests\unit\test_core_comprehensive.py | null |
 | `core` | `test_type_registry_create_nonexistent` | tests\unit\test_core_comprehensive.py | null |
-| `cognitive` | `test_empty_sensor_name` | tests\test_cognitive_boundary.py | empty |
-| `cognitive` | `test_none_sensor_name` | tests\test_cognitive_boundary.py | null |
-| `cognitive` | `test_nonexistent_sensor` | tests\test_cognitive_boundary.py | null |
-| `cognitive` | `test_missing_sensor_name` | tests\test_cognitive_boundary.py | empty |
-| `cognitive` | `test_missing_value` | tests\test_cognitive_boundary.py | empty |
-| `cognitive` | `test_none_value` | tests\test_cognitive_boundary.py | null |
-| `cognitive` | `test_invalid_string_value` | tests\test_cognitive_boundary.py | invalid |
-| `cognitive` | `test_extreme_value` | tests\test_cognitive_boundary.py | extreme |
-| `cognitive` | `test_zero_value` | tests\test_cognitive_boundary.py | extreme |
-| `cognitive` | `test_empty_list` | tests\test_cognitive_boundary.py | empty |
+| `cognitive` | `test_timeout_inject_empty_data` | tests\boundary\test_cognitive_boundary.py | timeout, empty |
+| `cognitive` | `test_timeout_inject_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | timeout, null |
+| `cognitive` | `test_timeout_translate_all_large_batch` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_timeout_get_summary_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_timeout_should_reject_task_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_timeout_render_large_template` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_timeout_repeated_inject` | tests\boundary\test_cognitive_boundary.py | timeout |
+| `cognitive` | `test_empty_sensor_data_inject` | tests\boundary\test_cognitive_boundary.py | empty |
+| `cognitive` | `test_empty_sensor_data_get_summary` | tests\boundary\test_cognitive_boundary.py | empty |
 
-> 仅展示前 50 条，共 892 条边界测试用例
+> 仅展示前 50 条，共 930 条边界测试用例
 
 ## CI 阻断策略
 
