@@ -261,7 +261,12 @@ def setup_agent_logging(
     # 控制台处理器
     if enable_console:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
+        # 尝试使用结构化日志格式化器（对 JSON 日志美化，非 JSON 回退到标准格式）
+        try:
+            from scripts.struct_log_formatter import StructuredLogFormatter
+            console_handler.setFormatter(StructuredLogFormatter())
+        except ImportError:
+            console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
         console_handler.addFilter(SensitiveDataFilter())
         console_handler.addFilter(EmojiFilter())
