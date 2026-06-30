@@ -652,9 +652,22 @@ class BoundaryScanner:
 class ReportGenerator:
     """Markdown + JSON 报告生成器"""
 
-    def __init__(self, project_root: Path, ci_policy: Dict[str, Any]):
+    def __init__(
+        self,
+        project_root: Path,
+        ci_policy: Dict[str, Any],
+        threshold: Optional[int] = None,
+        threshold_source: str = "ci_policy",
+    ):
         self.project_root = project_root
         self.ci_policy = ci_policy
+        # 阈值优先级：外部传入 > ci_policy.threshold > 默认值 5
+        if threshold is not None:
+            self.threshold = threshold
+            self.threshold_source = threshold_source
+        else:
+            self.threshold = ci_policy.get("threshold", 5)
+            self.threshold_source = "ci_policy"
 
     def generate_markdown(self, result: ScanResult) -> str:
         """生成 Markdown 报告"""
@@ -738,7 +751,13 @@ class ReportGenerator:
         return "\n".join(lines)
 
     def generate_json(self, result: ScanResult) -> Dict[str, Any]:
-        """生成 JSON 报告"""
+        """生成 JSON 报告（含阈值信息，供 CI 配置驱动）"""
+        coverage_percent = (
+            round(result.total_boundary_tests / result.total_tests * 100, 1)
+            if result.total_tests > 0
+            else 0.0
+        )
+        passed = coverage_percent >= self.threshold and result.overall_status != "fail"
         return {
             "trace_id": result.trace_id,
             "timestamp": result.timestamp,
@@ -747,6 +766,10 @@ class ReportGenerator:
             "total_modules": result.total_modules,
             "total_tests": result.total_tests,
             "total_boundary_tests": result.total_boundary_tests,
+            "coverage_percent": coverage_percent,
+            "threshold": self.threshold,
+            "threshold_source": self.threshold_source,
+            "passed": passed,
             "blocked_modules": result.blocked_modules,
             "modules": [
                 {
@@ -820,6 +843,75 @@ def _generate_degraded_report(error: Exception, output_path: Path) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  配置文件阈值加载（配置驱动模式）
+# ═══════════════════════════════════════════════════════════════
+
+def _load_threshold_from_config(config_path: Path) -> Tuple[int, str]:
+    """从 config.yaml 读取 boundary_test_coverage 阈值
+
+    Args:
+        config_path: config.yaml 文件路径
+
+    Returns:
+        (threshold, source_description) 元组
+
+    Raises:
+        FileNotFoundError: 配置文件不存在
+        ValueError: 配置文件格式错误或阈值字段缺失
+    """
+    trace_id = _trace_id()
+    start = time.time()
+
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"配置文件不存在: {config_path} [error_code=BOUNDARY_CONFIG_NOT_FOUND]"
+        )
+
+    try:
+        import yaml
+    except ImportError as e:
+        raise ImportError(
+            "PyYAML 未安装，请运行: pip install pyyaml "
+            "[error_code=DEPENDENCY_MISSING]"
+        ) from e
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f) or {}
+    except yaml.YAMLError as e:
+        raise ValueError(
+            f"YAML 解析失败: {e} [error_code=CONFIG_PARSE_ERROR]"
+        ) from e
+
+    # 从 visibility_thresholds.verification.boundary_test_coverage 读取
+    visibility_thresholds = config.get("visibility_thresholds", {})
+    verification = visibility_thresholds.get("verification", {})
+    threshold = verification.get("boundary_test_coverage")
+
+    if threshold is None:
+        # 降级：尝试扁平化 key（兼容旧格式）
+        threshold = visibility_thresholds.get("boundary_test_coverage", 5)
+        source = f"{config_path.name} (flat fallback, value={threshold})"
+    else:
+        source = f"{config_path.name} (visibility_thresholds.verification.boundary_test_coverage={threshold})"
+
+    threshold = int(threshold)
+
+    duration_ms = (time.time() - start) * 1000
+    logger.info(json.dumps({
+        "trace_id": trace_id,
+        "module_name": "boundary_coverage",
+        "action": "load_threshold_from_config",
+        "duration_ms": round(duration_ms, 2),
+        "config_path": str(config_path),
+        "threshold": threshold,
+        "source": source,
+    }, ensure_ascii=False))
+
+    return threshold, source
+
+
+# ═══════════════════════════════════════════════════════════════
 #  CLI 入口
 # ═══════════════════════════════════════════════════════════════
 
@@ -848,6 +940,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help="详细日志",
     )
+    parser.add_argument(
+        "--threshold-from-config",
+        metavar="CONFIG_PATH",
+        default=None,
+        help="从 config.yaml 读取 boundary_test_coverage 阈值，覆盖 ci_policy.threshold",
+    )
     args = parser.parse_args(argv)
 
     _setup_logging(args.verbose)
@@ -869,8 +967,23 @@ def main(argv: Optional[List[str]] = None) -> int:
         scanner = BoundaryScanner(config, PROJECT_ROOT, new_modules)
         result = scanner.scan()
 
-        # 4. 生成报告
-        report_gen = ReportGenerator(PROJECT_ROOT, config.get("ci_policy", {}))
+        # 4. 生成报告（支持从 config.yaml 读取阈值，配置驱动模式）
+        threshold_override = None
+        threshold_source = "ci_policy"
+        if args.threshold_from_config:
+            threshold_override, threshold_source = _load_threshold_from_config(
+                Path(args.threshold_from_config)
+            )
+            logger.info(
+                f"阈值从 config.yaml 读取: {threshold_override}% (source={threshold_source})"
+            )
+
+        report_gen = ReportGenerator(
+            PROJECT_ROOT,
+            config.get("ci_policy", {}),
+            threshold=threshold_override,
+            threshold_source=threshold_source,
+        )
 
         # 覆盖配置中的报告路径
         ci_policy = config.get("ci_policy", {})
