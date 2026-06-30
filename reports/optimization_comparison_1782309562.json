@@ -1,0 +1,182 @@
+[
+  {
+    "test_name": "fast_sampler",
+    "description": "快速采样器采样决策性能",
+    "optimized": {
+      "ops_per_sec": 519052.7046576468,
+      "avg_latency_ms": 0.001926586627960205,
+      "iterations": 100000,
+      "elapsed_ms": 192.6586627960205
+    },
+    "baseline": {
+      "ops_per_sec": 200000,
+      "avg_latency_ms": 0.005
+    },
+    "improvement": {
+      "throughput_pct": 159.5263523288234,
+      "latency_pct": 61.46826744079591
+    }
+  },
+  {
+    "test_name": "adaptive_sampler",
+    "description": "自适应采样器采样决策性能",
+    "optimized": {
+      "ops_per_sec": 455768.8504460647,
+      "avg_latency_ms": 0.0021940946578979494,
+      "iterations": 100000,
+      "elapsed_ms": 219.40946578979492
+    },
+    "baseline": {
+      "ops_per_sec": 150000,
+      "avg_latency_ms": 0.007
+    },
+    "improvement": {
+      "throughput_pct": 203.8459002973765,
+      "latency_pct": 68.65579060145787
+    }
+  },
+  {
+    "test_name": "lock_free_counter",
+    "description": "无锁计数器递增性能",
+    "optimized": {
+      "ops_per_sec": 8343552.81480008,
+      "avg_latency_ms": 0.00011985301971435547,
+      "iterations": 100000,
+      "elapsed_ms": 11.985301971435547
+    },
+    "baseline": {
+      "ops_per_sec": 1000000,
+      "avg_latency_ms": 0.001
+    },
+    "improvement": {
+      "throughput_pct": 734.355281480008,
+      "latency_pct": 88.01469802856445
+    }
+  },
+  {
+    "test_name": "lock_free_histogram",
+    "description": "无锁直方图记录性能",
+    "optimized": {
+      "ops_per_sec": 817013.8496600892,
+      "avg_latency_ms": 0.0012239694595336914,
+      "iterations": 50000,
+      "elapsed_ms": 61.19847297668457
+    },
+    "baseline": {
+      "ops_per_sec": 200000,
+      "avg_latency_ms": 0.005
+    },
+    "improvement": {
+      "throughput_pct": 308.5069248300446,
+      "latency_pct": 75.52061080932617
+    }
+  },
+  {
+    "test_name": "memory_cache",
+    "description": "内存高效缓存读写性能",
+    "optimized": {
+      "ops_per_sec": 19924.30642407328,
+      "avg_latency_ms": 0.0501899528503418,
+      "iterations": 50000,
+      "elapsed_ms": 2509.49764251709
+    },
+    "baseline": {
+      "ops_per_sec": 5000,
+      "avg_latency_ms": 0.2
+    },
+    "improvement": {
+      "throughput_pct": 298.4861284814656,
+      "latency_pct": 74.9050235748291
+    }
+  },
+  {
+    "test_name": "circuit_breaker",
+    "description": "熔断器状态检查性能",
+    "optimized": {
+      "ops_per_sec": 1102922.506508191,
+      "avg_latency_ms": 0.000906682014465332,
+      "iterations": 50000,
+      "elapsed_ms": 45.3341007232666
+    },
+    "baseline": {
+      "ops_per_sec": 300000,
+      "avg_latency_ms": 0.003
+    },
+    "improvement": {
+      "throughput_pct": 267.6408355027304,
+      "latency_pct": 69.77726618448894
+    }
+  },
+  {
+    "test_name": "batch_log_writer",
+    "description": "批量日志写入器性能",
+    "optimized": {
+      "ops_per_sec": 1658745.55089773,
+      "avg_latency_ms": 0.0006028652191162109,
+      "iterations": 10000,
+      "elapsed_ms": 6.028652191162109
+    },
+    "baseline": {
+      "ops_per_sec": 200000,
+      "avg_latency_ms": 0.005
+    },
+    "improvement": {
+      "throughput_pct": 729.372775448865,
+      "latency_pct": 87.9426956176758
+    }
+  },
+  {
+    "test_name": "metrics_collector",
+    "description": "优化指标收集器性能",
+    "optimized": {
+      "ops_per_sec": 506374.98490884947,
+      "avg_latency_ms": 0.001974821090698242,
+      "iterations": 50000,
+      "elapsed_ms": 98.74105453491211
+    },
+    "baseline": {
+      "ops_per_sec": 200000,
+      "avg_latency_ms": 0.005
+    },
+    "improvement": {
+      "throughput_pct": 153.18749245442473,
+      "latency_pct": 60.503578186035156
+    }
+  },
+  {
+    "test_name": "concurrent_sampling",
+    "description": "8线程并发采样性能",
+    "optimized": {
+      "ops_per_sec": 399365.7647707134,
+      "avg_latency_ms": 0.002503970265388489,
+      "iterations": 80000,
+      "elapsed_ms": 200.3176212310791
+    },
+    "baseline": {
+      "ops_per_sec": 100000,
+      "avg_latency_ms": 0.008
+    },
+    "improvement": {
+      "throughput_pct": 299.3657647707134,
+      "latency_pct": 68.70037168264389
+    }
+  },
+  {
+    "test_name": "optimized_manager",
+    "description": "优化可观测性管理器综合性能",
+    "optimized": {
+      "ops_per_sec": 154449.92708901034,
+      "avg_latency_ms": 0.006474590301513672,
+      "iterations": 20000,
+      "elapsed_ms": 129.49180603027344
+    },
+    "baseline": {
+      "ops_per_sec": 50000,
+      "avg_latency_ms": 0.02
+    },
+    "improvement": {
+      "throughput_pct": 208.89985417802066,
+      "latency_pct": 67.62704849243164
+    }
+  }
+]

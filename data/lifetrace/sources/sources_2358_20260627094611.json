@@ -1,0 +1,21 @@
+{
+  "node_id": "sources_2358_20260627094611",
+  "content": "查看你的长期记忆",
+  "node_type": "leaf",
+  "metadata": {
+    "source": "chat",
+    "role": "user",
+    "interaction_id": 1,
+    "timestamp": "2026-06-27T01:46:11.548110+00:00"
+  },
+  "created_at": "2026-06-27T09:46:11.548624",
+  "children": [],
+  "parent": null,
+  "tags": [
+    "chat",
+    "user"
+  ],
+  "importance": 0.5,
+  "access_count": 0,
+  "last_access": null
+}

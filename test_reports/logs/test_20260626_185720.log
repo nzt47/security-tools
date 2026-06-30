@@ -1,0 +1,85 @@
+2026-06-26 18:57:21,673 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 18:57:21,677 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 18:57:21,678 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 18:57:21,820 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 18:57:21,836 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:57:21,840 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 18:57:21,879 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 18:57:21,881 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:21,881 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 18:57:21,881 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 18:57:21,888 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 18:57:21,893 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 18:57:21,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 18:57:21,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 18:57:21,908 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 18:57:21,911 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 18:57:21,911 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 18:57:22,040 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 18:57:22,044 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 18:57:22,045 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 18:57:22,060 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,060 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 18:57:22,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,396 [    INFO] agent.error_handler: [with_retry] 开始执行函数: func=func, trace_id=None, max_retries=2, strategy=exponential, initial_delay=0.01, max_delay=30.0, backoff_factor=2.0, jitter_factor=0.1, circuit_breaker=None, error_counter=None
+2026-06-26 18:57:22,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,396 [    INFO] agent.error_handler: [execute_with_retry] 开始执行: func=func, trace_id=None, max_retries=2, strategy=exponential, circuit_breaker=None, error_counter=None
+2026-06-26 18:57:22,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,396 [ WARNING] agent.error_handler: [execute_with_retry] 异常不可重试，立即抛出: func=func, trace_id=None, exception_type=YunshuError, attempt=1, error_msg=不可重试
+2026-06-26 18:57:22,396 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,396 [    INFO] agent.error_handler: [ErrorHandler.record_error] 错误被记录: error_key=YunshuError, trace_id=None, severity=error, category=unknown, recoverable=False, retryable=False, message=不可重试, original_type=YunshuError
+2026-06-26 18:57:22,397 [   ERROR] agent.error_handler: [error] unknown: 不可重试
+2026-06-26 18:57:22,397 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,397 [    INFO] agent.monitoring.error_reporter: [ErrorReporter] Initialized with 2 reporters
+2026-06-26 18:57:22,400 [    INFO] agent.error_handler: [ErrorHandler._report_to_external] 外部上报成功: error_key=YunshuError, trace_id=None, alert_level=error, error_type=Exception, service=yunshu-backend
+2026-06-26 18:57:22,404 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:57:22,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,404 [    INFO] agent.error_handler: [execute_with_retry] 开始执行: func=func, trace_id=None, max_retries=3, strategy=exponential, circuit_breaker=None, error_counter=None
+2026-06-26 18:57:22,404 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,404 [    INFO] agent.error_handler: [execute_with_retry] 函数执行成功: func=func, trace_id=None, attempts=1, circuit_breaker=No
+2026-06-26 18:57:22,408 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-26 18:57:22,408 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-26 18:57:22,429 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,429 [    INFO] agent.error_handler: [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+2026-06-26 18:57:22,429 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,429 [    INFO] agent.error_handler: [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=success, trace_id=None, state=half_open
+2026-06-26 18:57:22,429 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-26 18:57:22,429 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,429 [    INFO] agent.error_handler: [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=success, trace_id=None, state=closed, success_count=1
+2026-06-26 18:57:22,433 [    INFO] agent.error_handler: Circuit breaker 'default' initialized: max_failures=1
+2026-06-26 18:57:22,433 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-26 18:57:22,454 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,454 [    INFO] agent.error_handler: [CircuitBreaker.execute] 熔断器进入半开状态: name=default, trace_id=None, failure_count=1, reset_timeout=0.01s
+2026-06-26 18:57:22,454 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,454 [    INFO] agent.error_handler: [CircuitBreaker.execute] 开始执行受保护函数: name=default, func=<lambda>, trace_id=None, state=half_open
+2026-06-26 18:57:22,454 [    INFO] agent.error_handler: Circuit breaker 'default': recovered to CLOSED state
+2026-06-26 18:57:22,454 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,454 [    INFO] agent.error_handler: [CircuitBreaker.execute] 受保护函数执行成功: name=default, func=<lambda>, trace_id=None, state=closed, success_count=1
+2026-06-26 18:57:22,454 [ WARNING] agent.error_handler: Circuit breaker 'default': OPENED after 1 failures
+2026-06-26 18:57:22,455 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:57:22,458 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,458 [    INFO] agent.error_handler: [execute_with_retry] 开始执行: func=no_arg_func, trace_id=None, max_retries=3, strategy=exponential, circuit_breaker=None, error_counter=None
+2026-06-26 18:57:22,458 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,459 [    INFO] agent.error_handler: [execute_with_retry] 函数执行成功: func=no_arg_func, trace_id=None, attempts=1, circuit_breaker=No
+2026-06-26 18:57:22,461 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:57:22,462 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,462 [    INFO] agent.error_handler: [execute_with_retry] 开始执行: func=with_args_func, trace_id=None, max_retries=3, strategy=exponential, circuit_breaker=None, error_counter=None
+2026-06-26 18:57:22,462 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:57:22,462 [    INFO] agent.error_handler: [execute_with_retry] 函数执行成功: func=with_args_func, trace_id=None, attempts=1, circuit_breaker=No
+2026-06-26 18:57:22,465 [    INFO] agent.error_handler: Error handler initialized

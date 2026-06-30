@@ -1,0 +1,686 @@
+2026-06-25 19:20:34,209 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 19:20:34,212 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 19:20:34,214 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 19:20:34,328 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 19:20:34,343 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 19:20:34,347 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 19:20:34,380 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 19:20:34,383 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:20:34,383 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 19:20:34,383 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 19:20:34,391 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 19:20:34,397 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 19:20:34,415 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 19:20:34,415 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 19:20:34,415 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 19:20:34,416 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 19:20:34,418 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 19:20:34,594 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 19:20:34,599 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 19:20:34,599 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 19:20:34,608 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 19:20:34,623 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:20:34,623 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:20:34,666 [    INFO] agent.monitoring.chaos_injector: [Chaos] 全局故障注入器已初始化
+2026-06-25 19:20:34,666 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:34,666 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:34,666 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:34,700 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:34,702 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:34,702 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:34,702 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:34,734 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:34,735 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=50ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:34,735 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 50ms
+2026-06-25 19:20:34,786 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:34,787 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:34,787 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:34,787 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:34,831 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:34,832 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:34,865 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:34,870 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:34,870 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:34,870 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:34,903 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:34,904 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:34,904 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:34,933 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:34,935 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=200ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:34,935 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 200ms
+2026-06-25 19:20:35,135 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:35,135 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:35,137 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:35,137 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:35,172 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:35,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:35,205 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:35,208 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:35,208 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:35,208 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:35,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:35,255 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:35,285 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:35,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=1000ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:35,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 1000ms
+2026-06-25 19:20:36,287 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:36,287 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:36,287 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:36,288 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:36,320 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:36,350 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:36,353 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:36,353 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:36,353 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:36,384 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:36,384 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:36,384 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:36,384 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:36,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:36,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:36,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:36,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:36,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:36,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:36,414 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=10000ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:36,414 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 10000ms
+2026-06-25 19:20:46,516 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:46,516 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:46,516 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:46,516 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:46,549 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:46,587 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:46,590 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:46,590 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:46,591 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:46,629 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:46,663 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:46,664 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=100ms, probability=0.5, duration=Nonems
+2026-06-25 19:20:46,664 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:46,765 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:46,865 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:46,966 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:47,067 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:47,168 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,168 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,168 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,199 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,200 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,238 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,242 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,242 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,242 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,276 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,311 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,311 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,311 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,311 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,356 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,357 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,386 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,387 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=50ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:47,387 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 50ms
+2026-06-25 19:20:47,438 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,438 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,438 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,438 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,465 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,500 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,500 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=100ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:47,500 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:47,601 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,601 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,601 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,601 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,662 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,662 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=200ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:47,662 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 200ms
+2026-06-25 19:20:47,863 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,863 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:47,863 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:47,863 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:47,894 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:47,926 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:47,926 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=500ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:47,926 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 500ms
+2026-06-25 19:20:48,427 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:48,427 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:48,427 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:48,427 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:48,459 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:48,460 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:48,460 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:48,490 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:48,490 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=1000ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:48,490 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 1000ms
+2026-06-25 19:20:49,491 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:49,492 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:49,492 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:49,492 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:49,522 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:49,550 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:49,554 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:49,554 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:49,554 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:49,589 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:49,590 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:49,590 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:49,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:49,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=100ms, probability=0.3, duration=Nonems
+2026-06-25 19:20:49,631 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:49,733 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:49,833 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:49,935 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:49,935 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:49,935 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:49,968 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:49,969 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:49,969 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:49,969 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:50,000 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:50,004 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,004 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:50,005 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:50,035 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:50,035 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:50,035 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:50,035 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:50,036 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:50,036 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:50,036 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:50,036 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:50,036 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:50,067 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:50,069 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=100ms, probability=1.0, duration=500ms
+2026-06-25 19:20:50,069 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络延迟: 100ms
+2026-06-25 19:20:50,770 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,770 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:50,771 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:50,798 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:50,798 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:50,798 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:50,798 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:50,799 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:50,799 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:50,799 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:50,799 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:50,799 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:50,825 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:50,827 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,828 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:50,828 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:50,855 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:50,882 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:50,883 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=50ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:50,885 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,887 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,887 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:50,887 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:50,913 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:50,913 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:50,913 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:50,913 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:50,918 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:50,918 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:50,918 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:50,918 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:50,918 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:50,946 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:50,949 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:50,949 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:50,949 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:50,983 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,015 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,016 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=50ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:51,016 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,017 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,017 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,017 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,044 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,049 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,077 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,080 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,081 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,081 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,111 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,112 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,144 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,145 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 网络超时注入测试开始
+2026-06-25 19:20:51,145 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=1.0, duration=Nonems
+2026-06-25 19:20:51,145 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时注入后状态: network_timeout=True
+2026-06-25 19:20:51,145 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时配置: probability=1.0
+2026-06-25 19:20:51,145 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,145 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 清理后状态: network_timeout=False
+2026-06-25 19:20:51,145 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 网络超时注入测试通过
+2026-06-25 19:20:51,145 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,146 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,146 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,173 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,202 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,205 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,205 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,205 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,231 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,231 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,231 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,231 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,233 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,233 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,233 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,233 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,233 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,261 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,262 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时异常抛出测试开始
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=1.0, duration=Nonems
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,262 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,263 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,263 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,263 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,263 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,263 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 10次调用中超时次数: 10
+2026-06-25 19:20:51,263 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,263 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时异常抛出测试通过
+2026-06-25 19:20:51,264 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,264 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,264 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,292 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,293 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,293 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,318 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,322 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,322 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,322 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,349 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,350 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,350 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,379 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,380 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 概率超时测试开始 - probability=0.3
+2026-06-25 19:20:51,380 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=0.3, duration=Nonems
+2026-06-25 19:20:51,380 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,381 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 概率超时结果: 9/30 (30%)
+2026-06-25 19:20:51,381 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,381 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 概率超时测试通过
+2026-06-25 19:20:51,382 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,382 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,382 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,413 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,463 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,463 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:51,468 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:51,468 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:51,503 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:51,503 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:51,504 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:51,545 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:51,545 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 持续时间超时测试开始 - duration=500ms
+2026-06-25 19:20:51,545 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=1.0, duration=500ms
+2026-06-25 19:20:51,545 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发网络超时
+2026-06-25 19:20:51,545 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 注入期间第一次调用耗时: 0ms (预期触发超时)
+2026-06-25 19:20:52,148 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,148 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 过期后调用耗时: 0ms, 结果: success
+2026-06-25 19:20:52,148 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 持续时间超时测试通过
+2026-06-25 19:20:52,150 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,150 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,150 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,188 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,189 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,214 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,254 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,285 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,285 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,285 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,285 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,286 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,314 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,315 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用注入测试开始
+2026-06-25 19:20:52,315 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入服务不可用故障: service=test_service, error_code=503, probability=1.0
+2026-06-25 19:20:52,315 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用状态: service_unavailable=True
+2026-06-25 19:20:52,315 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用配置: service=test_service, code=503
+2026-06-25 19:20:52,315 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,315 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 清理后状态: service_unavailable=False
+2026-06-25 19:20:52,315 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用注入测试通过
+2026-06-25 19:20:52,315 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,315 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,315 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,344 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,345 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,375 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,378 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,378 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,378 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,410 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,447 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用异常测试开始
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入服务不可用故障: service=api, error_code=503, probability=1.0
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发服务不可用: api
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发服务不可用: api
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发服务不可用: api
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发服务不可用: api
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 触发服务不可用: api
+2026-06-25 19:20:52,447 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 5次调用中错误次数: 5
+2026-06-25 19:20:52,447 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,447 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 服务不可用异常测试通过
+2026-06-25 19:20:52,450 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,450 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,450 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,481 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,482 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,516 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,520 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:52,520 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,520 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:52,555 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:52,556 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:52,587 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:52,588 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时统计跟踪测试开始
+2026-06-25 19:20:52,588 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=1.0, duration=Nonems
+2026-06-25 19:20:52,588 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:52,588 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 超时记录数: 5
+2026-06-25 19:20:52,890 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:53,050 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:53,050 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:53,086 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:53,087 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:53,124 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:53,124 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:53,124 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:53,124 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:53,167 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:53,208 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障
+2026-06-25 19:20:53,209 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 组合网络故障测试开始 - 延迟+超时
+2026-06-25 19:20:53,210 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络延迟故障: delay=50ms, probability=1.0, duration=Nonems
+2026-06-25 19:20:53,210 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已注入网络超时故障: probability=0.5, duration=Nonems
+2026-06-25 19:20:53,210 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 组合故障状态: delay=True, timeout=True
+2026-06-25 19:20:53,210 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 组合故障结果: 成功=10, 超时=0
+2026-06-25 19:20:53,210 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:53,210 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:53,210 [    INFO] chaos.test_network_latency_chaos: [NETWORK_CHAOS] 组合网络故障测试通过
+2026-06-25 19:20:53,211 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_delay
+2026-06-25 19:20:53,211 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: network_timeout
+2026-06-25 19:20:53,211 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: service_unavailable
+2026-06-25 19:20:53,248 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: memory_pressure
+2026-06-25 19:20:53,248 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: concurrent_pressure
+2026-06-25 19:20:53,248 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: cpu_pressure
+2026-06-25 19:20:53,248 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_io_delay
+2026-06-25 19:20:53,249 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: disk_full
+2026-06-25 19:20:53,249 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: connection_pool_exhausted
+2026-06-25 19:20:53,249 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_loss
+2026-06-25 19:20:53,249 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_out_of_order
+2026-06-25 19:20:53,249 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除故障: message_duplicate
+2026-06-25 19:20:53,284 [    INFO] agent.monitoring.chaos_injector: [Chaos] 已清除所有故障

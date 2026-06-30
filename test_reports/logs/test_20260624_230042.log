@@ -1,0 +1,213 @@
+2026-06-24 23:00:43,241 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 23:00:43,245 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 23:00:43,246 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 23:00:43,354 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 23:00:43,370 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 23:00:43,372 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 23:00:43,405 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 23:00:43,412 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:43,412 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 23:00:43,412 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 23:00:43,421 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 23:00:43,425 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 23:00:43,441 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 23:00:43,442 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 23:00:43,442 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 23:00:43,442 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 23:00:43,443 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 23:00:43,597 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 23:00:43,601 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 23:00:43,602 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 23:00:43,608 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 23:00:43,609 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 23:00:43,609 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 23:00:43,609 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 23:00:43,609 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 23:00:43,609 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 23:00:43,622 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:43,622 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-24 23:00:43,888 [    INFO] agent.orchestrator.subagent_manager: [Subagent:agent_001] 创建完成 (0.0ms)
+2026-06-24 23:00:43,899 [    INFO] agent.orchestrator.subagent_manager: [Subagent:agent_001] 记忆增量待持久化: ['key1', 'key2']
+2026-06-24 23:00:43,966 [    INFO] agent.orchestrator.task_dispatcher:   复杂关键词匹配: 0 个
+2026-06-24 23:00:43,966 [    INFO] agent.orchestrator.task_dispatcher:   动作关键词匹配: 0 个
+2026-06-24 23:00:43,966 [    INFO] agent.orchestrator.task_dispatcher:   评估结果: 简单任务
+2026-06-24 23:00:43,970 [    INFO] agent.orchestrator.task_dispatcher:   复杂关键词匹配: 2 个
+2026-06-24 23:00:43,971 [    INFO] agent.orchestrator.task_dispatcher:   动作关键词匹配: 0 个
+2026-06-24 23:00:43,971 [    INFO] agent.orchestrator.task_dispatcher:   评估结果: 需要规划
+2026-06-24 23:00:43,976 [    INFO] agent.orchestrator.task_dispatcher:   复杂关键词匹配: 1 个
+2026-06-24 23:00:43,976 [    INFO] agent.orchestrator.task_dispatcher:   动作关键词匹配: 4 个
+2026-06-24 23:00:43,976 [    INFO] agent.orchestrator.task_dispatcher:   评估结果: 需要规划
+2026-06-24 23:00:44,089 [ WARNING] config: [warn] Pydantic 未安装，配置校验功能已禁用
+2026-06-24 23:00:44,139 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,139 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,147 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,147 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,153 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,153 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,158 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,159 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,164 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,164 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,169 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,169 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,177 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,177 [    INFO] agent.tool_calling: [ToolCalling] Schema校验配置: enabled=True, max_retries=3
+2026-06-24 23:00:44,185 [    INFO] agent.tools: 工具注册: decorator_tool — 
+2026-06-24 23:00:44,186 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:44,186 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "decorator_tool", "user_id": null, "current_concurrent": 1, "max_concurrent": 100, "global_tokens": 99.0, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 23:00:44,186 [    INFO] agent.tools: [6d7f88f89c5d] 调用工具: decorator_tool, 参数: {}
+2026-06-24 23:00:44,186 [    INFO] agent.tools: [6d7f88f89c5d] 工具返回: decorator_tool → {'result': 'decorated'}
+2026-06-24 23:00:44,190 [    INFO] agent.tools: 工具注册: to_remove — 
+2026-06-24 23:00:44,191 [    INFO] agent.tools: 工具注销: to_remove
+2026-06-24 23:00:44,197 [    INFO] agent.tools: 工具注册: tool_a — 
+2026-06-24 23:00:44,197 [    INFO] agent.tools: 工具注册: tool_b — 
+2026-06-24 23:00:44,200 [    INFO] agent.tools: 工具注册: health_test_tool — 
+2026-06-24 23:00:44,200 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:44,200 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "check", "duration_ms": 0.0, "allowed": true, "endpoint": "health_test_tool", "user_id": null, "current_concurrent": 2, "max_concurrent": 100, "global_tokens": 98.71, "strategy": "reject", "flow": "all_checks_passed"}
+2026-06-24 23:00:44,200 [    INFO] agent.tools: [f42a5de6ec0f] 调用工具: health_test_tool, 参数: {}
+2026-06-24 23:00:44,200 [    INFO] agent.tools: [f42a5de6ec0f] 工具返回: health_test_tool → {'ok': True}
+2026-06-24 23:00:44,204 [    INFO] agent.tools: 工具注册: list_tool_1 — 
+2026-06-24 23:00:44,204 [    INFO] agent.tools: 工具注册: list_tool_2 — 
+2026-06-24 23:00:44,207 [    INFO] agent.tools: 工具注册: defs_tool — 
+2026-06-24 23:00:44,250 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,250 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,250 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,250 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-24 23:00:44,255 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,255 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,255 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,259 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,259 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,260 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,260 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-24 23:00:44,260 [    INFO] agent.memory.router: [MemoryRouter] 注销适配器: test_adapter
+2026-06-24 23:00:44,264 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,264 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,265 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,270 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,270 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,270 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,270 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test_adapter = MockMemoryAdapter
+2026-06-24 23:00:44,275 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,275 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,276 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,276 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: mem0 = MockMemoryAdapter
+2026-06-24 23:00:44,280 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,280 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,281 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,285 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,286 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,286 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,290 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,290 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,291 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,291 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: holographic = MockMemoryAdapter
+2026-06-24 23:00:44,295 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,295 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,295 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,300 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,300 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,300 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,300 [    INFO] agent.memory.router: [MemoryRouter] 更新默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,305 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,305 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,305 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,310 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,310 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,310 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,310 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-24 23:00:44,315 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,315 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,315 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,315 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-24 23:00:44,315 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已移除
+2026-06-24 23:00:44,320 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,320 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,320 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,320 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-24 23:00:44,327 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,327 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,327 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,327 [    INFO] agent.memory.router: [MemoryRouter] 缓存层已附加
+2026-06-24 23:00:44,335 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,335 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,335 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,341 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,342 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,342 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,347 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,347 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,347 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,347 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:44,347 [ WARNING] agent.memory.router: {"trace_id": "", "module_name": "memory_router", "action": "_filter_sensitive_info", "duration_ms": 0, "detected_patterns": ["\\b(?:\u5bc6\u7801|password|secret|token|api[_-]?key|\u5bc6\u94a5|\u79c1\u94a5)\\b"], "result": "filtered"}
+2026-06-24 23:00:44,352 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,352 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,353 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,357 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,357 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,357 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,359 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 23:00:44,359 [ WARNING] agent.memory.router: {"trace_id": "", "module_name": "memory_router", "action": "_filter_sensitive_info", "duration_ms": 0, "detected_patterns": ["\\b(?:\u5bc6\u7801|password|secret|token|api[_-]?key|\u5bc6\u94a5|\u79c1\u94a5)\\b"], "result": "filtered"}
+2026-06-24 23:00:44,359 [ WARNING] agent.memory.router: [MemoryRouter] 拒绝写入包含敏感信息的数据
+2026-06-24 23:00:44,362 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,362 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,362 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,371 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,372 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,372 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,378 [    INFO] config: [配置校验] 配置校验通过
+2026-06-24 23:00:44,378 [    INFO] agent.memory.router: [MemoryRouter] 初始化完成，默认适配器: MockMemoryAdapter
+2026-06-24 23:00:44,378 [    INFO] agent.memory.router: [MemoryRouter] 边界约束配置: boundary=True, filter=True, classification=True
+2026-06-24 23:00:44,378 [    INFO] agent.memory.router: [MemoryRouter] 注册适配器: test = MockMemoryAdapter
+2026-06-24 23:00:44,413 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=15 days
+2026-06-24 23:00:44,416 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,419 [    INFO] agent.memory.reviewer: [review_1782313244] [MemoryReviewer] 开始审查记忆库: trace_id=review_1782313244
+2026-06-24 23:00:44,419 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找陈旧记忆失败: error=no such table: long_term_memory
+2026-06-24 23:00:44,420 [   ERROR] agent.memory.reviewer: [MemoryReviewer] 查找重复记忆失败: error=no such table: long_term_memory
+2026-06-24 23:00:44,420 [    INFO] agent.memory.reviewer: [review_1782313244] [MemoryReviewer] 审查完成: total=0, healthy=0, stale=0, duplicates=0, duration_ms=1.01
+2026-06-24 23:00:44,424 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,425 [    INFO] agent.memory.reviewer: [quick_1782313244] [MemoryReviewer] 快速审查完成: duration_ms=0.00
+2026-06-24 23:00:44,429 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,432 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,435 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,438 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,441 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,445 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,448 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,451 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=30 days
+2026-06-24 23:00:44,474 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=50, default_ttl=600s
+2026-06-24 23:00:44,478 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,480 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,487 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,488 [ WARNING] agent.memory.short_term_memory: [ShortTermMemory] save 失败: key 为空
+2026-06-24 23:00:44,492 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,497 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,505 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,511 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,516 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,522 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,528 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,532 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,538 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,553 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 清除任务记忆: task_id=task1, count=2
+2026-06-24 23:00:44,557 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,562 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:44,566 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 已清空所有临时记忆: count=3
+2026-06-24 23:00:44,569 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=0s
+2026-06-24 23:00:45,677 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:46,784 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=3, default_ttl=0s
+2026-06-24 23:00:46,792 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-24 23:00:46,804 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=2, default_ttl=0s
+2026-06-24 23:00:46,811 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:46,814 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s
+2026-06-24 23:00:46,819 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=100, default_ttl=300s
+2026-06-24 23:00:46,822 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=300s

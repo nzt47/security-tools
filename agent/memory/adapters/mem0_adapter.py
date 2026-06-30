@@ -17,6 +17,7 @@
 """
 
 import json
+import uuid
 import time
 import logging
 import hashlib
@@ -29,6 +30,11 @@ from agent.memory.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class Mem0Adapter(MemoryInterface):
@@ -84,9 +90,9 @@ class Mem0Adapter(MemoryInterface):
             import mem0
             self._mem0_client = mem0.Memory(**self.mem0_config)
             self._has_mem0 = True
-            logger.info("[Mem0Adapter] Mem0 引擎就绪")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "mem0_adapter", "action": "mem0", "msg": "[Mem0Adapter] Mem0 引擎就绪"}, ensure_ascii=False))
         except ImportError:
-            logger.info("[Mem0Adapter] mem0 未安装，使用内置降级模式")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "mem0_adapter", "action": "mem0", "msg": "[Mem0Adapter] mem0 未安装，使用内置降级模式"}, ensure_ascii=False))
         except Exception as e:
             logger.warning("[Mem0Adapter] Mem0 初始化失败: %s，使用内置降级模式", e)
 
@@ -137,7 +143,7 @@ class Mem0Adapter(MemoryInterface):
     ) -> bool:
         """保存事实（带去重）"""
         if not key:
-            logger.warning("[Mem0Adapter] save 失败: key 为空")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "mem0_adapter", "action": "save.key", "msg": "[Mem0Adapter] save 失败: key 为空"}, ensure_ascii=False))
             return False
 
         data_str = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False)

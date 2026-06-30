@@ -39,6 +39,7 @@ stats = cache.get_stats()
 import os
 import time
 import json
+import uuid
 import hashlib
 import logging
 import threading
@@ -49,6 +50,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 @dataclass
@@ -228,7 +234,7 @@ class LRUCache:
                 # 新条目
                 if len(self.cache) >= self.max_size:
                     evicted_key, evicted_entry = self.cache.popitem(last=False)
-                    logger.debug(f"[LRU] 淘汰: hits={evicted_entry.hit_count}")
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "hits.evicted_entry.hit_count", "msg": f"[LRU] 淘汰: hits={evicted_entry.hit_count}"}, ensure_ascii=False))
 
                 entry = CacheEntry(
                     key=key,
@@ -320,9 +326,9 @@ class DiskCache:
                 file_size = file_path.stat().st_size
                 file_path.unlink()
                 total_size -= file_size
-                logger.debug(f"[DiskCache] 淘汰文件: {file_path.name}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "file_path.name", "msg": f"[DiskCache] 淘汰文件: {file_path.name}"}, ensure_ascii=False))
             except Exception as e:
-                logger.warning(f"[DiskCache] 删除文件失败: {e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[DiskCache] 删除文件失败: {e}"}, ensure_ascii=False))
 
     def get(self, key: str) -> Optional[Any]:
         """获取缓存值"""
@@ -342,7 +348,7 @@ class DiskCache:
 
                 return data['value']
             except Exception as e:
-                logger.error(f"[DiskCache] 读取失败: {e}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[DiskCache] 读取失败: {e}"}, ensure_ascii=False))
                 return None
 
     def set(self, key: str, value: Any, ttl_seconds: int = 3600):
@@ -365,7 +371,7 @@ class DiskCache:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(data, f)
             except Exception as e:
-                logger.error(f"[DiskCache] 写入失败: {e}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[DiskCache] 写入失败: {e}"}, ensure_ascii=False))
 
     def delete(self, key: str):
         """删除缓存"""
@@ -375,7 +381,7 @@ class DiskCache:
                 try:
                     file_path.unlink()
                 except Exception as e:
-                    logger.warning(f"[DiskCache] 删除失败: {e}")
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[DiskCache] 删除失败: {e}"}, ensure_ascii=False))
 
     def clear(self):
         """清空缓存"""
@@ -385,7 +391,7 @@ class DiskCache:
                     try:
                         file_path.unlink()
                     except Exception as e:
-                        logger.warning(f"[DiskCache] 删除失败: {e}")
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[DiskCache] 删除失败: {e}"}, ensure_ascii=False))
 
     def get_size(self) -> int:
         """获取缓存大小（字节）"""
@@ -440,9 +446,9 @@ class MultiLevelCache:
         self._warmup_callback = warmup_callback
         self._warmup_done = False
 
-        logger.info(f"[MultiLevelCache] 初始化完成: "
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[MultiLevelCache] 初始化完成: "
                     f"L1(max={l1_max_size}, ttl={l1_ttl}s), "
-                    f"L2(enabled={l2_enabled}, dir={l2_dir}, max={l2_max_size_mb}MB)")
+                    f"L2(enabled={l2_enabled}, dir={l2_dir}, max={l2_max_size_mb}MB)"}, ensure_ascii=False))
 
     def _record_stat(self, func, *args):
         """记录统计信息"""
@@ -468,7 +474,7 @@ class MultiLevelCache:
         if l1_value is not None:
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             self._record_stat(self._stats.record_hit, 1, elapsed_ms)
-            logger.debug(f"[MultiLevelCache] L1命中: {key[:30]}...")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "key", "msg": f"[MultiLevelCache] L1命中: {key[:30]}..."}, ensure_ascii=False))
             return l1_value
 
         self._record_stat(self._stats.record_miss, 1)
@@ -479,7 +485,7 @@ class MultiLevelCache:
             if l2_value is not None:
                 elapsed_ms = (time.perf_counter() - start_time) * 1000
                 self._record_stat(self._stats.record_hit, 2, elapsed_ms)
-                logger.debug(f"[MultiLevelCache] L2命中: {key[:30]}...")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "key", "msg": f"[MultiLevelCache] L2命中: {key[:30]}..."}, ensure_ascii=False))
 
                 # 将L2数据提升到L1
                 self._l1_cache.set(key, l2_value)
@@ -488,7 +494,7 @@ class MultiLevelCache:
 
             self._record_stat(self._stats.record_miss, 2)
 
-        logger.debug(f"[MultiLevelCache] 未命中: {key[:30]}...")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "key", "msg": f"[MultiLevelCache] 未命中: {key[:30]}..."}, ensure_ascii=False))
         return None
 
     def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None):
@@ -514,7 +520,7 @@ class MultiLevelCache:
             l2_ttl = ttl * 2
             self._l2_cache.set(key, value, l2_ttl)
 
-        logger.debug(f"[MultiLevelCache] 设置: {key[:30]}..., ttl={ttl}s")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "key.ttl.ttl", "msg": f"[MultiLevelCache] 设置: {key[:30]}..., ttl={ttl}s"}, ensure_ascii=False))
 
     def delete(self, key: str):
         """删除缓存"""
@@ -527,7 +533,7 @@ class MultiLevelCache:
         self._l1_cache.clear()
         if self._l2_enabled and self._l2_cache:
             self._l2_cache.clear()
-        logger.info("[MultiLevelCache] 缓存已清空")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 缓存已清空"}, ensure_ascii=False))
 
     def get_stats(self) -> dict:
         """获取缓存统计信息"""
@@ -545,10 +551,10 @@ class MultiLevelCache:
             return
 
         if self._warmup_done:
-            logger.info("[MultiLevelCache] 缓存预热已完成")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 缓存预热已完成"}, ensure_ascii=False))
             return
 
-        logger.info("[MultiLevelCache] 开始缓存预热...")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": "[MultiLevelCache] 开始缓存预热..."}, ensure_ascii=False))
         start_time = time.time()
 
         try:
@@ -556,12 +562,12 @@ class MultiLevelCache:
             if warmup_data:
                 for key, value in warmup_data.items():
                     self.set(key, value)
-                logger.info(f"[MultiLevelCache] 缓存预热完成: {len(warmup_data)} 条数据")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "len.warmup_data", "msg": f"[MultiLevelCache] 缓存预热完成: {len(warmup_data)} 条数据"}, ensure_ascii=False))
         except Exception as e:
-            logger.error(f"[MultiLevelCache] 缓存预热失败: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": f"[MultiLevelCache] 缓存预热失败: {e}"}, ensure_ascii=False))
 
         elapsed = time.time() - start_time
-        logger.info(f"[MultiLevelCache] 缓存预热耗时: {elapsed:.2f}s")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "elapsed", "msg": f"[MultiLevelCache] 缓存预热耗时: {elapsed:.2f}s"}, ensure_ascii=False))
         self._warmup_done = True
 
     def get_l1_keys(self) -> list[str]:
@@ -679,14 +685,14 @@ class CacheManager:
         """
         if name not in self._caches:
             self._caches[name] = MultiLevelCache(**kwargs)
-            logger.info(f"[CacheManager] 创建缓存: {name}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "name", "msg": f"[CacheManager] 创建缓存: {name}"}, ensure_ascii=False))
         return self._caches[name]
 
     def remove_cache(self, name: str):
         """删除缓存"""
         if name in self._caches:
             del self._caches[name]
-            logger.info(f"[CacheManager] 删除缓存: {name}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "name", "msg": f"[CacheManager] 删除缓存: {name}"}, ensure_ascii=False))
 
     def get_all_cache_names(self) -> list[str]:
         """获取所有缓存名称"""
@@ -696,7 +702,7 @@ class CacheManager:
         """清空所有缓存"""
         for cache in self._caches.values():
             cache.clear()
-        logger.info("[CacheManager] 所有缓存已清空")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "multi_level_cache", "action": "log", "msg": "[CacheManager] 所有缓存已清空"}, ensure_ascii=False))
 
 
 # 全局缓存实例

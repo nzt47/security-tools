@@ -39,7 +39,8 @@ class TestWorkflowEngine:
         engine = WorkflowEngine()
         engine.registry.register(Rule("test", "", lambda t: "hello" in t, lambda t: "world"))
         result = engine.try_match("foo bar")
-        assert result is None
+        assert result is not None
+        assert result.matched is False
 
     def test_match(self):
         engine = WorkflowEngine()

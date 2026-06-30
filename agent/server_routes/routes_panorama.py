@@ -3,6 +3,7 @@ import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.tools import list_tools
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -166,23 +167,27 @@ def register_routes(app, state):
     # ── 快速状态端点 ──
 
     @app.route("/api/health")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_health():
         readings = Yunshu.body.collect_quick()
         return jsonify([r.to_dict() for r in readings])
 
     @app.route("/api/sensors")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_sensors():
         return jsonify(Yunshu.body.get_sensor_info())
 
     @app.route("/api/status")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_status():
         status = Yunshu.get_status()
         return jsonify(status)
 
     @app.route("/api/mode")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_mode():
         mode = Yunshu.get_behavior_mode()
@@ -199,6 +204,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/cognitive/status")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_cognitive_status():
         readings = Yunshu.body.collect_quick()
@@ -217,6 +223,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/panorama")
+    @trace_route("Panorama")
     @log_request(show_response=False)
     def api_panorama():
         """获取全景页面所需的所有数据（单次调用）"""

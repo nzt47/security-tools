@@ -1,0 +1,155 @@
+2026-06-24 01:06:28,702 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 01:06:28,702 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 01:06:28,702 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 01:06:28,717 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 01:06:28,732 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 01:06:28,732 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 01:06:28,763 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 01:06:28,770 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 01:06:28,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 01:06:28,793 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 01:06:28,794 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 01:06:28,794 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 01:06:28,794 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 01:06:28,796 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 01:06:28,918 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 01:06:28,921 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 01:06:28,921 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 01:06:28,929 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 01:06:29,050 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,051 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,051 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-24 星期三
+2026-06-24 01:06:29,089 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-24 01:06:29,090 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=100, ttl=60s), L2(enabled=False, dir=./cache/l2, max=100MB)
+2026-06-24 01:06:29,102 [    INFO] agent.memory.adapters.holographic_adapter: [HolographicAdapter] 初始化完成: db=C:\Windows\TEMP\tmpsepce2wr\test.db
+2026-06-24 01:06:29,108 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 缓存已清空
+2026-06-24 01:06:29,119 [ WARNING] agent.guardrails.input_guard: [InputGuard] 检测到 指令忽略: 'ignore all previous instructions'
+2026-06-24 01:06:29,144 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=test, type=chat, complexity=simple
+2026-06-24 01:06:29,144 [    INFO] agent.cognitive.reflection: [Cognitive] Reflection: task_id=test, score=1.00, passed=True, retry=False (0/3), issues=0
+2026-06-24 01:06:29,144 [    INFO] agent.cognitive.loop: [Cognitive] Loop: task=test, decision=continue, reflection_score=1.00, knowledge=no, review=N/A, debate=no
+2026-06-24 01:06:29,147 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-24 星期三
+2026-06-24 01:06:29,148 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_date → 今天是 2026-06-24 星期三
+2026-06-24 01:06:29,152 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: simple_calc → 1+1 = 2
+2026-06-24 01:06:29,152 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: simple_calc → 25*4 = 100
+2026-06-24 01:06:29,155 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,155 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,156 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,157 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,158 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,159 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,160 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,161 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,162 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,163 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,164 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06
+2026-06-24 01:06:29,167 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,183 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: test → world
+2026-06-24 01:06:29,183 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,183 [    INFO] agent.workflow_engine.builtin_rules: [WorkflowEngine] 已注册 8 条内置规则
+2026-06-24 01:06:29,183 [    INFO] agent.workflow_engine.engine: [WorkflowEngine] 规则匹配: check_time → 现在是 01:06

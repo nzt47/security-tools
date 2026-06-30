@@ -34,6 +34,8 @@ if loader.should_load('ocr'):
 """
 
 import logging
+import json
+import uuid
 import time
 import asyncio
 from typing import Callable, Any, Optional, Dict, List, Awaitable
@@ -46,6 +48,11 @@ from agent.lazy_loader import (
 from agent.lazy_loader._core import _BaseParallelPreloader
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class AsyncLazyModuleLoader(LazyModuleLoader):
@@ -63,7 +70,7 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
         """初始化异步懒加载器"""
         super().__init__(max_workers=max_workers)
         self._async_lock = asyncio.Lock()
-        logger.info(f"[AsyncLazyLoader] 初始化完成: max_workers={max_workers}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "max_workers.max_workers", "msg": f"[AsyncLazyLoader] 初始化完成: max_workers={max_workers}"}, ensure_ascii=False))
 
     # ── 注册 ──
 
@@ -99,10 +106,10 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
             加载的模块字典
         """
         if level in self.loaded_levels:
-            logger.debug(f"[AsyncLazyLoader] 级别 {level.name} 已加载")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "level.name", "msg": f"[AsyncLazyLoader] 级别 {level.name} 已加载"}, ensure_ascii=False))
             return self._get_loaded_modules(level)
 
-        logger.info(f"[AsyncLazyLoader] 开始异步加载级别: {level.name}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "level.name", "msg": f"[AsyncLazyLoader] 开始异步加载级别: {level.name}"}, ensure_ascii=False))
 
         modules_to_load = [
             (name, info) for name, info in self.modules.items()
@@ -110,7 +117,7 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
         ]
 
         if not modules_to_load:
-            logger.info(f"[AsyncLazyLoader] 级别 {level.name} 没有需要加载的模块")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "level.name", "msg": f"[AsyncLazyLoader] 级别 {level.name} 没有需要加载的模块"}, ensure_ascii=False))
             with self._lock:
                 self.loaded_levels.add(level)
             return {}
@@ -126,9 +133,7 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
                     info.error = str(result)
                     info.loading = False
                 self.stats.record_load(level, False, 0.0, is_async=True)
-                logger.error(
-                    f"[AsyncLazyLoader] ❌ 异步加载失败: {name}, error={result}"
-                )
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name.error.result", "msg": f"[AsyncLazyLoader] ❌ 异步加载失败: {name}, error={result}"}, ensure_ascii=False))
             else:
                 with info._lock:
                     info.instance = result
@@ -142,10 +147,8 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
 
         success_count = len(loaded_results)
 
-        logger.info(
-            f"[AsyncLazyLoader] 级别 {level.name} 异步加载完成: "
-            f"成功={success_count}, 失败={len(modules_to_load) - success_count}"
-        )
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "level.name", "msg": f"[AsyncLazyLoader] 级别 {level.name} 异步加载完成: "
+            f"成功={success_count}, 失败={len(modules_to_load) - success_count}"}, ensure_ascii=False))
 
         return loaded_results
 
@@ -169,9 +172,7 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
             with info._lock:
                 info.load_time_ms = elapsed_ms
 
-            logger.info(
-                f"[AsyncLazyLoader] ✅ 异步加载成功: {name}, elapsed={elapsed_ms:.2f}ms"
-            )
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name.elapsed.elapsed_ms", "msg": f"[AsyncLazyLoader] ✅ 异步加载成功: {name}, elapsed={elapsed_ms:.2f}ms"}, ensure_ascii=False))
 
             return instance
 
@@ -181,10 +182,8 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
                 info.error = str(e)
                 info.load_time_ms = elapsed_ms
 
-            logger.error(
-                f"[AsyncLazyLoader] ❌ 异步加载失败: {name}, "
-                f"error={e}, elapsed={elapsed_ms:.2f}ms"
-            )
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name", "msg": f"[AsyncLazyLoader] ❌ 异步加载失败: {name}, "
+                f"error={e}, elapsed={elapsed_ms:.2f}ms"}, ensure_ascii=False))
             raise
 
     async def load(self, name: str) -> Optional[Any]:
@@ -197,7 +196,7 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
             模块实例，如果加载失败返回 None
         """
         if name not in self.modules:
-            logger.error(f"[AsyncLazyLoader] 模块 {name} 未注册")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name", "msg": f"[AsyncLazyLoader] 模块 {name} 未注册"}, ensure_ascii=False))
             return None
 
         info = self.modules[name]
@@ -227,10 +226,8 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
 
             self.stats.record_load(info.level, True, elapsed_ms, is_async=True)
 
-            logger.info(
-                f"[AsyncLazyLoader] ✅ 异步按需加载成功: {name}, "
-                f"elapsed={elapsed_ms:.2f}ms"
-            )
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name", "msg": f"[AsyncLazyLoader] ✅ 异步按需加载成功: {name}, "
+                f"elapsed={elapsed_ms:.2f}ms"}, ensure_ascii=False))
 
             return instance
 
@@ -242,10 +239,8 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
 
             self.stats.record_load(info.level, False, elapsed_ms, is_async=True)
 
-            logger.error(
-                f"[AsyncLazyLoader] ❌ 异步按需加载失败: {name}, "
-                f"error={e}, elapsed={elapsed_ms:.2f}ms"
-            )
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name", "msg": f"[AsyncLazyLoader] ❌ 异步按需加载失败: {name}, "
+                f"error={e}, elapsed={elapsed_ms:.2f}ms"}, ensure_ascii=False))
 
             return None
 
@@ -315,12 +310,12 @@ class AsyncLazyModuleLoader(LazyModuleLoader):
             self.loaded_levels.clear()
             self.loading_levels.clear()
 
-        logger.info("[AsyncLazyLoader] 重置完成")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "log", "msg": "[AsyncLazyLoader] 重置完成"}, ensure_ascii=False))
 
     async def close(self):
         """关闭加载器"""
         self.executor.shutdown(wait=True)
-        logger.info("[AsyncLazyLoader] 已关闭")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "log", "msg": "[AsyncLazyLoader] 已关闭"}, ensure_ascii=False))
 
 
 class AsyncParallelPreloader(_BaseParallelPreloader):
@@ -331,7 +326,7 @@ class AsyncParallelPreloader(_BaseParallelPreloader):
 
     async def preload(self, modules: List[tuple[str, Callable]]) -> Dict[str, Any]:
         """异步并行预加载多个模块"""
-        logger.info(f"[AsyncParallelPreloader] 开始异步预加载: {len(modules)} 个模块")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "len.modules", "msg": f"[AsyncParallelPreloader] 开始异步预加载: {len(modules)} 个模块"}, ensure_ascii=False))
 
         start_time = time.perf_counter()
 
@@ -346,7 +341,7 @@ class AsyncParallelPreloader(_BaseParallelPreloader):
         for i, (name, _) in enumerate(modules):
             result = results[i]
             if isinstance(result, Exception):
-                logger.error(f"[AsyncParallelPreloader] 预加载失败: {name} -> {result}")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "name.result", "msg": f"[AsyncParallelPreloader] 预加载失败: {name} -> {result}"}, ensure_ascii=False))
             else:
                 # _load_module 返回 (name, instance) 元组
                 loaded_name, instance = result
@@ -354,12 +349,10 @@ class AsyncParallelPreloader(_BaseParallelPreloader):
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
 
-        logger.info(
-            f"[AsyncParallelPreloader] 异步预加载完成: "
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "lazy_loader_async", "action": "log", "msg": f"[AsyncParallelPreloader] 异步预加载完成: "
             f"成功={len(self.results)}, "
             f"失败={len(modules) - len(self.results)}, "
-            f"elapsed={elapsed_ms:.2f}ms"
-        )
+            f"elapsed={elapsed_ms:.2f}ms"}, ensure_ascii=False))
 
         return self.results
 

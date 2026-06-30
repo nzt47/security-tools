@@ -1,7 +1,9 @@
 {
   "tool_states": {
     "check_health": true,
-    "get_status": true,
-    "search_memory": true
+    "get_status": false,
+    "search_memory": true,
+    "get_sensor_summary": false,
+    "expand_context": false
   }
 }

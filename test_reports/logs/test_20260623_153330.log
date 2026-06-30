@@ -1,0 +1,32 @@
+2026-06-23 15:33:31,024 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-23 15:33:31,027 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-23 15:33:31,029 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-23 15:33:31,057 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-23 15:33:31,071 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 15:33:31,073 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-23 15:33:31,101 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-23 15:33:31,108 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-23 15:33:31,113 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-23 15:33:31,130 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-23 15:33:31,130 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-23 15:33:31,130 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-23 15:33:31,130 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-23 15:33:31,131 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-23 15:33:31,256 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-23 15:33:31,263 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-23 15:33:31,263 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:31,269 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:31,269 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-23 15:33:31,270 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+

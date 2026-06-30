@@ -1,0 +1,29 @@
+2026-06-26 12:56:46,523 [ WARNING] boundary_coverage: 语法错误 C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_parse_syntax_error_file0\test_bad.py: '(' was never closed (test_bad.py, line 1)
+2026-06-26 12:56:46,530 [ WARNING] boundary_coverage: 读取文件失败 C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_parse_nonexistent_file0\nonexistent.py: [Errno 2] No such file or directory: 'C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-385\\test_parse_nonexistent_file0\\nonexistent.py'
+2026-06-26 12:56:46,600 [    INFO] boundary_coverage: {"trace_id": "f0c52c395136482d", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T12:56:46.599743"}
+2026-06-26 12:56:46,600 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 12:56:46,604 [    INFO] boundary_coverage: {"trace_id": "f0c52c395136482d", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 5.12, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 12:56:46,615 [    INFO] boundary_coverage: {"trace_id": "a5c4c53cb23e4236", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T12:56:46.615318"}
+2026-06-26 12:56:46,616 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 12:56:46,620 [    INFO] boundary_coverage: {"trace_id": "a5c4c53cb23e4236", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.97, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": ["new_module"], "overall_status": "fail"}
+2026-06-26 12:56:46,631 [    INFO] boundary_coverage: {"trace_id": "cc5c88c5912f440a", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T12:56:46.631176"}
+2026-06-26 12:56:46,632 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 12:56:46,635 [    INFO] boundary_coverage: {"trace_id": "cc5c88c5912f440a", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.24, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 12:56:46,648 [    INFO] boundary_coverage: {"trace_id": "6f1585bc814f40cc", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T12:56:46.648370"}
+2026-06-26 12:56:46,649 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 12:56:46,653 [    INFO] boundary_coverage: {"trace_id": "6f1585bc814f40cc", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.16, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 12:56:46,745 [ WARNING] boundary_coverage: 新增模块检测失败: mock error
+2026-06-26 12:56:46,780 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_degraded_report_generated0\degraded.md
+2026-06-26 12:56:46,788 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_degraded_report_with_trac0\degraded.md
+2026-06-26 12:56:46,892 [    INFO] boundary_coverage: {"trace_id": "0b6a1f47aeda41e3", "module_name": "boundary_coverage", "action": "scan.start", "timestamp": "2026-06-26T12:56:46.892317"}
+2026-06-26 12:56:46,892 [    INFO] boundary_coverage: 发现测试文件: 3 个
+2026-06-26 12:56:46,896 [    INFO] boundary_coverage: {"trace_id": "0b6a1f47aeda41e3", "module_name": "boundary_coverage", "action": "scan.complete", "duration_ms": 4.03, "total_modules": 3, "total_tests": 6, "total_boundary_tests": 5, "blocked_modules": [], "overall_status": "warn"}
+2026-06-26 12:56:46,904 [   ERROR] boundary_coverage: 扫描异常: 边界覆盖配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_cli_returns_2_on_config_m0\nonexistent.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 754, in main
+    config = ConfigLoader(config_path).load()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 122, in load
+    raise FileNotFoundError(
+FileNotFoundError: 边界覆盖配置文件不存在: C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_cli_returns_2_on_config_m0\nonexistent.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+2026-06-26 12:56:46,906 [   ERROR] boundary_coverage: 降级报告已输出: C:\Windows\Temp\pytest-of-AdminWT\pytest-385\test_cli_returns_2_on_config_m0\docs\observability\boundary_coverage_report.md

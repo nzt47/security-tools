@@ -1,13 +1,21 @@
+# MARKER: THIS IS THE CURRENT FILE VERSION - 2026-06-27
 """配置 & 网络配置 & LLM & MCP API 路由"""
 import uuid
 import datetime
 import logging
+import json
 from typing import List
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.network_config import _DEFAULT_SEARCH_INSTANCE
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 # 已知的内置搜索引擎类型
@@ -56,6 +64,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/config", methods=["GET", "POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_config():
@@ -92,12 +101,14 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/network-config", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_network_config_get():
         return jsonify(ncm.get_all())
 
     @app.route("/api/network-config", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_network_config_update():
@@ -110,6 +121,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/network-config/reset", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_network_config_reset():
@@ -117,6 +129,7 @@ def register_routes(app, state):
         return jsonify({"ok": True, "config": result})
 
     @app.route("/api/network-config/export", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_network_config_export():
@@ -127,6 +140,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/network-config/import", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_network_config_import():
@@ -144,11 +158,12 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/apply-network-config", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_apply_network_config():
         try:
-            logger.info("[网络配置] 手动触发配置应用...")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_config", "action": "log", "msg": "[网络配置] 手动触发配置应用..."}, ensure_ascii=False))
             ncm.apply_to_app(Yunshu)
 
             config = ncm.get_raw_config()
@@ -168,7 +183,7 @@ def register_routes(app, state):
 
             if web_search:
                 web_search.update_config(update_config)
-                logger.info("[网络配置] 已同时应用到全局搜索引擎实例")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_config", "action": "log", "msg": "[网络配置] 已同时应用到全局搜索引擎实例"}, ensure_ascii=False))
 
             search_config_status = ncm.get_search_engines()
             return jsonify({
@@ -185,6 +200,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/llm/instances", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_llm_instances_get():
@@ -195,6 +211,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm/instances/<string:instance_id>", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_llm_instance_get(instance_id):
@@ -207,6 +224,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm/instances", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_llm_instance_add():
@@ -226,6 +244,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm/instances/<string:instance_id>", methods=["PUT"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_llm_instance_update(instance_id):
@@ -244,6 +263,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm/instances/<string:instance_id>", methods=["DELETE"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_llm_instance_delete(instance_id):
@@ -258,6 +278,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/llm/instances/<string:instance_id>/default", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_llm_instance_set_default(instance_id):
@@ -271,11 +292,81 @@ def register_routes(app, state):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/llm/instances/<string:instance_id>/test", methods=["POST"])
+    @trace_route("Config")
+    @require_token
+    @log_request()
+    def api_llm_instance_test(instance_id):
+        """测试 LLM 实例连通性"""
+        import sys as _sys
+        _sys.stderr.reconfigure(encoding='utf-8')
+        print('[DEBUG] api_llm_instance_test CALLED with', instance_id, flush=True)
+        import time as _time
+        _start = _time.time()
+        try:
+            config = ncm.get_raw_config()
+            instances = config.get('llm_instances', [])
+            inst = None
+            for i in instances:
+                if i.get('id') == instance_id:
+                    inst = i
+                    break
+            if not inst:
+                return jsonify({"ok": False, "error": "实例不存在"}), 404
+
+            provider = inst.get('provider', 'openai')
+            model = inst.get('model', 'gpt-4')
+            api_key = inst.get('api_key', '')
+            base_url = inst.get('api_endpoint', '')
+
+            if not api_key:
+                return jsonify({"ok": False, "error": "API Key 为空，请先配置"})
+
+            # Debug: check the actual key
+            _key_preview = api_key[:10] + '...' + api_key[-6:] if len(api_key) > 16 else api_key
+            _key_len = len(api_key)
+            _key_first_byte = ord(api_key[0]) if api_key else 0
+
+            # Simple direct API test first
+            import urllib.request, json as _json
+            _body = _json.dumps({
+                'model': model,
+                'messages': [{'role': 'user', 'content': 'OK'}],
+                'max_tokens': 10,
+            }).encode()
+            _req = urllib.request.Request(
+                f'{base_url}/v1/chat/completions',
+                data=_body,
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                method='POST')
+            _resp = urllib.request.urlopen(_req, timeout=15)
+            _result = _json.loads(_resp.read())
+            _text = _result['choices'][0]['message']['content'].strip()
+            _elapsed = round(_time.time() - _start, 2)
+            return jsonify({
+                "ok": True, "provider": provider, "model": model,
+                "elapsed": _elapsed, "response": _text[:200],
+                "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte},
+            })
+        except urllib.error.HTTPError as _httpe:
+            _elapsed = round(_time.time() - _start, 2)
+            _err_body = _httpe.read().decode('utf-8')[:200] if hasattr(_httpe, 'read') else ''
+            return jsonify({"ok": False, "error": f"HTTP {_httpe.code}: {_err_body}", "elapsed": _elapsed,
+                           "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte}}), 500
+        except Exception as e:
+            _elapsed = round(_time.time() - _start, 2)
+            return jsonify({"ok": False, "error": str(e), "elapsed": _elapsed,
+                           "debug": {"key_preview": _key_preview, "key_len": _key_len, "key_first_byte": _key_first_byte}}), 500
+
     # ═══════════════════════════════════════════════════
     #  MCP 服务管理
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/mcp/services", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_mcp_services_get():
@@ -286,6 +377,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/mcp/services/<string:service_id>", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_mcp_service_get(service_id):
@@ -298,6 +390,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/mcp/services", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_mcp_service_add():
@@ -315,6 +408,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/mcp/services/<string:service_id>", methods=["PUT"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_mcp_service_update(service_id):
@@ -331,6 +425,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/mcp/services/<string:service_id>", methods=["DELETE"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_mcp_service_delete(service_id):
@@ -343,6 +438,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/mcp/enable", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_mcp_enable():
@@ -361,6 +457,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/search/instances", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_search_instances_get():
@@ -372,6 +469,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search/instances", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_search_instance_add():
@@ -410,6 +508,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search/instances/<string:instance_id>", methods=["PUT"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_search_instance_update(instance_id):
@@ -443,6 +542,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search/instances/<string:instance_id>", methods=["DELETE"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_search_instance_delete(instance_id):
@@ -469,6 +569,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search/instances/<string:instance_id>/default", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_search_instance_set_default(instance_id):
@@ -500,6 +601,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/search/instances/<string:instance_id>/test", methods=["POST"])
+    @trace_route("Config")
     @require_token
     @log_request()
     def api_search_instance_test(instance_id):
@@ -537,6 +639,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/config/logs", methods=["GET"])
+    @trace_route("Config")
     @require_token
     @log_request(show_response=False)
     def api_config_logs():

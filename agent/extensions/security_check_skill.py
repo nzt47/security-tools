@@ -11,6 +11,7 @@
 """
 
 import json
+import uuid
 import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
@@ -18,6 +19,11 @@ from pathlib import Path
 from agent.extensions.security_checker import get_security_checker
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def _check_skill_security(source: str, skill_name: str = "", description: str = "") -> Dict[str, Any]:
@@ -44,7 +50,7 @@ def _check_skill_security(source: str, skill_name: str = "", description: str = 
     report = format_report(result)
     result["report"] = report
     
-    logger.info(f"[安全检查技能] 已完成技能检查: {skill_info['name']}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_check_skill", "action": "skill_info", "msg": f"[安全检查技能] 已完成技能检查: {skill_info['name']}"}, ensure_ascii=False))
     return result
 
 
@@ -218,3 +224,21 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
     test_security_check_skill()
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "security_check_skill",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise

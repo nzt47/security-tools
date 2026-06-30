@@ -12,8 +12,11 @@
 import time
 import threading
 import struct
+import uuid
 from typing import Dict, List, Optional, Any, Callable
 from collections import defaultdict
+
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 try:
     import mmh3
@@ -264,7 +267,9 @@ class BatchMetricsWriter:
         self._lock = threading.Lock()
         self._flush_thread = None
         self._running = False
-    
+        # 后台刷新线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._flush_trace_id = f"metrics-flush-{uuid.uuid4().hex[:16]}"
+
     def start(self):
         """启动后台写入线程"""
         if self._running:
@@ -295,6 +300,8 @@ class BatchMetricsWriter:
     
     def _flush_loop(self):
         """后台刷新循环"""
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        set_trace_id(self._flush_trace_id)
         while self._running:
             time.sleep(1.0)
             self._flush()

@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 import time
+import json
+import uuid
 import logging
 import threading
 import traceback
@@ -31,6 +33,11 @@ R = TypeVar('R')
 F = TypeVar('F', bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+
+def _trace_id() -> str:
+    """生成 trace_id（结构化日志用）"""
+    return uuid.uuid4().hex[:16]
 
 
 class ErrorSeverity(Enum):
@@ -229,7 +236,7 @@ class CircuitBreaker:
         self.half_open_start: Optional[datetime] = None
         self._lock = threading.Lock()
         
-        logger.info(f"Circuit breaker '{name}' initialized: max_failures={max_failures}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": name, "max_failures": max_failures}, ensure_ascii=False))
 
     def _can_reset(self) -> bool:
         """检查是否可以重置断路器"""
@@ -252,7 +259,7 @@ class CircuitBreaker:
                 # 半开状态成功，恢复到闭合
                 self.state = CircuitState.CLOSED
                 self.failure_count = 0
-                logger.info(f"Circuit breaker '{self.name}': recovered to CLOSED state")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.recovered", "duration_ms": 0, "name": self.name, "state": "CLOSED"}, ensure_ascii=False))
             elif self.state == CircuitState.CLOSED:
                 # 正常状态，重置失败计数
                 self.failure_count = 0
@@ -266,16 +273,12 @@ class CircuitBreaker:
             if self.state == CircuitState.CLOSED:
                 if self.failure_count >= self.max_failures:
                     self.state = CircuitState.OPEN
-                    logger.warning(
-                        f"Circuit breaker '{self.name}': OPENED after {self.failure_count} failures"
-                    )
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.opened", "duration_ms": 0, "name": self.name, "failure_count": self.failure_count}, ensure_ascii=False))
             elif self.state == CircuitState.HALF_OPEN:
                 # 半开状态失败，重新断开
                 self.state = CircuitState.OPEN
                 self.last_failure_time = datetime.now()
-                logger.warning(
-                    f"Circuit breaker '{self.name}': reopened after failure in half-open state"
-                )
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.reopened", "duration_ms": 0, "name": self.name, "state": "OPEN"}, ensure_ascii=False))
 
     def execute(self, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R:
         """执行函数，受断路器保护"""
@@ -284,7 +287,7 @@ class CircuitBreaker:
                 if self._can_half_open():
                     self.state = CircuitState.HALF_OPEN
                     self.half_open_start = datetime.now()
-                    logger.info(f"Circuit breaker '{self.name}': transitioning to HALF_OPEN")
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.half_open", "duration_ms": 0, "name": self.name, "state": "HALF_OPEN"}, ensure_ascii=False))
                 else:
                     raise CriticalError(
                         f"Circuit breaker '{self.name}' is OPEN",
@@ -344,69 +347,53 @@ class RetryPolicy:
     def should_retry(self, exception: Exception, attempt: int) -> bool:
         """判断是否应该重试"""
         if attempt >= self.max_retries:
-            logger.debug(
-                f"[RetryPolicy.should_retry] 重试次数已用尽: attempt={attempt}, max_retries={self.max_retries}"
-            )
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.attempt.max_retries", "msg": f"[RetryPolicy.should_retry] 重试次数已用尽: attempt={attempt}, max_retries={self.max_retries}"}, ensure_ascii=False))
             return False
         
         if self.retryable_exceptions and not isinstance(exception, self.retryable_exceptions):
-            logger.debug(
-                f"[RetryPolicy.should_retry] 异常类型不匹配: exception_type={type(exception).__name__}, "
-                f"retryable_exceptions={self.retryable_exceptions}"
-            )
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "exception_type.type.exception", "msg": f"[RetryPolicy.should_retry] 异常类型不匹配: exception_type={type(exception).__name__}, "
+                f"retryable_exceptions={self.retryable_exceptions}"}, ensure_ascii=False))
             return False
         
         if self.custom_retry_condition and not self.custom_retry_condition(exception):
-            logger.debug(
-                f"[RetryPolicy.should_retry] 自定义重试条件未满足: exception={exception}"
-            )
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "exception.exception", "msg": f"[RetryPolicy.should_retry] 自定义重试条件未满足: exception={exception}"}, ensure_ascii=False))
             return False
         
-        logger.debug(
-            f"[RetryPolicy.should_retry] 允许重试: attempt={attempt}, exception={exception}"
-        )
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.attempt.exception", "msg": f"[RetryPolicy.should_retry] 允许重试: attempt={attempt}, exception={exception}"}, ensure_ascii=False))
         return True
 
     def calculate_delay(self, attempt: int) -> float:
         """计算当前尝试的延迟"""
         import random
         
-        logger.debug(
-            f"[RetryPolicy.calculate_delay] 开始计算延迟: attempt={attempt}, strategy={self.strategy}, "
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.attempt.strategy", "msg": f"[RetryPolicy.calculate_delay] 开始计算延迟: attempt={attempt}, strategy={self.strategy}, "
             f"initial_delay={self.initial_delay}, backoff_factor={self.backoff_factor}, "
-            f"max_delay={self.max_delay}, jitter_factor={self.jitter_factor}"
-        )
+            f"max_delay={self.max_delay}, jitter_factor={self.jitter_factor}"}, ensure_ascii=False))
         
         if self.strategy == "fixed":
             delay = self.initial_delay
-            logger.debug(f"[RetryPolicy.calculate_delay] 使用固定延迟策略: delay={delay}")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "delay.delay", "msg": f"[RetryPolicy.calculate_delay] 使用固定延迟策略: delay={delay}"}, ensure_ascii=False))
         elif self.strategy == "linear":
             delay = self.initial_delay * (attempt + 1)
-            logger.debug(f"[RetryPolicy.calculate_delay] 使用线性延迟策略: delay={delay}")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "delay.delay", "msg": f"[RetryPolicy.calculate_delay] 使用线性延迟策略: delay={delay}"}, ensure_ascii=False))
         elif self.strategy == "exponential":
             raw_delay = self.initial_delay * (self.backoff_factor ** attempt)
             delay = min(raw_delay, self.max_delay)
-            logger.debug(
-                f"[RetryPolicy.calculate_delay] 使用指数退避策略: raw_delay={raw_delay}, "
-                f"max_delay={self.max_delay}, applied_delay={delay}"
-            )
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "raw_delay.raw_delay", "msg": f"[RetryPolicy.calculate_delay] 使用指数退避策略: raw_delay={raw_delay}, "
+                f"max_delay={self.max_delay}, applied_delay={delay}"}, ensure_ascii=False))
         else:
             delay = self.initial_delay
-            logger.debug(f"[RetryPolicy.calculate_delay] 使用默认延迟策略: delay={delay}")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "delay.delay", "msg": f"[RetryPolicy.calculate_delay] 使用默认延迟策略: delay={delay}"}, ensure_ascii=False))
         
         original_delay = delay
         if self.jitter_factor > 0:
             jitter = random.uniform(1 - self.jitter_factor, 1 + self.jitter_factor)
             delay = delay * jitter
-            logger.debug(
-                f"[RetryPolicy.calculate_delay] 应用抖动: jitter={jitter:.4f}, "
-                f"original_delay={original_delay:.4f}, jittered_delay={delay:.4f}"
-            )
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "jitter.jitter", "msg": f"[RetryPolicy.calculate_delay] 应用抖动: jitter={jitter:.4f}, "
+                f"original_delay={original_delay:.4f}, jittered_delay={delay:.4f}"}, ensure_ascii=False))
         
         final_delay = min(delay, self.max_delay)
-        logger.debug(
-            f"[RetryPolicy.calculate_delay] 计算完成: final_delay={final_delay:.4f}"
-        )
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "final_delay.final_delay", "msg": f"[RetryPolicy.calculate_delay] 计算完成: final_delay={final_delay:.4f}"}, ensure_ascii=False))
         
         return final_delay
 
@@ -418,7 +405,7 @@ class ErrorHandler:
         self._metrics: Dict[str, ErrorMetrics] = defaultdict(ErrorMetrics)
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
         self._lock = threading.Lock()
-        logger.info("Error handler initialized")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}, ensure_ascii=False))
 
     def register_circuit_breaker(
         self,
@@ -506,12 +493,10 @@ class ErrorHandler:
             func_kwargs: 函数的关键字参数（字典）
         """
         # 详细日志：记录调用参数
-        logger.debug(
-            f"[execute_with_retry] 开始执行: func={func.__name__}, "
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[execute_with_retry] 开始执行: func={func.__name__}, "
             f"retry_policy={retry_policy}, circuit_breaker={circuit_breaker}, "
             f"retryable_exceptions={retryable_exceptions}, on_retry={on_retry}, "
-            f"error_counter={error_counter}, func_args={func_args}, func_kwargs={func_kwargs}"
-        )
+            f"error_counter={error_counter}, func_args={func_args}, func_kwargs={func_kwargs}"}, ensure_ascii=False))
         
         policy = retry_policy or RetryPolicy()
         
@@ -521,16 +506,14 @@ class ErrorHandler:
         args = func_args or ()
         kwargs = func_kwargs or {}
         
-        logger.debug(
-            f"[execute_with_retry] 参数解析完成: args={args}, kwargs={kwargs}, "
-            f"policy.max_retries={policy.max_retries}, policy.strategy={policy.strategy}"
-        )
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "args.args.kwargs", "msg": f"[execute_with_retry] 参数解析完成: args={args}, kwargs={kwargs}, "
+            f"policy.max_retries={policy.max_retries}, policy.strategy={policy.strategy}"}, ensure_ascii=False))
         
         for attempt in range(policy.max_retries + 1):
             try:
-                logger.debug(f"[execute_with_retry] 第 {attempt + 1} 次尝试执行: func={func.__name__}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.func.func", "msg": f"[execute_with_retry] 第 {attempt + 1} 次尝试执行: func={func.__name__}"}, ensure_ascii=False))
                 if circuit_breaker:
-                    logger.debug(f"[execute_with_retry] 通过熔断器执行: circuit_breaker={circuit_breaker.name}")
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.circuit_breaker.name", "msg": f"[execute_with_retry] 通过熔断器执行: circuit_breaker={circuit_breaker.name}"}, ensure_ascii=False))
                     result = circuit_breaker.execute(func, *args, **kwargs)
                 else:
                     result = func(*args, **kwargs)
@@ -540,48 +523,44 @@ class ErrorHandler:
                         from agent.monitoring.metrics import get_metrics_collector
                         collector = get_metrics_collector()
                         collector.increment_counter(f"{error_counter}.success")
-                        logger.debug(f"[execute_with_retry] metrics 成功计数: {error_counter}.success")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.success", "msg": f"[execute_with_retry] metrics 成功计数: {error_counter}.success"}, ensure_ascii=False))
                     except Exception as metrics_err:
-                        logger.debug(f"[execute_with_retry] metrics 记录失败: {metrics_err}")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.metrics_err", "msg": f"[execute_with_retry] metrics 记录失败: {metrics_err}"}, ensure_ascii=False))
                 
-                logger.debug(f"[execute_with_retry] 执行成功: func={func.__name__}, result_type={type(result).__name__}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[execute_with_retry] 执行成功: func={func.__name__}, result_type={type(result).__name__}"}, ensure_ascii=False))
                 return result
             except Exception as e:
-                logger.debug(
-                    f"[execute_with_retry] 第 {attempt + 1} 次尝试失败: func={func.__name__}, "
-                    f"exception_type={type(e).__name__}, exception_msg={str(e)[:100]}"
-                )
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.func.func", "msg": f"[execute_with_retry] 第 {attempt + 1} 次尝试失败: func={func.__name__}, "
+                    f"exception_type={type(e).__name__}, exception_msg={str(e)[:100]}"}, ensure_ascii=False))
                 # 判断是否应该重试
                 should_retry = False
                 
                 # 1. 首先检查是否是 YunshuError 并且是可重试的
                 if isinstance(e, YunshuError) and e.retryable:
                     should_retry = True
-                    logger.debug(f"[execute_with_retry] YunshuError 可重试: retryable={e.retryable}")
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "yunshuerror.retryable", "msg": f"[execute_with_retry] YunshuError 可重试: retryable={e.retryable}"}, ensure_ascii=False))
                 # 2. 然后检查是否是自定义可重试异常
                 elif retryable and any(issubclass(e.__class__, cls) for cls in retryable):
                     should_retry = True
-                    logger.debug(f"[execute_with_retry] 匹配可重试异常类型: {type(e).__name__}")
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "type.__name__", "msg": f"[execute_with_retry] 匹配可重试异常类型: {type(e).__name__}"}, ensure_ascii=False))
                 # 3. 最后检查重试策略的自定义规则（如果有）
                 elif policy.retryable_exceptions or policy.custom_retry_condition:
                     if policy.should_retry(e, attempt):
                         should_retry = True
-                        logger.debug(f"[execute_with_retry] 策略判定可重试: policy.should_retry=True")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "policy.should_retry.true", "msg": f"[execute_with_retry] 策略判定可重试: policy.should_retry=True"}, ensure_ascii=False))
                 
                 # 如果不应该重试，立即抛出
                 if not should_retry:
-                    logger.warning(
-                        f"[execute_with_retry] 异常不可重试，立即抛出: func={func.__name__}, "
-                        f"exception_type={type(e).__name__}"
-                    )
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[execute_with_retry] 异常不可重试，立即抛出: func={func.__name__}, "
+                        f"exception_type={type(e).__name__}"}, ensure_ascii=False))
                     if error_counter:
                         try:
                             from agent.monitoring.metrics import get_metrics_collector
                             collector = get_metrics_collector()
                             collector.increment_counter(f"{error_counter}.failure")
-                            logger.debug(f"[execute_with_retry] metrics 失败计数: {error_counter}.failure")
+                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.failure", "msg": f"[execute_with_retry] metrics 失败计数: {error_counter}.failure"}, ensure_ascii=False))
                         except Exception as metrics_err:
-                            logger.debug(f"[execute_with_retry] metrics 记录失败: {metrics_err}")
+                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.metrics_err", "msg": f"[execute_with_retry] metrics 记录失败: {metrics_err}"}, ensure_ascii=False))
                     raise self.record_error(e)
                 
                 if attempt >= policy.max_retries:
@@ -598,10 +577,8 @@ class ErrorHandler:
                         pass
                 
                 delay = policy.calculate_delay(attempt)
-                logger.warning(
-                    f"Attempt {attempt + 1}/{policy.max_retries} failed, "
-                    f"retrying in {delay:.2f}s: {e}"
-                )
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.attempt.policy", "msg": f"Attempt {attempt + 1}/{policy.max_retries} failed, "
+                    f"retrying in {delay:.2f}s: {e}"}, ensure_ascii=False))
                 time.sleep(delay)
 
     def get_metrics(self, key: Optional[str] = None) -> Dict[str, Any]:
@@ -669,11 +646,9 @@ def with_retry(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            logger.debug(
-                f"[with_retry] 开始执行函数: func={func.__name__}, max_retries={max_retries}, "
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[with_retry] 开始执行函数: func={func.__name__}, max_retries={max_retries}, "
                 f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
-                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"
-            )
+                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"}, ensure_ascii=False))
             
             policy = RetryPolicy(
                 max_retries=max_retries,
@@ -696,7 +671,7 @@ def with_retry(
                 func_kwargs=kwargs,
             )
             
-            logger.debug(f"[with_retry] 函数执行成功: func={func.__name__}")
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[with_retry] 函数执行成功: func={func.__name__}"}, ensure_ascii=False))
             return result
         return wrapper
     return decorator
@@ -725,11 +700,9 @@ def async_with_retry(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            logger.debug(
-                f"[async_with_retry] 开始执行异步函数: func={func.__name__}, max_retries={max_retries}, "
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 开始执行异步函数: func={func.__name__}, max_retries={max_retries}, "
                 f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
-                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"
-            )
+                f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"}, ensure_ascii=False))
             
             policy = RetryPolicy(
                 max_retries=max_retries,
@@ -745,14 +718,12 @@ def async_with_retry(
             retryable = retryable_exceptions or (RecoverableError, YunshuError)
             
             for attempt in range(policy.max_retries + 1):
-                logger.debug(f"[async_with_retry] 执行第 {attempt + 1} 次尝试: func={func.__name__}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.func.func", "msg": f"[async_with_retry] 执行第 {attempt + 1} 次尝试: func={func.__name__}"}, ensure_ascii=False))
                 
                 try:
                     if circuit_breaker:
-                        logger.debug(
-                            f"[async_with_retry] 通过熔断器执行: func={func.__name__}, "
-                            f"circuit_breaker={circuit_breaker.name}"
-                        )
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 通过熔断器执行: func={func.__name__}, "
+                            f"circuit_breaker={circuit_breaker.name}"}, ensure_ascii=False))
                         result = await circuit_breaker.execute(func, *args, **kwargs)
                     else:
                         result = await func(*args, **kwargs)
@@ -765,34 +736,28 @@ def async_with_retry(
                         except Exception:
                             pass
                     
-                    logger.debug(f"[async_with_retry] 异步函数执行成功: func={func.__name__}")
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 异步函数执行成功: func={func.__name__}"}, ensure_ascii=False))
                     return result
                 except Exception as e:
                     should_retry = False
                     
-                    logger.debug(
-                        f"[async_with_retry] 捕获异常: func={func.__name__}, attempt={attempt}, "
-                        f"exception_type={type(e).__name__}, exception={e}"
-                    )
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 捕获异常: func={func.__name__}, attempt={attempt}, "
+                        f"exception_type={type(e).__name__}, exception={e}"}, ensure_ascii=False))
                     
                     # 首先检查是否是 YunshuError 并明确设置了 retryable=False
                     if isinstance(e, YunshuError):
                         if e.retryable:
                             should_retry = True
-                            logger.debug(
-                                f"[async_with_retry] YunshuError 标记为可重试: retryable={e.retryable}"
-                            )
+                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "yunshuerror.retryable", "msg": f"[async_with_retry] YunshuError 标记为可重试: retryable={e.retryable}"}, ensure_ascii=False))
                     elif policy.should_retry(e, attempt):
                         should_retry = True
-                        logger.debug(f"[async_with_retry] 重试策略允许重试")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "log", "msg": f"[async_with_retry] 重试策略允许重试"}, ensure_ascii=False))
                     elif retryable and any(issubclass(e.__class__, cls) for cls in retryable):
                         should_retry = True
-                        logger.debug(f"[async_with_retry] 异常类型在可重试列表中")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "log", "msg": f"[async_with_retry] 异常类型在可重试列表中"}, ensure_ascii=False))
                     
                     if not should_retry:
-                        logger.debug(
-                            f"[async_with_retry] 不允许重试，直接抛出异常: func={func.__name__}"
-                        )
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 不允许重试，直接抛出异常: func={func.__name__}"}, ensure_ascii=False))
                         if error_counter:
                             try:
                                 from agent.monitoring.metrics import get_metrics_collector
@@ -816,10 +781,8 @@ def async_with_retry(
                             pass
                     
                     delay = policy.calculate_delay(attempt)
-                    logger.warning(
-                        f"[async_with_retry] 第 {attempt + 1}/{policy.max_retries} 次尝试失败, "
-                        f"等待 {delay:.2f}s 后重试: {e}"
-                    )
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "attempt.policy.max_retries", "msg": f"[async_with_retry] 第 {attempt + 1}/{policy.max_retries} 次尝试失败, "
+                        f"等待 {delay:.2f}s 后重试: {e}"}, ensure_ascii=False))
                     import asyncio
                     await asyncio.sleep(delay)
         return wrapper

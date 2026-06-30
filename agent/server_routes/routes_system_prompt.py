@@ -6,6 +6,7 @@
 import logging
 import importlib
 from flask import jsonify, request
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/config", methods=["GET"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_config_get():
         """获取提示词组件配置及 Token 开销统计"""
@@ -85,6 +87,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/config", methods=["POST"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_config_save():
         """保存提示词组件配置"""
@@ -104,6 +107,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/config/reset", methods=["POST"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_config_reset():
         """恢复默认配置"""
@@ -122,6 +126,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/config/apply", methods=["POST"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_config_apply():
         """根据当前配置生成模板并应用到运行环境"""
@@ -163,6 +168,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/config/preview", methods=["POST"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_config_preview():
         """根据提供的配置生成预览模板（不保存）"""
@@ -188,6 +194,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/system-prompt/sync-status", methods=["GET"])
+    @trace_route("SystemPrompt")
     @require_token
     def api_system_prompt_sync_status():
         """检查配置模板与运行模板是否同步"""

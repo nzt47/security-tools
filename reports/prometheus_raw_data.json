@@ -1,0 +1,17 @@
+{
+  "uptime": [
+    {
+      "timestamp": 1782319563.243,
+      "time": "2026-06-25 00:46:03",
+      "value": 73.14285714285714
+    }
+  ],
+  "cpu": [],
+  "memory": [],
+  "qps": [],
+  "latency_p50": [],
+  "latency_p95": [],
+  "latency_p99": [],
+  "error_rate": [],
+  "alerts": []
+}

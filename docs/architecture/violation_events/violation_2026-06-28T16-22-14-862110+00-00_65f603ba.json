@@ -1,0 +1,31 @@
+{
+  "event_id": "65f603ba5e2746d0954f660e9a9819b0",
+  "trace_id": "webhook_log_test_001",
+  "timestamp": "2026-06-28T16:22:14.862110+00:00",
+  "event_type": "architecture_violation_detected",
+  "repo": "unknown",
+  "pr_number": null,
+  "pr_url": null,
+  "branch": "main",
+  "total_violations": 2,
+  "active_violations_count": 1,
+  "exempted_violations_count": 1,
+  "violations": [
+    {
+      "rule_id": "no_orchestrator_to_dao",
+      "rule_desc": "禁止 orchestrator 直接访问 dao 层",
+      "source": "agent.orchestrator.core",
+      "target": "agent.data.repository",
+      "source_file": "agent/orchestrator/core.py",
+      "line": 128,
+      "severity": "high",
+      "suggestion": "orchestrator 应通过 service 或 business 层访问数据"
+    }
+  ],
+  "graph_stats": {
+    "total_nodes": 215,
+    "total_edges": 439,
+    "cross_layer_edges": 261,
+    "violation_edges": 1
+  }
+}

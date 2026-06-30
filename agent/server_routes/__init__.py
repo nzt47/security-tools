@@ -63,3 +63,11 @@ def register_all_routes(app, state):
     # 分身管理（P4 Subagent Lifecycle）
     from .routes_subagent import register_routes as reg_subagent
     reg_subagent(app, state)
+
+    # 综合技能管理系统 (skills_mgmt v1)
+    from .routes_skills_mgmt import register_routes as reg_skills_mgmt
+    reg_skills_mgmt(app, state)
+
+    # 智能工作流学习系统 (workflow_learning v1)
+    from .routes_workflow_learning import register_routes as reg_workflow_learning
+    reg_workflow_learning(app, state)

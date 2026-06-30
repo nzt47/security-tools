@@ -1,0 +1,55 @@
+2026-06-24 21:46:30,530 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 21:46:30,533 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 21:46:30,535 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 21:46:30,640 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 21:46:30,655 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 21:46:30,659 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 21:46:30,691 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-24 21:46:30,692 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:30,693 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-24 21:46:30,694 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 21:46:30,701 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 21:46:30,706 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 21:46:30,724 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 21:46:30,724 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 21:46:30,724 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 21:46:30,725 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 21:46:30,727 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 21:46:30,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 21:46:30,855 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 21:46:30,856 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:30,862 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:30,862 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 21:46:30,863 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 21:46:30,863 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 21:46:30,864 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 21:46:30,865 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 21:46:30,865 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 21:46:30,865 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 21:46:31,464 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,465 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:46:31.464345"}
+2026-06-24 21:46:31,471 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:46:31,472 [    INFO] agent.extensions.plugins_installer: [插件安装器] 安装插件: test_plugin
+2026-06-24 21:46:31,480 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,481 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:46:31.481442"}
+2026-06-24 21:46:31,481 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:46:31,481 [    INFO] agent.extensions.plugins_installer: [插件安装器] 安装插件: test_plugin
+2026-06-24 21:46:31,488 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,489 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:46:31.489828"}
+2026-06-24 21:46:31,489 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:46:31,490 [    INFO] agent.extensions.plugins_installer: [插件安装器] 安装插件: test_plugin
+2026-06-24 21:46:31,497 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,497 [    INFO] agent.extensions.manager: {"trace_id": null, "module_name": "extension_manager", "action": "init", "ext_id": "", "ext_type": "", "message": "ExtensionManager initialized", "timestamp": "2026-06-24T21:46:31.497372"}
+2026-06-24 21:46:31,498 [    INFO] agent.extensions.store: [扩展存储] 已加载扩展数据: C:\Users\Administrator\agent\agent\data\extensions.json
+2026-06-24 21:46:31,498 [    INFO] agent.extensions.plugins_installer: [插件安装器] 安装插件: test_plugin
+2026-06-24 21:46:31,531 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,532 [    INFO] agent.extensions.market: {"trace_id": null, "module_name": "extension_market", "action": "add_review", "plugin_id": "test_plugin", "user_id": "user123", "rating": 5, "timestamp": "2026-06-24T21:46:31.532746"}
+2026-06-24 21:46:31,537 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-24 21:46:31,538 [    INFO] agent.extensions.market: {"trace_id": null, "module_name": "extension_market", "action": "add_review", "plugin_id": "test_plugin_2", "user_id": "user456", "rating": 5, "timestamp": "2026-06-24T21:46:31.538345"}

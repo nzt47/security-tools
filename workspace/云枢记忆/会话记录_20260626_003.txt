@@ -1,0 +1,35 @@
+=============================================
+  会话记录 #3
+=============================================
+
+🕒 时间：2026年06月26日 00:04
+📋 模式：normal
+
+---
+
+💬 【对话内容】
+
+👤 用户：
+国际新闻
+
+🤖 云枢：
+📰 最新国际新闻：
+1. BBC Home - Breaking News, World News, US News, Sports ... — Trump asks Congress for billions for Iran war, after tension with Republicans · US & Canada ; Europe's heatwave shifts east as France raises health alert to  [BBC]
+2. CNN: Breaking News, Latest News and Videos — Two powerful earthquakes struck Venezuela, causing panic and widespread destruction. CNN's Mary Triny Mena reports from the scene of a collapsed building in  [CNN]
+3. World News | Latest Top Stories - Reuters — World · 10 hours ago. Russia hits Ukrainian locomotives and fuel stations, leaving one dead · Reuters logo · 11 hours ago. Iran, Oman stress need for coordination  [Reuters]
+4. World news: Latest news, breaking news, today's news stories from ... — World · Oil prices keep dropping as Oman rules out Strait of Hormuz "transit fees" · Trump-backed candidate declared winner of Colombia's presidential runoff.  [新闻媒体]
+5. Google News — Live updates: At least 164 people dead after twin quakes in Venezuela, acting president says · Under pressure from Trump, Republican-led Senate reverses course  [Google News]
+6. ABC News - Breaking News, Latest News and Videos — Australian woman and daughter to return from Syrian camp for IS families · 2 missing Chicago men found dead outside Mexico City, family confirms  [新闻媒体]
+7. U.S. News & World Report: News, Rankings and Analysis on Politics ... — Trump on Wednesday canceled the signing event for a bipartisan housing affordability bill until Congress passes the SAVE America Act, calling it a 'national  [新闻媒体]
+8. NBC News - Breaking Headlines and Video Reports on World, U.S. ... — 17 injured after vehicle plows into World Cup revelers in Mexico · Temperature records smashed as extreme heat wave grips Europe · How a duck named Merlin became  [新闻媒体]
+
+---
+
+📊 【身体状态】
+
+🔹 CPU 使用率：🟢 normal
+🔹 内存占用率：🟢 normal
+
+— 云枢 🤖 于 2026.06.26 00:04
+=============================================
+

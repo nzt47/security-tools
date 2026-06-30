@@ -1,0 +1,348 @@
+2026-06-25 19:45:06,746 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-25 19:45:06,751 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-25 19:45:06,752 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-25 19:45:06,869 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-25 19:45:06,885 [    INFO] agent.error_handler: Error handler initialized
+2026-06-25 19:45:06,888 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-25 19:45:06,923 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-25 19:45:06,924 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:06,924 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-25 19:45:06,924 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-25 19:45:06,928 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-25 19:45:06,935 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-25 19:45:06,955 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-25 19:45:06,955 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-25 19:45:06,956 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-25 19:45:06,956 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-25 19:45:06,956 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-25 19:45:07,096 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-25 19:45:07,099 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-25 19:45:07,099 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-25 19:45:07,107 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-25 19:45:07,108 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-25 19:45:07,153 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,153 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-25 19:45:07,224 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,224 [    INFO] agent.disaster_recovery: {"trace_id": null, "module_name": "disaster_recovery", "action": "init", "duration_ms": 0, "config": {"enabled": true, "backup_interval_minutes": 5, "max_backups": 10, "backup_dir": "./data/backups", "auto_recover": true}}
+2026-06-25 19:45:07,258 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_high_error_rate_triggers_circuit_breaker
+2026-06-25 19:45:07,258 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 失败阈值=0.3, 最小请求数=5
+2026-06-25 19:45:07,258 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,258 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 19:45:07,258 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:07,258 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始模拟高错误率请求（60%失败率）
+2026-06-25 19:45:07,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,259 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:07,259 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 3, "failure_rate": 0.6}
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,260 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 7, "failures": 4, "failure_rate": 0.5714285714285714}
+2026-06-25 19:45:07,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,261 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 9, "failures": 5, "failure_rate": 0.5555555555555556}
+2026-06-25 19:45:07,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,261 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 高错误率模拟完成，当前熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:07,261 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已正确打开
+2026-06-25 19:45:07,261 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_high_error_rate_triggers_circuit_breaker
+2026-06-25 19:45:07,264 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_circuit_breaker_rejects_requests_when_open
+2026-06-25 19:45:07,265 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 失败阈值=0.3, 最小请求数=5
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 1.0, "state": "closed"}
+2026-06-25 19:45:07,265 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:07,265 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,265 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:07,265 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,266 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 6次失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:07,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 熔断状态下请求结果: allow_request()=False
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断状态下请求被正确拒绝
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试装饰器在熔断状态下的行为
+2026-06-25 19:45:07,266 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 装饰器正确抛出 CircuitBreakerError
+2026-06-25 19:45:07,266 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_circuit_breaker_rejects_requests_when_open
+2026-06-25 19:45:07,269 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_auto_transition_from_open_to_half_open
+2026-06-25 19:45:07,269 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 重置超时=0.5秒
+2026-06-25 19:45:07,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,269 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-25 19:45:07,269 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:07,269 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:07,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,269 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:07,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,269 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:07,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,271 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:07,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,271 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:07,271 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,271 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:07,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,272 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:07,272 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,272 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:07,272 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 6次失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:07,272 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:07,272 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 等待冷却时间 0.6 秒...
+2026-06-25 19:45:07,872 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,872 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:45:07,872 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 冷却时间后，熔断器状态: CircuitBreakerState.HALF_OPEN
+2026-06-25 19:45:07,872 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器自动转换到半开状态
+2026-06-25 19:45:07,872 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_auto_transition_from_open_to_half_open
+2026-06-25 19:45:07,876 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_half_open_success_returns_to_closed
+2026-06-25 19:45:07,876 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 最大试探次数=3
+2026-06-25 19:45:07,876 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,876 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-25 19:45:07,876 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:07,878 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:07,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,878 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:07,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,878 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:07,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,878 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:07,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,878 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:07,878 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,879 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:07,879 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,879 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:07,879 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:07,879 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:07,879 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 6次失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:07,879 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:07,879 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 等待冷却时间 0.6 秒...
+2026-06-25 19:45:08,480 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,480 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:45:08,480 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 冷却时间后，熔断器状态: CircuitBreakerState.HALF_OPEN
+2026-06-25 19:45:08,480 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器转换到半开状态
+2026-06-25 19:45:08,481 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始模拟半开状态下的成功试探请求
+2026-06-25 19:45:08,481 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,481 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,481 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,481 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-25 19:45:08,481 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,481 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 3次成功试探后，熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:08,481 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器成功恢复到关闭状态
+2026-06-25 19:45:08,481 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_half_open_success_returns_to_closed
+2026-06-25 19:45:08,490 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_half_open_failure_reopens_circuit
+2026-06-25 19:45:08,490 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 最大试探次数=3
+2026-06-25 19:45:08,490 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,491 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-25 19:45:08,491 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:08,491 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:08,491 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,492 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:08,492 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,492 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:08,492 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,492 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:08,493 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,493 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:08,493 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,493 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:08,493 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,494 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:08,494 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:08,494 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:08,494 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 6次失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:08,494 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:08,495 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 等待冷却时间 0.6 秒...
+2026-06-25 19:45:09,095 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,095 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 冷却时间后，熔断器状态: CircuitBreakerState.HALF_OPEN
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器转换到半开状态
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 模拟半开状态下的失败试探请求
+2026-06-25 19:45:09,095 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,095 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "open"}
+2026-06-25 19:45:09,095 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,095 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 7, "failures": 7, "failure_rate": 1.0}
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 试探失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 试探失败后熔断器重新打开
+2026-06-25 19:45:09,095 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_half_open_failure_reopens_circuit
+2026-06-25 19:45:09,098 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_concurrent_requests_during_half_open
+2026-06-25 19:45:09,098 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 最大试探次数=2
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 0.5, "state": "closed"}
+2026-06-25 19:45:09,098 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:09,098 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:09,098 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,098 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:09,098 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 等待冷却时间 0.6 秒...
+2026-06-25 19:45:09,702 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,703 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:45:09,703 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 冷却时间后，熔断器状态: CircuitBreakerState.HALF_OPEN
+2026-06-25 19:45:09,704 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,704 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 第1个请求: allow_request()=True
+2026-06-25 19:45:09,704 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 第1个请求被允许
+2026-06-25 19:45:09,705 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,705 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 第2个请求: allow_request()=True
+2026-06-25 19:45:09,706 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 第2个请求被允许
+2026-06-25 19:45:09,706 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,707 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 第3个请求: allow_request()=False
+2026-06-25 19:45:09,707 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 第3个请求被正确拒绝（已达最大试探次数）
+2026-06-25 19:45:09,708 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_concurrent_requests_during_half_open
+2026-06-25 19:45:09,720 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_circuit_breaker_reset
+2026-06-25 19:45:09,720 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 失败阈值=0.3
+2026-06-25 19:45:09,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,720 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-25 19:45:09,720 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:09,720 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始连续失败请求以触发熔断
+2026-06-25 19:45:09,720 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 6, "failures": 6, "failure_rate": 1.0}
+2026-06-25 19:45:09,724 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 6次失败后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:09,724 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:09,724 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 执行熔断器重置操作
+2026-06-25 19:45:09,724 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,724 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "reset", "duration_ms": 0, "name": "default"}
+2026-06-25 19:45:09,724 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 重置后熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:09,729 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 重置后熔断器状态为关闭
+2026-06-25 19:45:09,729 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 重置后指标: 总请求数=0, 失败数=0
+2026-06-25 19:45:09,729 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 重置后指标已清零
+2026-06-25 19:45:09,729 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_circuit_breaker_reset
+2026-06-25 19:45:09,735 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试开始: test_decorator_with_exception_handling
+2026-06-25 19:45:09,736 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 创建熔断器配置: 失败阈值=0.3, 最小请求数=5
+2026-06-25 19:45:09,736 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,736 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 30.0, "state": "closed"}
+2026-06-25 19:45:09,736 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 初始熔断器状态: CircuitBreakerState.CLOSED
+2026-06-25 19:45:09,736 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 开始前5次失败调用
+2026-06-25 19:45:09,736 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,737 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,737 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 1, "failures": 1, "failure_rate": 0.0}
+2026-06-25 19:45:09,737 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,737 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,737 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 2, "failures": 2, "failure_rate": 0.0}
+2026-06-25 19:45:09,737 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,738 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 3, "failures": 3, "failure_rate": 0.0}
+2026-06-25 19:45:09,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,738 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 4, "failures": 4, "failure_rate": 0.0}
+2026-06-25 19:45:09,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,738 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,739 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:09,739 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,739 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 5, "failures": 5, "failure_rate": 1.0}
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 5次失败调用后，熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 第6次调用: 预期触发熔断
+2026-06-25 19:45:09,739 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 第6次调用正确触发熔断异常
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 熔断后熔断器状态: CircuitBreakerState.OPEN
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 断言通过: 熔断器已打开
+2026-06-25 19:45:09,739 [    INFO] chaos.test_circuit_breaker_chaos: [CB_CHAOS] 测试完成: test_decorator_with_exception_handling
+2026-06-25 19:45:09,744 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,744 [    INFO] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "init", "duration_ms": 0, "name": "default", "failure_threshold": 0.3, "reset_timeout": 5, "state": "closed"}
+2026-06-25 19:45:09,744 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,745 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,845 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,845 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,947 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:09,947 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,048 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,048 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,149 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,149 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,250 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,351 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,352 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,453 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,453 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,554 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,656 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,656 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,757 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,757 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 11, "failures": 1, "failure_rate": 0.09090909090909091}
+2026-06-25 19:45:10,857 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,857 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,857 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 12, "failures": 2, "failure_rate": 0.16666666666666666}
+2026-06-25 19:45:10,958 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,958 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:10,958 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 13, "failures": 3, "failure_rate": 0.23076923076923078}
+2026-06-25 19:45:11,059 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,059 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,059 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "closed", "total_requests": 14, "failures": 4, "failure_rate": 0.2857142857142857}
+2026-06-25 19:45:11,160 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,160 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,160 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "closed", "to_state": "open"}
+2026-06-25 19:45:11,160 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,160 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "record_failure", "duration_ms": 0, "name": "default", "state": "open", "total_requests": 15, "failures": 5, "failure_rate": 0.3333333333333333}
+2026-06-25 19:45:11,261 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,362 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,463 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,564 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,664 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,765 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,866 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:11,966 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:12,067 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:12,167 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,269 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "open", "to_state": "half_open"}
+2026-06-25 19:45:17,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,269 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,470 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,470 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,470 [ WARNING] agent.circuit_breaker: {"trace_id": null, "module_name": "circuit_breaker", "action": "state_transition", "duration_ms": 0, "name": "default", "from_state": "half_open", "to_state": "closed"}
+2026-06-25 19:45:17,470 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,671 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,671 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,872 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-25 19:45:17,872 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None

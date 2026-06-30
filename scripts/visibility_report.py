@@ -396,17 +396,46 @@ class MetricCollector:
                   原因：用配置基线（如 40%）掩盖真实覆盖率缺失会导致指标失真，
                   CI 中 coverage.xml 由 full-project-tests artifact 保证就位，
                   本地缺失即为真实问题，应显式暴露而非降级掩盖。
+
+        【日志节点说明】
+        本方法在以下 5 个关键逻辑节点输出结构化日志（含 trace_id/module_name/action/duration_ms）：
+          1. read_test_coverage.enter         (debug)  方法入口，记录待检查路径
+          2. read_test_coverage.missing_xml   (error)  coverage.xml 不存在 → 返回 0.0（不降级）
+          3. read_test_coverage.success       (info)   line-rate>0 → 返回真实覆盖率
+          4. read_test_coverage.invalid_xml   (warning) line-rate=0 → 返回 0.0（不降级）
+          5. read_test_coverage.parse_failed  (error)  XML 解析异常 → 返回 0.0（不降级）
+        每条日志均显式标注 no_fallback=true，确认未读取 pyproject.toml fail_under。
         """
+        trace_id = _trace_id()
+        t0 = time.time()
         coverage_xml = self.project_root / "coverage.xml"
+
+        # 节点 1：方法入口（debug 级别，便于排查"为什么覆盖率是 0"）
+        logger.debug(json.dumps({
+            "trace_id": trace_id,
+            "module_name": "visibility_report",
+            "action": "read_test_coverage.enter",
+            "duration_ms": 0,
+            "path": str(coverage_xml),
+            "exists": coverage_xml.exists(),
+            "fallback_to_pyproject": False,
+            "reason": "方法入口：开始读取测试覆盖率，将优先检查 coverage.xml，缺失即返回 0.0",
+        }, ensure_ascii=False))
+
         if not coverage_xml.exists():
-            # coverage.xml 不存在：CI 中不应发生（artifact 保证就位），本地需手动生成
+            # 节点 2：coverage.xml 不存在 → 返回 0.0（CI 中不应发生，本地需手动生成）
+            # 显式不降级：不读取 pyproject.toml fail_under，避免用配置基线掩盖真实数据缺失
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
             logger.error(json.dumps({
-                "trace_id": _trace_id(),
+                "trace_id": trace_id,
                 "module_name": "visibility_report",
                 "action": "read_test_coverage.missing_xml",
-                "duration_ms": 0,
+                "duration_ms": elapsed_ms,
                 "path": str(coverage_xml),
-                "reason": "coverage.xml 不存在，返回 0.0",
+                "return_value": 0.0,
+                "no_fallback": True,
+                "fallback_rejected": "pyproject.toml fail_under",
+                "reason": "coverage.xml 不存在，返回 0.0（不降级到 pyproject.toml）",
                 "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录",
                 "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml",
             }, ensure_ascii=False))
@@ -418,38 +447,53 @@ class MetricCollector:
             root = tree.getroot()
             line_rate = float(root.attrib.get("line-rate", "0"))
             if line_rate > 0:
+                # 节点 3：成功读取有效 line-rate → 返回真实覆盖率百分比
+                elapsed_ms = round((time.time() - t0) * 1000, 2)
+                coverage_percent = round(line_rate * 100, 1)
                 logger.info(json.dumps({
-                    "trace_id": _trace_id(),
+                    "trace_id": trace_id,
                     "module_name": "visibility_report",
                     "action": "read_test_coverage.success",
-                    "duration_ms": 0,
+                    "duration_ms": elapsed_ms,
                     "path": str(coverage_xml),
                     "line_rate": line_rate,
-                    "coverage_percent": round(line_rate * 100, 1),
+                    "coverage_percent": coverage_percent,
+                    "return_value": coverage_percent,
+                    "no_fallback": True,
                     "source": "full-project-tests artifact (CI) 或本地生成",
                 }, ensure_ascii=False))
-                return round(line_rate * 100, 1)
-            # line-rate=0 通常是空报告或生成失败，视为无效数据
+                return coverage_percent
+            # 节点 4：line-rate=0 → 视为无效数据，返回 0.0（不降级）
+            # 常见原因：空报告、测试未覆盖任何行、或 coverage.py 生成失败
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
             logger.warning(json.dumps({
-                "trace_id": _trace_id(),
+                "trace_id": trace_id,
                 "module_name": "visibility_report",
                 "action": "read_test_coverage.invalid_xml",
-                "duration_ms": 0,
+                "duration_ms": elapsed_ms,
                 "path": str(coverage_xml),
                 "line_rate": line_rate,
-                "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0",
+                "return_value": 0.0,
+                "no_fallback": True,
+                "fallback_rejected": "pyproject.toml fail_under",
+                "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0（不降级）",
             }, ensure_ascii=False))
             return 0.0
         except (ValueError, OSError, ET.ParseError) as e:
+            # 节点 5：XML 解析异常 → 返回 0.0（不降级）
             # ET.ParseError 继承自 SyntaxError，不被 ValueError/OSError 覆盖，需显式捕获
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
             logger.error(json.dumps({
-                "trace_id": _trace_id(),
+                "trace_id": trace_id,
                 "module_name": "visibility_report",
                 "action": "read_test_coverage.parse_failed",
-                "duration_ms": 0,
+                "duration_ms": elapsed_ms,
                 "path": str(coverage_xml),
                 "error": f"{type(e).__name__}: {e}",
-                "reason": "coverage.xml 解析失败，返回 0.0",
+                "return_value": 0.0,
+                "no_fallback": True,
+                "fallback_rejected": "pyproject.toml fail_under",
+                "reason": "coverage.xml 解析失败，返回 0.0（不降级到 pyproject.toml）",
             }, ensure_ascii=False))
             return 0.0
 

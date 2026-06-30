@@ -1,0 +1,157 @@
+2026-06-23 15:33:20,642 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-23 15:33:20,645 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-23 15:33:20,647 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-23 15:33:20,675 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-23 15:33:20,715 [    INFO] agent.error_handler: Error handler initialized
+2026-06-23 15:33:20,718 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-23 15:33:20,748 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-23 15:33:20,755 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-23 15:33:20,760 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-23 15:33:20,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-23 15:33:20,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-23 15:33:20,776 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-23 15:33:20,777 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-23 15:33:20,778 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-23 15:33:20,916 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-23 15:33:20,922 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-23 15:33:20,923 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:20,928 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:20,928 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-23 15:33:20,929 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-23 15:33:20,930 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-23 15:33:20,930 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-23 15:33:21,253 [    INFO] agent.caching.multi_level_cache: [MultiLevelCache] 初始化完成: L1(max=1000, ttl=300s), L2(enabled=True, dir=./cache/l2, max=100MB)
+2026-06-23 15:33:21,522 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-569c04818a4d, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,526 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-93f676874ada, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,529 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-93904d8f9858, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,532 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-63ba6ddf21b2, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,533 [    INFO] agent.subagent.container: [Subagent:sa-63ba6ddf21b2] 执行任务: trace=527b9c95ff674481, task=测试任务
+2026-06-23 15:33:21,536 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-3a3f32e51876, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,536 [    INFO] agent.subagent.container: [Subagent:sa-3a3f32e51876] 执行任务: trace=52c60e3e43d6497b, task=帮我写代码
+2026-06-23 15:33:21,539 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-9ba902418efc, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,540 [    INFO] agent.subagent.container: [Subagent:sa-9ba902418efc] 执行任务: trace=a617a9c550eb46b0, task=test
+2026-06-23 15:33:21,543 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-e6b4a0f8eb0a, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,544 [    INFO] agent.subagent.container: [Subagent:sa-e6b4a0f8eb0a] 执行任务: trace=11f77c056dbf485f, task=hello
+2026-06-23 15:33:21,547 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-fbf66bb3580d, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,558 [    INFO] agent.subagent.container: [Subagent:sa-fbf66bb3580d] 执行任务: trace=0c64bc9a1ff04f25, task=test
+2026-06-23 15:33:21,561 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-e32b6af2731e, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,564 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-04f6c40b5304, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,567 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-8947b4da338f, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,568 [    INFO] agent.subagent.container: [Subagent] 创建分身: exp (id=sa-f3fbe631b22d, model=m1, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,583 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-ab1de6794532, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,596 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-0a9d8dd7cb45, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,599 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-440c546ec464, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,602 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-2f5cc78e2a49, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,602 [    INFO] agent.subagent.container: [Subagent:sa-2f5cc78e2a49] 执行任务: trace=d3904abcca804359, task=task1
+2026-06-23 15:33:21,603 [    INFO] agent.subagent.container: [Subagent:sa-2f5cc78e2a49] 上下文已清空
+2026-06-23 15:33:21,605 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-435bd4caf7f7, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,608 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-c037705eaa92, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,609 [    INFO] agent.subagent.container: [Subagent:sa-c037705eaa92] 执行任务: trace=20c7d61eb91c4af1, task=test
+2026-06-23 15:33:21,612 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-e022c359388f, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,613 [    INFO] agent.subagent.container: [Subagent:sa-e022c359388f] 执行任务: trace=2b2fa8b1f43c4381, task=test
+2026-06-23 15:33:21,616 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,616 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-c5947ec9cade, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,616 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: test-agent (id=sa-c5947ec9cade, 活跃=1, 总计=1)
+2026-06-23 15:33:21,616 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: test-agent (id=sa-c5947ec9cade, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 15:33:21,619 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,620 [    INFO] agent.subagent.container: [Subagent] 创建分身: unique (id=sa-a524ad4d39ed, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,620 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: unique (id=sa-a524ad4d39ed, 活跃=1, 总计=1)
+2026-06-23 15:33:21,623 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,626 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,627 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent1 (id=sa-d3a2a2b525ee, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,627 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent1 (id=sa-d3a2a2b525ee, 活跃=1, 总计=1)
+2026-06-23 15:33:21,630 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,630 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_0 (id=sa-9a417cca6735, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,630 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_0 (id=sa-9a417cca6735, 活跃=1, 总计=1)
+2026-06-23 15:33:21,630 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_1 (id=sa-fbcdcb2da850, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_1 (id=sa-fbcdcb2da850, 活跃=2, 总计=2)
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_2 (id=sa-50da44fd5210, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_2 (id=sa-50da44fd5210, 活跃=3, 总计=3)
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_3 (id=sa-c4927a3c80f3, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_3 (id=sa-c4927a3c80f3, 活跃=4, 总计=4)
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.container: [Subagent] 创建分身: agent_4 (id=sa-2eb045ffcd54, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,631 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: agent_4 (id=sa-2eb045ffcd54, 活跃=5, 总计=5)
+2026-06-23 15:33:21,634 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,634 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 2
+2026-06-23 15:33:21,635 [    INFO] agent.subagent.container: [Subagent] 创建分身: a1 (id=sa-9b6bad511c2d, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,635 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: a1 (id=sa-9b6bad511c2d, 活跃=1, 总计=1)
+2026-06-23 15:33:21,635 [    INFO] agent.subagent.container: [Subagent] 创建分身: a2 (id=sa-e30db8353cbf, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,635 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: a2 (id=sa-e30db8353cbf, 活跃=2, 总计=2)
+2026-06-23 15:33:21,638 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,638 [    INFO] agent.subagent.container: [Subagent] 创建分身: finder (id=sa-e5020779d505, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,638 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: finder (id=sa-e5020779d505, 活跃=1, 总计=1)
+2026-06-23 15:33:21,641 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,644 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,645 [    INFO] agent.subagent.container: [Subagent] 创建分身: id-test (id=sa-c55f27d31271, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,646 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: id-test (id=sa-c55f27d31271, 活跃=1, 总计=1)
+2026-06-23 15:33:21,647 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,651 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,651 [    INFO] agent.subagent.container: [Subagent] 创建分身: orphan (id=sa-a87189bfa474, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,654 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,655 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm1 (id=sa-d82ac7f1f79d, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,655 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm1 (id=sa-d82ac7f1f79d, 活跃=1, 总计=1)
+2026-06-23 15:33:21,655 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm2 (id=sa-f0e812331fa7, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,655 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm2 (id=sa-f0e812331fa7, 活跃=2, 总计=2)
+2026-06-23 15:33:21,658 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,659 [    INFO] agent.subagent.container: [Subagent] 创建分身: perm (id=sa-505e61dd069f, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,659 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: perm (id=sa-505e61dd069f, 活跃=1, 总计=1)
+2026-06-23 15:33:21,659 [    INFO] agent.subagent.container: [Subagent] 创建分身: short (id=sa-d84c44366506, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,659 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: short (id=sa-d84c44366506, 活跃=2, 总计=2)
+2026-06-23 15:33:21,670 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: short (id=sa-d84c44366506, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 15:33:21,670 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] GC 回收 1 个超时分身
+2026-06-23 15:33:21,679 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,680 [    INFO] agent.subagent.container: [Subagent] 创建分身: hot-reload (id=sa-36cbc0ae3aad, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,680 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: hot-reload (id=sa-36cbc0ae3aad, 活跃=1, 总计=1)
+2026-06-23 15:33:21,680 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身热更新: hot-reload -> hot-reload (model: gpt-4 -> claude-4; memory: holographic -> mem0)
+2026-06-23 15:33:21,686 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,687 [    INFO] agent.subagent.container: [Subagent] 创建分身: old-name (id=sa-fe152a3c0599, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,687 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: old-name (id=sa-fe152a3c0599, 活跃=1, 总计=1)
+2026-06-23 15:33:21,687 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身热更新: old-name -> new-name (无变更)
+2026-06-23 15:33:21,690 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,691 [    INFO] agent.subagent.container: [Subagent] 创建分身: existing (id=sa-5871e86c50ac, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,691 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: existing (id=sa-5871e86c50ac, 活跃=1, 总计=1)
+2026-06-23 15:33:21,691 [    INFO] agent.subagent.container: [Subagent] 创建分身: to-rename (id=sa-29bd4cf8b8b7, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,691 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: to-rename (id=sa-29bd4cf8b8b7, 活跃=2, 总计=2)
+2026-06-23 15:33:21,694 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.container: [Subagent] 创建分身: code1 (id=sa-867b0fa869c9, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: code1 (id=sa-867b0fa869c9, 活跃=1, 总计=1)
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.container: [Subagent] 创建分身: chat1 (id=sa-5d9ecfd6943d, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: chat1 (id=sa-5d9ecfd6943d, 活跃=2, 总计=2)
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.container: [Subagent] 创建分身: code2 (id=sa-2fec2b3a38ed, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,695 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: code2 (id=sa-2fec2b3a38ed, 活跃=3, 总计=3)
+2026-06-23 15:33:21,699 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,699 [    INFO] agent.subagent.container: [Subagent] 创建分身: reader (id=sa-c9317dfac3f4, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,699 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: reader (id=sa-c9317dfac3f4, 活跃=1, 总计=1)
+2026-06-23 15:33:21,699 [    INFO] agent.subagent.container: [Subagent] 创建分身: writer (id=sa-180d396cbc85, model=gpt-4, memory=holographic, permissions=['read', 'write'])
+2026-06-23 15:33:21,700 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: writer (id=sa-180d396cbc85, 活跃=2, 总计=2)
+2026-06-23 15:33:21,702 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,703 [    INFO] agent.subagent.container: [Subagent] 创建分身: stat1 (id=sa-cce1200fe587, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,703 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: stat1 (id=sa-cce1200fe587, 活跃=1, 总计=1)
+2026-06-23 15:33:21,703 [    INFO] agent.subagent.container: [Subagent] 创建分身: stat2 (id=sa-3eccb018282b, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,703 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: stat2 (id=sa-3eccb018282b, 活跃=2, 总计=2)
+2026-06-23 15:33:21,706 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 初始化完成，最大分身数: 10
+2026-06-23 15:33:21,707 [    INFO] agent.subagent.container: [Subagent] 创建分身: to-destroy (id=sa-88b0ab042274, model=gpt-4, memory=holographic, permissions=['read'])
+2026-06-23 15:33:21,707 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已创建: to-destroy (id=sa-88b0ab042274, 活跃=1, 总计=1)
+2026-06-23 15:33:21,707 [    INFO] agent.subagent.lifecycle: [SubagentLifecycle] 分身已销毁: to-destroy (id=sa-88b0ab042274, 年龄=0.0s, 记忆增量=0项)
+2026-06-23 15:33:21,759 [ WARNING] agent.subagent.sandbox: [Sandbox] Docker 沙箱尚未实现 — 预留适配位
+2026-06-23 15:33:21,762 [ WARNING] agent.subagent.sandbox: [Sandbox] WASM 沙箱尚未实现 — 预留适配位
+2026-06-23 15:33:22,124 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:22,127 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:22,128 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:22,135 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:22,138 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:22,141 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:23,246 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:23,249 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:23,252 [    INFO] agent.safety: 安全监控器已初始化
+2026-06-23 15:33:23,284 [    INFO] agent.log_system.storage: [LogSystem] 存储层初始化完成: db=C:\Windows\TEMP\tmp70om3h_n\test.db, raw=C:\Windows\TEMP\tmp70om3h_n\raw

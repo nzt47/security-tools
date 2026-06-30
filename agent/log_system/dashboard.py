@@ -17,6 +17,7 @@
 
 import time
 import json
+import uuid
 import logging
 from datetime import datetime
 from flask import Blueprint, jsonify, request, render_template
@@ -27,6 +28,11 @@ from .analyzer import LogAnalyzer
 from .introspection import IntrospectionEngine
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # 创建蓝图
 log_system_bp = Blueprint('log_system', __name__, url_prefix='/logs')
@@ -273,9 +279,9 @@ def register_prometheus_metrics(metrics_obj):
             'error_total': error_total,
             'insight_gauge': insight_gauge,
         }
-        logger.info("[LogSystem] Prometheus 指标已注册")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "prometheus", "msg": "[LogSystem] Prometheus 指标已注册"}, ensure_ascii=False))
     except ImportError:
-        logger.warning("[LogSystem] prometheus_client 不可用，跳过指标注册")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "prometheus_client", "msg": "[LogSystem] prometheus_client 不可用，跳过指标注册"}, ensure_ascii=False))
 
 
 # ════════════════════════════════════════════════════════════
@@ -295,7 +301,7 @@ def register_log_system(app, metrics_obj=None):
     if metrics_obj:
         register_prometheus_metrics(metrics_obj)
 
-    logger.info("[LogSystem] 仪表盘与 API 路由已注册")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "api", "msg": "[LogSystem] 仪表盘与 API 路由已注册"}, ensure_ascii=False))
 
     # 启动内省引擎后台循环
     engine = get_introspection()

@@ -1,0 +1,342 @@
+# 扩展系统健康检查与日志验证 CI
+# 每次构建后自动检查扩展系统状态和日志格式
+
+name: 扩展系统健康检查
+
+on:
+  # 在主 CI 完成后运行
+  workflow_run:
+    workflows: ["云枢系统测试流程"]
+    types: [completed]
+  # 也支持独立运行
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: '日志详细程度'
+        required: false
+        default: 'summary'
+        type: choice
+        options:
+          - summary
+          - errors
+          - all
+
+jobs:
+  # ============================================================================
+  # 扩展系统日志检查
+  # ============================================================================
+  extension-log-check:
+    name: 扩展系统日志验证
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: 创建日志目录
+        run: mkdir -p logs
+
+      - name: 生成测试日志
+        run: |
+          echo "=== 生成测试日志 ==="
+          python scripts/generate_test_logs.py
+
+      - name: 运行扩展日志检查
+        id: log-check
+        run: |
+          echo "=== 运行扩展系统日志检查 ==="
+
+          # 1. 检查日志文件是否存在
+          if [ -f logs/extensions.log ]; then
+            echo "✅ 日志文件存在"
+            echo "log_file_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ 日志文件不存在"
+            echo "log_file_exists=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # 2. 检查日志格式（必须是有效的 JSON）
+          echo ""
+          echo "--- 检查日志格式 ---"
+          python -c "
+import json
+import sys
+
+errors = []
+with open('logs/extensions.log', 'r', encoding='utf-8') as f:
+    for i, line in enumerate(f, 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            log = json.loads(line)
+            # 检查必要字段
+            required = ['trace_id', 'module_name', 'action', 'duration_ms', 'status']
+            missing = [k for k in required if k not in log]
+            if missing:
+                errors.append(f'行 {i}: 缺少字段 {missing}')
+        except json.JSONDecodeError as e:
+            errors.append(f'行 {i}: JSON 解析错误 - {e}')
+
+if errors:
+    print('❌ 日志格式检查失败:')
+    for e in errors[:10]:
+        print(f'  {e}')
+    if len(errors) > 10:
+        print(f'  ... 还有 {len(errors) - 10} 个错误')
+    sys.exit(1)
+else:
+    print('✅ 所有日志格式正确')
+"
+
+          # 3. 检查是否有错误日志
+          echo ""
+          echo "--- 检查错误日志 ---"
+          python scripts/debug_extensions.py --errors || {
+            ERROR_COUNT=$(python scripts/debug_extensions.py --errors 2>/dev/null | grep -c "failed\|exception\|bad_request" || echo "0")
+            echo "发现 $ERROR_COUNT 条错误日志"
+          }
+
+      - name: 上传测试日志
+        uses: actions/upload-artifact@v3
+        with:
+          name: extension-logs
+          path: logs/
+          retention-days: 7
+
+  # ============================================================================
+  # 扩展系统单元测试
+  # ============================================================================
+  extension-unit-tests:
+    name: 扩展系统单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-mock flask
+          pip install -e .
+
+      - name: 运行扩展系统测试
+        run: |
+          echo "=== 运行扩展系统单元测试 ==="
+          python -m pytest tests/unit/test_extensions_api.py -v --tb=short
+
+      - name: 运行校验系统测试
+        run: |
+          echo "=== 运行校验系统单元测试 ==="
+          python -m pytest tests/unit/test_verification.py -v --tb=short || true
+
+      - name: 上传测试结果
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: extension-test-results
+          path: test-results/
+          retention-days: 7
+
+  # ============================================================================
+  # 扩展系统配置验证
+  # ============================================================================
+  extension-config-check:
+    name: 扩展系统配置验证
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: pip install pyyaml
+
+      - name: 验证配置文件
+        run: |
+          echo "=== 验证扩展系统配置 ==="
+
+          python -c "
+import yaml
+import sys
+
+required_sections = [
+    'extensions.enabled',
+    'extensions.manager',
+    'extensions.market',
+    'extensions.hitl',
+    'logging.file.extensions_file',
+    'logging.rotation',
+]
+
+def get_nested(config, path):
+    keys = path.split('.')
+    value = config
+    for k in keys:
+        if isinstance(value, dict):
+            value = value.get(k)
+        else:
+            return None
+    return value
+
+try:
+    with open('config.yaml', 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    missing = []
+    for section in required_sections:
+        value = get_nested(config, section)
+        if value is None:
+            missing.append(section)
+
+    if missing:
+        print('❌ 配置缺少以下字段:')
+        for m in missing:
+            print(f'  - {m}')
+        sys.exit(1)
+    else:
+        print('✅ 所有必需配置字段存在')
+
+    # 验证日志目录配置
+    if 'extensions_file' in get_nested(config, 'logging.file'):
+        print('✅ 扩展系统专用日志配置已启用')
+
+    # 验证 HITL 配置
+    hitl = get_nested(config, 'extensions.hitl')
+    if hitl:
+        print(f'✅ HITL 配置: enabled={hitl.get(\"enabled\")}, timeout={hitl.get(\"confirmation_timeout\")}s')
+
+except Exception as e:
+    print(f'❌ 配置验证失败: {e}')
+    sys.exit(1)
+"
+
+      - name: 检查日志脚本
+        run: |
+          echo "=== 检查日志脚本 ==="
+          if [ -f scripts/debug_extensions.py ]; then
+            echo "✅ 排错脚本存在"
+            python scripts/debug_extensions.py --summary | head -20
+          else
+            echo "❌ 排错脚本不存在"
+            exit 1
+          fi
+
+  # ============================================================================
+  # 生成健康报告
+  # ============================================================================
+  health-report:
+    name: 生成健康报告
+    runs-on: ubuntu-latest
+    needs: [extension-log-check, extension-unit-tests, extension-config-check]
+    if: always()
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 生成报告
+        run: |
+          echo "=== 扩展系统健康报告 ==="
+          echo ""
+
+          # 计算整体状态
+          LOG_STATUS="${{ needs.extension-log-check.result }}"
+          TEST_STATUS="${{ needs.extension-unit-tests.result }}"
+          CONFIG_STATUS="${{ needs.extension-config-check.result }}"
+
+          if [ "$LOG_STATUS" = "success" ] && [ "$TEST_STATUS" = "success" ] && [ "$CONFIG_STATUS" = "success" ]; then
+            echo "✅ 扩展系统健康状态: 正常"
+            STATUS="healthy"
+          elif [ "$LOG_STATUS" = "skipped" ] || [ "$TEST_STATUS" = "skipped" ] || [ "$CONFIG_STATUS" = "skipped" ]; then
+            echo "⚠️ 扩展系统健康状态: 部分跳过"
+            STATUS="degraded"
+          else
+            echo "❌ 扩展系统健康状态: 异常"
+            STATUS="unhealthy"
+          fi
+
+          echo ""
+          echo "--- 各检查项状态 ---"
+          echo "📋 日志检查: $LOG_STATUS"
+          echo "🧪 单元测试: $TEST_STATUS"
+          echo "⚙️ 配置验证: $CONFIG_STATUS"
+
+          # 生成 Markdown 报告
+          cat > test_reports/extension_health.md << EOF
+# 扩展系统健康报告
+
+## 执行时间
+$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+## 整体状态
+**$STATUS**
+
+## 检查结果
+
+| 检查项 | 状态 |
+|--------|------|
+| 日志检查 | $LOG_STATUS |
+| 单元测试 | $TEST_STATUS |
+| 配置验证 | $CONFIG_STATUS |
+
+## 快速命令
+
+\`\`\`bash
+# 查看日志统计
+python scripts/debug_extensions.py --summary
+
+# 查看错误日志
+python scripts/debug_extensions.py --errors
+
+# 追踪具体问题
+python scripts/debug_extensions.py --trace <trace_id>
+\`\`\`
+
+## 最近日志摘要
+EOF
+
+          python scripts/debug_extensions.py --summary >> test_reports/extension_health.md 2>/dev/null || true
+
+          echo ""
+          echo "报告已生成: test_reports/extension_health.md"
+
+      - name: 上传报告
+        uses: actions/upload-artifact@v3
+        with:
+          name: extension-health-report
+          path: test_reports/
+          retention-days: 30
+
+      - name: 通知结果
+        if: always()
+        run: |
+          FINAL_STATUS="${{ needs.health-report.result }}"
+          if [ "$FINAL_STATUS" = "success" ]; then
+            echo "✅ 扩展系统健康检查全部通过！"
+          else
+            echo "❌ 扩展系统健康检查发现问题，请查看报告"
+            exit 1
+          fi

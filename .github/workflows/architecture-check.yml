@@ -1,0 +1,221 @@
+# 架构规则校验 CI 工作流
+# 功能：
+# 1. PR 时自动校验架构规则（跨层调用、循环依赖、tests 反向依赖）
+# 2. 未豁免违规时退出码 1，自动阻断 PR 合并
+# 3. 自动评论校验结果到 PR
+# 4. 变更影响分析（不阻断合并，仅提供参考）
+#
+# 配置为 Required Status Check 的步骤：
+# 1. GitHub -> Settings -> Branches -> Branch protection rules
+# 2. 选择 main 分支 -> Edit
+# 3. Require status checks to pass before merging
+# 4. 搜索 "architecture-check" -> 添加为 required check
+# 5. 保存
+
+name: 架构规则校验
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'agent/**'
+      - 'tests/**'
+      - 'config.yaml'
+      - 'docs/architecture/legacy_exemptions.json'
+      - '.github/workflows/architecture-check.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'agent/**'
+      - 'config.yaml'
+      - 'docs/architecture/legacy_exemptions.json'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  architecture-check:
+    name: 架构规则校验
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码（完整历史用于 git diff）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      # ── 步骤 1：生成模块依赖图 ──
+      - name: 生成模块依赖图
+        run: |
+          echo "=== 生成模块依赖图 ==="
+          python -m agent.observability.dependency_graph \
+            --root agent \
+            --output docs/architecture/module_dependency_graph.md \
+            --json-output docs/architecture/dependency_graph.json
+
+      # ── 步骤 2：架构规则校验（阻断合并）──
+      # continue-on-error: false（默认）— 退出码 1 时 job 失败，阻断 PR 合并
+      - name: 架构规则校验
+        id: arch_rules
+        run: |
+          echo "=== 架构规则校验 ==="
+          python -m agent.observability.arch_rules \
+            --check \
+            --root agent \
+            --exemptions docs/architecture/legacy_exemptions.json \
+            --config config.yaml \
+            --json-report docs/architecture/arch_rules_report.json \
+            --md-report docs/architecture/arch_rules_report.md
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE"
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::架构规则校验失败，存在未豁免违规。请修复违规或登记豁免。"
+            exit 1
+          fi
+          echo "::notice::架构规则校验通过"
+
+      # ── 步骤 2.5：架构违规自动通知与监控记录 ──
+      # 无论校验是否通过都执行：通过时仅更新指标，失败时发送通知+归档+指标
+      - name: 架构违规通知与监控记录
+        if: always() && steps.arch_rules.outcome != 'skipped'
+        continue-on-error: true
+        env:
+          ARCH_WEBHOOK_URL: ${{ secrets.ARCH_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== 架构违规通知与监控记录 ==="
+          python scripts/notify_arch_violation.py \
+            --report docs/architecture/arch_rules_report.json \
+            --pr-number "${{ github.event.pull_request.number }}" \
+            --pr-url "${{ github.event.pull_request.html_url }}" \
+            --repo "${{ github.repository }}"
+
+      # ── 步骤 3：变更影响分析（不阻断合并，仅 PR 评论）──
+      - name: 变更影响分析
+        id: impact_analysis
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          echo "=== 变更影响分析 ==="
+          BASE_REF="origin/${{ github.base_ref }}"
+          HEAD_REF="HEAD"
+          echo "对比基准: $BASE_REF -> $HEAD_REF"
+          python scripts/impact_analysis.py \
+            --base "$BASE_REF" \
+            --head "$HEAD_REF" \
+            --root agent \
+            --output docs/architecture/impact_report.md \
+            --json-report docs/architecture/impact_report.json \
+            --github-comment
+
+      # ── 步骤 4：生成架构合规性报告 ──
+      - name: 生成架构合规性报告
+        run: |
+          echo "=== 生成架构合规性报告 ==="
+          python scripts/generate_arch_compliance_report.py \
+            --output docs/architecture/arch_compliance_report.md
+        continue-on-error: true
+
+      # ── PR 评论：架构校验结果 ──
+      - name: 评论架构校验结果到 PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## 架构规则校验结果\n\n';
+
+            const archReportPath = 'docs/architecture/arch_rules_report.json';
+            if (fs.existsSync(archReportPath)) {
+              const report = JSON.parse(fs.readFileSync(archReportPath, 'utf8'));
+              const passed = report.passed;
+              const status = passed ? '✅ 通过' : '❌ 违规';
+              body += `**状态**: ${status}\n\n`;
+              body += `| 指标 | 数值 |\n`;
+              body += `|------|------|\n`;
+              body += `| 校验规则数 | ${report.total_rules} |\n`;
+              body += `| 违规总数 | ${report.total_violations} |\n`;
+              body += `| 未豁免违规 | ${report.active_violations} |\n`;
+              body += `| 已豁免违规 | ${report.exempted_violations} |\n`;
+              body += `| 耗时 | ${Math.round(report.duration_ms)} ms |\n\n`;
+
+              const activeViolations = (report.violations || []).filter(v => !v.is_exempted);
+              if (activeViolations.length > 0) {
+                body += `### ❌ 未豁免违规（需修复才能合并）\n\n`;
+                for (const v of activeViolations) {
+                  body += `- \`${v.rule_id}\`: \`${v.source}\` -> \`${v.target}\` (${v.source_file}:${v.line})\n`;
+                  body += `  - 建议: ${v.suggestion}\n`;
+                }
+                body += `\n`;
+              }
+
+              const exemptedViolations = (report.violations || []).filter(v => v.is_exempted);
+              if (exemptedViolations.length > 0) {
+                body += `### 🚫 已豁免违规（技术债务）\n\n`;
+                for (const v of exemptedViolations) {
+                  body += `- \`${v.rule_id}\`: \`${v.source}\` <-> \`${v.target}\` (${v.source_file}:${v.line})\n`;
+                }
+                body += `\n`;
+              }
+            }
+
+            const impactPath = 'docs/architecture/impact_report.md';
+            if (fs.existsSync(impactPath)) {
+              const impact = fs.readFileSync(impactPath, 'utf8');
+              body += '### 📈 变更影响分析\n\n';
+              body += impact.length > 3000 ? impact.slice(0, 3000) + '\n...（完整报告见 Artifact）' : impact;
+            }
+
+            body += '\n> 完整报告见 Artifact: `architecture-check-report`';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # ── 上传报告 Artifact ──
+      - name: 上传架构检查报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-check-report
+          path: |
+            docs/architecture/module_dependency_graph.md
+            docs/architecture/dependency_graph.json
+            docs/architecture/arch_rules_report.json
+            docs/architecture/arch_rules_report.md
+            docs/architecture/arch_compliance_report.md
+            docs/architecture/impact_report.md
+            docs/architecture/impact_report.json
+            docs/architecture/arch_metrics.prom
+            docs/architecture/violation_events/
+          retention-days: 30
+
+      # ── 自动提交依赖图文档（仅 main 分支 push）──
+      - name: 提交依赖图文档
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/module_dependency_graph.md docs/architecture/dependency_graph.json
+          if git diff --staged --quiet; then
+            echo "依赖图无变更，跳过提交"
+          else
+            git commit -m "docs(architecture): 自动更新模块依赖图 [skip ci]"
+            git push
+          fi

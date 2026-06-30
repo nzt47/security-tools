@@ -1,0 +1,59 @@
+# DigitalLife 主配置文件 (V1 版本)
+# 用于云枢 DigitalLife 的核心配置
+
+# ============================================
+# 记忆管理配置
+# ============================================
+memory:
+  max_tokens: 8000
+  enable_long_term: false
+  summary_threshold: 5000
+  retention_days: 30
+
+# ============================================
+# 行为控制配置
+# ============================================
+behavior:
+  default_mode: NORMAL
+  allow_reflection: true
+  max_iterations: 10
+  response_timeout: 60
+
+# ============================================
+# 规划引擎配置
+# ============================================
+planning:
+  enabled: false
+  max_depth: 5
+  timeout_seconds: 30
+  enable_chain_of_thought: false
+
+# ============================================
+# LLM 配置
+# ============================================
+llm:
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+  max_tokens: 2000
+  api_key: ${OPENAI_API_KEY}
+
+# ============================================
+# 工具配置
+# ============================================
+tools:
+  enabled: true
+  timeout: 30
+  whitelist:
+    - web_search
+    - calculator
+    - file_read
+    - code_execute
+
+# ============================================
+# 会话配置
+# ============================================
+session:
+  auto_save: true
+  save_interval: 300
+  max_history: 1000

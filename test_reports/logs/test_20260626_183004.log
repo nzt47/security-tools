@@ -1,0 +1,80 @@
+2026-06-26 18:30:04,808 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-26 18:30:04,812 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-26 18:30:04,815 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-26 18:30:04,937 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-26 18:30:04,953 [    INFO] agent.error_handler: Error handler initialized
+2026-06-26 18:30:04,956 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-26 18:30:05,000 [    INFO] agent.monitoring.business_metrics: [BusinessMetrics] 业务指标收集器已初始化
+2026-06-26 18:30:05,001 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:30:05,001 [    INFO] agent.rate_limiter: {"trace_id": null, "module_name": "rate_limiter", "action": "init", "duration_ms": 0, "max_concurrent": 100, "strategy": "reject"}
+2026-06-26 18:30:05,002 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-26 18:30:05,009 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-26 18:30:05,015 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-26 18:30:05,033 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-26 18:30:05,034 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-26 18:30:05,034 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-26 18:30:05,036 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-26 18:30:05,037 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-26 18:30:05,175 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-26 18:30:05,179 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-26 18:30:05,179 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:30:05,179 [    INFO] agent.digital_life: 📦 模块导入状态汇总
+2026-06-26 18:30:05,180 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:30:05,180 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-26 18:30:05,180 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-26 18:30:05,181 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-26 18:30:05,181 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-26 18:30:05,181 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-26 18:30:05,181 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-26 18:30:05,181 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-26 18:30:05,182 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-26 18:30:05,182 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-26 18:30:05,182 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-26 18:30:05,182 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-26 18:30:05,182 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-26 18:30:05,205 [    INFO] agent.monitoring.tracing: [Tracing] 获取 trace_id: None
+2026-06-26 18:30:05,206 [    INFO] agent.graceful_degrade: {"trace_id": null, "module_name": "graceful_degrade", "action": "init", "duration_ms": 0, "config": {"enabled": true, "max_retries": 3, "timeout_seconds": 30.0, "cache_ttl_seconds": 300}}
+2026-06-26 18:30:06,106 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "370056782fe34949", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,115 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "e7691b77f39d4bfb", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,121 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "5a54afd10a8c418e", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,129 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "d3170873031f41bb", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,136 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "2e5a5924c79446fd", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,143 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "263490046e934ec7", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,151 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "919ab89a1ff8457b", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,157 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "363cf6c39a694cd7", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,163 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "4627c7e613c643a6", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,169 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "609ea232c63a42cc", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,178 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "60c1dc50df8844f3", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,187 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "ca9c5a467129421d", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,209 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "483cf96e1c954540", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,216 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "70e7968fb922492e", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,224 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "bb37d064496a43ab", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,232 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "faf03394463c4283", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,233 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "faf03394463c4283", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 18:30:06,233 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "faf03394463c4283", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 3 个"}
+2026-06-26 18:30:06,235 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "faf03394463c4283", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=3, impacted=0, tests=0, duration_ms=1.80", "duration_ms": 1.8}
+2026-06-26 18:30:06,244 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cb864835d62c489c", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,244 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cb864835d62c489c", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 18:30:06,245 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "cb864835d62c489c", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 0 个"}
+2026-06-26 18:30:06,251 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3b93b7f4dd5e4ca9", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,252 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3b93b7f4dd5e4ca9", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 18:30:06,252 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3b93b7f4dd5e4ca9", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 1 个"}
+2026-06-26 18:30:06,253 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3b93b7f4dd5e4ca9", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=1, impacted=0, tests=0, duration_ms=1.17", "duration_ms": 1.17}
+2026-06-26 18:30:06,261 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "485890fe69c447d3", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,262 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "485890fe69c447d3", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 18:30:06,262 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "485890fe69c447d3", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 1 个"}
+2026-06-26 18:30:06,262 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "485890fe69c447d3", "module_name": "impact_analysis", "action": "analyze_complete", "message": "分析完成: changed=1, impacted=0, tests=0, duration_ms=0.97", "duration_ms": 0.97}
+2026-06-26 18:30:06,268 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "afbc4261e32b47e7", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,275 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "62228be94de949fe", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,392 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "1f841e6c4f174893", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,499 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "afa1e1239c3a44d5", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,500 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "afa1e1239c3a44d5", "module_name": "impact_analysis", "action": "analyze_start", "message": "开始变更影响分析"}
+2026-06-26 18:30:06,500 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "afa1e1239c3a44d5", "module_name": "impact_analysis", "action": "get_changed_files", "message": "获取变更文件: 5 个"}
+2026-06-26 18:30:06,591 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "8535e95ecc1a4fa7", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,598 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "4db293d510194cdd", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,605 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "b7bcadf9fcda4f50", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,613 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "e843131e5b954a0d", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,621 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "527d0568f6964a3b", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-26 18:30:06,630 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3ec9a731c85e425c", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}

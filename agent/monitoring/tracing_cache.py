@@ -13,9 +13,12 @@ import time
 import json
 import threading
 import queue
+import uuid
 from typing import Dict, Any, Optional, List, Tuple
 from collections import OrderedDict
 from abc import ABC, abstractmethod
+
+from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 # ==================== LRU缓存实现 ====================
 
@@ -206,6 +209,8 @@ class AsyncWriter:
         self._flush_thread = None
         self._running = False
         self._last_flush = time.time()
+        # 后台刷新线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
+        self._flush_trace_id = f"tracing-cache-flush-{uuid.uuid4().hex[:16]}"
     
     def start(self):
         """启动异步写入线程"""
@@ -234,6 +239,8 @@ class AsyncWriter:
     
     def _flush_loop(self):
         """后台刷新循环"""
+        # 设置后台线程 trace_id（ContextVar 不自动继承到子线程）
+        set_trace_id(self._flush_trace_id)
         while self._running:
             try:
                 # 检查是否需要刷新

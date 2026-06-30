@@ -4,6 +4,7 @@ from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.tools import list_tools as _list_tools
 from agent.tools import set_action_tracker
+from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/safety/check", methods=["POST"])
+    @trace_route("Permission")
     @require_token
     @log_request()
     def api_safety_check():
@@ -42,6 +44,7 @@ def register_routes(app, state):
         return jsonify(result)
 
     @app.route("/api/safety/alerts")
+    @trace_route("Permission")
     @log_request(show_response=False)
     def api_safety_alerts():
         limit = request.args.get("limit", 20, type=int)
@@ -49,6 +52,7 @@ def register_routes(app, state):
         return jsonify({"alerts": alerts, "stats": safety_guard.get_stats()})
 
     @app.route("/api/safety/keywords", methods=["GET", "POST"])
+    @trace_route("Permission")
     @require_token
     @log_request()
     def api_safety_keywords():
@@ -70,6 +74,7 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/permission/status")
+    @trace_route("Permission")
     @log_request(show_response=False)
     def api_permission_status():
         tracker_status = action_tracker.get_status()
@@ -100,6 +105,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/permission/log")
+    @trace_route("Permission")
     @log_request(show_response=False)
     def api_permission_log():
         limit = request.args.get("limit", 20, type=int)
@@ -114,6 +120,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/permission/stats")
+    @trace_route("Permission")
     @log_request(show_response=False)
     def api_permission_stats():
         guard_stats = safety_guard.get_stats()
@@ -157,6 +164,7 @@ def register_routes(app, state):
         })
 
     @app.route("/api/permission/access-log")
+    @trace_route("Permission")
     @log_request(show_response=False)
     def api_permission_access_log():
         limit = request.args.get("limit", 20, type=int)
@@ -165,6 +173,7 @@ def register_routes(app, state):
         return jsonify({"access_logs": logs})
 
     @app.route("/api/permission/emergency", methods=["POST"])
+    @trace_route("Permission")
     @require_token
     @log_request()
     def api_permission_emergency():
@@ -196,6 +205,7 @@ def register_routes(app, state):
         return jsonify({"ok": False, "error": f"未知操作: {action}"}), 400
 
     @app.route("/api/permission/toggle", methods=["POST"])
+    @trace_route("Permission")
     @require_token
     @log_request()
     def api_permission_toggle():

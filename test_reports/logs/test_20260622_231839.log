@@ -1,0 +1,47 @@
+2026-06-22 23:18:40,183 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-22 23:18:40,183 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-22 23:18:40,191 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-22 23:18:40,226 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-22 23:18:40,241 [    INFO] agent.error_handler: Error handler initialized
+2026-06-22 23:18:40,244 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-22 23:18:40,282 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-22 23:18:40,291 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-22 23:18:40,296 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-22 23:18:40,315 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-22 23:18:40,315 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-22 23:18:40,316 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-22 23:18:40,316 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-22 23:18:40,318 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-22 23:18:40,464 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-22 23:18:40,471 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-22 23:18:40,471 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-22 23:18:40,480 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-22 23:18:40,481 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-22 23:18:40,481 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-22 23:18:40,532 [    INFO] agent.network.config_manager: [网络配置] 开始更新配置...
+2026-06-22 23:18:40,532 [ WARNING] agent.network.config_manager: [网络配置] 加载失败，使用默认配置: Expecting value: line 1 column 1 (char 0)
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 检测到新的 tavily 搜索引擎 API Key，准备加密保存...
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 已加密保存: search_tavily_key
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] tavily 搜索引擎 API Key 已加密保存
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 检测到新的 bing 搜索引擎 API Key，准备加密保存...
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 已加密保存: search_bing_key
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] bing 搜索引擎 API Key 已加密保存
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 检测到新的 google 搜索引擎 API Key，准备加密保存...
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 已加密保存: search_google_key
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] google 搜索引擎 API Key 已加密保存
+2026-06-22 23:18:40,533 [    INFO] agent.network.config_manager: [网络配置] 合并配置到当前配置...
+2026-06-22 23:18:40,534 [    INFO] agent.network.config_manager: [网络配置] 保存配置到文件: C:\Users\Administrator\AppData\Local\Temp\tmp8870908s.json
+2026-06-22 23:18:40,534 [    INFO] agent.network.config_manager: [网络配置] 已保存到文件: C:\Users\Administrator\AppData\Local\Temp\tmp8870908s.json
+2026-06-22 23:18:40,535 [    INFO] agent.network.config_manager: [网络配置] 配置已更新到文件

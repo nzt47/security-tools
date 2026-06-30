@@ -1,0 +1,38 @@
+2026-06-27 01:23:49,845 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-27 01:23:49,849 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-27 01:23:49,851 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-27 01:23:49,863 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-27 01:23:49,879 [    INFO] agent.error_handler: Error handler initialized
+2026-06-27 01:23:49,883 [    INFO] agent.monitoring.performance: {"trace_id": null, "module_name": "performance", "action": "llm_cache_init", "duration_ms": 0, "max_size": 1000, "ttl_seconds": 3600}
+2026-06-27 01:23:49,913 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-27 01:23:49,921 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-27 01:23:49,927 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-27 01:23:49,948 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-27 01:23:49,948 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-27 01:23:49,948 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-27 01:23:49,950 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-27 01:23:49,951 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-27 01:23:50,083 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-27 01:23:50,086 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-27 01:23:50,086 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:23:50,086 [    INFO] agent.digital_life: [模块导入] 模块导入状态汇总
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-27 01:23:50,090 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-27 01:23:50,091 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-27 01:23:50,092 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-27 01:23:50,092 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-27 01:23:50,092 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-27 01:23:50,092 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-27 01:23:50,092 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-27 01:23:50,093 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-27 01:23:50,151 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "f5e7d0921bb64188", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-27 01:23:50,551 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "0fc920160c684e5c", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-27 01:23:50,558 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "2ba5e4d91d124761", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-27 01:23:50,567 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "3a465d1576f64a10", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}
+2026-06-27 01:23:50,574 [    INFO] scripts.impact_analysis: [ImpactAnalysis] {"trace_id": "505e39b489954640", "module_name": "impact_analysis", "action": "init", "message": "变更影响分析器初始化: base=origin/main, head=HEAD"}

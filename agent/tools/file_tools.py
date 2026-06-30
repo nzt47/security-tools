@@ -6,6 +6,7 @@ import os
 import re
 import time
 import json
+import uuid
 import shutil
 import base64
 import logging
@@ -13,6 +14,11 @@ import fnmatch
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 # ════════════════════════════════════════════════════════════
 #  安全路径检查 — 防止云枢读写系统关键区域
@@ -122,19 +128,19 @@ def safe_resolve_path(path: str) -> str:
     Raises:
         ValueError: 路径非法或位于受保护的系统目录
     """
-    logger.info(f"[safe_resolve_path] 开始解析路径: path={path}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path", "msg": f"[safe_resolve_path] 开始解析路径: path={path}"}, ensure_ascii=False))
     try:
         abs_path = os.path.abspath(os.path.normpath(path))
-        logger.info(f"[safe_resolve_path] 路径规范化成功: abs_path={abs_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "abs_path.abs_path", "msg": f"[safe_resolve_path] 路径规范化成功: abs_path={abs_path}"}, ensure_ascii=False))
     except (ValueError, OSError) as e:
-        logger.warning(f"[safe_resolve_path] 路径解析异常: path={path}, error={type(e).__name__}: {e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.error", "msg": f"[safe_resolve_path] 路径解析异常: path={path}, error={type(e).__name__}: {e}"}, ensure_ascii=False))
         raise ValueError(f"路径解析失败: {e}")
 
     if is_protected_path(abs_path):
-        logger.warning(f"[safe_resolve_path] 路径被保护目录拦截: abs_path={abs_path}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "abs_path.abs_path", "msg": f"[safe_resolve_path] 路径被保护目录拦截: abs_path={abs_path}"}, ensure_ascii=False))
         raise ValueError(f"路径位于系统保护目录，拒绝访问: {abs_path}")
 
-    logger.info(f"[safe_resolve_path] 路径解析完成，返回: {abs_path}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "abs_path", "msg": f"[safe_resolve_path] 路径解析完成，返回: {abs_path}"}, ensure_ascii=False))
     return abs_path
 
 
@@ -183,29 +189,29 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
     Returns:
         dict: {ok, content, path, size, encoding, binary, error}
     """
-    logger.info(f"[read_file] 开始读取文件: path={path}, encoding={encoding}, max_size_mb={max_size_mb}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.encoding", "msg": f"[read_file] 开始读取文件: path={path}, encoding={encoding}, max_size_mb={max_size_mb}"}, ensure_ascii=False))
     try:
         safe_path = safe_resolve_path(path)
-        logger.info(f"[read_file] 路径安全解析成功: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[read_file] 路径安全解析成功: safe_path={safe_path}"}, ensure_ascii=False))
     except ValueError as e:
-        logger.warning(f"[read_file] 路径解析失败: path={path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.error", "msg": f"[read_file] 路径解析失败: path={path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": str(e)}
 
     if not os.path.exists(safe_path):
-        logger.warning(f"[read_file] 文件不存在: safe_path={safe_path}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[read_file] 文件不存在: safe_path={safe_path}"}, ensure_ascii=False))
         return {"ok": False, "error": f"文件不存在: {path}"}
     if not os.path.isfile(safe_path):
         if os.path.isdir(safe_path):
-            logger.warning(f"[read_file] 路径是目录而非文件: safe_path={safe_path}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[read_file] 路径是目录而非文件: safe_path={safe_path}"}, ensure_ascii=False))
             return {"ok": False, "error": f"路径是目录而非文件: {path}，请使用 list_directory 工具列出目录内容"}
-        logger.warning(f"[read_file] 路径不是文件: safe_path={safe_path}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[read_file] 路径不是文件: safe_path={safe_path}"}, ensure_ascii=False))
         return {"ok": False, "error": f"路径不是文件: {path}"}
 
     file_size = os.path.getsize(safe_path)
-    logger.info(f"[read_file] 文件大小: {file_size} bytes")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "file_size.bytes", "msg": f"[read_file] 文件大小: {file_size} bytes"}, ensure_ascii=False))
     max_size = max_size_mb * 1024 * 1024
     if file_size > max_size:
-        logger.warning(f"[read_file] 文件过大: file_size={file_size}, max_size={max_size}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "file_size.file_size.max_size", "msg": f"[read_file] 文件过大: file_size={file_size}, max_size={max_size}"}, ensure_ascii=False))
         return {
             "ok": False, "error": f"文件过大 ({file_size / 1024 / 1024:.1f}MB)，超过限制 {max_size_mb}MB",
             "path": path, "size": file_size,
@@ -214,20 +220,20 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
     try:
         with open(safe_path, "rb") as f:
             raw_data = f.read()
-        logger.info(f"[read_file] 文件读取成功: raw_data_size={len(raw_data)}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "raw_data_size.len.raw_data", "msg": f"[read_file] 文件读取成功: raw_data_size={len(raw_data)}"}, ensure_ascii=False))
     except PermissionError as e:
-        logger.warning(f"[read_file] 权限错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path.error", "msg": f"[read_file] 权限错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"没有权限读取文件: {path}"}
     except OSError as e:
-        logger.warning(f"[read_file] OS错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[read_file] OS错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"读取文件失败: {e}"}
 
     is_binary = is_binary_content(raw_data)
-    logger.info(f"[read_file] 二进制检测结果: is_binary={is_binary}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "is_binary.is_binary", "msg": f"[read_file] 二进制检测结果: is_binary={is_binary}"}, ensure_ascii=False))
 
     if encoding is None or is_binary:
         # 二进制模式，返回 base64
-        logger.info(f"[read_file] 使用二进制模式返回 base64")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "base64", "msg": f"[read_file] 使用二进制模式返回 base64"}, ensure_ascii=False))
         return {
             "ok": True,
             "path": path,
@@ -240,23 +246,23 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
         }
 
     # 文本模式，尝试解码
-    logger.info(f"[read_file] 使用文本模式解码: encoding={encoding}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "encoding.encoding", "msg": f"[read_file] 使用文本模式解码: encoding={encoding}"}, ensure_ascii=False))
     try:
         content = raw_data.decode(encoding)
-        logger.info(f"[read_file] 解码成功: encoding={encoding}, content_length={len(content)}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "encoding.encoding.content_length", "msg": f"[read_file] 解码成功: encoding={encoding}, content_length={len(content)}"}, ensure_ascii=False))
     except UnicodeDecodeError as e:
-        logger.warning(f"[read_file] 解码失败，尝试降级: encoding={encoding}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "encoding.encoding.error", "msg": f"[read_file] 解码失败，尝试降级: encoding={encoding}, error={e}"}, ensure_ascii=False))
         # 编码不对，尝试自动检测
         try:
             content = raw_data.decode("utf-8", errors="replace")
             encoding = "utf-8 (with replacements)"
-            logger.info(f"[read_file] 降级解码成功: encoding={encoding}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "encoding.encoding", "msg": f"[read_file] 降级解码成功: encoding={encoding}"}, ensure_ascii=False))
         except Exception as e2:
-            logger.warning(f"[read_file] utf-8降级失败，使用latin-1: error={e2}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "utf.latin.error", "msg": f"[read_file] utf-8降级失败，使用latin-1: error={e2}"}, ensure_ascii=False))
             content = raw_data.decode("latin-1")
             encoding = "latin-1"
 
-    logger.info(f"[read_file] 文件读取完成: ok=True, encoding={encoding}, binary=False")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "true.encoding", "msg": f"[read_file] 文件读取完成: ok=True, encoding={encoding}, binary=False"}, ensure_ascii=False))
 
     # 如果指定了行范围，截取对应行
     if range:
@@ -302,25 +308,25 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
     Returns:
         dict: {ok, path, size, backup, error}
     """
-    logger.info(f"[write_file] 开始写入文件: path={path}, encoding={encoding}, content_length={len(content) if content else 0}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.encoding", "msg": f"[write_file] 开始写入文件: path={path}, encoding={encoding}, content_length={len(content) if content else 0}"}, ensure_ascii=False))
     try:
         safe_path = safe_resolve_path(path)
-        logger.info(f"[write_file] 路径安全解析成功: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[write_file] 路径安全解析成功: safe_path={safe_path}"}, ensure_ascii=False))
     except ValueError as e:
-        logger.warning(f"[write_file] 路径解析失败: path={path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.error", "msg": f"[write_file] 路径解析失败: path={path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": str(e)}
 
     # 禁止写入可执行文件类型
     if is_executable_extension(safe_path):
         ext = os.path.splitext(safe_path)[1]
-        logger.warning(f"[write_file] 禁止写入可执行文件类型: ext={ext}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "ext.ext", "msg": f"[write_file] 禁止写入可执行文件类型: ext={ext}"}, ensure_ascii=False))
         return {"ok": False, "error": f"禁止写入可执行/脚本文件类型 ({ext})"}
 
     # 检查内容大小
     content_bytes = content.encode(encoding) if isinstance(content, str) else content
-    logger.info(f"[write_file] 内容大小: {len(content_bytes)} bytes")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "len.content_bytes.bytes", "msg": f"[write_file] 内容大小: {len(content_bytes)} bytes"}, ensure_ascii=False))
     if len(content_bytes) > DEFAULT_MAX_WRITE_SIZE:
-        logger.warning(f"[write_file] 内容过大: size={len(content_bytes)}, max_size={DEFAULT_MAX_WRITE_SIZE}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "size.len.content_bytes", "msg": f"[write_file] 内容过大: size={len(content_bytes)}, max_size={DEFAULT_MAX_WRITE_SIZE}"}, ensure_ascii=False))
         return {
             "ok": False,
             "error": f"内容过大 ({len(content_bytes) / 1024 / 1024:.1f}MB)，超过限制 {DEFAULT_MAX_WRITE_SIZE // (1024 * 1024)}MB",
@@ -329,7 +335,7 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
     # 覆盖前备份
     backup_path = None
     if os.path.exists(safe_path):
-        logger.info(f"[write_file] 文件已存在，准备备份: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[write_file] 文件已存在，准备备份: safe_path={safe_path}"}, ensure_ascii=False))
         try:
             backup_dir = os.path.join(os.path.dirname(__file__), "..", "..", ".file_backups")
             os.makedirs(backup_dir, exist_ok=True)
@@ -337,31 +343,31 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
             fname = os.path.basename(safe_path)
             backup_path = os.path.join(backup_dir, f"{fname}.{timestamp}.bak")
             shutil.copy2(safe_path, backup_path)
-            logger.info(f"[write_file] 备份成功: backup_path={backup_path}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "backup_path.backup_path", "msg": f"[write_file] 备份成功: backup_path={backup_path}"}, ensure_ascii=False))
         except Exception as e:
-            logger.warning(f"[write_file] 备份失败（继续写入）: error={e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "error", "msg": f"[write_file] 备份失败（继续写入）: error={e}"}, ensure_ascii=False))
 
     # 创建目录
     dir_path = os.path.dirname(safe_path)
-    logger.info(f"[write_file] 检查目录: dir_path={dir_path}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "dir_path.dir_path", "msg": f"[write_file] 检查目录: dir_path={dir_path}"}, ensure_ascii=False))
     try:
         os.makedirs(dir_path, exist_ok=True)
-        logger.info(f"[write_file] 目录创建/确认成功")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "log", "msg": f"[write_file] 目录创建/确认成功"}, ensure_ascii=False))
     except OSError as e:
-        logger.warning(f"[write_file] 创建目录失败: dir_path={dir_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "dir_path.dir_path.error", "msg": f"[write_file] 创建目录失败: dir_path={dir_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"无法创建目录: {e}"}
 
     # 写入文件
-    logger.info(f"[write_file] 开始写入文件内容")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "log", "msg": f"[write_file] 开始写入文件内容"}, ensure_ascii=False))
     try:
         with open(safe_path, "w", encoding=encoding) as f:
             f.write(content)
-        logger.info(f"[write_file] 文件写入成功: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[write_file] 文件写入成功: safe_path={safe_path}"}, ensure_ascii=False))
     except PermissionError as e:
-        logger.warning(f"[write_file] 权限错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path.error", "msg": f"[write_file] 权限错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"没有权限写入文件: {path}"}
     except OSError as e:
-        logger.warning(f"[write_file] OS错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[write_file] OS错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"写入文件失败: {e}"}
 
     result = {
@@ -373,7 +379,7 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
     if backup_path:
         result["backup"] = backup_path
 
-    logger.info(f"[write_file] 写入完成: ok=True, size={len(content_bytes)}, backup={backup_path}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "true.size", "msg": f"[write_file] 写入完成: ok=True, size={len(content_bytes)}, backup={backup_path}"}, ensure_ascii=False))
     return result
 
 
@@ -392,20 +398,20 @@ def list_directory(path: str = ".", show_hidden: bool = False, max_items: int = 
     Returns:
         dict: {ok, path, items: [{name, type, size, modified, ...}], total, error}
     """
-    logger.info(f"[list_directory] 开始列出目录: path={path}, show_hidden={show_hidden}, max_items={max_items}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.show_hidden", "msg": f"[list_directory] 开始列出目录: path={path}, show_hidden={show_hidden}, max_items={max_items}"}, ensure_ascii=False))
     try:
         safe_path = safe_resolve_path(path)
-        logger.info(f"[list_directory] 路径安全解析成功: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[list_directory] 路径安全解析成功: safe_path={safe_path}"}, ensure_ascii=False))
     except ValueError as e:
-        logger.warning(f"[list_directory] 路径解析失败: path={path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.error", "msg": f"[list_directory] 路径解析失败: path={path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": str(e)}
 
     if not os.path.exists(safe_path):
-        logger.warning(f"[list_directory] 路径不存在: safe_path={safe_path}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[list_directory] 路径不存在: safe_path={safe_path}"}, ensure_ascii=False))
         return {"ok": False, "error": f"路径不存在: {path}"}
     if not os.path.isdir(safe_path):
         # 如果是文件，返回文件信息
-        logger.info(f"[list_directory] 路径是文件而非目录: safe_path={safe_path}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[list_directory] 路径是文件而非目录: safe_path={safe_path}"}, ensure_ascii=False))
         return {
             "ok": True,
             "path": path,
@@ -415,33 +421,33 @@ def list_directory(path: str = ".", show_hidden: bool = False, max_items: int = 
         }
 
     items = []
-    logger.info(f"[list_directory] 开始遍历目录内容")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "log", "msg": f"[list_directory] 开始遍历目录内容"}, ensure_ascii=False))
     try:
         for name in os.listdir(safe_path):
             if not show_hidden and name.startswith("."):
                 continue
             if len(items) >= max_items:
-                logger.info(f"[list_directory] 达到最大条目数限制: max_items={max_items}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "max_items.max_items", "msg": f"[list_directory] 达到最大条目数限制: max_items={max_items}"}, ensure_ascii=False))
                 break
             item_path = os.path.join(safe_path, name)
             try:
                 info = _get_single_file_info(item_path)
                 info["name"] = name
                 items.append(info)
-                logger.debug(f"[list_directory] 获取文件信息成功: name={name}, type={info.get('type')}")
+                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "name.name.type", "msg": f"[list_directory] 获取文件信息成功: name={name}, type={info.get('type')}"}, ensure_ascii=False))
             except OSError as e:
-                logger.warning(f"[list_directory] 获取文件信息失败: name={name}, error={e}")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "name.name.error", "msg": f"[list_directory] 获取文件信息失败: name={name}, error={e}"}, ensure_ascii=False))
                 items.append({"name": name, "type": "unknown"})
     except PermissionError as e:
-        logger.warning(f"[list_directory] 权限错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path.error", "msg": f"[list_directory] 权限错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"没有权限列出目录: {path}"}
     except OSError as e:
-        logger.warning(f"[list_directory] OS错误: safe_path={safe_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_path.safe_path", "msg": f"[list_directory] OS错误: safe_path={safe_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"列出目录失败: {e}"}
 
     # 排序：目录优先，然后按名称
     items.sort(key=lambda x: (0 if x.get("type") == "dir" else 1, x.get("name", "")))
-    logger.info(f"[list_directory] 目录列出完成: total_items={len(items)}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "total_items.len.items", "msg": f"[list_directory] 目录列出完成: total_items={len(items)}"}, ensure_ascii=False))
 
     return {
         "ok": True,
@@ -488,19 +494,19 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
     Returns:
         dict: {ok, pattern, root, results: [{path, name, size, modified, ...}], total}
     """
-    logger.info(f"[search_files] 开始搜索文件: pattern={pattern}, root_path={root_path}, max_results={max_results}, ignore_case={ignore_case}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "pattern.pattern.root_path", "msg": f"[search_files] 开始搜索文件: pattern={pattern}, root_path={root_path}, max_results={max_results}, ignore_case={ignore_case}"}, ensure_ascii=False))
     try:
         safe_root = safe_resolve_path(root_path)
-        logger.info(f"[search_files] 路径安全解析成功: safe_root={safe_root}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_root.safe_root", "msg": f"[search_files] 路径安全解析成功: safe_root={safe_root}"}, ensure_ascii=False))
     except ValueError as e:
-        logger.warning(f"[search_files] 路径解析失败: root_path={root_path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "root_path.root_path.error", "msg": f"[search_files] 路径解析失败: root_path={root_path}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": str(e)}
 
     if not os.path.exists(safe_root):
-        logger.warning(f"[search_files] 搜索路径不存在: safe_root={safe_root}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_root.safe_root", "msg": f"[search_files] 搜索路径不存在: safe_root={safe_root}"}, ensure_ascii=False))
         return {"ok": False, "error": f"搜索路径不存在: {root_path}"}
     if not os.path.isdir(safe_root):
-        logger.warning(f"[search_files] 搜索路径不是目录: safe_root={safe_root}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_root.safe_root", "msg": f"[search_files] 搜索路径不是目录: safe_root={safe_root}"}, ensure_ascii=False))
         return {"ok": False, "error": f"搜索路径不是目录: {root_path}"}
 
     # 限制递归深度（防止遍历过深）
@@ -512,16 +518,16 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
     flags = re.IGNORECASE if ignore_case else 0
     try:
         regex = re.compile(fnmatch.translate(pattern), flags)
-        logger.debug(f"[search_files] 预编译正则: pattern={pattern} -> regex={regex.pattern}")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "pattern.pattern.regex", "msg": f"[search_files] 预编译正则: pattern={pattern} -> regex={regex.pattern}"}, ensure_ascii=False))
     except re.error as e:
-        logger.warning(f"[search_files] 模式编译失败: pattern={pattern}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "pattern.pattern.error", "msg": f"[search_files] 模式编译失败: pattern={pattern}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"搜索模式错误: {e}"}
 
     try:
         for dirpath, dirnames, filenames in os.walk(safe_root):
             walked += 1
             if walked > max_walk:
-                logger.info(f"[search_files] 达到最大遍历步数: max_walk={max_walk}")
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "max_walk.max_walk", "msg": f"[search_files] 达到最大遍历步数: max_walk={max_walk}"}, ensure_ascii=False))
                 break
 
             # 跳过隐藏目录
@@ -544,9 +550,9 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
                                 "%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime)
                             ),
                         })
-                        logger.debug(f"[search_files] 添加匹配结果: fname={fname}, size={stat.st_size}")
+                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "fname.fname.size", "msg": f"[search_files] 添加匹配结果: fname={fname}, size={stat.st_size}"}, ensure_ascii=False))
                     except OSError as e:
-                        logger.warning(f"[search_files] 获取文件stat失败: full_path={full_path}, error={e}")
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "stat.full_path.full_path", "msg": f"[search_files] 获取文件stat失败: full_path={full_path}, error={e}"}, ensure_ascii=False))
 
             if len(results) >= max_results:
                 break
@@ -554,13 +560,13 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
             if walked > max_walk:
                 break
     except PermissionError as e:
-        logger.warning(f"[search_files] 权限错误（继续返回已有结果）: error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "error", "msg": f"[search_files] 权限错误（继续返回已有结果）: error={e}"}, ensure_ascii=False))
         pass  # 部分目录无权限，继续返回已有结果
     except OSError as e:
-        logger.warning(f"[search_files] OS错误: safe_root={safe_root}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "safe_root.safe_root", "msg": f"[search_files] OS错误: safe_root={safe_root}, error={e}"}, ensure_ascii=False))
         return {"ok": False, "error": f"搜索文件失败: {e}"}
 
-    logger.info(f"[search_files] 搜索完成: total_results={len(results)}, walked={walked}, truncated={len(results) >= max_results or walked >= max_walk}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "total_results.len.results", "msg": f"[search_files] 搜索完成: total_results={len(results)}, walked={walked}, truncated={len(results) >= max_results or walked >= max_walk}"}, ensure_ascii=False))
     return {
         "ok": True,
         "pattern": pattern,
@@ -574,17 +580,17 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
 
 def _get_single_file_info(path: str) -> dict:
     """获取单个文件/目录的元信息"""
-    logger.info(f"[_get_single_file_info] 开始获取文件信息: path={path}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path", "msg": f"[_get_single_file_info] 开始获取文件信息: path={path}"}, ensure_ascii=False))
     try:
         stat = os.stat(path)
-        logger.info(f"[_get_single_file_info] stat获取成功: size={stat.st_size}, mode={oct(stat.st_mode)}")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "stat.size.stat", "msg": f"[_get_single_file_info] stat获取成功: size={stat.st_size}, mode={oct(stat.st_mode)}"}, ensure_ascii=False))
     except OSError as e:
-        logger.warning(f"[_get_single_file_info] stat获取失败: path={path}, error={e}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "stat.path.path", "msg": f"[_get_single_file_info] stat获取失败: path={path}, error={e}"}, ensure_ascii=False))
         raise
 
     is_dir = os.path.isdir(path)
     is_link = os.path.islink(path)
-    logger.info(f"[_get_single_file_info] 文件属性: is_dir={is_dir}, is_link={is_link}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "is_dir.is_dir.is_link", "msg": f"[_get_single_file_info] 文件属性: is_dir={is_dir}, is_link={is_link}"}, ensure_ascii=False))
 
     info = {
         "type": "dir" if is_dir else "file",
@@ -597,18 +603,18 @@ def _get_single_file_info(path: str) -> dict:
 
     if not is_dir:
         info["extension"] = os.path.splitext(path)[1].lower()
-        logger.debug(f"[_get_single_file_info] 文件扩展名: extension={info['extension']}")
+        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "extension.info", "msg": f"[_get_single_file_info] 文件扩展名: extension={info['extension']}"}, ensure_ascii=False))
 
     if is_link:
-        logger.info(f"[_get_single_file_info] 文件是符号链接，尝试读取目标")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "log", "msg": f"[_get_single_file_info] 文件是符号链接，尝试读取目标"}, ensure_ascii=False))
         try:
             info["link_target"] = os.readlink(path)
-            logger.info(f"[_get_single_file_info] 符号链接目标: link_target={info['link_target']}")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "link_target.info", "msg": f"[_get_single_file_info] 符号链接目标: link_target={info['link_target']}"}, ensure_ascii=False))
         except OSError as e:
-            logger.warning(f"[_get_single_file_info] 读取符号链接目标失败: path={path}, error={e}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "path.path.error", "msg": f"[_get_single_file_info] 读取符号链接目标失败: path={path}, error={e}"}, ensure_ascii=False))
             pass
 
-    logger.info(f"[_get_single_file_info] 文件信息获取完成: type={info['type']}, size={info['size']}")
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "file_tools", "action": "type.info", "msg": f"[_get_single_file_info] 文件信息获取完成: type={info['type']}, size={info['size']}"}, ensure_ascii=False))
     return info
 
 

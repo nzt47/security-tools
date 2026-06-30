@@ -7,12 +7,18 @@
 """
 
 import json
+import uuid
 import logging
 import time
 from typing import Dict, Any, Optional, List
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class ModelAdapter(ABC):
@@ -70,7 +76,7 @@ class OpenAIAdapter(ModelAdapter):
                     kwargs["base_url"] = self._base_url
                 self._client = OpenAI(**kwargs)
             except ImportError:
-                logger.warning("openai 库未安装")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "openai", "msg": "openai 库未安装"}, ensure_ascii=False))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -94,10 +100,12 @@ class OpenAIAdapter(ModelAdapter):
             if client is None:
                 return {"error": "OpenAI client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=[{"role": "user", "content": prompt}],
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -112,7 +120,7 @@ class OpenAIAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"OpenAI API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "openai.api.error", "msg": f"OpenAI API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def chat(self, messages: List[Dict], **kwargs) -> Dict:
@@ -121,10 +129,12 @@ class OpenAIAdapter(ModelAdapter):
             if client is None:
                 return {"error": "OpenAI client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=messages,
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -139,7 +149,7 @@ class OpenAIAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"OpenAI API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "openai.api.error", "msg": f"OpenAI API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def is_available(self) -> bool:
@@ -168,7 +178,7 @@ class ClaudeAdapter(ModelAdapter):
                     kwargs["api_key"] = self._api_key
                 self._client = Anthropic(**kwargs)
             except ImportError:
-                logger.warning("anthropic 库未安装")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "anthropic", "msg": "anthropic 库未安装"}, ensure_ascii=False))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -209,7 +219,7 @@ class ClaudeAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Claude API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "claude.api.error", "msg": f"Claude API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def chat(self, messages: List[Dict], **kwargs) -> Dict:
@@ -236,7 +246,7 @@ class ClaudeAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Claude API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "claude.api.error", "msg": f"Claude API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def is_available(self) -> bool:
@@ -264,7 +274,7 @@ class GeminiAdapter(ModelAdapter):
                     genai.configure(api_key=self._api_key)
                 self._client = genai.GenerativeModel(self._model_name)
             except ImportError:
-                logger.warning("google-generativeai 库未安装")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "google.generativeai", "msg": "google-generativeai 库未安装"}, ensure_ascii=False))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -301,7 +311,7 @@ class GeminiAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Gemini API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "gemini.api.error", "msg": f"Gemini API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def chat(self, messages: List[Dict], **kwargs) -> Dict:
@@ -323,7 +333,7 @@ class GeminiAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Gemini API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "gemini.api.error", "msg": f"Gemini API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def is_available(self) -> bool:
@@ -352,7 +362,7 @@ class ZhipuAdapter(ModelAdapter):
                     kwargs["api_key"] = self._api_key
                 self._client = ZhipuAI(**kwargs)
             except ImportError:
-                logger.warning("zhipuai 库未安装")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "zhipuai", "msg": "zhipuai 库未安装"}, ensure_ascii=False))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -375,10 +385,12 @@ class ZhipuAdapter(ModelAdapter):
             if client is None:
                 return {"error": "Zhipu client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=[{"role": "user", "content": prompt}],
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -393,7 +405,7 @@ class ZhipuAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Zhipu API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "zhipu.api.error", "msg": f"Zhipu API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def chat(self, messages: List[Dict], **kwargs) -> Dict:
@@ -402,10 +414,12 @@ class ZhipuAdapter(ModelAdapter):
             if client is None:
                 return {"error": "Zhipu client not available"}
             
+            _api_reserved = {"model", "messages"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _api_reserved}
             response = client.chat.completions.create(
                 model=self._model_name,
                 messages=messages,
-                **kwargs
+                **safe_kwargs
             )
             
             return {
@@ -420,7 +434,7 @@ class ZhipuAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Zhipu API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "zhipu.api.error", "msg": f"Zhipu API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def is_available(self) -> bool:
@@ -454,7 +468,7 @@ class QwenAdapter(ModelAdapter):
                 config.endpoint = "dashscope.cn-beijing.aliyuncs.com"
                 self._client = Client(config)
             except ImportError:
-                logger.warning("alibabacloud-dashscope-api 库未安装")
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "alibabacloud.dashscope.api", "msg": "alibabacloud-dashscope-api 库未安装"}, ensure_ascii=False))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -492,7 +506,7 @@ class QwenAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Qwen API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "qwen.api.error", "msg": f"Qwen API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def chat(self, messages: List[Dict], **kwargs) -> Dict:
@@ -516,7 +530,7 @@ class QwenAdapter(ModelAdapter):
                 "provider": self.get_provider_name(),
             }
         except Exception as e:
-            logger.error(f"Qwen API error: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "qwen.api.error", "msg": f"Qwen API error: {e}"}, ensure_ascii=False))
             return {"success": False, "error": str(e)}
     
     def is_available(self) -> bool:
@@ -546,5 +560,5 @@ class ModelAdapterFactory:
         elif provider == "qwen":
             return QwenAdapter(model_name, kwargs.get("api_key"), kwargs.get("api_secret"))
         else:
-            logger.warning(f"未知提供商: {provider}")
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "adapters", "action": "provider", "msg": f"未知提供商: {provider}"}, ensure_ascii=False))
             return None

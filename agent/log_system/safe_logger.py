@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import json
+import uuid
 import logging
 import threading
 from datetime import datetime
@@ -16,6 +17,11 @@ from agent.utils.sensitive_data_filter import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 class SensitiveDataFilter(_UnifiedSensitiveDataFilter):
@@ -79,7 +85,7 @@ class AuditLogger:
             config_key: 访问的配置键
             user: 访问用户（默认为系统）
         """
-        self._logger.info(f"CONFIG_ACCESS | user={user} | key={config_key}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "config_access.user.user", "msg": f"CONFIG_ACCESS | user={user} | key={config_key}"}, ensure_ascii=False))
     
     def log_config_modification(self, config_key: str, user: str = "system"):
         """
@@ -89,7 +95,7 @@ class AuditLogger:
             config_key: 修改的配置键
             user: 修改用户（默认为系统）
         """
-        self._logger.info(f"CONFIG_MODIFY | user={user} | key={config_key}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "config_modify.user.user", "msg": f"CONFIG_MODIFY | user={user} | key={config_key}"}, ensure_ascii=False))
     
     def log_secure_config_access(self, config_key: str, success: bool, user: str = "system"):
         """
@@ -101,7 +107,7 @@ class AuditLogger:
             user: 访问用户（默认为系统）
         """
         status = "SUCCESS" if success else "FAILED"
-        self._logger.info(f"SECURE_CONFIG_ACCESS | user={user} | key={config_key} | status={status}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "secure_config_access.user.user", "msg": f"SECURE_CONFIG_ACCESS | user={user} | key={config_key} | status={status}"}, ensure_ascii=False))
     
     def log_encryption_key_access(self, success: bool, user: str = "system"):
         """
@@ -112,7 +118,7 @@ class AuditLogger:
             user: 访问用户（默认为系统）
         """
         status = "SUCCESS" if success else "FAILED"
-        self._logger.info(f"ENCRYPTION_KEY_ACCESS | user={user} | status={status}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "encryption_key_access.user.user", "msg": f"ENCRYPTION_KEY_ACCESS | user={user} | status={status}"}, ensure_ascii=False))
     
     def log_permission_change(self, action: str, resource: str, user: str = "system"):
         """
@@ -123,7 +129,7 @@ class AuditLogger:
             resource: 资源名称
             user: 操作用户（默认为系统）
         """
-        self._logger.info(f"PERMISSION_CHANGE | user={user} | action={action} | resource={resource}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "permission_change.user.user", "msg": f"PERMISSION_CHANGE | user={user} | action={action} | resource={resource}"}, ensure_ascii=False))
     
     def log_authentication(self, username: str, success: bool, ip_address: str = None):
         """
@@ -136,7 +142,7 @@ class AuditLogger:
         """
         status = "SUCCESS" if success else "FAILED"
         ip_info = f" | ip={ip_address}" if ip_address else ""
-        self._logger.info(f"AUTHENTICATION | username={username} | status={status}{ip_info}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "authentication.username.username", "msg": f"AUTHENTICATION | username={username} | status={status}{ip_info}"}, ensure_ascii=False))
     
     def log_sensitive_operation(self, operation: str, details: dict = None, user: str = "system"):
         """
@@ -153,7 +159,7 @@ class AuditLogger:
             sanitized_details = sanitizer._sanitize_dict(details)
             details_str = f" | details={json.dumps(sanitized_details, ensure_ascii=False)}"
         
-        self._logger.info(f"SENSITIVE_OPERATION | user={user} | operation={operation}{details_str}")
+        self._logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "sensitive_operation.user.user", "msg": f"SENSITIVE_OPERATION | user={user} | operation={operation}{details_str}"}, ensure_ascii=False))
 
 
 
@@ -214,7 +220,7 @@ class AgentSafetyMonitor:
         self.state_stuck_threshold = state_stuck_threshold_seconds
 
         self.logger = logging.getLogger("agent.safety")
-        self.logger.info("安全监控器已初始化")
+        self.logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "log", "msg": "安全监控器已初始化"}, ensure_ascii=False))
 
     def record_iteration(self, identifier: str) -> bool:
         """
@@ -248,10 +254,8 @@ class AgentSafetyMonitor:
 
                 # 检测快速循环
                 if record['window_count'] > self.max_iterations_per_minute:
-                    self.logger.error(
-                        f"⚠️ 检测到快速循环: {identifier}, "
-                        f"1分钟内迭代 {record['window_count']} 次"
-                    )
+                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到快速循环: {identifier}, "
+                        f"1分钟内迭代 {record['window_count']} 次"}, ensure_ascii=False))
                     return False
 
             record['total'] += 1
@@ -285,10 +289,8 @@ class AgentSafetyMonitor:
                 ).total_seconds()
 
                 if stuck_time > self.state_stuck_threshold:
-                    self.logger.error(
-                        f"⚠️ 检测到状态卡死: {identifier}, "
-                        f"状态 '{state}' 保持 {stuck_time:.1f} 秒"
-                    )
+                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到状态卡死: {identifier}, "
+                        f"状态 '{state}' 保持 {stuck_time:.1f} 秒"}, ensure_ascii=False))
                     return False
             else:
                 # 状态变化了，更新记录
@@ -364,7 +366,7 @@ def safe_execute(
     task_id = identifier or f"task_{datetime.now().timestamp()}"
 
     if not monitor.record_iteration(task_id):
-        logger.error(f"⚠️ 安全监控拒绝执行: {task_id}")
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "task_id", "msg": f"⚠️ 安全监控拒绝执行: {task_id}"}, ensure_ascii=False))
         return default_return
 
     # 使用线程执行，实现超时保护
@@ -375,14 +377,14 @@ def safe_execute(
             result_container['value'] = func()
         except Exception as e:
             result_container['exception'] = e
-            logger.error(f"执行异常: {e}")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "log", "msg": f"执行异常: {e}"}, ensure_ascii=False))
 
     thread = threading.Thread(target=target, daemon=True)
     thread.start()
     thread.join(timeout)
 
     if thread.is_alive():
-        logger.warning(f"⏱️ 执行超时（{timeout}秒）: {task_id}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "timeout.task_id", "msg": f"⏱️ 执行超时（{timeout}秒）: {task_id}"}, ensure_ascii=False))
         return default_return
 
     if result_container['exception']:
@@ -441,11 +443,11 @@ def safe_execute_async(
     try:
         loop.run_until_complete(asyncio.wait_for(future, timeout=timeout))
     except asyncio.TimeoutError:
-        logger.warning(f"⏱️ 异步执行超时（{timeout}秒）: {task_id}")
+        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "timeout.task_id", "msg": f"⏱️ 异步执行超时（{timeout}秒）: {task_id}"}, ensure_ascii=False))
         future.cancel()
         return None, AgentTimeoutException(f"执行超时（{timeout}秒）")
     except Exception as e:
-        logger.error(f"异步执行异常: {e}")
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "log", "msg": f"异步执行异常: {e}"}, ensure_ascii=False))
         return None, e
 
     if result_container['exception']:

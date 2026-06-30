@@ -1,0 +1,47 @@
+# 【生成日志摘要】
+# - 生成时间：2026-06-28
+# - 版本：v1.0.0
+# - 内容：生产级 Prometheus 抓取配置（visibility-exporter + yunshu-app + 自身 + node-exporter + grafana）
+# - 生成参数：scrape_interval 15s、evaluation_interval 15s、external_labels environment=production
+# - 模型配置：GLM-5.2
+# - 关键状态变化：visibility-exporter 30s 抓取（5 分钟刷新足够），与开发环境隔离
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: "production"
+
+rule_files:
+  - "alert_rules.yml"
+  - "recording_rules.yml"
+
+scrape_configs:
+  # 1. 四层可见性指标导出器（visibility_report.py --serve-metrics）
+  #    报告每 5 分钟刷新一次，30s 抓取足够保证时效性
+  - job_name: 'visibility-exporter'
+    static_configs:
+      - targets: ['visibility-exporter:9101']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # 2. 云枢应用业务指标（prometheus_flask_exporter）
+  - job_name: 'yunshu-app'
+    static_configs:
+      - targets: ['host.docker.internal:5678']
+    metrics_path: /metrics
+
+  # 3. Prometheus 自身指标
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 4. Node Exporter 主机指标
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # 5. Grafana 内置指标
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']

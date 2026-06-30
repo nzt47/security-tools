@@ -1,0 +1,111 @@
+2026-06-24 17:45:29,507 [    INFO] memory.black_box: [BlackBox] 加载中...
+2026-06-24 17:45:29,510 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
+2026-06-24 17:45:29,512 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
+2026-06-24 17:45:29,612 [    INFO] agent.monitoring.metrics: [Metrics] 指标收集器已初始化
+2026-06-24 17:45:29,628 [    INFO] agent.error_handler: Error handler initialized
+2026-06-24 17:45:29,631 [    INFO] agent.monitoring.performance: [LLM Cache] 初始化完成: max_size=1000, ttl=3600s
+2026-06-24 17:45:29,661 [    INFO] agent.digital_life: [ok] 核心模块全部加载成功
+2026-06-24 17:45:29,695 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'lifetrace' 全部 2 个名称导入成功
+2026-06-24 17:45:29,700 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'persona' 全部 3 个名称导入成功
+2026-06-24 17:45:29,717 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 规划引擎 模块已加载
+2026-06-24 17:45:29,717 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 包 'memory.vector_store' 全部 2 个名称导入成功
+2026-06-24 17:45:29,718 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 性能监控 模块已加载
+2026-06-24 17:45:29,718 [    INFO] agent.digital_life: [ok] 错误报告配置已加载
+2026-06-24 17:45:29,719 [    INFO] agent.digital_life: [模块导入] [OK] [成功] 语音 模块已加载
+2026-06-24 17:45:29,846 [    INFO] agent.digital_life: [模块导入] [OK] [成功] OCR 模块已加载
+2026-06-24 17:45:29,851 [    INFO] agent.digital_life: [模块导入] [OK] [成功] P6快照 模块已加载
+2026-06-24 17:45:29,851 [    INFO] agent.digital_life: 
+════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] lifetrace: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] persona: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] planning: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] vector_memory: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] monitoring: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] voice: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] ocr: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] p6_snapshot: 已加载
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    总计: 8/8 模块加载成功
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life:    [OK] 所有可选模块加载成功
+2026-06-24 17:45:29,858 [    INFO] agent.digital_life: ════════════════════════════════════════════════════════════════════════════════
+
+2026-06-24 17:45:29,953 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpmb5_kkg0\test_ltm.db
+2026-06-24 17:45:29,983 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpdcfpl_po\test_ltm.db
+2026-06-24 17:45:30,011 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmp9ay9iweq\test_ltm.db
+2026-06-24 17:45:30,054 [ WARNING] agent.memory.long_term_memory: [LongTermMemory] 删除被拒绝: key=important 需要审查
+2026-06-24 17:45:30,061 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 删除成功: key=important, force=True
+2026-06-24 17:45:30,080 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpjv1ap5fk\test_ltm.db
+2026-06-24 17:45:30,112 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpeqivxzd9\test_ltm.db
+2026-06-24 17:45:30,142 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpus_rczmc\test_ltm.db
+2026-06-24 17:45:30,157 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 17:45:30,164 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 17:45:31,271 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 17:45:31,277 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 17:45:31,279 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 清除任务记忆: task_id=task_1, count=1
+2026-06-24 17:45:31,282 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 初始化完成: max_size=10, default_ttl=1s
+2026-06-24 17:45:31,285 [    INFO] agent.memory.short_term_memory: [ShortTermMemory] 已清空所有临时记忆: count=2
+2026-06-24 17:45:31,292 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,296 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,603 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,608 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,611 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,615 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,619 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 17:45:31,622 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=key_points, original_len=80, summary_len=17, duration_ms=0.00
+2026-06-24 17:45:31,625 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 17:45:31,628 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=minimal, original_len=16, summary_len=16, duration_ms=0.00
+2026-06-24 17:45:31,631 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 17:45:31,634 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-123, strategy=key_points, original_len=20, summary_len=6, duration_ms=0.00
+2026-06-24 17:45:31,637 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,638 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 17:45:31,638 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注销: sa-1
+2026-06-24 17:45:31,642 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,642 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 17:45:31,645 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,646 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 17:45:31,646 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-2
+2026-06-24 17:45:31,649 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,650 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 17:45:31,653 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,654 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-1
+2026-06-24 17:45:31,673 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,675 [    INFO] agent.task_planner.enhanced_planner: [plan_41b6a49d0a81] [EnhancedTaskPlanner] 创建计划: goal=告诉我时间
+2026-06-24 17:45:31,675 [    INFO] agent.task_planner.enhanced_planner: [plan_41b6a49d0a81] [EnhancedTaskPlanner] 计划创建完成: complexity=trivial, tasks=3, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,679 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,681 [    INFO] agent.task_planner.enhanced_planner: [plan_9ed7d92684e3] [EnhancedTaskPlanner] 创建计划: goal=帮我设计一个分布式系统
+2026-06-24 17:45:31,682 [    INFO] agent.task_planner.enhanced_planner: [plan_9ed7d92684e3] [EnhancedTaskPlanner] 计划创建完成: complexity=simple, tasks=4, warnings=0, duration_ms=0.51
+2026-06-24 17:45:31,685 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,688 [    INFO] agent.task_planner.enhanced_planner: [plan_fa2a3e259fbb] [EnhancedTaskPlanner] 创建计划: goal=帮我写一个 Web 服务器
+2026-06-24 17:45:31,688 [    INFO] agent.task_planner.enhanced_planner: [plan_fa2a3e259fbb] [EnhancedTaskPlanner] 计划创建完成: complexity=simple, tasks=4, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,691 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,693 [    INFO] agent.task_planner.enhanced_planner: [plan_8bd594c6cfe1] [EnhancedTaskPlanner] 创建计划: goal=分析数据并生成报告
+2026-06-24 17:45:31,693 [    INFO] agent.task_planner.enhanced_planner: [plan_8bd594c6cfe1] [EnhancedTaskPlanner] 计划创建完成: complexity=simple, tasks=4, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,693 [    INFO] agent.task_planner.enhanced_planner: [confirm_503a9417850f] [EnhancedTaskPlanner] 确认计划: plan_id=plan_8bd594c6cfe1, by=user
+2026-06-24 17:45:31,693 [    INFO] agent.task_planner.enhanced_planner: [confirm_503a9417850f] [EnhancedTaskPlanner] 计划已确认: plan_id=plan_8bd594c6cfe1, confirmed=4, rejected=0
+2026-06-24 17:45:31,693 [    INFO] agent.task_planner.enhanced_planner: [confirm_503a9417850f] [EnhancedTaskPlanner] 确认完成: plan_id=plan_8bd594c6cfe1, duration_ms=0.00
+2026-06-24 17:45:31,698 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,700 [    INFO] agent.task_planner.enhanced_planner: [plan_92ebe1f99b91] [EnhancedTaskPlanner] 创建计划: goal=告诉我今天天气
+2026-06-24 17:45:31,700 [    INFO] agent.task_planner.enhanced_planner: [plan_92ebe1f99b91] [EnhancedTaskPlanner] 计划创建完成: complexity=trivial, tasks=3, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,700 [    INFO] agent.task_planner.enhanced_planner: [plan_eb3a21853076] [EnhancedTaskPlanner] 创建计划: goal=设计一个分布式架构
+2026-06-24 17:45:31,700 [    INFO] agent.task_planner.enhanced_planner: [plan_eb3a21853076] [EnhancedTaskPlanner] 计划创建完成: complexity=moderate, tasks=5, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,713 [    INFO] agent.task_planner.enhanced_planner: [EnhancedTaskPlanner] 初始化完成: confirm_threshold=moderate
+2026-06-24 17:45:31,716 [    INFO] agent.task_planner.enhanced_planner: [plan_a99d1276a327] [EnhancedTaskPlanner] 创建计划: goal=帮我写代码
+2026-06-24 17:45:31,716 [    INFO] agent.task_planner.enhanced_planner: [plan_a99d1276a327] [EnhancedTaskPlanner] 计划创建完成: complexity=simple, tasks=4, warnings=0, duration_ms=0.00
+2026-06-24 17:45:31,717 [    INFO] agent.task_planner.enhanced_planner: [confirm_4a8a255e568d] [EnhancedTaskPlanner] 确认计划: plan_id=plan_a99d1276a327, by=user
+2026-06-24 17:45:31,717 [    INFO] agent.task_planner.enhanced_planner: [confirm_4a8a255e568d] [EnhancedTaskPlanner] 计划已确认: plan_id=plan_a99d1276a327, confirmed=4, rejected=0
+2026-06-24 17:45:31,717 [    INFO] agent.task_planner.enhanced_planner: [confirm_4a8a255e568d] [EnhancedTaskPlanner] 确认完成: plan_id=plan_a99d1276a327, duration_ms=0.52
+2026-06-24 17:45:31,755 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmp2ou9buf0\test.db
+2026-06-24 17:45:31,756 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=0 days
+2026-06-24 17:45:31,759 [    INFO] agent.memory.reviewer: [review_1782294331] [MemoryReviewer] 开始审查记忆库: trace_id=review_1782294331
+2026-06-24 17:45:31,760 [    INFO] agent.memory.reviewer: [review_1782294331] [MemoryReviewer] 审查完成: total=0, healthy=0, stale=0, duplicates=0, duration_ms=1.52
+2026-06-24 17:45:31,780 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpqtokqchw\test.db
+2026-06-24 17:45:31,780 [    INFO] agent.memory.reviewer: [MemoryReviewer] 初始化完成: stale_threshold=0 days
+2026-06-24 17:45:31,784 [    INFO] agent.memory.reviewer: [quick_1782294331] [MemoryReviewer] 快速审查完成: duration_ms=1.52
+2026-06-24 17:45:31,801 [    INFO] agent.memory.long_term_memory: [LongTermMemory] 初始化完成: db=C:\Windows\TEMP\tmpb87u07z3\test.db
+2026-06-24 17:45:31,801 [    INFO] agent.memory.filter: [SensitiveDataFilter] 初始化完成: patterns=16, block_critical=True, block_high=True
+2026-06-24 17:45:31,917 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 初始化完成: max_length=500, compression=True
+2026-06-24 17:45:31,917 [    INFO] agent.subagent.barrier: [SubagentBarrier] 初始化完成: isolation_level=full
+2026-06-24 17:45:31,917 [    INFO] agent.subagent.summarizer: [SubagentSummarizer] 摘要生成完成: subagent=sa-analysis, strategy=key_points, original_len=56, summary_len=8, duration_ms=0.00
+2026-06-24 17:45:31,917 [    INFO] agent.subagent.container: [Subagent] 创建分身: test-agent (id=sa-cfe874e7fafc, model=test-model, memory=holographic, permissions=['read'])
+2026-06-24 17:45:31,918 [    INFO] agent.subagent.barrier: [SubagentBarrier] 子代理已注册: sa-analysis

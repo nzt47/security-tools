@@ -7,12 +7,18 @@
 
 import re
 import json
+import uuid
 import time
 import logging
 from typing import Optional, List, Dict, Any, Callable
 from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
+
+def _trace_id():
+    """生成 trace_id"""
+    return uuid.uuid4().hex[:16]
+
 
 
 def _json_get(obj, path: str):
@@ -89,8 +95,7 @@ class SearchEngine:
         self._cache: Dict[str, dict] = {}
         self._cache_ttl = self._config.get("cache_ttl", 300)
 
-        logger.info("SearchEngine 已初始化 (默认引擎: %s, 优先级: %s)",
-                   self._default_engine, self._engine_priority)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "SearchEngine 已初始化 (默认引擎: %s, 优先级: %s)" % (self._default_engine, self._engine_priority)}, ensure_ascii=False))
 
     # ── 动态引擎注册系统 ────────────────────────────────────────────
 
@@ -129,8 +134,7 @@ class SearchEngine:
         # 确保有 API Key 条目（留空）
         if name not in self._api_keys:
             self._api_keys[name] = ""
-        logger.info("[搜索引擎] 已注册: %s (%s), 需API Key: %s",
-                    name, label, needs_key)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 已注册: %s (%s), 需API Key: %s" % (name, label, needs_key)}, ensure_ascii=False))
 
     def remove_engine(self, name: str) -> bool:
         """从引擎注册表中移除一个搜索引擎
@@ -142,7 +146,7 @@ class SearchEngine:
             bool: 是否成功移除
         """
         if name not in self._engine_registry:
-            logger.warning("[搜索引擎] 移除失败，引擎不存在: %s", name)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "remove_engine", "msg": "[搜索引擎] 移除失败，引擎不存在: %s" % (name)}, ensure_ascii=False))
             return False
         del self._engine_registry[name]
         if name in self._engine_priority:
@@ -158,21 +162,21 @@ class SearchEngine:
         # 如果删除的是当前默认引擎，清空默认引擎
         if self._default_engine == name:
             self._default_engine = self._config.get("default_engine", "")
-            logger.info("[搜索引擎] 默认引擎已重置为: %s", self._default_engine or "(无)")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 默认引擎已重置为: %s" % (self._default_engine or "(无)")}, ensure_ascii=False))
 
-        logger.info("[搜索引擎] 已移除: %s", name)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 已移除: %s" % (name)}, ensure_ascii=False))
         return True
 
     def set_default_engine(self, name: str):
         """设置默认搜索引擎"""
         if not name:
             self._default_engine = self._config.get("default_engine", "")
-            logger.info("[搜索引擎] 默认引擎已重置为: %s", self._default_engine or "(无)")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "set_default_engine", "msg": "[搜索引擎] 默认引擎已重置为: %s" % (self._default_engine or "(无)")}, ensure_ascii=False))
             return
         if name not in self._engine_registry:
             raise ValueError(f"引擎 {name} 未注册")
         self._default_engine = name
-        logger.info("[搜索引擎] 默认引擎已设为: %s", self._default_engine)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "set_default_engine", "msg": "[搜索引擎] 默认引擎已设为: %s" % (self._default_engine)}, ensure_ascii=False))
 
     def get_registered_engines(self) -> List[Dict[str, Any]]:
         """获取所有已注册的引擎信息"""
@@ -193,18 +197,18 @@ class SearchEngine:
     def set_engine_priority(self, priority: List[str]):
         """设置搜索引擎优先级"""
         self._engine_priority = priority
-        logger.info("[搜索引擎] 优先级已更新: %s", priority)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "set_engine_priority", "msg": "[搜索引擎] 优先级已更新: %s" % (priority)}, ensure_ascii=False))
 
     def set_engine_enabled(self, engine: str, enabled: bool):
         """设置搜索引擎启用/禁用状态"""
         if engine in self._engine_enabled:
             self._engine_enabled[engine] = enabled
-            logger.info("[搜索引擎] %s 已%s", engine, "启用" if enabled else "禁用")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "set_engine_enabled", "msg": "[搜索引擎] %s 已%s" % (engine, "启用" if enabled else "禁用")}, ensure_ascii=False))
 
     def set_timeout(self, timeout: int):
         """设置搜索超时时间"""
         self._timeout = timeout
-        logger.info("[搜索引擎] 超时时间已设置为 %d 秒", timeout)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "set_timeout", "msg": "[搜索引擎] 超时时间已设置为 %d 秒" % (timeout)}, ensure_ascii=False))
 
     # ── 主搜索接口（带降级机制） ────────────────────────────────────
 
@@ -229,29 +233,29 @@ class SearchEngine:
         if engine:
             # 用户指定了特定引擎
             engines_to_try = [engine]
-            logger.info("=" * 80)
-            logger.info("[搜索引擎] 【搜索开始】用户指定引擎: %s, 查询: %s", engine, query[:50])
-            logger.info("=" * 80)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【搜索开始】用户指定引擎: %s, 查询: %s" % (engine, query[:50])}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
         else:
             # 使用优先级列表中启用的引擎
             engines_to_try = [e for e in self._engine_priority if self._engine_enabled.get(e, True)]
-            logger.info("=" * 80)
-            logger.info("[搜索引擎] 【搜索开始】自动选择引擎")
-            logger.info("[搜索引擎]   查询: %s", query[:50])
-            logger.info("[搜索引擎]   引擎优先级: %s", self._engine_priority)
-            logger.info("[搜索引擎]   引擎启用状态: %s", self._engine_enabled)
-            logger.info("[搜索引擎]   将尝试的引擎列表: %s", engines_to_try)
-            logger.info("=" * 80)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【搜索开始】自动选择引擎"}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   引擎优先级: %s" % (self._engine_priority)}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   引擎启用状态: %s" % (self._engine_enabled)}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   将尝试的引擎列表: %s" % (engines_to_try)}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
 
         if not engines_to_try:
-            logger.error("[搜索引擎] 【错误】没有可用的搜索引擎！")
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【错误】没有可用的搜索引擎！"}, ensure_ascii=False))
             return {"ok": False, "error": "没有可用的搜索引擎"}
 
         # 缓存检查（基于第一个引擎）
         cache_key = f"any:{query}:{num_results}:{page}"
         cached = self._check_cache(cache_key)
         if cached:
-            logger.info("[搜索引擎] 【缓存命中】直接从缓存返回结果")
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【缓存命中】直接从缓存返回结果"}, ensure_ascii=False))
             return cached
 
         # ── [日志] 尝试各个引擎（带降级） ──
@@ -259,19 +263,19 @@ class SearchEngine:
         fallback_history = []
 
         for idx, current_engine in enumerate(engines_to_try):
-            logger.info("-" * 80)
-            logger.info("[搜索引擎] 【尝试引擎 #%d/%d】%s", idx + 1, len(engines_to_try), current_engine.upper())
-            logger.info("[搜索引擎]   配置信息:")
-            logger.info("[搜索引擎]     - 超时设置: %ds", self._timeout)
-            logger.info("[搜索引擎]     - API Key 状态: %s", {
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "-" * 80}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【尝试引擎 #%d/%d】%s" % (idx + 1, len(engines_to_try), current_engine.upper())}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   配置信息:"}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]     - 超时设置: %ds" % (self._timeout)}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]     - API Key 状态: %s" % ({
                 k: "已配置" if v else "未配置"
                 for k, v in self._api_keys.items()
-            })
-            logger.info("-" * 80)
+            })}, ensure_ascii=False))
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "-" * 80}, ensure_ascii=False))
 
             try:
                 # ── [日志] 调用具体搜索引擎 ──
-                logger.info("[搜索引擎] 【调用中】正在请求 %s API...", current_engine)
+                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【调用中】正在请求 %s API..." % (current_engine)}, ensure_ascii=False))
                 result = self._search_with_engine(
                     current_engine, query, num_results, page, **kwargs
                 )
@@ -287,17 +291,17 @@ class SearchEngine:
 
                     # ── [日志] 记录成功日志 ──
                     if idx > 0:
-                        logger.info("[搜索引擎] 【降级成功】%s -> %s", engines_to_try[0].upper(), current_engine.upper())
-                        logger.info("[搜索引擎]   查询: %s", query[:50])
-                        logger.info("[搜索引擎]   结果数量: %d", len(result.get("results", [])))
-                        logger.info("[搜索引擎]   总耗时: %.2fs", elapsed)
-                        logger.info("[搜索引擎]   降级次数: %d", idx)
-                        logger.info("[搜索引擎]   降级历史: %s", fallback_history)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【降级成功】%s -> %s" % (engines_to_try[0].upper(), current_engine.upper())}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   结果数量: %d" % (len(result.get("results", [])))}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   总耗时: %.2fs" % (elapsed)}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   降级次数: %d" % (idx)}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   降级历史: %s" % (fallback_history)}, ensure_ascii=False))
                     else:
-                        logger.info("[搜索引擎] 【搜索成功】引擎: %s", current_engine.upper())
-                        logger.info("[搜索引擎]   查询: %s", query[:50])
-                        logger.info("[搜索引擎]   结果数量: %d", len(result.get("results", [])))
-                        logger.info("[搜索引擎]   总耗时: %.2fs", elapsed)
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【搜索成功】引擎: %s" % (current_engine.upper())}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   结果数量: %d" % (len(result.get("results", [])))}, ensure_ascii=False))
+                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   总耗时: %.2fs" % (elapsed)}, ensure_ascii=False))
 
                     # 更新统计
                     self._stats["searches"] += 1
@@ -313,12 +317,12 @@ class SearchEngine:
                     timing["max"] = max(timing["max"], elapsed)
 
                     # 输出耗时对比日志
-                    logger.info("[搜索引擎] 【耗时统计】引擎 %s 性能:", current_engine.upper())
-                    logger.info("[搜索引擎]   本次耗时: %.2fs", elapsed)
-                    logger.info("[搜索引擎]   平均耗时: %.2fs", timing["avg"])
-                    logger.info("[搜索引擎]   最小耗时: %.2fs", timing["min"])
-                    logger.info("[搜索引擎]   最大耗时: %.2fs", timing["max"])
-                    logger.info("[搜索引擎]   累计调用: %d 次", timing["count"])
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【耗时统计】引擎 %s 性能:" % (current_engine.upper())}, ensure_ascii=False))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   本次耗时: %.2fs" % (elapsed)}, ensure_ascii=False))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   平均耗时: %.2fs" % (timing["avg"])}, ensure_ascii=False))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   最小耗时: %.2fs" % (timing["min"])}, ensure_ascii=False))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   最大耗时: %.2fs" % (timing["max"])}, ensure_ascii=False))
+                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   累计调用: %d 次" % (timing["count"])}, ensure_ascii=False))
 
                     # 写入缓存
                     self._set_cache(cache_key, result)
@@ -336,9 +340,9 @@ class SearchEngine:
                     }
                     fallback_history.append(fallback_info)
 
-                    logger.warning("[搜索引擎] 【无结果】引擎 %s 返回空结果", current_engine.upper())
-                    logger.warning("[搜索引擎]   查询: %s", query[:50])
-                    logger.warning("[搜索引擎]   将尝试下一个引擎...")
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【无结果】引擎 %s 返回空结果" % (current_engine.upper())}, ensure_ascii=False))
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   将尝试下一个引擎..."}, ensure_ascii=False))
 
                 else:
                     # 搜索失败
@@ -351,10 +355,10 @@ class SearchEngine:
                     }
                     fallback_history.append(fallback_info)
 
-                    logger.warning("[搜索引擎] 【失败】引擎 %s 搜索失败", current_engine.upper())
-                    logger.warning("[搜索引擎]   查询: %s", query[:50])
-                    logger.warning("[搜索引擎]   错误: %s", last_error)
-                    logger.warning("[搜索引擎]   将尝试下一个引擎...")
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【失败】引擎 %s 搜索失败" % (current_engine.upper())}, ensure_ascii=False))
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   错误: %s" % (last_error)}, ensure_ascii=False))
+                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   将尝试下一个引擎..."}, ensure_ascii=False))
 
             except Exception as e:
                 last_error = str(e)
@@ -366,11 +370,11 @@ class SearchEngine:
                 }
                 fallback_history.append(fallback_info)
 
-                logger.error("[搜索引擎] 【异常】引擎 %s 发生异常", current_engine.upper())
-                logger.error("[搜索引擎]   查询: %s", query[:50])
-                logger.error("[搜索引擎]   异常类型: %s", type(e).__name__)
-                logger.error("[搜索引擎]   异常信息: %s", str(e))
-                logger.error("[搜索引擎]   将尝试下一个引擎...")
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【异常】引擎 %s 发生异常" % (current_engine.upper())}, ensure_ascii=False))
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   异常类型: %s" % (type(e).__name__)}, ensure_ascii=False))
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   异常信息: %s" % (str(e))}, ensure_ascii=False))
+                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   将尝试下一个引擎..."}, ensure_ascii=False))
 
         # 所有引擎都失败了
         elapsed = time.time() - start_time
@@ -398,18 +402,17 @@ class SearchEngine:
             "elapsed": elapsed,
         })
 
-        logger.error("=" * 80)
-        logger.error("[搜索引擎] 【全部失败】所有搜索引擎均失败！")
-        logger.error("=" * 80)
-        logger.error("[搜索引擎]   查询: %s", query[:50])
-        logger.error("[搜索引擎]   尝试的引擎列表: %s", engines_to_try)
-        logger.error("[搜索引擎]   降级历史:")
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 【全部失败】所有搜索引擎均失败！"}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   查询: %s" % (query[:50])}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   尝试的引擎列表: %s" % (engines_to_try)}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   降级历史:"}, ensure_ascii=False))
         for history in fallback_history:
-            logger.error("     - 引擎: %s | 状态: %s | 原因: %s",
-                        history['engine'], history['status'], history['reason'])
-        logger.error("[搜索引擎]   总耗时: %.2fs", elapsed)
-        logger.error("[搜索引擎]   最后错误: %s", last_error)
-        logger.error("=" * 80)
+            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "     - 引擎: %s | 状态: %s | 原因: %s" % (history['engine'], history['status'], history['reason'])}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   总耗时: %.2fs" % (elapsed)}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎]   最后错误: %s" % (last_error)}, ensure_ascii=False))
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "=" * 80}, ensure_ascii=False))
 
         return error_result
 
@@ -557,7 +560,7 @@ class SearchEngine:
                     "source": "duckduckgo",
                 })
         except Exception as e:
-            logger.warning("解析 DuckDuckGo 失败: %s", e)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "_parse_duckduckgo_html", "msg": "解析 DuckDuckGo 失败: %s" % (e)}, ensure_ascii=False))
             results = SearchEngine._parse_result_fallback(html)
         return results
 
@@ -593,7 +596,7 @@ class SearchEngine:
                 if title and href:
                     results.append({"title": title, "url": href, "snippet": snippet_el[0].text_content().strip() if snippet_el else "", "source": "sogou"})
         except Exception as e:
-            logger.warning("解析搜狗失败: %s", e)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "_parse_sogou_html", "msg": "解析搜狗失败: %s" % (e)}, ensure_ascii=False))
             results = SearchEngine._parse_result_fallback(html)
         return results
 
@@ -630,7 +633,7 @@ class SearchEngine:
                 if title and href:
                     results.append({"title": title, "url": href, "snippet": snippet_el[0].text_content().strip() if snippet_el else "", "source": "so360"})
         except Exception as e:
-            logger.warning("解析 360 搜索失败: %s", e)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "_parse_so360_html", "msg": "解析 360 搜索失败: %s" % (e)}, ensure_ascii=False))
             results = SearchEngine._parse_result_fallback(html)
         return results
 
@@ -648,7 +651,9 @@ class SearchEngine:
 
     def multi_search(self, queries: List[str], engine: str = "", **kwargs) -> List[dict]:
         """批量搜索多个关键词"""
-        return [self.search(q, engine=engine, **kwargs) for q in queries]
+        # 过滤与显式参数同名的键，避免 **kwargs 展开时冲突
+        safe_kwargs = {k: v for k, v in kwargs.items() if k != "engine"}
+        return [self.search(q, engine=engine, **safe_kwargs) for q in queries]
 
     # ── 缓存 ──────────────────────────────────────────────────────
 
@@ -759,7 +764,7 @@ class SearchEngine:
                     api_key_updated.append(engine_name)
 
         if api_key_updated:
-            logger.info("[搜索引擎] API Keys 已更新: %s", api_key_updated)
+            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "update_config", "msg": "[搜索引擎] API Keys 已更新: %s" % (api_key_updated)}, ensure_ascii=False))
 
         if "engine_priority" in config:
             self.set_engine_priority(config["engine_priority"])
@@ -771,4 +776,4 @@ class SearchEngine:
         if "default_engine" in config:
             self._default_engine = config["default_engine"]
 
-        logger.info("[搜索引擎] 配置已实时更新")
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search", "action": "log", "msg": "[搜索引擎] 配置已实时更新"}, ensure_ascii=False))

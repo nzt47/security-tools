@@ -1,25 +1,33 @@
 # 边界覆盖扫描报告（降级）
 
-- **生成时间**：2026-06-27T00:51:34.219875
-- **Trace ID**：`e8f7e8d9473847f9`
+- **生成时间**：2026-06-28T09:06:13.347514
+- **Trace ID**：`0cfe34e1d5cc48a9`
 - **状态**：❌ 扫描失败
 
 ## 错误信息
 
 ```
-FileNotFoundError: 边界覆盖配置文件不存在: C:\Users\Administrator\agent\tests\boundary_config.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+ImportError: PyYAML 未安装，请运行: pip install pyyaml [error_code=DEPENDENCY_MISSING]
 ```
 
 ## 错误堆栈
 
 ```
 Traceback (most recent call last):
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 140, in load
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
   File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 861, in main
     config = ConfigLoader(config_path).load()
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 135, in load
-    raise FileNotFoundError(
-FileNotFoundError: 边界覆盖配置文件不存在: C:\Users\Administrator\agent\tests\boundary_config.yaml [error_code=BOUNDARY_CONFIG_NOT_FOUND]
+  File "C:\Users\Administrator\agent\scripts\check_boundary_coverage.py", line 142, in load
+    raise ImportError(
+    ...<2 lines>...
+    ) from e
+ImportError: PyYAML 未安装，请运行: pip install pyyaml [error_code=DEPENDENCY_MISSING]
 
 ```
 
