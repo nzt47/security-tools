@@ -309,7 +309,7 @@ class ModuleResolver:
         return result
 
     def _candidate_module_names(self) -> List[str]:
-        """获取模块候选名（agent/ 下所有直接子目录）
+        """获取模块候选名（agent/ 下所有直接子目录 + 根级 .py 文件）
 
         性能优化：结果缓存，避免每次调用都扫描目录
         """
@@ -327,11 +327,15 @@ class ModuleResolver:
             }, ensure_ascii=False))
             self._candidates_cache = []
             return self._candidates_cache
-        self._candidates_cache = [
-            p.name
-            for p in self.module_root.iterdir()
-            if p.is_dir() and not p.name.startswith("_") and not p.name.startswith(".")
-        ]
+        candidates = []
+        for p in self.module_root.iterdir():
+            if p.name.startswith("_") or p.name.startswith("."):
+                continue
+            if p.is_dir():
+                candidates.append(p.name)
+            elif p.is_file() and p.suffix == ".py":
+                candidates.append(p.stem)
+        self._candidates_cache = candidates
         return self._candidates_cache
 
     def _resolve_by_import(self, test_file: Path, candidates: List[str]) -> Optional[str]:
