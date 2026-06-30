@@ -1,12 +1,12 @@
 {
-  "trace_id": "504768b3a8954a19",
-  "timestamp": "2026-07-01T01:30:46.932188",
-  "duration_ms": 2070.47,
+  "trace_id": "f407649c5d7f430c",
+  "timestamp": "2026-07-01T02:35:56.235097",
+  "duration_ms": 1718.65,
   "overall_status": "warn",
   "total_modules": 66,
-  "total_tests": 6050,
-  "total_boundary_tests": 1259,
-  "coverage_percent": 20.8,
+  "total_tests": 5537,
+  "total_boundary_tests": 856,
+  "coverage_percent": 15.5,
   "threshold": 5,
   "threshold_source": "ci_policy",
   "passed": true,
@@ -15,9 +15,11 @@
     {
       "module_name": "core",
       "description": "核心调度与状态机",
-      "total_tests": 0,
-      "boundary_tests": 0,
-      "covered_scenes": [],
+      "total_tests": 29,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "null"
+      ],
       "required_scenes": [
         "empty",
         "timeout",
@@ -38,12 +40,11 @@
     {
       "module_name": "cognitive",
       "description": "认知循环与决策",
-      "total_tests": 160,
-      "boundary_tests": 26,
+      "total_tests": 72,
+      "boundary_tests": 18,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null"
@@ -66,17 +67,11 @@
     {
       "module_name": "orchestrator",
       "description": "任务编排",
-      "total_tests": 198,
-      "boundary_tests": 68,
+      "total_tests": 119,
+      "boundary_tests": 6,
       "covered_scenes": [
         "boundary",
-        "empty",
-        "encoding",
-        "exception",
-        "invalid",
-        "null",
-        "overflow",
-        "resource"
+        "null"
       ],
       "required_scenes": [
         "timeout",
@@ -85,24 +80,24 @@
       ],
       "missing_scenes": [
         "timeout",
+        "invalid",
         "extreme"
       ],
       "min_tests": 3,
       "status": "⚠️",
       "is_new_module": false,
       "suggestions": [
-        "建议补充边界场景: timeout, extreme"
+        "建议补充边界场景: timeout, invalid, extreme"
       ]
     },
     {
       "module_name": "circuit_breaker",
       "description": "熔断器",
       "total_tests": 81,
-      "boundary_tests": 22,
+      "boundary_tests": 20,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "timeout"
@@ -121,13 +116,13 @@
     {
       "module_name": "rate_limiter",
       "description": "限流器",
-      "total_tests": 80,
-      "boundary_tests": 63,
+      "total_tests": 113,
+      "boundary_tests": 70,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
+        "overflow",
         "timeout"
       ],
       "required_scenes": [
@@ -135,80 +130,69 @@
         "overflow",
         "extreme"
       ],
-      "missing_scenes": [
-        "overflow"
-      ],
+      "missing_scenes": [],
       "min_tests": 3,
-      "status": "⚠️",
+      "status": "✅",
       "is_new_module": false,
-      "suggestions": [
-        "建议补充边界场景: overflow"
-      ]
+      "suggestions": []
     },
     {
       "module_name": "graceful_degrade",
       "description": "优雅降级",
-      "total_tests": 40,
-      "boundary_tests": 7,
+      "total_tests": 102,
+      "boundary_tests": 33,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
+        "extreme",
+        "invalid",
         "null",
+        "overflow",
         "timeout"
       ],
       "required_scenes": [
         "timeout",
         "invalid"
       ],
-      "missing_scenes": [
-        "invalid"
-      ],
+      "missing_scenes": [],
       "min_tests": 3,
-      "status": "⚠️",
+      "status": "✅",
       "is_new_module": false,
-      "suggestions": [
-        "建议补充边界场景: invalid"
-      ]
+      "suggestions": []
     },
     {
       "module_name": "disaster_recovery",
       "description": "容灾恢复",
-      "total_tests": 61,
-      "boundary_tests": 12,
+      "total_tests": 132,
+      "boundary_tests": 44,
       "covered_scenes": [
-        "exception",
+        "boundary",
+        "empty",
         "extreme",
         "invalid",
         "null",
-        "resource"
+        "overflow",
+        "timeout"
       ],
       "required_scenes": [
         "timeout",
         "empty",
         "extreme"
       ],
-      "missing_scenes": [
-        "timeout",
-        "empty"
-      ],
+      "missing_scenes": [],
       "min_tests": 3,
-      "status": "⚠️",
+      "status": "✅",
       "is_new_module": false,
-      "suggestions": [
-        "建议补充边界场景: timeout, empty"
-      ]
+      "suggestions": []
     },
     {
       "module_name": "memory",
       "description": "记忆系统",
-      "total_tests": 281,
-      "boundary_tests": 50,
+      "total_tests": 256,
+      "boundary_tests": 47,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
-        "exception",
         "extreme",
         "invalid",
         "null"
@@ -256,20 +240,12 @@
     {
       "module_name": "tools",
       "description": "工具调用",
-      "total_tests": 202,
-      "boundary_tests": 84,
+      "total_tests": 99,
+      "boundary_tests": 11,
       "covered_scenes": [
-        "boundary",
-        "concurrency",
         "empty",
-        "encoding",
-        "exception",
-        "extreme",
         "invalid",
         "null",
-        "overflow",
-        "permission",
-        "resource",
         "timeout"
       ],
       "required_scenes": [
@@ -287,11 +263,10 @@
       "module_name": "extensions",
       "description": "扩展系统",
       "total_tests": 69,
-      "boundary_tests": 5,
+      "boundary_tests": 3,
       "covered_scenes": [
         "empty",
-        "invalid",
-        "permission"
+        "invalid"
       ],
       "required_scenes": [
         "invalid",
@@ -307,10 +282,9 @@
       "module_name": "guardrails",
       "description": "安全守护",
       "total_tests": 86,
-      "boundary_tests": 14,
+      "boundary_tests": 13,
       "covered_scenes": [
         "empty",
-        "encoding",
         "extreme",
         "invalid",
         "overflow",
@@ -331,14 +305,12 @@
       "module_name": "permission_system",
       "description": "权限系统",
       "total_tests": 28,
-      "boundary_tests": 8,
+      "boundary_tests": 6,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "invalid",
-        "null",
-        "permission"
+        "null"
       ],
       "required_scenes": [
         "invalid",
@@ -353,33 +325,34 @@
     {
       "module_name": "config",
       "description": "配置加载与校验",
-      "total_tests": 0,
-      "boundary_tests": 0,
-      "covered_scenes": [],
+      "total_tests": 192,
+      "boundary_tests": 76,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
+      ],
       "required_scenes": [
         "empty",
         "invalid"
       ],
-      "missing_scenes": [
-        "empty",
-        "invalid"
-      ],
+      "missing_scenes": [],
       "min_tests": 3,
-      "status": "⚠️",
+      "status": "✅",
       "is_new_module": false,
-      "suggestions": [
-        "建议补充边界场景: empty, invalid"
-      ]
+      "suggestions": []
     },
     {
       "module_name": "monitoring",
       "description": "监控埋点",
-      "total_tests": 622,
-      "boundary_tests": 73,
+      "total_tests": 448,
+      "boundary_tests": 38,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null",
@@ -399,16 +372,13 @@
       "module_name": "observability",
       "description": "可观测性工具",
       "total_tests": 247,
-      "boundary_tests": 46,
+      "boundary_tests": 42,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null",
-        "permission",
-        "resource",
         "underflow"
       ],
       "required_scenes": [
@@ -456,11 +426,10 @@
       "module_name": "error_handler",
       "description": "",
       "total_tests": 416,
-      "boundary_tests": 89,
+      "boundary_tests": 68,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null",
@@ -492,15 +461,11 @@
     {
       "module_name": "tool_calling",
       "description": "",
-      "total_tests": 95,
-      "boundary_tests": 23,
+      "total_tests": 38,
+      "boundary_tests": 2,
       "covered_scenes": [
         "boundary",
-        "empty",
-        "exception",
-        "null",
-        "overflow",
-        "resource"
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -513,11 +478,10 @@
       "module_name": "web",
       "description": "",
       "total_tests": 344,
-      "boundary_tests": 45,
+      "boundary_tests": 37,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null",
@@ -535,12 +499,10 @@
       "module_name": "digital_life",
       "description": "",
       "total_tests": 146,
-      "boundary_tests": 16,
+      "boundary_tests": 6,
       "covered_scenes": [
         "empty",
-        "exception",
-        "extreme",
-        "permission"
+        "extreme"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -552,21 +514,10 @@
     {
       "module_name": "model_router",
       "description": "",
-      "total_tests": 288,
-      "boundary_tests": 135,
+      "total_tests": 23,
+      "boundary_tests": 1,
       "covered_scenes": [
-        "boundary",
-        "concurrency",
-        "empty",
-        "encoding",
-        "exception",
-        "extreme",
-        "invalid",
-        "null",
-        "overflow",
-        "permission",
-        "resource",
-        "timeout"
+        "extreme"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -579,11 +530,10 @@
       "module_name": "api_gateway",
       "description": "",
       "total_tests": 23,
-      "boundary_tests": 8,
+      "boundary_tests": 7,
       "covered_scenes": [
         "boundary",
-        "invalid",
-        "permission"
+        "invalid"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -595,15 +545,13 @@
     {
       "module_name": "skills_mgmt",
       "description": "",
-      "total_tests": 142,
-      "boundary_tests": 40,
+      "total_tests": 70,
+      "boundary_tests": 15,
       "covered_scenes": [
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null",
-        "resource",
         "timeout"
       ],
       "required_scenes": [],
@@ -649,12 +597,10 @@
       "module_name": "error_reporting_config",
       "description": "",
       "total_tests": 161,
-      "boundary_tests": 36,
+      "boundary_tests": 31,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
-        "exception",
         "extreme",
         "invalid",
         "null",
@@ -671,10 +617,9 @@
       "module_name": "multi_tenant",
       "description": "",
       "total_tests": 10,
-      "boundary_tests": 2,
+      "boundary_tests": 1,
       "covered_scenes": [
-        "boundary",
-        "permission"
+        "boundary"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -734,11 +679,10 @@
       "module_name": "code_review",
       "description": "",
       "total_tests": 28,
-      "boundary_tests": 4,
+      "boundary_tests": 3,
       "covered_scenes": [
         "empty",
-        "invalid",
-        "permission"
+        "invalid"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -765,36 +709,15 @@
       "suggestions": []
     },
     {
-      "module_name": "logging_utils",
-      "description": "",
-      "total_tests": 44,
-      "boundary_tests": 8,
-      "covered_scenes": [
-        "empty",
-        "exception",
-        "invalid",
-        "permission",
-        "timeout"
-      ],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "✅",
-      "is_new_module": false,
-      "suggestions": []
-    },
-    {
       "module_name": "subagent",
       "description": "",
       "total_tests": 81,
-      "boundary_tests": 17,
+      "boundary_tests": 6,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
-        "null",
-        "permission"
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -806,21 +729,17 @@
     {
       "module_name": "server_routes",
       "description": "",
-      "total_tests": 91,
-      "boundary_tests": 18,
-      "covered_scenes": [
-        "empty",
-        "exception",
-        "extreme",
-        "null",
-        "timeout"
-      ],
+      "total_tests": 40,
+      "boundary_tests": 0,
+      "covered_scenes": [],
       "required_scenes": [],
       "missing_scenes": [],
       "min_tests": 0,
-      "status": "✅",
+      "status": "⚠️",
       "is_new_module": false,
-      "suggestions": []
+      "suggestions": [
+        "未配置边界场景要求，建议补充边界测试"
+      ]
     },
     {
       "module_name": "data_analytics",
@@ -841,9 +760,8 @@
       "module_name": "detailed_profiler",
       "description": "",
       "total_tests": 19,
-      "boundary_tests": 4,
+      "boundary_tests": 2,
       "covered_scenes": [
-        "exception",
         "extreme"
       ],
       "required_scenes": [],
@@ -921,12 +839,26 @@
       "module_name": "log_system",
       "description": "",
       "total_tests": 93,
-      "boundary_tests": 11,
+      "boundary_tests": 7,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
         "extreme",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "logging_utils",
+      "description": "",
+      "total_tests": 23,
+      "boundary_tests": 1,
+      "covered_scenes": [
         "timeout"
       ],
       "required_scenes": [],
@@ -1007,14 +939,12 @@
       "module_name": "p6_snapshot",
       "description": "",
       "total_tests": 151,
-      "boundary_tests": 27,
+      "boundary_tests": 12,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
-        "null",
-        "permission"
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1041,10 +971,11 @@
     {
       "module_name": "performance_monitor",
       "description": "",
-      "total_tests": 43,
-      "boundary_tests": 1,
+      "total_tests": 78,
+      "boundary_tests": 4,
       "covered_scenes": [
-        "exception"
+        "boundary",
+        "empty"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1072,11 +1003,10 @@
       "module_name": "test_permission_system",
       "description": "",
       "total_tests": 29,
-      "boundary_tests": 3,
+      "boundary_tests": 2,
       "covered_scenes": [
         "boundary",
-        "empty",
-        "permission"
+        "empty"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1137,16 +1067,13 @@
       "module_name": "security_utils",
       "description": "",
       "total_tests": 142,
-      "boundary_tests": 35,
+      "boundary_tests": 28,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
-        "exception",
         "extreme",
         "invalid",
-        "null",
-        "permission"
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1159,17 +1086,14 @@
       "module_name": "system_tools",
       "description": "",
       "total_tests": 638,
-      "boundary_tests": 141,
+      "boundary_tests": 82,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
-        "exception",
         "extreme",
         "invalid",
         "null",
         "overflow",
-        "permission",
         "timeout"
       ],
       "required_scenes": [],
@@ -1198,10 +1122,9 @@
       "module_name": "task_scheduler",
       "description": "",
       "total_tests": 80,
-      "boundary_tests": 8,
+      "boundary_tests": 4,
       "covered_scenes": [
         "empty",
-        "exception",
         "extreme",
         "null"
       ],
@@ -1216,11 +1139,10 @@
       "module_name": "quality",
       "description": "",
       "total_tests": 29,
-      "boundary_tests": 10,
+      "boundary_tests": 9,
       "covered_scenes": [
         "boundary",
         "empty",
-        "exception",
         "extreme",
         "invalid",
         "null"
@@ -1236,10 +1158,9 @@
       "module_name": "text_tools",
       "description": "",
       "total_tests": 11,
-      "boundary_tests": 3,
+      "boundary_tests": 2,
       "covered_scenes": [
-        "empty",
-        "encoding"
+        "empty"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1252,10 +1173,9 @@
       "module_name": "v2_performance_patch",
       "description": "",
       "total_tests": 26,
-      "boundary_tests": 8,
+      "boundary_tests": 6,
       "covered_scenes": [
         "empty",
-        "exception",
         "extreme",
         "null",
         "timeout"
