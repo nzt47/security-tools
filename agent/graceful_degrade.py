@@ -354,10 +354,6 @@ class GracefulDegrade:
                     })
             return self.default_fallbacks.get(component)
 
-    def is_degraded(self, component: str) -> bool:
-        """组件当前是否处于降级期"""
-        return self.get_state(component).level != DegradeLevel.NORMAL
-
     # ── 控制方法 ──────────────────────────────────────────────
 
     def reset(self) -> None:
