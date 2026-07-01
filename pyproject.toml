@@ -18,7 +18,6 @@ requires-python = ">=3.10,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -28,36 +27,36 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 keywords = ["AI", "digital-life", "agent", "cognitive"]
-
-[project.dependencies]
-psutil = ">=5.9.0,<6.0.0"
-openai = ">=1.0.0,<2.0.0"
-anthropic = ">=0.30.0,<0.40.0"
-tiktoken = ">=0.5.0,<0.7.0"
-pyyaml = ">=6.0,<7.0"
-torch = ">=2.0.0,<2.5.0"
-torchvision = ">=0.15.0,<0.20.0"
-torchaudio = ">=2.0.0,<2.5.0"
-opencv-python-headless = ">=4.8.0,<5.0.0"
-chromadb = ">=0.4.0,<0.5.0"
-sentence-transformers = ">=2.2.0,<3.0.0"
-numpy = ">=1.24.0,<2.0.0"
-pyttsx3 = ">=2.90,<2.92"
-SpeechRecognition = ">=3.10.0,<3.11.0"
-pyautogui = ">=0.9.53,<0.9.60"
-pygetwindow = ">=0.0.9,<0.0.10"
-pyperclip = ">=1.8.2,<1.9.0"
-selenium = ">=4.15.0,<4.20.0"
-keyboard = ">=0.13.5,<0.14.0"
-mouse = ">=0.7.1,<0.8.0"
-pydub = ">=0.25.1,<0.26.0"
-watchdog = ">=3.0.0,<4.0.0"
-GPUtil = ">=1.4.0,<1.5.0"
-pynvml = ">=11.0.0,<12.0.0"
-flask = ">=3.0.0"
-prometheus-flask-exporter = ">=0.23.0"
-gunicorn = ">=21.2.0"
-waitress = ">=3.0.0"
+dependencies = [
+  "psutil>=5.9.0,<6.0.0",
+  "openai>=1.0.0,<2.0.0",
+  "anthropic>=0.30.0,<0.40.0",
+  "tiktoken>=0.5.0,<0.7.0",
+  "pyyaml>=6.0,<7.0",
+  "torch>=2.0.0,<2.5.0",
+  "torchvision>=0.15.0,<0.20.0",
+  "torchaudio>=2.0.0,<2.5.0",
+  "opencv-python-headless>=4.8.0,<5.0.0",
+  "chromadb>=0.4.0,<0.5.0",
+  "sentence-transformers>=2.2.0,<3.0.0",
+  "numpy>=1.24.0,<2.0.0",
+  "pyttsx3>=2.90,<2.92",
+  "SpeechRecognition>=3.10.0,<3.11.0",
+  "pyautogui>=0.9.53,<0.9.60",
+  "pygetwindow>=0.0.9,<0.0.10",
+  "pyperclip>=1.8.2,<1.9.0",
+  "selenium>=4.15.0,<4.20.0",
+  "keyboard>=0.13.5,<0.14.0",
+  "mouse>=0.7.1,<0.8.0",
+  "pydub>=0.25.1,<0.26.0",
+  "watchdog>=3.0.0,<4.0.0",
+  "GPUtil>=1.4.0,<1.5.0",
+  "pynvml>=11.0.0,<12.0.0",
+  "flask>=3.0.0",
+  "prometheus-flask-exporter>=0.23.0",
+  "gunicorn>=21.2.0",
+  "waitress>=3.0.0"
+]
 
 [project.optional-dependencies]
 windows = [
