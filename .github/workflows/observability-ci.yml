@@ -157,16 +157,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 防御：清理可能残留的无效 submodule gitlink（如 .claude/worktrees/ 被误提交为 submodule）
+      # 根因：本地 worktree 目录被 git add 后注册为 gitlink (mode 160000) 但无 .gitmodules 条目
+      # 此步骤确保 CI 环境不会因 post-checkout 的 git submodule foreach 而报错
+      - name: 清理无效 submodule 注册
+        run: |
+          git rm --cached -r .claude/worktrees/ 2>/dev/null || true
+          echo "已清理 .claude/worktrees/ 的无效 submodule 注册"
+
       - name: 设置Python环境
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      # 安装依赖：pyyaml 用于配置解析，watchdog 用于 agent.file_watcher 模块
+      # 缺失 watchdog 会导致 agent/__init__.py 导入失败，进而架构检查工具无法运行
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml
+          pip install pyyaml watchdog
 
       # ── 步骤 1：生成模块依赖图 ──
       - name: 生成模块依赖图
