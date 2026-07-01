@@ -196,14 +196,22 @@ jobs:
       - name: 验证测试用例数量
         run: |
           echo "=== 验证 P0 测试用例数量 ==="
-          pip install pytest -q
-          TEST_COUNT=$(python -m pytest tests/regression/test_p0_security_fix.py --collect-only -q 2>/dev/null | tail -1)
-          echo "测试收集结果: $TEST_COUNT"
-          # 提取数字
-          NUM=$(echo "$TEST_COUNT" | grep -oE '[0-9]+' | head -1)
+          pip install pytest -q 2>/dev/null
+          # 收集测试并统计数量（兼容不同 pytest 版本输出格式）
+          COLLECT_OUTPUT=$(python -m pytest tests/regression/test_p0_security_fix.py --collect-only -q 2>&1 || true)
+          echo "--- 收集输出 (最后 5 行) ---"
+          echo "$COLLECT_OUTPUT" | tail -5
+          # 从输出中提取数字（兼容 "68 tests collected" 和 "::test_xxx" 两种格式）
+          NUM=$(echo "$COLLECT_OUTPUT" | grep -oE '([0-9]+) tests?' | grep -oE '[0-9]+' | head -1)
+          if [ -z "$NUM" ]; then
+            # 备用方案：统计 :: 分隔的测试 ID 数量
+            NUM=$(echo "$COLLECT_OUTPUT" | grep -c '::')
+          fi
           echo "实际测试用例数: $NUM"
           if [ -z "$NUM" ] || [ "$NUM" -lt 68 ]; then
             echo "测试用例数 ($NUM) 少于预期 (68)"
+            echo "--- 完整收集输出 ---"
+            echo "$COLLECT_OUTPUT"
             exit 1
           fi
           echo "测试用例数量验证通过 ($NUM >= 68)"
