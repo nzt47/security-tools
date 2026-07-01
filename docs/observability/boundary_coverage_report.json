@@ -1,12 +1,15 @@
 {
-  "trace_id": "169ece2b62ce47fc",
-  "timestamp": "2026-07-01T12:15:38.709960",
-  "duration_ms": 1769.27,
-  "overall_status": "warn",
+  "trace_id": "cb62683a52bc4f17",
+  "timestamp": "2026-07-01T13:20:50.995824",
+  "duration_ms": 1689.54,
+  "overall_status": "pass",
   "total_modules": 66,
-  "total_tests": 5702,
-  "total_boundary_tests": 1254,
-  "coverage_percent": 22.0,
+  "total_tests": 5797,
+  "total_boundary_tests": 1413,
+  "coverage_percent": 24.4,
+  "scene_covered_count": 47,
+  "scene_total_count": 47,
+  "scene_coverage_percent": 100.0,
   "threshold": 5,
   "threshold_source": "ci_policy",
   "passed": true,
@@ -28,7 +31,8 @@
       "required_scenes": [
         "empty",
         "timeout",
-        "invalid"
+        "invalid",
+        "null"
       ],
       "missing_scenes": [],
       "min_tests": 4,
@@ -91,11 +95,10 @@
     {
       "module_name": "circuit_breaker",
       "description": "熔断器",
-      "total_tests": 81,
-      "boundary_tests": 22,
+      "total_tests": 47,
+      "boundary_tests": 13,
       "covered_scenes": [
         "boundary",
-        "empty",
         "exception",
         "extreme",
         "invalid",
@@ -115,15 +118,15 @@
     {
       "module_name": "rate_limiter",
       "description": "限流器",
-      "total_tests": 113,
-      "boundary_tests": 70,
+      "total_tests": 83,
+      "boundary_tests": 16,
       "covered_scenes": [
         "boundary",
         "empty",
         "exception",
         "extreme",
-        "overflow",
-        "timeout"
+        "null",
+        "overflow"
       ],
       "required_scenes": [
         "boundary",
@@ -139,8 +142,8 @@
     {
       "module_name": "graceful_degrade",
       "description": "优雅降级",
-      "total_tests": 102,
-      "boundary_tests": 35,
+      "total_tests": 72,
+      "boundary_tests": 31,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -153,7 +156,8 @@
       ],
       "required_scenes": [
         "timeout",
-        "invalid"
+        "invalid",
+        "null"
       ],
       "missing_scenes": [],
       "min_tests": 3,
@@ -164,8 +168,8 @@
     {
       "module_name": "disaster_recovery",
       "description": "容灾恢复",
-      "total_tests": 132,
-      "boundary_tests": 58,
+      "total_tests": 87,
+      "boundary_tests": 50,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -205,6 +209,7 @@
       "required_scenes": [
         "empty",
         "overflow",
+        "null",
         "invalid"
       ],
       "missing_scenes": [],
@@ -323,6 +328,7 @@
       ],
       "required_scenes": [
         "invalid",
+        "null",
         "boundary"
       ],
       "missing_scenes": [],
@@ -348,7 +354,8 @@
       ],
       "required_scenes": [
         "empty",
-        "invalid"
+        "invalid",
+        "null"
       ],
       "missing_scenes": [],
       "min_tests": 3,
@@ -407,6 +414,139 @@
       "suggestions": []
     },
     {
+      "module_name": "behavior_controller",
+      "description": "",
+      "total_tests": 45,
+      "boundary_tests": 39,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "feedback",
+      "description": "",
+      "total_tests": 60,
+      "boundary_tests": 44,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "performance_logging",
+      "description": "",
+      "total_tests": 73,
+      "boundary_tests": 58,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "task_planner",
+      "description": "",
+      "total_tests": 38,
+      "boundary_tests": 34,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "weekly_report_generator",
+      "description": "",
+      "total_tests": 50,
+      "boundary_tests": 34,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "workflow_engine",
+      "description": "",
+      "total_tests": 58,
+      "boundary_tests": 25,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "network",
       "description": "",
       "total_tests": 18,
@@ -421,21 +561,6 @@
       "status": "✅",
       "is_new_module": false,
       "suggestions": []
-    },
-    {
-      "module_name": "workflow_engine",
-      "description": "",
-      "total_tests": 33,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
     },
     {
       "module_name": "error_handler",
@@ -686,21 +811,6 @@
       "suggestions": []
     },
     {
-      "module_name": "behavior_controller",
-      "description": "",
-      "total_tests": 6,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
-    },
-    {
       "module_name": "code_review",
       "description": "",
       "total_tests": 28,
@@ -829,21 +939,6 @@
       "status": "✅",
       "is_new_module": false,
       "suggestions": []
-    },
-    {
-      "module_name": "feedback",
-      "description": "",
-      "total_tests": 16,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
     },
     {
       "module_name": "llm_response_cache",
@@ -1020,21 +1115,6 @@
       "suggestions": []
     },
     {
-      "module_name": "performance_logging",
-      "description": "",
-      "total_tests": 15,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
-    },
-    {
       "module_name": "test_permission_system",
       "description": "",
       "total_tests": 29,
@@ -1146,21 +1226,6 @@
       "suggestions": []
     },
     {
-      "module_name": "task_planner",
-      "description": "",
-      "total_tests": 4,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
-    },
-    {
       "module_name": "task_scheduler",
       "description": "",
       "total_tests": 80,
@@ -1232,21 +1297,6 @@
       "status": "✅",
       "is_new_module": false,
       "suggestions": []
-    },
-    {
-      "module_name": "weekly_report_generator",
-      "description": "",
-      "total_tests": 16,
-      "boundary_tests": 0,
-      "covered_scenes": [],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "⚠️",
-      "is_new_module": false,
-      "suggestions": [
-        "未配置边界场景要求，建议补充边界测试"
-      ]
     },
     {
       "module_name": "workflow_learning",
