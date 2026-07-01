@@ -100,8 +100,8 @@
 | `core` | `test_empty_registry_remove_returns_false` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_all_returns_empty_dict` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_clear_no_error` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
-| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
+| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
 | `core` | `test_empty_registry_update_empty_dict` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | null, empty |
 | `core` | `test_invalid_name_none_register` | tests\boundary\test_core_boundary.py | null, invalid |
@@ -135,7 +135,7 @@
 | `core` | `test_type_registry_create_nonexistent` | tests\unit\test_core_comprehensive.py | null |
 | `cognitive` | `test_timeout_inject_empty_data` | tests\boundary\test_cognitive_boundary.py | empty, timeout |
 | `cognitive` | `test_timeout_inject_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
-| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | timeout, null |
+| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | null, timeout |
 | `cognitive` | `test_timeout_translate_all_large_batch` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_get_summary_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_should_reject_task_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
