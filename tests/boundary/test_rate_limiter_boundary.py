@@ -249,12 +249,16 @@ class TestExtremeValues:
         assert limiter.check("tool") is False
 
     def test_custom_limits_with_huge_refill_rate(self):
-        """超大补充速率的限流器"""
-        limiter = RateLimiter(limits={"default": (1, 1000.0)})
-        assert limiter.check("tool") is True
-        assert limiter.check("tool") is False
-        time.sleep(0.01)
-        assert limiter.check("tool") is True
+        """较大补充速率的限流器
+
+        注：refill_rate 不能过大（如 1000/s），否则第 1 次和第 2 次 check 之间
+        已补充令牌导致第 2 次也返回 True。使用 10/s（每 100ms 补充 1 个）使时序可控。
+        """
+        limiter = RateLimiter(limits={"default": (1, 10.0)})
+        assert limiter.check("tool") is True   # 消耗唯一令牌
+        assert limiter.check("tool") is False  # 令牌耗尽，100ms 内未补充
+        time.sleep(0.15)                       # 等 150ms，补充 1.5 个令牌
+        assert limiter.check("tool") is True   # 有令牌可用
 
     def test_unknown_category_falls_back_to_default(self):
         """未知分类回退到 default 配置"""
