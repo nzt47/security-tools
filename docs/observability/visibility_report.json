@@ -1,7 +1,7 @@
 {
-  "trace_id": "01de96776fe44cdc",
-  "timestamp": "2026-07-01T01:31:00.798142",
-  "duration_ms": 3793.45,
+  "trace_id": "90dca19e0d5841c8",
+  "timestamp": "2026-07-01T12:23:05.959367",
+  "duration_ms": 3374.04,
   "overall_status": "pass",
   "threshold_violations": [],
   "error": null,
@@ -47,7 +47,7 @@
       "metrics": [
         {
           "name": "test_coverage",
-          "value": 3.7,
+          "value": 5.1,
           "threshold": 0,
           "unit": "%",
           "description": "代码测试覆盖率（来自 coverage.xml 真实 line-rate）",
@@ -56,7 +56,7 @@
         },
         {
           "name": "boundary_test_coverage",
-          "value": 20.8,
+          "value": 21.1,
           "threshold": 12,
           "unit": "%",
           "description": "边界测试用例占总测试比例",
@@ -74,7 +74,7 @@
         },
         {
           "name": "exception_coverage",
-          "value": 81.9,
+          "value": 81.5,
           "threshold": 80,
           "unit": "%",
           "description": "含 try/except/raise 异常处理的核心模块占比",

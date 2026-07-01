@@ -1,8 +1,8 @@
 # 四层可见性覆盖报告
 
-- **生成时间**：2026-07-01T01:31:00.798142
-- **Trace ID**：`01de96776fe44cdc`
-- **生成耗时**：3793.45 ms
+- **生成时间**：2026-07-01T12:23:05.959367
+- **Trace ID**：`90dca19e0d5841c8`
+- **生成耗时**：3374.04 ms
 - **总体状态**：✅ 通过
 
 ## 四层概览
@@ -30,10 +30,10 @@ _测试覆盖率、边界测试、契约测试_
 
 | 指标 | 数值 | 阈值 | 状态 | 说明 |
 | --- | --- | --- | --- | --- |
-| `test_coverage` | 3.7% | ≥ 0 | ✅ | 代码测试覆盖率（来自 coverage.xml 真实 line-rate） |
-| `boundary_test_coverage` | 20.8% | ≥ 12 | ✅ | 边界测试用例占总测试比例 |
+| `test_coverage` | 5.1% | ≥ 0 | ✅ | 代码测试覆盖率（来自 coverage.xml 真实 line-rate） |
+| `boundary_test_coverage` | 21.1% | ≥ 12 | ✅ | 边界测试用例占总测试比例 |
 | `contract_test_count` | 3个 | ≥ 3 | ✅ | Pact 契约测试数量 |
-| `exception_coverage` | 81.9% | ≥ 80 | ✅ | 含 try/except/raise 异常处理的核心模块占比 |
+| `exception_coverage` | 81.5% | ≥ 80 | ✅ | 含 try/except/raise 异常处理的核心模块占比 |
 
 ## 业务价值可见
 
