@@ -14,11 +14,11 @@
 - 异常分支: record_save_end 不存在 id / get_stats 无记录
 - 资源边界: LRU 淘汰策略 / TTL 过期
 
-源代码限制记录：
-- LLMCache.get(None) 抛 AttributeError（None.encode() 失败）
-- LLMCache(max_size=0) 每次 put 都触发淘汰
-- LLMCache(max_size=-1) len(cache) >= -1 恒为 True，每次都淘汰
-- record_save_end(不存在id) 不更新记录但 total_saves 仍 +1
+源代码状态记录（2026-07-01 已永久修复）：
+- LLMCache(max_size=0/-1) — 已修复：__init__ 现校验 max_size >= 1，抛 ValueError
+  修复位置: agent/monitoring/performance.py LLMCache.__init__
+- LLMCache.get(None) 抛 AttributeError（None.encode() 失败）— 调用方契约，保留
+- record_save_end(不存在id) 不更新记录但 total_saves 仍 +1 — 统计偏差，低优先级保留
 """
 import time
 import pytest
@@ -90,25 +90,24 @@ class TestCacheNullBoundary:
 class TestCacheExtremeBoundary:
     """LLMCache 极值边界测试"""
 
-    def test_extreme_max_size零值put抛出KeyError(self):
-        """max_size=0 时 put 抛出 KeyError
+    def test_extreme_max_size零值init抛出ValueError(self):
+        """max_size=0 时 __init__ 抛出 ValueError
 
-        源代码限制: len(cache) >= 0 恒为 True，首次 put 时 cache 为空，
-        popitem(last=False) 在空字典上抛 KeyError: 'dictionary is empty'
+        源代码已修复（2026-07-01）：__init__ 现校验 max_size >= 1，
+        避免后续 put() 在空 OrderedDict 上调用 popitem(last=False) 抛 KeyError。
+        修复前: LLMCache(max_size=0) 可创建，但首次 put 抛 KeyError
+        修复后: LLMCache(max_size=0) 在构造时即抛 ValueError，fail-fast
         """
-        cache = LLMCache(max_size=0)
-        with pytest.raises(KeyError):
-            cache.put("p1", "r1")
+        with pytest.raises(ValueError, match="max_size"):
+            LLMCache(max_size=0)
 
-    def test_extreme_max_size负值put抛出KeyError(self):
-        """max_size=-1 时 put 抛出 KeyError
+    def test_extreme_max_size负值init抛出ValueError(self):
+        """max_size=-1 时 __init__ 抛出 ValueError
 
-        源代码限制: len(cache) >= -1 恒为 True，首次 put 时 cache 为空，
-        popitem(last=False) 在空字典上抛 KeyError
+        源代码已修复（2026-07-01）：与 max_size=0 同理，负值在构造时被拒绝。
         """
-        cache = LLMCache(max_size=-1)
-        with pytest.raises(KeyError):
-            cache.put("p1", "r1")
+        with pytest.raises(ValueError, match="max_size"):
+            LLMCache(max_size=-1)
 
     def test_extreme_ttl_seconds零值立即过期(self):
         """ttl_seconds=0 时缓存立即过期"""

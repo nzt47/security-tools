@@ -13,10 +13,14 @@
 - 类型边界: None value / 字符串 value / 未知传感器名
 - 异常分支: 多条件冲突优先级 / 历史记录边界
 
-源代码限制记录：
-- evaluate(None) 抛 TypeError（for 循环遍历 None）
-- evaluate 中 None value 在 cpu/battery/memory 分支会抛 TypeError（仅 disk_free 有 isinstance 守卫）
-- can_execute(None) 抛 TypeError（kw in None）
+源代码行为记录（2026-07-01 评估）：
+- evaluate(None) 抛 TypeError — 调用方契约，None 输入不属于合法 API 用法，保留
+- evaluate 中 None value 在 cpu/battery/memory 分支抛 TypeError（仅 disk_free 有 isinstance 守卫）
+  — 类型守卫不一致，但属于调用方契约 violation，低优先级保留
+- can_execute(None) 抛 TypeError — 调用方契约，保留
+- candidates 为空（恢复正常）时不记录历史 — 设计行为（非 bug）：
+  只有 NORMAL → 异常模式切换才记录历史，恢复正常是预期行为不需追溯。
+  详见 test_extreme_多次模式切换记录非NORMAL切换
 """
 import json
 from pathlib import Path
@@ -340,8 +344,9 @@ class TestHistoryBoundary:
     def test_extreme_多次模式切换记录非NORMAL切换(self):
         """多次模式切换只记录到非 NORMAL 的变更
 
-        源代码限制: candidates 为空（恢复正常）时不记录历史，
-        只有 NORMAL → 异常模式的切换才记录。
+        设计行为（非 bug，2026-07-01 评估确认）：
+        candidates 为空（恢复正常）时直接返回 NORMAL，不进入历史记录分支。
+        只有 NORMAL → 异常模式的切换才记录历史，恢复正常是预期行为不需追溯。
         SAFE → NORMAL 和 POWER_SAVE → NORMAL 不记录。
         """
         controller = BehaviorController()
