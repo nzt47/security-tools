@@ -34,6 +34,7 @@ on:
       - 'agent/**'
       - 'config.yaml'
       - 'docs/architecture/legacy_exemptions.json'
+  workflow_dispatch: {}
 
 env:
   PYTHON_VERSION: '3.11'
