@@ -45,6 +45,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - develop
   schedule:
     - cron: '0 3 * * *'  # 每天凌晨3点运行完整可观测性验证
