@@ -35,6 +35,8 @@ from agent.guardrails.output_guard import OutputGuard
 from agent.observability.subscriber import trace_store, TraceSpan
 from agent.orchestrator.message_handler import MessageHandler
 from agent.orchestrator.response_builder import ResponseBuilder, Response
+# [违规测试] orchestrator 直接访问 dao 层（agent.data），应通过 service 中转
+from agent.data.observability import DataObservabilityCollector
 import uuid
 
 logger = logging.getLogger(__name__)
