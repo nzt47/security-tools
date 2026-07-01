@@ -244,6 +244,16 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="resource_monitor.persist_batch_size 必须在 1-1000 之间",
         description="批量落盘的缓冲条数（达到此数量触发写入）",
     ),
+
+    # ── 7. 时间窗口上限（time_window） ──
+    # 统一管理所有 timedelta(days=N) 调用的上限，防止 OverflowError
+    ValidationRule(
+        path="time_window.max_analyze_days",
+        validator=_range_validator(1, 36500),
+        default=36500,
+        error_message="time_window.max_analyze_days 必须在 1-36500 之间（100 年上限）",
+        description="时间窗口分析上限天数，用于 data_analytics/replay_storage/defect_tracker 等模块的 timedelta(days=) 参数校验",
+    ),
 ]
 
 
@@ -867,6 +877,18 @@ def get_observability_config() -> ObservabilityConfig:
             if _global_observability_config is None:
                 _global_observability_config = ObservabilityConfig()
     return _global_observability_config
+
+
+def get_max_analyze_days() -> int:
+    """读取时间窗口分析上限天数（便捷函数，支持热加载）
+
+    Returns:
+        最大分析天数，默认 36500（100 年）
+    """
+    try:
+        return int(get_observability_config().get("time_window.max_analyze_days", default=36500))
+    except Exception:
+        return 36500
 
 
 def reset_observability_config() -> None:

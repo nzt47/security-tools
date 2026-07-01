@@ -174,10 +174,12 @@ class DefectTracker:
             ValueError: period_days 为负数或超过 36500 时抛出
         """
         # 边界显性化：校验 period_days 参数，防止 OverflowError
+        from agent.monitoring.observability_config import get_max_analyze_days
+        max_days = get_max_analyze_days()
         if not isinstance(period_days, int) or period_days < 0:
             raise ValueError(f"period_days 必须为非负整数，得到: {period_days!r}")
-        if period_days > 36500:
-            raise ValueError(f"period_days 超过上限 36500，得到: {period_days}")
+        if period_days > max_days:
+            raise ValueError(f"period_days 超过上限 {max_days}，得到: {period_days}")
 
         now = datetime.now()
         start_date = now - timedelta(days=period_days)
@@ -211,10 +213,12 @@ class DefectTracker:
             ValueError: days 为负数或超过 36500 时抛出
         """
         # 边界显性化：校验 days 参数，防止 OverflowError
+        from agent.monitoring.observability_config import get_max_analyze_days
+        max_days = get_max_analyze_days()
         if not isinstance(days, int) or days < 0:
             raise ValueError(f"days 必须为非负整数，得到: {days!r}")
-        if days > 36500:
-            raise ValueError(f"days 超过上限 36500，得到: {days}")
+        if days > max_days:
+            raise ValueError(f"days 超过上限 {max_days}，得到: {days}")
 
         now = datetime.now()
         trend = []
