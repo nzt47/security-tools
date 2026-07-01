@@ -115,6 +115,14 @@ class ScanResult:
     modules: List[ModuleReport]
     blocked_modules: List[str]
     overall_status: str  # pass / warn / fail
+    # 新指标：已声明模块的必需场景覆盖率（推荐使用，作为 boundary_test_coverage 的主指标）
+    # 定义：sum(每个声明模块已覆盖的必需场景数) / sum(每个声明模块的必需场景总数) * 100
+    # 与 coverage_percent（测试用例数比例）的区别：
+    #   coverage_percent 受总测试数增长稀释影响，无法真实反映边界测试质量
+    #   scene_coverage_percent 基于声明清单，反映"关键边界场景的覆盖完成度"，更稳定、更真实
+    scene_covered_count: int = 0
+    scene_total_count: int = 0
+    scene_coverage_percent: float = 0.0
     error: Optional[str] = None
 
 
@@ -549,6 +557,8 @@ class BoundaryScanner:
         duration_ms = (time.time() - start) * 1000
         total_tests = sum(r.total_tests for r in module_reports)
         total_boundary = sum(r.boundary_tests for r in module_reports)
+        # 计算新指标：已声明模块的必需场景覆盖率
+        scene_covered, scene_total, scene_pct = self._calc_scene_coverage(module_reports)
         overall_status = "fail" if blocked else ("warn" if any(r.status == "⚠️" for r in module_reports) else "pass")
 
         logger.info(json.dumps({
@@ -559,6 +569,9 @@ class BoundaryScanner:
             "total_modules": len(module_reports),
             "total_tests": total_tests,
             "total_boundary_tests": total_boundary,
+            "scene_covered_count": scene_covered,
+            "scene_total_count": scene_total,
+            "scene_coverage_percent": scene_pct,
             "blocked_modules": blocked,
             "overall_status": overall_status,
         }, ensure_ascii=False))
@@ -573,7 +586,38 @@ class BoundaryScanner:
             modules=module_reports,
             blocked_modules=blocked,
             overall_status=overall_status,
+            scene_covered_count=scene_covered,
+            scene_total_count=scene_total,
+            scene_coverage_percent=scene_pct,
         )
+
+    def _calc_scene_coverage(self, module_reports: List[ModuleReport]) -> tuple:
+        """计算已声明模块的必需场景覆盖率
+
+        新指标定义：
+          boundary_test_coverage = 已声明模块的必需场景覆盖率
+          = sum(每个声明模块已覆盖的必需场景数) / sum(每个声明模块的必需场景总数) * 100
+
+        与原 coverage_percent（测试用例数比例）的区别：
+          - coverage_percent: total_boundary_tests / total_tests * 100
+            问题：随总测试数增长，该比例会被稀释，无法真实反映边界测试质量
+          - scene_coverage_percent: 已覆盖的必需场景数 / 必需场景总数 * 100
+            优势：基于声明清单，反映"关键边界场景的覆盖完成度"，更稳定、更真实
+
+        Returns:
+            (covered_count, total_required_count, coverage_percent)
+        """
+        total_required = 0
+        total_covered = 0
+        for r in module_reports:
+            # 仅统计在 boundary_config.yaml 中声明的模块（required_scenes 非空）
+            if not r.required_scenes:
+                continue
+            total_required += len(r.required_scenes)
+            covered_in_required = sum(1 for s in r.required_scenes if s in r.covered_scenes)
+            total_covered += covered_in_required
+        coverage = round(total_covered / total_required * 100, 1) if total_required > 0 else 0.0
+        return total_covered, total_required, coverage
 
     def _collect_test_files(self) -> List[Path]:
         """递归收集所有 test_*.py 文件"""
@@ -715,10 +759,15 @@ class ReportGenerator:
         lines.append(f"| 测试用例总数 | {result.total_tests} |")
         lines.append(f"| 边界测试用例数 | {result.total_boundary_tests} |")
         coverage = (result.total_boundary_tests / result.total_tests * 100) if result.total_tests else 0
-        lines.append(f"| 边界测试覆盖率 | {coverage:.1f}% |")
+        lines.append(f"| 边界测试覆盖率（用例数比例） | {coverage:.1f}% |")
+        lines.append(f"| **模块场景覆盖率（主指标）** | **{result.scene_coverage_percent:.1f}%** ({result.scene_covered_count}/{result.scene_total_count}) |")
         lines.append(f"| 阻断模块数 | {len(result.blocked_modules)} |")
         if result.blocked_modules:
             lines.append(f"| 阻断模块清单 | {', '.join(result.blocked_modules)} |")
+        lines.append("")
+        lines.append("> **指标说明**：`模块场景覆盖率` 是阶段 2 起采用的主指标，"
+                     "定义为「已声明模块的必需场景覆盖率」，即已覆盖的必需场景数 / 必需场景总数。"
+                     "相较于用例数比例，它不受总测试数增长稀释影响，更真实反映边界测试质量。")
         lines.append("")
 
         lines.append("## 模块详情")
@@ -785,7 +834,13 @@ class ReportGenerator:
             if result.total_tests > 0
             else 0.0
         )
-        passed = coverage_percent >= self.threshold and result.overall_status != "fail"
+        # passed 判定优先使用 scene_coverage_percent（主指标）
+        # 当 scene_total_count=0（无声明模块）时降级到 coverage_percent
+        if result.scene_total_count > 0:
+            primary_value = result.scene_coverage_percent
+        else:
+            primary_value = coverage_percent
+        passed = primary_value >= self.threshold and result.overall_status != "fail"
         return {
             "trace_id": result.trace_id,
             "timestamp": result.timestamp,
@@ -795,6 +850,9 @@ class ReportGenerator:
             "total_tests": result.total_tests,
             "total_boundary_tests": result.total_boundary_tests,
             "coverage_percent": coverage_percent,
+            "scene_covered_count": result.scene_covered_count,
+            "scene_total_count": result.scene_total_count,
+            "scene_coverage_percent": result.scene_coverage_percent,
             "threshold": self.threshold,
             "threshold_source": self.threshold_source,
             "passed": passed,

@@ -10,6 +10,21 @@ class RiskLevel(Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
+class ApprovalStatus(Enum):
+    """审批状态枚举"""
+    PENDING = "pending"          # 待审批
+    APPROVED = "approved"        # 已批准
+    REJECTED = "rejected"        # 已拒绝
+    TIMEOUT = "timeout"          # 超时未响应
+    AUTO_APPROVED = "auto"       # 自动批准（低风险）
+
+class ConfirmationMode(Enum):
+    """确认模式枚举"""
+    NONE = "none"                # 无需确认
+    INLINE = "inline"            # 内联确认（当前会话）
+    EXTERNAL = "external"        # 外部确认（独立审批流）
+    BATCH = "batch"              # 批量确认
+
 class ApprovalRequest:
     def __init__(self, action: str, reason: str, risk_level: RiskLevel, details: dict = None):
         self.action = action
@@ -17,6 +32,8 @@ class ApprovalRequest:
         self.risk_level = risk_level
         self.details = details or {}
         self.approved = False
+        self.status = ApprovalStatus.PENDING
+        self.mode = ConfirmationMode.INLINE if risk_level in (RiskLevel.HIGH, RiskLevel.CRITICAL) else ConfirmationMode.NONE
 
 class HITLManager:
     HIGH_RISK_ACTIONS = {
