@@ -18,7 +18,17 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 # 参数边界约束
-MAX_ANALYZE_DAYS = 36500  # 100 年，超过此值 datetime 计算可能溢出
+MAX_ANALYZE_DAYS = 36500  # 向后兼容常量，实际值应通过 _get_max_analyze_days() 从 Config 读取
+
+
+def _get_max_analyze_days() -> int:
+    """从配置系统读取时间窗口上限（委托到 observability_config，支持热加载）
+
+    Returns:
+        最大分析天数，默认 36500（100 年）
+    """
+    from agent.monitoring.observability_config import get_max_analyze_days
+    return get_max_analyze_days()
 
 logger.info("[DataAnalytics] 加载数据分析模块")
 
@@ -78,17 +88,18 @@ class DataAnalytics:
             raise ValueError(
                 f"days 必须为非负整数，得到: {days!r}"
             )
-        if days > MAX_ANALYZE_DAYS:
+        max_days = _get_max_analyze_days()
+        if days > max_days:
             logger.error(json.dumps({
                 "trace_id": _trace_id(),
                 "module_name": "data_analytics",
                 "action": "analyze_event_trends.days_overflow",
                 "duration_ms": 0,
                 "days": days,
-                "max_allowed": MAX_ANALYZE_DAYS,
+                "max_allowed": max_days,
             }, ensure_ascii=False))
             raise ValueError(
-                f"days 超过上限 {MAX_ANALYZE_DAYS}，得到: {days}"
+                f"days 超过上限 {max_days}，得到: {days}"
             )
 
         if not self.black_box:
