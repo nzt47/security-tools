@@ -4,16 +4,17 @@
 被测模块：agent.data_analytics (DataAnalytics)
 
 【生成日志摘要】
-- 生成时间：2026-07-01
-- 版本：v1.0.0
-- 内容：BT-012 data_analytics 边界测试，覆盖 4 类边界场景，10 个测试用例
+- 生成时间：2026-07-02
+- 版本：v1.1.0
+- 内容：BT-012 data_analytics 边界测试，覆盖 4 类边界场景
 - 关键场景：black_box/vector_store 缺失、空事件、无效参数、None 输入、极大 days
+- 修复记录：v1.1.0 新增 OverflowError 修复后的边界验证（ValueError + 业务错误码）
 """
 import pytest
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from agent.data_analytics import DataAnalytics, create_analytics, _safe_call
+from agent.data_analytics import DataAnalytics, create_analytics, _safe_call, MAX_ANALYZE_DAYS
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -199,30 +200,28 @@ class TestExtremeBoundary:
     """极值边界测试"""
 
     def test_extreme_large_days_analyze_trends(self):
-        """days=36500（100 年）时不报错
+        """days=36500（100 年，上限值）时不报错
 
-        注：源码 analyze_event_trends 用 timedelta(days=days) 计算 start_date，
-        days 超过约 365000 时会触发 OverflowError（datetime 范围溢出）。
-        此处用 36500（100 年）验证极大但合理的值能正常工作。
-        已知缺陷：源码未对 days 上限做防御，后续应添加校验。
+        验证修复后 days=MAX_ANALYZE_DAYS 仍能正常工作。
+        修复前：源码未对 days 上限做防御，可能触发 OverflowError。
+        修复后：days <= MAX_ANALYZE_DAYS 正常执行，> MAX_ANALYZE_DAYS 抛 ValueError。
         """
         black_box = MockBlackBox(events=[_make_event()])
         analytics = DataAnalytics(black_box=black_box, vector_store=None)
-        result = analytics.analyze_event_trends(days=36500)
-        assert result["period"]["days"] == 36500
-        # start_date 会是 100 年前，但仍能正常计算
+        result = analytics.analyze_event_trends(days=MAX_ANALYZE_DAYS)
+        assert result["period"]["days"] == MAX_ANALYZE_DAYS
         assert "start" in result["period"]
 
-    def test_extreme_overflow_days_raises(self):
-        """days=999999 触发 OverflowError（边界缺陷验证）
+    def test_extreme_overflow_days_raises_value_error(self):
+        """days=999999 触发 ValueError（修复后行为）
 
-        验证源码边界缺陷：days 过大时 timedelta(days=days) 导致
-        end_date - timedelta 超出 datetime 范围，抛出 OverflowError。
-        此测试记录该缺陷，供后续修复时回归验证。
+        修复前：days=999999 触发 OverflowError（datetime 范围溢出）。
+        修复后：days > MAX_ANALYZE_DAYS 时抛出 ValueError，带业务错误信息。
+        边界显性化原则：用明确的业务错误码替代底层的 OverflowError。
         """
         black_box = MockBlackBox(events=[_make_event()])
         analytics = DataAnalytics(black_box=black_box, vector_store=None)
-        with pytest.raises(OverflowError):
+        with pytest.raises(ValueError, match="days 超过上限"):
             analytics.analyze_event_trends(days=999999)
 
     def test_extreme_large_threshold_detect_anomalies(self):
@@ -239,6 +238,86 @@ class TestExtremeBoundary:
         assert isinstance(result, list)
         # 大概率为空（因为 threshold 过高）
         # 但不强制断言长度，因为 lull 类型异常可能存在
+
+
+# ═══════════════════════════════════════════════════════════════
+#  TestOverflowFixBoundary — OverflowError 修复后的边界验证
+# ═══════════════════════════════════════════════════════════════
+
+class TestOverflowFixBoundary:
+    """OverflowError 修复后的边界验证
+
+    修复方案：在 analyze_event_trends 方法开头添加 days 参数校验，
+    负数或超限（> MAX_ANALYZE_DAYS）时抛出带业务错误码的 ValueError，
+    并输出结构化日志（含 trace_id/module_name/action/duration_ms）。
+    """
+
+    def test_fix_negative_days_raises_value_error(self):
+        """days=-1 抛出 ValueError（负数防御）"""
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        with pytest.raises(ValueError, match="非负整数"):
+            analytics.analyze_event_trends(days=-1)
+
+    def test_fix_just_over_max_raises_value_error(self):
+        """days=MAX_ANALYZE_DAYS+1 抛出 ValueError（边界+1）"""
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        with pytest.raises(ValueError, match="超过上限"):
+            analytics.analyze_event_trends(days=MAX_ANALYZE_DAYS + 1)
+
+    def test_fix_exact_max_boundary_ok(self):
+        """days=MAX_ANALYZE_DAYS 正常执行（边界值验证）"""
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        result = analytics.analyze_event_trends(days=MAX_ANALYZE_DAYS)
+        assert result["period"]["days"] == MAX_ANALYZE_DAYS
+
+    def test_fix_zero_days_still_works(self):
+        """days=0 仍能正常执行（下界验证，不误拦合法值）"""
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        result = analytics.analyze_event_trends(days=0)
+        assert result["period"]["days"] == 0
+
+    def test_fix_non_int_days_raises_value_error(self):
+        """days 为非整数类型时抛出 ValueError（类型防御）
+
+        边界显性化：非 int 类型（如字符串、浮点数）应被拒绝，
+        防止 timedelta(days=days) 触发 TypeError 或意外行为。
+        注：bool 是 int 的子类，True/False 会被 isinstance(int) 接受，
+        此处不测试 bool（Python 鸭子类型惯例）。
+        """
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        with pytest.raises(ValueError, match="非负整数"):
+            analytics.analyze_event_trends(days="999")
+
+    def test_fix_error_message_contains_max_allowed(self):
+        """错误信息中包含 MAX_ANALYZE_DAYS 的值（可追溯性）"""
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        with pytest.raises(ValueError) as exc_info:
+            analytics.analyze_event_trends(days=999999)
+        # 错误信息中应包含实际上限值，便于排查
+        assert str(MAX_ANALYZE_DAYS) in str(exc_info.value)
+
+    def test_fix_overflow_no_longer_raises_overflow_error(self):
+        """修复后 days=999999 不再抛出 OverflowError（回归验证）
+
+        确保修复彻底：之前抛出 OverflowError 的输入现在抛出 ValueError，
+        而非仍然抛出 OverflowError 或其他异常。
+        """
+        black_box = MockBlackBox(events=[_make_event()])
+        analytics = DataAnalytics(black_box=black_box, vector_store=None)
+        # 应抛出 ValueError，而非 OverflowError
+        try:
+            analytics.analyze_event_trends(days=999999)
+            pytest.fail("应抛出 ValueError")
+        except ValueError:
+            pass  # 预期行为
+        except OverflowError:
+            pytest.fail("修复无效：仍抛出 OverflowError")
 
 
 # ═══════════════════════════════════════════════════════════════
