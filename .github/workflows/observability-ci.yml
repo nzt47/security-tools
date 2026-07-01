@@ -152,6 +152,10 @@ jobs:
   architecture-visibility-check:
     name: 架构影响可见性检查
     runs-on: ubuntu-latest
+    permissions:
+      # PR 评论需要 pull-requests: write 权限（评论变更影响分析报告）
+      pull-requests: write
+      contents: read
     steps:
       - name: 检出代码（完整历史用于 git diff）
         uses: actions/checkout@v4
@@ -283,7 +287,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        # pyproject.toml 要求 requires-python = ">=3.10,<3.13"，移除 3.9 避免版本不兼容
+        python-version: ['3.10', '3.11']
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -551,6 +556,10 @@ jobs:
   boundary-coverage-check:
     name: 边界覆盖检查
     runs-on: ubuntu-latest
+    permissions:
+      # PR 评论需要 pull-requests: write 权限（评论边界覆盖扫描报告）
+      pull-requests: write
+      contents: read
     steps:
       - name: 检出代码（完整历史用于 git diff 检测新增模块）
         uses: actions/checkout@v4
