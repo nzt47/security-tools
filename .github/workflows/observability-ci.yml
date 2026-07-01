@@ -1092,6 +1092,10 @@ jobs:
     runs-on: ubuntu-latest
     # PR 时不阻塞合并；定时和手动触发时正常执行
     continue-on-error: true
+    permissions:
+      # PR 评论需要 pull-requests: write 权限（评论混沌测试结果）
+      pull-requests: write
+      contents: read
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
