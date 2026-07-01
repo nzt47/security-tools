@@ -172,11 +172,14 @@ jobs:
           cache: 'pip'
 
       # 安装依赖：pyyaml 用于配置解析，watchdog 用于 agent.file_watcher 模块
-      # 缺失 watchdog 会导致 agent/__init__.py 导入失败，进而架构检查工具无法运行
+      # pip install -e . 安装项目全部依赖（psutil/torch 等），因为架构检查工具通过
+      # python -m agent.observability.dependency_graph 运行，会触发 agent/__init__.py
+      # 的完整导入链（digital_life -> sensor -> cpu_sensor -> import psutil）
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
           pip install pyyaml watchdog
+          pip install -e .
 
       # ── 步骤 1：生成模块依赖图 ──
       - name: 生成模块依赖图
