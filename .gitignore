@@ -16,3 +16,6 @@ scripts/verify_delete_priority_cleanup.py
 scripts/demo_delete_log_output.py
 scripts/verify_startup_log_format.py
 scripts/bench_formatter_perf.py
+
+# 日志目录（运行时生成的测试日志/报告，不入库）
+logs/
