@@ -10,3 +10,6 @@ scripts/setup_env_vars.ps1
 scripts/setup_env_vars.sh
 scripts/_token.txt
 .env
+
+# Claude worktrees（本地工作树，不应作为 submodule 提交）
+.claude/worktrees/
