@@ -97,28 +97,84 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 
+def log_dict(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """规范化日志字典并返回，供 logger.X(log_dict({...})) 直接传递 dict
+
+    消除调用方 json.dumps + formatter json.loads 的双重序列化开销。
+    """
+    data = dict(payload)
+    if "msg" in data:
+        if "message" not in data:
+            data["message"] = data.pop("msg")
+        else:
+            data.pop("msg")
+    data.setdefault("trace_id", _trace_id())
+    data.setdefault("module_name", "unknown")
+    data.setdefault("action", "unknown")
+    data.setdefault("duration_ms", 0)
+    return data
+
+
 def _safe_log_message(message):
     """安全处理日志消息，替换 emoji 避免 GBK 编码问题"""
     if not isinstance(message, str):
         return message
-    
+
     for emoji, replacement in _EMOJI_MAP.items():
         message = message.replace(emoji, replacement)
-    
+
     return message
 
 
+def _safe_log_dict(data: Dict) -> Dict:
+    """递归处理 dict 中的所有 str 值，替换 emoji 避免 GBK 编码问题"""
+    result = {}
+    for key, value in data.items():
+        if isinstance(value, str):
+            result[key] = _safe_log_message(value)
+        elif isinstance(value, dict):
+            result[key] = _safe_log_dict(value)
+        elif isinstance(value, list):
+            result[key] = [
+                _safe_log_message(v) if isinstance(v, str)
+                else _safe_log_dict(v) if isinstance(v, dict)
+                else v
+                for v in value
+            ]
+        else:
+            result[key] = value
+    return result
+
+
 class EmojiFilter(logging.Filter):
-    """日志过滤器 - 自动替换 emoji 字符"""
-    
+    """日志过滤器 - 自动替换 emoji 字符
+
+    支持 dict 和 str 两种 record.msg 类型。
+    """
+
     def filter(self, record):
         if record.msg is not None:
-            record.msg = _safe_log_message(record.msg)
+            if isinstance(record.msg, dict):
+                record.msg = _safe_log_dict(record.msg)
+            elif isinstance(record.msg, str):
+                record.msg = _safe_log_message(record.msg)
         if record.args:
             record.args = tuple(
                 _safe_log_message(arg) if isinstance(arg, str) else arg
                 for arg in record.args
             )
+        return True
+
+
+class DictToJsonFilter(logging.Filter):
+    """将 dict 类型的 record.msg 序列化为 JSON 字符串
+
+    仅应挂载于文件 handler，控制台 handler 不应挂载。
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, dict):
+            record.msg = json.dumps(record.msg, ensure_ascii=False)
         return True
 
 # ─────────────────────────────────────────────────
@@ -295,6 +351,7 @@ def setup_agent_logging(
         file_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
         file_handler.addFilter(SensitiveDataFilter())
         file_handler.addFilter(EmojiFilter())
+        file_handler.addFilter(DictToJsonFilter())
         root_logger.addHandler(file_handler)
         logger = logging.getLogger("云枢.agent")
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "logging_utils", "action": "logging_utils.setup_agent_logging.log_file", "duration_ms": 0, "message": f"日志文件: {log_file}"}, ensure_ascii=False))
@@ -483,9 +540,12 @@ class SensitiveDataFilter(logging.Filter):
         Returns:
             True（始终允许记录，只是脱敏内容）
         """
-        if hasattr(record, 'msg') and isinstance(record.msg, str):
-            record.msg = self._sanitize(record.msg)
-        
+        if hasattr(record, 'msg'):
+            if isinstance(record.msg, str):
+                record.msg = self._sanitize(record.msg)
+            elif isinstance(record.msg, dict):
+                record.msg = self._sanitize_dict(record.msg)
+
         if hasattr(record, 'args') and isinstance(record.args, tuple):
             sanitized_args = []
             for arg in record.args:
@@ -1035,4 +1095,6 @@ __all__ = [
     'SensitiveDataFilter',
     'AuditLogger',
     'get_audit_logger',
+    'log_dict',
+    'DictToJsonFilter',
 ]
