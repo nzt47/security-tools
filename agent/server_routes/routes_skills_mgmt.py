@@ -192,6 +192,45 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/upload", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_upload():
+        """上传 zip 技能包并安装到三层架构文件仓库
+
+        Multipart form-data:
+            file: zip 文件
+            force: 是否覆盖安装 (可选, 默认 true)
+        """
+        try:
+            if "file" not in request.files:
+                return jsonify({"ok": False, "error": "缺少 file 字段",
+                                "code": "SKILL_VALIDATION_ERROR"}), 400
+            file = request.files["file"]
+            if not file.filename or not file.filename.endswith(".zip"):
+                return jsonify({"ok": False, "error": "文件必须是 .zip 格式",
+                                "code": "SKILL_VALIDATION_ERROR"}), 400
+
+            # 保存到临时文件
+            import tempfile, os
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=".zip", prefix="skill_upload_")
+            try:
+                os.close(tmp_fd)
+                file.save(tmp_path)
+                result = _svc().install_from_zip(tmp_path)
+                logger.info("[SkillsMgmt] 上传安装成功: %s", result.get("skill_id"))
+                return jsonify({"ok": True, "skill": result}), 201
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     # ═══════════════════════════════════════════════════
     #  审核
     # ═══════════════════════════════════════════════════
