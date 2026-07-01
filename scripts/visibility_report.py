@@ -1157,6 +1157,13 @@ _LAYER_LABEL_MAP = {
 # 例如 arch_rule_violations：passed=True 当 violations ≤ max_violations
 _INVERSE_METRICS = {"arch_rule_violations"}
 
+# 指标名规范化映射：Metric.name → 导出时的短名
+# 避免层级前缀与指标名重复（如 architecture + arch_rule_violations → architecture_arch_rule_violations）
+# 历史问题：Grafana 看板查询 architecture_rule_violations，但实际导出双重 arch 前缀导致无数据
+_METRIC_NAME_NORMALIZE: Dict[str, str] = {
+    "arch_rule_violations": "rule_violations",
+}
+
 
 def export_to_prometheus(report: VisibilityReport) -> str:
     """将四层可见性报告导出为 Prometheus exposition 格式文本
@@ -1212,6 +1219,13 @@ def export_to_prometheus(report: VisibilityReport) -> str:
         f"{_VIS_METRIC_PREFIX}_report_duration_seconds {report.duration_ms / 1000.0:.4f} {timestamp_ms}"
     )
 
+    # 报告生成时间戳（Unix 秒），用于过期检测告警（如报告超过 10 分钟未刷新则告警）
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_report_timestamp_seconds Visibility report generation timestamp in unix seconds")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_report_timestamp_seconds gauge")
+    lines.append(
+        f"{_VIS_METRIC_PREFIX}_report_timestamp_seconds {timestamp_ms / 1000.0:.3f} {timestamp_ms}"
+    )
+
     lines.append(f"# HELP {_VIS_METRIC_PREFIX}_up Visibility exporter liveness probe")
     lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_up gauge")
     lines.append(f"{_VIS_METRIC_PREFIX}_up 1 {timestamp_ms}")
@@ -1234,8 +1248,9 @@ def export_to_prometheus(report: VisibilityReport) -> str:
     for layer in report.layers:
         layer_label = _LAYER_LABEL_MAP.get(layer.layer_name, layer.layer_name)
         for m in layer.metrics:
-            # 指标名规范化：runtime_structured_log_coverage 等
-            prom_name = f"{_VIS_METRIC_PREFIX}_{layer_label}_{m.name}"
+            # 指标名规范化：应用名称映射避免层级前缀重复（arch_rule_violations → rule_violations）
+            metric_short_name = _METRIC_NAME_NORMALIZE.get(m.name, m.name)
+            prom_name = f"{_VIS_METRIC_PREFIX}_{layer_label}_{metric_short_name}"
             if prom_name not in seen_metric_help:
                 lines.append(f"# HELP {prom_name} {m.description or m.name}")
                 lines.append(f"# TYPE {prom_name} gauge")
