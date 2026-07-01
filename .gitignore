@@ -15,3 +15,4 @@ scripts/_token.txt
 scripts/verify_delete_priority_cleanup.py
 scripts/demo_delete_log_output.py
 scripts/verify_startup_log_format.py
+scripts/bench_formatter_perf.py
