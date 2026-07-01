@@ -1,19 +1,22 @@
 # 边界覆盖扫描报告
 
-- **生成时间**：2026-07-01T12:15:38.709960
-- **Trace ID**：`169ece2b62ce47fc`
-- **扫描耗时**：1769.27 ms
-- **总体状态**：⚠️ 警告
+- **生成时间**：2026-07-01T13:20:50.995824
+- **Trace ID**：`cb62683a52bc4f17`
+- **扫描耗时**：1689.54 ms
+- **总体状态**：✅ 通过
 
 ## 总览
 
 | 指标 | 数值 |
 | --- | --- |
 | 模块总数 | 66 |
-| 测试用例总数 | 5702 |
-| 边界测试用例数 | 1254 |
-| 边界测试覆盖率 | 22.0% |
+| 测试用例总数 | 5797 |
+| 边界测试用例数 | 1413 |
+| 边界测试覆盖率（用例数比例） | 24.4% |
+| **模块场景覆盖率（主指标）** | **100.0%** (47/47) |
 | 阻断模块数 | 0 |
+
+> **指标说明**：`模块场景覆盖率` 是阶段 2 起采用的主指标，定义为「已声明模块的必需场景覆盖率」，即已覆盖的必需场景数 / 必需场景总数。相较于用例数比例，它不受总测试数增长稀释影响，更真实反映边界测试质量。
 
 ## 模块详情
 
@@ -22,9 +25,9 @@
 | `ab_testing` |  | 59 | 2 | extreme | — | ✅ | — |
 | `api_gateway` |  | 23 | 8 | boundary, invalid, permission | — | ✅ | — |
 | `audit` |  | 24 | 4 | boundary, empty | — | ✅ | — |
-| `behavior_controller` |  | 6 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
+| `behavior_controller` |  | 45 | 39 | boundary, empty, exception, extreme, invalid, null | — | ✅ | — |
 | `caching` |  | 63 | 2 | empty, null | — | ✅ | — |
-| `circuit_breaker` | 熔断器 | 81 | 22 | boundary, empty, exception, extreme, invalid, timeout | — | ✅ | — |
+| `circuit_breaker` | 熔断器 | 47 | 13 | boundary, exception, extreme, invalid, timeout | — | ✅ | — |
 | `code_review` |  | 28 | 4 | empty, invalid, permission | — | ✅ | — |
 | `cognitive` | 认知循环与决策 | 93 | 36 | boundary, empty, extreme, invalid, null, timeout | — | ✅ | — |
 | `config` | 配置加载与校验 | 192 | 82 | boundary, empty, exception, extreme, invalid, null, permission, timeout | — | ✅ | — |
@@ -33,12 +36,12 @@
 | `detailed_profiler` |  | 19 | 4 | exception, extreme | — | ✅ | — |
 | `diagram_tools` |  | 12 | 3 | empty | — | ✅ | — |
 | `digital_life` |  | 146 | 16 | empty, exception, extreme, permission | — | ✅ | — |
-| `disaster_recovery` | 容灾恢复 | 132 | 58 | boundary, empty, exception, extreme, invalid, null, overflow, resource, timeout | — | ✅ | — |
+| `disaster_recovery` | 容灾恢复 | 87 | 50 | boundary, empty, exception, extreme, invalid, null, overflow, resource, timeout | — | ✅ | — |
 | `error_handler` |  | 416 | 89 | boundary, empty, exception, extreme, invalid, null, timeout | — | ✅ | — |
 | `error_reporting_config` |  | 161 | 36 | boundary, empty, encoding, exception, extreme, invalid, null, timeout | — | ✅ | — |
 | `extensions` | 扩展系统 | 69 | 5 | empty, invalid, permission | — | ✅ | — |
-| `feedback` |  | 16 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
-| `graceful_degrade` | 优雅降级 | 102 | 35 | boundary, empty, exception, extreme, invalid, null, overflow, timeout | — | ✅ | — |
+| `feedback` |  | 60 | 44 | boundary, empty, encoding, exception, extreme, invalid, null, overflow, resource | — | ✅ | — |
+| `graceful_degrade` | 优雅降级 | 72 | 31 | boundary, empty, exception, extreme, invalid, null, overflow, timeout | — | ✅ | — |
 | `guardrails` | 安全守护 | 86 | 14 | empty, encoding, extreme, invalid, overflow, timeout | — | ✅ | — |
 | `health` | 健康评估 | 48 | 30 | boundary, empty, extreme, invalid, null, overflow | — | ✅ | — |
 | `human_in_the_loop` |  | 22 | 1 | invalid | — | ✅ | — |
@@ -58,12 +61,12 @@
 | `p6_config_loader` |  | 12 | 2 | invalid, null | — | ✅ | — |
 | `p6_snapshot` |  | 151 | 27 | boundary, empty, exception, extreme, null, permission | — | ✅ | — |
 | `pdf_tools` |  | 14 | 4 | empty | — | ✅ | — |
-| `performance_logging` |  | 15 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
+| `performance_logging` |  | 73 | 58 | boundary, empty, encoding, exception, extreme, invalid, null, overflow, resource | — | ✅ | — |
 | `performance_monitor` |  | 78 | 6 | boundary, empty, exception | — | ✅ | — |
 | `permission_system` | 权限系统 | 28 | 8 | boundary, empty, exception, invalid, null, permission | — | ✅ | — |
 | `prometheus_exporter` |  | 30 | 1 | null | — | ✅ | — |
 | `quality` |  | 29 | 10 | boundary, empty, exception, extreme, invalid, null | — | ✅ | — |
-| `rate_limiter` | 限流器 | 113 | 70 | boundary, empty, exception, extreme, overflow, timeout | — | ✅ | — |
+| `rate_limiter` | 限流器 | 83 | 16 | boundary, empty, exception, extreme, null, overflow | — | ✅ | — |
 | `safety_guard` |  | 18 | 4 | boundary, empty, null | — | ✅ | — |
 | `search_performance_monitor` |  | 14 | 2 | boundary, empty | — | ✅ | — |
 | `security_utils` |  | 142 | 35 | boundary, empty, encoding, exception, extreme, invalid, null, permission | — | ✅ | — |
@@ -72,7 +75,7 @@
 | `state_manager` |  | 21 | 3 | empty, invalid, null | — | ✅ | — |
 | `subagent` |  | 81 | 17 | boundary, empty, exception, extreme, null, permission | — | ✅ | — |
 | `system_tools` |  | 638 | 141 | boundary, empty, encoding, exception, extreme, invalid, null, overflow, permission, timeout | — | ✅ | — |
-| `task_planner` |  | 4 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
+| `task_planner` |  | 38 | 34 | boundary, empty, encoding, exception, extreme, invalid, null, overflow, resource | — | ✅ | — |
 | `task_scheduler` |  | 80 | 8 | empty, exception, extreme, null | — | ✅ | — |
 | `test_memory_module` |  | 21 | 5 | boundary, empty | — | ✅ | — |
 | `test_permission_system` |  | 29 | 3 | boundary, empty, permission | — | ✅ | — |
@@ -82,8 +85,8 @@
 | `utils` |  | 113 | 13 | empty, invalid, null | — | ✅ | — |
 | `v2_performance_patch` |  | 26 | 8 | empty, exception, extreme, null, timeout | — | ✅ | — |
 | `web` |  | 344 | 45 | boundary, empty, exception, extreme, invalid, null, timeout, underflow | — | ✅ | — |
-| `weekly_report_generator` |  | 16 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
-| `workflow_engine` |  | 33 | 0 | — | — | ⚠️ | 未配置边界场景要求，建议补充边界测试 |
+| `weekly_report_generator` |  | 50 | 34 | boundary, empty, exception, extreme, invalid, null, overflow | — | ✅ | — |
+| `workflow_engine` |  | 58 | 25 | boundary, empty, encoding, exception, extreme, invalid, null, overflow, resource | — | ✅ | — |
 | `workflow_learning` |  | 14 | 2 | empty, null | — | ✅ | — |
 
 ## 边界测试用例明细
@@ -97,19 +100,19 @@
 | `core` | `test_empty_registry_remove_returns_false` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_all_returns_empty_dict` | tests\boundary\test_core_boundary.py | empty |
 | `core` | `test_empty_registry_clear_no_error` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
-| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | empty, null |
+| `core` | `test_empty_callback_registry_trigger_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
+| `core` | `test_empty_type_registry_create_instance_returns_none` | tests\boundary\test_core_boundary.py | null, empty |
 | `core` | `test_empty_registry_update_empty_dict` | tests\boundary\test_core_boundary.py | empty |
-| `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | empty, null |
-| `core` | `test_invalid_name_none_register` | tests\boundary\test_core_boundary.py | invalid, null |
-| `core` | `test_invalid_name_empty_string_register` | tests\boundary\test_core_boundary.py | empty, invalid |
-| `core` | `test_invalid_get_with_none_name` | tests\boundary\test_core_boundary.py | invalid, null |
-| `core` | `test_invalid_has_with_empty_name` | tests\boundary\test_core_boundary.py | empty, invalid |
-| `core` | `test_invalid_remove_nonexistent` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_empty_registry_get_with_explicit_none_default` | tests\boundary\test_core_boundary.py | null, empty |
+| `core` | `test_invalid_name_none_register` | tests\boundary\test_core_boundary.py | null, invalid |
+| `core` | `test_invalid_name_empty_string_register` | tests\boundary\test_core_boundary.py | invalid, empty |
+| `core` | `test_invalid_get_with_none_name` | tests\boundary\test_core_boundary.py | null, invalid |
+| `core` | `test_invalid_has_with_empty_name` | tests\boundary\test_core_boundary.py | invalid, empty |
+| `core` | `test_invalid_remove_nonexistent` | tests\boundary\test_core_boundary.py | null, invalid |
 | `core` | `test_invalid_callback_not_callable` | tests\boundary\test_core_boundary.py | invalid |
 | `core` | `test_invalid_type_not_type` | tests\boundary\test_core_boundary.py | invalid |
 | `core` | `test_invalid_create_instance_with_wrong_args` | tests\boundary\test_core_boundary.py | invalid |
-| `core` | `test_invalid_update_with_none` | tests\boundary\test_core_boundary.py | invalid, null |
+| `core` | `test_invalid_update_with_none` | tests\boundary\test_core_boundary.py | null, invalid |
 | `core` | `test_invalid_trigger_with_wrong_args` | tests\boundary\test_core_boundary.py | invalid |
 | `core` | `test_invalid_register_decorator_with_invalid_registry` | tests\boundary\test_core_boundary.py | invalid |
 | `core` | `test_null_callback_trigger_returns_none` | tests\boundary\test_core_boundary.py | null |
@@ -132,7 +135,7 @@
 | `core` | `test_type_registry_create_nonexistent` | tests\unit\test_core_comprehensive.py | null |
 | `cognitive` | `test_timeout_inject_empty_data` | tests\boundary\test_cognitive_boundary.py | empty, timeout |
 | `cognitive` | `test_timeout_inject_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
-| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | timeout, null |
+| `cognitive` | `test_timeout_inject_none_data` | tests\boundary\test_cognitive_boundary.py | null, timeout |
 | `cognitive` | `test_timeout_translate_all_large_batch` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_get_summary_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
 | `cognitive` | `test_timeout_should_reject_task_large_data` | tests\boundary\test_cognitive_boundary.py | timeout |
@@ -141,7 +144,7 @@
 | `cognitive` | `test_empty_sensor_data_inject` | tests\boundary\test_cognitive_boundary.py | empty |
 | `cognitive` | `test_empty_sensor_data_get_summary` | tests\boundary\test_cognitive_boundary.py | empty |
 
-> 仅展示前 50 条，共 1254 条边界测试用例
+> 仅展示前 50 条，共 1413 条边界测试用例
 
 ## CI 阻断策略
 
