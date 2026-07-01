@@ -18,6 +18,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - develop
     paths:
       - 'agent/**'
@@ -28,10 +29,12 @@ on:
   push:
     branches:
       - main
+      - master
     paths:
       - 'agent/**'
       - 'config.yaml'
       - 'docs/architecture/legacy_exemptions.json'
+  workflow_dispatch: {}
 
 env:
   PYTHON_VERSION: '3.11'
@@ -55,13 +58,15 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
+          # arch_rules/dependency_graph 本身只依赖标准库 + pyyaml
+          # （CI 通过 ci_run_module.py 绕过 agent/__init__.py 重型导入链）
           pip install pyyaml
 
       # ── 步骤 1：生成模块依赖图 ──
       - name: 生成模块依赖图
         run: |
           echo "=== 生成模块依赖图 ==="
-          python -m agent.observability.dependency_graph \
+          python scripts/ci_run_module.py agent.observability.dependency_graph \
             --root agent \
             --output docs/architecture/module_dependency_graph.md \
             --json-output docs/architecture/dependency_graph.json
@@ -72,7 +77,7 @@ jobs:
         id: arch_rules
         run: |
           echo "=== 架构规则校验 ==="
-          python -m agent.observability.arch_rules \
+          python scripts/ci_run_module.py agent.observability.arch_rules \
             --check \
             --root agent \
             --exemptions docs/architecture/legacy_exemptions.json \
@@ -206,9 +211,9 @@ jobs:
             docs/architecture/violation_events/
           retention-days: 30
 
-      # ── 自动提交依赖图文档（仅 main 分支 push）──
+      # ── 自动提交依赖图文档（仅 main/master 分支 push）──
       - name: 提交依赖图文档
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

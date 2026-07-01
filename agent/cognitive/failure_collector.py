@@ -399,14 +399,17 @@ def collect_failure(trace_id: str, message: str, source: str = "",
                    severity: FailureSeverity = FailureSeverity.MEDIUM,
                    **kwargs) -> FailureRecord:
     """便捷函数：收集失败案例
-    
+
     生产环境日志系统中可以直接调用此函数来收集失败。
     """
     collector = get_failure_collector()
+    # 过滤与显式参数同名的键，避免 **kwargs 展开时冲突
+    _reserved = {"trace_id", "message", "source", "severity"}
+    safe_kwargs = {k: v for k, v in kwargs.items() if k not in _reserved}
     return collector.collect_failure(
         trace_id=trace_id,
         message=message,
         source=source,
         severity=severity,
-        **kwargs
+        **safe_kwargs
     )

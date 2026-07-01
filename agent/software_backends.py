@@ -70,3 +70,21 @@ class GitHubBackend:
     def clone(self, repo_url, destination):
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "software_backends", "action": "software_backend.github.clone", "repo_url": repo_url, "destination": destination}, ensure_ascii=False))
         return True
+
+
+def _safe_call(func, *args, action="safe_call", **kwargs):
+    """安全调用包装器——捕获异常并记录结构化日志后重新抛出
+
+    用于边界显性化：可能失败的操作应通过此包装器调用，
+    确保异常被记录后再向上传播，而非静默吞掉。
+    """
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(json.dumps({
+            "trace_id": _trace_id(),
+            "module_name": "software_backends",
+            "action": action + ".failed",
+            "error": f"{type(e).__name__}: {e}",
+        }, ensure_ascii=False))
+        raise

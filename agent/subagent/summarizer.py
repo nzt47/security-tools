@@ -338,11 +338,13 @@ class SubagentSummarizer:
 
         这是主代理获取子代理结果的唯一接口。
         """
+        _reserved = {"output", "subagent_id", "strategy"}
+        safe_kwargs = {k: v for k, v in kwargs.items() if k not in _reserved}
         summary = await self.summarize(
             output=output,
             subagent_id=subagent_id,
             strategy=SummaryStrategy.KEY_POINTS,
-            **kwargs
+            **safe_kwargs
         )
         return summary.get_brief_conclusion()
 

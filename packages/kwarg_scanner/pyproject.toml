@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kwarg-scanner"
+version = "1.0.0"
+description = "Python 关键字参数冲突风险静态扫描器 — 检测 func(explicit_kwarg=x, **dict) 模式中 dict 含同名键的冲突风险"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "yunshu", email = "dev@yunshu.ai"},
+]
+keywords = [
+    "static-analysis",
+    "code-quality",
+    "ast",
+    "kwargs",
+    "python",
+    "linter",
+    "ci-cd",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+kwarg-scan = "kwarg_scanner.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yunshu/kwarg-scanner"
+Repository = "https://github.com/yunshu/kwarg-scanner"
+Issues = "https://github.com/yunshu/kwarg-scanner/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kwarg_scanner*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
