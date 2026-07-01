@@ -232,6 +232,61 @@ class TestCooldownTimeout:
 
 
 # ═════════════════════════════════════════════════════════════════
+#  场景 3.5: timeout — 显式 timeout 边界（覆盖 timeout 关键词场景）
+# ═════════════════════════════════════════════════════════════════
+
+
+class TestTimeoutBoundary:
+    """超时边界条件测试
+
+    覆盖 timeout 关键词场景，与 TestCooldownTimeout 互补：
+    - TestCooldownTimeout 测试冷却期到期行为，方法名不含 timeout 关键词
+    - 本类方法名显式包含 timeout 关键词，供边界扫描器识别
+    """
+
+    def test_circuit_breaker_timeout_boundary_zero_cooldown_immediate_half_open(self):
+        """边界：cooldown_seconds=0 时，触发熔断后应立即转为 HALF_OPEN（无 OPEN 等待期）"""
+        breaker = CircuitBreaker(
+            name="zero_timeout",
+            failure_threshold=0.3,
+            min_calls=2,
+            cooldown_seconds=0.0,
+            half_open_max_calls=3,
+            half_open_success_threshold=2,
+            window_seconds=60.0,
+        )
+        # 触发熔断：cooldown=0 时，状态机在 record_result 内部
+        # 会先转 OPEN，再因 elapsed >= cooldown_seconds=0 立即转 HALF_OPEN
+        for _ in range(2):
+            breaker.record_result(False)
+        # 由于 cooldown=0，OPEN 状态被立即跳过，最终稳定在 HALF_OPEN
+        assert breaker.state == CircuitState.HALF_OPEN
+
+    def test_circuit_breaker_timeout_boundary_during_cooldown_blocks_requests(self, fast_breaker):
+        """边界：冷却 timeout 期间应阻断请求（allow_request 返回 False）"""
+        for _ in range(3):
+            fast_breaker.record_result(True)
+        for _ in range(2):
+            fast_breaker.record_result(False)
+        assert fast_breaker.state == CircuitState.OPEN
+        # 冷却 timeout 未到期，请求应被阻断
+        time.sleep(0.05)  # 0.05s < 0.1s 冷却期
+        assert fast_breaker.allow_request() is False
+
+    def test_circuit_breaker_timeout_boundary_after_cooldown_allows_probe(self, fast_breaker):
+        """边界：冷却 timeout 到期后允许探测请求进入 HALF_OPEN"""
+        for _ in range(3):
+            fast_breaker.record_result(True)
+        for _ in range(2):
+            fast_breaker.record_result(False)
+        assert fast_breaker.state == CircuitState.OPEN
+        # 冷却 timeout 到期，allow_request 应允许探测
+        time.sleep(0.15)  # 0.15s > 0.1s 冷却期
+        assert fast_breaker.state == CircuitState.HALF_OPEN
+        assert fast_breaker.allow_request() is True
+
+
+# ═════════════════════════════════════════════════════════════════
 #  场景 4: extreme — 极端值与异常输入
 # ═════════════════════════════════════════════════════════════════
 
