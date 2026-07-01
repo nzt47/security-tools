@@ -621,9 +621,21 @@ class ReplayStorage:
     def cleanup_old_records(self, days: int = 30) -> int:
         """清理 days 天前的回放记录（文件 + DB）
 
+        Args:
+            days: 保留天数（0 ≤ days ≤ 36500），超过此范围抛出 ValueError
+
         Returns:
             int: 删除的记录数
+
+        Raises:
+            ValueError: days 为负数或超过 36500 时抛出
         """
+        # 边界显性化：校验 days 参数，防止 OverflowError
+        if not isinstance(days, int) or days < 0:
+            raise ValueError(f"days 必须为非负整数，得到: {days!r}")
+        if days > 36500:
+            raise ValueError(f"days 超过上限 36500，得到: {days}")
+
         action = "cleanup_old_records"
         t0 = time.time()
         cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
