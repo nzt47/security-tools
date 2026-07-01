@@ -22,6 +22,25 @@ except Exception:
     _METRICS_AVAILABLE = False
 
 
+class DataObservabilityCollector:
+    """[违规测试占位类] 数据可观测性采集器
+
+    注意：此类仅为架构违规测试而添加，用于验证 orchestrator→dao 跨层调用检测。
+    正常架构中 orchestrator 不应直接 import agent.data 模块。
+    """
+
+    def __init__(self):
+        self._trace_id = uuid.uuid4().hex[:16]
+
+    def collect(self, metric_name: str, value: float) -> None:
+        """采集指标（占位实现）"""
+        logger.info(
+            '{"trace_id":"%s","module_name":"data.observability",'
+            '"action":"collect","metric":"%s","value":%.2f}',
+            self._trace_id, metric_name, value,
+        )
+
+
 def _trace_id() -> str:
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
