@@ -48,6 +48,16 @@ class DegradeLevel(str, Enum):
     DISABLED = "disabled"          # 完全禁用该依赖
 
 
+class DegradeModule(str, Enum):
+    """可降级模块枚举（与 output_schema/critic/memory/dashboard 对齐）"""
+    SCHEMA = "schema"                  # Schema 验证
+    CRITIC = "critic"                  # Critic 评审
+    MEMORY = "memory"                  # Memory 路由
+    DASHBOARD = "dashboard"            # Dashboard 加载
+    TOOL_CALLING = "tool_calling"      # 工具调用
+    LLM_ROUTER = "llm_router"          # LLM 路由
+
+
 class DegradeError(Exception):
     """降级失败时抛出的业务错误（带明确业务错误码）"""
 
@@ -287,6 +297,63 @@ class GracefulDegrade:
         """获取缓存数据（Dashboard 加载失败时回退）"""
         return self._cache_pool.get(component)
 
+    # ── 模块化降级入口（与 DegradeModule 枚举对齐） ─────────
+
+    def with_degrade(
+        self,
+        module: "DegradeModule | str",
+        func: Callable,
+        *args,
+        fallback: Optional[Callable] = None,
+        **kwargs,
+    ) -> Any:
+        """以模块为粒度执行带降级保护的调用
+
+        与 call_with_fallback 的差异：
+        - 接受 DegradeModule 枚举（或字符串）作为模块标识
+        - fallback 是 Callable（惰性求值），仅在主调用失败时执行
+        - 失败时记录降级并返回 fallback 结果，不抛异常
+
+        Args:
+            module: DegradeModule 枚举值或字符串
+            func: 主调用函数
+            fallback: 回退函数（无参，返回回退值）
+        """
+        component = module.value if isinstance(module, DegradeModule) else str(module)
+
+        # 已处于降级期：直接返回 fallback
+        if self.is_degraded(component):
+            if fallback is not None:
+                try:
+                    return fallback()
+                except Exception as exc:
+                    self._log_action("fallback_failed", {
+                        "component": component, "error": str(exc)[:200],
+                    })
+                    return self.default_fallbacks.get(component)
+            return self.default_fallbacks.get(component)
+
+        # 尝试主调用
+        try:
+            result = func(*args, **kwargs)
+            self._maybe_recover(component)
+            return result
+        except Exception as exc:
+            self._record_failure(component)
+            self._trigger_degrade(component)
+            self._log_action("degrade_triggered", {
+                "component": component,
+                "error": str(exc)[:200],
+            })
+            if fallback is not None:
+                try:
+                    return fallback()
+                except Exception as fb_exc:
+                    self._log_action("fallback_failed", {
+                        "component": component, "error": str(fb_exc)[:200],
+                    })
+            return self.default_fallbacks.get(component)
+
     # ── 控制方法 ──────────────────────────────────────────────
 
     def reset(self) -> None:
@@ -320,3 +387,54 @@ class GracefulDegrade:
             logger.info(json.dumps(log_entry, ensure_ascii=False))
         except Exception as exc:
             logger.debug("降级日志记录失败: %s", exc)
+
+
+# ── 全局降级管理器单例（按需创建，线程安全） ─────────────────
+_degrade_manager: Optional["GracefulDegrade"] = None
+_degrade_lock = threading.Lock()
+
+
+def get_degrade_manager(
+    default_fallbacks: Optional[dict] = None,
+    max_retries: int = 3,
+    degrade_seconds: float = 30.0,
+    force_new: bool = False,
+) -> "GracefulDegrade":
+    """获取全局共享的降级管理器实例
+
+    幂等：首次调用按参数创建，后续调用忽略参数返回同一实例。
+    force_new=True 时强制创建新实例（测试场景使用，需配合 reset_degrade_manager）。
+
+    边界显性化：参数非法时抛出 DegradeError 而非静默使用默认值。
+    """
+    global _degrade_manager
+    if max_retries < 0:
+        raise DegradeError(
+            "max_retries 不能为负数",
+            error_code="DEGRADE_INVALID_PARAM",
+            component="degrade_manager",
+        )
+    if degrade_seconds <= 0:
+        raise DegradeError(
+            "degrade_seconds 必须为正数",
+            error_code="DEGRADE_INVALID_PARAM",
+            component="degrade_manager",
+        )
+
+    with _degrade_lock:
+        if _degrade_manager is None or force_new:
+            _degrade_manager = GracefulDegrade(
+                default_fallbacks=default_fallbacks,
+                max_retries=max_retries,
+                degrade_seconds=degrade_seconds,
+            )
+        return _degrade_manager
+
+
+def reset_degrade_manager() -> None:
+    """重置全局降级管理器（测试用：在 fixture 中重置状态）"""
+    global _degrade_manager
+    with _degrade_lock:
+        if _degrade_manager is not None:
+            _degrade_manager.reset()
+        _degrade_manager = None

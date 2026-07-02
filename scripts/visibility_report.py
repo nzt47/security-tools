@@ -351,13 +351,15 @@ class MetricCollector:
         ))
 
         # 2. 边界测试覆盖率（运行边界扫描脚本）
+        # 【指标定义修订】阶段 2 起从「用例数比例」改为「已声明模块的必需场景覆盖率」
+        # 详见 _calc_boundary_coverage() 的 docstring
         boundary_coverage = self._calc_boundary_coverage()
         layer.add_metric(Metric(
             name="boundary_test_coverage",
             value=boundary_coverage,
             threshold=v_thresholds.get("boundary_test_coverage", 10),
             unit="%",
-            description="边界测试用例占总测试比例",
+            description="已声明模块的必需场景覆盖率（阶段2起采用，替代原用例数比例）",
         ))
 
         # 3. 契约测试数
@@ -500,13 +502,23 @@ class MetricCollector:
     def _calc_boundary_coverage(self) -> float:
         """计算边界测试覆盖率
 
+        【指标定义（阶段 2 起修订）】
+        主指标：scene_coverage_percent（已声明模块的必需场景覆盖率）
+          = sum(每个声明模块已覆盖的必需场景数) / sum(每个声明模块的必需场景总数) * 100
+          数据源：check_boundary_coverage.py 输出的 scene_coverage_percent 字段
+          优势：基于声明清单，反映「关键边界场景的覆盖完成度」，不受总测试数增长稀释影响
+
+        降级指标：coverage_percent（用例数比例，向后兼容）
+          = total_boundary_tests / total_tests * 100
+          当 scene_coverage_percent 字段缺失时使用（旧版本兼容）
+
         数据源：调用 scripts/check_boundary_coverage.py --json-only
         排查要点：
           1. 脚本是否存在
           2. subprocess 执行是否超时
           3. returncode 是否为 0/1（2 表示脚本异常）
           4. stdout 是否为空（日志被混入 stdout 时会污染 JSON）
-          5. JSON 字段 total_tests / total_boundary_tests 是否为 0
+          5. JSON 字段 scene_total_count 是否为 0（无声明模块）
         """
         trace_id = _trace_id()
         t0 = time.time()
@@ -602,6 +614,11 @@ class MetricCollector:
             # 6. 提取字段并计算
             total = data.get("total_tests", 0)
             boundary = data.get("total_boundary_tests", 0)
+            # 新指标（推荐）：已声明模块的必需场景覆盖率
+            # 优先使用 scene_coverage_percent，不存在时降级到 coverage_percent（向后兼容）
+            scene_covered = data.get("scene_covered_count", 0)
+            scene_total = data.get("scene_total_count", 0)
+            scene_pct = data.get("scene_coverage_percent")
             overall_status = data.get("overall_status", "unknown")
             logger.info(json.dumps({
                 "trace_id": trace_id,
@@ -610,18 +627,38 @@ class MetricCollector:
                 "duration_ms": elapsed_ms,
                 "total_tests": total,
                 "total_boundary_tests": boundary,
+                "scene_covered_count": scene_covered,
+                "scene_total_count": scene_total,
+                "scene_coverage_percent": scene_pct,
                 "overall_status": overall_status,
                 "blocked_modules": data.get("blocked_modules", []),
                 "total_modules": data.get("total_modules", 0),
             }, ensure_ascii=False))
 
+            # 新指标优先：scene_coverage_percent（基于声明模块的必需场景覆盖率）
+            # 该指标不受总测试数增长稀释影响，更真实反映边界测试质量
+            if scene_pct is not None and scene_total > 0:
+                logger.info(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "visibility_report",
+                    "action": "calc_boundary_coverage.success",
+                    "duration_ms": elapsed_ms,
+                    "metric": "scene_coverage_percent",
+                    "scene_covered_count": scene_covered,
+                    "scene_total_count": scene_total,
+                    "coverage_percent": scene_pct,
+                    "legacy_case_ratio": round(boundary / total * 100, 1) if total else 0.0,
+                }, ensure_ascii=False))
+                return float(scene_pct)
+
+            # 降级：无 scene_coverage_percent 字段时使用旧指标（用例数比例）
             if total == 0:
                 logger.warning(json.dumps({
                     "trace_id": trace_id,
                     "module_name": "visibility_report",
                     "action": "calc_boundary_coverage.zero_total_tests",
                     "duration_ms": elapsed_ms,
-                    "reason": "total_tests=0（测试目录为空或扫描未命中任何测试），返回 0.0",
+                    "reason": "total_tests=0 且无 scene_coverage_percent，返回 0.0",
                     "hint": "请检查 tests/ 目录是否有测试文件，以及 boundary_config.yaml 的 test_root 配置",
                 }, ensure_ascii=False))
                 return 0.0
@@ -632,9 +669,11 @@ class MetricCollector:
                 "module_name": "visibility_report",
                 "action": "calc_boundary_coverage.success",
                 "duration_ms": elapsed_ms,
+                "metric": "legacy_case_ratio",
                 "total_tests": total,
                 "total_boundary_tests": boundary,
                 "coverage_percent": coverage,
+                "reason": "scene_coverage_percent 字段缺失，降级使用用例数比例",
             }, ensure_ascii=False))
             return coverage
 
@@ -1118,6 +1157,13 @@ _LAYER_LABEL_MAP = {
 # 例如 arch_rule_violations：passed=True 当 violations ≤ max_violations
 _INVERSE_METRICS = {"arch_rule_violations"}
 
+# 指标名规范化映射：Metric.name → 导出时的短名
+# 避免层级前缀与指标名重复（如 architecture + arch_rule_violations → architecture_arch_rule_violations）
+# 历史问题：Grafana 看板查询 architecture_rule_violations，但实际导出双重 arch 前缀导致无数据
+_METRIC_NAME_NORMALIZE: Dict[str, str] = {
+    "arch_rule_violations": "rule_violations",
+}
+
 
 def export_to_prometheus(report: VisibilityReport) -> str:
     """将四层可见性报告导出为 Prometheus exposition 格式文本
@@ -1173,6 +1219,13 @@ def export_to_prometheus(report: VisibilityReport) -> str:
         f"{_VIS_METRIC_PREFIX}_report_duration_seconds {report.duration_ms / 1000.0:.4f} {timestamp_ms}"
     )
 
+    # 报告生成时间戳（Unix 秒），用于过期检测告警（如报告超过 10 分钟未刷新则告警）
+    lines.append(f"# HELP {_VIS_METRIC_PREFIX}_report_timestamp_seconds Visibility report generation timestamp in unix seconds")
+    lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_report_timestamp_seconds gauge")
+    lines.append(
+        f"{_VIS_METRIC_PREFIX}_report_timestamp_seconds {timestamp_ms / 1000.0:.3f} {timestamp_ms}"
+    )
+
     lines.append(f"# HELP {_VIS_METRIC_PREFIX}_up Visibility exporter liveness probe")
     lines.append(f"# TYPE {_VIS_METRIC_PREFIX}_up gauge")
     lines.append(f"{_VIS_METRIC_PREFIX}_up 1 {timestamp_ms}")
@@ -1195,8 +1248,9 @@ def export_to_prometheus(report: VisibilityReport) -> str:
     for layer in report.layers:
         layer_label = _LAYER_LABEL_MAP.get(layer.layer_name, layer.layer_name)
         for m in layer.metrics:
-            # 指标名规范化：runtime_structured_log_coverage 等
-            prom_name = f"{_VIS_METRIC_PREFIX}_{layer_label}_{m.name}"
+            # 指标名规范化：应用名称映射避免层级前缀重复（arch_rule_violations → rule_violations）
+            metric_short_name = _METRIC_NAME_NORMALIZE.get(m.name, m.name)
+            prom_name = f"{_VIS_METRIC_PREFIX}_{layer_label}_{metric_short_name}"
             if prom_name not in seen_metric_help:
                 lines.append(f"# HELP {prom_name} {m.description or m.name}")
                 lines.append(f"# TYPE {prom_name} gauge")

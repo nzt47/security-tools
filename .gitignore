@@ -11,5 +11,14 @@ scripts/setup_env_vars.sh
 scripts/_token.txt
 .env
 
+# 本地调试/验证脚本（临时工具，不入库）
+scripts/verify_delete_priority_cleanup.py
+scripts/demo_delete_log_output.py
+scripts/verify_startup_log_format.py
+scripts/bench_formatter_perf.py
+
+# 日志目录（运行时生成的测试日志/报告，不入库）
+logs/
+
 # Claude worktrees（本地工作树，不应作为 submodule 提交）
 .claude/worktrees/
