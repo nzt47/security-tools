@@ -18,11 +18,11 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# 默认配置（向后兼容常量，实际值应通过 get_http_max_retries() 从 Config 读取）
-DEFAULT_TIMEOUT = 30
+# 默认配置（向后兼容常量，实际值应通过便捷函数从 Config 读取）
+DEFAULT_TIMEOUT = 30  # 向后兼容别名，实际值通过 get_http_timeout() 读取
 DEFAULT_MAX_RETRIES = 3  # 向后兼容别名
-DEFAULT_CONNECT_TIMEOUT = 10
-DEFAULT_POOL_SIZE = 20
+DEFAULT_CONNECT_TIMEOUT = 10  # 向后兼容别名，实际值通过 get_http_connect_timeout() 读取
+DEFAULT_POOL_SIZE = 20  # 向后兼容别名，实际值通过 get_http_pool_size() 读取
 
 
 class HttpClient:
@@ -76,9 +76,12 @@ class HttpClient:
         )
 
         # HTTP 和 HTTPS 适配器
+        # 配置化：从 Config 读取默认连接池大小（支持热加载）
+        from agent.monitoring.observability_config import get_http_pool_size
+        _pool_size = self._config.get("pool_size", get_http_pool_size())
         adapter = HTTPAdapter(
-            pool_connections=self._config.get("pool_size", DEFAULT_POOL_SIZE),
-            pool_maxsize=self._config.get("pool_size", DEFAULT_POOL_SIZE) * 2,
+            pool_connections=_pool_size,
+            pool_maxsize=_pool_size * 2,
             max_retries=retry_strategy,
         )
         session.mount("http://", adapter)
@@ -146,6 +149,8 @@ class HttpClient:
                               "headers", "cookies", "timeout",
                               "allow_redirects", "stream", "verify"}
             safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}
+            # 配置化：从 Config 读取默认超时（支持热加载）
+            from agent.monitoring.observability_config import get_http_timeout
             resp = self._session.request(
                 method=method.upper(),
                 url=url,
@@ -154,7 +159,7 @@ class HttpClient:
                 json=json_data,
                 headers=req_headers or None,
                 cookies=cookies,
-                timeout=timeout or self._config.get("timeout", DEFAULT_TIMEOUT),
+                timeout=timeout or self._config.get("timeout", get_http_timeout()),
                 allow_redirects=allow_redirects,
                 stream=stream,
                 verify=verify,
@@ -247,7 +252,9 @@ class HttpClient:
         try:
             _http_reserved = {"url", "stream", "timeout"}
             safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}
-            resp = self._session.get(url, stream=True, timeout=DEFAULT_TIMEOUT, **safe_kwargs)
+            # 配置化：从 Config 读取默认超时（支持热加载）
+            from agent.monitoring.observability_config import get_http_timeout
+            resp = self._session.get(url, stream=True, timeout=get_http_timeout(), **safe_kwargs)
             resp.raise_for_status()
 
             os.makedirs(os.path.dirname(os.path.abspath(filepath)) or ".", exist_ok=True)
