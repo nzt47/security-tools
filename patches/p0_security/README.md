@@ -58,10 +58,22 @@ re.compile(r'([^"\'&\s]*)')  # 排除 & 和空白
 
 ## 4. 补丁文件清单
 
-| 文件 | 说明 |
-|------|------|
-| `p0_security_test_extension.patch` | P0 防复发测试扩展补丁（5 个测试类 27 个用例） |
-| `README.md` | 本说明文档 |
+| 文件 | 说明 | 大小 |
+|------|------|------|
+| `p0_security_full_patch.patch` | **完整补丁**（脱敏逻辑 + 测试用例，6 个文件，1079 insertions / 34 deletions） | ~54 KB |
+| `p0_security_test_extension.patch` | P0 防复发测试扩展补丁（仅测试用例，5 个测试类 27 个用例） | ~12 KB |
+| `README.md` | 本说明文档 | — |
+
+### 完整补丁包含的文件
+
+| 文件 | 变更类型 | 行数变更 |
+|------|---------|---------|
+| `agent/error_reporting_config.py` | 修改 | 30 行（Bearer 独立分支 + 正则边界限定） |
+| `agent/logging_utils.py` | 修改 | 135 行（Bearer 独立正则 + `[^"'\&\s]*` 边界） |
+| `agent/utils/sensitive_data_filter.py` | 修改 | 6 行（正则边界限定） |
+| `agent/utils/token_redactor.py` | 新增 | 207 行（通用脱敏工具） |
+| `scripts/scan_sensitive_regex.py` | 新增 | 140 行（贪婪正则静态扫描） |
+| `tests/regression/test_p0_security_fix.py` | 新增 | 595 行（68 个测试用例） |
 
 ## 5. 测试验证
 
@@ -93,18 +105,40 @@ python -m pytest tests/regression/test_p0_security_fix.py -v --tb=short
 
 ## 6. 应用补丁
 
-### 6.1 应用测试扩展补丁
+### 6.1 应用完整补丁（推荐 — 包含脱敏逻辑 + 测试用例）
 
 ```bash
-# 在项目根目录执行
+# 在项目根目录执行（基准 commit: 7e06d611 之后）
+git apply patches/p0_security/p0_security_full_patch.patch
+```
+
+**适用场景**：新环境部署、将 P0 安全修复应用到未修复的分支。
+
+### 6.2 仅应用测试扩展补丁
+
+```bash
+# 在项目根目录执行（脱敏逻辑已修复，仅需添加防复发测试）
 git apply patches/p0_security/p0_security_test_extension.patch
 ```
 
-### 6.2 验证补丁应用成功
+**适用场景**：脱敏逻辑已手动修复，仅需补充防复发测试用例。
+
+### 6.3 验证补丁应用成功
 
 ```bash
 python -m pytest tests/regression/test_p0_security_fix.py -v --tb=short
 # 预期：68 passed
+
+# 验证脱敏逻辑（可选）
+python scripts/scan_sensitive_regex.py --fix-hint
+# 预期：无贪婪正则警告
+```
+
+### 6.4 撤销补丁
+
+```bash
+# 撤销完整补丁
+git apply --reverse patches/p0_security/p0_security_full_patch.patch
 ```
 
 ## 7. 模块设计差异说明
@@ -135,8 +169,21 @@ python -m pytest tests/regression/test_p0_security_fix.py -v --tb=short
 
 ## 10. 补丁生成信息
 
+### 完整补丁（p0_security_full_patch.patch）
+
+- **生成时间**：2026-07-02
+- **生成工具**：`git diff`
+- **生成命令**：`git diff 7e06d611 HEAD -- <6 个脱敏/测试文件>`
+- **基准 commit**：`7e06d611`（P0 修复前）
+- **目标 commit**：`df889add`（当前 HEAD）
+- **源分支**：`phase2-visibility-convergence`
+- **包含修复 commit**：`fadc48f6`, `991164a1`, `7aea6b5a`, `e174e276`
+- **格式验证**：`git apply --check --reverse` 通过
+- **变更统计**：6 files changed, 1079 insertions(+), 34 deletions(-)
+
+### 测试扩展补丁（p0_security_test_extension.patch）
+
 - **生成时间**：2026-07-02
 - **生成工具**：`git format-patch` + `git diff`
-- **源分支**：`phase2-visibility-convergence`
 - **目标 commit**：`e174e276`（测试扩展）
 - **源码修复 commit**：`fadc48f6`, `7aea6b5a`, `bc3e67f6`, `991164a1`
