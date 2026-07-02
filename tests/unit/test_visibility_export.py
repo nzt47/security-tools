@@ -333,6 +333,30 @@ class TestInverseMetrics:
         )
         assert pattern.search(output), f"逆向指标超阈应 success=false:\n{output}"
 
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_arch_rule_violations_should_not_have_double_arch_prefix(self):
+        """防回归：arch_rule_violations 导出时必须规范化为 rule_violations，禁止双重 arch 前缀
+
+        根因：Metric.name='arch_rule_violations' 与层级前缀 'architecture' 拼接会产生
+        'architecture_arch_rule_violations'（双重 arch），导致 Grafana 看板查询
+        'architecture_rule_violations' 时无数据。_METRIC_NAME_NORMALIZE 映射解决此问题。
+        本测试使用与采集器 _collect_architecture_layer 一致的真实 Metric.name 验证。
+        """
+        arch_layer = _make_layer(
+            "架构影响可见",
+            [
+                Metric(name="arch_rule_violations", value=0, threshold=5, unit="个", passed=True),
+            ],
+            overall_passed=True,
+        )
+        report = _make_report(layers=[arch_layer], overall_status="pass")
+        output = export_to_prometheus(report)
+        expected = f"{_VIS_METRIC_PREFIX}_architecture_rule_violations"
+        assert expected in output, f"应导出规范化指标名 {expected}:\n{output}"
+        forbidden = f"{_VIS_METRIC_PREFIX}_architecture_arch_rule_violations"
+        assert forbidden not in output, f"禁止导出双重 arch 指标名 {forbidden}:\n{output}"
+
 
 # ═══════════════════════════════════════════════════════════════
 #  6. 无效数值处理

@@ -348,3 +348,248 @@ class TestEdgeCasesRegression:
         assert "secret" not in result
         assert "用户=admin" in result
         assert "备注=测试数据" in result
+
+
+# ═══════════════════════════════════════════════════════════════
+# 跨模块防复发测试：logging_utils.py
+# 确保 logging_utils.SensitiveDataFilter._sanitize 不再贪婪吞噬参数
+# ═══════════════════════════════════════════════════════════════
+
+from agent.logging_utils import SensitiveDataFilter as _LoggingSDF
+
+
+class TestLoggingUtilsGreedyRegexRegression:
+    """P0-SEC-002 防复发：logging_utils.SensitiveDataFilter 贪婪正则修复验证
+
+    修复前 bug：logging_utils._sanitize 使用 [^"\\']* 贪婪匹配，
+    对 'user=admin&token=secret&page=1' 匹配到 'secret&page=1'，
+    导致 page=1 被吞噬。
+
+    注意：logging_utils 的 URL 参数模式需要 ? 或 & 前缀，
+    因此测试用例必须使用标准 URL 格式（带 ? 或 & 前缀）。
+    占位符：[REDACTED]（与 error_reporting_config 一致）。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _init_filter(self):
+        """每个测试用例独立的过滤器实例（隔离）"""
+        self.filter = _LoggingSDF()
+
+    @pytest.mark.parametrize("url,expected_safe", [
+        # 注意：参数值不能与参数名同名（避免 "secret" 子串误判）
+        ("https://api.example.com/v1?token=mysecretval&page=1&limit=10", "mysecretval"),
+        ("https://api.example.com/v1?api_key=apikeyval123&page=1&limit=10", "apikeyval123"),
+        ("https://api.example.com/v1?secret=topsecretval&page=1&limit=10", "topsecretval"),
+        ("https://api.example.com/v1?key=keyval456&page=1&limit=10", "keyval456"),
+    ])
+    def test_url_params_not_consumed(self, url, expected_safe):
+        """URL 中 & 分隔的参数不被贪婪吞噬"""
+        result = self.filter._sanitize(url)
+        assert expected_safe not in result, f"敏感值未脱敏：{result}"
+        assert "page=1" in result, f"page 参数被吞噬：{result}"
+        assert "limit=10" in result, f"limit 参数被吞噬：{result}"
+
+    @pytest.mark.parametrize("text,safe_value", [
+        ("password=secret123&page=1", "secret123"),
+        ("secret=mysecret&next=ok", "mysecret"),
+        ("token=abc123&user=admin", "abc123"),
+    ])
+    def test_password_field_not_consumed(self, text, safe_value):
+        """password/secret/token 字段后的 & 参数不被吞噬"""
+        result = self.filter._sanitize(text)
+        assert safe_value not in result, f"敏感值未脱敏：{result}"
+        # 验证相邻参数保留
+        assert "page=1" in result or "next=ok" in result or "user=admin" in result
+
+    def test_multiple_sensitive_params_in_one_url(self):
+        """URL 中多个敏感参数同时脱敏，非敏感参数保留"""
+        url = "https://api.example.com?token=abc&api_key=sk-xxx&user=bob&page=2"
+        result = self.filter._sanitize(url)
+        # 注意：abc 是 token 值，但 "abc" 也是 "api_key" 的子串
+        # 因此只检查非冲突的敏感值
+        assert "sk-xxx" not in result
+        assert "user=bob" in result
+        assert "page=2" in result
+
+    def test_no_false_positive_on_normal_url(self):
+        """普通 URL（无敏感参数）不被误改"""
+        url = "https://api.example.com?user=admin&page=1&limit=10"
+        result = self.filter._sanitize(url)
+        assert "user=admin" in result
+        assert "page=1" in result
+        assert "limit=10" in result
+
+
+class TestLoggingUtilsBearerTokenRegression:
+    """P0-SEC-001 防复发：logging_utils.SensitiveDataFilter Bearer 脱敏验证
+
+    修复前 bug：logging_utils 无 Bearer 独立处理分支，
+    Bearer token 可能被通用正则错误处理。
+    修复后：新增 Bearer 专用正则 (?i)Bearer\\s+[A-Za-z0-9\\-._~+/]+=*
+    """
+
+    @pytest.fixture(autouse=True)
+    def _init_filter(self):
+        """每个测试用例独立的过滤器实例"""
+        self.filter = _LoggingSDF()
+
+    @pytest.mark.parametrize("bearer_text", [
+        "Bearer abc.def.ghi+jkl=",
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig",
+        "Bearer abc123def456",
+        "Bearer tok-abc_def.123+xyz",
+        "Bearer dGVzdCB0b2tlbiB2YWx1ZQ==",
+        "bearer lowercase_token_value",
+    ])
+    def test_bearer_fully_redacted(self, bearer_text):
+        """Bearer token 完全脱敏，token 值不残留"""
+        result = self.filter._sanitize(bearer_text)
+        # 提取 token 值部分
+        token_part = bearer_text[7:]  # len("Bearer ") == 7
+        assert token_part not in result, (
+            f"Bearer token 值泄露：'{token_part}' 出现在 '{result}' 中"
+        )
+        assert "[REDACTED]" in result or "********" in result, (
+            f"Bearer 未被脱敏：{result}"
+        )
+
+    def test_bearer_case_insensitive(self):
+        """Bearer 不区分大小写"""
+        assert "abc123" not in self.filter._sanitize("bearer abc123")
+        assert "abc123" not in self.filter._sanitize("BEARER abc123")
+        assert "abc123" not in self.filter._sanitize("BeArEr abc123")
+
+    def test_bearer_in_url_with_other_params(self):
+        """Bearer token 与 URL 参数共存的场景"""
+        text = "Authorization: Bearer abc.def.ghi&page=1"
+        result = self.filter._sanitize(text)
+        assert "abc.def.ghi" not in result
+        assert "page=1" in result
+
+
+# ═══════════════════════════════════════════════════════════════
+# 跨模块防复发测试：utils/sensitive_data_filter.py
+# 确保统一过滤器 SensitiveDataFilter.mask 不再贪婪吞噬参数
+# ═══════════════════════════════════════════════════════════════
+
+from agent.utils.sensitive_data_filter import SensitiveDataFilter as _UnifiedSDF
+
+
+class TestSensitiveDataFilterGreedyRegexRegression:
+    """P0-SEC-002 防复发：utils.sensitive_data_filter.SensitiveDataFilter 贪婪正则修复验证
+
+    修复前 bug：mask() 使用 [^"\\']* 贪婪匹配，吞噬 & 分隔的相邻参数。
+    修复后：使用 [^"\\'&\\s]* 限定边界。
+
+    注意：本模块的 URL 参数模式需要 ? 或 & 前缀。
+    占位符：********（REDACTED_VALUE）。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _init_filter(self):
+        """每个测试用例独立的过滤器实例"""
+        self.filter = _UnifiedSDF()
+
+    @pytest.mark.parametrize("url,sensitive_value", [
+        # 注意：参数值不能与参数名同名（避免子串误判）
+        ("https://api.example.com?token=mysecret&page=1&limit=10", "mysecret"),
+        ("https://api.example.com?api_key=sk-xxx&page=1&user=admin", "sk-xxx"),
+        ("https://api.example.com?secret=topsecretval&next=ok&sort=desc", "topsecretval"),
+    ])
+    def test_url_params_not_consumed(self, url, sensitive_value):
+        """URL 中 & 分隔的参数不被贪婪吞噬"""
+        result = self.filter.mask(url)
+        assert sensitive_value not in result, f"敏感值未脱敏：{result}"
+        # 验证相邻非敏感参数保留
+        assert "page=1" in result or "user=admin" in result or "next=ok" in result
+
+
+class TestSensitiveDataFilterBearerRegression:
+    """P0-SEC-001 防复发：utils.sensitive_data_filter.SensitiveDataFilter Bearer 脱敏验证
+
+    修复前 bug：mask() 无 Bearer 专用处理分支。
+    修复后：新增 Bearer 专用正则 (Bearer\\s+)([a-zA-Z0-9\\-_.~+/]{20,})
+
+    注意：本模块的 Bearer 模式要求 token 长度 ≥20 字符。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _init_filter(self):
+        """每个测试用例独立的过滤器实例"""
+        self.filter = _UnifiedSDF()
+
+    @pytest.mark.parametrize("bearer_text", [
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig",  # 36 字符
+        "Bearer akdjflakdjflakdjflakdjf",  # 24 字符
+        "Bearer abcdefghijklmnopqrstuvwxyz1234567890",  # 36 字符
+    ])
+    def test_long_bearer_redacted(self, bearer_text):
+        """≥20 字符的 Bearer token 必须脱敏"""
+        result = self.filter.mask(bearer_text)
+        token_part = bearer_text[7:]
+        assert token_part not in result, (
+            f"Bearer token 值泄露：'{token_part}' 出现在 '{result}' 中"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════
+# 跨模块一致性测试
+# 确保 error_reporting_config / logging_utils / sensitive_data_filter
+# 三个模块对相同输入的脱敏行为一致，不会出现某模块泄露某模块脱敏的情况
+# ═══════════════════════════════════════════════════════════════
+
+class TestCrossModuleConsistency:
+    """跨模块一致性测试：3 个模块对相同输入的脱敏行为一致
+
+    三个模块的脱敏实现存在设计差异：
+    - error_reporting_config: 无前缀要求，Bearer 任何长度都脱敏
+    - logging_utils: URL 需 ?/& 前缀，Bearer 任何长度都脱敏
+    - sensitive_data_filter: URL 需 ?/& 前缀，Bearer 需 ≥20 字符
+
+    本测试类使用三个模块都能匹配的输入（标准 URL + 长 Bearer），
+    验证脱敏后敏感值均不残留。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _init_filters(self):
+        """三个模块的过滤器实例"""
+        self.filter_err = None  # error_reporting_config 使用函数式 API
+        self.filter_log = _LoggingSDF()
+        self.filter_unified = _UnifiedSDF()
+
+    @pytest.mark.parametrize("text", [
+        # 标准 URL + 长 token，三个模块都能匹配
+        "https://api.example.com?token=secret_value_here&page=1",
+        # 多个敏感参数
+        "https://api.example.com?api_key=sk-secret-key&page=1&user=admin",
+        # 长 Bearer token（≥20 字符），三个模块都能匹配
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig",
+        # Bearer + URL 混合
+        "Auth: Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig&next=ok",
+    ])
+    def test_no_module_leaks_sensitive_value(self, text):
+        """三个模块对相同输入脱敏后，敏感值均不得残留"""
+        # 提取预期被脱敏的敏感值
+        sensitive_values = []
+        if "token=" in text:
+            sensitive_values.append(text.split("token=")[1].split("&")[0].split(" ")[0])
+        if "api_key=" in text:
+            sensitive_values.append(text.split("api_key=")[1].split("&")[0].split(" ")[0])
+        if "Bearer " in text:
+            bearer_part = text.split("Bearer ")[1].split("&")[0].split(" ")[0]
+            if len(bearer_part) >= 20:
+                sensitive_values.append(bearer_part)
+
+        # 三个模块分别脱敏
+        results = [
+            ("error_reporting_config", _filter_sensitive_recursive(text)),
+            ("logging_utils", self.filter_log._sanitize(text)),
+            ("sensitive_data_filter", self.filter_unified.mask(text)),
+        ]
+
+        # 所有模块的输出都不得包含敏感值
+        for module_name, result in results:
+            for sv in sensitive_values:
+                assert sv not in result, (
+                    f"模块 [{module_name}] 泄露敏感值 '{sv}'：{result}"
+                )

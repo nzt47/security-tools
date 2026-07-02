@@ -353,10 +353,17 @@ curl http://localhost:5678/api/diagnostics/metrics
 | `level` | string | 日志级别 (DEBUG/INFO/WARN/ERROR) |
 | `service` | string | 服务名称 |
 | `operation` | string | 操作名称 |
-| `trace_id` | string | 追踪 ID |
+| `trace_id` | string | 追踪 ID（16 位 hex，用于跨模块链路追踪） |
 | `span_id` | string | Span ID |
+| `module_name` | string | 模块名称（如 `network_config`、`app_server`、`digital_life`） |
+| `action` | string | 操作名称（如 `network_config._save.self`、`api_search_instance_add.done`） |
 | `message` | string | 日志消息 |
 | `duration_ms` | float | 持续时间（毫秒） |
+| `priority_before` | array | 操作前搜索引擎优先级（排序/保存接口专用） |
+| `priority_after` | array | 操作后搜索引擎优先级（排序/保存接口专用） |
+| `priority_changed` | boolean | 优先级是否发生变化（排序/保存接口专用） |
+
+> **说明**：`module_name` 和 `action` 是结构化日志的核心字段，用于精确定位日志来源和操作类型。`StructuredLogFormatter` 会在控制台将它们格式化为 `[trace_id] module_name | action | duration_ms` 的易读格式。`priority_*` 字段仅在网络配置排序/保存接口的日志中出现。
 
 ### 4.2 查询最近日志
 

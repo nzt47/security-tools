@@ -525,6 +525,147 @@ class SearchEngine:
             "engine": instance.get('name', 'custom'),
         }
 
+    # ── Bing（需 API Key） ────────────────────────────────────────
+
+    def _search_bing(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        """Bing 网页搜索 API"""
+        api_key = self._api_keys.get("bing") or self._config.get("bing_api_key", "")
+        if not api_key:
+            return {"ok": False, "error": "Bing API Key 未配置"}
+
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+
+        offset = (page - 1) * num_results
+        result = self._http_client.get(
+            "https://api.bing.microsoft.com/v7.0/search",
+            params={"q": query, "count": num_results, "offset": offset, "mkt": "zh-CN"},
+            headers={"Ocp-Apim-Subscription-Key": api_key},
+            timeout=self._timeout,
+        )
+
+        if not result.get("ok"):
+            return result
+
+        data = result.get("text", "")
+        try:
+            json_data = json.loads(data)
+        except json.JSONDecodeError:
+            return {"ok": False, "error": "解析 Bing API 响应失败"}
+
+        web_pages = json_data.get("webPages", {})
+        items = web_pages.get("value", [])
+
+        results = [
+            {
+                "title": item.get("name", ""),
+                "url": item.get("url", ""),
+                "snippet": item.get("snippet", ""),
+                "source": "bing",
+            }
+            for item in items
+        ]
+
+        return {
+            "ok": True,
+            "results": results,
+            "total_estimate": web_pages.get("totalEstimatedMatches", len(results)),
+            "engine": "bing",
+        }
+
+    # ── Google（需 API Key + CX） ─────────────────────────────────
+
+    def _search_google(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        """Google 自定义搜索 API"""
+        api_key = self._api_keys.get("google") or self._config.get("google_api_key", "")
+        cx = self._api_keys.get("google_cx") or self._config.get("google_cx", "")
+
+        if not api_key or not cx:
+            return {"ok": False, "error": "Google API Key 或 CX 未配置"}
+
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+
+        start = (page - 1) * num_results + 1
+        result = self._http_client.get(
+            "https://www.googleapis.com/customsearch/v1",
+            params={"key": api_key, "cx": cx, "q": query, "num": num_results, "start": start},
+            timeout=self._timeout,
+        )
+
+        if not result.get("ok"):
+            return result
+
+        data = result.get("text", "")
+        try:
+            json_data = json.loads(data)
+        except json.JSONDecodeError:
+            return {"ok": False, "error": "解析 Google API 响应失败"}
+
+        items = json_data.get("items", [])
+        results = [
+            {
+                "title": item.get("title", ""),
+                "url": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
+                "source": "google",
+            }
+            for item in items
+        ]
+
+        return {
+            "ok": True,
+            "results": results,
+            "total_estimate": json_data.get("searchInformation", {}).get("totalResults", len(results)),
+            "engine": "google",
+        }
+
+    # ── Brave（需 API Key） ───────────────────────────────────────
+
+    def _search_brave(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:
+        """Brave 搜索 API"""
+        api_key = self._api_keys.get("brave") or self._config.get("brave_api_key", "")
+        if not api_key:
+            return {"ok": False, "error": "Brave API Key 未配置"}
+
+        if not self._http_client:
+            return {"ok": False, "error": "HTTP 客户端未配置"}
+
+        offset = (page - 1) * num_results
+        result = self._http_client.get(
+            "https://api.search.brave.com/res/v1/web/search",
+            params={"q": query, "count": num_results, "offset": offset},
+            headers={"Accept": "application/json", "Accept-Encoding": "gzip", "X-Subscription-Token": api_key},
+            timeout=self._timeout,
+        )
+
+        if not result.get("ok"):
+            return result
+
+        data = result.get("text", "")
+        try:
+            json_data = json.loads(data)
+        except json.JSONDecodeError:
+            return {"ok": False, "error": "解析 Brave API 响应失败"}
+
+        web_results = json_data.get("web", {}).get("results", [])
+        results = [
+            {
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "snippet": item.get("description", ""),
+                "source": "brave",
+            }
+            for item in web_results
+        ]
+
+        return {
+            "ok": True,
+            "results": results,
+            "total_estimate": json_data.get("web", {}).get("totalEstimatedResults", len(results)),
+            "engine": "brave",
+        }
+
     # ── DuckDuckGo HTML 搜索（无需 API Key） ──────────────────────
 
     def _search_duckduckgo(self, query: str, num_results: int = 10, page: int = 1, **kwargs) -> dict:

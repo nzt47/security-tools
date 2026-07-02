@@ -13,35 +13,121 @@ global:
       - boundary
       - edge
       - limit
+      - 边界
+      - 边界值
+      - 边界条件
     empty:       # 空值/空容器
       - empty
       - blank
       - missing
+      - 空值
+      - 空字符串
+      - 空列表
+      - 空字典
+      - 空文件
+      - 空目录
+      - 空内容
     timeout:     # 超时/异步边界
       - timeout
       - deadline
       - async
+      - 超时
+      - 超时边界
+      - 异步
     'null':      # None/null 处理（YAML 保留字需加引号）
       - null
       - none
       - nil
+      - None
+      - 空对象
+      - 空引用
     invalid:     # 非法输入
       - invalid
       - illegal
       - malformed
+      - 非法
+      - 无效
+      - 非法输入
+      - 无效输入
+      - 类型错误
+      - 损坏
     overflow:    # 上溢/超长
       - overflow
       - too_long
       - huge
+      - 溢出
+      - 超长
+      - 超大
+      - 超出限制
     underflow:   # 下溢/过短
       - underflow
       - too_short
       - tiny
+      - 下溢
+      - 过短
+      - 极小
     extreme:     # 极值
       - extreme
       - max
       - min
       - zero
+      - 极值
+      - 极大
+      - 极小
+      - 零值
+      - 零token
+      - 极长
+      - 超大对象
+      - 极大值
+      - 极小值
+      - 极值边界
+    permission:  # 权限边界
+      - permission
+      - auth
+      - 权限
+      - 认证
+      - 授权
+      - 无权限
+      - 未授权
+      - 越权
+    resource:    # 资源边界
+      - resource
+      - 资源
+      - 不存在
+      - 不可用
+      - 资源不足
+      - 磁盘满
+      - 内存不足
+    concurrency: # 并发边界
+      - concurrency
+      - 并发
+      - 竞态
+      - 线程安全
+    encoding:    # 编码边界
+      - encoding
+      - 编码
+      - 中文
+      - emoji
+      - 特殊字符
+      - 多语言
+      - unicode
+    exception:   # 异常分支
+      - exception
+      - 异常
+      - 异常分支
+      - 抛出
+      - 捕获
+      - ImportError
+      - ConnectionError
+      - TimeoutError
+      - RuntimeError
+      - ValueError
+      - KeyError
+      - AttributeError
+      - PermissionError
+      - 失败
+      - 错误对象
+      - 错误码
   # 模块根目录（agent/ 下子目录被视为业务模块）
   module_root: agent
   # 测试根目录
@@ -58,7 +144,7 @@ modules:
       - empty        # 空输入
       - timeout      # 超时
       - invalid      # 非法配置
-      - null         # None 配置
+      - 'null'       # None 配置（YAML 保留字需加引号）
     min_tests: 4
     description: 核心调度与状态机
   cognitive:
@@ -95,7 +181,7 @@ modules:
     required_scenes:
       - timeout
       - invalid
-      - null
+      - 'null'       # YAML 保留字需加引号
     min_tests: 3
     description: 优雅降级
   disaster_recovery:
@@ -111,7 +197,7 @@ modules:
     required_scenes:
       - empty        # 空记忆
       - overflow     # 超长输入
-      - null
+      - 'null'       # YAML 保留字需加引号
       - invalid      # 损坏数据
     min_tests: 4
     description: 记忆系统
@@ -149,7 +235,7 @@ modules:
   permission_system:
     required_scenes:
       - invalid
-      - null
+      - 'null'       # YAML 保留字需加引号
       - boundary
     min_tests: 3
     description: 权限系统
@@ -159,7 +245,7 @@ modules:
     required_scenes:
       - empty
       - invalid
-      - null
+      - 'null'       # YAML 保留字需加引号
     min_tests: 3
     description: 配置加载与校验
   monitoring:

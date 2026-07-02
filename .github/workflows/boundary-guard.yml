@@ -1,0 +1,64 @@
+# Boundary Guard — timedelta 溢出风险静态分析
+# 在 PR 合并前自动扫描 agent/ 下的 timedelta(days=参数) 高风险模式
+# 详见: docs/observability/next_iteration_plan.md Task 2
+
+name: Boundary Guard
+
+on:
+  pull_request:
+    paths:
+      - 'agent/**.py'
+      - 'scripts/check_timedelta_overflow.py'
+      - '.github/workflows/boundary-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  timedelta-overflow-scan:
+    name: timedelta 溢出风险扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 运行 timedelta 溢出扫描
+        id: scan
+        run: |
+          python scripts/check_timedelta_overflow.py \
+            --target agent/ \
+            --json \
+            --output boundary_scan_report.json
+          # 提取高风险数
+          high_risk=$(python -c "import json; print(json.load(open('boundary_scan_report.json'))['high_risk'])")
+          echo "high_risk=$high_risk" >> $GITHUB_OUTPUT
+          echo "::notice::扫描完成 — 高风险: $high_risk"
+
+      - name: 上传扫描报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boundary-scan-report
+          path: boundary_scan_report.json
+          retention-days: 30
+
+      - name: PR 评论（高风险时警告）
+        if: steps.scan.outputs.high_risk > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const highRisk = parseInt('${{ steps.scan.outputs.high_risk }}');
+            if (highRisk > 3) {
+              core.setFailed(`检测到 ${highRisk} 个高风险 timedelta 调用（基线 3），请检查扫描报告`);
+            } else {
+              core.warning(`检测到 ${highRisk} 个高风险 timedelta 调用（已校验，基线 3）`);
+            }
