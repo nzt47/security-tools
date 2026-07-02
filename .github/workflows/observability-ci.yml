@@ -287,8 +287,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # pyproject.toml 要求 requires-python = ">=3.10,<3.13"，移除 3.9 避免版本不兼容
-        python-version: ['3.10', '3.11']
+        # pyproject.toml 要求 requires-python = ">=3.10,<3.13"，matrix 覆盖 3.10-3.12 全部支持版本
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -775,7 +775,8 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          # pytest-timeout：为全项目测试提供 --timeout 参数，防止单个测试卡住整个 CI
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install prometheus-client opentelemetry-api opentelemetry-sdk
           pip install pyyaml
           pip install -e .
@@ -790,6 +791,9 @@ jobs:
           #         （如依赖外部服务），会在 10 个 errors 后停止，导致 coverage.xml line-rate=0
           # --continue-on-collection-errors：部分测试文件 collection 失败时仍继续执行其他测试
           # --cov-fail-under=0：不因覆盖率低而失败，阻断交由 visibility-report 的 test_coverage 阈值
+          # --timeout=300：单个测试超过 300 秒未完成则标记失败并继续，防止卡死整个 CI
+          #   原因：曾出现全项目测试覆盖率 job 运行 3+ 小时仍未完成，疑似某个测试等待外部
+          #         服务或死锁；--timeout 需配合 pytest-timeout 插件（已在安装依赖中添加）
           # 注意：不使用 --cov-config=.coveragerc_scripts，因为该配置的 omit 包含 agent/*
           #       会排除 agent 目录下所有文件，与全项目覆盖率目标冲突
           python -m pytest tests/ \
@@ -800,6 +804,7 @@ jobs:
             --maxfail=0 \
             --continue-on-collection-errors \
             --cov-fail-under=0 \
+            --timeout=300 \
             -q \
             --tb=short
 
