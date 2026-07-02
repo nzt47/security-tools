@@ -19,6 +19,7 @@ docs/
 │   ├── DEPLOYMENT_CHECKLIST.md
 │   ├── confluence_sync_status_confirmation.md  # Confluence 同步确认单
 │   ├── p0_deployment_verification_report.md    # P0 部署验证报告
+│   ├── p0_security_fix_archive_20260703.md     # P0 修复完整日志归档
 │   ├── p0_security_retrospective.md            # P0 安全修复复盘
 │   ├── potential_risks_analysis.md
 │   ├── secure_config_guide.md
