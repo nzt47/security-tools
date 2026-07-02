@@ -70,6 +70,10 @@ def format_structured_log(record: logging.LogRecord) -> str:
 
     如果消息不是 JSON，回退到标准格式。
     支持 dict 类型 record.msg（log_dict 快速路径），跳过 json.loads 解析。
+
+    性能埋点：启用 AGENT_PERF_LOGGING=1 时，在 dict 快速路径记录
+    "跳过 json.loads" 的实际节省耗时，验证双重序列化消除效果。
+    机制：Request ID 采样控制（perf_monitor 内部）。
     """
     # dict 快速路径：record.msg 为 dict 时直接使用，跳过 json.dumps/loads 双重序列化
     if isinstance(record.msg, dict):
@@ -78,6 +82,26 @@ def format_structured_log(record: logging.LogRecord) -> str:
             # dict 但不含 action 字段，回退到标准格式
             asctime = _time.strftime("%H:%M:%S")
             return f"{asctime} [{record.levelname:8s}] {record.name:25s}: {record.getMessage()}"
+
+        # 性能埋点：对比旧模式 json.loads（关闭时仅一次布尔判断）
+        try:
+            from agent.utils.perf_monitor import is_enabled as _perf_enabled
+            _perf_on = _perf_enabled()
+        except Exception:
+            _perf_on = False
+
+        if _perf_on:
+            # 测量旧模式等价开销：json.dumps(dict) → json.loads(str)
+            _start = _time.perf_counter()
+            _json_str = json.dumps(data, ensure_ascii=False)
+            json.loads(_json_str)
+            _old_us = (_time.perf_counter() - _start) * 1_000_000
+            # 新模式：直接使用 dict，零开销
+            try:
+                from agent.utils.perf_monitor import record_call as _perf_record
+                _perf_record("format_structured_log", "dict_fast_path", 0.0, _old_us)
+            except Exception:
+                pass
     else:
         msg = record.getMessage()
 
