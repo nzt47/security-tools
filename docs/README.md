@@ -17,7 +17,12 @@ docs/
 ├── security/               # 安全相关文档
 │   ├── CHANGELOG.md
 │   ├── DEPLOYMENT_CHECKLIST.md
-│   └── secure_config_guide.md
+│   ├── confluence_sync_status_confirmation.md  # Confluence 同步确认单
+│   ├── p0_deployment_verification_report.md    # P0 部署验证报告
+│   ├── p0_security_retrospective.md            # P0 安全修复复盘
+│   ├── potential_risks_analysis.md
+│   ├── secure_config_guide.md
+│   └── security_coding_checklist.md            # 安全编码规范
 ├── superpowers/            # 超级能力模块
 │   ├── design/             # 设计文档
 │   ├── plans/              # 计划文档
@@ -90,6 +95,29 @@ docs/
 | [安全配置指南](security/secure_config_guide.md) | 安全最佳实践 |
 | [风险分析](security/potential_risks_analysis.md) | 潜在风险评估 |
 | [安全检查清单](security/DEPLOYMENT_CHECKLIST.md) | 部署安全检查 |
+
+#### 🚨 P0 安全修复专题（2026-07-02）
+
+P0-SEC-001（Bearer Token 脱敏失败）与 P0-SEC-002（贪婪正则吞噬 URL 参数）的完整修复记录。
+
+| 文档 | 描述 |
+|------|------|
+| [P0 安全修复补丁包说明](../patches/p0_security/README.md) | 补丁包概述、修复方案、受影响模块、测试验证 |
+| [P0 安全修复完整部署验证报告](security/p0_deployment_verification_report.md) | CI 执行日志、测试覆盖率统计、Git 提交历史、CI 防护体系 |
+| [P0 安全修复复盘报告](security/p0_security_retrospective.md) | 问题根因复盘、修复过程、经验教训 |
+| [Confluence 同步任务执行状态确认单](security/confluence_sync_status_confirmation.md) | 文档同步任务执行过程、CI 流水线状态、最终结论 |
+| [安全编码规范](security/security_coding_checklist.md) | 敏感数据脱敏编码规范 |
+
+**相关代码与配置**：
+
+| 文件 | 说明 |
+|------|------|
+| [tests/regression/test_p0_security_fix.py](../tests/regression/test_p0_security_fix.py) | 68 个 P0 防复发回归测试用例 |
+| [.github/workflows/p0-security.yml](../.github/workflows/p0-security.yml) | P0 安全验证 CI 工作流（5 个 Job） |
+| [scripts/scan_sensitive_regex.py](../scripts/scan_sensitive_regex.py) | 贪婪正则静态扫描脚本 |
+| [patches/p0_security/p0_security_test_extension.patch](../patches/p0_security/p0_security_test_extension.patch) | P0 防复发测试扩展纯 diff 补丁 |
+
+**CI 防护体系**：修改敏感数据相关模块时，CI 会自动触发 5 个验证 Job（静态扫描、P0 回归测试、补丁完整性、跨模块一致性、总结）。详见 [P0 安全验证工作流](https://github.com/nzt47/security-tools/actions/workflows/p0-security.yml)。
 
 ---
 

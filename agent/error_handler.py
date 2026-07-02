@@ -324,7 +324,7 @@ class RetryPolicy:
 
     def __init__(
         self,
-        max_retries: int = 3,
+        max_retries: Optional[int] = None,
         initial_delay: float = 1.0,
         max_delay: float = 30.0,
         backoff_factor: float = 2.0,
@@ -334,6 +334,10 @@ class RetryPolicy:
         retryable_status_codes: Optional[List[int]] = None,
         custom_retry_condition: Optional[Callable[[Exception], bool]] = None,
     ):
+        # 配置化：未显式指定时从 Config 读取默认值（支持热加载）
+        if max_retries is None:
+            from agent.monitoring.observability_config import get_default_max_retries
+            max_retries = get_default_max_retries()
         self.max_retries = max_retries
         self.initial_delay = initial_delay
         self.max_delay = max_delay
@@ -624,7 +628,7 @@ def get_error_handler() -> ErrorHandler:
 
 
 def with_retry(
-    max_retries: int = 3,
+    max_retries: Optional[int] = None,
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
     backoff_factor: float = 2.0,
@@ -646,12 +650,17 @@ def with_retry(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[with_retry] 开始执行函数: func={func.__name__}, max_retries={max_retries}, "
+            # 配置化：未显式指定时从 Config 读取默认值（支持热加载，每次调用读取最新值）
+            _max_retries = max_retries
+            if _max_retries is None:
+                from agent.monitoring.observability_config import get_default_max_retries
+                _max_retries = get_default_max_retries()
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[with_retry] 开始执行函数: func={func.__name__}, max_retries={_max_retries}, "
                 f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
                 f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"}, ensure_ascii=False))
-            
+
             policy = RetryPolicy(
-                max_retries=max_retries,
+                max_retries=_max_retries,
                 initial_delay=initial_delay,
                 max_delay=max_delay,
                 backoff_factor=backoff_factor,
@@ -678,7 +687,7 @@ def with_retry(
 
 
 def async_with_retry(
-    max_retries: int = 3,
+    max_retries: Optional[int] = None,
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
     backoff_factor: float = 2.0,
@@ -700,12 +709,17 @@ def async_with_retry(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 开始执行异步函数: func={func.__name__}, max_retries={max_retries}, "
+            # 配置化：未显式指定时从 Config 读取默认值（支持热加载，每次调用读取最新值）
+            _max_retries = max_retries
+            if _max_retries is None:
+                from agent.monitoring.observability_config import get_default_max_retries
+                _max_retries = get_default_max_retries()
+            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[async_with_retry] 开始执行异步函数: func={func.__name__}, max_retries={_max_retries}, "
                 f"strategy={strategy}, initial_delay={initial_delay}, max_delay={max_delay}, "
                 f"backoff_factor={backoff_factor}, jitter_factor={jitter_factor}"}, ensure_ascii=False))
-            
+
             policy = RetryPolicy(
-                max_retries=max_retries,
+                max_retries=_max_retries,
                 initial_delay=initial_delay,
                 max_delay=max_delay,
                 backoff_factor=backoff_factor,
