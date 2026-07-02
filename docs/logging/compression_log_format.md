@@ -151,28 +151,44 @@ python -m pytest tests/ -v -o log_cli=true -o log_cli_level=INFO
 import logging
 import logging.handlers
 
-# 创建日志格式化器
-formatter = logging.Formatter(
+# 创建标准日志格式化器（用于文件）
+file_formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# 文件处理器
+# 文件处理器（使用标准格式，保证日志文件可解析）
 file_handler = logging.handlers.RotatingFileHandler(
     'logs/compression.log',
     maxBytes=10*1024*1024,  # 10MB
     backupCount=5
 )
-file_handler.setFormatter(formatter)
+file_handler.setFormatter(file_formatter)
+
+# 控制台处理器（使用 StructuredLogFormatter，美化 JSON 结构化日志）
+try:
+    from scripts.struct_log_formatter import StructuredLogFormatter
+    console_formatter = StructuredLogFormatter()
+except ImportError:
+    # 回退到标准格式
+    console_formatter = file_formatter
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(console_formatter)
 
 # 应用到模块
 logger = logging.getLogger('memory.memory_manager')
 logger.addHandler(file_handler)
+logger.addHandler(console_handler)
 logger.setLevel(logging.INFO)
 ```
+
+> **提示**：推荐使用 `agent.logging_utils.setup_agent_logging()` 统一初始化日志系统，它会自动在控制台启用 `StructuredLogFormatter`，文件保持标准格式。无需手动创建 handler。
 
 ---
 
 ## 📝 日志字段说明
+
+### 标准日志字段
 
 | 字段 | 说明 | 示例 |
 |------|------|------|
@@ -180,6 +196,32 @@ logger.setLevel(logging.INFO)
 | module | 模块路径 | memory.memory_manager |
 | level | 日志级别 | INFO/WARNING/ERROR |
 | message | 日志内容 | [压缩] 开始执行压缩任务 |
+
+### 结构化日志字段（JSON 格式）
+
+核心业务逻辑使用 JSON 格式输出结构化日志，`StructuredLogFormatter` 会在控制台美化显示：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `trace_id` | 追踪 ID（16 位 hex） | `a1b2c3d4e5f67890` |
+| `module_name` | 模块名称 | `network_config` / `app_server` |
+| `action` | 操作名称 | `network_config._save.self` |
+| `duration_ms` | 耗时（毫秒） | `152` |
+| `message` | 日志消息 | `已保存到文件` |
+| `priority_before` | 操作前优先级（排序接口） | `["uuid-aaa", "uuid-bbb"]` |
+| `priority_after` | 操作后优先级（排序接口） | `["uuid-bbb", "uuid-aaa"]` |
+| `priority_changed` | 优先级是否变化 | `true` / `false` |
+
+**控制台美化输出示例**：
+
+```
+[78a124e1] app_server | api_network_config_update.done | 89ms
+  → 网络配置已更新
+  → priority: ["uuid-aaa", "uuid-bbb"] → ["uuid-bbb", "uuid-aaa"]  [CHANGED]
+  → default_engine=uuid-bbb
+```
+
+> **提示**：非 JSON 日志（如树形压缩日志）会回退到带时间戳的标准格式，不受影响。
 
 ---
 

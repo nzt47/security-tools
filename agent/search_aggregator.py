@@ -7,6 +7,8 @@
 
 import time
 import re
+import json
+import uuid
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,6 +16,11 @@ from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成简短 trace_id"""
+    return uuid.uuid4().hex[:16]
 
 # ── 来源权重配置 ────────────────────────────────────────────────────
 # 可配置：不同搜索引擎的结果在聚合时的权重
@@ -76,7 +83,7 @@ class SearchAggregator:
             "total_search_calls": 0,
             "total_failures": 0,
         }
-        logger.info("[聚合搜索] 已初始化 (权重引擎数: %d)", len(self._source_weights))
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.init.success", "engine_count": len(self._source_weights)}, ensure_ascii=False))
 
     # ── 公共接口 ────────────────────────────────────────────────────
 
@@ -121,8 +128,7 @@ class SearchAggregator:
         if not engines:
             return {"ok": False, "error": "没有可用的搜索引擎"}
 
-        logger.info("[聚合搜索] 开始: query=%s, engines=%s, num_results=%d",
-                    query[:60], engines, num_results)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.start", "query": query[:60], "engines": str(engines), "num_results": num_results}, ensure_ascii=False))
 
         # 并发调用各引擎
         aggregated = []       # 所有结果
@@ -148,28 +154,28 @@ class SearchAggregator:
                             aggregated.extend(engine_result["results"])
                             count = len(engine_result["results"])
                             engine_results[eng] = count
-                            logger.info("[聚合搜索] %s 返回 %d 条结果", eng, count)
+                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.results", "engine": eng, "count": count}, ensure_ascii=False))
                         elif engine_result.get("error"):
                             engine_errors[eng] = engine_result["error"]
                             engine_results[eng] = 0
-                            logger.warning("[聚合搜索] %s 失败: %s", eng, engine_result["error"])
+                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.failed", "engine": eng, "error": engine_result["error"]}, ensure_ascii=False))
                         else:
                             engine_results[eng] = 0
-                            logger.info("[聚合搜索] %s 返回 0 条结果", eng)
+                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.empty", "engine": eng}, ensure_ascii=False))
                     except Exception as e:
                         engine_errors[eng] = str(e)
                         engine_results[eng] = 0
-                        logger.warning("[聚合搜索] %s 异常: %s", eng, e)
+                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.exception", "engine": eng, "error": str(e)}, ensure_ascii=False))
             except TimeoutError:
                 # 超时：取消所有未完成的 future，记录超时错误
-                logger.warning("[聚合搜索] 聚合超时 (%.1fs)，取消未完成的引擎", timeout)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.timeout", "timeout_sec": timeout}, ensure_ascii=False))
                 for future, eng in future_to_engine.items():
                     if not future.done():
                         future.cancel()
                         if eng not in engine_results:
                             engine_errors[eng] = f"超时 (>{timeout}s)"
                             engine_results[eng] = 0
-                            logger.warning("[聚合搜索] %s 超时未完成", eng)
+                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.timeout", "engine": eng}, ensure_ascii=False))
 
         # 去重
         deduped = self._deduplicate(aggregated)
@@ -191,8 +197,7 @@ class SearchAggregator:
             self._stats["total_search_calls"] += len(engines)
             self._stats["total_failures"] += len(engine_errors)
 
-        logger.info("[聚合搜索] 完成: %d 引擎 → %d 结果 → %d 去重后 → %d 最终 (%.2fs)",
-                    len(engines), len(aggregated), len(deduped), len(top_results), elapsed)
+        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.complete", "engines_count": len(engines), "aggregated_count": len(aggregated), "deduped_count": len(deduped), "final_count": len(top_results), "elapsed_sec": round(elapsed, 2)}, ensure_ascii=False))
 
         return {
             "ok": True if top_results else False,
@@ -235,7 +240,7 @@ class SearchAggregator:
                 if len(selected) >= 3:
                     break
         except Exception as e:
-            logger.warning("[聚合搜索] 选择引擎失败: %s, 回退到默认配置", e)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.select_engines.failed", "error": str(e)}, ensure_ascii=False))
             selected = ["duckduckgo", "sogou", "so360"][:3]
         if not selected:
             # 最后的回退
@@ -259,7 +264,7 @@ class SearchAggregator:
             )
             return result
         except Exception as e:
-            logger.warning("[聚合搜索] %s 搜索异常: %s", engine, e)
+            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.search_exception", "engine": engine, "error": str(e)}, ensure_ascii=False))
             return {"ok": False, "error": str(e), "engine": engine, "results": []}
 
     def _deduplicate(self, results: List[Dict]) -> List[Dict]:

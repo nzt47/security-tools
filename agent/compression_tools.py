@@ -15,10 +15,17 @@ import os
 import shutil
 import zipfile
 import tarfile
+import json
+import uuid
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def _trace_id():
+    """生成简短 trace_id"""
+    return uuid.uuid4().hex[:16]
 
 # 分块大小：64KB
 _CHUNK_SIZE = 64 * 1024
@@ -102,8 +109,7 @@ def compress(
     if total_files == 0:
         return {"ok": False, "error": "没有可压缩的文件（源目录为空）"}
 
-    logger.info("[compress] 开始压缩: src=%s, fmt=%s, files=%d, output=%s",
-                safe_src, fmt, total_files, output_path)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.start", "src": safe_src, "fmt": fmt, "files": total_files, "output": output_path}, ensure_ascii=False))
 
     # ── 5. 执行压缩 ──
     try:
@@ -118,12 +124,11 @@ def compress(
                 os.remove(output_path)
             except Exception:
                 pass
-        logger.error("[compress] 压缩失败: %s", e)
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.failed", "error": str(e)}, ensure_ascii=False))
         return {"ok": False, "error": f"压缩失败: {e}"}
 
     compressed_size = os.path.getsize(output_path)
-    logger.info("[compress] 压缩完成: output=%s, size=%d, files=%d",
-                output_path, compressed_size, total_files)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.complete", "output": output_path, "size": compressed_size, "files": total_files}, ensure_ascii=False))
 
     return {
         "ok": True,
@@ -274,8 +279,7 @@ def decompress(
     except OSError as e:
         return {"ok": False, "error": f"无法创建输出目录: {e}"}
 
-    logger.info("[decompress] 开始解压: file=%s, fmt=%s, output=%s",
-                safe_file, archive_format, output_dir)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.start", "file": safe_file, "fmt": archive_format, "output": output_dir}, ensure_ascii=False))
 
     # ── 4. 执行解压 ──
     try:
@@ -288,11 +292,10 @@ def decompress(
     except tarfile.TarError as e:
         return {"ok": False, "error": f"TAR 文件损坏: {e}"}
     except Exception as e:
-        logger.error("[decompress] 解压失败: %s", e)
+        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.failed", "error": str(e)}, ensure_ascii=False))
         return {"ok": False, "error": f"解压失败: {e}"}
 
-    logger.info("[decompress] 解压完成: output=%s, files=%d, size=%d",
-                output_dir, file_count, extracted_size)
+    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.complete", "output": output_dir, "files": file_count, "size": extracted_size}, ensure_ascii=False))
 
     return {
         "ok": True,
@@ -330,7 +333,7 @@ def _safe_extract_zip(file_path: str, output_dir: str, progress_callback: callab
             # ── Zip Slip 防护 ──
             member_path = os.path.normpath(member.filename)
             if ".." in member_path.split(os.sep) or os.path.isabs(member_path):
-                logger.warning("[decompress] Zip Slip 攻击检测: 跳过 %s", member.filename)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.zip_slip_detected", "filename": member.filename}, ensure_ascii=False))
                 continue
 
             target_path = os.path.join(output_dir, member_path)
@@ -338,7 +341,7 @@ def _safe_extract_zip(file_path: str, output_dir: str, progress_callback: callab
             target_real = os.path.realpath(target_path)
             output_real = os.path.realpath(output_dir)
             if not target_real.startswith(output_real + os.sep) and target_real != output_real:
-                logger.warning("[decompress] 路径逃逸检测: 跳过 %s -> %s", member.filename, target_real)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.path_escape_detected", "filename": member.filename, "target": target_real}, ensure_ascii=False))
                 continue
 
             if progress_callback:
@@ -398,7 +401,7 @@ def _safe_extract_tar(file_path: str, output_dir: str, progress_callback: callab
             # ── 路径遍历防护 ──
             member_path = os.path.normpath(member.name)
             if member_path.startswith("..") or os.path.isabs(member_path):
-                logger.warning("[decompress] 路径遍历攻击检测: 跳过 %s", member.name)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.path_traversal_detected", "filename": member.name}, ensure_ascii=False))
                 continue
 
             target_path = os.path.join(output_dir, member_path)
@@ -406,7 +409,7 @@ def _safe_extract_tar(file_path: str, output_dir: str, progress_callback: callab
             target_real = os.path.realpath(target_path)
             output_real = os.path.realpath(output_dir)
             if not target_real.startswith(output_real + os.sep) and target_real != output_real:
-                logger.warning("[decompress] 路径逃逸检测: 跳过 %s -> %s", member.name, target_real)
+                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.tar_path_escape_detected", "filename": member.name, "target": target_real}, ensure_ascii=False))
                 continue
 
             if progress_callback:

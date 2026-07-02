@@ -82,21 +82,47 @@
 | 配置项 | 名称 | 数据类型 | 取值范围 | 默认值 | 说明 |
 |--------|------|----------|----------|--------|------|
 | `search.enabled` | 启用状态 | boolean | true/false | true | 是否启用搜索 |
-| `search.default_engine` | 默认引擎 | string | duckduckgo/tavily/bing/brave/google | duckduckgo | 默认搜索引擎 |
+| `search.default_engine` | 默认引擎 | string | search_instances 中的实例 ID | - | 默认搜索引擎实例 ID |
 | `search.max_results` | 最大结果 | integer | 1-50 | 10 | 搜索结果数量 |
 | `search.timeout` | 超时时间 | integer | 1-120 | 30 | 搜索超时（秒） |
-| `search.engine_priority` | 优先级 | array | 引擎列表 | [duckduckgo, tavily, bing, brave, google] | 引擎优先级 |
-| `search.engine_enabled` | 启用状态 | object | - | 全部启用 | 各引擎启用状态 |
+| `search.engine_priority` | 优先级 | array | 实例 ID 列表 | [] | 搜索引擎实例的优先级（UUID） |
+| `search.engine_enabled` | 启用状态 | object | - | 全部启用 | 各引擎启用状态（旧版兼容） |
 
-### 5. 搜索引擎 API Key
+> **注意**：`engine_priority` 和 `default_engine` 使用 `search_instances` 中的实例 ID（UUID），而非引擎名称。`apply_search_instances()` 会在应用时自动将名称规范化为 UUID。
 
-| 配置项 | 名称 | 数据类型 | 说明 |
-|--------|------|----------|------|
-| `search_api_keys.tavily` | Tavily API Key | string | 加密存储 |
-| `search_api_keys.bing` | Bing API Key | string | 加密存储 |
-| `search_api_keys.google` | Google API Key | string | 加密存储 |
-| `search_api_keys.google_cx` | Google CX | string | 搜索引擎 ID |
-| `search_api_keys.brave` | Brave API Key | string | 加密存储 |
+### 5. 搜索实例配置（search_instances）
+
+搜索实例是新版搜索引擎管理方式，每个实例独立配置引擎类型、API 端点和认证信息。
+
+#### 5.1 实例配置项
+
+| 配置项 | 名称 | 数据类型 | 默认值 | 说明 |
+|--------|------|----------|--------|------|
+| `id` | 实例 ID | string (UUID) | 自动生成 | 唯一标识 |
+| `name` | 实例名称 | string | - | 显示名称 |
+| `engine_type` | 引擎类型 | string | custom | duckduckgo/sogou/so360/tavily/bing/google/brave/custom |
+| `api_endpoint` | API 端点 | string | - | 自定义搜索 API 地址（custom 类型必填） |
+| `http_method` | HTTP 方法 | string | GET | GET/POST |
+| `query_param` | 查询参数名 | string | q | 搜索关键词的 URL 参数名 |
+| `api_key` | API Key | string | - | 加密存储，不出现在配置文件中 |
+| `auth_header` | 认证头模板 | string | Authorization: Bearer {key} | `{key}` 占位符会被实际 key 替换 |
+| `results_path` | 结果路径 | string | data | JSON 响应中结果数组的路径 |
+| `title_field` | 标题字段 | string | title | 结果项中标题的字段名 |
+| `url_field` | URL 字段 | string | url | 结果项中链接的字段名 |
+| `snippet_field` | 摘要字段 | string | snippet | 结果项中摘要的字段名 |
+| `enabled` | 启用状态 | boolean | true | 是否启用该实例 |
+| `is_default` | 默认实例 | boolean | false | 是否为默认搜索引擎 |
+| `timeout` | 超时时间 | integer | 30 | 请求超时（秒） |
+| `created_at` | 创建时间 | string | 自动生成 | ISO 格式时间戳 |
+| `updated_at` | 更新时间 | string | 自动生成 | ISO 格式时间戳 |
+
+#### 5.2 API Key 安全机制
+
+- **加密存储**：`api_key` 通过 `SecureConfigManager` 使用 AES-GCM 加密存储在 `.secure_config.json` 中
+- **自动剥离**：`_save()` 保存配置时自动移除 `search_instances` 中的 `api_key` 字段，明文不会写入 `network_config.json`
+- **脱敏返回**：`get_all()` 返回的 `api_key` 显示为 `***` + 末尾 4 位（如 `***a1b2`）
+- **解密读取**：`get_raw_config()` 返回解密后的真实 `api_key`，仅供内部使用（如构建 HTTP 请求头）
+- **缓存防污染**：`get_raw_config()` 和 `get_all()` 均返回深拷贝，防止解密后的 `api_key` 残留在内存缓存中
 
 ### 6. Web 抓取服务
 
@@ -327,6 +353,18 @@
 | PUT | `/api/mcp/services/{id}` | 更新服务 |
 | DELETE | `/api/mcp/services/{id}` | 删除服务 |
 | POST | `/api/mcp/enable` | 启用/禁用 MCP |
+
+### 搜索实例管理
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| GET | `/api/search/instances` | 获取所有搜索实例 |
+| POST | `/api/search/instances` | 新增搜索实例 |
+| PUT | `/api/search/instances/{id}` | 更新搜索实例 |
+| DELETE | `/api/search/instances/{id}` | 删除搜索实例（自动清理 engine_priority 残留 id） |
+| POST | `/api/search/instances/{id}/default` | 设置默认搜索引擎（同步 default_engine 字段） |
+
+> **注意**：删除实例时后端会自动从 `engine_priority` 中移除该实例 ID，并在该实例为默认引擎时清空 `default_engine`，防止残留无效引用。
 
 ### 配置管理
 

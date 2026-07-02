@@ -165,6 +165,22 @@ class DefectTracker:
         return [d for d in self.defects if d.escaped_in_version is not None]
 
     def calculate_escape_rate(self, period_days: int = 30) -> float:
+        """计算逃逸率
+
+        Args:
+            period_days: 统计周期天数（0 ≤ period_days ≤ 36500）
+
+        Raises:
+            ValueError: period_days 为负数或超过 36500 时抛出
+        """
+        # 边界显性化：校验 period_days 参数，防止 OverflowError
+        from agent.monitoring.observability_config import get_max_analyze_days
+        max_days = get_max_analyze_days()
+        if not isinstance(period_days, int) or period_days < 0:
+            raise ValueError(f"period_days 必须为非负整数，得到: {period_days!r}")
+        if period_days > max_days:
+            raise ValueError(f"period_days 超过上限 {max_days}，得到: {period_days}")
+
         now = datetime.now()
         start_date = now - timedelta(days=period_days)
         total_defects = [d for d in self.defects if d.created_at >= start_date]
@@ -188,6 +204,22 @@ class DefectTracker:
         return breakdown
 
     def get_escape_rate_trend(self, days: int = 90) -> List[Dict[str, Any]]:
+        """获取逃逸率趋势
+
+        Args:
+            days: 趋势统计总天数（0 ≤ days ≤ 36500）
+
+        Raises:
+            ValueError: days 为负数或超过 36500 时抛出
+        """
+        # 边界显性化：校验 days 参数，防止 OverflowError
+        from agent.monitoring.observability_config import get_max_analyze_days
+        max_days = get_max_analyze_days()
+        if not isinstance(days, int) or days < 0:
+            raise ValueError(f"days 必须为非负整数，得到: {days!r}")
+        if days > max_days:
+            raise ValueError(f"days 超过上限 {max_days}，得到: {days}")
+
         now = datetime.now()
         trend = []
         for i in range(days, 0, -7):

@@ -18,9 +18,9 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# 默认配置
+# 默认配置（向后兼容常量，实际值应通过 get_http_max_retries() 从 Config 读取）
 DEFAULT_TIMEOUT = 30
-DEFAULT_MAX_RETRIES = 3
+DEFAULT_MAX_RETRIES = 3  # 向后兼容别名
 DEFAULT_CONNECT_TIMEOUT = 10
 DEFAULT_POOL_SIZE = 20
 
@@ -66,8 +66,10 @@ class HttpClient:
         })
 
         # 重试策略（包含 403 以应对反爬限制）
+        # 配置化：从 Config 读取默认重试次数（支持热加载）
+        from agent.monitoring.observability_config import get_http_max_retries
         retry_strategy = Retry(
-            total=self._config.get("max_retries", DEFAULT_MAX_RETRIES),
+            total=self._config.get("max_retries", get_http_max_retries()),
             backoff_factor=self._config.get("backoff_factor", 0.5),
             status_forcelist=[429, 500, 502, 503, 504, 403],
             allowed_methods=["GET", "POST", "HEAD"],

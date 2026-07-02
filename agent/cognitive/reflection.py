@@ -58,10 +58,19 @@ class ReflectionEngine:
     5. 工具调用失败检测
     """
 
-    MAX_RETRIES = 3  # 最大重试次数——硬限制防死循环
+    MAX_RETRIES = 3  # 向后兼容常量，实际值应通过 _get_max_retries() 从 Config 读取
 
     def __init__(self):
         self._retry_counts: dict[str, int] = {}
+
+    def _get_max_retries(self) -> int:
+        """从配置系统读取最大重试次数（委托到 observability_config，支持热加载）
+
+        Returns:
+            最大重试次数，默认 3
+        """
+        from agent.monitoring.observability_config import get_reflection_max_retries
+        return get_reflection_max_retries()
 
     def evaluate(self, task_id: str,
                  input_text: str,
@@ -135,13 +144,13 @@ class ReflectionEngine:
         # - 未超过最大重试次数
         current_retries = self._retry_counts.get(task_id, 0)
         should_retry = (not passed
-                        and current_retries < self.MAX_RETRIES
+                        and current_retries < self._get_max_retries()
                         and score >= 0.3)
 
         if should_retry:
             self._retry_counts[task_id] = current_retries + 1
             logger.info("[Cognitive] 触发重试: task_id=%s, score=%.2f, retry=%d/%d",
-                        task_id, score, current_retries + 1, self.MAX_RETRIES)
+                        task_id, score, current_retries + 1, self._get_max_retries())
         elif passed and task_id in self._retry_counts:
             # 清理已完成的重试记录
             del self._retry_counts[task_id]
@@ -149,7 +158,7 @@ class ReflectionEngine:
         logger.info("[Cognitive] Reflection: task_id=%s, score=%.2f, passed=%s, "
                     "retry=%s (%d/%d), issues=%d",
                     task_id, score, passed, should_retry,
-                    current_retries, self.MAX_RETRIES, len(issues))
+                    current_retries, self._get_max_retries(), len(issues))
 
         return ReflectionResult(
             passed=passed,

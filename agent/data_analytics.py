@@ -17,6 +17,19 @@ def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
 
+# 参数边界约束
+MAX_ANALYZE_DAYS = 36500  # 向后兼容常量，实际值应通过 _get_max_analyze_days() 从 Config 读取
+
+
+def _get_max_analyze_days() -> int:
+    """从配置系统读取时间窗口上限（委托到 observability_config，支持热加载）
+
+    Returns:
+        最大分析天数，默认 36500（100 年）
+    """
+    from agent.monitoring.observability_config import get_max_analyze_days
+    return get_max_analyze_days()
+
 logger.info("[DataAnalytics] 加载数据分析模块")
 
 
@@ -50,18 +63,48 @@ class DataAnalytics:
     
     def analyze_event_trends(self, days: int = 7) -> Dict[str, Any]:
         """分析事件趋势
-        
+
         Args:
-            days: 分析最近 N 天
-            
+            days: 分析最近 N 天（0 ≤ days ≤ 36500）
+
         Returns:
             趋势分析结果
+
+        Raises:
+            ValueError: days 为负数或超过上限 MAX_ANALYZE_DAYS 时抛出
         """
         logger.info(f"[DataAnalytics] 分析事件趋势: {days} 天")
-        
+
+        # 边界显性化：校验 days 参数，防止 OverflowError
+        if not isinstance(days, int) or days < 0:
+            logger.error(json.dumps({
+                "trace_id": _trace_id(),
+                "module_name": "data_analytics",
+                "action": "analyze_event_trends.invalid_days",
+                "duration_ms": 0,
+                "days": days,
+                "reason": "days must be non-negative int",
+            }, ensure_ascii=False))
+            raise ValueError(
+                f"days 必须为非负整数，得到: {days!r}"
+            )
+        max_days = _get_max_analyze_days()
+        if days > max_days:
+            logger.error(json.dumps({
+                "trace_id": _trace_id(),
+                "module_name": "data_analytics",
+                "action": "analyze_event_trends.days_overflow",
+                "duration_ms": 0,
+                "days": days,
+                "max_allowed": max_days,
+            }, ensure_ascii=False))
+            raise ValueError(
+                f"days 超过上限 {max_days}，得到: {days}"
+            )
+
         if not self.black_box:
             return {"error": "black_box not available"}
-        
+
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         

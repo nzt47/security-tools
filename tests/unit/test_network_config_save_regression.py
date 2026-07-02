@@ -15,9 +15,10 @@ import os
 import json
 import copy
 import tempfile
-import pytest
-from unittest.mock import Mock, MagicMock
 from pathlib import Path
+from unittest.mock import Mock, MagicMock
+
+import pytest
 
 from agent.network_config import NetworkConfigManager
 

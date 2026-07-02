@@ -224,6 +224,15 @@ class CircuitBreaker:
             elif current == CircuitState.CLOSED:
                 self._maybe_open_circuit(now)
 
+    # ── 便捷方法（与 output_schema.py 等调用方对齐） ─────────
+    def record_failure(self) -> None:
+        """记录一次失败调用（record_result(False) 的语义化别名）"""
+        self.record_result(False)
+
+    def record_success(self) -> None:
+        """记录一次成功调用（record_result(True) 的语义化别名）"""
+        self.record_result(True)
+
     # ── 状态转换内部方法 ─────────────────────────────────────
 
     def _maybe_transition_to_half_open(self) -> None:
@@ -338,3 +347,36 @@ def circuit_protected(
         wrapper.circuit_breaker = breaker
         return wrapper
     return decorator
+
+
+# ── 全局熔断器注册表（按名称复用，避免每个调用点都新建实例） ─────
+_breakers: dict[str, "CircuitBreaker"] = {}
+_breakers_lock = threading.Lock()
+
+
+def get_circuit_breaker(
+    name: str = "default",
+    failure_threshold: float = 0.3,
+    cooldown_seconds: float = 60.0,
+    **kwargs,
+) -> "CircuitBreaker":
+    """按名称获取（或创建）全局共享的熔断器实例
+
+    幂等：同名重复调用返回同一实例；首次调用按参数创建。
+    线程安全：内部使用 `_breakers_lock` 保护注册表读写。
+    """
+    with _breakers_lock:
+        if name not in _breakers:
+            _breakers[name] = CircuitBreaker(
+                name=name,
+                failure_threshold=failure_threshold,
+                cooldown_seconds=cooldown_seconds,
+                **kwargs,
+            )
+        return _breakers[name]
+
+
+def reset_breakers() -> None:
+    """清空全局熔断器注册表（测试用：在 fixture 中重置状态）"""
+    with _breakers_lock:
+        _breakers.clear()

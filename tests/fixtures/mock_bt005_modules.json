@@ -1,0 +1,284 @@
+{
+  "_meta": {
+    "description": "BT-005 边界测试 mock 数据 - 6 个未覆盖模块",
+    "generated_at": "2026-07-01",
+    "version": "1.0",
+    "modules": [
+      "behavior_controller",
+      "feedback",
+      "performance_logging",
+      "task_planner",
+      "weekly_report_generator",
+      "workflow_engine"
+    ]
+  },
+  "behavior_controller": {
+    "description": "BehaviorController 传感器读数 mock 数据",
+    "sensor_readings": {
+      "normal": [
+        {"sensor_name": "cpu_temperature", "value": 45.0, "description": "CPU 温度"},
+        {"sensor_name": "battery_percent", "value": 80, "description": "电池电量"},
+        {"sensor_name": "memory_usage", "value": 50, "description": "内存占用"},
+        {"sensor_name": "disk_free", "value": 60, "description": "磁盘空闲"}
+      ],
+      "cpu_overheat_boundary": [
+        {"sensor_name": "cpu_temperature", "value": 85, "description": "CPU 温度（边界值，不应触发）"}
+      ],
+      "cpu_overheat_triggered": [
+        {"sensor_name": "cpu_temperature", "value": 86, "description": "CPU 温度（刚超过阈值）"},
+        {"sensor_name": "cpu_temperature", "value": 100, "description": "CPU 温度（极端高温）"}
+      ],
+      "battery_low_boundary": [
+        {"sensor_name": "battery_percent", "value": 15, "description": "电池电量（边界值，不应触发）"}
+      ],
+      "battery_low_triggered": [
+        {"sensor_name": "battery_percent", "value": 14, "description": "电池电量（刚低于阈值）"},
+        {"sensor_name": "battery_percent", "value": 0, "description": "电池电量（零值）"}
+      ],
+      "memory_high_triggered": [
+        {"sensor_name": "memory_usage", "value": 91, "description": "内存占用（刚超过阈值）"},
+        {"sensor_name": "memory_usage", "value": 100, "description": "内存占用（满载）"}
+      ],
+      "disk_low_triggered": [
+        {"sensor_name": "disk_free", "value": 9, "description": "磁盘空闲（刚低于阈值）"},
+        {"sensor_name": "disk_free", "value": 0, "description": "磁盘空闲（零值）"}
+      ],
+      "multi_condition_conflict": [
+        {"sensor_name": "cpu_temperature", "value": 90, "description": "CPU 过热"},
+        {"sensor_name": "battery_percent", "value": 10, "description": "电量不足"},
+        {"sensor_name": "memory_usage", "value": 95, "description": "内存过高"},
+        {"sensor_name": "disk_free", "value": 5, "description": "磁盘不足"}
+      ],
+      "unknown_sensor": [
+        {"sensor_name": "unknown_metric", "value": 999, "description": "未知传感器"}
+      ],
+      "none_value_reading": [
+        {"sensor_name": "cpu_temperature", "value": null, "description": "None 值"}
+      ],
+      "string_value_reading": [
+        {"sensor_name": "cpu_temperature", "value": "hot", "description": "字符串值"}
+      ]
+    },
+    "task_descriptions": {
+      "normal_task": "查询天气",
+      "high_energy_task": "编译项目并部署",
+      "high_energy_english": "build and deploy the project",
+      "empty_task": "",
+      "none_task": null
+    }
+  },
+  "feedback": {
+    "description": "FeedbackManager mock 数据",
+    "feedback_types": {
+      "valid": ["like", "dislike", "report", "suggestion"],
+      "invalid": ["unknown", "", "invalid_type", null]
+    },
+    "ratings": {
+      "valid": [0, 1, 3, 5],
+      "extreme": [-1, -100, 6, 100, 999999],
+      "boundary": [0, 5]
+    },
+    "categories": {
+      "valid": ["quality", "accuracy", "relevance", "completeness", "speed", "safety", "usability", "other"],
+      "invalid": ["", "unknown_category", null]
+    },
+    "sample_records": [
+      {
+        "trace_id": "trace_001",
+        "feedback_type": "like",
+        "rating": 5,
+        "comment": "回答很准确",
+        "category": "accuracy",
+        "user_id": "user_001",
+        "session_id": "session_001"
+      },
+      {
+        "trace_id": "trace_002",
+        "feedback_type": "dislike",
+        "rating": 1,
+        "comment": "回答完全错误",
+        "category": "accuracy",
+        "user_id": "user_002",
+        "session_id": "session_002"
+      },
+      {
+        "trace_id": "trace_003",
+        "feedback_type": "suggestion",
+        "rating": 3,
+        "comment": "希望支持更多语言",
+        "category": "usability",
+        "user_id": "user_003",
+        "session_id": "session_003"
+      }
+    ],
+    "edge_cases": {
+      "empty_comment": "",
+      "long_comment": "这是一条很长的评论" ,
+      "unicode_comment": "回复包含 emoji 😀 和特殊字符 <>&\"'",
+      "none_comment": null
+    }
+  },
+  "performance_logging": {
+    "description": "LLMCache / AsyncSaveMonitor / PerformanceLogger mock 数据",
+    "cache_configs": {
+      "default": {"max_size": 1000, "ttl_seconds": 3600},
+      "zero_max_size": {"max_size": 0, "ttl_seconds": 3600},
+      "negative_max_size": {"max_size": -1, "ttl_seconds": 3600},
+      "zero_ttl": {"max_size": 100, "ttl_seconds": 0},
+      "negative_ttl": {"max_size": 100, "ttl_seconds": -1},
+      "huge_max_size": {"max_size": 999999999, "ttl_seconds": 3600}
+    },
+    "cache_prompts": {
+      "normal": "请解释量子计算的基本原理",
+      "empty": "",
+      "long": "这是一个超长的 prompt 用于测试缓存容量边界。重复内容用于触发哈希计算。",
+      "unicode": "包含中文、emoji😀和特殊字符的 prompt",
+      "none": null
+    },
+    "cache_responses": {
+      "normal": "量子计算利用量子叠加和纠缠原理...",
+      "empty": "",
+      "none": null,
+      "large": "大型响应内容（模拟）"
+    },
+    "async_save_records": {
+      "normal_save": {"task_type": "chat", "task_id": "task_001"},
+      "empty_task_type": {"task_type": "", "task_id": "task_002"},
+      "none_task_type": {"task_type": null, "task_id": "task_003"}
+    },
+    "perf_operations": {
+      "normal": "llm_inference",
+      "empty": "",
+      "none": null,
+      "long": "extremely_long_operation_name_for_testing_boundary_conditions"
+    },
+    "perf_metadata": {
+      "normal": {"model": "gpt-4", "tokens": 150},
+      "empty": {},
+      "none": null,
+      "nested": {"level1": {"level2": {"level3": "deep"}}}
+    }
+  },
+  "task_planner": {
+    "description": "TaskPlanner / DAG mock 数据",
+    "goals": {
+      "code_keyword": "开发一个代码项目",
+      "article_keyword": "写一篇文章",
+      "analysis_keyword": "进行数据分析",
+      "project_keyword": "管理项目",
+      "multi_keyword": "代码分析项目",
+      "no_match": "随便做点什么",
+      "empty": "",
+      "none": null,
+      "unicode": "你好世界"
+    },
+    "task_nodes": {
+      "normal": {"id": "task_1", "description": "测试任务", "depends_on": []},
+      "with_deps": {"id": "task_2", "description": "依赖任务", "depends_on": ["task_1"]},
+      "empty_id": {"id": "", "description": "空 id"},
+      "none_id": {"id": null, "description": "None id"},
+      "empty_description": {"id": "task_3", "description": ""},
+      "long_id": {"id": "task_with_very_long_id_for_testing_boundary", "description": "长 id"},
+      "duplicate_id": {"id": "task_1", "description": "重复 id（应覆盖）"}
+    },
+    "dag_structures": {
+      "linear_3": ["step_0", "step_1", "step_2"],
+      "linear_5": ["step_0", "step_1", "step_2", "step_3", "step_4"],
+      "empty": [],
+      "single": ["only_step"],
+      "circular": "step_0 depends on step_1, step_1 depends on step_0"
+    }
+  },
+  "weekly_report_generator": {
+    "description": "WeeklyReportGenerator mock 数据",
+    "configs": {
+      "default": {"output_dir": "./data/reports", "analytics": null},
+      "empty_output_dir": {"output_dir": "", "analytics": null},
+      "custom_output_dir": {"output_dir": "./test_reports_custom", "analytics": null},
+      "with_analytics": {"output_dir": "./data/reports", "analytics": "mock_analytics_instance"}
+    },
+    "week_offsets": {
+      "current": 0,
+      "previous": -1,
+      "next": 1,
+      "far_past": -1000,
+      "far_future": 1000,
+      "none": null
+    },
+    "report_formats": {
+      "valid_json": "json",
+      "valid_html": "html",
+      "valid_text": "text",
+      "invalid": "xml",
+      "empty": "",
+      "none": null
+    },
+    "sample_reports": {
+      "complete": {
+        "meta": {"version": "1.0", "generated_at": "2026-07-01"},
+        "statistics": {"total_tasks": 10, "success_rate": 0.95},
+        "insights": ["洞察1", "洞察2"]
+      },
+      "missing_meta": {"statistics": {"total_tasks": 5}},
+      "empty": {},
+      "none": null
+    }
+  },
+  "workflow_engine": {
+    "description": "WorkflowEngine / RuleRegistry mock 数据",
+    "rules": {
+      "high_priority": {
+        "name": "greeting",
+        "description": "问候规则",
+        "match_fn": "lambda text: '你好' in text",
+        "execute_fn": "lambda text: '你好！我是云枢'",
+        "priority": 100,
+        "category": "social",
+        "enabled": true
+      },
+      "medium_priority": {
+        "name": "weather",
+        "description": "天气查询",
+        "match_fn": "lambda text: '天气' in text",
+        "execute_fn": "lambda text: '今天天气晴朗'",
+        "priority": 50,
+        "category": "query",
+        "enabled": true
+      },
+      "low_priority": {
+        "name": "fallback",
+        "description": "兜底规则",
+        "match_fn": "lambda text: True",
+        "execute_fn": "lambda text: '默认回复'",
+        "priority": 1,
+        "category": "fallback",
+        "enabled": true
+      },
+      "disabled": {
+        "name": "disabled_rule",
+        "description": "禁用规则",
+        "match_fn": "lambda text: True",
+        "execute_fn": "lambda text: '不应执行'",
+        "priority": 200,
+        "category": "test",
+        "enabled": false
+      }
+    },
+    "test_texts": {
+      "greeting": "你好，很高兴认识你",
+      "weather": "今天天气怎么样？",
+      "no_match": "这是一段无法匹配任何规则的文本",
+      "empty": "",
+      "none": null,
+      "unicode": "你好😀世界🎉",
+      "long": "这是一段超长的文本用于测试工作流引擎的匹配能力" 
+    },
+    "edge_rules": {
+      "duplicate_name": "与 high_priority 同名，测试重复注册",
+      "none_match_fn": "match_fn=None",
+      "none_execute_fn": "execute_fn=None",
+      "exception_match_fn": "match_fn 抛出异常",
+      "exception_execute_fn": "execute_fn 抛出异常"
+    }
+  }
+}
