@@ -596,6 +596,13 @@ class LLMCache:
     """
 
     def __init__(self, max_size: int = 1000, ttl_seconds: int = 3600):
+        # 边界校验：max_size 必须 >= 1，否则 put() 时 len(cache) >= max_size 恒为 True，
+        # 首次 put 在空 OrderedDict 上调用 popitem(last=False) 会抛 KeyError。
+        # 详见 tests/boundary/test_performance_logging_boundary.py
+        if not isinstance(max_size, int) or max_size < 1:
+            raise ValueError(
+                f"max_size 必须是 >= 1 的整数，收到: {max_size!r}"
+            )
         self.max_size = max_size
         self.default_ttl = ttl_seconds
         self.cache: OrderedDict[str, CacheEntry] = OrderedDict()

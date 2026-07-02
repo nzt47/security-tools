@@ -244,6 +244,46 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="resource_monitor.persist_batch_size 必须在 1-1000 之间",
         description="批量落盘的缓冲条数（达到此数量触发写入）",
     ),
+
+    # ── 7. 时间窗口上限（time_window） ──
+    # 统一管理所有 timedelta(days=N) 调用的上限，防止 OverflowError
+    ValidationRule(
+        path="time_window.max_analyze_days",
+        validator=_range_validator(1, 36500),
+        default=36500,
+        error_message="time_window.max_analyze_days 必须在 1-36500 之间（100 年上限）",
+        description="时间窗口分析上限天数，用于 data_analytics/replay_storage/defect_tracker 等模块的 timedelta(days=) 参数校验",
+    ),
+
+    # ── 8. 重试策略（retry） ──
+    # 统一管理 RetryPolicy/with_retry/async_with_retry 的默认最大重试次数
+    ValidationRule(
+        path="retry.default_max_retries",
+        validator=_range_validator(0, 20),
+        default=3,
+        error_message="retry.default_max_retries 必须在 0-20 之间（0 表示不重试）",
+        description="默认最大重试次数，用于 error_handler.py 的 RetryPolicy/with_retry/async_with_retry 装饰器默认值",
+    ),
+
+    # ── 9. 认知反思（cognitive） ──
+    # 反思引擎的重试硬限制，防止死循环
+    ValidationRule(
+        path="cognitive.reflection_max_retries",
+        validator=_range_validator(1, 10),
+        default=3,
+        error_message="cognitive.reflection_max_retries 必须在 1-10 之间",
+        description="认知反思引擎最大重试次数，用于 reflection.py 的 MAX_RETRIES 硬限制",
+    ),
+
+    # ── 10. HTTP 客户端（http） ──
+    # HTTP 请求的默认重试次数
+    ValidationRule(
+        path="http.max_retries",
+        validator=_range_validator(0, 10),
+        default=3,
+        error_message="http.max_retries 必须在 0-10 之间（0 表示不重试）",
+        description="HTTP 客户端默认重试次数，用于 http_client.py 的 DEFAULT_MAX_RETRIES",
+    ),
 ]
 
 
@@ -867,6 +907,54 @@ def get_observability_config() -> ObservabilityConfig:
             if _global_observability_config is None:
                 _global_observability_config = ObservabilityConfig()
     return _global_observability_config
+
+
+def get_max_analyze_days() -> int:
+    """读取时间窗口分析上限天数（便捷函数，支持热加载）
+
+    Returns:
+        最大分析天数，默认 36500（100 年）
+    """
+    try:
+        return int(get_observability_config().get("time_window.max_analyze_days", default=36500))
+    except Exception:
+        return 36500
+
+
+def get_default_max_retries() -> int:
+    """读取默认最大重试次数（便捷函数，支持热加载）
+
+    Returns:
+        最大重试次数，默认 3
+    """
+    try:
+        return int(get_observability_config().get("retry.default_max_retries", default=3))
+    except Exception:
+        return 3
+
+
+def get_reflection_max_retries() -> int:
+    """读取认知反思引擎最大重试次数（便捷函数，支持热加载）
+
+    Returns:
+        最大重试次数，默认 3
+    """
+    try:
+        return int(get_observability_config().get("cognitive.reflection_max_retries", default=3))
+    except Exception:
+        return 3
+
+
+def get_http_max_retries() -> int:
+    """读取 HTTP 客户端默认重试次数（便捷函数，支持热加载）
+
+    Returns:
+        最大重试次数，默认 3
+    """
+    try:
+        return int(get_observability_config().get("http.max_retries", default=3))
+    except Exception:
+        return 3
 
 
 def reset_observability_config() -> None:
