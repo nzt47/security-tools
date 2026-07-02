@@ -284,6 +284,30 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="http.max_retries 必须在 0-10 之间（0 表示不重试）",
         description="HTTP 客户端默认重试次数，用于 http_client.py 的 DEFAULT_MAX_RETRIES",
     ),
+    # HTTP 请求的默认超时秒数
+    ValidationRule(
+        path="http.timeout_sec",
+        validator=_range_validator(1, 300),
+        default=30,
+        error_message="http.timeout_sec 必须在 1-300 秒之间",
+        description="HTTP 请求默认超时秒数，用于 http_client.py 的 DEFAULT_TIMEOUT",
+    ),
+    # HTTP 连接超时秒数
+    ValidationRule(
+        path="http.connect_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="http.connect_timeout_sec 必须在 1-60 秒之间",
+        description="HTTP 连接建立超时秒数，用于 http_client.py 的 DEFAULT_CONNECT_TIMEOUT",
+    ),
+    # HTTP 连接池大小
+    ValidationRule(
+        path="http.pool_size",
+        validator=_range_validator(1, 100),
+        default=20,
+        error_message="http.pool_size 必须在 1-100 之间",
+        description="HTTP 连接池大小，用于 http_client.py 的 DEFAULT_POOL_SIZE",
+    ),
 ]
 
 
@@ -955,6 +979,42 @@ def get_http_max_retries() -> int:
         return int(get_observability_config().get("http.max_retries", default=3))
     except Exception:
         return 3
+
+
+def get_http_timeout() -> int:
+    """读取 HTTP 请求默认超时秒数（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("http.timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+def get_http_connect_timeout() -> int:
+    """读取 HTTP 连接建立超时秒数（便捷函数，支持热加载）
+
+    Returns:
+        连接超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("http.connect_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_http_pool_size() -> int:
+    """读取 HTTP 连接池大小（便捷函数，支持热加载）
+
+    Returns:
+        连接池大小，默认 20
+    """
+    try:
+        return int(get_observability_config().get("http.pool_size", default=20))
+    except Exception:
+        return 20
 
 
 def reset_observability_config() -> None:
