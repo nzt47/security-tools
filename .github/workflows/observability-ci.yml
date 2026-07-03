@@ -341,7 +341,10 @@ jobs:
       - name: 生成可观测性测试覆盖率报告
         run: |
           echo "=== 可观测性模块覆盖率 ==="
-          coverage report --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
+          # --fail-under=0 覆盖 pyproject.toml 中的 fail_under=40：
+          # 本 job 仅测可观测性子模块（7 个测试文件），覆盖率仅用于显示不用于阻断。
+          # 全项目覆盖率由 full-project-tests job 检查。
+          coverage report --fail-under=0 --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
 
       # ── 优化脚本单元测试（仅 Python 3.11 matrix 运行，避免重复）──
       # 验证 visibility_report.py / test_quality_assess.py / impact_analysis.py
