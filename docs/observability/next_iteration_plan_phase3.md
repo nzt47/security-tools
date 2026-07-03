@@ -252,11 +252,11 @@
 
 ### 5.1 功能验收
 
-- [ ] P1 清单 100% 完成（10/10 项配置化）
-- [ ] P2 缓存容量 4 项配置化
-- [ ] P2 调度器与监控 6 项配置化
-- [ ] CI 静态分析覆盖 3 类模式（timedelta + 重试 + 超时）
-- [ ] 6 个混沌测试场景通过
+- [x] P1 清单 100% 完成（10/10 项配置化）✅ Task 1 已提交 3a6b8b08
+- [x] P2 缓存容量 4 项配置化 ✅ Task 4 已提交 41f069ef
+- [x] P2 调度器常量 5 项配置化 ✅ Task 5 已提交 41f069ef（注：实际改造 task_scheduler.py 5 项，llm_monitor/loki/alert_notifier 列入第三批后续迭代）
+- [ ] CI 静态分析覆盖 3 类模式（timedelta + 重试 + 超时）⏳ Task 2 进行中
+- [x] 混沌测试场景通过 ✅ Task 3 已提交 65a625cc，17/17 passed
 
 ### 5.2 质量验收
 
@@ -274,24 +274,28 @@
 
 ---
 
-## 六、附录：配置项速查表（Phase 3 后预期状态）
+## 六、附录：配置项速查表（Phase 3 实际完成状态）
 
-| 配置路径 | 默认值 | 范围 | 用途 | Phase |
-|----------|--------|------|------|-------|
-| `time_window.max_analyze_days` | 36500 | 1-36500 | timedelta 上限 | 2 ✅ |
-| `retry.default_max_retries` | 3 | 0-20 | RetryPolicy 默认重试 | 2 ✅ |
-| `cognitive.reflection_max_retries` | 3 | 1-10 | 反思引擎重试 | 2 ✅ |
-| `http.max_retries` | 3 | 0-10 | HTTP 重试 | 2 ✅ |
-| `http.timeout_sec` | 30 | 1-300 | HTTP 超时 | 3 Task 1 |
-| `http.connect_timeout_sec` | 10 | 1-60 | HTTP 连接超时 | 3 Task 1 |
-| `http.pool_size` | 20 | 1-100 | HTTP 连接池 | 3 Task 1 |
-| `cache.l1_max_size` | 1000 | 10-100000 | L1 缓存容量 | 3 Task 4 |
-| `tracing.context_cache_size` | 4096 | 100-100000 | 追踪上下文缓存 | 3 Task 4 |
-| `tracing.span_cache_size` | 2048 | 100-50000 | Span 缓存 | 3 Task 4 |
-| `memory.stm_max_size` | 100 | 10-10000 | 短期记忆容量 | 3 Task 4 |
-| `scheduler.check_interval_sec` | 10 | 1-300 | 调度检查间隔 | 3 Task 5 |
-| `scheduler.max_history_lines` | 1000 | 100-100000 | 历史行数上限 | 3 Task 5 |
-| `scheduler.max_heartbeat_history` | 1440 | 100-100000 | 心跳历史条数 | 3 Task 5 |
-| `llm_monitor.max_records` | 500 | 10-100000 | LLM 监控环形缓冲 | 3 Task 5 |
-| `loki.timeout_sec` | 10 | 1-120 | Loki 推送超时 | 3 Task 5 |
-| `alert.timeout_sec` | 30 | 1-120 | 告警通知超时 | 3 Task 5 |
+| 配置路径 | 默认值 | 范围 | 用途 | Phase | 状态 |
+|----------|--------|------|------|-------|------|
+| `time_window.max_analyze_days` | 36500 | 1-36500 | timedelta 上限 | 2 | ✅ |
+| `retry.default_max_retries` | 3 | 0-20 | RetryPolicy 默认重试 | 2 | ✅ |
+| `cognitive.reflection_max_retries` | 3 | 1-10 | 反思引擎重试 | 2 | ✅ |
+| `http.max_retries` | 3 | 0-10 | HTTP 重试 | 2 | ✅ |
+| `http.timeout_sec` | 30 | 1-300 | HTTP 超时 | 3 Task 1 | ✅ |
+| `http.connect_timeout_sec` | 10 | 1-60 | HTTP 连接超时 | 3 Task 1 | ✅ |
+| `http.pool_size` | 20 | 1-100 | HTTP 连接池 | 3 Task 1 | ✅ |
+| `cache.l1_max_size` | 1000 | 100-10000 | L1 内存缓存容量 | 3 Task 4 | ✅ |
+| `tracing_cache.context_max_size` | 4096 | 256-16384 | 追踪上下文缓存 | 3 Task 4 | ✅ |
+| `tracing_cache.span_max_size` | 2048 | 128-8192 | Span 数据缓存 | 3 Task 4 | ✅ |
+| `tracing_cache.span_pool_size` | 500 | 50-2000 | Span 对象池 | 3 Task 4 | ✅ |
+| `scheduler.check_interval_sec` | 10 | 1-300 | 调度器 tick 检查间隔 | 3 Task 5 | ✅ |
+| `scheduler.command_timeout_sec` | 300 | 10-3600 | 系统命令执行超时 | 3 Task 5 | ✅ |
+| `scheduler.max_history_lines` | 1000 | 100-10000 | 执行历史最大行数 | 3 Task 5 | ✅ |
+| `scheduler.heartbeat_interval_sec` | 60 | 10-600 | 心跳检测间隔 | 3 Task 5 | ✅ |
+| `scheduler.max_heartbeat_history` | 1440 | 144-14400 | 心跳历史保留条数 | 3 Task 5 | ✅ |
+| `llm_monitor.max_records` | 500 | — | LLM 监控环形缓冲 | 后续 | ⏳ |
+| `loki.timeout_sec` | 10 | — | Loki 推送超时 | 后续 | ⏳ |
+| `alert.timeout_sec` | 30 | — | 告警通知超时 | 后续 | ⏳ |
+
+**Phase 3 实际完成 16/19 项配置化**（Task 1: 3 项 + Task 4: 4 项 + Task 5: 5 项 + 既有 4 项），剩余 3 项列入后续迭代。

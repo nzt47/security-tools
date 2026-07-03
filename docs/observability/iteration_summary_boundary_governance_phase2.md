@@ -288,15 +288,17 @@ bffb130d feat(boundary): MAX_ANALYZE_DAYS 配置化为可配置项（Task 1）
 
 ## 八、后续建议
 
-### 8.1 短期（下一迭代）
+### 8.1 短期（Phase 3 进展）
 
-1. **完成 P1 剩余项**：`http.timeout_sec` / `http.connect_timeout_sec` / `http.pool_size`（预计 1.5h）
-2. **扩展静态分析**：在 `check_timedelta_overflow.py` 基础上扩展重试次数/超时值的检测
-3. **混沌测试**：注入配置异常值（如 max_retries=0、timeout=0），验证降级行为
+1. ✅ **完成 P1 剩余项**：`http.timeout_sec` / `http.connect_timeout_sec` / `http.pool_size`（Phase 3 Task 1 已提交 3a6b8b08）
+2. ⏳ **扩展静态分析**：在 `check_timedelta_overflow.py` 基础上扩展重试次数/超时值的检测（Phase 3 Task 2 进行中）
+3. ✅ **混沌测试**：注入配置异常值（如 max_retries=0、timeout=0），验证降级行为（Phase 3 Task 3 已提交 65a625cc，17/17 passed）
+4. ✅ **P2 缓存容量配置化**：`cache.l1_max_size` + `tracing_cache` 3 项（Phase 3 Task 4 已提交 41f069ef）
+5. ✅ **P2 调度器常量配置化**：`scheduler` 5 项（Phase 3 Task 5 已提交 41f069ef）
 
 ### 8.2 中期
 
-1. **P2 配置化**：缓存容量、调度器常量、监控超时等 7 项（预计 4.5h）
+1. ✅ **P2 配置化（部分）**：缓存容量 4 项 + 调度器常量 5 项已完成（Phase 3 Task 4+5 已提交 41f069ef），剩余 `llm_monitor`/`loki`/`alert` 3 项列入后续迭代
 2. **配置变更审计**：将 `_change_log` 推送至 Loki/Prometheus，实现配置变更可观测
 3. **配置 A/B 测试**：支持按租户/灰度级别应用不同配置值
 
@@ -324,3 +326,114 @@ bffb130d feat(boundary): MAX_ANALYZE_DAYS 配置化为可配置项（Task 1）
 | `retry.default_max_retries` | 3 | 0-20 | RetryPolicy/with_retry/async_with_retry 默认重试次数 |
 | `cognitive.reflection_max_retries` | 3 | 1-10 | 反思引擎最大重试次数 |
 | `http.max_retries` | 3 | 0-10 | HTTP 客户端默认重试次数 |
+
+---
+
+## 十、Phase 3 进展补充（2026-07-03 ~ 2026-07-04）
+
+> **本章节记录 Phase 3 边界治理迭代的进展，作为 Phase 2 技术总结的延续。**
+> **详细计划见**：[边界治理 Phase 3 迭代行动计划](next_iteration_plan_phase3.md)
+
+### 10.1 Phase 3 核心成果
+
+| 指标 | Phase 2 结束 | Phase 3 当前 | 变化 |
+|------|-------------|-------------|------|
+| 配置化边界项 | 4 | **16**（+3 HTTP +4 缓存 +5 调度器） | +12 |
+| CI 静态分析规则 | 1（timedelta） | 1（扩展中） | Task 2 进行中 |
+| 混沌测试场景 | 0 | **17**（全部通过） | +17 |
+| 配置项总数 | 19 | **32** | +13 |
+| P1 完成率 | 60% | **100%** | +40% |
+| P2 完成率 | 0% | **82%**（9/11 项） | +82% |
+
+### 10.2 Task 4: P2 缓存容量配置化 ✅
+
+**提交**：`41f069ef` feat(observability): P2 缓存容量 + 调度器常量配置化（Phase 3 Task 4+5）
+
+**新增 4 个 ValidationRule + 4 个便捷函数**：
+
+| 配置路径 | 默认值 | 范围 | 业务模块 |
+|----------|--------|------|----------|
+| `cache.l1_max_size` | 1000 | 100-10000 | multi_level_cache.py |
+| `tracing_cache.context_max_size` | 4096 | 256-16384 | tracing_cache.py |
+| `tracing_cache.span_max_size` | 2048 | 128-8192 | tracing_cache.py |
+| `tracing_cache.span_pool_size` | 500 | 50-2000 | tracing_cache.py |
+
+**业务模块改造**：
+- `multi_level_cache.py`: `l1_max_size` 参数改为 `Optional[int]=None`，None 时从 Config 读取
+- `tracing_cache.py`: `TraceContextCache.__init__` 3 个缓存容量从 Config 读取
+
+**测试验证**：multi_level_cache 单元测试 82/82 通过
+
+### 10.3 Task 5: P2 调度器常量配置化 ✅
+
+**提交**：`41f069ef`（与 Task 4 合并提交）
+
+**新增 5 个 ValidationRule + 5 个便捷函数**：
+
+| 配置路径 | 默认值 | 范围 | 业务模块 |
+|----------|--------|------|----------|
+| `scheduler.check_interval_sec` | 10 | 1-300 | task_scheduler.py |
+| `scheduler.command_timeout_sec` | 300 | 10-3600 | task_scheduler.py |
+| `scheduler.max_history_lines` | 1000 | 100-10000 | task_scheduler.py |
+| `scheduler.heartbeat_interval_sec` | 60 | 10-600 | task_scheduler.py |
+| `scheduler.max_heartbeat_history` | 1440 | 144-14400 | task_scheduler.py |
+
+**业务模块改造**（task_scheduler.py 6 处使用位置）：
+- `_should_run`: `HEARTBEAT_INTERVAL` → `get_scheduler_heartbeat_interval()`
+- `run_task`: `COMMAND_TIMEOUT` → `get_scheduler_command_timeout()`
+- `_trim_history`: `MAX_HISTORY_LINES` → `get_scheduler_max_history_lines()`
+- `_save_heartbeat`: `MAX_HEARTBEAT_HISTORY` → `get_scheduler_max_heartbeat_history()`
+- `start_daemon`: `check_interval` 改为 `Optional[int]=None`，None 时从 Config 读取
+- `list_tasks`: `HEARTBEAT_INTERVAL` → `get_scheduler_heartbeat_interval()`
+
+**测试验证**：
+- observability_config + 混沌测试 69/69 通过
+- task_scheduler 测试 14 passed, 10 failed（全部为预先存在的失败，已通过 git stash 对比验证与配置化改动无关）
+
+### 10.4 兼容性设计
+
+- **保留原常量**：`DEFAULT_CHECK_INTERVAL`/`COMMAND_TIMEOUT` 等保留为向后兼容别名
+- **函数签名统一**：改为 `Optional[int]=None`，None 时从 Config 读取默认值
+- **局部导入模式**：方法体内 `from agent.monitoring.observability_config import ...`，避免模块级循环导入
+
+### 10.5 混沌测试验证 ✅
+
+**测试脚本**：`tests/chaos/test_config_boundary_chaos.py`
+**测试结果**：17 passed, 0 failed, 0 skipped（耗时 0.68s）
+
+**覆盖场景**：
+- `retry.default_max_retries = 0`：验证不重试直接失败
+- `retry.default_max_retries = 20`：验证最大重试不超时
+- `http.max_retries = 0`：验证 HTTP 不重试
+- `http.timeout_sec = 1`：验证短超时触发超时异常
+- `cognitive.reflection_max_retries = 1`：验证反思仅重试一次
+- `time_window.max_analyze_days = 1`：验证短时间窗口正常工作
+- 并发配置访问安全性测试
+
+**配置系统初始化验证**：32 个配置项全部正确加载，包括 Task 4+5 新增的 9 个
+
+### 10.6 Phase 3 Git 提交记录
+
+```
+41f069ef feat(observability): P2 缓存容量 + 调度器常量配置化（Phase 3 Task 4+5）
+65a625cc feat(observability): HTTP 配置化 + 混沌测试 + struct_log_formatter 性能埋点（Task 1+3）
+b162b53b docs(observability): 新增 Phase 2 技术总结 + Phase 3 行动计划
+```
+
+### 10.7 Phase 3 剩余工作
+
+| Task | 状态 | 说明 |
+|------|------|------|
+| Task 1: HTTP 配置化 | ✅ 完成 | 已提交 3a6b8b08/65a625cc |
+| Task 2: 静态分析扩展 | ⏳ 进行中 | 扩展 check_timedelta_overflow.py 检测重试/超时硬编码 |
+| Task 3: 混沌测试 | ✅ 完成 | 已提交 65a625cc，17/17 passed |
+| Task 4: 缓存容量配置化 | ✅ 完成 | 已提交 41f069ef |
+| Task 5: 调度器常量配置化 | ✅ 完成 | 已提交 41f069ef |
+| Task 6: 提交清理与文档 | ⏳ 部分完成 | 文档已更新，PR 待创建 |
+
+### 10.8 P2 清单报告
+
+新增 `docs/observability/p2_hardcoded_constants_inventory.md`：
+- 扫描 7 个模块，识别 14 个候选配置项
+- 分 3 个优先级：P2-高 4 项 / P2-中 5 项 / P2-低 5 项
+- 为后续迭代提供改造候选项清单
