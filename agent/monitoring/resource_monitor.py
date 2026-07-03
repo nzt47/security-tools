@@ -214,7 +214,7 @@ class ResourceMonitor:
         """停止周期性采样"""
         self._stop_event.set()
         if self._sample_thread and self._sample_thread.is_alive():
-            self._sample_thread.join(timeout=5)
+            self._sample_thread.join(timeout=self._get_config("thread_join_timeout_sec", 5))
         self._sample_thread = None
         # 停止前刷新持久化缓冲，确保最后的数据落盘
         self._flush_persist()
