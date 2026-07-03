@@ -253,23 +253,33 @@ class TestAsyncIntegration(unittest.TestCase):
 
 class TestDiagnosticsIntegration(unittest.TestCase):
     """诊断功能集成测试"""
-    
+
+    def setUp(self):
+        """每个测试前初始化 OpenTelemetry SDK
+
+        diagnose_opentelemetry_config() 通过检测 TracerProvider 是否为 Proxy 实现
+        来判断 tracer_initialized。默认情况下 opentelemetry.trace.get_tracer_provider()
+        返回 ProxyTracerProvider，需调用 init_observability() 创建真正的 TracerProvider。
+        """
+        from agent.monitoring.tracing import init_observability
+        init_observability()
+
     def test_diagnosis_report(self):
         """测试诊断报告功能"""
         logger.info("\n=== 测试诊断报告 ===")
-        
+
         # 初始化追踪
         with TraceContext("DiagnosticTest", "operation"):
             pass
-        
+
         # 运行诊断
         diagnosis = diagnose_opentelemetry_config()
-        
+
         self.assertTrue(diagnosis['opentelemetry_available'],
                       "OpenTelemetry 应该可用")
         self.assertTrue(diagnosis['tracer_initialized'],
                       "Tracer 应该已初始化")
-        
+
         logger.info("✅ 诊断报告生成成功")
     
     def test_context_diagnosis(self):
