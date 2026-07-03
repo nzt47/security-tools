@@ -45,7 +45,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock psutil
+          pip install pytest pytest-cov pytest-mock pytest-timeout psutil
           pip install -e . || true
 
       - name: 运行工具模块测试
@@ -59,7 +59,8 @@ jobs:
                 -v --tb=short --cov=agent.system_tools --cov=agent.pdf_tools \
                 --cov=agent.web --cov=agent.extensions.manager \
                 --cov=agent.software_manager \
-                --cov-report=term-missing
+                --cov-report=term-missing \
+                --timeout=300
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
