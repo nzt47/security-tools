@@ -7,11 +7,13 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
       - 'release/**'
   pull_request:
     branches:
       - main
+      - master
       - develop
   schedule:
     - cron: '0 2 * * *'  # 每天凌晨2点运行完整测试
