@@ -67,6 +67,10 @@ class LearnedWorkflow(BaseModel):
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     last_used_at: Optional[str] = None
 
+    # 转换为 Skill 的状态跟踪（避免重复转换）
+    # 空字符串表示未转换；非空时为对应的 skill_id
+    converted_to_skill_id: str = ""
+
     model_config = ConfigDict(use_enum_values=True)
 
     @field_validator("id")

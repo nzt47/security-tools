@@ -361,6 +361,8 @@ def stress_test(
     use_log_dict: bool = True,
     enable_filter_chain: bool = True,
     report_interval: Optional[float] = 1.0,
+    filter_chain_factory: Optional[Any] = None,
+    log_dict_factory: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """高并发压力测试——模拟生产环境多线程日志写入
 
@@ -377,6 +379,12 @@ def stress_test(
         use_log_dict: True=新模式（log_dict dict 直传），False=旧模式（json.dumps 字符串）
         enable_filter_chain: 是否启用完整 filter 链（SensitiveDataFilter + EmojiFilter + DictToJsonFilter）
         report_interval: 实时报告间隔（秒），None=不报告
+        filter_chain_factory: 可选的 filter 链工厂函数，返回 List[logging.Filter]。
+            默认 None 时延迟导入 agent.logging_utils 的内置 filter。
+            注入此参数可彻底解耦 perf_monitor 与 logging_utils 的依赖。
+        log_dict_factory: 可选的 log_dict 替代函数，签名 (Dict) -> Dict。
+            默认 None 时延迟导入 agent.logging_utils.log_dict。
+            注入此参数可在不依赖 logging_utils 的情况下测试新模式。
 
     Returns:
         {
@@ -432,23 +440,38 @@ def stress_test(
     stress_logger.setLevel(_logging.INFO)
     stress_logger.propagate = False  # 关键：避免被 pytest 捕获导致内存累积
 
-    class _DiscardHandler(_logging.NullHandler):
-        """丢弃所有输出的 handler，仅触发 filter 链"""
+    class _DiscardHandler(_logging.Handler):
+        """丢弃所有输出的 handler，仅触发 filter 链
+
+        关键：继承 Handler 而非 NullHandler。
+        NullHandler 覆盖了 handle() 为 pass，导致 filter 链不被调用。
+        Handler.handle() 会先调用 self.filter(record) 遍历 filter 链，
+        然后才调用 emit()。我们覆盖 emit 为 pass，丢弃输出但保留 filter 调用。
+        """
         def emit(self, record):
             pass
 
     handler = _DiscardHandler()
     if enable_filter_chain:
-        # 延迟导入避免循环依赖
-        from agent.logging_utils import EmojiFilter, DictToJsonFilter, SensitiveDataFilter
-        handler.addFilter(SensitiveDataFilter())
-        handler.addFilter(EmojiFilter())
-        handler.addFilter(DictToJsonFilter())
+        # 优先使用注入的 filter 链工厂，避免对 logging_utils 的依赖
+        if filter_chain_factory is not None:
+            for flt in filter_chain_factory():
+                handler.addFilter(flt)
+        else:
+            # 延迟导入保持向后兼容（不破坏现有调用方）
+            from agent.logging_utils import EmojiFilter, DictToJsonFilter, SensitiveDataFilter
+            handler.addFilter(SensitiveDataFilter())
+            handler.addFilter(EmojiFilter())
+            handler.addFilter(DictToJsonFilter())
     stress_logger.addHandler(handler)
 
     # ── 准备导入 ──
     if use_log_dict:
-        from agent.logging_utils import log_dict as _log_dict
+        # 优先使用注入的 log_dict 工厂，避免对 logging_utils 的依赖
+        if log_dict_factory is not None:
+            _log_dict = log_dict_factory
+        else:
+            from agent.logging_utils import log_dict as _log_dict
         import json as _json
 
         def _emit(payload):
