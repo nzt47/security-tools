@@ -310,6 +310,9 @@ class ReviewThresholds:
     security_min: float = 70.0      # 安全分 < 70 标记为不通过
     quality_min: float = 50.0       # 质量分 < 50 标记为低质量
     overall_min: float = 60.0       # 综合分 < 60 不通过
+    # 合并触发阈值（独立于 duplicate_max）
+    # 当 Jaccard 重复度 >= merge_threshold 时，建议触发自动合并
+    merge_threshold: float = 70.0
 
 
 class SkillReviewer:
@@ -425,3 +428,95 @@ class SkillReviewer:
             ctx["score"] = overall
             ctx["status"] = status.value
             return result
+
+    # ─── 重复技能扫描 ───
+
+    def find_duplicates(self, skills: List[Skill],
+                       min_jaccard: float = 0.7) -> List[Dict[str, Any]]:
+        """扫描整个技能库，找出 Jaccard≥阈值的重复对
+
+        Args:
+            skills: 待扫描的技能列表
+            min_jaccard: 触发合并的最小 Jaccard 相似度（默认 0.7）
+
+        Returns:
+            [{skill_a, skill_b, jaccard, content_hash_match,
+              recommend_action: "merge"|"review"}, ...]
+            按 jaccard 倒序排列
+        """
+        if not skills or len(skills) < 2:
+            return []
+
+        # 预计算每个 skill 的 hash 与 tokens
+        cache = []
+        for s in skills:
+            tokens = _tokenize(f"{s.name} {s.description} {s.content}")
+            cache.append((s, _content_hash(s.content), tokens))
+
+        results: List[Dict[str, Any]] = []
+        n = len(cache)
+        for i in range(n):
+            s_i, hash_i, tokens_i = cache[i]
+            for j in range(i + 1, n):
+                s_j, hash_j, tokens_j = cache[j]
+                hash_match = bool(hash_i) and hash_i == hash_j
+                if hash_match:
+                    sim = 1.0
+                else:
+                    sim = _jaccard(tokens_i, tokens_j)
+                if sim < min_jaccard:
+                    continue
+                # 推荐：完全相同 → merge；Jaccard≥0.85 → merge；≥0.7 → review
+                action = "merge" if (hash_match or sim >= 0.85) else "review"
+                results.append({
+                    "skill_a": s_i.id,
+                    "skill_b": s_j.id,
+                    "name_a": s_i.name,
+                    "name_b": s_j.name,
+                    "jaccard": round(sim, 4),
+                    "content_hash_match": hash_match,
+                    "recommend_action": action,
+                })
+
+        results.sort(key=lambda r: r["jaccard"], reverse=True)
+        return results
+
+    def find_duplicates_for(self, target: Skill,
+                            others: List[Skill],
+                            min_jaccard: float = 0.7) -> List[Dict[str, Any]]:
+        """找出与 target 重复的技能（单向扫描）
+
+        Args:
+            target: 目标技能
+            others: 待比较的其他技能
+            min_jaccard: 最小相似度阈值
+
+        Returns:
+            [{other_id, other_name, jaccard, content_hash_match,
+              recommend_action}, ...]
+        """
+        own_hash = _content_hash(target.content)
+        own_tokens = _tokenize(f"{target.name} {target.description} {target.content}")
+
+        results: List[Dict[str, Any]] = []
+        for other in others:
+            if other.id == target.id:
+                continue
+            hash_match = bool(own_hash) and own_hash == _content_hash(other.content)
+            sim = 1.0 if hash_match else _jaccard(
+                own_tokens,
+                _tokenize(f"{other.name} {other.description} {other.content}"),
+            )
+            if sim < min_jaccard:
+                continue
+            action = "merge" if (hash_match or sim >= 0.85) else "review"
+            results.append({
+                "other_id": other.id,
+                "other_name": other.name,
+                "jaccard": round(sim, 4),
+                "content_hash_match": hash_match,
+                "recommend_action": action,
+            })
+
+        results.sort(key=lambda r: r["jaccard"], reverse=True)
+        return results

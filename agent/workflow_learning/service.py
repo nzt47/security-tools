@@ -159,3 +159,88 @@ class WorkflowLearningService:
 
     def set_tool_executor(self, executor: ToolExecutor) -> None:
         self.executor.set_tool_executor(executor)
+
+    # ─── 工作流 → 技能 转换 ───
+
+    def convert_to_skill(self, wf_id: str, *,
+                         skills_service=None,
+                         force: bool = False) -> Dict[str, Any]:
+        """把指定工作流抽象为 Skill 并注册到 skills_mgmt
+
+        Args:
+            wf_id: 工作流ID
+            skills_service: SkillsMgmtService 实例（None 时延迟导入全局单例）
+            force: 是否跳过质量门控
+
+        Returns:
+            {workflow_id, skill_id, skill_name, version, action}
+
+        Raises:
+            WorkflowNotFoundError: 工作流不存在
+            WorkflowConvertError: 未通过质量门控
+        """
+        svc = skills_service or self._resolve_skills_service()
+        converter = self._build_converter(svc)
+        return converter.convert_workflow_to_skill(wf_id, force=force)
+
+    def convert_external_skill(self, external_data: Dict[str, Any],
+                               *, llm_client=None,
+                               skills_service=None,
+                               target_id: str = "") -> Dict[str, Any]:
+        """把外部 agent 的技能描述翻译为云枢 SKILL 并注册
+
+        Args:
+            external_data: 外部技能描述 (JSON dict)
+            llm_client: 可选 LLM 客户端（None 走规则转换）
+            skills_service: SkillsMgmtService 实例
+            target_id: 指定目标 skill_id
+
+        Returns:
+            {skill_id, skill_name, source_format, action}
+        """
+        svc = skills_service or self._resolve_skills_service()
+        converter = self._build_converter(svc)
+        return converter.convert_external_skill(
+            external_data, llm_client, target_id=target_id,
+        )
+
+    def list_convertible_workflows(self) -> List[Dict[str, Any]]:
+        """列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）"""
+        from .skill_converter import (
+            MIN_SUCCESS_COUNT, MIN_CONFIDENCE, MIN_PRIORITY,
+        )
+        candidates = []
+        for wf in self.repo.list_all(enabled_only=True):
+            if wf.converted_to_skill_id:
+                continue
+            if (wf.status == WorkflowStatus.ACTIVE.value
+                    and wf.success_count >= MIN_SUCCESS_COUNT
+                    and wf.confidence >= MIN_CONFIDENCE
+                    and wf.priority >= MIN_PRIORITY):
+                candidates.append({
+                    "workflow_id": wf.id,
+                    "name": wf.name,
+                    "success_count": wf.success_count,
+                    "failure_count": wf.failure_count,
+                    "confidence": wf.confidence,
+                    "priority": wf.priority,
+                    "last_used_at": wf.last_used_at,
+                })
+        return candidates
+
+    # ─── 内部辅助 ───
+
+    def _resolve_skills_service(self):
+        """延迟导入 SkillsMgmtService 全局单例（避免循环依赖）"""
+        from agent.skills_mgmt.service import get_skills_service
+        try:
+            return get_skills_service()
+        except Exception:
+            # 兜底：直接构造（使用默认存储）
+            from agent.skills_mgmt.service import SkillsMgmtService
+            return SkillsMgmtService()
+
+    def _build_converter(self, skills_service):
+        """构造 SkillConverter 实例"""
+        from .skill_converter import WorkflowToSkillConverter
+        return WorkflowToSkillConverter(skills_service, self.repo)

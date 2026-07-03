@@ -167,13 +167,18 @@ class SkillEnhancer:
 
     # ─── 参数优化 ───
 
-    def optimize_params(self, skill_id: str) -> Dict[str, Any]:
-        """基于使用指标推荐参数调整
+    def optimize_params(self, skill_id: str,
+                        feedback_summary: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """基于使用指标 + 用户反馈推荐参数调整
 
-        简化版策略:
+        策略:
             - 失败率 > 30% → 重置到默认参数
             - 平均延迟 > 5s → 标记需要优化 (返回建议)
-            - 成功率 100% & 使用次数 >= 10 → 建议升级状态为 PUBLISHED
+            - 成功率 ≥ 99% & 使用 ≥ 10 & 状态 APPROVED → 自动晋升 PUBLISHED
+            - 反馈维度（若传入 feedback_summary）:
+                * 平均评分 < 3.0 → 标记需改进参数
+                * 满意度 ≥ 90% & 总反馈 ≥ 5 → 加分项，建议晋升
+                * 满意度 < 50% & 总反馈 ≥ 5 → 建议降级或合并
         """
         with traced_action("skill_optimize_params", skill_id=skill_id):
             skill = self._require(skill_id)
@@ -202,7 +207,29 @@ class SkillEnhancer:
                     recommendations.append("表现稳定，建议升级状态为 PUBLISHED")
                     actions["promote_to_published"] = True
 
-            if actions.get("promote_to_published"):
+            # 反馈维度驱动
+            if feedback_summary:
+                total_fb = feedback_summary.get("total_feedback", 0)
+                sat = feedback_summary.get("satisfaction_rate_percent", 0.0)
+                avg_rating = feedback_summary.get("avg_rating", 0.0)
+                if total_fb > 0:
+                    if avg_rating < 3.0:
+                        recommendations.append(
+                            f"用户平均评分 {avg_rating:.2f} 偏低，"
+                            "建议优化技能参数或内容"
+                        )
+                        actions["low_rating"] = True
+                    if sat >= 90 and total_fb >= 5:
+                        recommendations.append("用户反馈满意度高，建议晋升 PUBLISHED")
+                        actions["promote_to_published"] = True
+                    if sat < 50 and total_fb >= 5:
+                        recommendations.append(
+                            f"用户满意度仅 {sat:.1f}%，建议降级或与重复技能合并"
+                        )
+                        actions["consider_deprecate"] = True
+
+            if actions.get("promote_to_published") and \
+                    skill.status == SkillStatus.APPROVED.value:
                 skill.status = SkillStatus.PUBLISHED
                 skill.touch()
                 self._store.upsert(skill)
@@ -212,13 +239,26 @@ class SkillEnhancer:
                 "recommendations": recommendations,
                 "actions_taken": actions,
                 "metrics_snapshot": m.model_dump(),
+                "feedback_summary": feedback_summary or {},
             }
 
     # ─── 性能追踪 ───
 
     def record_execution(self, skill_id: str, *,
-                         success: bool, latency_ms: float) -> None:
-        """记录一次技能执行"""
+                         success: bool, latency_ms: float,
+                         feedback_rating: int = 0,
+                         feedback_id: str = "",
+                         trace_id: str = "") -> None:
+        """记录一次技能执行
+
+        Args:
+            skill_id: 技能ID
+            success: 是否成功
+            latency_ms: 延迟毫秒
+            feedback_rating: 用户评分 1-5（0 表示未采集）
+            feedback_id: 关联的 FeedbackRecord ID
+            trace_id: 追踪ID（用于可观测性关联）
+        """
         skill = self._require(skill_id)
         skill.metrics.record(success=success, latency_ms=latency_ms)
         skill.touch()
@@ -231,6 +271,60 @@ class SkillEnhancer:
                     "skill_id": skill_id},
             kind="histogram",
         )
+        if feedback_rating > 0:
+            emit_metric(
+                "yunshu_skill_feedback_rating",
+                value=feedback_rating,
+                labels={"skill_id": skill_id,
+                        "success": "true" if success else "failure"},
+                kind="histogram",
+            )
+            track_event("skill_feedback_received", {
+                "skill_id": skill_id,
+                "rating": feedback_rating,
+                "feedback_id": feedback_id,
+                "trace_id": trace_id,
+            })
+
+    # ─── 反馈驱动 ───
+
+    def get_skill_feedback_summary(self, skill_id: str,
+                                   days: int = 30) -> Dict[str, Any]:
+        """获取技能的用户反馈聚合统计
+
+        代理调用 FeedbackManager.get_skill_feedback_summary，
+        失败时返回空统计而不阻塞主流程。
+        """
+        with traced_action("skill_get_feedback_summary",
+                           skill_id=skill_id, days=days):
+            try:
+                from agent.feedback import get_feedback_manager
+                mgr = get_feedback_manager()
+                return mgr.get_skill_feedback_summary(skill_id, days=days)
+            except Exception as e:
+                logger.warning(
+                    "[Enhancer] 获取反馈统计失败 skill=%s: %s",
+                    skill_id, e)
+                return {
+                    "skill_id": skill_id,
+                    "total_feedback": 0,
+                    "satisfaction_rate_percent": 0.0,
+                    "avg_rating": 0.0,
+                    "error": str(e),
+                }
+
+    def optimize_with_feedback(self, skill_id: str,
+                               days: int = 30) -> Dict[str, Any]:
+        """一键式：拉取反馈 + 触发优化
+
+        Returns:
+            {
+                skill_id, recommendations, actions_taken,
+                metrics_snapshot, feedback_summary
+            }
+        """
+        fb_summary = self.get_skill_feedback_summary(skill_id, days=days)
+        return self.optimize_params(skill_id, feedback_summary=fb_summary)
 
     # ─── 启用/禁用 ───
 
