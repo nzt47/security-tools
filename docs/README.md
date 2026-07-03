@@ -21,6 +21,7 @@ docs/
 │   ├── p0_deployment_verification_report.md    # P0 部署验证报告
 │   ├── p0_security_fix_archive_20260703.md     # P0 修复完整日志归档
 │   ├── p0_security_retrospective.md            # P0 安全修复复盘
+│   ├── RELEASE_NOTES_P0_SECURITY_20260703.md   # P0 安全修复发布说明
 │   ├── potential_risks_analysis.md
 │   ├── secure_config_guide.md
 │   └── security_coding_checklist.md            # 安全编码规范
@@ -103,7 +104,9 @@ P0-SEC-001（Bearer Token 脱敏失败）与 P0-SEC-002（贪婪正则吞噬 URL
 
 | 文档 | 描述 |
 |------|------|
+| [P0 安全修复发布说明](security/RELEASE_NOTES_P0_SECURITY_20260703.md) | 缺陷修复、受影响模块、测试验证、升级须知 |
 | [P0 安全修复补丁包说明](../patches/p0_security/README.md) | 补丁包概述、修复方案、受影响模块、测试验证 |
+| [P0 安全修复完整日志归档](security/p0_security_fix_archive_20260703.md) | CI 运行日志、本地测试结果、覆盖率、提交历史 |
 | [P0 安全修复完整部署验证报告](security/p0_deployment_verification_report.md) | CI 执行日志、测试覆盖率统计、Git 提交历史、CI 防护体系 |
 | [P0 安全修复复盘报告](security/p0_security_retrospective.md) | 问题根因复盘、修复过程、经验教训 |
 | [Confluence 同步任务执行状态确认单](security/confluence_sync_status_confirmation.md) | 文档同步任务执行过程、CI 流水线状态、最终结论 |
