@@ -24,6 +24,9 @@ logs/
 unit_run.log
 _test_sanitize.py
 
+# 测试运行时临时文件（pytest 生成，不入库）
+tests/unit/temp/
+
 # 运行时备份/数据/工作区
 .file_backups/
 workspace/
