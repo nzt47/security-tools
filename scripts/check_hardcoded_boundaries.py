@@ -66,6 +66,12 @@ CONFIGURED_MODULES: Set[str] = {
     "llm_monitor.py",                       # llm_monitor.max_records
     "monitoring/loki.py",                   # loki.push_timeout_sec / loki.query_timeout_sec
     "monitoring/alert_notifier.py",         # alert.timeout_sec
+    # Phase 4 Task 2: P3 monitoring 批次新增
+    "monitoring/prometheus.py",             # prometheus.max_retries
+    "monitoring/chaos_injector.py",         # chaos.thread_join_timeout_sec
+    "monitoring/resource_monitor.py",       # resource_monitor.thread_join_timeout_sec
+    "monitoring/search.py",                 # search.thread_join_timeout_sec / config_apply_timeout_sec / web_search_timeout_sec / status_check_timeout_sec
+    "monitoring/self_healer.py",            # self_healer.restart_timeout_sec / sync_timeout_sec / verify_timeout_sec / thread_join_timeout_sec
     # 配置系统自身
     "monitoring/observability_config.py",
 }
