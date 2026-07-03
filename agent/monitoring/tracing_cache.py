@@ -318,14 +318,25 @@ class TraceContextCache:
     """
     
     def __init__(self):
+        # 配置化：从 Config 读取缓存容量（支持热加载）
+        from agent.monitoring.observability_config import (
+            get_tracing_cache_context_max_size,
+            get_tracing_cache_span_max_size,
+            get_tracing_cache_span_pool_size,
+        )
+
         # 上下文缓存（trace_id -> context）
-        self._context_cache = LRUCache(max_size=4096, ttl_seconds=600)
-        
+        self._context_cache = LRUCache(
+            max_size=get_tracing_cache_context_max_size(), ttl_seconds=600
+        )
+
         # Span数据缓存（trace_id -> List[span_data]）
-        self._span_cache = LRUCache(max_size=2048, ttl_seconds=300)
-        
+        self._span_cache = LRUCache(
+            max_size=get_tracing_cache_span_max_size(), ttl_seconds=300
+        )
+
         # Span对象池
-        self._span_pool = SpanDataPool(pool_size=500)
+        self._span_pool = SpanDataPool(pool_size=get_tracing_cache_span_pool_size())
         
         # 异步写入器
         self._async_writer = None
