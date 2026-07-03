@@ -403,7 +403,7 @@ class MultiLevelCache:
 
     def __init__(
         self,
-        l1_max_size: int = 1000,
+        l1_max_size: Optional[int] = None,
         l1_ttl: int = 300,
         l2_enabled: bool = True,
         l2_dir: str = "./cache/l2",
@@ -415,7 +415,7 @@ class MultiLevelCache:
         初始化多级缓存
 
         Args:
-            l1_max_size: L1内存缓存最大条目数
+            l1_max_size: L1内存缓存最大条目数（None 时从 Config 读取，支持热加载）
             l1_ttl: L1默认过期时间（秒）
             l2_enabled: 是否启用L2磁盘缓存
             l2_dir: L2缓存目录
@@ -423,6 +423,11 @@ class MultiLevelCache:
             warmup_enabled: 是否启用缓存预热
             warmup_callback: 缓存预热回调函数
         """
+        # 配置化：从 Config 读取默认最大条目数（支持热加载）
+        if l1_max_size is None:
+            from agent.monitoring.observability_config import get_cache_l1_max_size
+            l1_max_size = get_cache_l1_max_size()
+
         # L1 内存缓存
         self._l1_cache = LRUCache(max_size=l1_max_size, ttl_seconds=l1_ttl)
         self._l1_ttl = l1_ttl

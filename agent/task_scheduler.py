@@ -35,12 +35,12 @@ SCHEDULED_TASKS_FILE = DATA_DIR / "scheduled_tasks.json"
 TASK_HISTORY_FILE = DATA_DIR / "task_history.jsonl"
 HEARTBEAT_HISTORY_FILE = DATA_DIR / "heartbeat_history.json"
 
-# 默认配置
-DEFAULT_CHECK_INTERVAL = 10    # tick 检查间隔（秒）
-COMMAND_TIMEOUT = 300          # 系统命令超时（秒）
-MAX_HISTORY_LINES = 1000       # 执行历史最大行数
-HEARTBEAT_INTERVAL = 60        # 心跳间隔（秒）
-MAX_HEARTBEAT_HISTORY = 1440   # 心跳历史保留条数
+# 默认配置（向后兼容常量，实际值应通过便捷函数从 Config 读取）
+DEFAULT_CHECK_INTERVAL = 10    # 向后兼容别名，实际值通过 get_scheduler_check_interval() 读取
+COMMAND_TIMEOUT = 300          # 向后兼容别名，实际值通过 get_scheduler_command_timeout() 读取
+MAX_HISTORY_LINES = 1000       # 向后兼容别名，实际值通过 get_scheduler_max_history_lines() 读取
+HEARTBEAT_INTERVAL = 60        # 向后兼容别名，实际值通过 get_scheduler_heartbeat_interval() 读取
+MAX_HEARTBEAT_HISTORY = 1440   # 向后兼容别名，实际值通过 get_scheduler_max_heartbeat_history() 读取
 
 
 class TaskScheduler:
@@ -155,7 +155,9 @@ class TaskScheduler:
             if task.get("last_run") is None:
                 return True
             elapsed = (now - task["last_run"]).total_seconds()
-            return elapsed >= HEARTBEAT_INTERVAL
+            # 配置化：从 Config 读取心跳间隔（支持热加载）
+            from agent.monitoring.observability_config import get_scheduler_heartbeat_interval
+            return elapsed >= get_scheduler_heartbeat_interval()
 
         return False
 
@@ -193,7 +195,10 @@ class TaskScheduler:
                     text=True,
                 )
                 try:
-                    stdout, stderr = proc.communicate(timeout=COMMAND_TIMEOUT)
+                    # 配置化：从 Config 读取命令超时（支持热加载）
+                    from agent.monitoring.observability_config import get_scheduler_command_timeout
+                    _cmd_timeout = get_scheduler_command_timeout()
+                    stdout, stderr = proc.communicate(timeout=_cmd_timeout)
                     if proc.returncode == 0:
                         result["status"] = "success"
                         result["output"] = stdout.strip()[:500]
@@ -203,7 +208,7 @@ class TaskScheduler:
                 except subprocess.TimeoutExpired:
                     proc.kill()
                     result["status"] = "failed"
-                    result["error"] = f"命令执行超时 ({COMMAND_TIMEOUT}秒)"
+                    result["error"] = f"命令执行超时 ({_cmd_timeout}秒)"
 
             elif task["type"] == "heartbeat":
                 if self._heartbeat_func:
@@ -234,14 +239,17 @@ class TaskScheduler:
             logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 写入历史失败: {e}"}, ensure_ascii=False))
 
     def _trim_history(self) -> None:
-        """保留最近 MAX_HISTORY_LINES 条记录"""
+        """保留最近 N 条记录（N 从 Config 读取）"""
         try:
             if TASK_HISTORY_FILE.exists():
                 with open(TASK_HISTORY_FILE, "r", encoding="utf-8") as f:
                     lines = f.readlines()
-                if len(lines) > MAX_HISTORY_LINES:
+                # 配置化：从 Config 读取最大行数（支持热加载）
+                from agent.monitoring.observability_config import get_scheduler_max_history_lines
+                _max_lines = get_scheduler_max_history_lines()
+                if len(lines) > _max_lines:
                     with open(TASK_HISTORY_FILE, "w", encoding="utf-8") as f:
-                        f.writelines(lines[-MAX_HISTORY_LINES:])
+                        f.writelines(lines[-_max_lines:])
         except Exception as e:
             logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": f"[TaskScheduler] 裁剪历史失败: {e}"}, ensure_ascii=False))
 
@@ -285,8 +293,11 @@ class TaskScheduler:
                 "llm_latency_ms": hb_data.get("checks", {}).get("llm", {}).get("latency_ms"),
             }
             history["history"].append(simplified)
-            if len(history["history"]) > MAX_HEARTBEAT_HISTORY:
-                history["history"] = history["history"][-MAX_HEARTBEAT_HISTORY:]
+            # 配置化：从 Config 读取心跳历史保留条数（支持热加载）
+            from agent.monitoring.observability_config import get_scheduler_max_heartbeat_history
+            _max_hb_history = get_scheduler_max_heartbeat_history()
+            if len(history["history"]) > _max_hb_history:
+                history["history"] = history["history"][-_max_hb_history:]
             with open(HEARTBEAT_HISTORY_FILE, "w", encoding="utf-8") as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
         except Exception as e:
@@ -327,8 +338,16 @@ class TaskScheduler:
             logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "json", "msg": f"[TaskScheduler] 加载 JSON 任务失败: {e}"}, ensure_ascii=False))
         return count
 
-    def start_daemon(self, check_interval: int = DEFAULT_CHECK_INTERVAL) -> None:
-        """以 daemon 线程方式启动调度器（非阻塞）"""
+    def start_daemon(self, check_interval: Optional[int] = None) -> None:
+        """以 daemon 线程方式启动调度器（非阻塞）
+
+        Args:
+            check_interval: tick 检查间隔（秒），None 时从 Config 读取
+        """
+        # 配置化：从 Config 读取默认检查间隔（支持热加载）
+        if check_interval is None:
+            from agent.monitoring.observability_config import get_scheduler_check_interval
+            check_interval = get_scheduler_check_interval()
         if self.running:
             logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "task_scheduler", "action": "log", "msg": "[TaskScheduler] 调度器已在运行"}, ensure_ascii=False))
             return
@@ -390,7 +409,9 @@ class TaskScheduler:
                 elif "interval" in t:
                     entry["interval_sec"] = t["interval"]
             elif t["type"] == "heartbeat":
-                entry["interval_sec"] = HEARTBEAT_INTERVAL
+                # 配置化：从 Config 读取心跳间隔（支持热加载）
+                from agent.monitoring.observability_config import get_scheduler_heartbeat_interval
+                entry["interval_sec"] = get_scheduler_heartbeat_interval()
             result.append(entry)
         return result
 
