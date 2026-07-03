@@ -245,6 +245,70 @@ class SensitiveDataFilter(logging.Filter):
         },
     }
 
+    # ─────────────────────────────────────────────────
+    # mask() 预编译正则（性能优化：避免每次调用重新编译/查找缓存）
+    # ─────────────────────────────────────────────────
+    _MASK_RULES = [
+        # (compiled_pattern, replacement)
+        # 1. password/secret 字段值
+        (re.compile(r'(?i)(password|passwd|pwd|secret)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?'),
+         r'\1="' + REDACTED_VALUE + '"'),
+        # 2. api_key/token 字段值
+        (re.compile(r'(?i)(api[_-]?key|secret_key|access_token|refresh_token)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?'),
+         r'\1="' + REDACTED_VALUE + '"'),
+        # 3. URL 查询参数中的凭证
+        (re.compile(r'([?&])(api_key|key|secret|token)\s*=\s*[^&\s]*', re.IGNORECASE),
+         r'\1\2=' + REDACTED_VALUE),
+        # 4. AWS Access Key
+        (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), REDACTED_VALUE),
+        # 5. GitHub Token
+        (re.compile(r'\bgh[pousr]_[a-zA-Z0-9]{36,}\b'), REDACTED_VALUE),
+        # 6. OpenAI Key (48 字符)
+        (re.compile(r'\bsk-[a-zA-Z0-9_-]{48}\b'), REDACTED_VALUE),
+        # 7. 通用 sk- 模式
+        (re.compile(r'\bsk-[a-zA-Z0-9_-]{20,}\b'), REDACTED_VALUE),
+        # 8. JWT Token
+        (re.compile(r'\beyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\b'),
+         REDACTED_VALUE),
+        # 9. Bearer Token
+        (re.compile(r'(Bearer\s+)([a-zA-Z0-9\-_.~+/]{20,})', re.IGNORECASE),
+         r'\1' + REDACTED_VALUE),
+        # 10. URL 中的密码
+        (re.compile(r'(:[^:@]+:)([^:@]+)(@)'),
+         r'\1' + REDACTED_VALUE + r'\3'),
+        # 11. 私钥文件头
+        (re.compile(r'-----BEGIN\s+(RSA|DSA|EC|OPENSSH|PGP)\s+PRIVATE KEY-----',
+                    re.IGNORECASE), REDACTED_VALUE),
+        # 12. 身份证 18 位（带 X 结尾）
+        (re.compile(r'(\d{6})\d{8}(\d{3}[Xx])'), r'\1********\2'),
+        # 13. 身证 18 位（纯数字）
+        (re.compile(r'(\d{6})\d{8}(\d{4})'), r'\1********\2'),
+        # 14. 身份证 15 位
+        (re.compile(r'(\d{6})\d{6}(\d{3})'), r'\1******\2'),
+        # 15. 中国大陆手机号
+        (re.compile(r'(?<!\d)(\+?86)?(1[3-9]\d)\d{4}(\d{4})(?!\d)'),
+         lambda m: f"{m.group(1) or ''}{m.group(2)}****{m.group(3)}"),
+        # 16. 香港手机号
+        (re.compile(r'(?<!\d)(\+?852)?([569]\d{3})\d{4}(?!\d)'),
+         lambda m: f"{m.group(1) or ''}{m.group(2)}****"),
+        # 17. 邮箱
+        (re.compile(r'([a-zA-Z0-9._%+-]{2})[a-zA-Z0-9._%+-]*(@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                    re.IGNORECASE), r'\1***\2'),
+        # 18. 银行卡号
+        (re.compile(r'\b(\d{4})\d{8,11}(\d{4})\b'),
+         r'\1' + REDACTED_PARTIAL + r'\2'),
+        # 19. IPv4 地址
+        (re.compile(r'\b(?:(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3})\b'),
+         r'\1.xxx.xxx'),
+    ]
+
+    # 快速检测正则：一次 search 判断是否包含任何敏感特征
+    # 含数字、@、:、=、或敏感关键词则需进一步脱敏
+    _SENSITIVE_FAST_CHECK = re.compile(
+        r'\d|@|:|=|password|token|key|secret|BEGIN|Bearer|sk-|eyJ|AKIA|gh[pousr]_',
+        re.IGNORECASE,
+    )
+
     def __init__(
         self,
         additional_key_patterns: Optional[List[str]] = None,
@@ -453,8 +517,13 @@ class SensitiveDataFilter(logging.Filter):
     def mask(self, text: str) -> str:
         """脱敏文本中的敏感信息。
 
-        使用正则表达式检测文本中的各类敏感数据，并替换为脱敏格式。
+        使用预编译正则表达式检测文本中的各类敏感数据，并替换为脱敏格式。
         支持的脱敏类型包括：密码、密钥、JWT、身份证、手机号、邮箱、银行卡、IP等。
+
+        性能优化：
+        1. 所有正则预编译为类属性 _MASK_RULES，避免每次调用重新编译/查找缓存
+        2. 快速路径：若文本不含任何敏感特征（数字、@、:、=、关键词），
+           一次 search 即返回原文本，跳过 19 次 sub 调用
 
         Args:
             text: 待脱敏的文本字符串
@@ -465,115 +534,14 @@ class SensitiveDataFilter(logging.Filter):
         if not isinstance(text, str):
             return text
 
+        # 快速路径：若无任何敏感特征，直接返回（跳过 19 次 sub 调用）
+        if not self._SENSITIVE_FAST_CHECK.search(text):
+            return text
+
         result = text
-
-        result = re.sub(
-            r'(?i)(password|passwd|pwd|secret)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?',
-            r'\1="' + REDACTED_VALUE + '"',
-            result,
-        )
-        result = re.sub(
-            r'(?i)(api[_-]?key|secret_key|access_token|refresh_token)["\']?\s*[:=]\s*["\']?([^"\'&\s]*)["\']?',
-            r'\1="' + REDACTED_VALUE + '"',
-            result,
-        )
-        result = re.sub(
-            r'([?&])(api_key|key|secret|token)\s*=\s*[^&\s]*',
-            r'\1\2=' + REDACTED_VALUE,
-            result,
-            flags=re.IGNORECASE,
-        )
-
-        result = re.sub(
-            r'\bAKIA[0-9A-Z]{16}\b',
-            REDACTED_VALUE,
-            result,
-        )
-        result = re.sub(
-            r'\bgh[pousr]_[a-zA-Z0-9]{36,}\b',
-            REDACTED_VALUE,
-            result,
-        )
-        result = re.sub(
-            r'\bsk-[a-zA-Z0-9_-]{48}\b',
-            REDACTED_VALUE,
-            result,
-        )
-        # 通用 sk- 模式（20字符以上）
-        result = re.sub(
-            r'\bsk-[a-zA-Z0-9_-]{20,}\b',
-            REDACTED_VALUE,
-            result,
-        )
-        result = re.sub(
-            r'\beyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\b',
-            REDACTED_VALUE,
-            result,
-        )
-        result = re.sub(
-            r'(Bearer\s+)([a-zA-Z0-9\-_.~+/]{20,})',
-            r'\1' + REDACTED_VALUE,
-            result,
-            flags=re.IGNORECASE,
-        )
-        result = re.sub(
-            r'(:[^:@]+:)([^:@]+)(@)',
-            r'\1' + REDACTED_VALUE + r'\3',
-            result,
-        )
-        result = re.sub(
-            r'-----BEGIN\s+(RSA|DSA|EC|OPENSSH|PGP)\s+PRIVATE KEY-----',
-            REDACTED_VALUE,
-            result,
-            flags=re.IGNORECASE,
-        )
-
-        result = re.sub(
-            r'(\d{6})\d{8}(\d{3}[Xx])',
-            r'\1********\2',
-            result,
-        )
-        result = re.sub(
-            r'(\d{6})\d{8}(\d{4})',
-            r'\1********\2',
-            result,
-        )
-        result = re.sub(
-            r'(\d{6})\d{6}(\d{3})',
-            r'\1******\2',
-            result,
-        )
-
-        result = re.sub(
-            r'(?<!\d)(\+?86)?(1[3-9]\d)\d{4}(\d{4})(?!\d)',
-            lambda m: f"{m.group(1) or ''}{m.group(2)}****{m.group(3)}",
-            result,
-        )
-
-        result = re.sub(
-            r'(?<!\d)(\+?852)?([569]\d{3})\d{4}(?!\d)',
-            lambda m: f"{m.group(1) or ''}{m.group(2)}****",
-            result,
-        )
-
-        result = re.sub(
-            r'([a-zA-Z0-9._%+-]{2})[a-zA-Z0-9._%+-]*(@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
-            r'\1***\2',
-            result,
-            flags=re.IGNORECASE,
-        )
-
-        result = re.sub(
-            r'\b(\d{4})\d{8,11}(\d{4})\b',
-            r'\1' + REDACTED_PARTIAL + r'\2',
-            result,
-        )
-
-        result = re.sub(
-            r'\b(?:(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3})\b',
-            r'\1.xxx.xxx',
-            result,
-        )
+        # 使用预编译正则，避免每次调用重新编译
+        for pattern, replacement in self._MASK_RULES:
+            result = pattern.sub(replacement, result)
 
         return result
 
