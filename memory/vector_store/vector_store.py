@@ -28,22 +28,39 @@ from collections import OrderedDict, defaultdict
 
 logger = logging.getLogger(__name__)
 
+# 延迟导入：chromadb / sentence_transformers（→ torch）是重量级依赖，
+# CI 上首次导入可能需要 2-3 分钟。模块导入时不加载，仅在首次实例化 VectorStore 时检测。
+# 通过 _check_chroma_available() 更新这两个标志。
 HAS_CHROMA = False
-try:
-    import chromadb
-    from chromadb.config import Settings
-    HAS_CHROMA = True
-    logger.info("[OK] ChromaDB loaded")
-except ImportError:
-    logger.warning("[WARN] ChromaDB not installed, using JSON fallback")
-
 HAS_SENTENCE_TRANSFORMERS = False
-try:
-    from sentence_transformers import SentenceTransformer
-    HAS_SENTENCE_TRANSFORMERS = True
-    logger.info("[OK] Sentence Transformers loaded")
-except ImportError:
-    logger.warning("[WARN] Sentence Transformers not installed, using keyword search")
+
+_chroma_deps_checked = False
+
+
+def _check_chroma_available():
+    """延迟检测 chromadb + sentence_transformers 是否可用
+
+    避免模块导入时拉起 torch/chromadb 等重量级依赖（CI 上首次导入 torch 可能需要 2-3 分钟）。
+    首次调用时执行导入检测，后续调用直接返回。检测结果会更新模块级
+    HAS_CHROMA / HAS_SENTENCE_TRANSFORMERS 标志。
+    """
+    global HAS_CHROMA, HAS_SENTENCE_TRANSFORMERS, _chroma_deps_checked
+    if _chroma_deps_checked:
+        return
+    _chroma_deps_checked = True
+    try:
+        import chromadb  # noqa: F401
+        from chromadb.config import Settings  # noqa: F401
+        HAS_CHROMA = True
+        logger.info("[OK] ChromaDB loaded")
+    except ImportError:
+        logger.warning("[WARN] ChromaDB not installed, using JSON fallback")
+    try:
+        from sentence_transformers import SentenceTransformer  # noqa: F401
+        HAS_SENTENCE_TRANSFORMERS = True
+        logger.info("[OK] Sentence Transformers loaded")
+    except ImportError:
+        logger.warning("[WARN] Sentence Transformers not installed, using keyword search")
 
 
 @dataclass
@@ -285,6 +302,8 @@ class VectorStore:
         ) if cache_size > 0 else None
 
         # ── 存储引擎初始化 ──
+        # 首次实例化时延迟检测 chromadb + sentence_transformers 可用性
+        _check_chroma_available()
         if HAS_CHROMA and HAS_SENTENCE_TRANSFORMERS:
             self._use_chroma = True
             self._inverted_index = None  # ChromaDB 模式下无需倒排索引
@@ -310,6 +329,11 @@ class VectorStore:
     def _init_chroma(self):
         """初始化 ChromaDB"""
         try:
+            # 局部导入重量级依赖（chromadb / sentence_transformers → torch），
+            # 避免在模块导入时拉起 torch。_check_chroma_available() 已确认这些模块可用。
+            import chromadb
+            from chromadb.config import Settings
+            from sentence_transformers import SentenceTransformer
             self._chroma_client = chromadb.Client(Settings(
                 persist_directory=self.persist_dir,
                 anonymized_telemetry=False
