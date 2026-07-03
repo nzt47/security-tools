@@ -585,29 +585,36 @@ class ErrorHandler:
                     f"retrying in {delay:.2f}s: {e}"}, ensure_ascii=False))
                 time.sleep(delay)
 
+    def _format_metric(self, m, key: str) -> Dict[str, Any]:
+        """格式化单个指标为 dict。
+
+        注意：本方法不获取 self._lock，调用者必须已持有锁。
+        之所以单独抽出，是因为 self._lock 是 threading.Lock（不可重入），
+        若 get_metrics() 在锁内递归调用 self.get_metrics(key) 会死锁。
+        """
+        return {
+            "key": key,
+            "total_count": m.total_count,
+            "count_by_severity": {
+                s.value: c for s, c in m.count_by_severity.items()
+            },
+            "count_by_category": {
+                c.value: cnt for c, cnt in m.count_by_category.items()
+            },
+            "first_occurrence": m.first_occurrence.isoformat() if m.first_occurrence else None,
+            "last_occurrence": m.last_occurrence.isoformat() if m.last_occurrence else None,
+        }
+
     def get_metrics(self, key: Optional[str] = None) -> Dict[str, Any]:
         """获取错误指标"""
         with self._lock:
             if key:
                 if key not in self._metrics:
                     return {}
-                m = self._metrics[key]
-                return {
-                    "key": key,
-                    "total_count": m.total_count,
-                    "count_by_severity": {
-                        s.value: c for s, c in m.count_by_severity.items()
-                    },
-                    "count_by_category": {
-                        c.value: cnt for c, cnt in m.count_by_category.items()
-                    },
-                    "first_occurrence": m.first_occurrence.isoformat() if m.first_occurrence else None,
-                    "last_occurrence": m.last_occurrence.isoformat() if m.last_occurrence else None,
-                }
-            else:
-                return {
-                    key: self.get_metrics(key) for key in self._metrics
-                }
+                return self._format_metric(self._metrics[key], key)
+            return {
+                k: self._format_metric(m, k) for k, m in self._metrics.items()
+            }
 
     def get_circuit_breaker_status(self) -> Dict[str, Dict[str, Any]]:
         """获取所有熔断器状态"""

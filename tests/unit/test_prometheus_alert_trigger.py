@@ -75,15 +75,15 @@ def inject_damaged_lines():
 def check_metrics_for_alert():
     """检查 /metrics 端点，确认告警条件是否满足"""
     logger.info("🔍 检查 /metrics 端点...")
-    
+
     try:
         resp = requests.get(METRICS_URL, timeout=5)
         if resp.status_code != 200:
             logger.error("❌ /metrics 返回 %d", resp.status_code)
             return False
-        
+
         content = resp.text
-        
+
         # 查找 json_parse_failed 错误计数
         for line in content.split('\n'):
             if 'yunshu_safe_file_reader_errors_total' in line and 'json_parse_failed' in line:
@@ -99,7 +99,7 @@ def check_metrics_for_alert():
                         return False
                 except ValueError:
                     pass
-        
+
         # 也检查 read_duration 和 loaded_history_count
         for line in content.split('\n'):
             if 'yunshu_safe_file_reader_read_duration_seconds_count' in line:
@@ -108,12 +108,15 @@ def check_metrics_for_alert():
                 logger.info("📈 加载历史数: %s", line.strip())
             if 'yunshu_safe_file_reader_invalid_ratio' in line and 'count' not in line:
                 logger.info("📈 无效行比例: %s", line.strip())
-        
+
         return False
-        
+
     except requests.RequestException as e:
         logger.error("❌ 无法访问 /metrics: %s", e)
         return False
+
+
+check_metrics_for_alert.__test__ = False
 
 
 def restart_server():
