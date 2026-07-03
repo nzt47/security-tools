@@ -31,10 +31,21 @@ import threading
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, List
 
+# Prometheus 指标暴露（可选依赖）
+try:
+    from prometheus_client import Histogram, Counter, Gauge, start_http_server as _start_http_server
+    _PROMETHEUS_AVAILABLE = True
+except ImportError:
+    _PROMETHEUS_AVAILABLE = False
+    Histogram = Counter = Gauge = None
+
 logger = logging.getLogger(__name__)
 
 # 全局开关：环境变量 AGENT_PERF_LOGGING=1 启用
 _ENABLED = os.environ.get("AGENT_PERF_LOGGING", "0") == "1"
+# Prometheus 指标暴露开关：环境变量 AGENT_PERF_PROMETHEUS=1 启用
+# 独立于 _ENABLED，允许在不记录详细日志的情况下暴露指标
+_PROMETHEUS_ENABLED = os.environ.get("AGENT_PERF_PROMETHEUS", "0") == "1" and _PROMETHEUS_AVAILABLE
 _LOCK = threading.Lock()
 
 # 性能统计汇总：{key: {"count": N, "total_new_us": X, "samples": [...]}}
@@ -71,6 +82,7 @@ def _record(module_name: str, action: str, new_us: float, old_us: float = 0.0,
     机制说明：
     - Request ID / 采样控制：用计数器取模实现采样，避免高频日志爆炸
     - 边界显性化：old_us/new_us 为负数时记为 0（数据校验）
+    - Prometheus 指标：当 _PROMETHEUS_ENABLED 时，并行暴露到 /metrics
     """
     if new_us < 0:
         new_us = 0.0
@@ -103,6 +115,15 @@ def _record(module_name: str, action: str, new_us: float, old_us: float = 0.0,
         # 采样控制：每 N 次记录一次详细日志
         _COUNTERS[key] = _COUNTERS.get(key, 0) + 1
         should_log = (_COUNTERS[key] % _SAMPLE_INTERVAL) == 1
+
+    # Prometheus 指标暴露（独立于日志采样，每次都记录）
+    if _PROMETHEUS_ENABLED:
+        LogDictPerfMetrics.observe_call(
+            module_name=module_name,
+            action=action,
+            new_us=new_us,
+            old_us=old_us,
+        )
 
     if should_log:
         payload = {
@@ -746,10 +767,275 @@ def run_stress_comparison(
     }
 
 
+# ─────────────────────────────────────────────────
+# Prometheus 指标暴露
+# ─────────────────────────────────────────────────
+
+
+class _NoopMetric:
+    """prometheus_client 不可用时的 no-op 替代，避免散落的 if 判断"""
+
+    def labels(self, *args, **kwargs):
+        return self
+
+    def observe(self, value):
+        pass
+
+    def inc(self, value=1):
+        pass
+
+    def set(self, value):
+        pass
+
+
+class LogDictPerfMetrics:
+    """log_dict 性能指标 Prometheus 暴露
+
+    通过 AGENT_PERF_PROMETHEUS=1 环境变量启用。
+    独立于 AGENT_PERF_LOGGING，允许在不记录详细日志的情况下暴露指标。
+
+    暴露的指标：
+    - log_dict_call_duration_seconds (Histogram, labels: mode) — 调用耗时
+    - log_dict_calls_total (Counter, labels: mode, status) — 调用次数
+    - log_dict_speedup_ratio (Gauge, labels: module, action) — 加速比
+    - log_dict_improvement_pct (Gauge, labels: module, action) — 提升百分比
+
+    使用方法：
+        # 1. 启动 Prometheus HTTP 端点（暴露 /metrics）
+        from agent.utils.perf_monitor import start_metrics_server
+        start_metrics_server(port=8001)
+
+        # 2. 在性能埋点中自动记录（_record() 已集成）
+        with perf_trace("log_dict", "normalize", old_us=5.88):
+            data = log_dict(payload)
+        # LogDictPerfMetrics.observe_call() 会被自动调用
+    """
+
+    _call_duration: Optional[Any] = None
+    _calls_total: Optional[Any] = None
+    _speedup_ratio: Optional[Any] = None
+    _improvement_pct: Optional[Any] = None
+    _initialized: bool = False
+
+    @classmethod
+    def _ensure_initialized(cls) -> None:
+        """延迟初始化 Prometheus 指标（首次调用时创建）"""
+        if cls._initialized:
+            return
+        if not _PROMETHEUS_AVAILABLE:
+            cls._call_duration = _NoopMetric()
+            cls._calls_total = _NoopMetric()
+            cls._speedup_ratio = _NoopMetric()
+            cls._improvement_pct = _NoopMetric()
+        else:
+            cls._call_duration = Histogram(
+                'log_dict_call_duration_seconds',
+                'log_dict() 调用耗时（秒）',
+                buckets=[1e-6, 5e-6, 1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 5e-3, 1e-2],
+                labelnames=['mode'],
+            )
+            cls._calls_total = Counter(
+                'log_dict_calls_total',
+                'log_dict() 调用次数',
+                labelnames=['mode', 'status'],
+            )
+            cls._speedup_ratio = Gauge(
+                'log_dict_speedup_ratio',
+                'log_dict 新旧模式加速比（old_us / new_us）',
+                labelnames=['module', 'action'],
+            )
+            cls._improvement_pct = Gauge(
+                'log_dict_improvement_pct',
+                'log_dict 性能提升百分比',
+                labelnames=['module', 'action'],
+            )
+        cls._initialized = True
+
+    @classmethod
+    def observe_call(cls, module_name: str, action: str,
+                     new_us: float, old_us: float = 0.0) -> None:
+        """记录一次 log_dict 调用的性能指标
+
+        在 _record() 中自动调用，通常无需手动调用。
+
+        Args:
+            module_name: 模块名（如 "log_dict"）
+            action: 动作名（如 "normalize"）
+            new_us: 新模式耗时（微秒）
+            old_us: 旧模式耗时（微秒，0 表示无基准）
+        """
+        if not _PROMETHEUS_ENABLED:
+            return
+        cls._ensure_initialized()
+
+        # 耗时直方图（秒）
+        cls._call_duration.labels(mode='new').observe(new_us / 1_000_000)
+        if old_us > 0:
+            cls._call_duration.labels(mode='old').observe(old_us / 1_000_000)
+
+        # 调用计数
+        cls._calls_total.labels(mode='new', status='success').inc()
+        if old_us > 0:
+            cls._calls_total.labels(mode='old', status='success').inc()
+
+        # 加速比和提升百分比（仅当有旧模式基准时）
+        if old_us > 0 and new_us > 0:
+            speedup = old_us / new_us
+            improvement_pct = ((old_us - new_us) / old_us * 100)
+            cls._speedup_ratio.labels(module=module_name, action=action).set(round(speedup, 3))
+            cls._improvement_pct.labels(module=module_name, action=action).set(round(improvement_pct, 2))
+
+    @classmethod
+    def observe_failure(cls, module_name: str, action: str,
+                        error_type: str = 'unknown') -> None:
+        """记录一次 log_dict 调用失败
+
+        用于在 try/except 中记录异常情况。
+
+        Args:
+            module_name: 模块名
+            action: 动作名
+            error_type: 错误类型（如 'serialization', 'type_error'）
+        """
+        if not _PROMETHEUS_ENABLED:
+            return
+        cls._ensure_initialized()
+        cls._calls_total.labels(mode='new', status='failure').inc()
+
+    @classmethod
+    def observe_pipeline(cls, handler_type: str, duration_us: float) -> None:
+        """记录完整日志管道耗时
+
+        用于在 filter 链或 handler 中埋点。
+
+        Args:
+            handler_type: handler 类型（如 'console', 'file'）
+            duration_us: 管道耗时（微秒）
+        """
+        if not _PROMETHEUS_ENABLED:
+            return
+        cls._ensure_initialized()
+        # 复用 _call_duration 但添加 handler_type 维度需要新指标
+        # 这里简化为记录到 module/action 维度
+        cls._call_duration.labels(mode=f'pipeline_{handler_type}').observe(duration_us / 1_000_000)
+
+    @classmethod
+    def is_enabled(cls) -> bool:
+        """是否启用 Prometheus 指标暴露"""
+        return _PROMETHEUS_ENABLED
+
+    @classmethod
+    def get_metric_names(cls) -> List[str]:
+        """获取所有暴露的指标名（用于调试）"""
+        return [
+            'log_dict_call_duration_seconds',
+            'log_dict_calls_total',
+            'log_dict_speedup_ratio',
+            'log_dict_improvement_pct',
+        ]
+
+
+def start_metrics_server(port: int = 8001, addr: str = '0.0.0.0') -> bool:
+    """启动 Prometheus HTTP 端点暴露 /metrics
+
+    独立于应用主服务，避免与应用端口冲突。
+    启动后可通过 http://localhost:{port}/metrics 采集指标。
+
+    Args:
+        port: 监听端口（默认 8001，避免与应用 8000 冲突）
+        addr: 绑定地址（默认 0.0.0.0 允许外部访问）
+
+    Returns:
+        True 启动成功，False 启动失败（prometheus_client 未安装或端口占用）
+
+    使用示例：
+        # 在应用启动时调用
+        from agent.utils.perf_monitor import start_metrics_server
+        start_metrics_server(port=8001)
+
+        # 配合 Prometheus scrape_configs
+        # scrape_configs:
+        #   - job_name: 'agent-perf'
+        #     static_configs:
+        #       - targets: ['localhost:8001']
+    """
+    if not _PROMETHEUS_AVAILABLE:
+        logger.warning(json.dumps({
+            "trace_id": "", "module_name": "perf_monitor",
+            "action": "metrics_server.unavailable",
+            "msg": "prometheus_client 未安装，无法启动 metrics server"
+        }, ensure_ascii=False))
+        return False
+
+    # 确保指标已初始化
+    LogDictPerfMetrics._ensure_initialized()
+
+    try:
+        _start_http_server(port, addr=addr)
+        logger.info(json.dumps({
+            "trace_id": "", "module_name": "perf_monitor",
+            "action": "metrics_server.started",
+            "duration_ms": 0,
+            "port": port,
+            "addr": addr,
+            "metrics_path": "/metrics",
+            "exposed_metrics": LogDictPerfMetrics.get_metric_names(),
+        }, ensure_ascii=False))
+        return True
+    except OSError as e:
+        logger.error(json.dumps({
+            "trace_id": "", "module_name": "perf_monitor",
+            "action": "metrics_server.start_failed",
+            "duration_ms": 0,
+            "msg": f"端口 {port} 启动失败: {e}",
+            "error_type": type(e).__name__,
+        }, ensure_ascii=False))
+        return False
+
+
+def enable_prometheus() -> None:
+    """运行时启用 Prometheus 指标暴露
+
+    允许在不重启应用的情况下启用指标暴露。
+    配合 start_metrics_server() 使用。
+    """
+    global _PROMETHEUS_ENABLED
+    if not _PROMETHEUS_AVAILABLE:
+        logger.warning(json.dumps({
+            "trace_id": "", "module_name": "perf_monitor",
+            "action": "prometheus.enable_failed",
+            "msg": "prometheus_client 未安装"
+        }, ensure_ascii=False))
+        return
+    _PROMETHEUS_ENABLED = True
+    LogDictPerfMetrics._ensure_initialized()
+    logger.info(json.dumps({
+        "trace_id": "", "module_name": "perf_monitor",
+        "action": "prometheus.enabled",
+        "duration_ms": 0,
+        "msg": "Prometheus 指标暴露已启用"
+    }, ensure_ascii=False))
+
+
+def disable_prometheus() -> None:
+    """运行时禁用 Prometheus 指标暴露"""
+    global _PROMETHEUS_ENABLED
+    _PROMETHEUS_ENABLED = False
+    logger.info(json.dumps({
+        "trace_id": "", "module_name": "perf_monitor",
+        "action": "prometheus.disabled",
+        "duration_ms": 0,
+        "msg": "Prometheus 指标暴露已禁用"
+    }, ensure_ascii=False))
+
+
 __all__ = [
     "is_enabled", "enable", "disable",
     "perf_trace", "record_call",
     "get_stats", "reset_stats", "log_summary",
     "run_comparison",
     "stress_test", "run_stress_comparison",
+    # Prometheus 指标暴露
+    "LogDictPerfMetrics", "start_metrics_server",
+    "enable_prometheus", "disable_prometheus",
 ]
