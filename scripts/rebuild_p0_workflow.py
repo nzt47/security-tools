@@ -142,28 +142,38 @@ def check_prerequisites():
     print()
 
 
-def backup_old_workflow():
+def backup_old_workflow(dry_run=False):
     """备份旧 workflow 文件"""
     print("=== Step 1: 备份旧 workflow 文件 ===")
     old_path = REPO_ROOT / OLD_WORKFLOW_PATH
     archive_dir = REPO_ROOT / ARCHIVE_DIR
-    archive_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_name = f"p0-security.yml.backup_{timestamp}"
     backup_path = archive_dir / backup_name
 
+    if dry_run:
+        print(f"  [dry-run] 将备份到: {backup_path}")
+        print()
+        return backup_path
+
+    archive_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(str(old_path), str(backup_path))
     print(f"  ✅ 已备份到: {backup_path}")
     print()
     return backup_path
 
 
-def create_new_workflow():
+def create_new_workflow(dry_run=False):
     """创建新 workflow 文件（内容与旧文件相同，但文件名不同）"""
     print("=== Step 2: 创建新 workflow 文件 ===")
     old_path = REPO_ROOT / OLD_WORKFLOW_PATH
     new_path = REPO_ROOT / NEW_WORKFLOW_PATH
+
+    if dry_run:
+        print(f"  [dry-run] 将创建新文件: {NEW_WORKFLOW_PATH}（内容与旧文件相同）")
+        print()
+        return
 
     # 读取旧文件内容
     with open(old_path, "r", encoding="utf-8") as f:
@@ -409,10 +419,10 @@ def main():
     check_prerequisites()
 
     # Step 1: 备份
-    backup_old_workflow()
+    backup_old_workflow(dry_run=args.dry_run)
 
     # Step 2: 创建新文件
-    create_new_workflow()
+    create_new_workflow(dry_run=args.dry_run)
 
     # Step 3: 删除旧文件
     remove_old_workflow(dry_run=args.dry_run)
