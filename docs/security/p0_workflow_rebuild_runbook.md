@@ -261,17 +261,101 @@ git push origin phase2-visibility-convergence
 
 ### 4.4 回滚决策树
 
+#### 4.4.1 完整决策树
+
 ```
-重建后 P0 回归测试结果？
-├── ✅ 通过 → 重建成功，无需回滚
-├── ❌ Set up job 失败 → 平台故障未恢复
-│   ├── 记录失败详情
-│   ├── 联系 GitHub 支持
-│   └── 保留新 workflow（等待平台恢复）
-└── ❌ 其他步骤失败 → 新 workflow 可能有配置问题
-    ├── 执行场景 B（恢复旧 workflow 文件）
-    └── 检查新文件内容是否与旧文件一致
+脚本执行结果？
+│
+├── 脚本中途崩溃（未完成 8 个步骤）
+│   ├── Step 2 失败（创建新文件失败，如磁盘满）
+│   │   → 旧文件未被删除，新文件未创建
+│   │   → 清理：删除可能的不完整新文件，旧文件无需恢复
+│   │   → 排查磁盘空间/权限后重试
+│   │
+│   ├── Step 3 失败（git rm 失败，如文件有未提交修改）
+│   │   → 新文件已创建但未提交，旧文件未被删除
+│   │   → 清理：rm .github/workflows/p0-security-v2.yml
+│   │   → 排查 git status 后重试
+│   │
+│   ├── Step 4 commit 失败（如 pre-commit hook 拒绝）
+│   │   → 旧文件已 git rm（暂存区），新文件已创建但未提交
+│   │   → 恢复：git reset HEAD .github/workflows/p0-security.yml
+│   │   →         git checkout -- .github/workflows/p0-security.yml
+│   │   →         rm .github/workflows/p0-security-v2.yml
+│   │   → 排查 hook 失败原因后重试
+│   │
+│   └── Step 4 push 失败（网络/权限问题）
+│       → commit 已创建但未推送到远程
+│       → 恢复：git reset --soft HEAD~1（撤销 commit 保留暂存）
+│       →         git reset HEAD .github/workflows/p0-security.yml
+│       →         git checkout -- .github/workflows/p0-security.yml
+│       →         rm .github/workflows/p0-security-v2.yml
+│       → 排查网络/权限后重试
+│
+├── 脚本完成但验证阶段超时（Step 5-8）
+│   ├── Step 5 超时：新 workflow 未出现在 GitHub Actions
+│   │   → push 已成功但 GitHub 未注册新 workflow
+│   │   → 等待 5 分钟后刷新 GitHub Actions 页面
+│   │   → 如仍未出现，手动触发 workflow_dispatch
+│   │   → 如仍失败，执行场景 B 恢复旧文件
+│   │
+│   ├── Step 6 超时：首次运行未触发
+│   │   → 新 workflow 已注册但未自动触发
+│   │   → 手动触发：GitHub Actions UI → "Run workflow"
+│   │   → 或 API: POST /actions/workflows/{id}/dispatches
+│   │
+│   ├── Step 7 超时：运行未完成（轮询超时）
+│   │   → 运行仍在进行中，只是超过了脚本轮询窗口
+│   │   → 手动在 GitHub Actions UI 查看运行状态
+│   │   → 无需回滚，等待运行完成
+│   │
+│   └── API 错误（403/401/限流）
+│       → Token 过期或权限不足或请求过频
+│       → 检查 ~/.git-credentials 有效性
+│       → 等待 60s 后重试，或手动在 GitHub UI 查看
+│
+└── 脚本完成且获得运行结果（Step 8 分析完成）
+    │
+    ├── ✅ 所有 Job 通过
+    │   → 重建成功，无需回滚
+    │   → 通知团队恢复 CI 流水线
+    │
+    ├── ✅ P0 回归测试通过，但其他 Job 失败
+    │   → 平台故障已解决（核心目标达成）
+    │   → 其他 Job 失败可能是 52 文件提交引入的依赖问题
+    │   → 无需回滚 workflow 重建
+    │   → 单独排查其他 Job 的失败原因
+    │
+    ├── ❌ P0 回归测试 Set up job 失败
+    │   → 平台故障未恢复，重建未解决问题
+    │   → 执行场景 A：记录失败 + 联系 GitHub 支持
+    │   → 保留新 workflow（旧 workflow 已删除，回滚无意义）
+    │   → 如需恢复旧 workflow，执行场景 B
+    │
+    ├── ❌ P0 回归测试其他步骤失败
+    │   → 新 workflow 可能有配置问题
+    │   → 执行场景 B：恢复旧 workflow 文件
+    │   → 检查新文件内容是否与旧文件完全一致（diff 比对）
+    │   → 如内容一致但仍失败，可能是 CI 环境变化，排查具体失败步骤
+    │
+    └── ❌ 整个运行失败且无法通过场景 A/B 恢复
+        → 执行场景 C：git revert 回退到重建前的 commit
+        → 如 git 历史也不可用，执行场景 D：从文档手工重建
 ```
+
+#### 4.4.2 场景索引
+
+| 决策树分支 | 对应回滚场景 | 紧急程度 |
+|-----------|-------------|----------|
+| 脚本中途崩溃（Step 2-4） | 本地清理（见决策树内联步骤） | 🔴 立即 |
+| Step 5 超时（workflow 未注册） | 场景 B（恢复旧文件） | 🟡 5 分钟后 |
+| Step 6 超时（运行未触发） | 手动 workflow_dispatch | 🟢 不紧急 |
+| Step 7 超时（运行未完成） | 手动查看 UI | 🟢 不紧急 |
+| API 错误 | 检查 Token/等待重试 | 🟡 立即检查 |
+| P0 通过其他失败 | 无需回滚，单独排查 | 🟢 不紧急 |
+| P0 Set up job 失败 | 场景 A | 🟡 记录后 |
+| P0 其他步骤失败 | 场景 B | 🔴 立即 |
+| 完全无法恢复 | 场景 C → 场景 D | 🔴 立即 |
 
 ---
 
