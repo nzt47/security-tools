@@ -667,6 +667,14 @@ class ObservabilityConfig:
             # 6. 触发回调
             self._fire_callbacks(key, value)
 
+            # 7. 配置变更可观测性（Loki 推送 + Prometheus 指标 + 高风险告警）
+            #    异步处理，不影响主流程；lazy import 避免循环依赖
+            try:
+                from agent.monitoring.config_observability import on_config_changed
+                on_config_changed(change_record)
+            except Exception as e:
+                logger.debug(f"配置变更可观测性通知失败（非致命）: {e}")
+
             logger.info(json.dumps({
                 "trace_id": get_trace_id(),
                 "module_name": "observability_config",
