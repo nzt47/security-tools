@@ -17,6 +17,7 @@ from agent.health.health_score import (
     HealthDimension,
 )
 from .tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ def register_routes(app, state):
             # 更新权重
             calculator.weights = new_weights
             
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_health", "action": "new_weights", "msg": f"[HealthScore] 权重已更新: {new_weights}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'routes_health', 'action': 'new_weights', 'msg': f'[HealthScore] 权重已更新: {new_weights}'}))
             
             return jsonify({
                 "ok": True,
@@ -405,7 +406,7 @@ def _collect_system_metrics(state) -> dict:
             if system.get("disk"):
                 metrics["disk_usage"] = float(system["disk"]) / 100
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "routes_health", "action": "log", "msg": f"[HealthScore] 获取心跳数据失败: {e}"}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'routes_health', 'action': 'log', 'msg': f'[HealthScore] 获取心跳数据失败: {e}'}))
         
         # 尝试从Prometheus获取指标
         try:
@@ -423,7 +424,7 @@ def _collect_system_metrics(state) -> dict:
                 if "request_count" in prom_metrics:
                     metrics["total_requests"] = prom_metrics["request_count"]
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "routes_health", "action": "prometheus", "msg": f"[HealthScore] 获取Prometheus指标失败: {e}"}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'routes_health', 'action': 'prometheus', 'msg': f'[HealthScore] 获取Prometheus指标失败: {e}'}))
         
         # 从内存获取最近的任务统计
         try:
@@ -439,7 +440,7 @@ def _collect_system_metrics(state) -> dict:
                         metrics["error_rate"] = min(metrics["error_rate"] * 1.1, 
                                                     stability.indicators["error_rate"])
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "routes_health", "action": "log", "msg": f"[HealthScore] 参考历史数据失败: {e}"}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'routes_health', 'action': 'log', 'msg': f'[HealthScore] 参考历史数据失败: {e}'}))
         
     except Exception as e:
         logger.error(f"[HealthScore] 收集系统指标失败: {e}", exc_info=True)

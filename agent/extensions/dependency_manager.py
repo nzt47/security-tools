@@ -18,6 +18,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class DependencyManager:
             for pkg in pkg_resources.working_set:
                 self._installed_deps[pkg.project_name.lower()] = pkg.version
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "log", "msg": f"加载已安装依赖失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'dependency_manager', 'action': 'log', 'msg': f'加载已安装依赖失败: {e}'}))
 
     def parse_dependencies(self, deps_str: str) -> List[Dependency]:
         """解析依赖字符串"""
@@ -167,7 +168,7 @@ class DependencyManager:
                 # 精确匹配
                 return installed == required
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "log", "msg": f"版本检查失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'dependency_manager', 'action': 'log', 'msg': f'版本检查失败: {e}'}))
             return True
 
     def install_dependencies(self, dependencies: List[Dependency], 
@@ -193,7 +194,7 @@ class DependencyManager:
                 pkg_spec = name
             
             try:
-                logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "pkg_spec", "msg": f"安装依赖: {pkg_spec}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'dependency_manager', 'action': 'pkg_spec', 'msg': f'安装依赖: {pkg_spec}'}))
                 result = subprocess.run(
                     [sys.executable, "-m", "pip", "install", pkg_spec],
                     capture_output=True,
@@ -203,20 +204,20 @@ class DependencyManager:
                 
                 if result.returncode == 0:
                     results['installed'].append(dep.name)
-                    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "dep.name", "msg": f"依赖安装成功: {dep.name}"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'dependency_manager', 'action': 'dep.name', 'msg': f'依赖安装成功: {dep.name}'}))
                 else:
                     results['failed'].append({
                         'name': dep.name,
                         'error': result.stderr[:200]
                     })
-                    logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "dep.name", "msg": f"依赖安装失败: {dep.name}"}, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'dependency_manager', 'action': 'dep.name', 'msg': f'依赖安装失败: {dep.name}'}))
             
             except Exception as e:
                 results['failed'].append({
                     'name': dep.name,
                     'error': str(e)
                 })
-                logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "dep.name", "msg": f"依赖安装异常: {dep.name} - {e}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'dependency_manager', 'action': 'dep.name', 'msg': f'依赖安装异常: {dep.name} - {e}'}))
         
         return results
 
@@ -282,19 +283,12 @@ class DependencyManager:
                     'requires': [str(r) for r in pkg.requires()],
                 })
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "dependency_manager", "action": "log", "msg": f"获取已安装包失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'dependency_manager', 'action': 'log', 'msg': f'获取已安装包失败: {e}'}))
         return packages
 
     def log_action(self, action: str, message: str, details: Dict = None):
         """记录操作日志"""
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "dependency_manager",
-            "action": action,
-            "message": message,
-            "details": details or {},
-            "timestamp": datetime.now().isoformat()
-        }))
+        logger.info(log_dict({'module_name': 'dependency_manager', 'action': action, 'message': message, 'details': details or {}, 'timestamp': datetime.now().isoformat()}))
 
 
 def get_dependency_manager() -> DependencyManager:

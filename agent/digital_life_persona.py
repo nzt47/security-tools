@@ -21,6 +21,7 @@ import uuid
 import time
 import logging
 from typing import Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class DigitalLifePersonaMixin:
         if getattr(self, '_lifetrace_initialized', False):
             return True
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_persona", "action": "lifetrace", "msg": "[P5] 首次访问 LifeTrace，执行懒加载初始化..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'digital_life_persona', 'action': 'lifetrace', 'msg': '[P5] 首次访问 LifeTrace，执行懒加载初始化...'}))
         start = time.time()
         try:
             from lifetrace import TraceRecorder, MemoryRetriever
@@ -103,7 +104,7 @@ class DigitalLifePersonaMixin:
         if getattr(self, '_persona_initialized', False):
             return True
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_persona", "action": "persona", "msg": "[P5] 首次访问 Persona，执行懒加载初始化..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'digital_life_persona', 'action': 'persona', 'msg': '[P5] 首次访问 Persona，执行懒加载初始化...'}))
         start = time.time()
         try:
             from persona import PersonaModel, PersonaInjector
@@ -131,7 +132,7 @@ class DigitalLifePersonaMixin:
         if getattr(self, '_distillation_initialized', False):
             return True
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_persona", "action": "distillation", "msg": "[P5] 首次访问 Distillation，执行懒加载初始化..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'digital_life_persona', 'action': 'distillation', 'msg': '[P5] 首次访问 Distillation，执行懒加载初始化...'}))
         start = time.time()
         try:
             from persona import PersonalityPreferenceExtractor
@@ -201,7 +202,7 @@ class DigitalLifePersonaMixin:
         try:
             recent_chat = tr.get_recent_chat(limit=50)
             if len(recent_chat) < 5:
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_persona", "action": "log", "msg": "对话数据不足，暂不执行批量蒸馏"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'digital_life_persona', 'action': 'log', 'msg': '对话数据不足，暂不执行批量蒸馏'}))
                 return
             conversation = []
             for node in recent_chat:
@@ -212,7 +213,7 @@ class DigitalLifePersonaMixin:
                     "timestamp": metadata.get('timestamp', '')
                 })
             extractor.extract_from_conversation(conversation)
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_persona", "action": "log", "msg": "人格蒸馏完成！偏好已更新"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'digital_life_persona', 'action': 'log', 'msg': '人格蒸馏完成！偏好已更新'}))
         except Exception as e:
             logger.error("人格蒸馏失败: %s", e, exc_info=True)
 

@@ -2,6 +2,7 @@
 import logging
 import json
 import uuid
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +139,8 @@ def setup_agent_logging(
         logging.getLogger(module).setLevel(logging.DEBUG if debug_mode else logging.INFO)
 
     logger = logging.getLogger("云枢.agent")
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "handlers", "action": "log", "msg": "=" * 70}, ensure_ascii=False))
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "handlers", "action": "agent", "msg": "Agent 模块日志系统已初始化"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'handlers', 'action': 'log', 'msg': '=' * 70}))
+    logger.info(log_dict({'module_name': 'handlers', 'action': 'agent', 'msg': 'Agent 模块日志系统已初始化'}))
     return logger
 
 
@@ -179,10 +180,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "handlers",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'handlers', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

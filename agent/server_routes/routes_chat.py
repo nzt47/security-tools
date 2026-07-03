@@ -8,6 +8,7 @@ import logging
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 # 业务埋点（TE-001）：trackEvent 失败不影响主流程
 try:
     from agent.server_routes.observability import trackEvent
@@ -149,11 +150,11 @@ def register_routes(app, state):
             if not stt_available:
                 return jsonify({"ok": False, "error": "语音识别引擎不可用，请检查SpeechRecognition库"}), 500
 
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "duration", "msg": f"[VOICE] 开始语音识别，时长: {duration}秒"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'routes_chat', 'action': 'duration', 'msg': f'[VOICE] 开始语音识别，时长: {duration}秒'}))
             result = Yunshu._voice_manager.listen(duration=duration)
 
             if result.success:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.text", "msg": f"[VOICE] 语音识别成功: {result.text[:50]}..."}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'routes_chat', 'action': 'result.text', 'msg': f'[VOICE] 语音识别成功: {result.text[:50]}...'}))
                 # 埋点：语音识别成功
                 trackEvent('voice_listen_success', {
                     'duration': duration,
@@ -165,7 +166,7 @@ def register_routes(app, state):
                     "duration": duration
                 })
             else:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "result.error", "msg": f"[VOICE] 语音识别失败: {result.error}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'routes_chat', 'action': 'result.error', 'msg': f'[VOICE] 语音识别失败: {result.error}'}))
                 # 埋点：语音识别失败
                 trackEvent('voice_listen_failed', {
                     'duration': duration,
@@ -173,7 +174,7 @@ def register_routes(app, state):
                 })
                 return jsonify({"ok": False, "error": result.error}), 400
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "routes_chat", "action": "log", "msg": f"[VOICE] 语音识别异常: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'routes_chat', 'action': 'log', 'msg': f'[VOICE] 语音识别异常: {e}'}))
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/voice/status")

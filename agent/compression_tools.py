@@ -19,6 +19,7 @@ import json
 import uuid
 import logging
 from pathlib import Path
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def compress(
     if total_files == 0:
         return {"ok": False, "error": "没有可压缩的文件（源目录为空）"}
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.start", "src": safe_src, "fmt": fmt, "files": total_files, "output": output_path}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'compression_tools', 'action': 'compression.compress.start', 'src': safe_src, 'fmt': fmt, 'files': total_files, 'output': output_path}))
 
     # ── 5. 执行压缩 ──
     try:
@@ -124,11 +125,11 @@ def compress(
                 os.remove(output_path)
             except Exception:
                 pass
-        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.failed", "error": str(e)}, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'compression_tools', 'action': 'compression.compress.failed', 'error': str(e)}))
         return {"ok": False, "error": f"压缩失败: {e}"}
 
     compressed_size = os.path.getsize(output_path)
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.compress.complete", "output": output_path, "size": compressed_size, "files": total_files}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'compression_tools', 'action': 'compression.compress.complete', 'output': output_path, 'size': compressed_size, 'files': total_files}))
 
     return {
         "ok": True,
@@ -279,7 +280,7 @@ def decompress(
     except OSError as e:
         return {"ok": False, "error": f"无法创建输出目录: {e}"}
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.start", "file": safe_file, "fmt": archive_format, "output": output_dir}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'compression_tools', 'action': 'compression.decompress.start', 'file': safe_file, 'fmt': archive_format, 'output': output_dir}))
 
     # ── 4. 执行解压 ──
     try:
@@ -292,10 +293,10 @@ def decompress(
     except tarfile.TarError as e:
         return {"ok": False, "error": f"TAR 文件损坏: {e}"}
     except Exception as e:
-        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.failed", "error": str(e)}, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'compression_tools', 'action': 'compression.decompress.failed', 'error': str(e)}))
         return {"ok": False, "error": f"解压失败: {e}"}
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.decompress.complete", "output": output_dir, "files": file_count, "size": extracted_size}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'compression_tools', 'action': 'compression.decompress.complete', 'output': output_dir, 'files': file_count, 'size': extracted_size}))
 
     return {
         "ok": True,
@@ -333,7 +334,7 @@ def _safe_extract_zip(file_path: str, output_dir: str, progress_callback: callab
             # ── Zip Slip 防护 ──
             member_path = os.path.normpath(member.filename)
             if ".." in member_path.split(os.sep) or os.path.isabs(member_path):
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.zip_slip_detected", "filename": member.filename}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'compression_tools', 'action': 'compression.security.zip_slip_detected', 'filename': member.filename}))
                 continue
 
             target_path = os.path.join(output_dir, member_path)
@@ -341,7 +342,7 @@ def _safe_extract_zip(file_path: str, output_dir: str, progress_callback: callab
             target_real = os.path.realpath(target_path)
             output_real = os.path.realpath(output_dir)
             if not target_real.startswith(output_real + os.sep) and target_real != output_real:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.path_escape_detected", "filename": member.filename, "target": target_real}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'compression_tools', 'action': 'compression.security.path_escape_detected', 'filename': member.filename, 'target': target_real}))
                 continue
 
             if progress_callback:
@@ -401,7 +402,7 @@ def _safe_extract_tar(file_path: str, output_dir: str, progress_callback: callab
             # ── 路径遍历防护 ──
             member_path = os.path.normpath(member.name)
             if member_path.startswith("..") or os.path.isabs(member_path):
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.path_traversal_detected", "filename": member.name}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'compression_tools', 'action': 'compression.security.path_traversal_detected', 'filename': member.name}))
                 continue
 
             target_path = os.path.join(output_dir, member_path)
@@ -409,7 +410,7 @@ def _safe_extract_tar(file_path: str, output_dir: str, progress_callback: callab
             target_real = os.path.realpath(target_path)
             output_real = os.path.realpath(output_dir)
             if not target_real.startswith(output_real + os.sep) and target_real != output_real:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "compression_tools", "action": "compression.security.tar_path_escape_detected", "filename": member.name, "target": target_real}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'compression_tools', 'action': 'compression.security.tar_path_escape_detected', 'filename': member.name, 'target': target_real}))
                 continue
 
             if progress_callback:

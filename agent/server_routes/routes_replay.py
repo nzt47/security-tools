@@ -30,6 +30,7 @@ from agent.monitoring.replay_storage import (
     ReplayStorageError,
 )
 from .tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ def register_routes(app, state):
                 encoding=payload.get("encoding", "json"),
             )
         except ReplayStorageError as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "routes_replay", "action": "code.code", "msg": f"[ReplayAPI] 存储失败 code={e.code} replay_id={payload.get('replay_id')}: {e.message}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'routes_replay', 'action': 'code.code', 'msg': f'[ReplayAPI] 存储失败 code={e.code} replay_id={payload.get('replay_id')}: {e.message}'}))
             return jsonify({
                 "ok": False,
                 "error_code": e.code,
@@ -122,14 +123,7 @@ def register_routes(app, state):
 
         duration_ms = round((time.time() - start) * 1000, 2)
         logger.info(
-            json.dumps({
-                "trace_id": payload.get("trace_id", ""),
-                "module_name": "routes_replay",
-                "action": "upload",
-                "duration_ms": duration_ms,
-                "replay_id": meta["replay_id"],
-                "size_bytes": meta["size_bytes"],
-            }, ensure_ascii=False)
+            log_dict({'module_name': 'routes_replay', 'action': 'upload', 'replay_id': meta['replay_id'], 'size_bytes': meta['size_bytes']})
         )
 
         return jsonify({
@@ -239,7 +233,7 @@ def register_routes(app, state):
         try:
             data = storage.get_data_by_id(replay_id)
         except ReplayStorageError as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "routes_replay", "action": "replay_id.replay_id", "msg": f"[ReplayAPI] 获取数据失败 replay_id={replay_id}: {e.message}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'routes_replay', 'action': 'replay_id.replay_id', 'msg': f'[ReplayAPI] 获取数据失败 replay_id={replay_id}: {e.message}'}))
             return jsonify({
                 "ok": False,
                 "error_code": e.code,
@@ -312,4 +306,4 @@ def register_routes(app, state):
 
         return jsonify({"ok": True, "cleaned": cleaned, "days": days})
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_replay", "action": "log", "msg": "[ReplayRoutes] 已注册 6 个回放相关路由"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'routes_replay', 'action': 'log', 'msg': '[ReplayRoutes] 已注册 6 个回放相关路由'}))

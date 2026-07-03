@@ -21,6 +21,7 @@ from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.monitoring.tracing import get_trace_id, TraceContext
 from agent.server_routes.tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -78,25 +79,12 @@ def _get_business_dashboard(time_range_seconds=None):
         
         duration_ms = (time.time() - start_ms) * 1000
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "get_dashboard",
-            "duration_ms": round(duration_ms, 2),
-            "status": "success",
-            "time_range_seconds": time_range_seconds
-        }))
+        logger.info(log_dict({'module_name': 'business_dashboard', 'action': 'get_dashboard', 'status': 'success', 'time_range_seconds': time_range_seconds}))
         
         return dashboard_data
         
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "get_dashboard",
-            "duration_ms": round((time.time() - start_ms) * 1000, 2),
-            "error": str(e)
-        }))
+        logger.error(log_dict({'module_name': 'business_dashboard', 'action': 'get_dashboard', 'error': str(e)}))
         raise
 
 
@@ -120,26 +108,12 @@ def _get_metric_detail(metric_name):
         
         duration_ms = (time.time() - start_ms) * 1000
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "get_metric_detail",
-            "duration_ms": round(duration_ms, 2),
-            "metric_name": metric_name,
-            "status": "success" if metric_detail else "not_found"
-        }))
+        logger.info(log_dict({'module_name': 'business_dashboard', 'action': 'get_metric_detail', 'metric_name': metric_name, 'status': 'success' if metric_detail else 'not_found'}))
         
         return metric_detail
         
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "get_metric_detail",
-            "duration_ms": round((time.time() - start_ms) * 1000, 2),
-            "metric_name": metric_name,
-            "error": str(e)
-        }))
+        logger.error(log_dict({'module_name': 'business_dashboard', 'action': 'get_metric_detail', 'metric_name': metric_name, 'error': str(e)}))
         raise
 
 
@@ -160,24 +134,12 @@ def _export_prometheus():
         
         duration_ms = (time.time() - start_ms) * 1000
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "export_prometheus",
-            "duration_ms": round(duration_ms, 2),
-            "status": "success"
-        }))
+        logger.info(log_dict({'module_name': 'business_dashboard', 'action': 'export_prometheus', 'status': 'success'}))
         
         return prometheus_text
         
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "business_dashboard",
-            "action": "export_prometheus",
-            "duration_ms": round((time.time() - start_ms) * 1000, 2),
-            "error": str(e)
-        }))
+        logger.error(log_dict({'module_name': 'business_dashboard', 'action': 'export_prometheus', 'error': str(e)}))
         raise
 
 
@@ -238,7 +200,7 @@ def _get_business_health():
         }
         
     except Exception as e:
-        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取业务指标健康状态失败: {e}"}, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'routes_business_dashboard', 'action': 'log', 'msg': f'获取业务指标健康状态失败: {e}'}))
         return {
             "status": "error",
             "error": str(e),
@@ -282,7 +244,7 @@ def _get_metric_definitions():
         }
         
     except Exception as e:
-        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": f"获取指标定义失败: {e}"}, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'routes_business_dashboard', 'action': 'log', 'msg': f'获取指标定义失败: {e}'}))
         return {
             "definitions": [],
             "total": 0,
@@ -425,4 +387,4 @@ def register_routes(app, state):
         result = _get_metric_definitions()
         return jsonify(result)
     
-    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_business_dashboard", "action": "log", "msg": "[Routes] 业务仪表盘端点已注册"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'routes_business_dashboard', 'action': 'log', 'msg': '[Routes] 业务仪表盘端点已注册'}))
