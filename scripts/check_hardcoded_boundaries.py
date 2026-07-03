@@ -51,30 +51,66 @@ def _trace_id() -> str:
 # 白名单：已配置化的模块（这些模块的硬编码视为 low 风险）
 # ============================================================================
 
-CONFIGURED_MODULES: Set[str] = {
-    # retry 相关（相对于 agent/ 目录的路径）
+# 手动白名单（fallback，当自动推导失败时使用）
+_MANUAL_CONFIGURED_MODULES: Set[str] = {
     "error_handler.py",
     "cognitive/reflection.py",
-    # http 相关
     "web/http_client.py",
-    # cache 相关
     "caching/multi_level_cache.py",
     "monitoring/tracing_cache.py",
-    # scheduler 相关
     "task_scheduler.py",
-    # Phase 4 Task 1: P2 收尾新增
-    "llm_monitor.py",                       # llm_monitor.max_records
-    "monitoring/loki.py",                   # loki.push_timeout_sec / loki.query_timeout_sec
-    "monitoring/alert_notifier.py",         # alert.timeout_sec
-    # Phase 4 Task 2: P3 monitoring 批次新增
-    "monitoring/prometheus.py",             # prometheus.max_retries
-    "monitoring/chaos_injector.py",         # chaos.thread_join_timeout_sec
-    "monitoring/resource_monitor.py",       # resource_monitor.thread_join_timeout_sec
-    "monitoring/search.py",                 # search.thread_join_timeout_sec / config_apply_timeout_sec / web_search_timeout_sec / status_check_timeout_sec
-    "monitoring/self_healer.py",            # self_healer.restart_timeout_sec / sync_timeout_sec / verify_timeout_sec / thread_join_timeout_sec
-    # 配置系统自身
+    "llm_monitor.py",
+    "monitoring/loki.py",
+    "monitoring/alert_notifier.py",
+    "monitoring/prometheus.py",
+    "monitoring/chaos_injector.py",
+    "monitoring/resource_monitor.py",
+    "monitoring/search.py",
+    "monitoring/self_healer.py",
     "monitoring/observability_config.py",
 }
+
+# 从 description 中提取 .py 模块路径的正则
+_MODULE_PATH_PATTERN = re.compile(r'([\w/]+\.py)')
+
+
+def derive_configured_modules() -> Set[str]:
+    """从 observability_config.py 的 ValidationRule.description 自动推导已配置化模块集合
+
+    解析每条 ValidationRule 的 description 字段，提取其中提到的 .py 模块路径。
+    description 约定格式："<配置说明>，用于 <module>.py 的 <usage>"
+    新增配置化模块时只需在 description 中写明模块路径，无需手动更新白名单。
+
+    Returns:
+        已配置化模块路径集合（相对于 agent/ 目录，用 endswith 匹配）
+    """
+    derived: Set[str] = set()
+
+    try:
+        from agent.monitoring.observability_config import OBSERVABILITY_VALIDATION_RULES
+
+        for rule in OBSERVABILITY_VALIDATION_RULES:
+            if not rule.description:
+                continue
+            matches = _MODULE_PATH_PATTERN.findall(rule.description)
+            for match in matches:
+                derived.add(match)
+
+        # 配置系统自身（description 中不会引用自己）
+        derived.add("monitoring/observability_config.py")
+
+    except ImportError as e:
+        logger.warning(f"无法导入 OBSERVABILITY_VALIDATION_RULES，回退到手动白名单: {e}")
+        return set(_MANUAL_CONFIGURED_MODULES)
+
+    if not derived:
+        logger.warning("自动推导白名单为空，回退到手动白名单")
+        return set(_MANUAL_CONFIGURED_MODULES)
+
+    return derived
+
+
+CONFIGURED_MODULES: Set[str] = derive_configured_modules()
 
 
 # ============================================================================
