@@ -69,17 +69,18 @@
 
 ---
 
-### Task 2: 静态分析扩展 — 重试次数与超时值检测
+### Task 2: 静态分析扩展 — 重试次数与超时值检测 ✅
 
 **预计工时**：2h
 **依赖**：无
 **优先级**：P0
+**状态**：已完成（待提交）
 
 **目标**：在 `scripts/check_timedelta_overflow.py` 基础上，扩展检测重试次数和超时值的硬编码。
 
 **实施步骤**：
 
-1. 新建 `scripts/check_hardcoded_boundaries.py`（或扩展现有脚本）：
+1. 新建 `scripts/check_hardcoded_boundaries.py`（492 行）：
    - 检测 `max_retries = N` / `MAX_RETRIES = N` 硬编码（排除已配置化的模块）
    - 检测 `timeout = N` / `DEFAULT_TIMEOUT = N` 硬编码
    - 检测 `pool_size = N` / `max_workers = N` 硬编码
@@ -87,18 +88,22 @@
      - `high`：硬编码且未从 Config 读取
      - `medium`：有 DEFAULT_* 常量但未配置化
      - `low`：已配置化或测试文件中的硬编码
+   - 白名单机制：`CONFIGURED_MODULES` 集合标识已配置化模块，自动降级为 low
 
 2. 更新 `.github/workflows/boundary-guard.yml`：
-   - 增加重试次数与超时值的扫描步骤
-   - 设置基线策略（当前基线基于扫描结果确定）
+   - 新增 `hardcoded-boundary-scan` job（与原 timedelta 扫描并行）
+   - 基线策略：`high_risk > 99` 阻断 CI
+   - artifact 上传扫描报告，保留 30 天
 
-3. 生成基线扫描报告，确定初始基线值
+3. 生成 `docs/observability/hardcoded_boundary_baseline_report.json` 基线报告
+   - 扫描 309 文件，122 个硬编码，99 high / 23 low / 0 medium
+   - 分类：retry 16 / timeout 70 / capacity 36
 
 **验收标准**：
-- [ ] 脚本能正确检测重试次数/超时值/容量限制 3 类硬编码
-- [ ] 已配置化的模块（error_handler/reflection/http_client）不被标记为 high
-- [ ] CI workflow 集成完成
-- [ ] 基线值合理（不阻断现有代码）
+- [x] 脚本能正确检测重试次数/超时值/容量限制 3 类硬编码
+- [x] 已配置化的模块（error_handler/reflection/http_client/multi_level_cache/tracing_cache/task_scheduler）正确标记为 low（23 个）
+- [x] CI workflow 集成完成（双 job 架构）
+- [x] 基线值合理（99，不阻断现有代码）
 
 ---
 
@@ -255,7 +260,7 @@
 - [x] P1 清单 100% 完成（10/10 项配置化）✅ Task 1 已提交 3a6b8b08
 - [x] P2 缓存容量 4 项配置化 ✅ Task 4 已提交 41f069ef
 - [x] P2 调度器常量 5 项配置化 ✅ Task 5 已提交 41f069ef（注：实际改造 task_scheduler.py 5 项，llm_monitor/loki/alert_notifier 列入第三批后续迭代）
-- [ ] CI 静态分析覆盖 3 类模式（timedelta + 重试 + 超时）⏳ Task 2 进行中
+- [x] CI 静态分析覆盖 3 类模式（timedelta + 重试 + 超时）✅ Task 2 已完成（待提交）— 99 high 基线，309 文件 122 处硬编码
 - [x] 混沌测试场景通过 ✅ Task 3 已提交 65a625cc，17/17 passed
 
 ### 5.2 质量验收
