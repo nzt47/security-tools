@@ -429,7 +429,7 @@ b162b53b docs(observability): 新增 Phase 2 技术总结 + Phase 3 行动计划
 | Task 3: 混沌测试 | ✅ 完成 | 已提交 65a625cc，17/17 passed |
 | Task 4: 缓存容量配置化 | ✅ 完成 | 已提交 41f069ef |
 | Task 5: 调度器常量配置化 | ✅ 完成 | 已提交 41f069ef |
-| Task 6: 提交清理与文档 | ⏳ 部分完成 | 文档已更新，PR 待创建 |
+| Task 6: 提交清理与文档 | ✅ 完成 | 文档已全部更新，PR 创建中 |
 
 ### 10.8 P2 清单报告
 
@@ -437,3 +437,82 @@ b162b53b docs(observability): 新增 Phase 2 技术总结 + Phase 3 行动计划
 - 扫描 7 个模块，识别 14 个候选配置项
 - 分 3 个优先级：P2-高 4 项 / P2-中 5 项 / P2-低 5 项
 - 为后续迭代提供改造候选项清单
+
+---
+
+## 十一、Phase 3 收官（2026-07-04）
+
+> **本章节标志着 Phase 3 边界治理迭代全部任务完成。**
+> **完整报告**：[Phase 3 最终执行总结报告](phase3_final_summary.md)
+> **下一阶段**：[Phase 4 行动计划](phase4_plan.md)
+
+### 11.1 收官状态总览
+
+| Task | 状态 | 关键提交 | 验证结果 |
+|------|------|----------|----------|
+| Task 1: HTTP 配置化 | ✅ | `3a6b8b08` / `65a625cc` | http_client 单元测试通过 |
+| Task 2: 静态分析扩展 | ✅ | `9efd3bd7` | 基线 99 通过（309 文件 / 122 硬编码） |
+| Task 3: 混沌测试 | ✅ | `65a625cc` | 17/17 passed（0.68s） |
+| Task 4: 缓存容量配置化 | ✅ | `41f069ef` | multi_level_cache 82/82 passed |
+| Task 5: 调度器常量配置化 | ✅ | `41f069ef` | 混沌测试 + observability_config 69/69 passed |
+| Task 6: 提交清理与文档 | ✅ | `9efd3bd7` | 5 个文档同步更新 |
+
+**完成率：6/6 = 100%**
+
+### 11.2 Phase 3 累计成果
+
+| 维度 | Phase 2 末 | Phase 3 末 | 增量 |
+|------|-----------|-----------|------|
+| 配置化边界项 | 4 | **16** | +12 |
+| 配置项总数 | 19 | **32** | +13 |
+| CI 静态分析规则 | 1 | **2** | +1 类（硬编码边界值） |
+| 混沌测试场景 | 0 | **17** | +17（全部通过） |
+| P1 完成率 | 60% | **100%** | +40% |
+| P2 完成率 | 0% | **82%** | +82% |
+| 硬编码扫描覆盖 | 仅 timedelta | **3 类 122 处** | +2 类 |
+| CI 防护基线 | timedelta=3 | **timedelta=3 + 硬编码=99** | +1 道防线 |
+
+### 11.3 关键交付物
+
+| 类别 | 文件 | 行数 | 说明 |
+|------|------|------|------|
+| 配置系统 | `agent/monitoring/observability_config.py` | +250 | 12 个 ValidationRule + 12 个便捷函数 |
+| 静态分析器 | `scripts/check_hardcoded_boundaries.py` | 492（新建） | AST 检测 retry/timeout/capacity 3 类硬编码 |
+| CI workflow | `.github/workflows/boundary-guard.yml` | +62 | 新增 `hardcoded-boundary-scan` job |
+| 混沌测试 | `tests/chaos/test_config_boundary_chaos.py` | 409（新建） | 17 个异常注入场景 |
+| 基线报告 | `docs/observability/hardcoded_boundary_baseline_report.json` | 1492（新建） | 机器可读的扫描基线 |
+| P2 清单 | `docs/observability/p2_hardcoded_constants_inventory.md` | 115（新建） | 14 个改造候选项 |
+| 最终总结 | `docs/observability/phase3_final_summary.md` | 431（新建） | Phase 3 完整执行报告 |
+| Phase 4 规划 | `docs/observability/phase4_plan.md` | 新建 | 下一阶段行动计划 |
+
+**累计代码变更**：22 文件，+3845 / -72 行
+
+### 11.4 CI 防护体系最终架构
+
+```
+boundary-guard.yml（双 Job 并行）
+├── timedelta-overflow-scan（基线 3）
+│   └── 检测 timedelta(days=参数) 溢出风险
+└── hardcoded-boundary-scan（基线 99）
+    └── 检测 retry/timeout/capacity 3 类硬编码边界值
+        └── 白名单机制：CONFIGURED_MODULES 自动降级已配置化模块
+```
+
+### 11.5 下一阶段重点（详见 Phase 4 规划）
+
+1. **P2 收尾**（高优先级）：`llm_monitor.MAX_RECORDS` + `loki.timeout_sec` + `alert.timeout_sec`（3 项，1.5h）
+2. **P3 配置化**（中优先级）：99 个 high 风险项分批改造（按 monitoring/extensions/cognitive 模块分批）
+3. **配置变更可观测性**（高价值）：`_change_log` 推送至 Loki + alert 触发 + A/B 测试
+4. **配置漂移检测**（中长期）：运行时 vs 配置文件对比 + 快照回滚 + 智能推荐
+
+### 11.6 边界治理三阶段总结
+
+| 阶段 | 周期 | 核心成果 |
+|------|------|----------|
+| Phase 1 | 2026-06 ~ 2026-07 | timedelta 溢出修复 + 4 个方法参数校验 |
+| Phase 2 | 2026-07-02 | MAX_ANALYZE_DAYS 配置化 + timedelta CI 防护 + 硬编码扫描清单 |
+| Phase 3 | 2026-07-02 ~ 2026-07-04 | P1 100% + P2 82% + 双 CI 防护 + 17 个混沌测试 |
+
+**累计配置化边界项**：0 → 32（32 个 ValidationRule）
+**累计 CI 防护**：0 → 2 个 job（双基线策略）
+**累计测试场景**：0 → 17 个混沌测试
