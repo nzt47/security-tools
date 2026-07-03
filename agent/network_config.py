@@ -25,6 +25,7 @@ import datetime
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -189,13 +190,13 @@ class NetworkConfigManager:
             if self._config_file.exists():
                 with open(self._config_file, 'r', encoding='utf-8') as f:
                     self._cache = json.load(f)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._load.self", "duration_ms": 0, "message": f"[网络配置] 已从文件加载: {self._config_file}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._load.self', 'message': f'[网络配置] 已从文件加载: {self._config_file}'}))
             else:
                 self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
                 self._save(self._cache)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._load.self", "duration_ms": 0, "message": f"[网络配置] 使用默认配置，已创建: {self._config_file}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._load.self', 'message': f'[网络配置] 使用默认配置，已创建: {self._config_file}'}))
         except (json.JSONDecodeError, OSError) as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._load.log", "duration_ms": 0, "message": f"[网络配置] 加载失败，使用默认配置: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config._load.log', 'message': f'[网络配置] 加载失败，使用默认配置: {e}'}))
             self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
 
         # 确保配置结构完整
@@ -248,7 +249,7 @@ class NetworkConfigManager:
         for instance in self._cache.get('llm_instances', []):
             if not instance.get('id'):
                 instance['id'] = str(uuid.uuid4())
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._ensure_config_structure.instance", "duration_ms": 0, "message": f"[网络配置] 为实例 {instance.get('name')} 自动生成 ID: {instance['id']}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._ensure_config_structure.instance', 'message': f'[网络配置] 为实例 {instance.get('name')} 自动生成 ID: {instance['id']}'}))
 
     def _save(self, data: dict):
         """保存网络配置到文件并更新缓存
@@ -270,18 +271,18 @@ class NetworkConfigManager:
             json.dump(save_data, f, ensure_ascii=False, indent=2)
         # 更新缓存为已保存的数据（与文件内容一致，不含 api_key）
         self._cache = deepcopy(save_data)
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._save.self", "duration_ms": 0, "message": f"[网络配置] 已保存到文件: {self._config_file}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save.self', 'message': f'[网络配置] 已保存到文件: {self._config_file}'}))
 
     def _save_secure(self, key: str, value: str):
         """保存敏感配置到加密文件"""
         if self._secure_manager:
             try:
                 self._secure_manager.set_secure_value(key, value)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._save_secure.key", "duration_ms": 0, "message": f"[网络配置] 已加密保存: {key}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 已加密保存: {key}'}))
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._save_secure.key", "duration_ms": 0, "message": f"[网络配置] 加密保存失败 {key}: {e}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 加密保存失败 {key}: {e}'}))
         else:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._save_secure.securemanager", "duration_ms": 0, "message": "[网络配置] SecureManager 未初始化，敏感信息将明文存储"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.securemanager', 'message': '[网络配置] SecureManager 未初始化，敏感信息将明文存储'}))
 
     def _load_secure(self, key: str, default: str = None) -> str:
         """从加密文件加载敏感配置"""
@@ -289,7 +290,7 @@ class NetworkConfigManager:
             try:
                 return self._secure_manager.get_secure_value(key, default)
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._load_secure.key", "duration_ms": 0, "message": f"[网络配置] 加密加载失败 {key}: {e}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._load_secure.key', 'message': f'[网络配置] 加密加载失败 {key}: {e}'}))
                 return default
         return default
 
@@ -408,29 +409,29 @@ class NetworkConfigManager:
         Returns:
             更新后的完整配置
         """
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 开始更新配置..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 开始更新配置...'}))
         config = self._load()
 
         # 处理 LLM API Key（敏感信息）
         if 'llm' in updates:
             api_key = updates['llm'].get('api_key')
             if api_key and api_key != '***' and not api_key.startswith('***'):
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.llm", "duration_ms": 0, "message": "[网络配置] 检测到新的 LLM API Key，准备加密保存..."}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] 检测到新的 LLM API Key，准备加密保存...'}))
                 self._save_secure('llm_api_key', api_key)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.llm", "duration_ms": 0, "message": "[网络配置] LLM API Key 已加密保存"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 已加密保存'}))
             elif api_key and api_key.startswith('***'):
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.llm", "duration_ms": 0, "message": "[网络配置] LLM API Key 未变更（脱敏值），跳过更新"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 未变更（脱敏值），跳过更新'}))
 
         # 处理错误报告 Webhook URL（敏感信息）
         if 'external_services' in updates:
             if 'error_reporting' in updates['external_services']:
                 webhook_url = updates['external_services']['error_reporting'].get('webhook_url')
                 if webhook_url and webhook_url != '***' and not webhook_url.startswith('***'):
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.webhook", "duration_ms": 0, "message": "[网络配置] 检测到新的 Webhook URL，准备加密保存..."}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] 检测到新的 Webhook URL，准备加密保存...'}))
                     self._save_secure('error_reporting_webhook', webhook_url)
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.webhook", "duration_ms": 0, "message": "[网络配置] Webhook URL 已加密保存"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 已加密保存'}))
                 elif webhook_url and webhook_url.startswith('***'):
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.webhook", "duration_ms": 0, "message": "[网络配置] Webhook URL 未变更（脱敏值），跳过更新"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 未变更（脱敏值），跳过更新'}))
 
         # 处理 LLM 实例
         if 'llm_instances' in updates:
@@ -445,26 +446,26 @@ class NetworkConfigManager:
             for engine_name, api_key in updates['search_api_keys'].items():
                 if api_key and api_key != '***' and not str(api_key).startswith('***'):
                     secure_key = f'search_{engine_name}_key'
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.search", "duration_ms": 0, "message": f"[网络配置] 检测到搜索引擎 {engine_name} 的 API Key，准备加密保存..."}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 检测到搜索引擎 {engine_name} 的 API Key，准备加密保存...'}))
                     self._save_secure(secure_key, api_key)
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.search", "duration_ms": 0, "message": f"[网络配置] 搜索引擎 {engine_name} API Key 已加密保存"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 搜索引擎 {engine_name} API Key 已加密保存'}))
 
         # 处理 MCP 配置
         if 'mcp' in updates:
             self._update_mcp_config(updates['mcp'])
 
         # 递归合并配置
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 合并配置到当前配置..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 合并配置到当前配置...'}))
         self._merge(config, updates)
 
         # 保存到文件（_save 会同步更新缓存，剥离 api_key）
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": ("[网络配置] 保存配置到文件: %s") % (self._config_file,)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 保存配置到文件: %s' % (self._config_file,)}))
         self._save(config)
 
         # 记录变更日志
         self._add_change_log('update', 'config', {'keys': list(updates.keys())})
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update.log", "duration_ms": 0, "message": "[网络配置] 配置已更新到文件"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 配置已更新到文件'}))
         return self.get_all()
 
     def _update_llm_instances(self, instances: list):
@@ -618,7 +619,7 @@ class NetworkConfigManager:
             instances = self._seed_builtin_search_instances(config)
             config['search_instances'] = instances
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_search_instances.log", "duration_ms": 0, "message": ("[网络配置] 开始注册 %d 个搜索实例...") % (len(instances),)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 开始注册 %d 个搜索实例...' % (len(instances),)}))
 
         # 先清理之前已注册的引擎
         for inst in instances:
@@ -679,7 +680,7 @@ class NetworkConfigManager:
         valid_ids_set = {inst['id'] for inst in instances if inst.get('id')}
         current_default = config.get('search', {}).get('default_engine', '')
         if current_default and current_default not in valid_ids_set:
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_search_instances.default", "duration_ms": 0, "message": f"[网络配置] default_engine 指向不存在的实例 {current_default}，已清空"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.default', 'message': f'[网络配置] default_engine 指向不存在的实例 {current_default}，已清空'}))
             config['search']['default_engine'] = ''
 
         # 保存配置：_save() 会自动剥离 search_instances 中的 api_key 并更新缓存
@@ -688,7 +689,7 @@ class NetworkConfigManager:
         # 更新 SearchEngine 的优先级
         search_engine.set_engine_priority(new_priority)
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_search_instances.log", "duration_ms": 0, "message": ("[网络配置] 搜索实例注册完成，优先级: %s") % (new_priority,)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 搜索实例注册完成，优先级: %s' % (new_priority,)}))
 
         # 同步到 web_search 工具的 engine 参数 enum
         try:
@@ -718,7 +719,7 @@ class NetworkConfigManager:
                 "created_at": datetime.datetime.now().isoformat(),
                 "updated_at": datetime.datetime.now().isoformat(),
             })
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config._seed_builtin_search_instances.log", "duration_ms": 0, "message": ("[网络配置] 已创建 %d 个内置搜索引擎实例") % (len(instances),)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._seed_builtin_search_instances.log', 'message': '[网络配置] 已创建 %d 个内置搜索引擎实例' % (len(instances),)}))
         return instances
 
     def reset(self) -> dict:
@@ -726,7 +727,7 @@ class NetworkConfigManager:
         self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
         self._save(self._cache)
         self._add_change_log('reset', 'all')
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.reset.log", "duration_ms": 0, "message": "[网络配置] 已重置为默认配置"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.reset.log', 'message': '[网络配置] 已重置为默认配置'}))
         return self.get_all()
 
     def export_config(self) -> str:
@@ -795,28 +796,28 @@ class NetworkConfigManager:
 
     def get_llm_instances(self) -> List[dict]:
         """获取所有 LLM 实例（脱敏）"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.get_llm_instances.llm", "duration_ms": 0, "message": f"[网络配置] 获取所有 LLM 实例"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instances.llm', 'message': f'[网络配置] 获取所有 LLM 实例'}))
         config = self.get_all()
         instances = config.get('llm_instances', [])
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.get_llm_instances.len", "duration_ms": 0, "message": f"[网络配置] 获取到 {len(instances)} 个 LLM 实例"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instances.len', 'message': f'[网络配置] 获取到 {len(instances)} 个 LLM 实例'}))
         return instances
 
     def get_llm_instance(self, instance_id: str) -> Optional[dict]:
         """获取单个 LLM 实例"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.get_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 获取 LLM 实例: instance_id={instance_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instance.llm', 'message': f'[网络配置] 获取 LLM 实例: instance_id={instance_id}'}))
         instances = self.get_llm_instances()
         result = next((i for i in instances if i.get('id') == instance_id or i.get('name') == instance_id), None)
         if result:
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.get_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 找到 LLM 实例: name={result['name']}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instance.llm', 'message': f'[网络配置] 找到 LLM 实例: name={result['name']}'}))
         else:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.get_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 未找到 LLM 实例: instance_id={instance_id}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instance.llm', 'message': f'[网络配置] 未找到 LLM 实例: instance_id={instance_id}'}))
         return result
 
     def add_llm_instance(self, instance: dict) -> dict:
         """添加 LLM 实例"""
         import datetime
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 开始添加 LLM 实例: name={instance.get('name')}, provider={instance.get('provider')}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 开始添加 LLM 实例: name={instance.get('name')}, provider={instance.get('provider')}'}))
         
         new_instance = deepcopy(_DEFAULT_LLM_INSTANCE)
         new_instance.update(instance)
@@ -824,19 +825,19 @@ class NetworkConfigManager:
         new_instance['created_at'] = datetime.datetime.now().isoformat()
         new_instance['updated_at'] = new_instance['created_at']
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] LLM 实例初始化完成: id={new_instance['id']}, model={new_instance.get('model')}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例初始化完成: id={new_instance['id']}, model={new_instance.get('model')}'}))
 
         config = self._load()
         
         # 检查名称是否重复
         if any(i['name'] == new_instance['name'] for i in config['llm_instances']):
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] LLM 实例名称重复: {new_instance['name']}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {new_instance['name']}'}))
             raise ValueError(f"LLM 实例名称已存在: {new_instance['name']}")
 
         # 加密保存 API Key
         api_key = new_instance.get('api_key', '')
         if api_key and api_key != '***' and not api_key.startswith('***'):
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 加密保存 LLM 实例 API Key: id={new_instance['id']}"}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 加密保存 LLM 实例 API Key: id={new_instance['id']}'}))
             self._save_secure(f'llm_{new_instance["id"]}_api_key', api_key)
             new_instance['api_key'] = api_key  # 保持原始值用于后续处理
 
@@ -844,7 +845,7 @@ class NetworkConfigManager:
         self._save(config)
         self._add_change_log('add', 'llm_instance', {'id': new_instance['id'], 'name': new_instance['name']})
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 已成功添加 LLM 实例: id={new_instance['id']}, name={new_instance['name']}, provider={new_instance.get('provider')}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 已成功添加 LLM 实例: id={new_instance['id']}, name={new_instance['name']}, provider={new_instance.get('provider')}'}))
         return self.get_llm_instance(new_instance['id'])
 
     def update_llm_instance(self, instance_id: str, updates: dict) -> Optional[dict]:
@@ -855,7 +856,7 @@ class NetworkConfigManager:
         """
         import datetime
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 开始更新 LLM 实例: instance_id={instance_id}, updates_keys={list(updates.keys())}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 开始更新 LLM 实例: instance_id={instance_id}, updates_keys={list(updates.keys())}'}))
         
         config = self._load()
         instances = config.get('llm_instances', [])
@@ -868,13 +869,13 @@ class NetworkConfigManager:
                 # 检查名称是否与其他实例重复
                 if 'name' in updates:
                     if any(i['name'] == updates['name'] and (i.get('id') or i.get('name')) != actual_id for i in instances):
-                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] LLM 实例名称重复: {updates['name']}"}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {updates['name']}'}))
                         raise ValueError(f"LLM 实例名称已存在: {updates['name']}")
 
                 # 处理 API Key 更新
                 api_key = updates.get('api_key', '')
                 if api_key and api_key != '***' and not api_key.startswith('***'):
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 更新 LLM 实例 API Key: instance_id={actual_id}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 更新 LLM 实例 API Key: instance_id={actual_id}'}))
                     self._save_secure(f'llm_{actual_id}_api_key', api_key)
                 elif api_key and api_key.startswith('***'):
                     updates.pop('api_key', None)  # 跳过脱敏值
@@ -885,10 +886,10 @@ class NetworkConfigManager:
                 self._save(config)
                 self._add_change_log('update', 'llm_instance', {'id': actual_id, 'name': instance.get('name')})
                 
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get('name')}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get('name')}'}))
                 return self.get_llm_instance(actual_id)
         
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 更新 LLM 实例失败，未找到实例: instance_id={instance_id}"}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 更新 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
         return None
 
     def delete_llm_instance(self, instance_id: str) -> bool:
@@ -897,7 +898,7 @@ class NetworkConfigManager:
         Args:
             instance_id: 实例 ID 或实例名称
         """
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.delete_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 开始删除 LLM 实例: instance_id={instance_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 开始删除 LLM 实例: instance_id={instance_id}'}))
         
         config = self._load()
         instances = config.get('llm_instances', [])
@@ -910,7 +911,7 @@ class NetworkConfigManager:
                 break
         
         if not instance_to_delete:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.delete_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
             return False
         
         actual_id = instance_to_delete.get('id') or instance_to_delete.get('name')
@@ -919,7 +920,7 @@ class NetworkConfigManager:
         config['llm_instances'] = [i for i in instances if (i.get('id') or i.get('name')) != actual_id]
         
         # 删除对应的加密密钥
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.delete_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 删除 LLM 实例加密密钥: instance_id={actual_id}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例加密密钥: instance_id={actual_id}'}))
         self._save_secure(f'llm_{actual_id}_api_key', '')
         
         # 如果删除的是默认实例，清空 default_llm_instance
@@ -929,7 +930,7 @@ class NetworkConfigManager:
         self._save(config)
         self._add_change_log('delete', 'llm_instance', {'id': actual_id})
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.delete_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 已成功删除 LLM 实例: instance_id={actual_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 已成功删除 LLM 实例: instance_id={actual_id}'}))
         return True
 
     def set_default_llm_instance(self, instance_id: str) -> bool:
@@ -938,7 +939,7 @@ class NetworkConfigManager:
         Args:
             instance_id: 实例 ID 或实例名称
         """
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.set_default_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 开始设置默认 LLM 实例: instance_id={instance_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 开始设置默认 LLM 实例: instance_id={instance_id}'}))
         
         config = self._load()
         
@@ -950,12 +951,12 @@ class NetworkConfigManager:
                 break
         
         if not instance_found:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.set_default_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 设置默认 LLM 实例失败，实例不存在: instance_id={instance_id}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 设置默认 LLM 实例失败，实例不存在: instance_id={instance_id}'}))
             return False
         
         # 获取实际的实例 ID（优先使用 UUID，如果没有则使用名称）
         actual_id = instance_found.get('id') or instance_found.get('name')
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.set_default_llm_instance.name", "duration_ms": 0, "message": f"[网络配置] 找到实例: name={instance_found.get('name')}, actual_id={actual_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.name', 'message': f'[网络配置] 找到实例: name={instance_found.get('name')}, actual_id={actual_id}'}))
         
         # 更新所有实例的 is_default 标记
         for instance in config.get('llm_instances', []):
@@ -967,7 +968,7 @@ class NetworkConfigManager:
         self._save(config)
         self._add_change_log('update', 'llm_instance', {'id': actual_id, 'action': 'set_default'})
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.set_default_llm_instance.llm", "duration_ms": 0, "message": f"[网络配置] 已成功设置默认 LLM 实例: instance_id={actual_id}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 已成功设置默认 LLM 实例: instance_id={actual_id}'}))
         return True
 
     # ════════════════════════════════════════════════════════════
@@ -1004,7 +1005,7 @@ class NetworkConfigManager:
         self._save(config)
         self._add_change_log('add', 'mcp_service', {'id': new_service['id'], 'name': new_service['name']})
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.add_mcp_service.mcp", "duration_ms": 0, "message": f"[网络配置] 已添加 MCP 服务: {new_service['name']}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_mcp_service.mcp', 'message': f'[网络配置] 已添加 MCP 服务: {new_service['name']}'}))
         return self.get_mcp_service(new_service['id'])
 
     def update_mcp_service(self, service_id: str, updates: dict) -> Optional[dict]:
@@ -1027,7 +1028,7 @@ class NetworkConfigManager:
                 self._save(config)
                 self._add_change_log('update', 'mcp_service', {'id': service_id, 'name': service.get('name')})
                 
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_mcp_service.mcp", "duration_ms": 0, "message": f"[网络配置] 已更新 MCP 服务: {service['name']}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_mcp_service.mcp', 'message': f'[网络配置] 已更新 MCP 服务: {service['name']}'}))
                 return self.get_mcp_service(service_id)
         
         return None
@@ -1044,7 +1045,7 @@ class NetworkConfigManager:
             self._save(config)
             self._add_change_log('delete', 'mcp_service', {'id': service_id})
             
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.delete_mcp_service.mcp", "duration_ms": 0, "message": f"[网络配置] 已删除 MCP 服务: {service_id}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_mcp_service.mcp', 'message': f'[网络配置] 已删除 MCP 服务: {service_id}'}))
             return True
         
         return False
@@ -1060,9 +1061,9 @@ class NetworkConfigManager:
         Args:
             app_instance: 应用实例（如 DigitalLife），用于即时生效配置
         """
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 开始将配置应用到应用实例..."}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": ("[网络配置] 应用实例: %s") % (app_instance,)}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": ("[网络配置] 应用实例类型: %s") % (type(app_instance),)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 开始将配置应用到应用实例...'}))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 应用实例: %s' % (app_instance,)}))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 应用实例类型: %s' % (type(app_instance),)}))
         
         config = self.get_raw_config()
 
@@ -1072,12 +1073,12 @@ class NetworkConfigManager:
                 old_timeout = getattr(app_instance._web_http, 'timeout', None)
                 new_timeout = config['network']['timeout']
                 app_instance._web_http.timeout = new_timeout
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.http", "duration_ms": 0, "message": ("[网络配置] [即时生效] HTTP 客户端超时已更新: %s → %ss") % (old_timeout, new_timeout,)}, ensure_ascii=False))
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.http", "duration_ms": 0, "message": ("[网络配置] HTTP 客户端当前状态: timeout=%s, max_retries=%s") % (app_instance._web_http.timeout, getattr(app_instance._web_http, 'max_retries', 'N/A'),)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.http', 'message': '[网络配置] [即时生效] HTTP 客户端超时已更新: %s → %ss' % (old_timeout, new_timeout)}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.http', 'message': '[网络配置] HTTP 客户端当前状态: timeout=%s, max_retries=%s' % (app_instance._web_http.timeout, getattr(app_instance._web_http, 'max_retries', 'N/A'))}))
             else:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app._web_http", "duration_ms": 0, "message": "[网络配置] 应用实例无 _web_http 属性，跳过 HTTP 配置应用"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app._web_http', 'message': '[网络配置] 应用实例无 _web_http 属性，跳过 HTTP 配置应用'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.http", "duration_ms": 0, "message": ("[网络配置] 应用 HTTP 配置失败: %s") % (e,)}, ensure_ascii=False), exc_info=True)
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.http', 'message': '[网络配置] 应用 HTTP 配置失败: %s' % (e,)}), exc_info=True)
 
         # 应用到搜索引擎配置
         try:
@@ -1093,25 +1094,25 @@ class NetworkConfigManager:
                 }
 
                 app_instance._web_search.update_config(update_config)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] [即时生效] 搜索引擎配置已更新:"}, ensure_ascii=False))
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.search_config", "duration_ms": 0, "message": f"  - 默认引擎: {search_config.get('default_engine')}"}, ensure_ascii=False))
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.search_config", "duration_ms": 0, "message": f"  - 优先级: {search_config.get('engine_priority')}"}, ensure_ascii=False))
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.search_config", "duration_ms": 0, "message": f"  - 超时: {search_config.get('timeout')}s"}, ensure_ascii=False))
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.search_config", "duration_ms": 0, "message": f"  - 启用状态: {search_config.get('engine_enabled')}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] [即时生效] 搜索引擎配置已更新:'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.search_config', 'message': f'  - 默认引擎: {search_config.get('default_engine')}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.search_config', 'message': f'  - 优先级: {search_config.get('engine_priority')}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.search_config', 'message': f'  - 超时: {search_config.get('timeout')}s'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.search_config', 'message': f'  - 启用状态: {search_config.get('engine_enabled')}'}))
             else:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app._web_search", "duration_ms": 0, "message": "[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app._web_search', 'message': '[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": ("[网络配置] 应用搜索引擎配置失败: %s") % (e,)}, ensure_ascii=False), exc_info=True)
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 应用搜索引擎配置失败: %s' % (e,)}), exc_info=True)
 
         # 注册搜索实例
         try:
             if app_instance and hasattr(app_instance, '_web_search'):
                 self.apply_search_instances(app_instance._web_search)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 搜索实例已注册"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 搜索实例已注册'}))
             else:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app._web_search", "duration_ms": 0, "message": "[网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app._web_search', 'message': '[网络配置] 应用实例无 _web_search 属性，跳过搜索实例注册'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": ("[网络配置] 注册搜索实例失败: %s") % (e,)}, ensure_ascii=False), exc_info=True)
+            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 注册搜索实例失败: %s' % (e,)}), exc_info=True)
 
         # 应用到 LLM 配置
         if app_instance and hasattr(app_instance, 'configure_llm'):
@@ -1151,12 +1152,12 @@ class NetworkConfigManager:
                     api_key = (selected.get('api_key') or api_key).strip()
                     model = selected.get('model') or model
                     base_url = selected.get('api_endpoint') or base_url
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s") % (instance_source, selected.get('name'), provider, model,)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] 使用 LLM 实例 [%s]: name=%s, provider=%s, model=%s' % (instance_source, selected.get('name'), provider, model)}))
 
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s") % (llm['enabled'], provider, '***' if api_key and not api_key.startswith('***') else 'no', model,)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] LLM 配置状态: enabled=%s, provider=%s, api_key_set=%s, model=%s' % (llm['enabled'], provider, '***' if api_key and (not api_key.startswith('***')) else 'no', model)}))
 
             if llm['enabled'] and provider and api_key:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.configure_llm", "duration_ms": 0, "message": ("[网络配置] 正在调用 configure_llm (来源: %s)...") % (instance_source,)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.configure_llm', 'message': '[网络配置] 正在调用 configure_llm (来源: %s)...' % (instance_source,)}))
                 try:
                     result = app_instance.configure_llm(
                         provider=provider,
@@ -1165,15 +1166,15 @@ class NetworkConfigManager:
                         base_url=base_url,
                     )
                     if result.get('ok'):
-                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] [即时生效] LLM 配置已应用: %s/%s") % (provider, model,)}, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] [即时生效] LLM 配置已应用: %s/%s' % (provider, model)}))
                     else:
-                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] LLM 配置应用失败: %s") % (result.get('error'),)}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] LLM 配置应用失败: %s' % (result.get('error'),)}))
                 except Exception as e:
-                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] 应用 LLM 配置失败: %s") % (e,)}, ensure_ascii=False), exc_info=True)
+                    logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] 应用 LLM 配置失败: %s' % (e,)}), exc_info=True)
             else:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.llm", "duration_ms": 0, "message": ("[网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=%s, provider=%s, api_key=%s)") % (llm['enabled'], bool(provider), bool(api_key),)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.llm', 'message': '[网络配置] LLM 配置不完整，跳过 LLM 应用 (enabled=%s, provider=%s, api_key=%s)' % (llm['enabled'], bool(provider), bool(api_key))}))
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.apply_to_app.log", "duration_ms": 0, "message": "[网络配置] 配置应用完成"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_to_app.log', 'message': '[网络配置] 配置应用完成'}))
 
     def get_search_engines(self) -> dict:
         """获取搜索引擎配置信息"""
@@ -1192,7 +1193,7 @@ class NetworkConfigManager:
 
     def update_search_config(self, search_updates: dict) -> dict:
         """更新搜索引擎配置（即时生效）"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_search_config.log", "duration_ms": 0, "message": ("[网络配置] 更新搜索引擎配置: %s") % (search_updates,)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_search_config.log', 'message': '[网络配置] 更新搜索引擎配置: %s' % (search_updates,)}))
         
         # 构建更新字典
         updates = {}
@@ -1222,7 +1223,7 @@ class NetworkConfigManager:
         if updates:
             self.update(updates)
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "network_config", "action": "network_config.update_search_config.log", "duration_ms": 0, "message": "[网络配置] 搜索引擎配置更新完成"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_search_config.log', 'message': '[网络配置] 搜索引擎配置更新完成'}))
         return self.get_search_engines()
 
     def validate_llm_instance(self, instance: dict) -> List[str]:

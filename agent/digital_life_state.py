@@ -23,6 +23,7 @@ from agent.state_manager import (
     StateSaveResult,
     StateLoadResult,
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ class DigitalLifeStateMixin:
             from agent.p6_snapshot import SnapshotResult
             return SnapshotResult(success=False, error_message="P6快照管理器未启用")
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] 保存状态快照..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'digital_life_state', 'action': 'log', 'msg': '[P6] 保存状态快照...'}))
         result = sm.save_snapshot(self, snapshot_id=snapshot_id,
                                   incremental=incremental, force=force)
         if result.success:
@@ -118,15 +119,15 @@ class DigitalLifeStateMixin:
         """从快照恢复状态"""
         sm = getattr(self, '_snapshot_manager', None)
         if not sm:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "fail", "msg": "[P6] [FAIL] P6快照管理器未启用"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'digital_life_state', 'action': 'fail', 'msg': '[P6] [FAIL] P6快照管理器未启用'}))
             return None
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] 从快照恢复状态..."}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'digital_life_state', 'action': 'log', 'msg': '[P6] 从快照恢复状态...'}))
         restored = sm.load_snapshot(digital_life_class=self.__class__,
                                      snapshot_id=snapshot_id)
         if restored:
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "log", "msg": "[P6] [OK] 快照恢复成功"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'digital_life_state', 'action': 'log', 'msg': '[P6] [OK] 快照恢复成功'}))
         else:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "digital_life_state", "action": "fail", "msg": "[P6] [FAIL] 快照恢复失败"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'digital_life_state', 'action': 'fail', 'msg': '[P6] [FAIL] 快照恢复失败'}))
         return restored
 
     def list_snapshots(self) -> list:

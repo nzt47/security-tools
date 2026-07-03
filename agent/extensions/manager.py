@@ -32,6 +32,7 @@ from agent.extensions.skills_installer import SkillsInstaller
 from agent.extensions.mcp_installer import McpInstaller
 from agent.extensions.channels_installer import ChannelInstaller
 from agent.extensions.plugins_installer import PluginInstaller
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ class ExtensionManager:
                 return {"ok": success, "message": message, "type": "plugin"}
 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "ext_type.ext_id_or_source", "msg": f"[扩展管理器] 安装失败: {ext_type}/{ext_id_or_source}: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'manager', 'action': 'ext_type.ext_id_or_source', 'msg': f'[扩展管理器] 安装失败: {ext_type}/{ext_id_or_source}: {e}'}))
             return {"ok": False, "message": f"安装失败: {e}", "type": ext_type}
 
     # ════════════════════════════════════════════════════════════
@@ -195,7 +196,7 @@ class ExtensionManager:
 
             return {"ok": success, "message": msg, "type": ext_type}
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "ext_type.ext_id", "msg": f"[扩展管理器] 卸载失败: {ext_type}/{ext_id}: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'manager', 'action': 'ext_type.ext_id', 'msg': f'[扩展管理器] 卸载失败: {ext_type}/{ext_id}: {e}'}))
             return {"ok": False, "message": f"卸载失败: {e}"}
 
     def toggle(self, ext_type: str, ext_id: str, enabled: bool = None) -> Dict:
@@ -224,7 +225,7 @@ class ExtensionManager:
 
             return {"ok": success, "message": msg, "enabled": state, "type": ext_type}
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "ext_type.ext_id", "msg": f"[扩展管理器] 切换状态失败: {ext_type}/{ext_id}: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'manager', 'action': 'ext_type.ext_id', 'msg': f'[扩展管理器] 切换状态失败: {ext_type}/{ext_id}: {e}'}))
             return {"ok": False, "message": f"操作失败: {e}"}
 
     def configure(self, ext_type: str, ext_id: str, config: Dict) -> Dict:
@@ -255,7 +256,7 @@ class ExtensionManager:
 
             return {"ok": success, "message": msg, "type": ext_type}
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "ext_type.ext_id", "msg": f"[扩展管理器] 配置失败: {ext_type}/{ext_id}: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'manager', 'action': 'ext_type.ext_id', 'msg': f'[扩展管理器] 配置失败: {ext_type}/{ext_id}: {e}'}))
             return {"ok": False, "message": f"配置失败: {e}"}
 
     # ════════════════════════════════════════════════════════════
@@ -346,7 +347,7 @@ class ExtensionManager:
         if plugin_inst:
             plugin_inst._tool_register_fn = register_fn
             plugin_inst._tool_unregister_fn = unregister_fn
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "log", "msg": "[扩展管理器] 工具注册表已连接"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'manager', 'action': 'log', 'msg': '[扩展管理器] 工具注册表已连接'}))
 
     # ════════════════════════════════════════════════════════════
     # 生命周期
@@ -370,4 +371,4 @@ class ExtensionManager:
                 for p in self._store.list_all(ExtensionType.PLUGIN):
                     if p.get("ext_id") in installer._loaded_plugins:
                         installer.unload_plugin(p["ext_id"])
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "manager", "action": "log", "msg": "[扩展管理器] 已清理所有扩展资源"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'manager', 'action': 'log', 'msg': '[扩展管理器] 已清理所有扩展资源'}))

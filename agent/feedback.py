@@ -55,7 +55,11 @@ class FeedbackCategory(Enum):
 
 @dataclass
 class FeedbackRecord:
-    """用户反馈记录"""
+    """用户反馈记录
+
+    skill_id / workflow_id 用于将反馈绑定到具体技能或工作流，
+    驱动 SkillEnhancer 的参数优化与状态升降级。
+    """
     feedback_id: str
     trace_id: str
     feedback_type: str
@@ -72,6 +76,9 @@ class FeedbackRecord:
     analysis_result: Dict[str, Any] = field(default_factory=dict)
     context: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # 技能/工作流绑定字段（向后兼容，默认空字符串表示未绑定）
+    skill_id: str = ""
+    workflow_id: str = ""
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -98,6 +105,9 @@ class QualityCase:
     created_at: float = field(default_factory=time.time)
     context: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # 关联技能/工作流（驱动 SkillEnhancer 自动晋升 PUBLISHED）
+    skill_id: str = ""
+    workflow_id: str = ""
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -173,7 +183,9 @@ class FeedbackManager:
                     resolved_at REAL,
                     analysis_result TEXT DEFAULT '{}',
                     context TEXT DEFAULT '{}',
-                    metadata TEXT DEFAULT '{}'
+                    metadata TEXT DEFAULT '{}',
+                    skill_id TEXT DEFAULT '',
+                    workflow_id TEXT DEFAULT ''
                 )
             """)
 
@@ -190,18 +202,29 @@ class FeedbackManager:
                     quality_score REAL DEFAULT 0,
                     created_at REAL NOT NULL,
                     context TEXT DEFAULT '{}',
-                    metadata TEXT DEFAULT '{}'
+                    metadata TEXT DEFAULT '{}',
+                    skill_id TEXT DEFAULT '',
+                    workflow_id TEXT DEFAULT ''
                 )
             """)
+
+            # 兼容老库：通过 PRAGMA + ALTER TABLE 增量补列（已存在则跳过）
+            self._migrate_add_columns(cursor, "feedback",
+                                      ["skill_id", "workflow_id"])
+            self._migrate_add_columns(cursor, "quality_cases",
+                                      ["skill_id", "workflow_id"])
 
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_trace ON feedback(trace_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_type ON feedback(feedback_type)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_time ON feedback(created_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_skill ON feedback(skill_id) WHERE skill_id != ''")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_workflow ON feedback(workflow_id) WHERE workflow_id != ''")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_quality_trace ON quality_cases(trace_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_quality_tags ON quality_cases(tags)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_quality_time ON quality_cases(created_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_quality_skill ON quality_cases(skill_id) WHERE skill_id != ''")
 
             conn.commit()
 
@@ -214,11 +237,30 @@ class FeedbackManager:
             "level": "INFO"
         }))
 
+    @staticmethod
+    def _migrate_add_columns(cursor, table: str, columns: List[str]) -> None:
+        """兼容老库：补齐缺失的列（已存在则跳过）
+
+        Args:
+            cursor: 数据库游标
+            table: 表名
+            columns: 待补列名列表（默认空字符串）
+        """
+        cursor.execute(f"PRAGMA table_info({table})")
+        existing = {row[1] for row in cursor.fetchall()}
+        for col in columns:
+            if col not in existing:
+                cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {col} TEXT DEFAULT ''"
+                )
+
     def submit_feedback(self, trace_id: str, feedback_type: str,
                         rating: int = 0, comment: str = "",
                         category: str = "other", user_id: str = "",
                         session_id: str = "",
-                        context: Dict[str, Any] = None) -> FeedbackRecord:
+                        context: Dict[str, Any] = None,
+                        skill_id: str = "",
+                        workflow_id: str = "") -> FeedbackRecord:
         """提交用户反馈
 
         Args:
@@ -230,10 +272,26 @@ class FeedbackManager:
             user_id: 用户ID
             session_id: 会话ID
             context: 上下文信息
+            skill_id: 关联技能ID（驱动技能自进化）
+            workflow_id: 关联工作流ID
 
         Returns:
             FeedbackRecord 反馈记录
+
+        Raises:
+            ValueError: rating 不在 0-5 范围或 feedback_type 非法时
         """
+        # 边界显性化：参数校验
+        if not trace_id:
+            raise ValueError("trace_id 不能为空")
+        if rating < 0 or rating > 5:
+            raise ValueError(f"rating 必须在 0-5 之间，当前: {rating}")
+        valid_types = {t.value for t in FeedbackType}
+        if feedback_type not in valid_types:
+            raise ValueError(
+                f"feedback_type 非法: {feedback_type}，合法值: {valid_types}"
+            )
+
         self.initialize()
         start_time = time.time()
 
@@ -249,7 +307,9 @@ class FeedbackManager:
             category=category,
             user_id=user_id,
             session_id=session_id,
-            context=context or {}
+            context=context or {},
+            skill_id=skill_id,
+            workflow_id=workflow_id,
         )
 
         try:
@@ -259,15 +319,17 @@ class FeedbackManager:
                     """INSERT INTO feedback
                        (feedback_id, trace_id, feedback_type, rating, comment,
                         category, user_id, session_id, status, created_at,
-                        updated_at, analysis_result, context, metadata)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        updated_at, analysis_result, context, metadata,
+                        skill_id, workflow_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (record.feedback_id, record.trace_id, record.feedback_type,
                      record.rating, record.comment, record.category,
                      record.user_id, record.session_id, record.status,
                      record.created_at, record.updated_at,
                      json.dumps(record.analysis_result, ensure_ascii=False),
                      json.dumps(record.context, ensure_ascii=False),
-                     json.dumps(record.metadata, ensure_ascii=False))
+                     json.dumps(record.metadata, ensure_ascii=False),
+                     record.skill_id, record.workflow_id)
                 )
                 conn.commit()
 
@@ -285,6 +347,8 @@ class FeedbackManager:
                 "feedback_id": feedback_id,
                 "feedback_type": feedback_type,
                 "category": category,
+                "skill_id": skill_id,
+                "workflow_id": workflow_id,
                 "duration_ms": round(duration_ms, 2),
                 "level": "INFO"
             }))
@@ -329,7 +393,9 @@ class FeedbackManager:
                     "category": record.category,
                     "rating": record.rating,
                     "user_id": record.user_id,
-                    "feedback_type": record.feedback_type
+                    "feedback_type": record.feedback_type,
+                    "skill_id": record.skill_id,
+                    "workflow_id": record.workflow_id,
                 },
                 evidence=[record.comment] if record.comment else []
             )
@@ -340,7 +406,9 @@ class FeedbackManager:
                 "failure_type": failure_type.value,
                 "severity": FailureSeverity.MEDIUM.value,
                 "entered_failure_analysis": True,
-                "analysis_note": "负面反馈自动进入失败模式分析流程"
+                "analysis_note": "负面反馈自动进入失败模式分析流程",
+                "skill_id": record.skill_id,
+                "workflow_id": record.workflow_id,
             }
 
             self._update_analysis(record.feedback_id, analysis_result)
@@ -351,6 +419,7 @@ class FeedbackManager:
                 "action": "_process_negative_feedback",
                 "feedback_id": record.feedback_id,
                 "failure_type": failure_type.value,
+                "skill_id": record.skill_id,
                 "duration_ms": 0,
                 "level": "INFO"
             }))
@@ -389,7 +458,9 @@ class FeedbackManager:
                 context={
                     "session_id": record.session_id,
                     "feedback_comment": record.comment
-                }
+                },
+                skill_id=record.skill_id,
+                workflow_id=record.workflow_id,
             )
 
             self._save_quality_case(quality_case)
@@ -433,14 +504,15 @@ class FeedbackManager:
                 """INSERT INTO quality_cases
                    (case_id, trace_id, user_id, feedback_id, title,
                     content_summary, tags, quality_score, created_at,
-                    context, metadata)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    context, metadata, skill_id, workflow_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (case.case_id, case.trace_id, case.user_id, case.feedback_id,
                  case.title, case.content_summary,
                  json.dumps(case.tags, ensure_ascii=False),
                  case.quality_score, case.created_at,
                  json.dumps(case.context, ensure_ascii=False),
-                 json.dumps(case.metadata, ensure_ascii=False))
+                 json.dumps(case.metadata, ensure_ascii=False),
+                 case.skill_id, case.workflow_id)
             )
             conn.commit()
 
@@ -476,7 +548,9 @@ class FeedbackManager:
 
     def list_feedback(self, feedback_type: str = None, status: str = None,
                       category: str = None, user_id: str = "",
-                      trace_id: str = "", limit: int = 50,
+                      trace_id: str = "", skill_id: str = "",
+                      workflow_id: str = "",
+                      limit: int = 50,
                       offset: int = 0) -> List[FeedbackRecord]:
         self.initialize()
 
@@ -502,6 +576,14 @@ class FeedbackManager:
         if trace_id:
             sql += " AND trace_id = ?"
             params.append(trace_id)
+
+        if skill_id:
+            sql += " AND skill_id = ?"
+            params.append(skill_id)
+
+        if workflow_id:
+            sql += " AND workflow_id = ?"
+            params.append(workflow_id)
 
         sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
@@ -530,11 +612,154 @@ class FeedbackManager:
             resolved_at=row['resolved_at'],
             analysis_result=json.loads(row['analysis_result']),
             context=json.loads(row['context']),
-            metadata=json.loads(row['metadata'])
+            metadata=json.loads(row['metadata']),
+            skill_id=row['skill_id'] if 'skill_id' in row.keys() else "",
+            workflow_id=row['workflow_id'] if 'workflow_id' in row.keys() else "",
         )
 
     def get_feedback_by_trace(self, trace_id: str) -> List[FeedbackRecord]:
         return self.list_feedback(trace_id=trace_id)
+
+    def get_feedback_by_skill(self, skill_id: str,
+                              feedback_type: str = None,
+                              limit: int = 100,
+                              offset: int = 0) -> List[FeedbackRecord]:
+        """按技能ID查询所有反馈
+
+        Args:
+            skill_id: 技能ID
+            feedback_type: 可选过滤反馈类型
+            limit: 返回上限
+            offset: 偏移量
+
+        Returns:
+            List[FeedbackRecord] 该技能收到的反馈列表
+        """
+        return self.list_feedback(
+            feedback_type=feedback_type,
+            skill_id=skill_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_skill_feedback_summary(self, skill_id: str,
+                                   days: int = 30) -> Dict[str, Any]:
+        """单技能反馈聚合统计 — 驱动 SkillEnhancer 参数优化
+
+        Args:
+            skill_id: 技能ID
+            days: 统计窗口（天）
+
+        Returns:
+            {
+                skill_id, total, like_count, dislike_count,
+                satisfaction_rate_percent, avg_rating,
+                by_category, quality_cases_count,
+                recent_dislike_comments, recommended_action
+            }
+        """
+        self.initialize()
+        start_time = time.time()
+        since = time.time() - days * 86400
+
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """SELECT feedback_type, COUNT(*) as cnt
+                   FROM feedback
+                   WHERE skill_id = ? AND created_at >= ?
+                   GROUP BY feedback_type""",
+                (skill_id, since)
+            )
+            by_type = {row['feedback_type']: row['cnt']
+                       for row in cursor.fetchall()}
+
+            cursor.execute(
+                """SELECT AVG(rating) as avg_r, COUNT(*) as total
+                   FROM feedback
+                   WHERE skill_id = ? AND created_at >= ?
+                     AND rating > 0""",
+                (skill_id, since)
+            )
+            row = cursor.fetchone()
+            avg_rating = float(row['avg_r']) if row and row['avg_r'] is not None else 0.0
+            total_rated = int(row['total']) if row else 0
+
+            cursor.execute(
+                """SELECT category, COUNT(*) as cnt
+                   FROM feedback
+                   WHERE skill_id = ? AND created_at >= ?
+                   GROUP BY category ORDER BY cnt DESC""",
+                (skill_id, since)
+            )
+            by_category = {row['category']: row['cnt']
+                           for row in cursor.fetchall()}
+
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM quality_cases WHERE skill_id = ? AND created_at >= ?",
+                (skill_id, since)
+            )
+            quality_cases = cursor.fetchone()['cnt']
+
+            cursor.execute(
+                """SELECT comment, category, rating
+                   FROM feedback
+                   WHERE skill_id = ? AND feedback_type = 'dislike'
+                     AND comment != ''
+                   ORDER BY created_at DESC LIMIT 5""",
+                (skill_id,)
+            )
+            recent_dislike = [
+                {"comment": r['comment'], "category": r['category'],
+                 "rating": r['rating']}
+                for r in cursor.fetchall()
+            ]
+
+        like_count = by_type.get('like', 0)
+        dislike_count = by_type.get('dislike', 0)
+        total = like_count + dislike_count
+        satisfaction = (like_count / total * 100) if total > 0 else 0.0
+
+        # 推荐动作 — 由 SkillEnhancer 进一步解释与执行
+        if total == 0:
+            action = "no_data"
+        elif satisfaction >= 90 and total >= 5:
+            action = "promote_to_published"
+        elif satisfaction < 50 and total >= 5:
+            action = "consider_deprecate_or_merge"
+        elif avg_rating and avg_rating < 3.0:
+            action = "improve_params"
+        else:
+            action = "keep"
+
+        duration_ms = (time.time() - start_time) * 1000
+        logger.info(json.dumps({
+            "trace_id": "",
+            "module_name": "feedback",
+            "action": "get_skill_feedback_summary",
+            "skill_id": skill_id,
+            "total": total,
+            "satisfaction_rate": round(satisfaction, 2),
+            "duration_ms": round(duration_ms, 2),
+            "level": "INFO"
+        }))
+
+        return {
+            "skill_id": skill_id,
+            "time_range_days": days,
+            "total_feedback": total,
+            "total_rated": total_rated,
+            "like_count": like_count,
+            "dislike_count": dislike_count,
+            "satisfaction_rate_percent": round(satisfaction, 2),
+            "avg_rating": round(avg_rating, 2),
+            "by_type": by_type,
+            "by_category": by_category,
+            "quality_cases_count": quality_cases,
+            "recent_dislike_comments": recent_dislike,
+            "recommended_action": action,
+        }
 
     def get_feedback_summary(self, days: int = 7) -> Dict[str, Any]:
         self.initialize()
@@ -613,6 +838,7 @@ class FeedbackManager:
         return result
 
     def list_quality_cases(self, tags: List[str] = None,
+                           skill_id: str = "",
                            limit: int = 50, offset: int = 0) -> List[QualityCase]:
         self.initialize()
 
@@ -623,6 +849,10 @@ class FeedbackManager:
             for tag in tags:
                 sql += " AND tags LIKE ?"
                 params.append(f'%{tag}%')
+
+        if skill_id:
+            sql += " AND skill_id = ?"
+            params.append(skill_id)
 
         sql += " ORDER BY quality_score DESC, created_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
@@ -645,7 +875,9 @@ class FeedbackManager:
                 quality_score=row['quality_score'],
                 created_at=row['created_at'],
                 context=json.loads(row['context']),
-                metadata=json.loads(row['metadata'])
+                metadata=json.loads(row['metadata']),
+                skill_id=row['skill_id'] if 'skill_id' in row.keys() else "",
+                workflow_id=row['workflow_id'] if 'workflow_id' in row.keys() else "",
             ))
 
         return results
