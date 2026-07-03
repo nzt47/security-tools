@@ -16,9 +16,25 @@ scripts/verify_delete_priority_cleanup.py
 scripts/demo_delete_log_output.py
 scripts/verify_startup_log_format.py
 scripts/bench_formatter_perf.py
+# CI 调试临时脚本（_ 前缀）
+scripts/_*.py
 
 # 日志目录（运行时生成的测试日志/报告，不入库）
 logs/
+unit_run.log
+_test_sanitize.py
+
+# 运行时备份/数据/工作区
+.file_backups/
+workspace/
+data/state/
+data/lifetrace/sources/
+data/reports/
+data/audit/
+
+# IDE 元数据
+.cursor/
+.trae/
 
 # Claude worktrees（本地工作树，不应作为 submodule 提交）
 .claude/worktrees/
