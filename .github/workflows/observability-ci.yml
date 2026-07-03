@@ -341,7 +341,10 @@ jobs:
       - name: 生成可观测性测试覆盖率报告
         run: |
           echo "=== 可观测性模块覆盖率 ==="
-          coverage report --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
+          # --fail-under=0 覆盖 pyproject.toml 中的 fail_under=40：
+          # 本 job 仅测可观测性子模块（7 个测试文件），覆盖率仅用于显示不用于阻断。
+          # 全项目覆盖率由 full-project-tests job 检查。
+          coverage report --fail-under=0 --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
 
       # ── 优化脚本单元测试（仅 Python 3.11 matrix 运行，避免重复）──
       # 验证 visibility_report.py / test_quality_assess.py / impact_analysis.py
@@ -1435,11 +1438,39 @@ jobs:
       - name: 验证 Mock 服务 query_range 端点
         run: |
           # 用一个测试查询验证 query_range 返回正确的 matrix 数据
+          # 注意：默认 shell 是 bash -e，任何命令失败立即退出。
+          # 之前 python -c "json.load(...)" 在 RESP 非 JSON 时抛异常 exit 1，
+          # 导致 STATUS=$(...) 失败、step exit code 3（pipeline 错误）。
+          # 修复：用 set +e 临时禁用 -e，并在 python 内部 try/except 捕获解析错误，
+          # 让脚本进入 if 分支输出有意义的错误信息（含 RESP 内容）。
+          # URL 编码修复：Prometheus 查询含 {success="true"} 等特殊字符，
+          # curl 直接拼 URL 会导致 exit code 3（URL malformed）。
+          # 改用 curl -G --data-urlencode 让 curl 自动 URL-encode 各参数。
+          set +e
           END=$(date +%s)
           START=$((END - 7*24*3600))
-          RESP=$(curl -s "http://localhost:9099/api/v1/query_range?query=max_over_time(yunshu_visibility_runtime_structured_log_coverage{success=\"true\"}[7d])&start=$START&end=$END&step=1h")
-          STATUS=$(echo "$RESP" | python -c "import sys, json; print(json.load(sys.stdin)['status'])")
-          POINTS=$(echo "$RESP" | python -c "import sys, json; r=json.load(sys.stdin)['data']['result']; print(len(r[0]['values']) if r else 0)")
+          RESP=$(curl -s -G "http://localhost:9099/api/v1/query_range" \
+            --data-urlencode "query=max_over_time(yunshu_visibility_runtime_structured_log_coverage{success=\"true\"}[7d])" \
+            --data-urlencode "start=$START" \
+            --data-urlencode "end=$END" \
+            --data-urlencode "step=1h")
+          CURL_EXIT=$?
+          echo "curl exit: $CURL_EXIT"
+          echo "RESP 前 500 字符: ${RESP:0:500}"
+          # 一次解析获取 status 和 points，避免两次 python 调用重复解析
+          PARSED=$(echo "$RESP" | python -c "
+          import sys, json
+          try:
+              d = json.load(sys.stdin)
+              status = d.get('status', 'unknown')
+              r = d.get('data', {}).get('result', [])
+              points = len(r[0]['values']) if r else 0
+              print(f'{status}|{points}')
+          except Exception as e:
+              print(f'parse_error|0|{type(e).__name__}: {e}')
+          ")
+          STATUS=$(echo "$PARSED" | cut -d'|' -f1)
+          POINTS=$(echo "$PARSED" | cut -d'|' -f2)
           echo "query_range 状态: $STATUS"
           echo "数据点数: $POINTS"
           if [ "$STATUS" != "success" ] || [ "$POINTS" -lt 100 ]; then
@@ -1447,6 +1478,7 @@ jobs:
             exit 1
           fi
           echo "✅ Mock 服务 query_range 验证通过"
+          set -e
 
       - name: 生成周报（weekly）
         id: gen_weekly

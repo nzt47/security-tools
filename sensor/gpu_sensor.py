@@ -25,10 +25,11 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning, message=".*pynvml.*deprecated.*")
         import pynvml as _pynvml
-    _pynvml.nvmlInit()
     _pynvml_available = True
 except Exception:
     _pynvml_available = False
+
+_pynvml_initialized = False
 
 
 class GPUSensor:
@@ -47,7 +48,11 @@ class GPUSensor:
         self._category = Category.GPU
         self._gpu_count = 0
         if _pynvml_available:
+            global _pynvml_initialized
             try:
+                if not _pynvml_initialized:
+                    _pynvml.nvmlInit()
+                    _pynvml_initialized = True
                 self._gpu_count = _pynvml.nvmlDeviceGetCount()
             except Exception:
                 self._gpu_count = 0
