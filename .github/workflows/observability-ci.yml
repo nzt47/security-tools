@@ -551,6 +551,35 @@ jobs:
             exit 1
           fi
 
+      - name: 启动 Prometheus 容器（checkout 后启动，避免 mount 失败）
+        run: |
+          echo "=== 启动 Prometheus 容器 ==="
+          CONFIG_FILE="${{ github.workspace }}/monitoring/prometheus.yml"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "::error::Prometheus 配置文件不存在: $CONFIG_FILE"
+            echo "请检查 monitoring/prometheus.yml 是否已提交到仓库"
+            exit 1
+          fi
+          docker run -d \
+            --name prometheus \
+            -p 9090:9090 \
+            -v "$CONFIG_FILE:/etc/prometheus/prometheus.yml" \
+            prom/prometheus:latest
+          echo "等待 Prometheus 就绪..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+              echo "✅ Prometheus 已就绪"
+              break
+            fi
+            echo "等待 Prometheus 启动... ($i/30)"
+            sleep 2
+          done
+          if ! curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+            echo "::error::Prometheus 启动失败，容器日志："
+            docker logs prometheus
+            exit 1
+          fi
+
       - name: 启动应用服务（后台）
         run: |
           echo "=== 启动应用服务 ==="
