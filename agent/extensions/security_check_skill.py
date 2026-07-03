@@ -17,6 +17,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 from agent.extensions.security_checker import get_security_checker
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def _check_skill_security(source: str, skill_name: str = "", description: str = 
     report = format_report(result)
     result["report"] = report
     
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "security_check_skill", "action": "skill_info", "msg": f"[安全检查技能] 已完成技能检查: {skill_info['name']}"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'security_check_skill', 'action': 'skill_info', 'msg': f'[安全检查技能] 已完成技能检查: {skill_info['name']}'}))
     return result
 
 
@@ -235,10 +236,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "security_check_skill",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'security_check_skill', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

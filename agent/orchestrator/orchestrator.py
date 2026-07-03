@@ -36,6 +36,7 @@ from agent.observability.subscriber import trace_store, TraceSpan
 from agent.orchestrator.message_handler import MessageHandler
 from agent.orchestrator.response_builder import ResponseBuilder, Response
 import uuid
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -120,15 +121,15 @@ class Orchestrator:
             标准响应字典 {"success": bool, "response": str, "error": str, "metadata": dict}
         """
         trace_id = get_trace_id() if _MONITORING_AVAILABLE else None
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": "=" * 70}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.receive", "duration_ms": 0, "trace_id_ctx": trace_id, "message": "[Orchestrator.process] 收到对话请求"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '=' * 70}))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.receive', 'trace_id_ctx': trace_id, 'message': '[Orchestrator.process] 收到对话请求'}))
         input_preview = user_input[:100] + ("..." if len(user_input) > 100 else "")
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("   用户输入: %s") % (input_preview,)}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("   对话次数: %d") % (self._interaction_count + 1,)}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": "=" * 70}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '   用户输入: %s' % (input_preview,)}))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '   对话次数: %d' % (self._interaction_count + 1,)}))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '=' * 70}))
 
         if not self._running:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": "云枢未运行，返回提示"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '云枢未运行，返回提示'}))
             return ResponseBuilder.success(
                 "我还没有被唤醒。请先调用 start() 让我醒来。"
             ).to_dict()
@@ -147,12 +148,12 @@ class Orchestrator:
         # 统一检查上下文使用率
         self._last_context_warning = self._check_context_usage()
         if self._last_context_warning and self._last_context_warning["level"] != "info":
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("[上下文] %s（%.1f%%）") % (self._last_context_warning["message"], self._last_context_warning["pct"],)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[上下文] %s（%.1f%%）' % (self._last_context_warning['message'], self._last_context_warning['pct'])}))
 
         # ── 第零步：InputGuard 输入安全检查 ──
         guard_result = self._input_guard.check(user_input)
         if guard_result.action == GuardAction.BLOCK:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.guard", "duration_ms": 0, "message": ("[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）") % (guard_result.reason, guard_result.matched_pattern,)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.guard', 'message': '[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）' % (guard_result.reason, guard_result.matched_pattern)}))
             if trace_id:
                 trace_store.end_trace(trace_id, guard_result.reason, status="blocked")
             return ResponseBuilder.guard_blocked(
@@ -163,7 +164,7 @@ class Orchestrator:
         ts_wf = time.time()
         workflow_result = self._workflow_engine.try_match(user_input)
         if workflow_result is not None and workflow_result.matched:
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.workflow", "duration_ms": 0, "message": ("[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms") % (workflow_result.intent, workflow_result.confidence, workflow_result.execution_time_ms,)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.workflow', 'message': '[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms' % (workflow_result.intent, workflow_result.confidence, workflow_result.execution_time_ms)}))
             self._memory.score_and_save_message("user", user_input)
             self._memory.score_and_save_message("assistant", workflow_result.output)
             if trace_id:
@@ -230,7 +231,7 @@ class Orchestrator:
                 IntentRouter, ResponseTemplates, Confidence,
             )
             intent, confidence = IntentRouter.classify(user_input)
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("[路由] 意图=%s, 置信度=%s") % (intent, confidence,)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 意图=%s, 置信度=%s' % (intent, confidence)}))
 
             is_follow_up = MessageHandler.is_follow_up({
                 'last_was_template': getattr(self, '_last_was_template', False),
@@ -238,10 +239,10 @@ class Orchestrator:
             })
             dissatisfaction = MessageHandler.detect_dissatisfaction(user_input)
             if dissatisfaction:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.llm", "duration_ms": 0, "message": "[路由] 检测到用户不满/纠正，降级到 LLM"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 检测到用户不满/纠正，降级到 LLM'}))
                 is_follow_up = True
             if is_follow_up:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.llm", "duration_ms": 0, "message": "[路由] 检测到模板后追问，降级到 LLM"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 检测到模板后追问，降级到 LLM'}))
                 self._last_was_template = False
 
             if not is_follow_up:
@@ -250,7 +251,7 @@ class Orchestrator:
                     hour=datetime.now().hour,
                 )
                 if template_response:
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.llm", "duration_ms": 0, "message": "[路由] 使用本地模板，跳过 LLM 调用"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 使用本地模板，跳过 LLM 调用'}))
                     self._set_thinking_mode("instinct")
                     response = template_response
                     self._last_was_template = True
@@ -261,7 +262,7 @@ class Orchestrator:
                         self._memory.infer_working_memory(user_input, response)
                     except Exception:
                         pass
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("[路由] 模板回复完成 (#%d)") % (self._interaction_count,)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 模板回复完成 (#%d)' % (self._interaction_count,)}))
                     if trace_id:
                         trace_store.add_span(trace_id, TraceSpan(
                             span_id=f"{trace_id}_template",
@@ -275,7 +276,7 @@ class Orchestrator:
         except ImportError:
             pass
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.llm", "duration_ms": 0, "message": ("[路由] 路由失败，降级到 LLM: %s") % (e,)}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 路由失败，降级到 LLM: %s' % (e,)}))
         self._last_was_template = False
 
         # ── 第四步：LLM 调用 ──
@@ -288,9 +289,9 @@ class Orchestrator:
                 # 标准路径
                 response = self._call_llm(user_input, body_status)
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.fail", "duration_ms": 0, "message": ("[FAIL] 对话处理异常: %s") % (e,), "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 对话处理异常: %s' % (e,), 'error': str(e)}))
             tb_str = __import__('traceback').format_exc()
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("堆栈:\n%s") % (tb_str,), "error": str(tb_str)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '堆栈:\n%s' % (tb_str,), 'error': str(tb_str)}))
             if trace_id:
                 trace_store.end_trace(trace_id, str(e)[:200], status="error")
             if _MONITORING_AVAILABLE:
@@ -307,9 +308,9 @@ class Orchestrator:
                                 'session_id': getattr(self, '_session_id', 'unknown'),
                             },
                         )
-                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.error_reported", "duration_ms": 0, "trace_id_ctx": trace_id, "message": "[OK] 错误已自动上报"}, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_reported', 'trace_id_ctx': trace_id, 'message': '[OK] 错误已自动上报'}))
                     except Exception as report_error:
-                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.error_report_failed", "duration_ms": 0, "trace_id_ctx": trace_id, "error": str(report_error), "message": "错误上报失败"}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_report_failed', 'trace_id_ctx': trace_id, 'error': str(report_error), 'message': '错误上报失败'}))
             return ResponseBuilder.error(
                 "抱歉，处理您的请求时遇到了问题：%s" % e
             ).to_dict()
@@ -330,7 +331,7 @@ class Orchestrator:
         # ── 第五步：OutputGuard 输出安全检查（PII 遮盖）──
         output_result = self._output_guard.check(response)
         if output_result.modified:
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.guard", "duration_ms": 0, "message": ("[Guard] 🔒 输出已过滤，遮盖字段: %s") % (", ".join(output_result.redacted_fields),)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.guard', 'message': '[Guard] 🔒 输出已过滤，遮盖字段: %s' % (', '.join(output_result.redacted_fields),)}))
             response = output_result.filtered
 
         # Trace: 记录 LLM 调用 Span
@@ -350,7 +351,7 @@ class Orchestrator:
             if self._is_skill_enabled("self_reflection"):
                 self.self_reflect(user_input, response)
             else:
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.skillgate", "duration_ms": 0, "message": "[SkillGate] self_reflection 已禁用，跳过"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.skillgate', 'message': '[SkillGate] self_reflection 已禁用，跳过'}))
 
         # ── 第七步：记忆保存 ──
         self._memory.score_and_save_message("user", user_input)
@@ -358,7 +359,7 @@ class Orchestrator:
         try:
             self._memory.infer_working_memory(user_input, response)
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.wm", "duration_ms": 0, "message": ("[WM] 工作记忆更新失败: %s") % (e,)}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wm', 'message': '[WM] 工作记忆更新失败: %s' % (e,)}))
 
         # 向量记忆保存
         if self._vector_memory:
@@ -371,9 +372,9 @@ class Orchestrator:
                         "interaction": self._interaction_count,
                     },
                 )
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.log", "duration_ms": 0, "message": ("[记忆] 向量记忆已保存: %s") % (item_id,)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[记忆] 向量记忆已保存: %s' % (item_id,)}))
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.process.fail", "duration_ms": 0, "message": ("[FAIL] 保存向量记忆失败: %s") % (e,), "error": str(e)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 保存向量记忆失败: %s' % (e,), 'error': str(e)}))
 
         # V2: LifeTrace 记录响应
         if self._v2_lifetrace and self._trace_recorder:
@@ -514,7 +515,7 @@ class Orchestrator:
                 }
             return None
         except Exception as e:
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._check_context_usage.log", "duration_ms": 0, "message": ("检查上下文使用率时出错: %s") % (e,)}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._check_context_usage.log', 'message': '检查上下文使用率时出错: %s' % (e,)}))
             return None
 
     # ════════════════════════════════════════════════════════════════════
@@ -590,7 +591,7 @@ class Orchestrator:
             _sp_tokens = self._memory._token_counter.count(system_prompt)
             _sp_budget = 10000
             if _sp_tokens > _sp_budget:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.token", "duration_ms": 0, "message": ("[Token] system prompt %d tokens 超预算 %d，截断工具状态") % (_sp_tokens, _sp_budget,)}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.token', 'message': '[Token] system prompt %d tokens 超预算 %d，截断工具状态' % (_sp_tokens, _sp_budget)}))
                 _brief_tools = (tool_status[:300] + "\n...（已截断）") if len(tool_status) > 300 else tool_status
                 system_prompt = _sp_template.format(
                     current_date=datetime.now().strftime("%Y年%m月%d日"),
@@ -603,7 +604,7 @@ class Orchestrator:
                 )
                 if wm_text:
                     system_prompt += wm_text
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.token", "duration_ms": 0, "message": ("[Token] system prompt: %d tokens (预算 %d)") % (_sp_tokens, _sp_budget,)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.token', 'message': '[Token] system prompt: %d tokens (预算 %d)' % (_sp_tokens, _sp_budget)}))
         except Exception:
             pass
 
@@ -622,7 +623,7 @@ class Orchestrator:
             )
             messages.extend(budget_context)
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.budget", "duration_ms": 0, "message": ("Budget context assembly failed: %s, falling back") % (e,)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.budget', 'message': 'Budget context assembly failed: %s, falling back' % (e,)}))
             try:
                 context = self._memory.get_context(token_limit=self._memory_token_limit)
                 if context:
@@ -656,9 +657,9 @@ class Orchestrator:
                         _smart_tools = get_tools_for_input(user_input, _whitelist)
                         if _smart_tools:
                             _whitelist = _smart_tools
-                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.log", "duration_ms": 0, "message": ("[工具路由] 智能选择: %d/%d 个工具") % (len(_smart_tools), len(_tools.list_tools()),)}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '[工具路由] 智能选择: %d/%d 个工具' % (len(_smart_tools), len(_tools.list_tools()))}))
                     except Exception as _e:
-                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.log", "duration_ms": 0, "message": ("工具路由失败: %s") % (_e,)}, ensure_ascii=False))
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '工具路由失败: %s' % (_e,)}))
                 _tool_defs = _tools.get_tool_defs(whitelist=_whitelist)
                 _client = self._llm._get_client()
 
@@ -666,12 +667,12 @@ class Orchestrator:
                 _selected_llm, _selected_model = self._select_model_for_request(user_input)
                 _use_pro = _selected_model != self._llm.model
                 if _use_pro and self._llm_pro:
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm._call_llm", "duration_ms": 0, "message": ("[_call_llm] 调度到深度模型: %s (主模型: %s)") % (_selected_model, self._llm.model,)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 调度到深度模型: %s (主模型: %s)' % (_selected_model, self._llm.model)}))
                     _client = self._llm_pro._get_client()
                     _working_model = _selected_model
                 else:
                     _working_model = self._llm.model
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm._call_llm", "duration_ms": 0, "message": ("[_call_llm] 使用主模型: %s (pro可用=%s)") % (_working_model, self._llm_pro is not None,)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 使用主模型: %s (pro可用=%s)' % (_working_model, self._llm_pro is not None)}))
 
                 _working = list(messages)
                 _reasoning = None
@@ -720,9 +721,9 @@ class Orchestrator:
                                 from agent.tool_calling import ToolCallingService as _TCSvc
                                 _xml_tools = _TCSvc._extract_xml_tool_calls(_msg.content)
                             except Exception as _xml_e:
-                                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm._call_llm", "duration_ms": 0, "message": ("[_call_llm] XML 工具提取失败: %s") % (_xml_e,)}, ensure_ascii=False))
+                                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] XML 工具提取失败: %s' % (_xml_e,)}))
                         if _xml_tools:
-                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm._call_llm", "duration_ms": 0, "message": ("[_call_llm] 检测到 XML 格式工具调用: %d 个") % (len(_xml_tools),)}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 检测到 XML 格式工具调用: %d 个' % (len(_xml_tools),)}))
                             _assistant_tc = []
                             _tool_results = []
                             for _xc in _xml_tools:
@@ -807,7 +808,7 @@ class Orchestrator:
 
                 # 兜底：检测 XML 工具调用残留
                 if response and _re.search(r'<[^>]*tool_calls[^>]*>', response):
-                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm._call_llm", "duration_ms": 0, "message": "[_call_llm] 响应中包含 XML 工具调用，使用工具结果摘要替换"}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 响应中包含 XML 工具调用，使用工具结果摘要替换'}))
                     _fb_summaries = [s.get("summary", "") for s in self._current_tool_steps
                                      if s["type"] == "tool_result"][-5:]
                     if _fb_summaries:
@@ -817,7 +818,7 @@ class Orchestrator:
 
                 return response
             except Exception as _e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm.llm", "duration_ms": 0, "message": ("LLM 调用失败: %s") % (_e,), "error": str(_e)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.llm', 'message': 'LLM 调用失败: %s' % (_e,), 'error': str(_e)}))
                 return "（抱歉，处理时遇到了问题: %s）" % str(_e)
         else:
             self._set_thinking_mode("instinct")
@@ -870,15 +871,15 @@ class Orchestrator:
                             _smart = get_tools_for_input(user_input, tools_whitelist)
                             if _smart:
                                 tools_whitelist = _smart
-                                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm_v2.log", "duration_ms": 0, "message": ("[工具路由V2] 智能选择: %d 个工具") % (len(_smart),)}, ensure_ascii=False))
+                                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[工具路由V2] 智能选择: %d 个工具' % (len(_smart),)}))
                         except Exception as _e:
-                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm_v2.log", "duration_ms": 0, "message": ("工具路由V2失败: %s") % (_e,)}, ensure_ascii=False))
+                            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '工具路由V2失败: %s' % (_e,)}))
 
                     _selected_llm, _selected_model = self._select_model_for_request(user_input)
                     _use_pro = _selected_model != self._llm.model
 
                     if _use_pro and self._llm_pro:
-                        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm_v2.log", "duration_ms": 0, "message": ("[调度] %s → 深度模型处理") % (user_input[:20],)}, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[调度] %s → 深度模型处理' % (user_input[:20],)}))
                         from agent.tool_calling import ToolCallingService
                         _tc_pro = ToolCallingService(
                             llm_service=self._llm_pro,
@@ -916,7 +917,7 @@ class Orchestrator:
 
                 # 兜底：检测 XML 工具调用
                 if response and _re.search(r'<[^>]*tool_calls[^>]*>', response):
-                    logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm_v2._call_llm_v2", "duration_ms": 0, "message": "[_call_llm_v2] 响应中包含 XML 工具调用，使用摘要替换"}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2._call_llm_v2', 'message': '[_call_llm_v2] 响应中包含 XML 工具调用，使用摘要替换'}))
                     _fb_steps = self._last_tool_steps or []
                     _fb_summaries = [s.get("summary", "") for s in _fb_steps
                                      if s.get("type") == "tool_result"][-5:]
@@ -927,7 +928,7 @@ class Orchestrator:
                 return response
             except LLMServiceError as e:
                 error_msg = str(e)
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator._call_llm_v2.llm", "duration_ms": 0, "message": ("LLM 调用失败: %s") % (error_msg,), "error": str(error_msg)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.llm', 'message': 'LLM 调用失败: %s' % (error_msg,), 'error': str(error_msg)}))
                 return (
                     "（LLM 调用失败）\n\n"
                     "我尝试调用 LLM 但遇到了问题：%s\n\n"
@@ -967,7 +968,7 @@ class Orchestrator:
             "reflection_preview": reflection_text[:200],
         })
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.self_reflect.log", "duration_ms": 0, "message": ("反思完成 (#%d): %s...") % (self._interaction_count, reflection_text[:100],)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.log', 'message': '反思完成 (#%d): %s...' % (self._interaction_count, reflection_text[:100])}))
         return entry
 
     @staticmethod
@@ -1053,9 +1054,9 @@ class Orchestrator:
         """手动中止当前对话"""
         if self._tool_calling_service:
             self._tool_calling_service.abort()
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.abort_chat.orchestrator", "duration_ms": 0, "message": "[Orchestrator] 对话中止请求已发送"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.abort_chat.orchestrator', 'message': '[Orchestrator] 对话中止请求已发送'}))
             return True
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "orchestrator", "action": "orchestrator.abort_chat.orchestrator", "duration_ms": 0, "message": "[Orchestrator] 工具调用引擎未启用，无法中止"}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.abort_chat.orchestrator', 'message': '[Orchestrator] 工具调用引擎未启用，无法中止'}))
         return False
 
     @property

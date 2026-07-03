@@ -9,6 +9,7 @@ import uuid
 import time
 import difflib
 import logging
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def diff_files(path1: str, path2: str, context_lines: int = 3) -> dict:
     """
     # 记录起始时间，用于计算 duration_ms（满足可观测性约束）
     _t0 = time.time()
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.files.start", "path1": path1, "path2": path2, "context_lines": context_lines, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'diff_tools', 'action': 'diff.files.start', 'path1': path1, 'path2': path2, 'context_lines': context_lines}))
 
     # ── 1. 路径安全校验 ──
     from agent.system_tools import safe_resolve_path
@@ -49,32 +50,32 @@ def diff_files(path1: str, path2: str, context_lines: int = 3) -> dict:
         safe_path1 = safe_resolve_path(path1)
         safe_path2 = safe_resolve_path(path2)
     except ValueError as e:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.safety_check.failed", "error": str(e), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.safety_check.failed', 'error': str(e)}))
         return {"ok": False, "error": str(e)}
 
     # ── 2. 检查文件是否存在 ──
     if not os.path.exists(safe_path1):
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file1.not_found", "path": safe_path1, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file1.not_found', 'path': safe_path1}))
         return {"ok": False, "error": f"文件不存在: {path1}"}
     if not os.path.exists(safe_path2):
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file2.not_found", "path": safe_path2, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file2.not_found', 'path': safe_path2}))
         return {"ok": False, "error": f"文件不存在: {path2}"}
 
     # ── 3. 确保是文件而非目录 ──
     if not os.path.isfile(safe_path1):
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.path1.not_a_file", "path": safe_path1, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.path1.not_a_file', 'path': safe_path1}))
         return {"ok": False, "error": f"路径不是文件: {path1}"}
     if not os.path.isfile(safe_path2):
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.path2.not_a_file", "path": safe_path2, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.path2.not_a_file', 'path': safe_path2}))
         return {"ok": False, "error": f"路径不是文件: {path2}"}
 
     # ── 4. 文件大小检查（10MB 限制） ──
     size1 = os.path.getsize(safe_path1)
     size2 = os.path.getsize(safe_path2)
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file_sizes", "size1": size1, "size2": size2, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'diff_tools', 'action': 'diff.file_sizes', 'size1': size1, 'size2': size2}))
 
     if size1 > MAX_DIFF_FILE_SIZE:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file1.too_large", "size": size1, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file1.too_large', 'size': size1}))
         return {
             "ok": False,
             "error": f"文件过大 ({size1 / 1024 / 1024:.1f}MB)，超过限制 10MB: {path1}",
@@ -82,7 +83,7 @@ def diff_files(path1: str, path2: str, context_lines: int = 3) -> dict:
             "size1": size1,
         }
     if size2 > MAX_DIFF_FILE_SIZE:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file2.too_large", "size": size2, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file2.too_large', 'size': size2}))
         return {
             "ok": False,
             "error": f"文件过大 ({size2 / 1024 / 1024:.1f}MB)，超过限制 10MB: {path2}",
@@ -95,23 +96,23 @@ def diff_files(path1: str, path2: str, context_lines: int = 3) -> dict:
         with open(safe_path1, "r", encoding="utf-8", errors="replace") as f:
             lines1 = f.readlines()
     except PermissionError as e:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file1.permission_denied", "error": str(e), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file1.permission_denied', 'error': str(e)}))
         return {"ok": False, "error": f"没有权限读取文件: {path1}"}
     except OSError as e:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file1.read_failed", "error": str(e), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file1.read_failed', 'error': str(e)}))
         return {"ok": False, "error": f"读取文件失败: {e}"}
 
     try:
         with open(safe_path2, "r", encoding="utf-8", errors="replace") as f:
             lines2 = f.readlines()
     except PermissionError as e:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file2.permission_denied", "error": str(e), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file2.permission_denied', 'error': str(e)}))
         return {"ok": False, "error": f"没有权限读取文件: {path2}"}
     except OSError as e:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.file2.read_failed", "error": str(e), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'diff_tools', 'action': 'diff.file2.read_failed', 'error': str(e)}))
         return {"ok": False, "error": f"读取文件失败: {e}"}
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.files.read_success", "lines1": len(lines1), "lines2": len(lines2), "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'diff_tools', 'action': 'diff.files.read_success', 'lines1': len(lines1), 'lines2': len(lines2)}))
 
     # ── 6. 生成 unified diff ──
     diff_lines = list(difflib.unified_diff(
@@ -133,7 +134,7 @@ def diff_files(path1: str, path2: str, context_lines: int = 3) -> dict:
     diff_text = "".join(diff_lines)
     changes = additions + deletions
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "diff_tools", "action": "diff.files.complete", "additions": additions, "deletions": deletions, "changes": changes, "duration_ms": int((time.time() - _t0) * 1000)}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'diff_tools', 'action': 'diff.files.complete', 'additions': additions, 'deletions': deletions, 'changes': changes}))
 
     return {
         "ok": True,

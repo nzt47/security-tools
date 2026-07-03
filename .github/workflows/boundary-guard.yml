@@ -104,13 +104,13 @@ jobs:
           path: hardcoded_boundary_report.json
           retention-days: 30
 
-      - name: 基线检查（基线 99，新增未配置化硬编码时阻断）
-        if: steps.scan.outputs.high_risk > 99
+      - name: 基线检查（基线 94，新增未配置化硬编码时阻断）
+        if: steps.scan.outputs.high_risk > 94
         uses: actions/github-script@v7
         with:
           script: |
             const highRisk = parseInt('${{ steps.scan.outputs.high_risk }}');
-            const baseline = 99;
+            const baseline = 94;
             if (highRisk > baseline) {
               core.setFailed(`检测到 ${highRisk} 个未配置化硬编码边界值（基线 ${baseline}），新增 ${highRisk - baseline} 个。请将新增硬编码配置化到 observability_config.py，或更新基线值。详见: docs/observability/hardcoded_boundary_baseline_report.json`);
             } else {

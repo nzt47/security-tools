@@ -15,7 +15,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-MAX_RECORDS = 500  # 环形缓冲区大小
+MAX_RECORDS = 500  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取）
 
 
 @dataclass
@@ -58,9 +58,17 @@ class LLMInteraction:
 class LLMMonitor:
     """LLM 通信监控器 — 环形缓冲区"""
 
-    def __init__(self, max_records: int = MAX_RECORDS):
+    def __init__(self, max_records: Optional[int] = None):
+        # 配置化：未显式指定时从 Config 读取（支持热加载）
+        _max_records = max_records
+        if _max_records is None:
+            try:
+                from agent.monitoring.observability_config import get_llm_monitor_max_records
+                _max_records = get_llm_monitor_max_records()
+            except Exception:
+                _max_records = MAX_RECORDS
         self._records: list[LLMInteraction] = []
-        self._max = max_records
+        self._max = _max_records
         self._lock = threading.Lock()
         self._hooks_installed = False
         self._enabled = True
