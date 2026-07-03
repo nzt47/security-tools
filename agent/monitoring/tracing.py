@@ -63,7 +63,7 @@ class TraceContext:
     def __init__(self, service_name: str, operation: str):
         """
         初始化追踪上下文
-        
+
         Args:
             service_name: 服务名称 (如: DigitalLife, VectorMemory)
             operation: 操作名称 (如: chat, search, save)
@@ -71,17 +71,24 @@ class TraceContext:
         self.service_name = service_name
         self.operation = operation
         self.trace_id: Optional[str] = None
+        # span_id：每个 with 块生成新的 span_id（同一 trace 内多个 span）
+        self.span_id: Optional[str] = None
         self.start_time: Optional[float] = None
-        # 保存进入前的 trace_id，用于 __exit__ 恢复（栈式管理的核心）
+        # 保存进入前的 trace_id / span_id，用于 __exit__ 恢复（栈式管理的核心）
         self._old_trace_id: Optional[str] = None
+        self._old_span_id: Optional[str] = None
     
     def __enter__(self):
         """进入追踪上下文"""
-        # 栈式管理第一步：保存进入前的 trace_id（可能为 None，也可能为外层/外部设置的 ID）
+        # 栈式管理第一步：保存进入前的 trace_id / span_id（可能为 None，也可能为外层/外部设置的值）
         self._old_trace_id = _current_trace_id.get()
-        # 复用已有 trace_id（嵌套/外部传播场景），或生成新 ID（独立调用场景）
+        self._old_span_id = _current_span_id.get()
+        # trace_id 复用外层（嵌套/外部传播场景），或生成新 ID（独立调用场景）
         self.trace_id = self._old_trace_id or self._generate_trace_id()
+        # span_id 总是生成新值：每个 with 块代表一个独立 span，即便嵌套也是不同的 span
+        self.span_id = self._generate_span_id()
         _current_trace_id.set(self.trace_id)
+        _current_span_id.set(self.span_id)
         self.start_time = time.time()
         
         # 打印开始日志
@@ -132,19 +139,30 @@ class TraceContext:
                 }
             )
 
-        # 栈式管理第二步：恢复进入前的 trace_id 状态
-        # - 嵌套退出后回到外层 ID，保证外层继续使用同一 trace_id
-        # - 最外层退出后回到 None（或外部 set_trace_id 设置的值），避免 trace_id 泄漏
-        # 这是保证不变量（__exit__ 后 get_trace_id() == 进入前的值）的关键
+        # 栈式管理第二步：恢复进入前的 trace_id / span_id 状态
+        # - 嵌套退出后回到外层值，保证外层继续使用同一上下文
+        # - 最外层退出后回到 None（或外部 set_*_id 设置的值），避免上下文泄漏
+        # 这是保证不变量（__exit__ 后 get_*_id() == 进入前的值）的关键
         _current_trace_id.set(self._old_trace_id)
+        _current_span_id.set(self._old_span_id)
 
         return False
     
     def _generate_trace_id(self) -> str:
         """生成16位十六进制 Trace ID
-        
+
         Returns:
             16位十六进制字符串 (如: abc123def4567890)
+        """
+        return uuid.uuid4().hex[:16]
+
+    def _generate_span_id(self) -> str:
+        """生成16位十六进制 Span ID
+
+        与 trace_id 区别：同一 trace 内可有多个 span，每次进入 with 块生成新 span_id。
+
+        Returns:
+            16位十六进制字符串 (如: 1234567812345678)
         """
         return uuid.uuid4().hex[:16]
     
@@ -201,30 +219,159 @@ def set_span_id(span_id: Optional[str]) -> None:
     _current_span_id.set(span_id)
 
 
-def extract_trace_context() -> dict:
-    """提取当前线程的追踪上下文（用于跨服务传播前序列化）
+def extract_trace_context(headers: Optional[dict] = None) -> dict:
+    """提取追踪上下文
+
+    两种模式：
+    1. 无参数：返回当前线程上下文 {"trace_id": ..., "span_id": ...}，未设置字段为 None
+    2. 传 headers：从 HTTP 请求头解析跨服务传播的上下文
+       支持 W3C traceparent 和 Jaeger uber-trace-id 两种格式
+       解析失败（空 headers、格式非法）返回 {}（空字典）
+
+    Args:
+        headers: 可选的 HTTP 请求头字典；不传则返回当前线程上下文
 
     Returns:
-        {"trace_id": ..., "span_id": ...}；未设置的字段为 None
+        包含 trace_id / span_id 的字典
     """
+    if headers is not None:
+        return _extract_from_headers(headers)
     return {
         "trace_id": get_trace_id(),
         "span_id": get_span_id(),
     }
 
 
-def inject_trace_context(context: dict) -> None:
-    """将外部传入的追踪上下文注入当前线程（用于接收跨服务请求时还原上下文）
+def _extract_from_headers(headers: dict) -> dict:
+    """从 HTTP 请求头解析追踪上下文（支持 W3C traceparent 和 Jaeger uber-trace-id）
+
+    大小写不敏感：traceparent / Traceparent / TRACEPARENT 均可。
+
+    Returns:
+        解析成功返回 {"trace_id": ..., "span_id": ...}，失败返回 {}
+    """
+    if not isinstance(headers, dict) or not headers:
+        return {}
+
+    # 大小写不敏感查找
+    headers_lower = {k.lower(): v for k, v in headers.items()}
+
+    # 优先 W3C traceparent
+    traceparent = headers_lower.get("traceparent")
+    if traceparent:
+        parsed = _parse_w3c_traceparent(traceparent)
+        if parsed:
+            return parsed
+
+    # 兼容 Jaeger uber-trace-id: {trace_id}:{span_id}:{parent_span_id}:{flags}
+    uber = headers_lower.get("uber-trace-id")
+    if uber:
+        parsed = _parse_jaeger_trace_id(uber)
+        if parsed:
+            return parsed
+
+    return {}
+
+
+def _parse_w3c_traceparent(traceparent: str) -> Optional[dict]:
+    """解析 W3C traceparent header
+
+    格式：version-trace_id-span_id-flags（用 "-" 分隔的 4 段）
+    - version: 2 位十六进制，本实现仅支持 "00"
+    - trace_id: 32 位十六进制（W3C 标准 128 位）或 16 位（64 位兼容）
+    - span_id: 16 位十六进制
+    - flags: 2 位十六进制
+
+    Returns:
+        {"trace_id": ..., "span_id": ...}；格式非法返回 None
+    """
+    if not isinstance(traceparent, str):
+        return None
+    parts = traceparent.split("-")
+    if len(parts) != 4:
+        return None
+    version, trace_id, span_id, flags = parts
+    if version != "00":
+        return None
+    # trace_id 必须是 16 或 32 位十六进制
+    if not _is_hex(trace_id) or len(trace_id) not in (16, 32):
+        return None
+    # span_id 必须是 16 位十六进制
+    if not _is_hex(span_id) or len(span_id) != 16:
+        return None
+    # flags 必须是 2 位十六进制
+    if not _is_hex(flags) or len(flags) != 2:
+        return None
+    return {"trace_id": trace_id, "span_id": span_id}
+
+
+def _parse_jaeger_trace_id(uber: str) -> Optional[dict]:
+    """解析 Jaeger uber-trace-id header
+
+    格式：{trace_id}:{span_id}:{parent_span_id}:{flags}（用 ":" 分隔的 4 段）
+
+    Returns:
+        {"trace_id": ..., "span_id": ...}；格式非法返回 None
+    """
+    if not isinstance(uber, str):
+        return None
+    parts = uber.split(":")
+    if len(parts) != 4:
+        return None
+    trace_id, span_id, _parent, _flags = parts
+    if not trace_id or not span_id:
+        return None
+    # trace_id 必须是 16 或 32 位十六进制
+    if not _is_hex(trace_id) or len(trace_id) not in (16, 32):
+        return None
+    # span_id 兼容 8 位（Jaeger 旧版）或 16 位
+    if not _is_hex(span_id) or len(span_id) not in (8, 16):
+        return None
+    return {"trace_id": trace_id, "span_id": span_id}
+
+
+def _is_hex(s: str) -> bool:
+    """判断字符串是否为非空十六进制"""
+    if not s:
+        return False
+    try:
+        int(s, 16)
+        return True
+    except ValueError:
+        return False
+
+
+def inject_trace_context(context: Optional[dict] = None) -> Optional[dict]:
+    """注入或序列化追踪上下文
+
+    两种模式：
+    1. 无参数：生成跨服务传播用的 HTTP headers dict（含 W3C traceparent）
+       若当前线程上下文不完整（trace_id 或 span_id 缺失）返回 {}（空字典）
+    2. 传 context：将 context 注入当前线程（用于接收跨服务请求时还原上下文）
+       缺失字段保持原值，返回 None
 
     Args:
-        context: 含 trace_id / span_id 的字典；缺失字段保持原值
+        context: 可选的含 trace_id / span_id 的字典
+
+    Returns:
+        无参数模式返回 headers dict；传参数模式返回 None
     """
-    if not isinstance(context, dict):
-        return
-    if "trace_id" in context:
-        set_trace_id(context.get("trace_id"))
-    if "span_id" in context:
-        set_span_id(context.get("span_id"))
+    if context is not None:
+        # 旧行为：注入到当前线程
+        if not isinstance(context, dict):
+            return None
+        if "trace_id" in context:
+            set_trace_id(context.get("trace_id"))
+        if "span_id" in context:
+            set_span_id(context.get("span_id"))
+        return None
+
+    # 新行为：生成 W3C traceparent headers
+    trace_id = get_trace_id()
+    span_id = get_span_id()
+    if not trace_id or not span_id:
+        return {}
+    return {"traceparent": f"00-{trace_id}-{span_id}-01"}
 
 def trace(service: str, operation: str):
     """追踪装饰器
@@ -380,6 +527,108 @@ def is_opentelemetry_available() -> bool:
         return True
     except ImportError:
         return False
+
+
+def diagnose_opentelemetry_config() -> dict:
+    """诊断 OpenTelemetry 配置状态
+
+    返回包含以下字段的 dict：
+    - opentelemetry_available: bool — opentelemetry 包是否已安装
+    - tracer_initialized: bool — 是否已存在已初始化的全局 tracer
+    - tracer_provider_set: bool — TracerProvider 是否已注册
+    - sdk_version: Optional[str] — opentelemetry-sdk 版本（未安装为 None）
+    - detection_context: dict — 当前 trace 上下文快照
+    - issues: list[str] — 发现的问题列表（空列表表示无问题）
+
+    边界显性化：任何异常都被捕获并记入 issues，绝不向上抛出。
+    """
+    issues: list = []
+    sdk_version = None
+    otel_available = False
+    tracer_initialized = False
+    provider_set = False
+
+    try:
+        import opentelemetry
+        otel_available = True
+        try:
+            import opentelemetry.sdk as otel_sdk
+            sdk_version = getattr(otel_sdk, "__version__", None)
+        except ImportError:
+            issues.append("opentelemetry-sdk 未安装（仅 API 可用，无导出能力）")
+
+        try:
+            from opentelemetry.trace import get_tracer_provider
+            provider = get_tracer_provider()
+            provider_set = provider is not None
+            # TracerProvider 类名包含 "Proxy" 通常表示未真正初始化 SDK
+            cls_name = type(provider).__name__
+            if "Proxy" in cls_name:
+                issues.append(f"TracerProvider 为默认 Proxy 实现 ({cls_name})，"
+                              "可能未调用 TracerProviderResourceManager 初始化")
+            else:
+                tracer_initialized = True
+        except Exception as exc:
+            issues.append(f"获取 TracerProvider 失败: {type(exc).__name__}: {exc}")
+    except ImportError:
+        issues.append("opentelemetry 包未安装")
+
+    return {
+        "opentelemetry_available": otel_available,
+        "tracer_initialized": tracer_initialized,
+        "tracer_provider_set": provider_set,
+        "sdk_version": sdk_version,
+        "detection_context": {
+            "trace_id": get_trace_id(),
+            "span_id": get_span_id(),
+        },
+        "issues": issues,
+    }
+
+
+def print_diagnosis_report() -> None:
+    """打印 OpenTelemetry 配置诊断报告到 stdout
+
+    用于排查追踪系统初始化问题。函数无返回值，所有输出直接 print。
+    """
+    diagnosis = diagnose_opentelemetry_config()
+    print("\n" + "=" * 60)
+    print("📊 OpenTelemetry 配置诊断报告")
+    print("=" * 60)
+    print(f"  opentelemetry_available: {diagnosis['opentelemetry_available']}")
+    print(f"  tracer_initialized     : {diagnosis['tracer_initialized']}")
+    print(f"  tracer_provider_set   : {diagnosis['tracer_provider_set']}")
+    print(f"  sdk_version            : {diagnosis['sdk_version']}")
+    ctx = diagnosis["detection_context"]
+    print(f"  当前 trace_id          : {ctx['trace_id']}")
+    print(f"  当前 span_id           : {ctx['span_id']}")
+    if diagnosis["issues"]:
+        print("\n  ⚠️ 发现问题:")
+        for issue in diagnosis["issues"]:
+            print(f"    - {issue}")
+    else:
+        print("\n  ✅ 未发现问题")
+    print("=" * 60 + "\n")
+
+
+def print_context_diagnosis() -> None:
+    """打印当前追踪上下文诊断信息到 stdout
+
+    用于排查上下文传播问题。函数无返回值。
+    """
+    print("\n" + "-" * 40)
+    print("🔍 当前追踪上下文")
+    print("-" * 40)
+    print(f"  trace_id: {get_trace_id()}")
+    print(f"  span_id : {get_span_id()}")
+    health = check_tracing_health()
+    print(f"  健康状态: {health['status']}")
+    print(f"  trace_id_set: {health['trace_id_set']}")
+    print(f"  span_id_set : {health['span_id_set']}")
+    loss_scenarios = detect_context_loss_scenarios()
+    if loss_scenarios:
+        print(f"  ⚠️ 上下文丢失场景: {loss_scenarios}")
+    print("-" * 40 + "\n")
 
 
 # ── Trace 存储（与 observability.subscriber 对齐的轻量实现） ───
