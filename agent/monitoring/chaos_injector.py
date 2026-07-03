@@ -122,6 +122,13 @@ class ChaosInjector:
 
         # 后台故障注入线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         self._chaos_trace_id = f"chaos-injector-{uuid.uuid4().hex[:16]}"
+
+        # 配置化线程清理超时（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import get_chaos_thread_join_timeout
+            self._thread_join_timeout = get_chaos_thread_join_timeout()
+        except Exception:
+            self._thread_join_timeout = 5
     
     def _check_probability(self, config: FaultConfig) -> bool:
         """检查是否应该触发故障（基于概率）"""
@@ -242,7 +249,7 @@ class ChaosInjector:
             # 停止之前的内存压力线程
             if self._memory_pressure_thread and self._memory_pressure_thread.is_alive():
                 self._memory_pressure_stop_event.set()
-                self._memory_pressure_thread.join(timeout=5)
+                self._memory_pressure_thread.join(timeout=self._thread_join_timeout)
             
             config = self._fault_configs[FaultType.MEMORY_PRESSURE]
             config.enabled = True
@@ -582,7 +589,7 @@ class ChaosInjector:
                 if fault_type == FaultType.MEMORY_PRESSURE:
                     self._memory_pressure_stop_event.set()
                     if self._memory_pressure_thread and self._memory_pressure_thread.is_alive():
-                        self._memory_pressure_thread.join(timeout=5)
+                        self._memory_pressure_thread.join(timeout=self._thread_join_timeout)
                     self._memory_hold_list.clear()
                     gc.collect()
             
@@ -597,7 +604,7 @@ class ChaosInjector:
             # 确保内存清理
             self._memory_pressure_stop_event.set()
             if self._memory_pressure_thread and self._memory_pressure_thread.is_alive():
-                self._memory_pressure_thread.join(timeout=5)
+                self._memory_pressure_thread.join(timeout=self._thread_join_timeout)
             self._memory_hold_list.clear()
             gc.collect()
         

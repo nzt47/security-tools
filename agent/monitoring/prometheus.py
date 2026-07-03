@@ -67,6 +67,13 @@ class PrometheusMetricsExporter:
         self.namespace = namespace
         self._error_handler = get_error_handler() if _ERROR_HANDLER_AVAILABLE else None
 
+        # 配置化重试次数（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import get_prometheus_max_retries
+            self._max_retries = get_prometheus_max_retries()
+        except Exception:
+            self._max_retries = 3
+
         self._exporter_circuit_breaker = None
         if _ERROR_HANDLER_AVAILABLE:
             self._exporter_circuit_breaker = CircuitBreaker(
@@ -240,7 +247,7 @@ class PrometheusMetricsExporter:
         if _ERROR_HANDLER_AVAILABLE and self._error_handler:
             try:
                 retry_policy = RetryPolicy(
-                    max_retries=3, initial_delay=1.0, max_delay=10.0, backoff_factor=2.0
+                    max_retries=self._max_retries, initial_delay=1.0, max_delay=10.0, backoff_factor=2.0
                 )
                 self._error_handler.execute_with_retry(
                     _start_server, retry_policy=retry_policy,
@@ -288,7 +295,7 @@ class PrometheusMetricsExporter:
         if not _ERROR_HANDLER_AVAILABLE or not self._error_handler:
             return func(*args, **kwargs)
         retry_pol = retry_policy or RetryPolicy(
-            max_retries=3, initial_delay=0.5, max_delay=30.0, backoff_factor=2.0
+            max_retries=self._max_retries, initial_delay=0.5, max_delay=30.0, backoff_factor=2.0
         )
         return self._error_handler.execute_with_retry(
             func, retry_policy=retry_pol,
@@ -331,8 +338,15 @@ def create_exporter_from_digital_life(dl, port: int = 8000) -> PrometheusMetrics
 class RetryablePrometheusOperation:
     """可重试的 Prometheus 操作封装器"""
 
-    def __init__(self, exporter: PrometheusMetricsExporter, max_retries: int = 3, initial_delay: float = 1.0):
+    def __init__(self, exporter: PrometheusMetricsExporter, max_retries: Optional[int] = None, initial_delay: float = 1.0):
         self.exporter = exporter
+        # 配置化重试次数（支持热加载，None 时从 Config 读取）
+        if max_retries is None:
+            try:
+                from agent.monitoring.observability_config import get_prometheus_max_retries
+                max_retries = get_prometheus_max_retries()
+            except Exception:
+                max_retries = 3
         self.max_retries = max_retries
         self.initial_delay = initial_delay
 
