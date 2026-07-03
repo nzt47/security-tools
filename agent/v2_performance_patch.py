@@ -10,6 +10,7 @@ import time
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 import threading
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +43,12 @@ class LazyInitializer:
         if not self._initialized:
             with self._lock:
                 if not self._initialized:
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "self._init_func.__name__", "msg": f"懒加载初始化: {self._init_func.__name__}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'v2_performance_patch', 'action': 'self._init_func.__name__', 'msg': f'懒加载初始化: {self._init_func.__name__}'}))
                     start_time = time.time()
                     self._instance = self._init_func(*self._args, **self._kwargs)
                     self._initialized = True
                     elapsed = time.time() - start_time
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "self._init_func.__name__", "msg": f"{self._init_func.__name__} 初始化完成，耗时: {elapsed:.3f}s"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'v2_performance_patch', 'action': 'self._init_func.__name__', 'msg': f'{self._init_func.__name__} 初始化完成，耗时: {elapsed:.3f}s'}))
         return self._instance
     
     def is_initialized(self):
@@ -77,7 +78,7 @@ class AsyncInitializer:
             init_func: 初始化函数
             *args, **kwargs: 初始化参数
         """
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "name", "msg": f"提交异步初始化任务: {name}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'v2_performance_patch', 'action': 'name', 'msg': f'提交异步初始化任务: {name}'}))
         future = self._executor.submit(init_func, *args, **kwargs)
         self._futures[name] = future
         return future
@@ -99,9 +100,9 @@ class AsyncInitializer:
                 result = future.result(timeout=timeout)
                 elapsed = time.time() - start_time
                 results[name] = result
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "name.elapsed", "msg": f"{name} 异步初始化完成，耗时: {elapsed:.3f}s"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'v2_performance_patch', 'action': 'name.elapsed', 'msg': f'{name} 异步初始化完成，耗时: {elapsed:.3f}s'}))
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "name", "msg": f"{name} 异步初始化失败: {e}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'v2_performance_patch', 'action': 'name', 'msg': f'{name} 异步初始化失败: {e}'}))
                 results[name] = None
         
         return results
@@ -141,7 +142,7 @@ def optimize_v2_initialization(V2Class):
         config = config or {}
         
         # 第一阶段：核心模块初始化（必须同步）
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "log", "msg": "V2 优化初始化 - 第一阶段：核心模块"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'log', 'msg': 'V2 优化初始化 - 第一阶段：核心模块'}))
         
         # 初始化基本配置
         self._running = False
@@ -152,7 +153,7 @@ def optimize_v2_initialization(V2Class):
         self._started_at = None
         
         # 第二阶段：并行初始化可选模块
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "log", "msg": "V2 优化初始化 - 第二阶段：并行初始化"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'log', 'msg': 'V2 优化初始化 - 第二阶段：并行初始化'}))
         
         # 使用懒加载器延迟初始化非核心模块
         self._lazy_modules = {}
@@ -179,8 +180,8 @@ def optimize_v2_initialization(V2Class):
         self._init_core_modules(config)
         
         elapsed = time.time() - start_time
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "elapsed", "msg": f"V2 优化初始化完成，核心模块耗时: {elapsed:.3f}s"}, ensure_ascii=False))
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "log", "msg": "非核心模块将在首次使用时懒加载"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'elapsed', 'msg': f'V2 优化初始化完成，核心模块耗时: {elapsed:.3f}s'}))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'log', 'msg': '非核心模块将在首次使用时懒加载'}))
     
     def _init_core_modules(self, config: dict):
         """初始化核心模块（同步）"""
@@ -189,13 +190,13 @@ def optimize_v2_initialization(V2Class):
         
         # 行为控制器（必须立即初始化）
         self._behavior: BehaviorController = BehaviorController()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "behaviorcontroller", "msg": "[ok] 本能（BehaviorController）已激活"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'behaviorcontroller', 'msg': '[ok] 本能（BehaviorController）已激活'}))
         
         # 权限系统（必须立即初始化）
         self._permission: PermissionSystem = PermissionSystem(
             backup_dir=config.get("backup_dir", "./.backups"),
         )
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "permissionsystem", "msg": "[ok] 道德（PermissionSystem）已激活"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'permissionsystem', 'msg': '[ok] 道德（PermissionSystem）已激活'}))
         
         # 状态初始化
         self._current_mode = BehaviorMode.NORMAL
@@ -244,7 +245,7 @@ def optimize_v2_initialization(V2Class):
             if hasattr(self, '_lazy_modules') and name in self._lazy_modules:
                 lazy_loader = self._lazy_modules[name]
                 if isinstance(lazy_loader, LazyInitializer):
-                    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "v2_performance_patch", "action": "name", "msg": f"懒加载模块: {name}"}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'v2_performance_patch', 'action': 'name', 'msg': f'懒加载模块: {name}'}))
                     return lazy_loader.get()
         
         return original_getattr(self, name)

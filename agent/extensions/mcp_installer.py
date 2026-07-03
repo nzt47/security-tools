@@ -24,6 +24,7 @@ from agent.extensions.base import (
 )
 from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class McpInstaller:
             try:
                 return self._network_config_mgr.get_mcp_services()
             except Exception as e:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "mcp", "msg": f"[MCP安装器] 获取 MCP 服务失败: {e}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'mcp_installer', 'action': 'mcp', 'msg': f'[MCP安装器] 获取 MCP 服务失败: {e}'}))
         return []
 
     def install_builtin_mcp(self, service_id: str) -> Tuple[bool, str]:
@@ -114,13 +115,13 @@ class McpInstaller:
             meta.installed_at = meta.created_at
             self._store.add(meta)
 
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "mcp.service_id", "msg": f"[MCP安装器] 已安装内置 MCP 服务: {service_id}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'mcp_installer', 'action': 'mcp.service_id', 'msg': f'[MCP安装器] 已安装内置 MCP 服务: {service_id}'}))
             return True, f"已安装 MCP 服务: {builtin['name']}"
 
         except ValueError as e:
             return False, f"安装失败: {e}"
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "log", "msg": f"[MCP安装器] 安装失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'mcp_installer', 'action': 'log', 'msg': f'[MCP安装器] 安装失败: {e}'}))
             return False, f"安装失败: {e}"
 
     def install_mcp_service(
@@ -174,13 +175,13 @@ class McpInstaller:
             meta.installed_at = meta.created_at
             self._store.add(meta)
 
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "mcp.name", "msg": f"[MCP安装器] 已安装 MCP 服务: {name}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'mcp_installer', 'action': 'mcp.name', 'msg': f'[MCP安装器] 已安装 MCP 服务: {name}'}))
             return True, f"已添加 MCP 服务: {name}"
 
         except ValueError as e:
             return False, f"添加失败: {e}"
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "log", "msg": f"[MCP安装器] 添加失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'mcp_installer', 'action': 'log', 'msg': f'[MCP安装器] 添加失败: {e}'}))
             return False, f"添加失败: {e}"
 
     def install_mcp_from_source(self, source: str) -> Tuple[bool, str]:
@@ -263,11 +264,11 @@ class McpInstaller:
             success = self._network_config_mgr.delete_mcp_service(service_id)
             if success:
                 self._store.remove(ExtensionType.MCP, service_id)
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "mcp.service_id", "msg": f"[MCP安装器] 已卸载 MCP 服务: {service_id}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'mcp_installer', 'action': 'mcp.service_id', 'msg': f'[MCP安装器] 已卸载 MCP 服务: {service_id}'}))
                 return True, f"已卸载 MCP 服务"
             return False, f"服务不存在: {service_id}"
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "mcp_installer", "action": "log", "msg": f"[MCP安装器] 卸载失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'mcp_installer', 'action': 'log', 'msg': f'[MCP安装器] 卸载失败: {e}'}))
             return False, f"卸载失败: {e}"
 
     def toggle_mcp(self, service_id: str, enabled: bool = None) -> Tuple[bool, str, bool]:

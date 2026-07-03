@@ -25,6 +25,7 @@ from agent.monitoring.tracing import get_trace_id, TraceContext
 from agent.monitoring.metrics import get_metrics_collector
 from agent.health.assessor import health_assessor
 from agent.server_routes.tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _load_mock_data(filename):
             with open(data_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "mock.filename", "msg": f"[Dashboard] 加载 mock 数据失败 {filename}: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'routes_dashboard', 'action': 'mock.filename', 'msg': f'[Dashboard] 加载 mock 数据失败 {filename}: {e}'}))
     return None
 
 
@@ -100,13 +101,7 @@ def _get_quality_metrics(start_time, end_time):
         
         duration_ms = (time.time() - start_ms) * 1000
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "get_quality_metrics",
-            "duration_ms": round(duration_ms, 2),
-            "status": "success"
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': 'get_quality_metrics', 'status': 'success'}))
         
         return {
             "schema_validation": schema_stats,
@@ -120,38 +115,19 @@ def _get_quality_metrics(start_time, end_time):
         }
         
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "get_quality_metrics",
-            "duration_ms": round((time.time() - start_ms) * 1000, 2),
-            "error": str(e)
-        }))
+        logger.error(log_dict({'module_name': 'dashboard', 'action': 'get_quality_metrics', 'error': str(e)}))
         raise
 
 
 def _get_schema_validation_stats(start_time, end_time):
     """获取 Schema 校验统计"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_schema_validation_stats",
-        "start_time": start_time,
-        "end_time": end_time,
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_schema_validation_stats', 'start_time': start_time, 'end_time': end_time, 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("quality.json")
     if mock_data and "schema_trend" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_schema_validation_stats",
-            "status": "using_mock_data",
-            "total_validations": mock_data["total_validations"]
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_schema_validation_stats', 'status': 'using_mock_data', 'total_validations': mock_data['total_validations']}))
         return {
             "total_validations": mock_data["total_validations"],
             "successful_validations": mock_data["successful_validations"],
@@ -193,14 +169,7 @@ def _get_schema_validation_stats(start_time, end_time):
         "trend": trend_data
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_schema_validation_stats",
-        "status": "completed",
-        "pass_rate": result["pass_rate"],
-        "total_validations": result["total_validations"]
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_schema_validation_stats', 'status': 'completed', 'pass_rate': result['pass_rate'], 'total_validations': result['total_validations']}))
     
     return result
 
@@ -208,22 +177,12 @@ def _get_schema_validation_stats(start_time, end_time):
 def _get_critic_stats(start_time, end_time):
     """获取 Critic 评分统计"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_critic_stats",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_critic_stats', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("quality.json")
     if mock_data and "critic_trend" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_critic_stats",
-            "status": "using_mock_data"
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_critic_stats', 'status': 'using_mock_data'}))
         return {
             "total_evaluations": mock_data["total_evaluations"],
             "average_score": round(mock_data["avg_critic_score"], 2),
@@ -275,14 +234,7 @@ def _get_critic_stats(start_time, end_time):
         "trend": trend_data
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_critic_stats",
-        "status": "completed",
-        "average_score": result["average_score"],
-        "total_evaluations": result["total_evaluations"]
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_critic_stats', 'status': 'completed', 'average_score': result['average_score'], 'total_evaluations': result['total_evaluations']}))
     
     return result
 
@@ -290,27 +242,14 @@ def _get_critic_stats(start_time, end_time):
 def _get_failure_distribution(start_time, end_time):
     """获取失败模式分布"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_failure_distribution",
-        "start_time": start_time,
-        "end_time": end_time,
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_failure_distribution', 'start_time': start_time, 'end_time': end_time, 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("quality.json")
     if mock_data and "failure_distribution" in mock_data:
         dist = mock_data["failure_distribution"]
         total_failures = sum(dist.values())
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_failure_distribution",
-            "status": "using_mock_data",
-            "total_failures": total_failures
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_failure_distribution', 'status': 'using_mock_data', 'total_failures': total_failures}))
         
         top_errors = [
             {"type": "Schema Validation Failure", "count": dist.get("validation_failure", 15), "percentage": round(dist.get("validation_failure", 15) / total_failures * 100, 1)},
@@ -333,21 +272,9 @@ def _get_failure_distribution(start_time, end_time):
         from agent.cognitive.failure_analysis import FailureAnalyzer
         analyzer = FailureAnalyzer()
         distribution = analyzer.get_failure_distribution(start_time, end_time)
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_failure_distribution",
-            "status": "using_analyzer",
-            "distribution_keys": list(distribution.keys())
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_failure_distribution', 'status': 'using_analyzer', 'distribution_keys': list(distribution.keys())}))
     except Exception as e:
-        logger.warning(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_failure_distribution",
-            "status": "fallback_to_mock",
-            "error": str(e)
-        }))
+        logger.warning(log_dict({'module_name': 'dashboard', 'action': '_get_failure_distribution', 'status': 'fallback_to_mock', 'error': str(e)}))
         # 降级到模拟数据
         distribution = {
             "api_fabrication": 12,
@@ -377,13 +304,7 @@ def _get_failure_distribution(start_time, end_time):
         "top_errors": top_errors
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_failure_distribution",
-        "status": "completed",
-        "total_failures": total_failures
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_failure_distribution', 'status': 'completed', 'total_failures': total_failures}))
     
     return result
 
@@ -391,14 +312,7 @@ def _get_failure_distribution(start_time, end_time):
 def _get_trace_list(limit=20, trace_id_filter=None):
     """获取追踪列表"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_trace_list",
-        "limit": limit,
-        "trace_id_filter": trace_id_filter,
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_trace_list', 'limit': limit, 'trace_id_filter': trace_id_filter, 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_traces = _load_mock_data("traces.json")
@@ -407,13 +321,7 @@ def _get_trace_list(limit=20, trace_id_filter=None):
         if trace_id_filter:
             result = [t for t in result if trace_id_filter.lower() in (t.get("trace_id") or "").lower()]
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_trace_list",
-            "status": "using_mock_data",
-            "result_count": len(result)
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_trace_list', 'status': 'using_mock_data', 'result_count': len(result)}))
         return result
     
     # 从追踪模块获取数据
@@ -424,23 +332,11 @@ def _get_trace_list(limit=20, trace_id_filter=None):
         if trace_id_filter:
             traces = [t for t in traces if trace_id_filter in t.get("trace_id", "")]
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_trace_list",
-            "status": "using_tracing_module",
-            "result_count": len(traces)
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_trace_list', 'status': 'using_tracing_module', 'result_count': len(traces)}))
         
         return traces
     except Exception as e:
-        logger.warning(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_trace_list",
-            "status": "fallback_to_mock",
-            "error": str(e)
-        }))
+        logger.warning(log_dict({'module_name': 'dashboard', 'action': '_get_trace_list', 'status': 'fallback_to_mock', 'error': str(e)}))
         # 返回模拟数据
         return _generate_mock_traces(limit)
 
@@ -481,7 +377,7 @@ def _get_trace_detail(trace_id):
         if detail:
             return detail
     except Exception as e:
-        logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "log", "msg": f"获取追踪详情失败: {e}"}, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'routes_dashboard', 'action': 'log', 'msg': f'获取追踪详情失败: {e}'}))
     
     # 返回模拟数据
     return _generate_mock_trace_detail(trace_id)
@@ -563,13 +459,7 @@ def _get_memory_stats():
         
         duration_ms = (time.time() - start_ms) * 1000
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "get_memory_stats",
-            "duration_ms": round(duration_ms, 2),
-            "status": "success"
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': 'get_memory_stats', 'status': 'success'}))
         
         return {
             "long_term": long_term_stats,
@@ -581,36 +471,19 @@ def _get_memory_stats():
         }
         
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "get_memory_stats",
-            "duration_ms": round((time.time() - start_ms) * 1000, 2),
-            "error": str(e)
-        }))
+        logger.error(log_dict({'module_name': 'dashboard', 'action': 'get_memory_stats', 'error': str(e)}))
         raise
 
 
 def _get_long_term_memory_stats():
     """获取长期记忆统计"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_long_term_memory_stats",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_long_term_memory_stats', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("memory.json")
     if mock_data and "long_term_trend" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_long_term_memory_stats",
-            "status": "using_mock_data",
-            "total_count": mock_data["long_term_count"]
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_long_term_memory_stats', 'status': 'using_mock_data', 'total_count': mock_data['long_term_count']}))
         return {
             "total_count": mock_data["long_term_count"],
             "total_size_mb": mock_data["total_size_mb"],
@@ -639,13 +512,7 @@ def _get_long_term_memory_stats():
         "last_updated": time.time()
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_long_term_memory_stats",
-        "status": "completed",
-        "total_count": result["total_count"]
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_long_term_memory_stats', 'status': 'completed', 'total_count': result['total_count']}))
     
     return result
 
@@ -653,23 +520,12 @@ def _get_long_term_memory_stats():
 def _get_short_term_memory_stats():
     """获取临时记忆统计"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_short_term_memory_stats",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_short_term_memory_stats', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("memory.json")
     if mock_data and "short_term_trend" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_short_term_memory_stats",
-            "status": "using_mock_data",
-            "total_count": mock_data["short_term_count"]
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_short_term_memory_stats', 'status': 'using_mock_data', 'total_count': mock_data['short_term_count']}))
         return {
             "total_count": mock_data["short_term_count"],
             "active_sessions": 10,
@@ -697,13 +553,7 @@ def _get_short_term_memory_stats():
         "last_updated": time.time()
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_short_term_memory_stats",
-        "status": "completed",
-        "total_count": result["total_count"]
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_short_term_memory_stats', 'status': 'completed', 'total_count': result['total_count']}))
     
     return result
 
@@ -711,23 +561,12 @@ def _get_short_term_memory_stats():
 def _get_hit_rate_stats():
     """获取命中率统计"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_hit_rate_stats",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_hit_rate_stats', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("memory.json")
     if mock_data and "hit_rate_trend" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_hit_rate_stats",
-            "status": "using_mock_data",
-            "overall_hit_rate": mock_data["overall_hit_rate"]
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_hit_rate_stats', 'status': 'using_mock_data', 'overall_hit_rate': mock_data['overall_hit_rate']}))
         return {
             "overall_hit_rate": mock_data["overall_hit_rate"],
             "long_term_hit_rate": 68.2,
@@ -758,13 +597,7 @@ def _get_hit_rate_stats():
         "trend": trend_data
     }
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_hit_rate_stats",
-        "status": "completed",
-        "overall_hit_rate": result["overall_hit_rate"]
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_hit_rate_stats', 'status': 'completed', 'overall_hit_rate': result['overall_hit_rate']}))
     
     return result
 
@@ -772,22 +605,12 @@ def _get_hit_rate_stats():
 def _get_memory_category_distribution():
     """获取记忆分类分布"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_memory_category_distribution",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_memory_category_distribution', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("memory.json")
     if mock_data and "category_distribution" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_memory_category_distribution",
-            "status": "using_mock_data"
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_memory_category_distribution', 'status': 'using_mock_data'}))
         return mock_data["category_distribution"]
     
     # 默认分类分布
@@ -799,13 +622,7 @@ def _get_memory_category_distribution():
         {"name": "其他", "count": 150, "percentage": 6}
     ]
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_memory_category_distribution",
-        "status": "completed",
-        "category_count": len(categories)
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_memory_category_distribution', 'status': 'completed', 'category_count': len(categories)}))
     
     return categories
 
@@ -813,23 +630,12 @@ def _get_memory_category_distribution():
 def _get_recent_memory_access():
     """获取最近访问记录"""
     trace_id = get_trace_id()
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_recent_memory_access",
-        "status": "started"
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_recent_memory_access', 'status': 'started'}))
     
     # 尝试加载 mock 数据
     mock_data = _load_mock_data("memory.json")
     if mock_data and "recent_access" in mock_data:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "dashboard",
-            "action": "_get_recent_memory_access",
-            "status": "using_mock_data",
-            "record_count": len(mock_data["recent_access"])
-        }))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_recent_memory_access', 'status': 'using_mock_data', 'record_count': len(mock_data['recent_access'])}))
         return mock_data["recent_access"][:10]
     
     # 生成模拟数据
@@ -849,13 +655,7 @@ def _get_recent_memory_access():
             "duration_ms": 15 + (i % 3) * 10
         })
     
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "dashboard",
-        "action": "_get_recent_memory_access",
-        "status": "completed",
-        "record_count": len(records)
-    }))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': '_get_recent_memory_access', 'status': 'completed', 'record_count': len(records)}))
     
     return records
 
@@ -1107,4 +907,4 @@ def register_routes(app, state):
         
         return jsonify(result)
     
-    logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "routes_dashboard", "action": "log", "msg": "[Routes] 仪表盘端点已注册"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'routes_dashboard', 'action': 'log', 'msg': '[Routes] 仪表盘端点已注册'}))

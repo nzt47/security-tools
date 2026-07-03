@@ -218,3 +218,104 @@ def register_routes(app, state):
             return _err(e)
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  工作流 → 技能 转换
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/workflow-learning/workflows/<wf_id>/convert-to-skill",
+               methods=["POST"])
+    @trace_route("WorkflowLearning")
+    @require_token
+    @log_request()
+    def api_wf_convert_to_skill(wf_id: str):
+        """把指定工作流抽象为 Skill 并注册到 skills_mgmt
+
+        Body: {force?: bool}
+
+        Returns:
+            {ok, workflow_id, skill_id, skill_name, version, action}
+            错误码:
+                - WORKFLOW_NOT_FOUND (404)
+                - QUALITY_GATE_FAILED (400)
+        """
+        try:
+            data = request.get_json() or {}
+            force = bool(data.get("force", False))
+            result = _svc().convert_to_skill(wf_id, force=force)
+            return jsonify({"ok": True, **result})
+        except WorkflowNotFoundError as e:
+            return _err(e, 404)
+        except WorkflowLearningError as e:
+            return _err(e)
+        except ValueError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": "QUALITY_GATE_FAILED",
+            }), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/workflow-learning/convertible", methods=["GET"])
+    @trace_route("WorkflowLearning")
+    @log_request(show_response=False)
+    def api_wf_convertible():
+        """列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）"""
+        try:
+            candidates = _svc().list_convertible_workflows()
+            return jsonify({"ok": True, "candidates": candidates,
+                            "total": len(candidates)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/workflow-learning/convert-external-skill", methods=["POST"])
+    @trace_route("WorkflowLearning")
+    @require_token
+    @log_request()
+    def api_wf_convert_external():
+        """把外部 agent 的技能描述翻译为云枢 SKILL 并注册
+
+        Body: {
+            external_data: {name, description, steps/prompt, source_format?},
+            llm_enabled?: bool,
+            target_id?: str
+        }
+
+        Returns:
+            {ok, skill_id, skill_name, source_format, action}
+        """
+        try:
+            data = request.get_json() or {}
+            external_data = data.get("external_data") or {}
+            target_id = str(data.get("target_id", "") or "")
+            llm_enabled = bool(data.get("llm_enabled", False))
+
+            # 边界显性化
+            if not external_data:
+                return jsonify({
+                    "ok": False,
+                    "error": "external_data 不能为空",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            llm_client = None
+            if llm_enabled:
+                try:
+                    from agent.state_manager import get_llm_client
+                    llm_client = get_llm_client()
+                except Exception as e:
+                    logger.warning("LLM client 不可用，降级规则转换: %s", e)
+
+            result = _svc().convert_external_skill(
+                external_data, llm_client=llm_client, target_id=target_id,
+            )
+            return jsonify({"ok": True, **result})
+        except ValueError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": "VALIDATION_ERROR",
+            }), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500

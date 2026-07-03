@@ -20,6 +20,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Callable
 from collections import defaultdict
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -336,7 +337,7 @@ class OptimizedLogStorage:
         # 启动批量写入器
         self._batch_writer.start()
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "optimized_storage", "action": "log", "msg": "[OptimizedLogStorage] 优化存储初始化完成"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'optimized_storage', 'action': 'log', 'msg': '[OptimizedLogStorage] 优化存储初始化完成'}))
     
     def _bulk_write_to_db(self, records: List[dict]):
         """批量写入数据库"""

@@ -14,6 +14,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class SearchAggregator:
             "total_search_calls": 0,
             "total_failures": 0,
         }
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.init.success", "engine_count": len(self._source_weights)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.init.success', 'engine_count': len(self._source_weights)}))
 
     # ── 公共接口 ────────────────────────────────────────────────────
 
@@ -128,7 +129,7 @@ class SearchAggregator:
         if not engines:
             return {"ok": False, "error": "没有可用的搜索引擎"}
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.start", "query": query[:60], "engines": str(engines), "num_results": num_results}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.search.start', 'query': query[:60], 'engines': str(engines), 'num_results': num_results}))
 
         # 并发调用各引擎
         aggregated = []       # 所有结果
@@ -154,28 +155,28 @@ class SearchAggregator:
                             aggregated.extend(engine_result["results"])
                             count = len(engine_result["results"])
                             engine_results[eng] = count
-                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.results", "engine": eng, "count": count}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.results', 'engine': eng, 'count': count}))
                         elif engine_result.get("error"):
                             engine_errors[eng] = engine_result["error"]
                             engine_results[eng] = 0
-                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.failed", "engine": eng, "error": engine_result["error"]}, ensure_ascii=False))
+                            logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.failed', 'engine': eng, 'error': engine_result['error']}))
                         else:
                             engine_results[eng] = 0
-                            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.empty", "engine": eng}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.empty', 'engine': eng}))
                     except Exception as e:
                         engine_errors[eng] = str(e)
                         engine_results[eng] = 0
-                        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.exception", "engine": eng, "error": str(e)}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.exception', 'engine': eng, 'error': str(e)}))
             except TimeoutError:
                 # 超时：取消所有未完成的 future，记录超时错误
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.timeout", "timeout_sec": timeout}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.search.timeout', 'timeout_sec': timeout}))
                 for future, eng in future_to_engine.items():
                     if not future.done():
                         future.cancel()
                         if eng not in engine_results:
                             engine_errors[eng] = f"超时 (>{timeout}s)"
                             engine_results[eng] = 0
-                            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.timeout", "engine": eng}, ensure_ascii=False))
+                            logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.timeout', 'engine': eng}))
 
         # 去重
         deduped = self._deduplicate(aggregated)
@@ -197,7 +198,7 @@ class SearchAggregator:
             self._stats["total_search_calls"] += len(engines)
             self._stats["total_failures"] += len(engine_errors)
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.search.complete", "engines_count": len(engines), "aggregated_count": len(aggregated), "deduped_count": len(deduped), "final_count": len(top_results), "elapsed_sec": round(elapsed, 2)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.search.complete', 'engines_count': len(engines), 'aggregated_count': len(aggregated), 'deduped_count': len(deduped), 'final_count': len(top_results), 'elapsed_sec': round(elapsed, 2)}))
 
         return {
             "ok": True if top_results else False,
@@ -240,7 +241,7 @@ class SearchAggregator:
                 if len(selected) >= 3:
                     break
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.select_engines.failed", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.select_engines.failed', 'error': str(e)}))
             selected = ["duckduckgo", "sogou", "so360"][:3]
         if not selected:
             # 最后的回退
@@ -264,7 +265,7 @@ class SearchAggregator:
             )
             return result
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "search_aggregator", "action": "search_aggregator.engine.search_exception", "engine": engine, "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'search_aggregator', 'action': 'search_aggregator.engine.search_exception', 'engine': engine, 'error': str(e)}))
             return {"ok": False, "error": str(e), "engine": engine, "results": []}
 
     def _deduplicate(self, results: List[Dict]) -> List[Dict]:
