@@ -18,8 +18,6 @@ import logging
 from flask import request, g, has_request_context
 
 from agent.monitoring.tracing import (
-    _init_opentelemetry,
-    get_tracer,
     extract_trace_context,
     inject_trace_context,
     set_trace_id,
@@ -28,12 +26,46 @@ from agent.monitoring.tracing import (
     get_span_id,
     capture_context,
     restore_context,
-    _OPENTELEMETRY_AVAILABLE,
-    SpanKind,
-    StatusCode,
-    record_request_metrics,
-    get_logger_with_context
+    init_observability,
+    is_opentelemetry_available,
 )
+
+# 条件导入 OpenTelemetry 符号（不可用时定义 stub 以保证降级路径可运行）
+try:
+    from opentelemetry.trace import get_tracer, SpanKind, StatusCode
+    _OTEL_AVAILABLE = True
+except ImportError:
+    _OTEL_AVAILABLE = False
+
+    class _SpanKindStub:
+        SERVER = "server"
+        CLIENT = "client"
+        INTERNAL = "internal"
+
+    class _StatusCodeStub:
+        OK = "ok"
+        ERROR = "error"
+
+    def get_tracer(name=None, **kwargs):
+        return None
+
+    SpanKind = _SpanKindStub
+    StatusCode = _StatusCodeStub
+
+
+def record_request_metrics(method, path, status_code, duration_ms):
+    """记录请求指标（stub：tracing.py 未提供此函数时的降级实现）"""
+    logger.debug(
+        '{"trace_id": "%s", "module_name": "tracing_middleware", "action": "record_metrics", '
+        '"method": "%s", "path": "%s", "status_code": %d, "duration_ms": %.2f}',
+        get_trace_id(), method, path, status_code, duration_ms
+    )
+
+
+def get_logger_with_context(name):
+    """获取带追踪上下文的 logger（降级实现：返回标准 logger）"""
+    return logging.getLogger(name)
+
 
 logger = get_logger_with_context(__name__)
 
@@ -44,8 +76,8 @@ def _get_tracer():
     """获取 Tracer 实例（延迟初始化）"""
     global _tracer
     if _tracer is None:
-        _init_opentelemetry()
-        if _OPENTELEMETRY_AVAILABLE:
+        init_observability()
+        if is_opentelemetry_available():
             _tracer = get_tracer("yunshu-flask")
     return _tracer
 
@@ -284,7 +316,7 @@ def before_request_handler():
     在每个请求处理前设置追踪上下文
     """
     # 确保 OpenTelemetry 已初始化
-    _init_opentelemetry()
+    init_observability()
     
     # 从请求头提取追踪上下文
     headers = dict(request.headers)

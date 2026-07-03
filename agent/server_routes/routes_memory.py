@@ -7,6 +7,7 @@ import uuid
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -416,13 +417,13 @@ def register_routes(app, state):
                 window_sensor.save_config(config)
                 if not window_sensor.is_running:
                     window_sensor.start()
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_memory", "action": "log", "msg": "用户已同意窗口监控"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'routes_memory', 'action': 'log', 'msg': '用户已同意窗口监控'}))
             else:
                 config["enabled"] = False
                 window_sensor.save_config(config)
                 if window_sensor.is_running:
                     window_sensor.stop()
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "routes_memory", "action": "log", "msg": "用户已拒绝窗口监控"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'routes_memory', 'action': 'log', 'msg': '用户已拒绝窗口监控'}))
             return jsonify({"ok": True, "consent": consent, "enabled": consent})
 
         return jsonify({"ok": False, "error": "窗口传感器未初始化"})

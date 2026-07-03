@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from agent.memory.base import MemoryInterface, MemoryResult, MemoryCapability
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ try:
     _BUSINESS_METRICS_AVAILABLE = True
 except ImportError:
     _BUSINESS_METRICS_AVAILABLE = False
-    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "long_term_memory", "action": "business_metrics", "msg": "[LongTermMemory] business_metrics 模块未加载，业务指标埋点禁用"}, ensure_ascii=False))
+    logger.debug(log_dict({'module_name': 'long_term_memory', 'action': 'business_metrics', 'msg': '[LongTermMemory] business_metrics 模块未加载，业务指标埋点禁用'}))
 
 
 @dataclass
@@ -217,7 +218,7 @@ class LongTermMemory:
             True 表示保存成功
         """
         if not key:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "long_term_memory", "action": "save.key", "msg": "[LongTermMemory] save 失败: key 为空"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'save.key', 'msg': '[LongTermMemory] save 失败: key 为空'}))
             return False
 
         # 序列化内容

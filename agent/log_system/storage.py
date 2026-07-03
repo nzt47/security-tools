@@ -22,6 +22,7 @@ from .models import (
     Insight, ActionItem, KnowledgeFinding,
     LogQuery, LogStats,
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -565,4 +566,4 @@ class LogStorage:
         """压缩数据库"""
         with self._cursor() as c:
             c.execute("VACUUM")
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "storage", "action": "log", "msg": "[LogSystem] 数据库压缩完成"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'storage', 'action': 'log', 'msg': '[LogSystem] 数据库压缩完成'}))

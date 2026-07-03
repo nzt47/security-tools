@@ -386,6 +386,44 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="scheduler.max_heartbeat_history 必须在 144-14400 之间",
         description="心跳历史保留条数，用于 task_scheduler.py 的 MAX_HEARTBEAT_HISTORY",
     ),
+
+    # ── 14. LLM 监控（llm_monitor） ──
+    # 环形缓冲区最大记录数
+    ValidationRule(
+        path="llm_monitor.max_records",
+        validator=_range_validator(100, 5000),
+        default=500,
+        error_message="llm_monitor.max_records 必须在 100-5000 之间",
+        description="LLM 交互记录环形缓冲区大小，用于 llm_monitor.py 的 MAX_RECORDS",
+    ),
+
+    # ── 15. Loki 日志推送（loki） ──
+    # 推送日志到 Loki 的超时（秒）
+    ValidationRule(
+        path="loki.push_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="loki.push_timeout_sec 必须在 1-60 秒之间",
+        description="Loki push API 超时，用于 monitoring/loki.py 的 _session.post",
+    ),
+    # 查询 Loki 的超时（秒）
+    ValidationRule(
+        path="loki.query_timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="loki.query_timeout_sec 必须在 1-120 秒之间",
+        description="Loki query_range/labels API 超时，用于 monitoring/loki.py 的 _session.get",
+    ),
+
+    # ── 16. 告警通知（alert） ──
+    # 告警通知超时（秒）
+    ValidationRule(
+        path="alert.timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="alert.timeout_sec 必须在 1-120 秒之间",
+        description="告警通知超时，用于 monitoring/alert_notifier.py 的 SMTP/Webhook 请求",
+    ),
 ]
 
 
@@ -1205,6 +1243,60 @@ def get_scheduler_max_heartbeat_history() -> int:
         return int(get_observability_config().get("scheduler.max_heartbeat_history", default=1440))
     except Exception:
         return 1440
+
+
+# ── LLM 监控便捷函数 ──
+
+def get_llm_monitor_max_records() -> int:
+    """读取 LLM 交互记录环形缓冲区大小（便捷函数，支持热加载）
+
+    Returns:
+        最大记录数，默认 500
+    """
+    try:
+        return int(get_observability_config().get("llm_monitor.max_records", default=500))
+    except Exception:
+        return 500
+
+
+# ── Loki 日志推送便捷函数 ──
+
+def get_loki_push_timeout() -> int:
+    """读取 Loki push API 超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("loki.push_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_loki_query_timeout() -> int:
+    """读取 Loki query API 超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("loki.query_timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+# ── 告警通知便捷函数 ──
+
+def get_alert_timeout() -> int:
+    """读取告警通知超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("alert.timeout_sec", default=30))
+    except Exception:
+        return 30
 
 
 def reset_observability_config() -> None:

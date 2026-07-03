@@ -1,23 +1,26 @@
 {
-  "trace_id": "8169858d17424869",
+  "trace_id": "958b701e125648bb",
   "module_name": "hardcoded_boundary_scanner",
   "action": "scan.complete",
-  "duration_ms": 1219.58,
+  "duration_ms": 1712.55,
   "target": "agent/",
-  "files_scanned": 309,
-  "total_findings": 122,
-  "high_risk": 99,
+  "files_scanned": 310,
+  "total_findings": 118,
+  "high_risk": 94,
   "medium_risk": 0,
-  "low_risk": 23,
+  "low_risk": 24,
   "category_breakdown": {
     "retry": 16,
-    "timeout": 70,
+    "timeout": 66,
     "capacity": 36
   },
   "configured_modules": [
     "caching/multi_level_cache.py",
     "cognitive/reflection.py",
     "error_handler.py",
+    "llm_monitor.py",
+    "monitoring/alert_notifier.py",
+    "monitoring/loki.py",
     "monitoring/observability_config.py",
     "monitoring/tracing_cache.py",
     "task_scheduler.py",
@@ -74,19 +77,31 @@
     },
     {
       "file": "graceful_degrade.py",
-      "line": 93,
+      "line": 56,
       "col": 4,
       "category": "retry",
       "name": "max_retries",
       "value": 3.0,
       "risk": "high",
-      "context": "default_arg",
-      "pattern": "def __init__(..., max_retries=3.0, ...)",
+      "context": "assign",
+      "pattern": "max_retries: int = 3",
       "configured": false
     },
     {
       "file": "graceful_degrade.py",
-      "line": 397,
+      "line": 57,
+      "col": 4,
+      "category": "timeout",
+      "name": "timeout_seconds",
+      "value": 30.0,
+      "risk": "high",
+      "context": "assign",
+      "pattern": "timeout_seconds: float = 30.0",
+      "configured": false
+    },
+    {
+      "file": "graceful_degrade.py",
+      "line": 694,
       "col": 0,
       "category": "retry",
       "name": "max_retries",
@@ -127,10 +142,10 @@
       "category": "capacity",
       "name": "MAX_RECORDS",
       "value": 500.0,
-      "risk": "high",
+      "risk": "low",
       "context": "assign",
       "pattern": "MAX_RECORDS = 500",
-      "configured": false
+      "configured": true
     },
     {
       "file": "llm_response_cache.py",
@@ -178,6 +193,18 @@
       "risk": "high",
       "context": "default_arg",
       "pattern": "def __init__(..., max_size=10.0, ...)",
+      "configured": false
+    },
+    {
+      "file": "rate_limiter.py",
+      "line": 272,
+      "col": 20,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 5.0,
+      "risk": "high",
+      "context": "assign",
+      "pattern": "timeout = 5.0",
       "configured": false
     },
     {
@@ -314,7 +341,7 @@
     },
     {
       "file": "v2_performance_patch.py",
-      "line": 65,
+      "line": 66,
       "col": 4,
       "category": "capacity",
       "name": "max_workers",
@@ -721,42 +748,6 @@
       "configured": false
     },
     {
-      "file": "monitoring/alert_notifier.py",
-      "line": 225,
-      "col": 17,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 30.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "smtplib.SMTP(timeout=30.0)",
-      "configured": false
-    },
-    {
-      "file": "monitoring/alert_notifier.py",
-      "line": 346,
-      "col": 23,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 30.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "requests.post(timeout=30.0)",
-      "configured": false
-    },
-    {
-      "file": "monitoring/alert_notifier.py",
-      "line": 428,
-      "col": 27,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 30.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "requests.request(timeout=30.0)",
-      "configured": false
-    },
-    {
       "file": "monitoring/chaos_injector.py",
       "line": 245,
       "col": 16,
@@ -862,42 +853,6 @@
       "risk": "high",
       "context": "call_arg",
       "pattern": "self._async_worker.join(timeout=5.0)",
-      "configured": false
-    },
-    {
-      "file": "monitoring/loki.py",
-      "line": 94,
-      "col": 23,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 10.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "self._session.post(timeout=10.0)",
-      "configured": false
-    },
-    {
-      "file": "monitoring/loki.py",
-      "line": 150,
-      "col": 27,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 30.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "self._session.get(timeout=30.0)",
-      "configured": false
-    },
-    {
-      "file": "monitoring/loki.py",
-      "line": 265,
-      "col": 27,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 10.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "self._session.get(timeout=10.0)",
       "configured": false
     },
     {
@@ -1154,7 +1109,7 @@
     },
     {
       "file": "monitoring/self_healer.py",
-      "line": 404,
+      "line": 357,
       "col": 33,
       "category": "timeout",
       "name": "timeout",
@@ -1166,7 +1121,7 @@
     },
     {
       "file": "monitoring/self_healer.py",
-      "line": 658,
+      "line": 552,
       "col": 20,
       "category": "timeout",
       "name": "timeout",
@@ -1178,7 +1133,7 @@
     },
     {
       "file": "monitoring/self_healer.py",
-      "line": 725,
+      "line": 613,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1190,7 +1145,7 @@
     },
     {
       "file": "monitoring/self_healer.py",
-      "line": 886,
+      "line": 741,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -1370,7 +1325,7 @@
     },
     {
       "file": "utils/perf_monitor.py",
-      "line": 538,
+      "line": 561,
       "col": 8,
       "category": "timeout",
       "name": "timeout",
@@ -1382,7 +1337,7 @@
     },
     {
       "file": "utils/perf_monitor.py",
-      "line": 547,
+      "line": 570,
       "col": 8,
       "category": "timeout",
       "name": "timeout",

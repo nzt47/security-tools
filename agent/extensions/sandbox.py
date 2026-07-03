@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class PluginSandbox:
 
             self._active_sandboxes[plugin_id] = context
             self._log_audit("sandbox_created", plugin_id, {"permissions": permissions})
-            logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "sandbox", "action": "created.sandbox.for", "msg": f"Created sandbox for plugin: {plugin_id}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'sandbox', 'action': 'created.sandbox.for', 'msg': f'Created sandbox for plugin: {plugin_id}'}))
             
             return context
 
@@ -154,7 +155,7 @@ class PluginSandbox:
                 "error": str(e),
                 "traceback": traceback.format_exc()[:500]
             })
-            logger.error(json.dumps({"trace_id": get_trace_id(), "module_name": "sandbox", "action": "plugin.plugin_id.execution", "msg": f"Plugin {plugin_id} execution failed: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'sandbox', 'action': 'plugin.plugin_id.execution', 'msg': f'Plugin {plugin_id} execution failed: {e}'}))
         finally:
             end_time = datetime.now()
             result.duration_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -297,10 +298,10 @@ class PluginSandbox:
                 try:
                     shutil.rmtree(context.work_dir, ignore_errors=True)
                 except Exception as e:
-                    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "sandbox", "action": "failed.cleanup", "msg": f"Failed to cleanup sandbox dir: {e}"}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'sandbox', 'action': 'failed.cleanup', 'msg': f'Failed to cleanup sandbox dir: {e}'}))
                 
                 self._log_audit("sandbox_destroyed", plugin_id, {})
-                logger.info(json.dumps({"trace_id": get_trace_id(), "module_name": "sandbox", "action": "destroyed.sandbox.for", "msg": f"Destroyed sandbox for plugin: {plugin_id}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'sandbox', 'action': 'destroyed.sandbox.for', 'msg': f'Destroyed sandbox for plugin: {plugin_id}'}))
 
     def _log_audit(self, action: str, plugin_id: str, details: Dict = None):
         """记录审计日志"""

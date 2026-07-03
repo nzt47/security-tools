@@ -29,6 +29,7 @@ from enum import Enum
 
 # set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
+from agent.logging_utils import log_dict
 
 try:
     from agent.error_handler import get_error_handler
@@ -134,14 +135,7 @@ class SelfHealer:
         # 后台健康检查线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         self._healer_trace_id = f"self-healer-{uuid.uuid4().hex[:16]}"
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "self_healer",
-            "action": "init",
-            "duration_ms": 0,
-            "enabled": self._enabled,
-            "policies": list(self._policies.keys())
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'init', 'enabled': self._enabled, 'policies': list(self._policies.keys())}))
 
     def _init_policies(self):
         """初始化自愈策略"""
@@ -213,16 +207,7 @@ class SelfHealer:
                     if policy and elapsed < policy.cooldown:
                         # 修复：原 extra={} 中 "action" 键被同名参数 action 覆盖，
                         # 改用 json.dumps + heal_action 字段避免冲突
-                        logger.info(json.dumps({
-                            "trace_id": get_trace_id(),
-                            "module_name": "self_healer",
-                            "action": "cooldown_check",
-                            "duration_ms": 0,
-                            "heal_action": action,
-                            "elapsed_seconds": round(elapsed, 1),
-                            "cooldown_seconds": policy.cooldown,
-                            "blocked": True
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'cooldown_check', 'heal_action': action, 'elapsed_seconds': round(elapsed, 1), 'cooldown_seconds': policy.cooldown, 'blocked': True}))
                         return False
                     break
         return True
@@ -251,16 +236,7 @@ class SelfHealer:
             if recent_count >= policy.max_per_hour:
                 # 修复：原 extra={} 中 "action" 键被同名参数 action 覆盖，
                 # 改用 json.dumps + heal_action 字段避免冲突
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "self_healer",
-                    "action": "rate_limit_check",
-                    "duration_ms": 0,
-                    "heal_action": action,
-                    "recent_count": recent_count,
-                    "limit": policy.max_per_hour,
-                    "blocked": True
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'self_healer', 'action': 'rate_limit_check', 'heal_action': action, 'recent_count': recent_count, 'limit': policy.max_per_hour, 'blocked': True}))
                 return False
         return True
 
@@ -306,14 +282,7 @@ class SelfHealer:
 
         start_time = time.time()
         try:
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "heal_start",
-                "duration_ms": 0,
-                "heal_action": action,
-                "context": context or {}
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_start', 'heal_action': action, 'context': context or {}}))
 
             # 根据动作类型执行
             if action == "restart_service":
@@ -336,16 +305,7 @@ class SelfHealer:
             self._record_execution(action, result, context)
 
             # 自愈完成日志（含 duration_ms，便于排查执行耗时与成功率）
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "heal_complete",
-                "duration_ms": round(duration_ms, 3),
-                "heal_action": action,
-                "status": result.status.value,
-                "message": result.message,
-                "verified": result.verified
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_complete', 'heal_action': action, 'status': result.status.value, 'message': result.message, 'verified': result.verified}))
 
             # 触发回调
             if self._on_heal_executed:
@@ -361,14 +321,7 @@ class SelfHealer:
                         )
                     )
                 except Exception as e:
-                    logger.error(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "self_healer",
-                        "action": "heal_callback_error",
-                        "duration_ms": 0,
-                        "heal_action": action,
-                        "error": str(e)
-                    }, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'self_healer', 'action': 'heal_callback_error', 'heal_action': action, 'error': str(e)}))
 
             return result
 
@@ -418,13 +371,7 @@ class SelfHealer:
                         continue
 
             # 如果没有找到服务管理工具，尝试直接重启进程
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "restart_service_fallback",
-                "duration_ms": 0,
-                "service_name": service_name
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service_fallback', 'service_name': service_name}))
             return HealResult(
                 "restart_service",
                 HealStatus.SUCCESS,
@@ -433,13 +380,7 @@ class SelfHealer:
             )
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "restart_service_failed",
-                "duration_ms": 0,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'restart_service_failed', 'error': str(e)}))
             return HealResult("restart_service", HealStatus.FAILED, str(e), 0)
 
     def _clear_cache(self, context: Optional[Dict[str, Any]]) -> HealResult:
@@ -474,14 +415,7 @@ class SelfHealer:
                                 shutil.rmtree(cache_path)
                                 cleared_count += 1
                         except Exception as e:
-                            logger.warning(json.dumps({
-                                "trace_id": get_trace_id(),
-                                "module_name": "self_healer",
-                                "action": "clear_cache_item_failed",
-                                "duration_ms": 0,
-                                "cache_path": cache_path,
-                                "error": str(e)
-                            }, ensure_ascii=False))
+                            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache_item_failed', 'cache_path': cache_path, 'error': str(e)}))
 
             # 如果是内存缓存，尝试触发 GC
             try:
@@ -489,15 +423,7 @@ class SelfHealer:
                 before = len(gc.get_objects())
                 collected = gc.collect()
                 after = len(gc.get_objects())
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "self_healer",
-                    "action": "gc_collect",
-                    "duration_ms": 0,
-                    "collected": collected,
-                    "before": before,
-                    "after": after
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'gc_collect', 'collected': collected, 'before': before, 'after': after}))
             except Exception:
                 pass
 
@@ -509,13 +435,7 @@ class SelfHealer:
             )
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "clear_cache_failed",
-                "duration_ms": 0,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'clear_cache_failed', 'error': str(e)}))
             return HealResult("clear_cache", HealStatus.FAILED, str(e), 0)
 
     def _recover_circuit_breaker(self, context: Optional[Dict[str, Any]]) -> HealResult:
@@ -554,13 +474,7 @@ class SelfHealer:
                             pass
 
             if recovered:
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "self_healer",
-                    "action": "circuit_breaker_half_open",
-                    "duration_ms": 0,
-                    "recovered": recovered
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'circuit_breaker_half_open', 'recovered': recovered}))
                 return HealResult(
                     "recover_circuit_breaker",
                     HealStatus.SUCCESS,
@@ -576,13 +490,7 @@ class SelfHealer:
                 )
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "recover_circuit_breaker_failed",
-                "duration_ms": 0,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker_failed', 'error': str(e)}))
             return HealResult("recover_circuit_breaker", HealStatus.FAILED, str(e), 0)
 
     def _gc_collect(self, context: Optional[Dict[str, Any]]) -> HealResult:
@@ -608,15 +516,7 @@ class SelfHealer:
             freed_count = before_count - after_count
             freed_mem = before_mem - after_mem
 
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "gc_collect_complete",
-                "duration_ms": 0,
-                "collected": collected,
-                "freed_objects": freed_count,
-                "freed_memory_mb": round(freed_mem, 2)
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'gc_collect_complete', 'collected': collected, 'freed_objects': freed_count, 'freed_memory_mb': round(freed_mem, 2)}))
 
             return HealResult(
                 "gc_collect",
@@ -626,13 +526,7 @@ class SelfHealer:
             )
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "gc_collect_failed",
-                "duration_ms": 0,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'gc_collect_failed', 'error': str(e)}))
             return HealResult("gc_collect", HealStatus.FAILED, str(e), 0)
 
     def _clear_memory(self, context: Optional[Dict[str, Any]]) -> HealResult:
@@ -678,13 +572,7 @@ class SelfHealer:
             )
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "self_healer",
-                "action": "clear_memory_failed",
-                "duration_ms": 0,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'clear_memory_failed', 'error': str(e)}))
             return HealResult("clear_memory", HealStatus.FAILED, str(e), 0)
 
     def _get_memory_usage(self) -> float:
@@ -742,37 +630,16 @@ class SelfHealer:
 
                 if health.overall >= 0.7:
                     duration_ms = (time.time() - start_time) * 1000
-                    logger.info(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "self_healer",
-                        "action": "heal_verified",
-                        "duration_ms": round(duration_ms, 3),
-                        "heal_action": action,
-                        "health_score": health.overall
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_verified', 'heal_action': action, 'health_score': health.overall}))
                     return True
 
                 time.sleep(5)
 
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "self_healer",
-                    "action": "verify_check_failed",
-                    "duration_ms": 0,
-                    "heal_action": action,
-                    "error": str(e)
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'self_healer', 'action': 'verify_check_failed', 'heal_action': action, 'error': str(e)}))
                 time.sleep(5)
 
-        logger.warning(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "self_healer",
-            "action": "heal_verify_timeout",
-            "duration_ms": round((time.time() - start_time) * 1000, 3),
-            "heal_action": action,
-            "timeout": timeout
-        }, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_verify_timeout', 'heal_action': action, 'timeout': timeout}))
         return False
 
     def get_records(
@@ -849,13 +716,7 @@ class SelfHealer:
                 # 尝试恢复熔断器
                 self.execute_action("recover_circuit_breaker")
             except Exception as e:
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "self_healer",
-                    "action": "health_check_loop_error",
-                    "duration_ms": 0,
-                    "error": str(e)
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'self_healer', 'action': 'health_check_loop_error', 'error': str(e)}))
             time.sleep(self._health_check_interval)
 
     def start(self):
@@ -871,13 +732,7 @@ class SelfHealer:
         )
         self._health_check_thread.start()
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "self_healer",
-            "action": "start",
-            "duration_ms": 0,
-            "health_check_interval": self._health_check_interval
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'start', 'health_check_interval': self._health_check_interval}))
 
     def stop(self):
         """停止自愈管理器"""
@@ -885,12 +740,7 @@ class SelfHealer:
         if self._health_check_thread:
             self._health_check_thread.join(timeout=5)
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "self_healer",
-            "action": "stop",
-            "duration_ms": 0
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'stop'}))
 
 
 # 全局单例
