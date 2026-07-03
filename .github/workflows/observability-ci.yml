@@ -302,7 +302,8 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          # pytest-timeout：为可观测性单元测试提供 --timeout 参数，防止单个测试卡住整个 CI
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install prometheus-client opentelemetry-api opentelemetry-sdk
           pip install pyyaml
           pip install -e .
@@ -315,6 +316,10 @@ jobs:
           # visibility-report job 下载后由 visibility_report.py 读取 line-rate（不再降级到 pyproject.toml）
           # test_visibility_export.py：防回归 — 验证四层可见性指标导出命名规范
           #   重点：arch_rule_violations 必须规范化为 rule_violations，禁止双重 arch 前缀
+          # --timeout=300：单个测试超过 300 秒未完成则标记失败并继续，防止卡死整个 CI
+          #   原因：CI Run #28605918662 中 3 个版本的单元测试全部跑满 6 小时（GitHub 默认
+          #         job 超时上限）才被 cancelled，说明某个测试在等待外部服务或死锁
+          #         （需配合 pytest-timeout 插件，已在安装依赖中添加）
           python -m pytest \
             tests/unit/test_monitoring_tracing.py \
             tests/unit/test_prometheus_exporter.py \
@@ -330,7 +335,8 @@ jobs:
             --cov-fail-under=0 \
             --cov-report=xml \
             --cov-report=term-missing \
-            --cov-report=html
+            --cov-report=html \
+            --timeout=300
 
       - name: 生成可观测性测试覆盖率报告
         run: |
