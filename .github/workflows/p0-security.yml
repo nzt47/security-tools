@@ -100,7 +100,7 @@ jobs:
   # Job 2: P0 回归测试 — 68 个防复发测试用例
   # ============================================================================
   p0-regression-test:
-    name: P0 安全回归测试
+    name: P0 Security Regression Test
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
