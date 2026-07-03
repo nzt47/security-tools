@@ -308,6 +308,84 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="http.pool_size 必须在 1-100 之间",
         description="HTTP 连接池大小，用于 http_client.py 的 DEFAULT_POOL_SIZE",
     ),
+
+    # ── 11. 缓存容量（cache） ──
+    # L1 内存缓存最大条目数
+    ValidationRule(
+        path="cache.l1_max_size",
+        validator=_range_validator(100, 10000),
+        default=1000,
+        error_message="cache.l1_max_size 必须在 100-10000 之间",
+        description="L1 内存缓存最大条目数，用于 multi_level_cache.py 的 MultiLevelCache 默认参数",
+    ),
+
+    # ── 12. 追踪缓存容量（tracing_cache） ──
+    # 追踪上下文缓存容量
+    ValidationRule(
+        path="tracing_cache.context_max_size",
+        validator=_range_validator(256, 16384),
+        default=4096,
+        error_message="tracing_cache.context_max_size 必须在 256-16384 之间",
+        description="追踪上下文缓存容量，用于 tracing_cache.py 的 TraceContextCache._context_cache",
+    ),
+    # Span 数据缓存容量
+    ValidationRule(
+        path="tracing_cache.span_max_size",
+        validator=_range_validator(128, 8192),
+        default=2048,
+        error_message="tracing_cache.span_max_size 必须在 128-8192 之间",
+        description="Span 数据缓存容量，用于 tracing_cache.py 的 TraceContextCache._span_cache",
+    ),
+    # Span 对象池大小
+    ValidationRule(
+        path="tracing_cache.span_pool_size",
+        validator=_range_validator(50, 2000),
+        default=500,
+        error_message="tracing_cache.span_pool_size 必须在 50-2000 之间",
+        description="Span 对象池大小，用于 tracing_cache.py 的 TraceContextCache._span_pool",
+    ),
+
+    # ── 13. 调度器常量（scheduler） ──
+    # tick 检查间隔（秒）
+    ValidationRule(
+        path="scheduler.check_interval_sec",
+        validator=_range_validator(1, 300),
+        default=10,
+        error_message="scheduler.check_interval_sec 必须在 1-300 秒之间",
+        description="调度器 tick 检查间隔，用于 task_scheduler.py 的 DEFAULT_CHECK_INTERVAL",
+    ),
+    # 系统命令执行超时（秒）
+    ValidationRule(
+        path="scheduler.command_timeout_sec",
+        validator=_range_validator(10, 3600),
+        default=300,
+        error_message="scheduler.command_timeout_sec 必须在 10-3600 秒之间",
+        description="系统命令执行超时，用于 task_scheduler.py 的 COMMAND_TIMEOUT",
+    ),
+    # 执行历史最大行数
+    ValidationRule(
+        path="scheduler.max_history_lines",
+        validator=_range_validator(100, 10000),
+        default=1000,
+        error_message="scheduler.max_history_lines 必须在 100-10000 之间",
+        description="执行历史最大行数，用于 task_scheduler.py 的 MAX_HISTORY_LINES",
+    ),
+    # 心跳间隔（秒）
+    ValidationRule(
+        path="scheduler.heartbeat_interval_sec",
+        validator=_range_validator(10, 600),
+        default=60,
+        error_message="scheduler.heartbeat_interval_sec 必须在 10-600 秒之间",
+        description="心跳检测间隔，用于 task_scheduler.py 的 HEARTBEAT_INTERVAL",
+    ),
+    # 心跳历史保留条数
+    ValidationRule(
+        path="scheduler.max_heartbeat_history",
+        validator=_range_validator(144, 14400),
+        default=1440,
+        error_message="scheduler.max_heartbeat_history 必须在 144-14400 之间",
+        description="心跳历史保留条数，用于 task_scheduler.py 的 MAX_HEARTBEAT_HISTORY",
+    ),
 ]
 
 
@@ -1015,6 +1093,118 @@ def get_http_pool_size() -> int:
         return int(get_observability_config().get("http.pool_size", default=20))
     except Exception:
         return 20
+
+
+# ── 缓存容量便捷函数 ──
+
+def get_cache_l1_max_size() -> int:
+    """读取 L1 内存缓存最大条目数（便捷函数，支持热加载）
+
+    Returns:
+        最大条目数，默认 1000
+    """
+    try:
+        return int(get_observability_config().get("cache.l1_max_size", default=1000))
+    except Exception:
+        return 1000
+
+
+def get_tracing_cache_context_max_size() -> int:
+    """读取追踪上下文缓存容量（便捷函数，支持热加载）
+
+    Returns:
+        缓存容量，默认 4096
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.context_max_size", default=4096))
+    except Exception:
+        return 4096
+
+
+def get_tracing_cache_span_max_size() -> int:
+    """读取 Span 数据缓存容量（便捷函数，支持热加载）
+
+    Returns:
+        缓存容量，默认 2048
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.span_max_size", default=2048))
+    except Exception:
+        return 2048
+
+
+def get_tracing_cache_span_pool_size() -> int:
+    """读取 Span 对象池大小（便捷函数，支持热加载）
+
+    Returns:
+        对象池大小，默认 500
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.span_pool_size", default=500))
+    except Exception:
+        return 500
+
+
+# ── 调度器常量便捷函数 ──
+
+def get_scheduler_check_interval() -> int:
+    """读取调度器 tick 检查间隔（便捷函数，支持热加载）
+
+    Returns:
+        检查间隔秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("scheduler.check_interval_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_scheduler_command_timeout() -> int:
+    """读取系统命令执行超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 300
+    """
+    try:
+        return int(get_observability_config().get("scheduler.command_timeout_sec", default=300))
+    except Exception:
+        return 300
+
+
+def get_scheduler_max_history_lines() -> int:
+    """读取执行历史最大行数（便捷函数，支持热加载）
+
+    Returns:
+        最大行数，默认 1000
+    """
+    try:
+        return int(get_observability_config().get("scheduler.max_history_lines", default=1000))
+    except Exception:
+        return 1000
+
+
+def get_scheduler_heartbeat_interval() -> int:
+    """读取心跳检测间隔（便捷函数，支持热加载）
+
+    Returns:
+        间隔秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("scheduler.heartbeat_interval_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_scheduler_max_heartbeat_history() -> int:
+    """读取心跳历史保留条数（便捷函数，支持热加载）
+
+    Returns:
+        保留条数，默认 1440
+    """
+    try:
+        return int(get_observability_config().get("scheduler.max_heartbeat_history", default=1440))
+    except Exception:
+        return 1440
 
 
 def reset_observability_config() -> None:
