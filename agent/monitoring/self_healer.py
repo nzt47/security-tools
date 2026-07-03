@@ -135,6 +135,24 @@ class SelfHealer:
         # 后台健康检查线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         self._healer_trace_id = f"self-healer-{uuid.uuid4().hex[:16]}"
 
+        # 配置化超时（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import (
+                get_self_healer_restart_timeout,
+                get_self_healer_sync_timeout,
+                get_self_healer_verify_timeout,
+                get_self_healer_thread_join_timeout,
+            )
+            self._restart_timeout = get_self_healer_restart_timeout()
+            self._sync_timeout = get_self_healer_sync_timeout()
+            self._verify_timeout = get_self_healer_verify_timeout()
+            self._thread_join_timeout = get_self_healer_thread_join_timeout()
+        except Exception:
+            self._restart_timeout = 60
+            self._sync_timeout = 5
+            self._verify_timeout = 60
+            self._thread_join_timeout = 5
+
         logger.info(log_dict({'module_name': 'self_healer', 'action': 'init', 'enabled': self._enabled, 'policies': list(self._policies.keys())}))
 
     def _init_policies(self):
@@ -358,7 +376,7 @@ class SelfHealer:
                             cmd,
                             capture_output=True,
                             text=True,
-                            timeout=60
+                            timeout=self._restart_timeout
                         )
                         if result.returncode == 0:
                             return HealResult(
@@ -552,7 +570,7 @@ class SelfHealer:
                     subprocess.run(
                         ["sync"],
                         capture_output=True,
-                        timeout=5
+                        timeout=self._sync_timeout
                     )
                     # 尝试写入 /proc/sys/vm/drop_caches（需要 root 权限）
                     # 注意：这在容器环境中可能不安全
@@ -610,16 +628,19 @@ class SelfHealer:
             if len(self._records) > self._max_records:
                 self._records.pop(0)
 
-    def verify_heal(self, action: str, timeout: float = 60) -> bool:
+    def verify_heal(self, action: str, timeout: Optional[float] = None) -> bool:
         """验证自愈效果
 
         Args:
             action: 执行的动作
-            timeout: 验证超时时间
+            timeout: 验证超时时间（None 时从 Config 读取，支持热加载）
 
         Returns:
             验证是否成功
         """
+        # 配置化超时（支持热加载，None 时从 Config 读取）
+        if timeout is None:
+            timeout = self._verify_timeout
         start_time = time.time()
 
         while time.time() - start_time < timeout:
@@ -738,7 +759,7 @@ class SelfHealer:
         """停止自愈管理器"""
         self._running = False
         if self._health_check_thread:
-            self._health_check_thread.join(timeout=5)
+            self._health_check_thread.join(timeout=self._thread_join_timeout)
 
         logger.info(log_dict({'module_name': 'self_healer', 'action': 'stop'}))
 

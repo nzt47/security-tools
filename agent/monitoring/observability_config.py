@@ -424,6 +424,98 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="alert.timeout_sec 必须在 1-120 秒之间",
         description="告警通知超时，用于 monitoring/alert_notifier.py 的 SMTP/Webhook 请求",
     ),
+
+    # ── 17. Prometheus 指标导出（prometheus） ──
+    # Phase 4 Task 2: Prometheus exporter 重试次数配置化
+    ValidationRule(
+        path="prometheus.max_retries",
+        validator=_range_validator(0, 10),
+        default=3,
+        error_message="prometheus.max_retries 必须在 0-10 之间（0 表示不重试）",
+        description="Prometheus 指标导出重试次数，用于 monitoring/prometheus.py 的 RetryPolicy(max_retries=)",
+    ),
+
+    # ── 18. 混沌注入器（chaos） ──
+    # Phase 4 Task 2: 故障注入器线程清理超时配置化
+    ValidationRule(
+        path="chaos.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="chaos.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="混沌注入器内存压力线程清理超时，用于 monitoring/chaos_injector.py 的 thread.join(timeout=)",
+    ),
+
+    # ── 19. 资源监控器线程清理（resource_monitor.thread_join） ──
+    # Phase 4 Task 2: 资源监控采样线程清理超时配置化
+    ValidationRule(
+        path="resource_monitor.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="resource_monitor.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="资源监控采样线程清理超时，用于 monitoring/resource_monitor.py 的 _sample_thread.join(timeout=)",
+    ),
+
+    # ── 20. 搜索性能监控（search） ──
+    # Phase 4 Task 2: 搜索监控线程清理与请求超时配置化
+    ValidationRule(
+        path="search.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="search.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="搜索性能监控线程清理超时，用于 monitoring/search.py 的 _thread.join(timeout=)",
+    ),
+    ValidationRule(
+        path="search.config_apply_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="search.config_apply_timeout_sec 必须在 1-60 秒之间",
+        description="搜索配置应用请求超时，用于 monitoring/search.py 的 requests.post(/api/apply-network-config)",
+    ),
+    ValidationRule(
+        path="search.web_search_timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="search.web_search_timeout_sec 必须在 1-120 秒之间",
+        description="搜索性能检测请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search)",
+    ),
+    ValidationRule(
+        path="search.status_check_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="search.status_check_timeout_sec 必须在 1-60 秒之间",
+        description="搜索状态查询请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search/status)",
+    ),
+
+    # ── 21. 自愈管理器（self_healer） ──
+    # Phase 4 Task 2: 自愈操作各类超时配置化
+    ValidationRule(
+        path="self_healer.restart_timeout_sec",
+        validator=_range_validator(10, 300),
+        default=60,
+        error_message="self_healer.restart_timeout_sec 必须在 10-300 秒之间",
+        description="服务重启命令超时，用于 monitoring/self_healer.py 的 subprocess.run(restart)",
+    ),
+    ValidationRule(
+        path="self_healer.sync_timeout_sec",
+        validator=_range_validator(1, 30),
+        default=5,
+        error_message="self_healer.sync_timeout_sec 必须在 1-30 秒之间",
+        description="系统同步命令超时，用于 monitoring/self_healer.py 的 subprocess.run(sync)",
+    ),
+    ValidationRule(
+        path="self_healer.verify_timeout_sec",
+        validator=_range_validator(10, 300),
+        default=60,
+        error_message="self_healer.verify_timeout_sec 必须在 10-300 秒之间",
+        description="自愈效果验证超时，用于 monitoring/self_healer.py 的 verify_heal(timeout=)",
+    ),
+    ValidationRule(
+        path="self_healer.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="self_healer.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="自愈健康检查线程清理超时，用于 monitoring/self_healer.py 的 _health_check_thread.join(timeout=)",
+    ),
 ]
 
 
@@ -1297,6 +1389,148 @@ def get_alert_timeout() -> int:
         return int(get_observability_config().get("alert.timeout_sec", default=30))
     except Exception:
         return 30
+
+
+# ── Prometheus 指标导出便捷函数 ──
+
+def get_prometheus_max_retries() -> int:
+    """读取 Prometheus 指标导出重试次数（便捷函数，支持热加载）
+
+    Returns:
+        最大重试次数，默认 3
+    """
+    try:
+        return int(get_observability_config().get("prometheus.max_retries", default=3))
+    except Exception:
+        return 3
+
+
+# ── 混沌注入器便捷函数 ──
+
+def get_chaos_thread_join_timeout() -> int:
+    """读取混沌注入器线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("chaos.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+# ── 资源监控器线程清理便捷函数 ──
+
+def get_resource_monitor_thread_join_timeout() -> int:
+    """读取资源监控采样线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("resource_monitor.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+# ── 搜索性能监控便捷函数 ──
+
+def get_search_thread_join_timeout() -> int:
+    """读取搜索监控线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("search.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+def get_search_config_apply_timeout() -> int:
+    """读取搜索配置应用请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("search.config_apply_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_search_web_search_timeout() -> int:
+    """读取搜索性能检测请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("search.web_search_timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+def get_search_status_check_timeout() -> int:
+    """读取搜索状态查询请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("search.status_check_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+# ── 自愈管理器便捷函数 ──
+
+def get_self_healer_restart_timeout() -> int:
+    """读取服务重启命令超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("self_healer.restart_timeout_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_self_healer_sync_timeout() -> int:
+    """读取系统同步命令超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("self_healer.sync_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+def get_self_healer_verify_timeout() -> int:
+    """读取自愈效果验证超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("self_healer.verify_timeout_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_self_healer_thread_join_timeout() -> int:
+    """读取自愈健康检查线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("self_healer.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
 
 
 def reset_observability_config() -> None:
