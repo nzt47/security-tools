@@ -87,6 +87,12 @@ class NotificationSender(ABC):
         self.config = config
         self.enabled = config.get("enabled", True)
         self._lock = threading.Lock()
+        # 配置化超时（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import get_alert_timeout
+            self._timeout = get_alert_timeout()
+        except Exception:
+            self._timeout = 30
 
     @abstractmethod
     def send(self, notification: AlertNotification) -> NotificationResult:
@@ -222,7 +228,7 @@ class EmailSender(NotificationSender):
             msg.attach(MIMEText(message["html_body"], "html"))
 
             # 发送邮件
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=self._timeout) as server:
                 server.ehlo()
                 server.starttls()
                 if self.smtp_username and self.smtp_password:
@@ -347,7 +353,7 @@ class DingTalkSender(NotificationSender):
                 url,
                 json=message,
                 headers={"Content-Type": "application/json"},
-                timeout=30
+                timeout=self._timeout
             )
             response.raise_for_status()
 
@@ -430,7 +436,7 @@ class WebhookSender(NotificationSender):
                     url=self.url,
                     json=message,
                     headers=self.headers,
-                    timeout=30
+                    timeout=self._timeout
                 )
                 response.raise_for_status()
 

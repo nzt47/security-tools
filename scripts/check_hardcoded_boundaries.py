@@ -62,6 +62,10 @@ CONFIGURED_MODULES: Set[str] = {
     "monitoring/tracing_cache.py",
     # scheduler 相关
     "task_scheduler.py",
+    # Phase 4 Task 1: P2 收尾新增
+    "llm_monitor.py",                       # llm_monitor.max_records
+    "monitoring/loki.py",                   # loki.push_timeout_sec / loki.query_timeout_sec
+    "monitoring/alert_notifier.py",         # alert.timeout_sec
     # 配置系统自身
     "monitoring/observability_config.py",
 }

@@ -1,5 +1,9 @@
 """API 路由追踪装饰器模块"""
-from agent.monitoring.tracing import TraceContext
+import json
+import logging
+from agent.monitoring.tracing import TraceContext, get_trace_id
+
+logger = logging.getLogger("tracing_decorator")
 
 
 def trace_route(service_name="API"):
