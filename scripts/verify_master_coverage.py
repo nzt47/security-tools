@@ -465,15 +465,32 @@ class CoverageVerifier:
             if result.stdout.strip():
                 try:
                     data = json.loads(result.stdout)
-                    coverage = 0
+                    # 指标定义对齐 visibility_report.py 的 _calc_boundary_coverage()
+                    # 阶段 2 起主指标为 scene_coverage_percent（必需场景覆盖率）
+                    # 旧指标 boundary/total*100 仅作降级兼容
+                    scene_pct = data.get("scene_coverage_percent")
+                    scene_total = data.get("scene_total_count", 0)
+                    legacy_coverage = 0
                     if data.get("total_tests", 0) > 0:
-                        coverage = round(
+                        legacy_coverage = round(
                             data["total_boundary_tests"] / data["total_tests"] * 100, 1
                         )
+                    # 优先使用新指标，缺失时降级到旧指标（与 visibility_report.py 一致）
+                    if scene_pct is not None and scene_total > 0:
+                        coverage = float(scene_pct)
+                        metric_used = "scene_coverage_percent"
+                    else:
+                        coverage = legacy_coverage
+                        metric_used = "legacy_case_ratio"
                     return {
                         "total_tests": data.get("total_tests", 0),
                         "total_boundary_tests": data.get("total_boundary_tests", 0),
                         "coverage_percent": coverage,
+                        "metric_used": metric_used,
+                        "scene_covered_count": data.get("scene_covered_count", 0),
+                        "scene_total_count": scene_total,
+                        "scene_coverage_percent": scene_pct,
+                        "legacy_case_ratio": legacy_coverage,
                         "overall_status": data.get("overall_status", "unknown"),
                         "duration_ms": duration_ms,
                     }
@@ -665,9 +682,12 @@ def print_report(result: Dict[str, Any]) -> None:
         print(f"\n{'─' * 40}")
         print("🛡️ 边界覆盖率独立验证")
         print(f"{'─' * 40}")
-        print(f"  覆盖率: {bc['coverage_percent']}%")
+        print(f"  覆盖率: {bc['coverage_percent']}% (指标: {bc.get('metric_used', 'unknown')})")
+        if bc.get("scene_total_count", 0) > 0:
+            print(f"  必需场景: {bc.get('scene_covered_count', 0)}/{bc['scene_total_count']}")
         print(f"  边界测试数: {bc['total_boundary_tests']}")
         print(f"  总测试数: {bc['total_tests']}")
+        print(f"  旧指标用例比例: {bc.get('legacy_case_ratio', 0)}%")
         print(f"  状态: {bc['overall_status']}")
 
     # 回归检测
