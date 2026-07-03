@@ -2,9 +2,9 @@ name: Error Reporting System CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   schedule:
     - cron: '0 2 * * *'
 
@@ -34,7 +34,7 @@ jobs:
             ${{ runner.os }}-pip-
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run Ruff linter
         run: |
@@ -60,7 +60,7 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run stress test
         run: python stress_test_error_reporting.py -c 50 -r 1000 -o ./logs/stress_test
@@ -98,7 +98,7 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run error reporter tests
         run: python test_error_reporter.py
@@ -151,7 +151,7 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run full stress test with high concurrency
         run: python stress_test_error_reporting.py -c 100 -r 5000 -o ./logs/nightly_test
