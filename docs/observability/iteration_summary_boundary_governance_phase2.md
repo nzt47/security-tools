@@ -291,7 +291,7 @@ bffb130d feat(boundary): MAX_ANALYZE_DAYS 配置化为可配置项（Task 1）
 ### 8.1 短期（Phase 3 进展）
 
 1. ✅ **完成 P1 剩余项**：`http.timeout_sec` / `http.connect_timeout_sec` / `http.pool_size`（Phase 3 Task 1 已提交 3a6b8b08）
-2. ⏳ **扩展静态分析**：在 `check_timedelta_overflow.py` 基础上扩展重试次数/超时值的检测（Phase 3 Task 2 进行中）
+2. ✅ **扩展静态分析**：在 `check_timedelta_overflow.py` 基础上扩展硬编码边界值检测（Phase 3 Task 2 已完成）— 新增 `check_hardcoded_boundaries.py`（492 行）检测 retry/timeout/capacity 3 类硬编码，CI 双 job 架构，基线 99
 3. ✅ **混沌测试**：注入配置异常值（如 max_retries=0、timeout=0），验证降级行为（Phase 3 Task 3 已提交 65a625cc，17/17 passed）
 4. ✅ **P2 缓存容量配置化**：`cache.l1_max_size` + `tracing_cache` 3 项（Phase 3 Task 4 已提交 41f069ef）
 5. ✅ **P2 调度器常量配置化**：`scheduler` 5 项（Phase 3 Task 5 已提交 41f069ef）
@@ -425,7 +425,7 @@ b162b53b docs(observability): 新增 Phase 2 技术总结 + Phase 3 行动计划
 | Task | 状态 | 说明 |
 |------|------|------|
 | Task 1: HTTP 配置化 | ✅ 完成 | 已提交 3a6b8b08/65a625cc |
-| Task 2: 静态分析扩展 | ⏳ 进行中 | 扩展 check_timedelta_overflow.py 检测重试/超时硬编码 |
+| Task 2: 静态分析扩展 | ✅ 完成 | 新增 check_hardcoded_boundaries.py + CI 双 job 架构 + 基线 99（待提交） |
 | Task 3: 混沌测试 | ✅ 完成 | 已提交 65a625cc，17/17 passed |
 | Task 4: 缓存容量配置化 | ✅ 完成 | 已提交 41f069ef |
 | Task 5: 调度器常量配置化 | ✅ 完成 | 已提交 41f069ef |
