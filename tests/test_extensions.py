@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from agent.extensions.base import ExtensionType, ExtensionStatus, ExtensionMetadata, IPlugin
+from agent.extensions.base import ExtensionType, ExtensionStatus, ExtensionMetadata
 from agent.extensions.manager import ExtensionManager
 from agent.extensions.sandbox import SandboxManager, PluginSandbox, SandboxPermission, ResourceLimits
 from agent.extensions.market import ExtensionMarket
