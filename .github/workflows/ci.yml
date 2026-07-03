@@ -30,10 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -72,10 +72,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -101,7 +101,7 @@ jobs:
           python scripts/scan_sensitive_regex.py --fix-hint
 
       - name: 上传安全报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-reports
@@ -111,17 +111,17 @@ jobs:
   # 单元测试
   # ============================================================================
   unit-tests:
-    name: 单元测试 (Python ${{ env.PYTHON_VERSION }})
+    name: 单元测试 (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -171,14 +171,14 @@ jobs:
           echo "=== 安全回归测试全部通过 ==="
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-py${{ matrix.python-version }}
           path: htmlcov/
           retention-days: 30
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-unit-py${{ matrix.python-version }}
@@ -193,10 +193,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -219,7 +219,7 @@ jobs:
             --timeout=300
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-integration
@@ -233,10 +233,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -257,7 +257,7 @@ jobs:
             --timeout=300
 
       - name: 上传性能报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
           path: test_reports/benchmark.json
@@ -271,10 +271,10 @@ jobs:
     needs: [unit-tests, integration-tests]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -286,7 +286,7 @@ jobs:
           pip install -e .
 
       - name: 下载覆盖率报告
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-py${{ env.PYTHON_VERSION }}
           path: htmlcov/
@@ -310,7 +310,7 @@ jobs:
           coverage xml -o test_reports/coverage.xml
 
       - name: 上传完整覆盖率报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: full-coverage-report
           path: test_reports/
@@ -323,10 +323,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -362,7 +362,7 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-e2e
@@ -378,10 +378,10 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 下载所有测试结果
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: all-results/
 
@@ -418,7 +418,7 @@ jobs:
           echo "测试报告已生成"
 
       - name: 上传测试报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-summary-report
           path: test_reports/
@@ -440,11 +440,11 @@ jobs:
         with:
           payload: |
             {
-              "text": "云枢系统测试 ${{ needs.test-summary.result }}",
+              "text": "云枢系统测试 ${{ job.status }}",
               "attachments": [{
-                "color": "${{ needs.test-summary.result == 'success' && '#36a64f' || '#ff0000' }}",
+                "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
                 "fields": [
-                  {"title": "状态", "value": "${{ needs.test-summary.result }}"},
+                  {"title": "状态", "value": "${{ job.status }}"},
                   {"title": "分支", "value": "${{ github.ref }}"},
                   {"title": "提交", "value": "${{ github.sha }}"},
                   {"title": "触发者", "value": "${{ github.actor }}"}
