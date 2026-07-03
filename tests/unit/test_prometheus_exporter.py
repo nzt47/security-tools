@@ -197,7 +197,8 @@ class TestServerLifecycle:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    def test_start_stop_server(self):
+    @patch('agent.monitoring.prometheus.start_http_server')
+    def test_start_stop_server(self, mock_start_http_server):
         """测试启动和停止服务器"""
         exporter = PrometheusMetricsExporter(port=9091, namespace="TestServerStart")
 
@@ -210,7 +211,8 @@ class TestServerLifecycle:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    def test_context_manager(self):
+    @patch('agent.monitoring.prometheus.start_http_server')
+    def test_context_manager(self, mock_start_http_server):
         """测试上下文管理器"""
         with PrometheusMetricsExporter(port=9092, namespace="TestContext") as exporter:
             assert exporter._running is True
@@ -219,7 +221,8 @@ class TestServerLifecycle:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    def test_start_already_running(self):
+    @patch('agent.monitoring.prometheus.start_http_server')
+    def test_start_already_running(self, mock_start_http_server):
         """测试启动已运行的服务器"""
         exporter = PrometheusMetricsExporter(port=9093, namespace="TestAlreadyRunning")
 
