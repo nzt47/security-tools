@@ -586,6 +586,47 @@ def diagnose_opentelemetry_config() -> dict:
     }
 
 
+def init_observability(service_name: str = "yunshu-agent") -> bool:
+    """初始化 OpenTelemetry 可观测性
+
+    创建真正的 TracerProvider 并设置为全局，让 diagnose_opentelemetry_config()
+    能检测到已初始化的 tracer。默认情况下 opentelemetry.trace.get_tracer_provider()
+    返回的是 ProxyTracerProvider（仅 API 层占位），tracer_initialized 会是 False。
+
+    幂等：重复调用不会重复初始化。
+
+    Args:
+        service_name: 服务名称（用于 resource 属性，便于在追踪后端识别）
+
+    Returns:
+        True 表示 OpenTelemetry SDK 可用且已初始化（或之前已初始化）；
+        False 表示 opentelemetry-sdk 未安装或初始化失败。
+    """
+    try:
+        from opentelemetry.trace import get_tracer_provider, set_tracer_provider
+        provider = get_tracer_provider()
+        cls_name = type(provider).__name__
+        # 已是 SDK 实现（非 Proxy），无需重复初始化
+        if "Proxy" not in cls_name:
+            return True
+        # 创建真正的 TracerProvider 并设置为全局
+        try:
+            from opentelemetry.sdk.resources import Resource
+            from opentelemetry.sdk.trace import TracerProvider
+            resource = Resource.create({"service.name": service_name})
+            real_provider = TracerProvider(resource=resource)
+            set_tracer_provider(real_provider)
+            logger.info("OpenTelemetry 已初始化 (service=%s)", service_name)
+            return True
+        except ImportError:
+            # opentelemetry-sdk 未安装，仅 API 可用 — 无法真正初始化
+            logger.warning("opentelemetry-sdk 未安装，init_observability 无法初始化 TracerProvider")
+            return False
+    except Exception as exc:
+        logger.warning("init_observability 失败: %s: %s", type(exc).__name__, exc)
+        return False
+
+
 def print_diagnosis_report() -> None:
     """打印 OpenTelemetry 配置诊断报告到 stdout
 
