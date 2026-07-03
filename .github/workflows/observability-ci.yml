@@ -1440,10 +1440,17 @@ jobs:
           # 导致 STATUS=$(...) 失败、step exit code 3（pipeline 错误）。
           # 修复：用 set +e 临时禁用 -e，并在 python 内部 try/except 捕获解析错误，
           # 让脚本进入 if 分支输出有意义的错误信息（含 RESP 内容）。
+          # URL 编码修复：Prometheus 查询含 {success="true"} 等特殊字符，
+          # curl 直接拼 URL 会导致 exit code 3（URL malformed）。
+          # 改用 curl -G --data-urlencode 让 curl 自动 URL-encode 各参数。
           set +e
           END=$(date +%s)
           START=$((END - 7*24*3600))
-          RESP=$(curl -s "http://localhost:9099/api/v1/query_range?query=max_over_time(yunshu_visibility_runtime_structured_log_coverage{success=\"true\"}[7d])&start=$START&end=$END&step=1h")
+          RESP=$(curl -s -G "http://localhost:9099/api/v1/query_range" \
+            --data-urlencode "query=max_over_time(yunshu_visibility_runtime_structured_log_coverage{success=\"true\"}[7d])" \
+            --data-urlencode "start=$START" \
+            --data-urlencode "end=$END" \
+            --data-urlencode "step=1h")
           CURL_EXIT=$?
           echo "curl exit: $CURL_EXIT"
           echo "RESP 前 500 字符: ${RESP:0:500}"
