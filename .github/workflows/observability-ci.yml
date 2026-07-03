@@ -411,7 +411,8 @@ jobs:
             --cov=scripts \
             --cov-config=.coveragerc_scripts \
             --cov-fail-under=0 \
-            --cov-report=term-missing
+            --cov-report=term-missing \
+            --timeout=300
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v4
@@ -451,7 +452,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install prometheus-client opentelemetry-api opentelemetry-sdk
           pip install -e .
 
@@ -462,7 +463,8 @@ jobs:
             tests/integration/test_trace_integration.py \
             tests/integration/test_audit_trace.py \
             -v \
-            --tb=short
+            --tb=short \
+            --timeout=300
 
       - name: 验证追踪上下文传播
         run: |
@@ -485,18 +487,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [observability-integration-tests]
     if: github.event_name == 'push' || github.event_name == 'schedule'
-    services:
-      prometheus:
-        image: prom/prometheus:latest
-        ports:
-          - 9090:9090
-        volumes:
-          - ${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-        options: >-
-          --health-cmd "wget --quiet --spider http://localhost:9090/-/healthy || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # ========== Docker mount 根因修复（2026-07-04）==========
+    # 原配置使用 services: 块启动 Prometheus，但 GitHub Actions 的 services 容器
+    # 在 job 的任何 step（包括 checkout）之前启动。此时仓库的
+    # monitoring/prometheus.yml 尚未检出到 $GITHUB_WORKSPACE，Docker 会把
+    # 不存在的路径自动创建为空目录并尝试挂载到容器的文件路径，触发：
+    #   "error mounting ... monitoring/prometheus.yml ... not a directory:
+    #    Are you trying to mount a directory onto a file"
+    # 修复方案：移除 services: 块，改为在 checkout 步骤之后用 docker run -d
+    # 手动启动 Prometheus 容器，确保配置文件已存在后再挂载。
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -512,6 +511,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install requests
+
+      - name: 启动 Prometheus 容器（checkout 后启动，避免 mount 失败）
+        run: |
+          echo "=== 启动 Prometheus 容器 ==="
+          CONFIG_FILE="${{ github.workspace }}/monitoring/prometheus.yml"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "::error::Prometheus 配置文件不存在: $CONFIG_FILE"
+            echo "请检查 monitoring/prometheus.yml 是否已提交到仓库"
+            exit 1
+          fi
+          docker run -d \
+            --name prometheus \
+            -p 9090:9090 \
+            -v "$CONFIG_FILE:/etc/prometheus/prometheus.yml" \
+            prom/prometheus:latest
+          echo "等待 Prometheus 就绪..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+              echo "✅ Prometheus 已就绪"
+              break
+            fi
+            echo "等待 Prometheus 启动... ($i/30)"
+            sleep 2
+          done
+          if ! curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+            echo "::error::Prometheus 启动失败，容器日志："
+            docker logs prometheus
+            exit 1
+          fi
 
       - name: 启动应用服务（后台）
         run: |
@@ -547,6 +575,9 @@ jobs:
           if [ -n "$SERVER_PID" ]; then
             kill $SERVER_PID 2>/dev/null || true
           fi
+          # 清理 Prometheus 容器（services 块移除后需手动清理）
+          docker stop prometheus 2>/dev/null || true
+          docker rm prometheus 2>/dev/null || true
 
       - name: 上传端到端验证报告
         uses: actions/upload-artifact@v4
@@ -714,14 +745,14 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install requests pyyaml
           pip install -e .
 
       - name: 运行契约结构测试
         run: |
           echo "=== 契约结构测试 ==="
-          python -m pytest tests/contract/ -v --tb=short
+          python -m pytest tests/contract/ -v --tb=short --timeout=300
 
       - name: 验证 Provider 契约（条件执行）
         env:
@@ -1123,7 +1154,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
+          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install -e .
 
       - name: 确定测试参数
@@ -1164,6 +1195,7 @@ jobs:
           fi
 
           PYTEST_ARGS="$PYTEST_ARGS -p no:cacheprovider"
+          PYTEST_ARGS="$PYTEST_ARGS --timeout=300"
 
           echo "pytest_args=$PYTEST_ARGS" >> $GITHUB_OUTPUT
           echo "=== 混沌测试参数 ==="
