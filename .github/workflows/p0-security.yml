@@ -58,6 +58,12 @@ on:
       - 'scripts/scan_sensitive_regex.py'
   schedule:
     - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '触发原因（可选）'
+        required: false
+        default: 'manual'
 
 env:
   PYTHON_VERSION: '3.10'
