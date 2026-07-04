@@ -774,7 +774,19 @@ class MemorySkillAbstractor:
         if keywords:
             top_kw = ", ".join(keywords[:3])
             conditions.append(f"任务描述包含: {top_kw}")
-        return conditions[:5]  # 最多 5 条
+        conditions = conditions[:5]  # 最多 5 条
+        logger.info(
+            "[MemAbstract] _extract_trigger_conditions | "
+            "tags=%d params=%d text_kw=%d → 条件数=%d",
+            len(common_tags), len(common_params),
+            len(keywords) if keywords else 0, len(conditions),
+        )
+        if conditions:
+            logger.debug(
+                "[MemAbstract]   触发条件明细:\n  - %s",
+                "\n  - ".join(conditions),
+            )
+        return conditions
 
     @staticmethod
     def _extract_execution_steps(common_tools: List[str],
@@ -793,6 +805,16 @@ class MemorySkillAbstractor:
             steps.append(f"配置参数: {param_pairs}")
         # 验证步骤
         steps.append("验证输出结果是否符合预期")
+        logger.info(
+            "[MemAbstract] _extract_execution_steps | "
+            "tools=%d params=%d → 步骤数=%d",
+            len(common_tools), len(common_params), len(steps),
+        )
+        if steps:
+            logger.debug(
+                "[MemAbstract]   执行步骤明细:\n  - [ ] %s",
+                "\n  - [ ] ".join(steps),
+            )
         return steps
 
     @staticmethod
@@ -809,6 +831,8 @@ class MemorySkillAbstractor:
         for k, v in list(common_params.items())[:3]:
             rules.append(f"IF 参数 {k} 未指定 THEN 使用默认值 {v}")
         # 2. 从成功/失败对比生成边界规则
+        success_only_count = 0
+        failure_only_count = 0
         if failure_entries and success_entries:
             success_param_keys = set()
             for e in success_entries:
@@ -819,13 +843,29 @@ class MemorySkillAbstractor:
             success_only = success_param_keys - failure_param_keys
             if success_only:
                 rules.append(f"IF 缺少参数 {sorted(success_only)} THEN 可能失败")
+                success_only_count = len(success_only)
             failure_only = failure_param_keys - success_param_keys
             if failure_only:
                 rules.append(f"IF 出现参数 {sorted(failure_only)} THEN 警惕 (失败案例特有)")
+                failure_only_count = len(failure_only)
         # 3. 工具缺失规则
         if common_tools:
             rules.append(f"IF 缺少工具 [{', '.join(common_tools)}] THEN 不适用此技能")
-        return rules[:5]  # 最多 5 条
+        rules = rules[:5]  # 最多 5 条
+        logger.info(
+            "[MemAbstract] _extract_if_then_rules | "
+            "params=%d success=%d failure=%d tools=%d | "
+            "success_only_keys=%d failure_only_keys=%d → 规则数=%d",
+            len(common_params), len(success_entries), len(failure_entries),
+            len(common_tools), success_only_count, failure_only_count,
+            len(rules),
+        )
+        if rules:
+            logger.debug(
+                "[MemAbstract]   If-Then 规则明细:\n  - %s",
+                "\n  - ".join(rules),
+            )
+        return rules
 
     @staticmethod
     def _extract_anti_patterns(failure_entries: List[MemoryEntry],
@@ -836,6 +876,8 @@ class MemorySkillAbstractor:
         从失败条目差异 + 域外场景推导
         """
         patterns: List[str] = []
+        failure_only_tools_count = 0
+        failure_only_keys_count = 0
         # 1. 从失败条目提取反例
         if failure_entries:
             # 失败条目独有的工具
@@ -846,6 +888,7 @@ class MemorySkillAbstractor:
             failure_only_tools = failure_tools - success_tools
             if failure_only_tools:
                 patterns.append(f"不适用: 当任务需要工具 {sorted(failure_only_tools)} 时")
+                failure_only_tools_count = len(failure_only_tools)
             # 失败条目独有的参数键
             success_keys = set()
             for e in success_entries:
@@ -856,6 +899,7 @@ class MemorySkillAbstractor:
             failure_only_keys = failure_keys - success_keys
             if failure_only_keys:
                 patterns.append(f"不适用: 当出现参数 {sorted(failure_only_keys)} 时")
+                failure_only_keys_count = len(failure_only_keys)
         # 2. 从 representative_text 推导域外场景
         keywords = _tokenize(representative_text)
         if keywords:
@@ -864,7 +908,21 @@ class MemorySkillAbstractor:
         # 3. 通用反例
         if not failure_entries:
             patterns.append("不适用: 复杂多步骤任务 (本技能基于单步成功案例提炼)")
-        return patterns[:4]  # 最多 4 条
+        patterns = patterns[:4]  # 最多 4 条
+        logger.info(
+            "[MemAbstract] _extract_anti_patterns | "
+            "failure=%d success=%d | failure_only_tools=%d "
+            "failure_only_keys=%d → 反例数=%d",
+            len(failure_entries), len(success_entries),
+            failure_only_tools_count, failure_only_keys_count,
+            len(patterns),
+        )
+        if patterns:
+            logger.debug(
+                "[MemAbstract]   反例边界明细:\n  - %s",
+                "\n  - ".join(patterns),
+            )
+        return patterns
 
     # ─── 草稿生成 ───
 
@@ -884,6 +942,25 @@ class MemorySkillAbstractor:
         name = cluster.representative_text[:60] or "memory-abstracted skill"
         description = (f"从 {cluster.size} 条记忆自动抽象 "
                         f"(成功率 {cluster.success_rate * 100:.0f}%)")
+
+        logger.info(
+            "[MemAbstract] generate_skill_draft START | "
+            "cluster_id=%s | skill_id=%s | size=%d | success_rate=%.2f",
+            cluster.cluster_id, skill_id, cluster.size, cluster.success_rate,
+        )
+        logger.debug(
+            "[MemAbstract]   草稿输入字段: root_cause=%d chars | "
+            "triggers=%d | steps=%d | if_then=%d | anti=%d | "
+            "tools=%d | params=%d | tags=%d",
+            len(cluster.root_cause_hypothesis or ""),
+            len(cluster.trigger_conditions),
+            len(cluster.execution_steps),
+            len(cluster.if_then_rules),
+            len(cluster.anti_patterns),
+            len(cluster.common_tool_names),
+            len(cluster.common_params),
+            len(cluster.common_tags),
+        )
 
         # 三段式结构化 markdown 内容
         content_lines: List[str] = [
@@ -934,6 +1011,24 @@ class MemorySkillAbstractor:
 
         # config_schema 从 default_params 推断
         config_schema = self._infer_config_schema(cluster.common_params)
+
+        sections = []
+        if cluster.root_cause_hypothesis:
+            sections.append("原理")
+        if cluster.trigger_conditions:
+            sections.append("触发")
+        if cluster.execution_steps:
+            sections.append("步骤")
+        if cluster.if_then_rules:
+            sections.append("规则")
+        if cluster.anti_patterns:
+            sections.append("反例")
+        logger.info(
+            "[MemAbstract] generate_skill_draft DONE | "
+            "skill_id=%s | content_len=%d | sections=[%s]",
+            skill_id, len(content),
+            "+".join(sections) if sections else "(empty)",
+        )
 
         return {
             "id": skill_id,
@@ -1074,12 +1169,23 @@ class MemorySkillAbstractor:
     def _process_cluster(self, cluster: MemoryCluster,
                           *, auto_register: bool = False) -> Dict[str, Any]:
         """处理单个聚类: 生成草稿 → 质量门控 → (可选) 注册"""
+        logger.info(
+            "[MemAbstract] _process_cluster START | cluster_id=%s | "
+            "size=%d | auto_register=%s",
+            cluster.cluster_id, cluster.size, auto_register,
+        )
         # 1. 生成草稿
         draft = self.generate_skill_draft(cluster)
 
         # 2. 质量门控
         passed, reasons, duplicate_of = self.check_quality_gate(
             cluster, draft=draft,
+        )
+        logger.info(
+            "[MemAbstract] _process_cluster 质量门控 | "
+            "cluster_id=%s | passed=%s | duplicate_of=%s | reasons=%s",
+            cluster.cluster_id, passed, duplicate_of or "-",
+            reasons or "[]",
         )
 
         # 计算聚类平均信号强度
@@ -1112,9 +1218,19 @@ class MemorySkillAbstractor:
             "draft_if_then_rules": draft.get("if_then_rules", []),
             "draft_anti_patterns": draft.get("anti_patterns", []),
         }
+        logger.debug(
+            "[MemAbstract]   草稿汇总: avg_signal=%.3f | "
+            "draft_skill_id=%s | preview_len=%d",
+            avg_signal, draft["id"], len(draft["content"][:500]),
+        )
 
         # 3. 注册 (仅当通过质量门 + auto_register)
         if passed and auto_register and not duplicate_of:
+            logger.info(
+                "[MemAbstract] _process_cluster 尝试注册 | "
+                "cluster_id=%s | skill_id=%s",
+                cluster.cluster_id, draft["id"],
+            )
             try:
                 svc = self._resolve_skills_service()
                 # 只传 Skill 接受的字段
@@ -1147,4 +1263,10 @@ class MemorySkillAbstractor:
                 result["registered"] = False
                 result["skill_id"] = None
 
+        logger.info(
+            "[MemAbstract] _process_cluster DONE | "
+            "cluster_id=%s | passed=%s | registered=%s | duplicate_of=%s",
+            cluster.cluster_id, passed, result["registered"],
+            duplicate_of or "-",
+        )
         return result
