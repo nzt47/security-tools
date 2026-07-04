@@ -15,6 +15,7 @@
 """
 import sys
 import os
+import subprocess
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -467,6 +468,237 @@ class TestActualFlowIntegration:
         new_content = (isolated_repo / rpw.NEW_WORKFLOW_PATH).read_text(encoding="utf-8")
 
         assert old_content == new_content
+
+
+# ============================================================================
+# 回滚决策树测试（覆盖 9 个补全的失败场景）
+# ============================================================================
+
+
+class TestRollbackDecisionTree:
+    """回滚决策树自动化测试
+
+    覆盖 runbook 第 4.4 节决策树中补全的 9 个失败场景：
+    - 脚本中途崩溃：Step 2/3/4-commit/4-push
+    - 验证阶段超时：Step 5/6/7/API 错误
+    - 结果歧义：P0 通过但其他 Job 失败
+    """
+
+    # --- 脚本中途崩溃场景 ---
+
+    def test_step2_create_new_file_fails(self, isolated_repo):
+        """场景：Step 2 创建新文件失败（如磁盘满）
+
+        决策树：旧文件未被删除，新文件未创建 → 清理不完整新文件
+        """
+        with patch("builtins.open", side_effect=IOError("No space left on device")):
+            with pytest.raises(IOError):
+                rpw.create_new_workflow(dry_run=False)
+
+        # 旧文件应仍存在（未被删除）
+        assert (isolated_repo / rpw.OLD_WORKFLOW_PATH).exists()
+        # 新文件不应存在（创建失败）
+        assert not (isolated_repo / rpw.NEW_WORKFLOW_PATH).exists()
+
+    def test_step3_git_rm_fails(self, isolated_repo):
+        """场景：Step 3 git rm 失败（如文件有未提交修改）
+
+        决策树：新文件已创建但未提交，旧文件未被删除 → 清理新文件
+        """
+        with patch.object(rpw, "run_git") as mock_git:
+            mock_git.side_effect = subprocess.CalledProcessError(
+                1, "git rm", stderr="error: the file has changes staged in the index"
+            )
+
+            with pytest.raises(subprocess.CalledProcessError):
+                rpw.remove_old_workflow(dry_run=False)
+
+        # 旧文件应仍存在（git rm 失败）
+        assert (isolated_repo / rpw.OLD_WORKFLOW_PATH).exists()
+
+    def test_step4_commit_fails(self, isolated_repo):
+        """场景：Step 4 commit 失败（如 pre-commit hook 拒绝）
+
+        决策树：旧文件已 git rm（暂存区），新文件已创建但未提交
+        恢复：git reset HEAD + git checkout + rm 新文件
+        """
+        with patch.object(rpw, "run_git") as mock_git:
+            mock_git.side_effect = [
+                MagicMock(returncode=0),  # git add
+                MagicMock(returncode=1, stderr="pre-commit hook failed"),  # git commit
+            ]
+
+            with pytest.raises(SystemExit):
+                rpw.commit_and_push(dry_run=False)
+
+            # 验证调用了 add 和 commit
+            calls = [c[0][0] for c in mock_git.call_args_list]
+            assert calls[0] == ["add", rpw.NEW_WORKFLOW_PATH]
+            assert calls[1][0] == "commit"
+
+    def test_step4_push_fails(self, isolated_repo):
+        """场景：Step 4 push 失败（网络/权限问题）
+
+        决策树：commit 已创建但未推送到远程
+        恢复：git reset --soft HEAD~1 + git reset HEAD + git checkout + rm 新文件
+        """
+        with patch.object(rpw, "run_git") as mock_git:
+            mock_git.side_effect = [
+                MagicMock(returncode=0),  # git add
+                MagicMock(returncode=0, stdout="abc1234"),  # git commit
+                MagicMock(returncode=1, stderr="Failed to connect"),  # git push
+            ]
+
+            with pytest.raises(SystemExit):
+                rpw.commit_and_push(dry_run=False)
+
+            # 验证 push 被调用
+            calls = [c[0][0] for c in mock_git.call_args_list]
+            assert calls[2] == ["push", "origin", rpw.BRANCH]
+            # rev-parse 不应被调用（push 失败后退出）
+            assert len(mock_git.call_args_list) == 3
+
+    # --- 验证阶段超时场景 ---
+
+    def test_step5_workflow_not_registered_timeout(self):
+        """场景：Step 5 超时 — 新 workflow 未出现在 GitHub Actions
+
+        决策树：push 已成功但 GitHub 未注册 → 等待后重试或恢复旧文件
+        """
+        with patch.object(rpw, "make_request") as mock_req, \
+             patch.object(rpw.time, "sleep") as mock_sleep:
+            mock_req.return_value = (200, {"workflows": []}, None)
+
+            result = rpw.wait_for_new_workflow(token="fake_token", max_wait=0.5)
+
+            assert result is None
+            mock_req.assert_called()
+
+    def test_step6_first_run_not_triggered_timeout(self):
+        """场景：Step 6 超时 — 首次运行未触发
+
+        决策树：新 workflow 已注册但未自动触发 → 手动 workflow_dispatch
+        """
+        with patch.object(rpw, "make_request") as mock_req, \
+             patch.object(rpw.time, "sleep") as mock_sleep:
+            mock_req.return_value = (200, {"workflow_runs": []}, None)
+
+            result = rpw.wait_for_first_run(
+                token="fake_token", commit_sha="abc1234", max_wait=0.5
+            )
+
+            assert result is None
+            mock_req.assert_called()
+
+    def test_step7_run_not_completed_timeout(self):
+        """场景：Step 7 超时 — 运行未完成（轮询超时）
+
+        决策树：运行仍在进行中 → 手动查看 UI，无需回滚
+        """
+        with patch.object(rpw, "make_request") as mock_req, \
+             patch.object(rpw.time, "sleep") as mock_sleep:
+            # 所有 Job 仍 in_progress
+            mock_req.return_value = (
+                200,
+                {"jobs": [{"name": "P0 Security Regression Test", "status": "in_progress", "conclusion": None}]},
+                None,
+            )
+
+            result = rpw.poll_run(token="fake_token", run_id=123, max_poll=2, interval=0)
+
+            assert result is None
+            assert mock_req.call_count == 2
+
+    def test_api_error_403(self):
+        """场景：API 错误 — 403/401/限流
+
+        决策树：Token 过期或权限不足 → 检查 ~/.git-credentials
+        """
+        with patch.object(rpw, "make_request") as mock_req, \
+             patch.object(rpw.time, "sleep") as mock_sleep:
+            mock_req.return_value = (403, None, "HTTPError 403: Forbidden")
+
+            result = rpw.wait_for_new_workflow(token="expired_token", max_wait=0.5)
+
+            # 应返回 None（超时未找到），不崩溃
+            assert result is None
+            mock_req.assert_called()
+
+    def test_api_error_network_exception(self):
+        """场景：API 错误 — 网络异常
+
+        决策树：网络中断 → 手动在 GitHub UI 查看
+        """
+        with patch.object(rpw, "make_request") as mock_req, \
+             patch.object(rpw.time, "sleep") as mock_sleep:
+            mock_req.return_value = (None, None, "Exception: connection refused")
+
+            result = rpw.wait_for_first_run(
+                token="fake_token", commit_sha="abc1234", max_wait=0.5
+            )
+
+            # 应返回 None（超时），不崩溃
+            assert result is None
+
+    # --- 结果歧义场景 ---
+
+    def test_p0_passes_but_other_fails_decision_tree(self, capsys):
+        """场景：P0 回归测试通过，但其他 Job 失败
+
+        决策树：平台故障已解决（核心目标达成），无需回滚 workflow 重建
+        """
+        jobs = [
+            {"name": "静态扫描", "conclusion": "failure", "steps": []},
+            {
+                "name": "P0 Security Regression Test",
+                "conclusion": "success",
+                "steps": [],
+            },
+            {"name": "补丁完整性", "conclusion": "success", "steps": []},
+        ]
+
+        result = rpw.analyze_result(jobs)
+
+        # 决策树：P0 通过 → 无需回滚
+        assert result is True
+        output = capsys.readouterr().out
+        assert "P0 回归测试 Job 已通过" in output
+
+    # --- 完全无法恢复场景 ---
+
+    def test_completely_unrecoverable_no_jobs(self, capsys):
+        """场景：完全无法恢复 — 无法获取 jobs 状态
+
+        决策树：执行场景 C（git revert）→ 场景 D（手工重建）
+        """
+        result = rpw.analyze_result(None)
+
+        assert result is False
+        output = capsys.readouterr().out
+        assert "无法获取" in output
+
+    def test_p0_fails_non_setup_job_decision_tree(self, capsys):
+        """场景：P0 回归测试非 Set up job 步骤失败
+
+        决策树：新 workflow 可能有配置问题 → 执行场景 B（恢复旧文件）
+        """
+        jobs = [
+            {
+                "name": "P0 Security Regression Test",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Set up job", "conclusion": "success"},
+                    {"name": "Run tests", "conclusion": "failure"},
+                ],
+            },
+        ]
+
+        result = rpw.analyze_result(jobs)
+
+        assert result is False
+        output = capsys.readouterr().out
+        # 决策树指出：非 Set up job 失败 → 可能是代码问题
+        assert "代码问题" in output
 
 
 if __name__ == "__main__":
