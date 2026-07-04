@@ -14,6 +14,20 @@ from typing import Any
 from agent.logging_utils import log_dict
 
 
+# 模块级导入（便于测试 patch 'agent.tool_calling.get_rate_limiter' / 'get_circuit_breaker'）
+try:
+    from agent.rate_limiter import get_rate_limiter
+except ImportError:
+    def get_rate_limiter(name: str = "default", **kwargs):
+        return None
+
+try:
+    from agent.circuit_breaker import get_circuit_breaker
+except ImportError:
+    def get_circuit_breaker(name: str = "default", **kwargs):
+        return None
+
+
 def _clean_for_json(obj, _seen=None):
     """递归清理对象，将 bytes 转为字符串，确保 JSON 可序列化
 
