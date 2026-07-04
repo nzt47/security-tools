@@ -314,7 +314,9 @@ python -m pytest tests/unit/test_task_scheduler.py tests/unit/test_task_schedule
 ### P0 安全验证 Workflow 重建脚本
 
 **脚本路径**: `scripts/rebuild_p0_workflow.py`
-**单元测试**: `tests/unit/test_rebuild_p0_workflow.py`（32 个用例）
+**单元测试**: `tests/unit/test_rebuild_p0_workflow.py`（44 个用例）
+**完整手册**: [docs/security/p0_workflow_rebuild_runbook.md](docs/security/p0_workflow_rebuild_runbook.md)
+**快速摘要**: [docs/security/p0_workflow_rebuild_summary.md](docs/security/p0_workflow_rebuild_summary.md)
 
 #### 使用场景
 
@@ -351,11 +353,28 @@ python scripts/rebuild_p0_workflow.py --yes
 | 7 | 等待首次运行 | 轮询确认首次 CI 运行已触发 |
 | 8 | 轮询验证 | 跟踪运行结果，判断 P0 回归测试 Job 是否通过 |
 
-#### 前置条件
+#### 前置条件与权限要求
 
-- 当前分支为 `phase2-visibility-convergence`
-- 工作目录干净（workflow 文件无未提交变更）
-- `~/.git-credentials` 中有有效的 GitHub token
+| 权限项 | 要求 | 验证方法 |
+|--------|------|----------|
+| 仓库写权限 | 对 `nzt47/security-tools` 有 push 权限 | `git push --dry-run origin phase2-visibility-convergence` |
+| GitHub Token | `~/.git-credentials` 中有有效 token（`gho_` 前缀） | `git ls-remote https://github.com/nzt47/security-tools.git` |
+| Actions 查看权限 | 能访问仓库的 Actions 页面 | 浏览器打开 `https://github.com/nzt47/security-tools/actions` |
+| 本地分支 | 当前在 `phase2-visibility-convergence` 分支 | `git rev-parse --abbrev-ref HEAD` |
+| 工作目录状态 | workflow 文件无未提交变更 | `git status --porcelain .github/workflows/p0-security.yml` |
+
+#### 回滚步骤
+
+重建后如出现问题，根据 [完整回滚决策树](docs/security/p0_workflow_rebuild_runbook.md#44-回滚决策树) 选择对应场景：
+
+| 场景 | 触发条件 | 操作 |
+|------|----------|------|
+| A | P0 仍因 Set up job 失败（平台未恢复） | 记录失败 + 联系 GitHub 支持 |
+| B | 新 workflow 有配置问题 | 从备份或 git 历史恢复旧文件 |
+| C | 整个操作需撤销 | `git revert` 回退到重建前 commit |
+| D | 备份丢失且 git 历史不可用 | 从验证报告手工重建 workflow 文件 |
+
+**完整回滚决策树**（覆盖 12 种失败场景）见 [操作手册第 4.4 节](docs/security/p0_workflow_rebuild_runbook.md#44-回滚决策树)。
 
 #### 注意事项
 
@@ -363,9 +382,12 @@ python scripts/rebuild_p0_workflow.py --yes
 - 新 workflow 会有全新的 workflow ID，所有 Job 缓存会被清除
 - 推送后会自动触发首次 CI 运行
 - `--dry-run` 模式不产生任何文件系统副作用（备份、创建、删除、推送均跳过）
+- 删除逻辑不使用 `git rm -f`，遇到未提交修改会自动拒绝（安全机制）
 
 #### 相关文档
 
+- [完整操作手册与验证报告](docs/security/p0_workflow_rebuild_runbook.md) — 含风险评估、dry-run 验证、12 种回滚场景
+- [快速摘要](docs/security/p0_workflow_rebuild_summary.md) — 团队快速阅读版（~3 分钟）
 - [P0 最终验证报告](docs/security/p0_final_verification_report.md) — 完整诊断过程和 17 次运行记录
 - [P0 安全修复归档](docs/security/p0_security_fix_archive_20260703.md)
 - [Release Notes](docs/security/RELEASE_NOTES_P0_SECURITY_20260703.md)
