@@ -518,7 +518,8 @@ jobs:
           # - flask：requirements.txt 由旧版 pyproject.toml 生成，未包含 flask
           # - prometheus-flask-exporter：/metrics 端点所需
           # - requests：E2E 测试脚本所需
-          pip install flask prometheus-flask-exporter requests
+          # - lxml：agent/web/scraper.py 直接依赖，requirements.txt 未包含
+          pip install flask prometheus-flask-exporter requests lxml
 
       - name: 启动 Prometheus 容器（checkout 后启动，避免 mount 失败）
         run: |
