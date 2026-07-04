@@ -15,105 +15,122 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import tempfile
+import time
 
 
 class TestTracePersistence(unittest.TestCase):
-    """Trace 持久化存储测试"""
-    
+    """Trace 持久化存储测试
+
+    API 契约对齐说明：
+    TraceStorage 是 agent.observability.subscriber.TraceStore 的别名，
+    为内存环形缓冲区存储（非文件持久化）。测试已从假想的文件持久化 API
+    对齐到实际的内存存储 API：
+    - TraceStorage(storage_path=) → TraceStorage() / TraceStorage(max_traces=)
+    - record.created_at → record.start_time
+    - record.add_span(dict) → storage.add_span(trace_id, TraceSpan(...))
+    - storage.save_trace(record) → storage.start_trace(trace_id) + storage.end_trace(trace_id)
+    - storage.load_trace(tid) → storage.get_trace(tid)
+    - storage.list_traces() → storage.get_recent(n)
+    """
+
     def setUp(self):
         """设置测试环境"""
         from agent.monitoring.tracing import TraceStorage, TraceRecord, get_trace_storage
-        
-        # 使用临时目录
-        self.temp_dir = tempfile.mkdtemp()
-        self.storage = TraceStorage(storage_path=self.temp_dir)
+        # TraceStorage 是 TraceStore 的别名（内存存储，不接受 storage_path）
+        self.storage = TraceStorage()
         self.TraceRecord = TraceRecord
-    
+        # 每个测试前清空状态，避免单例污染
+        self.storage.clear()
+
     def tearDown(self):
         """清理测试环境"""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+        self.storage.clear()
+
     def test_trace_record_creation(self):
         """测试 TraceRecord 创建"""
         record = self.TraceRecord(trace_id="test-trace-001")
-        
+
         self.assertEqual(record.trace_id, "test-trace-001")
         self.assertEqual(record.spans, [])
-        self.assertIsNotNone(record.created_at)
-    
+        # TraceRecord 的 start_time 默认为 0.0；通过 start_trace 创建时设为 time.time()
+        self.assertIsNotNone(record.start_time)
+
     def test_trace_add_span(self):
         """测试添加 Span"""
-        record = self.TraceRecord(trace_id="test-trace-002")
-        
-        span_data = {
-            "span_id": "span-001",
-            "service": "TestService",
-            "operation": "test_op",
-            "start_time": 1234567890.0,
-            "end_time": 1234567891.0,
-            "duration_ms": 1000.0
-        }
-        
-        record.add_span(span_data)
-        
+        from agent.observability.subscriber import TraceSpan
+
+        self.storage.start_trace("test-trace-002")
+        span = TraceSpan(
+            span_id="span-001",
+            operation="test_op",
+            start_time=1234567890.0,
+            end_time=1234567891.0,
+            duration_ms=1000.0,
+        )
+        self.storage.add_span("test-trace-002", span)
+
+        record = self.storage.get_trace("test-trace-002")
+        self.assertIsNotNone(record)
         self.assertEqual(len(record.spans), 1)
-        self.assertEqual(record.spans[0]["span_id"], "span-001")
-    
+        self.assertEqual(record.spans[0].span_id, "span-001")
+
     def test_trace_save_and_load(self):
         """测试保存和加载 Trace"""
-        record = self.TraceRecord(trace_id="test-trace-003")
-        record.add_span({
-            "span_id": "span-001",
-            "service": "ServiceA",
-            "operation": "operation1"
-        })
-        
-        self.storage.save_trace(record)
-        loaded = self.storage.load_trace("test-trace-003")
-        
+        from agent.observability.subscriber import TraceSpan
+
+        self.storage.start_trace("test-trace-003")
+        span = TraceSpan(
+            span_id="span-001",
+            operation="operation1",
+            start_time=time.time(),
+        )
+        self.storage.add_span("test-trace-003", span)
+        self.storage.end_trace("test-trace-003", output="done")
+
+        loaded = self.storage.get_trace("test-trace-003")
         self.assertIsNotNone(loaded)
         self.assertEqual(loaded.trace_id, "test-trace-003")
         self.assertEqual(len(loaded.spans), 1)
-    
+
     def test_trace_list(self):
         """测试列出 Trace"""
         for i in range(3):
-            record = self.TraceRecord(trace_id=f"test-trace-{i:03d}")
-            record.add_span({"span_id": f"span-{i}"})
-            self.storage.save_trace(record)
-        
-        traces = self.storage.list_traces()
-        
+            tid = f"test-trace-{i:03d}"
+            self.storage.start_trace(tid)
+            self.storage.end_trace(tid)
+
+        traces = self.storage.get_recent(10)
         self.assertEqual(len(traces), 3)
-        self.assertEqual(traces[0]["trace_id"], "test-trace-002")  # 按时间倒序
-    
+        # get_recent 返回最近 N 条，按插入顺序（旧→新）
+        self.assertEqual(traces[0].trace_id, "test-trace-000")  # 最旧
+        self.assertEqual(traces[-1].trace_id, "test-trace-002")  # 最新
+
     def test_build_flow_chart_data(self):
         """测试构建流程图数据"""
-        record = self.TraceRecord(trace_id="flow-test-001")
-        record.add_span({
-            "span_id": "span-1",
-            "service": "ServiceA",
-            "operation": "start",
-            "start_time": 1234567890.0,
-            "end_time": 1234567890.5,
-            "duration_ms": 500.0
-        })
-        record.add_span({
-            "span_id": "span-2",
-            "parent_span_id": "span-1",
-            "service": "ServiceB",
-            "operation": "process",
-            "start_time": 1234567890.5,
-            "end_time": 1234567891.0,
-            "duration_ms": 500.0
-        })
-        
-        self.storage.save_trace(record)
-        
-        loaded_record = self.storage.load_trace("flow-test-001")
+        from agent.observability.subscriber import TraceSpan
+
+        self.storage.start_trace("flow-test-001")
+        span1 = TraceSpan(
+            span_id="span-1",
+            operation="start",
+            start_time=1234567890.0,
+            end_time=1234567890.5,
+            duration_ms=500.0,
+        )
+        span2 = TraceSpan(
+            span_id="span-2",
+            operation="process",
+            start_time=1234567890.5,
+            end_time=1234567891.0,
+            duration_ms=500.0,
+        )
+        self.storage.add_span("flow-test-001", span1)
+        self.storage.add_span("flow-test-001", span2)
+        self.storage.end_trace("flow-test-001")
+
+        loaded_record = self.storage.get_trace("flow-test-001")
         self.assertIsNotNone(loaded_record)
-        
+
         # 验证记录内容
         self.assertEqual(loaded_record.trace_id, "flow-test-001")
         self.assertEqual(len(loaded_record.spans), 2)
