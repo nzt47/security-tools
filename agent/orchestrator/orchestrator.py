@@ -518,6 +518,48 @@ class Orchestrator:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._check_context_usage.log', 'message': '检查上下文使用率时出错: %s' % (e,)}))
             return None
 
+    @staticmethod
+    def _extract_keywords(text: str, max_keywords: int = 3) -> list:
+        """从文本中提取关键词
+
+        规则：
+        - 空字符串/纯特殊字符 → []
+        - 短句（≤4字）→ 整体作为一个关键词
+        - 长句 → 按标点/空格分割，过滤停用词与过短片段，去重
+        """
+        if not text or not text.strip():
+            return []
+
+        # 纯特殊字符（无中文/字母数字）→ []
+        if not _re.search(r'[\w\u4e00-\u9fff]', text):
+            return []
+
+        # 短句（≤4个字符）→ 整体作为关键词
+        if len(text) <= 4:
+            return [text]
+
+        # 长句 → 按标点/空格分割
+        segments = _re.split(r'[，。！？；：、,.\!?;:\s]+', text)
+        stopwords = {'帮我', '一下', '这个', '的', '了', '是', '在', '我',
+                     '你', '他', '她', '它', '和', '与', '及', '并', '而'}
+        keywords = []
+        for seg in segments:
+            seg = seg.strip()
+            if not seg or len(seg) < 2:
+                continue
+            if seg in stopwords:
+                continue
+            if seg not in keywords:
+                keywords.append(seg)
+            if len(keywords) >= max_keywords:
+                break
+
+        # 无标点长句分割后只有一个片段 → 直接返回
+        if not keywords:
+            return [text]
+
+        return keywords[:max_keywords]
+
     # ════════════════════════════════════════════════════════════════════
     #  LLM 调用
     # ════════════════════════════════════════════════════════════════════

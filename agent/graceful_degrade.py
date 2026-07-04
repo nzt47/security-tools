@@ -432,10 +432,34 @@ class GracefulDegrade:
         """以模块为粒度执行带降级保护的调用
 
         支持重试（max_retries）和缓存（cache_ttl_seconds）。
+
+        降级判定优先级：
+        1. is_degraded(component) — force_degrade 或 _trigger_degrade 设置的降级期
+        2. _should_degrade(module) — 基于 error_count/success_count 的错误率自动判定
+        3. 正常路径（带缓存命中和重试）
         """
         component = self._module_key(module)
 
-        # 检查是否需要降级
+        # 1. 降级期内直接返回 fallback / 缓存 / 默认值，不调用主函数
+        if self.is_degraded(component):
+            self._record_degrade(module, DegradeLevel.FALLBACK)
+            self._log_action("degrade_short_circuit", {
+                "component": component,
+                "level": self.get_state(component).level.value,
+            })
+            cached = self._cache_get(component)
+            if cached is not None:
+                return cached
+            if fallback is not None:
+                try:
+                    return fallback()
+                except Exception as fb_exc:
+                    self._log_action("fallback_failed", {
+                        "component": component, "error": str(fb_exc)[:200],
+                    })
+            return self.default_fallbacks.get(component)
+
+        # 2. 基于错误率自动降级
         should_degrade, level = self._should_degrade(module)
         if should_degrade:
             self._record_degrade(module, level)
@@ -455,14 +479,14 @@ class GracefulDegrade:
                     self._log_action("fallback_failed", {
                         "component": component, "error": str(exc)[:200],
                     })
-            return self._get_module_default(component)
+            return self.default_fallbacks.get(component)
 
-        # 总是先检查缓存（支持缓存命中，避免不必要的调用）
+        # 3. 总是先检查缓存（支持缓存命中，避免不必要的调用）
         cached = self._cache_get(component)
         if cached is not None:
             return cached
 
-        # 尝试主调用（带重试）
+        # 4. 尝试主调用（带重试）
         last_exc = None
         for attempt in range(self._config.max_retries + 1):
             try:
@@ -485,7 +509,7 @@ class GracefulDegrade:
                     if delay > 0:
                         time.sleep(delay)
 
-        # 全部重试失败，触发降级
+        # 5. 全部重试失败，触发降级
         self._trigger_degrade(component)
         self._record_degrade(module, DegradeLevel.FALLBACK)
         self._log_action("degrade_triggered", {
@@ -506,7 +530,7 @@ class GracefulDegrade:
                 self._log_action("fallback_failed", {
                     "component": component, "error": str(fb_exc)[:200],
                 })
-        return self._get_module_default(component)
+        return self.default_fallbacks.get(component)
 
     # ── 模块专用降级方法（新 API） ──────────────────────────
 

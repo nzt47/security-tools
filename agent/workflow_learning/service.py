@@ -228,13 +228,201 @@ class WorkflowLearningService:
                 })
         return candidates
 
+    # ─── 批量 LLM 转换外部 agent 技能 ───
+
+    def batch_convert_external_skills(self, external_skills: List[Dict[str, Any]],
+                                       *, llm_client=None,
+                                       skills_service=None,
+                                       merge_threshold: float = 0.85,
+                                       strengthen_threshold: float = 0.7) -> Dict[str, Any]:
+        """批量把外部 agent 的技能转换为本地技能并自动合并/加强/新建
+
+        对每个外部技能执行:
+            1. 调用 convert_external_skill 翻译 + 注册（LLM 或规则）
+            2. 用 find_duplicates_for 检测与现有技能的 Jaccard 相似度
+            3. 根据相似度选择动作:
+                - Jaccard ≥ merge_threshold → 合并到现有技能（新建的作为 src 被删）
+                - strengthen_threshold ≤ Jaccard < merge_threshold → 加强现有技能
+                  （合并 tags/dependencies 到现有技能，删除新建的临时技能）
+                - Jaccard < strengthen_threshold → 保留新建技能
+
+        Args:
+            external_skills: 外部技能列表（每个元素是 dict）
+            llm_client: LLM 客户端（None 时走规则转换）
+            skills_service: SkillsMgmtService 实例
+            merge_threshold: 触发合并的 Jaccard 阈值（默认 0.85）
+            strengthen_threshold: 触发加强的 Jaccard 阈值（默认 0.7）
+
+        Returns:
+            {total_input, converted, merged: [...], strengthened: [...],
+             created: [...], failed: [...]}
+        """
+        with traced_action("svc_batch_convert_external",
+                           total=len(external_skills),
+                           merge_threshold=merge_threshold,
+                           strengthen_threshold=strengthen_threshold):
+            svc = skills_service or self._resolve_skills_service()
+            converter = self._build_converter(svc)
+
+            summary: Dict[str, Any] = {
+                "total_input": len(external_skills),
+                "converted": 0,
+                "merged": [],
+                "strengthened": [],
+                "created": [],
+                "failed": [],
+            }
+
+            for ext in external_skills:
+                ext_name = ext.get("name", "") if isinstance(ext, dict) else ""
+                try:
+                    # 1. LLM 翻译 + 注册
+                    conv = converter.convert_external_skill(ext, llm_client)
+                    new_skill_id = conv["skill_id"]
+                    summary["converted"] += 1
+
+                    # 2. 检测与现有技能的相似度
+                    try:
+                        dups = svc.find_duplicates_for(
+                            new_skill_id, min_jaccard=strengthen_threshold,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "[BatchConvert] 重复检测失败 skill=%s: %s",
+                            new_skill_id, e,
+                        )
+                        dups = []
+
+                    if not dups:
+                        summary["created"].append({
+                            "skill_id": new_skill_id,
+                            "skill_name": conv["skill_name"],
+                            "source_format": conv.get("source_format", "unknown"),
+                        })
+                        continue
+
+                    # 选相似度最高的（find_duplicates_for 返回的列表已按相似度降序）
+                    best = max(
+                        dups, key=lambda d: d.get("jaccard", 0.0),
+                    )
+                    jaccard = best.get("jaccard", 0.0)
+                    # find_duplicates_for 返回的条目用 other_id 标识重复技能
+                    # （兼容老接口的 skill_a/skill_b 字段）
+                    existing_id = best.get("other_id") or best.get("skill_b")
+                    if not existing_id:
+                        # 兜底：跳过这一对（数据结构异常）
+                        summary["created"].append({
+                            "skill_id": new_skill_id,
+                            "skill_name": conv["skill_name"],
+                            "fallback": "no_existing_id",
+                        })
+                        continue
+
+                    if jaccard >= merge_threshold:
+                        # 3a. 合并：新建技能作为 src 被合并到 existing
+                        try:
+                            merge_result = svc.merge_duplicate_skills(
+                                new_skill_id, existing_id,
+                                strategy="keep_dst",
+                            )
+                            summary["merged"].append({
+                                "external_name": ext_name,
+                                "new_skill_id": new_skill_id,
+                                "merged_into": existing_id,
+                                "jaccard": round(jaccard, 4),
+                                "merged_fields": merge_result.get(
+                                    "merged_fields", [],
+                                ),
+                            })
+                        except Exception as e:
+                            logger.warning(
+                                "[BatchConvert] 合并失败 %s → %s: %s",
+                                new_skill_id, existing_id, e,
+                            )
+                            summary["created"].append({
+                                "skill_id": new_skill_id,
+                                "skill_name": conv["skill_name"],
+                                "fallback": "merge_failed",
+                                "error": str(e),
+                            })
+                    else:
+                        # 3b. 加强：把新技能的 tags/dependencies 合并到 existing
+                        try:
+                            new_skill = svc.get(new_skill_id)
+                            existing = svc.get(existing_id)
+                            added_tags = [
+                                t for t in new_skill.tags
+                                if t not in existing.tags
+                            ]
+                            added_deps = [
+                                d for d in new_skill.dependencies
+                                if d not in existing.dependencies
+                            ]
+                            patch: Dict[str, Any] = {}
+                            if added_tags:
+                                patch["tags"] = list(existing.tags) + added_tags
+                            if added_deps:
+                                patch["dependencies"] = (
+                                    list(existing.dependencies) + added_deps
+                                )
+                            if patch:
+                                svc.update(existing_id, patch)
+                            # 删除新建的临时技能
+                            svc.delete(new_skill_id)
+                            summary["strengthened"].append({
+                                "external_name": ext_name,
+                                "strengthened_skill_id": existing_id,
+                                "jaccard": round(jaccard, 4),
+                                "added_tags": added_tags,
+                                "added_deps": added_deps,
+                            })
+                        except Exception as e:
+                            logger.warning(
+                                "[BatchConvert] 加强失败 %s → %s: %s",
+                                new_skill_id, existing_id, e,
+                            )
+                            summary["created"].append({
+                                "skill_id": new_skill_id,
+                                "skill_name": conv["skill_name"],
+                                "fallback": "strengthen_failed",
+                                "error": str(e),
+                            })
+                except Exception as e:
+                    summary["failed"].append({
+                        "external_name": ext_name,
+                        "error": str(e),
+                    })
+
+            # 埋点
+            try:
+                from .observability import track_event
+                track_event("batch_convert_external_skills", {
+                    "total_input": summary["total_input"],
+                    "converted": summary["converted"],
+                    "merged_count": len(summary["merged"]),
+                    "strengthened_count": len(summary["strengthened"]),
+                    "created_count": len(summary["created"]),
+                    "failed_count": len(summary["failed"]),
+                })
+            except Exception:
+                pass
+
+            logger.info(
+                "[BatchConvert] 完成: 输入=%d, 转换=%d, 合并=%d, 加强=%d, "
+                "新建=%d, 失败=%d",
+                summary["total_input"], summary["converted"],
+                len(summary["merged"]), len(summary["strengthened"]),
+                len(summary["created"]), len(summary["failed"]),
+            )
+            return summary
+
     # ─── 内部辅助 ───
 
     def _resolve_skills_service(self):
         """延迟导入 SkillsMgmtService 全局单例（避免循环依赖）"""
-        from agent.skills_mgmt.service import get_skills_service
         try:
-            return get_skills_service()
+            from agent.state_manager import get_skills_mgmt_service
+            return get_skills_mgmt_service()
         except Exception:
             # 兜底：直接构造（使用默认存储）
             from agent.skills_mgmt.service import SkillsMgmtService

@@ -218,6 +218,8 @@ jobs:
   #   filter_chain_factory 调用验证、log_dict_factory 调用验证、组合场景、
   #   边界处理、互斥场景、mock 计数验证、结果一致性与解耦
   # 同时运行完整日志测试套件（114 个测试）确保无回归
+  # 新增：lifecycle_manager DI 测试（26 个）+ error_handler DI 测试（29 个）
+  #       + error_handler 回归套件（492 个），覆盖 DI 重构后的全部路径
   # ============================================================================
   di-unit-tests:
     name: 依赖注入单元测试
@@ -263,6 +265,33 @@ jobs:
             --tb=short \
             --junit-xml=logs/full_log_test_results.xml
 
+      - name: 运行 lifecycle_manager DI 测试（26 个测试）
+        run: |
+          echo "=== 运行 lifecycle_manager 依赖注入测试 ==="
+          python -m pytest \
+            tests/unit/test_lifecycle_manager_di.py \
+            -v \
+            --tb=short \
+            --junit-xml=logs/lifecycle_di_test_results.xml \
+            --cov=agent/orchestrator/lifecycle_manager \
+            --cov-report=term-missing \
+            --cov-report=xml:logs/lifecycle_di_coverage.xml
+
+      - name: 运行 error_handler DI 测试 + 回归套件（29 + 492 个测试）
+        run: |
+          echo "=== 运行 error_handler DI 测试与回归套件 ==="
+          python -m pytest \
+            tests/unit/test_error_handler_di.py \
+            tests/unit/test_error_handler.py \
+            tests/unit/test_error_handler_comprehensive.py \
+            tests/unit/test_error_handler_edge.py \
+            -v \
+            --tb=short \
+            --junit-xml=logs/error_handler_test_results.xml \
+            --cov=agent/error_handler \
+            --cov-report=term-missing \
+            --cov-report=xml:logs/error_handler_coverage.xml
+
       - name: 上传测试报告
         if: always()
         uses: actions/upload-artifact@v4
@@ -272,30 +301,35 @@ jobs:
             logs/di_test_results.xml
             logs/di_coverage.xml
             logs/full_log_test_results.xml
+            logs/lifecycle_di_test_results.xml
+            logs/lifecycle_di_coverage.xml
+            logs/error_handler_test_results.xml
+            logs/error_handler_coverage.xml
           retention-days: 30
 
       - name: 测试覆盖率摘要
         if: always()
         run: |
           echo "=== 测试覆盖率摘要 ==="
-          if [ -f logs/di_coverage.xml ]; then
-            echo "覆盖率报告已生成（logs/di_coverage.xml）"
-            # 提取覆盖率百分比（简化版，实际可用 jacoco 或 coverage-badge）
-            python -c "
-            import xml.etree.ElementTree as ET
-            try:
-                tree = ET.parse('logs/di_coverage.xml')
-                root = tree.getroot()
-                line_rate = root.get('line-rate', 'N/A')
-                branch_rate = root.get('branch-rate', 'N/A')
-                print(f'行覆盖率: {float(line_rate)*100:.2f}%')
-                print(f'分支覆盖率: {float(branch_rate)*100:.2f}%')
-            except Exception as e:
-                print(f'解析覆盖率报告失败: {e}')
-            "
-          else
-            echo "⚠️ 覆盖率报告未生成"
-          fi
+          for cov_file in logs/di_coverage.xml logs/lifecycle_di_coverage.xml logs/error_handler_coverage.xml; do
+            if [ -f "$cov_file" ]; then
+              echo "--- $cov_file ---"
+              python -c "
+              import xml.etree.ElementTree as ET
+              try:
+                  tree = ET.parse('$cov_file')
+                  root = tree.getroot()
+                  line_rate = root.get('line-rate', 'N/A')
+                  branch_rate = root.get('branch-rate', 'N/A')
+                  print(f'行覆盖率: {float(line_rate)*100:.2f}%')
+                  print(f'分支覆盖率: {float(branch_rate)*100:.2f}%')
+              except Exception as e:
+                  print(f'解析覆盖率报告失败: {e}')
+              "
+            else
+              echo "⚠️ $cov_file 未生成"
+            fi
+          done
 
   # ============================================================================
   # 阶段 4：质量门禁（汇总检查）
