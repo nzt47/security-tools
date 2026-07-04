@@ -55,14 +55,19 @@ dependencies = [
   "flask>=3.0.0",
   "prometheus-flask-exporter>=0.23.0",
   "gunicorn>=21.2.0",
-  "waitress>=3.0.0"
+  "waitress>=3.0.0",
+  # Windows-only 依赖（pyttsx3 的间接依赖）。
+  # 使用 PEP 508 platform markers，在 Linux/macOS 上自动跳过，
+  # 替代 CI workflow 中的 `grep -v 'pywin32|pypiwin32|comtypes'` 过滤方案。
+  # 详见 docs/observability/ci_yml_workflow_fix_commit_record.md 附录 A
+  "pywin32>=305; sys_platform == 'win32'",
+  "pypiwin32>=223; sys_platform == 'win32'",
+  "comtypes>=1.4.0; sys_platform == 'win32'",
+  "wmi>=1.5.0,<1.6.0; sys_platform == 'win32'",
+  "pythoncom>=0.0.1; sys_platform == 'win32'"
 ]
 
 [project.optional-dependencies]
-windows = [
-  "wmi>=1.5.0,<1.6.0",
-  "pythoncom>=0.0.1"
-]
 dev = [
   "pytest>=7.0.0",
   "pytest-cov>=4.0.0",
