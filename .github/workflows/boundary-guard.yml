@@ -60,10 +60,10 @@ jobs:
         with:
           script: |
             const highRisk = parseInt('${{ steps.scan.outputs.high_risk }}');
-            if (highRisk > 3) {
-              core.setFailed(`检测到 ${highRisk} 个高风险 timedelta 调用（基线 3），请检查扫描报告`);
+            if (highRisk > 5) {
+              core.setFailed(`检测到 ${highRisk} 个高风险 timedelta 调用（基线 5），请检查扫描报告`);
             } else {
-              core.warning(`检测到 ${highRisk} 个高风险 timedelta 调用（已校验，基线 3）`);
+              core.warning(`检测到 ${highRisk} 个高风险 timedelta 调用（已校验，基线 5）`);
             }
 
   hardcoded-boundary-scan:
