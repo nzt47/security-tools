@@ -167,18 +167,28 @@ class SkillEnhancer:
 
     # ─── 参数优化 ───
 
+    # Item 4 自动参数迭代阈值
+    MIN_PARAM_SAMPLE = 5              # 参数组合最少样本数
+    PARAM_WIN_MARGIN = 0.10           # 比当前 default 高 10%+ 才采纳
+    PARAM_AVOID_FAILURE_RATE = 0.50   # 失败率 ≥ 50% → 加入黑名单
+    PARAM_AVOID_MIN_SAMPLE = 5        # 黑名单触发的最小样本数
+
     def optimize_params(self, skill_id: str,
                         feedback_summary: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """基于使用指标 + 用户反馈推荐参数调整
+        """基于使用指标 + 用户反馈推荐参数调整 + 自动持久化最佳参数
 
         策略:
-            - 失败率 > 30% → 重置到默认参数
+            - 失败率 > 30% → 重置到默认参数（自动持久化）
             - 平均延迟 > 5s → 标记需要优化 (返回建议)
             - 成功率 ≥ 99% & 使用 ≥ 10 & 状态 APPROVED → 自动晋升 PUBLISHED
             - 反馈维度（若传入 feedback_summary）:
                 * 平均评分 < 3.0 → 标记需改进参数
                 * 满意度 ≥ 90% & 总反馈 ≥ 5 → 加分项，建议晋升
                 * 满意度 < 50% & 总反馈 ≥ 5 → 建议降级或合并
+            - Item 4 自动参数迭代:
+                * 从 param_stats 中找出成功率最高、样本≥5 的参数组合
+                * 若比当前 default_params 成功率高 ≥ 10% → 持久化为新 default (patch 版本)
+                * 失败率 ≥ 50% 的参数组合 → 加入 avoid_params 黑名单
         """
         with traced_action("skill_optimize_params", skill_id=skill_id):
             skill = self._require(skill_id)
@@ -228,6 +238,21 @@ class SkillEnhancer:
                         )
                         actions["consider_deprecate"] = True
 
+            # Item 4: 自动参数迭代 — 找出最佳参数组合
+            auto_result = self._auto_persist_best_params(skill)
+            if auto_result:
+                actions.update(auto_result["actions"])
+                recommendations.extend(auto_result["recommendations"])
+
+            # Item 4: 黑名单参数组合
+            avoid_added = self._scan_avoid_params(skill)
+            if avoid_added:
+                actions["avoid_params_added"] = avoid_added
+                recommendations.append(
+                    f"识别 {len(avoid_added)} 个失败率过高的参数组合，"
+                    "已加入黑名单"
+                )
+
             if actions.get("promote_to_published") and \
                     skill.status == SkillStatus.APPROVED.value:
                 skill.status = SkillStatus.PUBLISHED
@@ -242,13 +267,283 @@ class SkillEnhancer:
                 "feedback_summary": feedback_summary or {},
             }
 
+    def _auto_persist_best_params(self, skill: Skill) -> Dict[str, Any]:
+        """从 param_stats 找出最优参数组合并持久化为 default_params
+
+        判定条件（同时满足）:
+            - 样本数 ≥ MIN_PARAM_SAMPLE
+            - 成功率比当前 default_params 的成功率高 ≥ PARAM_WIN_MARGIN
+            - 平均延迟不劣于当前 default_params 的 1.5 倍
+            - 与当前 default_params 哈希不同（避免空操作）
+            - 不在 avoid_params 黑名单内
+
+        持久化方式:
+            - 调用 bump_version("patch") 升级版本
+            - 写入新 default_params + 旧版本快照
+        """
+        m = skill.metrics
+        if not m.param_stats:
+            logger.debug(
+                "[ParamIter] skill=%s 跳过: param_stats 为空", skill.id,
+            )
+            return {"actions": {}, "recommendations": []}
+
+        # 计算当前 default_params 的成功率基线
+        current_hash = self._hash_params(skill.default_params)
+        current_stat = m.param_stats.get(current_hash)
+        if current_stat:
+            cur_total = current_stat.get("success", 0) + current_stat.get("failure", 0)
+            cur_success_rate = (
+                current_stat.get("success", 0) / cur_total if cur_total > 0 else 0.0
+            )
+            cur_avg_latency = (
+                current_stat.get("total_latency_ms", 0.0) / cur_total
+                if cur_total > 0 else 0.0
+            )
+        else:
+            cur_success_rate = m.success_rate
+            cur_avg_latency = m.avg_latency_ms
+
+        logger.info(
+            "[ParamIter] skill=%s 开始扫描 | param_stats=%d 组 | "
+            "current_default_hash=%s | baseline_success_rate=%.4f "
+            "(样本 %d) | baseline_avg_latency=%.1fms",
+            skill.id, len(m.param_stats), current_hash,
+            cur_success_rate,
+            (current_stat.get("success", 0) + current_stat.get("failure", 0))
+            if current_stat else 0,
+            cur_avg_latency,
+        )
+
+        best_key = None
+        best_stat = None
+        best_rate = -1.0
+        avoid_keys = {
+            self._hash_params(entry.get("params", {}))
+            for entry in m.avoid_params
+            if isinstance(entry, dict)
+        }
+        scanned = 0
+        skipped_blacklist = 0
+        skipped_low_sample = 0
+        skipped_no_margin = 0
+        skipped_high_latency = 0
+        for key, stat in m.param_stats.items():
+            if key == current_hash:
+                continue
+            if key in avoid_keys:
+                skipped_blacklist += 1
+                logger.debug(
+                    "[ParamIter] skill=%s 候选 %s 跳过: 在 avoid_params 黑名单",
+                    skill.id, key,
+                )
+                continue
+            scanned += 1
+            total = stat.get("success", 0) + stat.get("failure", 0)
+            if total < self.MIN_PARAM_SAMPLE:
+                skipped_low_sample += 1
+                logger.debug(
+                    "[ParamIter] skill=%s 候选 %s 跳过: 样本 %d < %d",
+                    skill.id, key, total, self.MIN_PARAM_SAMPLE,
+                )
+                continue
+            rate = stat.get("success", 0) / total
+            avg_lat = stat.get("total_latency_ms", 0.0) / total
+            margin = rate - cur_success_rate
+            logger.info(
+                "[ParamIter] skill=%s 候选 %s 命中: 样本=%d success=%d "
+                "failure=%d | success_rate=%.4f (Δ%+.4f) | avg_latency=%.1fms",
+                skill.id, key, total,
+                stat.get("success", 0), stat.get("failure", 0),
+                rate, margin, avg_lat,
+            )
+            # 成功率优势 + 延迟可接受
+            latency_cap = max(cur_avg_latency * 1.5, 1000)
+            if rate < cur_success_rate + self.PARAM_WIN_MARGIN:
+                skipped_no_margin += 1
+                logger.debug(
+                    "[ParamIter] skill=%s 候选 %s 跳过: 优势 %+.4f < 阈值 %.2f",
+                    skill.id, key, margin, self.PARAM_WIN_MARGIN,
+                )
+                continue
+            if avg_lat > latency_cap:
+                skipped_high_latency += 1
+                logger.debug(
+                    "[ParamIter] skill=%s 候选 %s 跳过: 延迟 %.1fms > 上限 %.1fms",
+                    skill.id, key, avg_lat, latency_cap,
+                )
+                continue
+            if rate > best_rate:
+                best_rate = rate
+                best_key = key
+                best_stat = stat
+
+        logger.info(
+            "[ParamIter] skill=%s 扫描完成 | 扫描=%d 黑名单跳过=%d "
+            "样本不足=%d 优势不足=%d 延迟过大=%d | best=%s",
+            skill.id, scanned, skipped_blacklist, skipped_low_sample,
+            skipped_no_margin, skipped_high_latency,
+            best_key or "(无)",
+        )
+
+        if not best_key or not best_stat:
+            logger.info(
+                "[ParamIter] skill=%s 无候选满足持久化条件，保持当前 default",
+                skill.id,
+            )
+            return {"actions": {}, "recommendations": []}
+
+        # 找到候选 — 持久化
+        new_params = dict(best_stat.get("params", {}))
+        old_params = dict(skill.default_params)
+        total = best_stat.get("success", 0) + best_stat.get("failure", 0)
+        new_rate = best_stat.get("success", 0) / total
+        new_avg_lat = best_stat.get("total_latency_ms", 0.0) / total
+        changelog = (
+            f"自动参数迭代: success_rate {cur_success_rate:.2f}→{new_rate:.2f} "
+            f"(样本 {total})"
+        )
+        logger.info(
+            "[ParamIter] skill=%s 准备持久化 best=%s | "
+            "success_rate: %.4f → %.4f (Δ%+.4f) | "
+            "avg_latency: %.1fms → %.1fms | 样本=%d",
+            skill.id, best_key,
+            cur_success_rate, new_rate, new_rate - cur_success_rate,
+            cur_avg_latency, new_avg_lat, total,
+        )
+        try:
+            old_version = skill.version
+            self.bump_version(
+                skill.id, "patch",
+                changelog=changelog,
+                content=skill.content,
+            )
+            # bump_version 会重新拉取一次技能，需要重新设置 default_params
+            fresh = self._store.get(skill.id)
+            if fresh is None:
+                logger.warning(
+                    "[ParamIter] skill=%s bump_version 后技能丢失", skill.id,
+                )
+                return {"actions": {}, "recommendations": []}
+            fresh.default_params = new_params
+            fresh.touch()
+            self._store.upsert(fresh)
+            # 让上层调用者看到最新值
+            skill.default_params = new_params
+            skill.version = fresh.version
+            skill.versions = fresh.versions
+
+            logger.info(
+                "[ParamIter] skill=%s ✓ 已持久化 | version %s → %s | "
+                "default_params: %s → %s",
+                skill.id, old_version, fresh.version,
+                old_params, new_params,
+            )
+            track_event("skill_params_auto_persisted", {
+                "skill_id": skill.id,
+                "old_success_rate": cur_success_rate,
+                "new_success_rate": new_rate,
+                "sample_size": total,
+            })
+            return {
+                "actions": {
+                    "param_auto_persisted": True,
+                    "new_default_params": new_params,
+                    "old_default_params": old_params,
+                    "new_version": fresh.version,
+                    "sample_size": total,
+                    "improvement": new_rate - cur_success_rate,
+                },
+                "recommendations": [
+                    f"参数组合样本 {total} 成功率 {new_rate:.2f}，"
+                    f"较当前 default 高 {new_rate - cur_success_rate:.2f}，"
+                    f"已自动持久化为新 default_params（版本 → {fresh.version}）"
+                ],
+            }
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "[ParamIter] skill=%s 自动参数持久化失败: %s", skill.id, e
+            )
+            return {"actions": {}, "recommendations": []}
+
+    def _scan_avoid_params(self, skill: Skill) -> List[Dict[str, Any]]:
+        """扫描 param_stats，把失败率过高的参数组合加入黑名单"""
+        m = skill.metrics
+        if not m.param_stats:
+            return []
+        added: List[Dict[str, Any]] = []
+        existing_keys = {
+            self._hash_params(entry.get("params", {}))
+            for entry in m.avoid_params
+            if isinstance(entry, dict)
+        }
+        logger.info(
+            "[ParamIter] skill=%s 扫描黑名单 | param_stats=%d 组 | "
+            "现有黑名单=%d 条",
+            skill.id, len(m.param_stats), len(existing_keys),
+        )
+        for key, stat in m.param_stats.items():
+            total = stat.get("success", 0) + stat.get("failure", 0)
+            if total < self.PARAM_AVOID_MIN_SAMPLE:
+                continue
+            failure_rate = stat.get("failure", 0) / total
+            if failure_rate >= self.PARAM_AVOID_FAILURE_RATE and \
+                    key not in existing_keys:
+                added.append({
+                    "params_hash": key,
+                    "params": stat.get("params", {}),
+                    "failure_rate": failure_rate,
+                    "sample_size": total,
+                    "added_at": __import__("datetime").datetime.now().isoformat(),
+                })
+                existing_keys.add(key)
+                logger.info(
+                    "[ParamIter] skill=%s ⚠ 加入黑名单 %s | "
+                    "failure_rate=%.4f (≥%.2f) | 样本=%d | params=%s",
+                    skill.id, key, failure_rate,
+                    self.PARAM_AVOID_FAILURE_RATE, total,
+                    stat.get("params", {}),
+                )
+            else:
+                logger.debug(
+                    "[ParamIter] skill=%s 候选 %s 未触发黑名单 "
+                    "(failure_rate=%.4f, 样本=%d)",
+                    skill.id, key, failure_rate, total,
+                )
+        if added:
+            m.avoid_params.extend(added)
+            skill.touch()
+            self._store.upsert(skill)
+            logger.info(
+                "[ParamIter] skill=%s 黑名单扫描完成 | 新增 %d 条 | "
+                "总黑名单=%d 条",
+                skill.id, len(added), len(m.avoid_params),
+            )
+        else:
+            logger.info(
+                "[ParamIter] skill=%s 黑名单扫描完成 | 无新增", skill.id,
+            )
+        return added
+
+    @staticmethod
+    def _hash_params(params: Dict[str, Any]) -> str:
+        """计算参数组合的 8 位哈希（与 SkillMetrics._record_param_stats 一致）"""
+        import hashlib
+        import json as _json
+        try:
+            key_str = _json.dumps(params, sort_keys=True, ensure_ascii=False)
+        except (TypeError, ValueError):
+            key_str = str(sorted(params.items()))
+        return hashlib.md5(key_str.encode("utf-8")).hexdigest()[:8]
+
     # ─── 性能追踪 ───
 
     def record_execution(self, skill_id: str, *,
                          success: bool, latency_ms: float,
                          feedback_rating: int = 0,
                          feedback_id: str = "",
-                         trace_id: str = "") -> None:
+                         trace_id: str = "",
+                         params_used: Optional[Dict[str, Any]] = None) -> None:
         """记录一次技能执行
 
         Args:
@@ -258,12 +553,51 @@ class SkillEnhancer:
             feedback_rating: 用户评分 1-5（0 表示未采集）
             feedback_id: 关联的 FeedbackRecord ID
             trace_id: 追踪ID（用于可观测性关联）
+            params_used: 本次使用的参数组合（用于 Item 4 参数级追踪）
         """
         skill = self._require(skill_id)
-        skill.metrics.record(success=success, latency_ms=latency_ms)
+        # 若未传 params_used，默认追踪当前 default_params
+        effective_params = params_used if params_used is not None else (
+            dict(skill.default_params) if skill.default_params else None
+        )
+        # 记录执行前的指标快照（用于日志对比）
+        before_usage = skill.metrics.usage_count
+        before_success_rate = skill.metrics.success_rate
+        param_hash = self._hash_params(effective_params) if effective_params else None
+        before_param_total = 0
+        before_param_success = 0
+        if param_hash and param_hash in skill.metrics.param_stats:
+            s = skill.metrics.param_stats[param_hash]
+            before_param_total = s.get("success", 0) + s.get("failure", 0)
+            before_param_success = s.get("success", 0)
+
+        skill.metrics.record(
+            success=success, latency_ms=latency_ms,
+            params_used=effective_params,
+        )
         skill.touch()
         self._store.upsert(skill)
         self._fire_hooks("on_executed", skill)
+
+        # 详细日志：每次执行命中参数组合 + 累计成功率变化
+        after_param_total = before_param_total + 1
+        after_param_success = before_param_success + (1 if success else 0)
+        after_param_rate = (
+            after_param_success / after_param_total
+            if after_param_total > 0 else 0.0
+        )
+        logger.info(
+            "[ParamIter] skill=%s 执行记录 | param_hash=%s | success=%s | "
+            "latency=%.1fms | param 命中: %d → %d (success_rate %.4f → %.4f) | "
+            "全局 success_rate: %.4f → %.4f (usage %d → %d)",
+            skill_id, param_hash or "(none)", success, latency_ms,
+            before_param_total, after_param_total,
+            (before_param_success / before_param_total
+             if before_param_total > 0 else 0.0),
+            after_param_rate,
+            before_success_rate, skill.metrics.success_rate,
+            before_usage, skill.metrics.usage_count,
+        )
         emit_metric(
             "yunshu_skill_execution_latency_ms",
             value=latency_ms,

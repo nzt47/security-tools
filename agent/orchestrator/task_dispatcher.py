@@ -8,8 +8,6 @@
 """
 
 import logging
-import os
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -151,14 +149,29 @@ class TaskDispatcher:
         return llm, llm.model
 
     def _is_smart_tool_selection_enabled(self) -> bool:
-        """检查智能工具选择是否启用"""
+        """检查智能工具选择是否启用
+
+        通过 agent.system_prompt_config.is_section_enabled 查询 smart_tool_selection
+        配置节状态。配置模块不可用或查询异常时返回 False（保守禁用）。
+        """
         try:
-            agent_dir = os.path.dirname(os.path.abspath(__file__))
-            cfg_path = os.path.join(os.path.dirname(agent_dir), "data", "system_prompt_config.json")
-            if os.path.exists(cfg_path):
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    cfg = json.load(f)
-                return cfg.get("sections", {}).get("smart_tool_selection", {}).get("enabled", False)
+            from agent.system_prompt_config import is_section_enabled
+            return is_section_enabled("smart_tool_selection", default=False)
         except Exception:
-            pass
-        return False
+            return False
+
+    def _is_extra_section_enabled(self, section_name: str, default: bool = True) -> bool:
+        """检查额外配置节是否启用
+
+        通过 agent.system_prompt_config.is_section_enabled 查询配置节状态。
+        配置模块不可用或查询异常时返回 default。
+
+        Args:
+            section_name: 配置节名称（如 tool_definitions / working_memory / lifetrace）
+            default: 配置节不存在或查询失败时的默认返回值
+        """
+        try:
+            from agent.system_prompt_config import is_section_enabled
+            return is_section_enabled(section_name, default=default)
+        except Exception:
+            return default

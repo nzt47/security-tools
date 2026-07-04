@@ -435,10 +435,17 @@ def register_routes(app, state):
         """上报一次技能执行结果 (用于性能追踪)
 
         Body: {success: bool, latency_ms: number,
-               feedback_rating?: int(0-5), feedback_id?: str, trace_id?: str}
+               feedback_rating?: int(0-5), feedback_id?: str, trace_id?: str,
+               params_used?: dict}  # Item 4: 参数级追踪
         """
         try:
             data = request.get_json() or {}
+            params_used = data.get("params_used")
+            if params_used is not None and not isinstance(params_used, dict):
+                return jsonify({
+                    "ok": False,
+                    "error": "params_used 必须是 dict",
+                }), 400
             _svc().record_execution(
                 skill_id,
                 success=bool(data.get("success", True)),
@@ -446,8 +453,36 @@ def register_routes(app, state):
                 feedback_rating=int(data.get("feedback_rating", 0) or 0),
                 feedback_id=str(data.get("feedback_id", "") or ""),
                 trace_id=str(data.get("trace_id", "") or ""),
+                params_used=params_used,
             )
             return jsonify({"ok": True})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/param-stats", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_param_stats(skill_id: str):
+        """获取技能的参数级执行统计 (Item 4)
+
+        Returns:
+            {ok, skill_id, param_stats, avoid_params, current_default_hash}
+        """
+        try:
+            skill = _svc().get(skill_id)
+            from agent.skills_mgmt.enhancer import SkillEnhancer
+            current_hash = SkillEnhancer._hash_params(skill.default_params) \
+                if skill.default_params else None
+            return jsonify({
+                "ok": True,
+                "skill_id": skill_id,
+                "current_default_params": skill.default_params,
+                "current_default_hash": current_hash,
+                "param_stats": skill.metrics.param_stats,
+                "avoid_params": skill.metrics.avoid_params,
+            })
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
@@ -825,7 +860,103 @@ def register_routes(app, state):
                             **_svc().load_skill_instruction(skill_id)})
         except SkillMgmtError as e:
             return _err(e)
+
+    # ═══════════════════════════════════════════════════
+    #  记忆 → 技能自动抽象
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/abstract-from-memory", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_abstract_from_memory():
+        """从云枢记忆中自动抽象新技能草稿
+
+        Body:
+            days: int = 30        — 回溯最近 N 天的记忆
+            max_skills: int = 5   — 最多生成多少个草稿
+            auto_register: bool = False — True 时自动注册到技能库
+            min_cluster_size: int = 3   — 聚类最小大小 (覆盖默认)
+            min_success_rate: float = 0.7 — 聚类最小成功率 (覆盖默认)
+            cluster_jaccard: float = 0.5  — 聚类合并 Jaccard 阈值 (覆盖默认)
+            max_existing_dup_jaccard: float = 0.7 — 与已有技能最大相似度
+
+        Returns:
+            {ok, total_input_memories, total_clusters,
+             passed_clusters, registered_count,
+             drafts: [{cluster_id, cluster_size, success_rate,
+                       common_tool_names, common_tags,
+                       draft_skill_id, draft_name, draft_description,
+                       draft_content_preview, draft_default_params,
+                       quality_gate_passed, quality_gate_reasons,
+                       registered, skill_id, duplicate_of}, ...]}
+        """
+        try:
+            from agent.skills_mgmt.memory_abstractor import MemorySkillAbstractor
+
+            data = request.get_json() or {}
+            days = int(data.get("days", 30))
+            max_skills = int(data.get("max_skills", 5))
+            auto_register = bool(data.get("auto_register", False))
+            min_cluster_size = int(data.get("min_cluster_size",
+                                            MemorySkillAbstractor.MIN_CLUSTER_SIZE))
+            min_success_rate = float(data.get("min_success_rate",
+                                              MemorySkillAbstractor.MIN_SUCCESS_RATE))
+            cluster_jaccard = float(data.get("cluster_jaccard",
+                                             MemorySkillAbstractor.CLUSTER_JACCARD_THRESHOLD))
+            max_existing_dup_jaccard = float(
+                data.get("max_existing_dup_jaccard",
+                         MemorySkillAbstractor.MAX_EXISTING_DUP_JACCARD),
+            )
+
+            # 参数边界校验
+            if days < 1:
+                return jsonify({"ok": False,
+                                "error": "days 必须 >= 1"}), 400
+            if max_skills < 1 or max_skills > 50:
+                return jsonify({"ok": False,
+                                "error": "max_skills 必须在 1..50"}), 400
+            if not (0.0 <= min_success_rate <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "min_success_rate 必须在 0..1"}), 400
+            if not (0.0 <= cluster_jaccard <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "cluster_jaccard 必须在 0..1"}), 400
+            if not (0.0 <= max_existing_dup_jaccard <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "max_existing_dup_jaccard 必须在 0..1"}), 400
+
+            abstractor = MemorySkillAbstractor(
+                skills_service=_svc(),
+                min_cluster_size=min_cluster_size,
+                min_success_rate=min_success_rate,
+                max_existing_dup_jaccard=max_existing_dup_jaccard,
+                cluster_jaccard=cluster_jaccard,
+            )
+
+            drafts = abstractor.abstract_new_skills(
+                days=days,
+                max_skills=max_skills,
+                auto_register=auto_register,
+            )
+
+            passed_count = sum(1 for d in drafts if d["quality_gate_passed"])
+            registered_count = sum(1 for d in drafts if d.get("registered"))
+
+            return jsonify({
+                "ok": True,
+                "total_input_memories": sum(
+                    d["cluster_size"] for d in drafts
+                ),
+                "total_clusters": len(drafts),
+                "passed_clusters": passed_count,
+                "registered_count": registered_count,
+                "drafts": drafts,
+            })
+        except ValueError as e:
+            return jsonify({"ok": False,
+                            "error": f"参数错误: {e}"}), 400
         except Exception as e:  # noqa: BLE001
+            logger.exception("[SkillsMgmt] abstract-from-memory 失败")
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/<skill_id>/scripts", methods=["GET"])

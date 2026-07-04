@@ -175,11 +175,13 @@ class SkillsMgmtService:
                          success: bool, latency_ms: float,
                          feedback_rating: int = 0,
                          feedback_id: str = "",
-                         trace_id: str = "") -> None:
+                         trace_id: str = "",
+                         params_used: Optional[Dict[str, Any]] = None) -> None:
         self.enhancer.record_execution(
             skill_id, success=success, latency_ms=latency_ms,
             feedback_rating=feedback_rating,
-            feedback_id=feedback_id, trace_id=trace_id)
+            feedback_id=feedback_id, trace_id=trace_id,
+            params_used=params_used)
 
     # ─── 反馈绑定 ───
 

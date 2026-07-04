@@ -319,3 +319,66 @@ def register_routes(app, state):
             }), 400
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/workflow-learning/batch-convert-external-skills",
+               methods=["POST"])
+    @trace_route("WorkflowLearning")
+    @require_token
+    @log_request()
+    def api_wf_batch_convert_external():
+        """批量把外部 agent 的技能转换为本地技能（自动合并/加强/新建）
+
+        Body: {
+            external_skills: [{name, description, steps/prompt, source_format?}, ...],
+            llm_enabled?: bool,
+            merge_threshold?: float (默认 0.85),
+            strengthen_threshold?: float (默认 0.7)
+        }
+
+        Returns:
+            {ok, total_input, converted, merged, strengthened, created, failed}
+        """
+        try:
+            data = request.get_json() or {}
+            external_skills = data.get("external_skills") or []
+            if not isinstance(external_skills, list) or not external_skills:
+                return jsonify({
+                    "ok": False,
+                    "error": "external_skills 必须是非空 list",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            merge_threshold = float(data.get("merge_threshold", 0.85))
+            strengthen_threshold = float(data.get("strengthen_threshold", 0.7))
+            # 阈值边界校验
+            if not 0 <= strengthen_threshold <= merge_threshold <= 1:
+                return jsonify({
+                    "ok": False,
+                    "error": "需满足 0 ≤ strengthen_threshold ≤ merge_threshold ≤ 1",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            llm_enabled = bool(data.get("llm_enabled", False))
+            llm_client = None
+            if llm_enabled:
+                try:
+                    from agent.state_manager import get_llm_client
+                    llm_client = get_llm_client()
+                except Exception as e:
+                    logger.warning("LLM client 不可用，降级规则转换: %s", e)
+
+            summary = _svc().batch_convert_external_skills(
+                external_skills,
+                llm_client=llm_client,
+                merge_threshold=merge_threshold,
+                strengthen_threshold=strengthen_threshold,
+            )
+            return jsonify({"ok": True, **summary})
+        except ValueError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": "VALIDATION_ERROR",
+            }), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
