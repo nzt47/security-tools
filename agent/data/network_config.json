@@ -2,7 +2,7 @@
   "llm": {
     "enabled": true,
     "provider": "openai",
-    "api_key": "sk-ddf2d09a74fc4c9fafb89a906f0f45a3",
+    "api_key": "***test",
     "model": "gpt-4",
     "timeout": 30,
     "max_retries": 3
@@ -17,12 +17,7 @@
   "search": {
     "enabled": true,
     "default_engine": "google",
-    "max_results": 10,
-    "engine_priority": [
-      "56f6a8be-2096-4a46-9a76-88c06aac8276",
-      "3264daa3-5c5d-4673-9d17-7f751591ea05",
-      "3434854e-b60b-4520-a58e-a051baaf3a53"
-    ]
+    "max_results": 10
   },
   "web_scraping": {
     "enabled": true,
@@ -42,7 +37,7 @@
   "external_services": {
     "error_reporting": {
       "enabled": true,
-      "webhook_url": "sk-ddf2d09a74fc4c9fafb89a906f0f45a3"
+      "webhook_url": "***"
     },
     "monitoring": {
       "enabled": false,
@@ -57,8 +52,8 @@
   },
   "change_log": [
     {
-      "id": "877c9c42-8f72-44bd-bbea-50c7cf1798c8",
-      "timestamp": "2026-06-29T09:38:53.688263",
+      "id": "1b7d223d-3843-49f0-990b-ed01d44b5f49",
+      "timestamp": "2026-07-04T01:26:01.055508",
       "action": "import",
       "section": "all",
       "details": {
@@ -66,39 +61,5 @@
       }
     }
   ],
-  "search_instances": [
-    {
-      "id": "56f6a8be-2096-4a46-9a76-88c06aac8276",
-      "name": "DuckDuckGo",
-      "engine_type": "duckduckgo",
-      "api_key": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-29T09:41:07.914796",
-      "updated_at": "2026-06-29T09:41:07.914796"
-    },
-    {
-      "id": "3264daa3-5c5d-4673-9d17-7f751591ea05",
-      "name": "搜狗搜索",
-      "engine_type": "sogou",
-      "api_key": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-29T09:41:07.914796",
-      "updated_at": "2026-06-29T09:41:07.914796"
-    },
-    {
-      "id": "3434854e-b60b-4520-a58e-a051baaf3a53",
-      "name": "360搜索",
-      "engine_type": "so360",
-      "api_key": "",
-      "enabled": true,
-      "is_default": false,
-      "timeout": 30,
-      "created_at": "2026-06-29T09:41:07.914796",
-      "updated_at": "2026-06-29T09:41:07.914796"
-    }
-  ]
+  "search_instances": []
 }

@@ -14,7 +14,7 @@ import tempfile
 import logging
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from .models import Skill, SkillStatus
 from .observability import logger
@@ -184,11 +184,18 @@ class SkillStore:
                 actual_dst.tags = new_tags
                 merged_fields.append("tags")
 
-            # 2) 合并 dependencies
-            new_deps = list(set(actual_dst.dependencies) | set(actual_src.dependencies))
-            if len(new_deps) > len(actual_dst.dependencies):
-                actual_dst.dependencies = new_deps
+            # 2) 合并 dependencies — 使用 dependency_validator 的 prefer_a 策略
+            #    灰度接入: 出现异常时回退到 set union，保证合并不会因依赖冲突失败
+            dep_merge_info = self._merge_dependencies_safe(
+                actual_dst, actual_src,
+            )
+            if dep_merge_info.get("changed"):
                 merged_fields.append("dependencies")
+            if dep_merge_info.get("conflicts"):
+                logger.info(
+                    "[SkillStore] 依赖合并冲突报告: %s",
+                    dep_merge_info["conflicts"],
+                )
 
             # 3) 合并 default_params（src 优先覆盖 dst 中不存在的键）
             new_params = dict(actual_src.default_params)
@@ -260,6 +267,7 @@ class SkillStore:
                     version_added.version if version_added else None
                 ),
                 "feedback_rebound_count": feedback_rebound_count,
+                "dependency_merge": dep_merge_info,
             }
 
     def _resolve_merge_direction(self, src_skill: Skill,
@@ -297,6 +305,93 @@ class SkillStore:
         return dst_skill, src_skill, False
 
     @staticmethod
+    def _merge_dependencies_safe(dst_skill: Skill,
+                                 src_skill: Skill) -> Dict[str, Any]:
+        """使用 dependency_validator 合并依赖 (prefer_a 策略 + allow_optional)
+
+        灰度接入策略:
+            - 正常情况: 调用 merge_dependencies, 返回带版本约束的合并结果
+            - 异常情况 (DependencyConflictError 等): 回退到 set union, 不阻断合并
+
+        存储格式:
+            - 无版本约束: 保留为 str ("requests")
+            - 有版本约束: 存为 dict ({"name": "openai", "version_spec": ">=1.0", ...})
+
+        Returns:
+            {changed: bool, strategy: str, before: int, after: int,
+             conflicts: [...], fallback: bool}
+        """
+        from .dependency_validator import (
+            merge_dependencies,
+            detect_conflicts,
+            DependencyConflictError,
+            Dependency,
+        )
+        before_deps = list(dst_skill.dependencies)
+        before_count = len(before_deps)
+
+        # 检测冲突 (用于日志和返回值)
+        try:
+            conflicts = detect_conflicts(
+                dst_skill.dependencies, src_skill.dependencies,
+                allow_optional=True,
+            )
+        except Exception as e:
+            logger.warning(
+                "[SkillStore] 依赖冲突检测异常: %s", e,
+            )
+            conflicts = []
+
+        hard_conflicts = [c.to_dict() for c in conflicts
+                         if c.reason == "no_version_overlap"]
+        weak_conflicts = [c.to_dict() for c in conflicts
+                          if c.reason == "spec_diff_but_intersect"]
+
+        # 执行合并 (prefer_a: 硬冲突时保留 dst 版本)
+        try:
+            merged = merge_dependencies(
+                dst_skill.dependencies, src_skill.dependencies,
+                strategy="prefer_a",
+                allow_optional=True,
+            )
+            # 转回存储格式: 无版本约束 → str, 有版本约束 → dict
+            new_deps: List[Union[str, Dict[str, Any]]] = []
+            for dep in merged:
+                if dep.version_spec == "*" and not dep.optional:
+                    new_deps.append(dep.name)
+                else:
+                    new_deps.append(dep.to_dict())
+
+            fallback_used = False
+        except DependencyConflictError as e:
+            # prefer_a 不应抛异常, 但作为兜底保险
+            logger.warning(
+                "[SkillStore] merge_dependencies 抛冲突异常, 回退到 set union: %s",
+                e,
+            )
+            new_deps = list({
+                (d if isinstance(d, str) else str(d))
+                for d in list(dst_skill.dependencies) + list(src_skill.dependencies)
+            })
+            fallback_used = True
+
+        changed = new_deps != before_deps
+        if changed:
+            dst_skill.dependencies = new_deps
+
+        return {
+            "changed": changed,
+            "strategy": "prefer_a",
+            "fallback": fallback_used,
+            "before": before_count,
+            "after": len(new_deps),
+            "conflicts": {
+                "hard": hard_conflicts,
+                "weak": weak_conflicts,
+            },
+        }
+
+    @staticmethod
     def _merge_metrics(dst_metrics, src_metrics):
         """合并两个 SkillMetrics：累加 usage/success/failure"""
         from .models import SkillMetrics
@@ -309,6 +404,61 @@ class SkillStore:
             dst_metrics.avg_latency_ms * dst_metrics.usage_count
             + src_metrics.avg_latency_ms * src_metrics.usage_count
         ) / total
+        # 合并 param_stats（同 key 累加 success/failure/latency）
+        merged_param_stats: Dict[str, dict] = {}
+        for key, stat in dst_metrics.param_stats.items():
+            merged_param_stats[key] = dict(stat)
+        for key, stat in src_metrics.param_stats.items():
+            if key in merged_param_stats:
+                m = merged_param_stats[key]
+                m["success"] = m.get("success", 0) + stat.get("success", 0)
+                m["failure"] = m.get("failure", 0) + stat.get("failure", 0)
+                m["total_latency_ms"] = (
+                    m.get("total_latency_ms", 0.0)
+                    + stat.get("total_latency_ms", 0.0)
+                )
+                # 取较新的 last_used_at
+                if (stat.get("last_used_at") or "") > (m.get("last_used_at") or ""):
+                    m["last_used_at"] = stat.get("last_used_at")
+            else:
+                merged_param_stats[key] = dict(stat)
+        # 合并 avoid_params（按 params_hash 或 params 哈希去重）
+        merged_avoid: List[dict] = list(dst_metrics.avoid_params)
+        existing_keys = set()
+        for d in merged_avoid:
+            if not isinstance(d, dict):
+                continue
+            # 优先用 params_hash 字段，否则用 params 的内容哈希
+            if d.get("params_hash"):
+                existing_keys.add(d["params_hash"])
+            elif "params" in d:
+                import hashlib as _hl
+                import json as _js
+                try:
+                    k = _hl.md5(
+                        _js.dumps(d["params"], sort_keys=True,
+                                  ensure_ascii=False).encode("utf-8")
+                    ).hexdigest()[:8]
+                except (TypeError, ValueError):
+                    k = str(sorted(d["params"].items()))
+                existing_keys.add(k)
+        for entry in src_metrics.avoid_params:
+            if not isinstance(entry, dict):
+                continue
+            entry_key = entry.get("params_hash")
+            if not entry_key and "params" in entry:
+                import hashlib as _hl2
+                import json as _js2
+                try:
+                    entry_key = _hl2.md5(
+                        _js2.dumps(entry["params"], sort_keys=True,
+                                   ensure_ascii=False).encode("utf-8")
+                    ).hexdigest()[:8]
+                except (TypeError, ValueError):
+                    entry_key = str(sorted(entry["params"].items()))
+            if entry_key and entry_key not in existing_keys:
+                merged_avoid.append(entry)
+                existing_keys.add(entry_key)
         new_metrics = SkillMetrics(
             usage_count=new_usage,
             success_count=new_success,
@@ -321,6 +471,8 @@ class SkillStore:
                 dst_metrics.last_used_at, src_metrics.last_used_at,
             ),
             last_latency_ms=dst_metrics.last_latency_ms,
+            param_stats=merged_param_stats,
+            avoid_params=merged_avoid,
         )
         return new_metrics
 
