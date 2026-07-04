@@ -50,6 +50,8 @@ class MemoryEntry:
         tags: 标签
         timestamp: ISO 时间戳
         session_id: 会话 ID (用于关联)
+        signal_strength: 信号强度 (0.0-1.0), 由 SignalScorer 填充
+            低于 threshold 的记忆会被过滤, 不进入聚类
     """
     source: str
     source_id: str
@@ -60,6 +62,7 @@ class MemoryEntry:
     tags: List[str] = field(default_factory=list)
     timestamp: str = ""
     session_id: str = ""
+    signal_strength: float = 0.0
 
 
 # ──────────────────────────────────────────────
@@ -149,13 +152,19 @@ class MemorySkillAbstractor:
     MAX_EXECUTION_STEPS = 10      # 执行步骤上限 (最小可行性规则: 超过则警告简化)
     CLUSTER_JACCARD_THRESHOLD = 0.5  # 聚类合并阈值
     TOOL_FREQUENCY_THRESHOLD = 0.5   # 工具调用频率超过 50% 才纳入 common_tool_names
+    # 信号评分阈值: 低于此值的记忆不进入聚类
+    SIGNAL_FILTER_THRESHOLD = 0.4
+    # 平均信号强度软警告阈值: 聚类平均信号强度低于此值则警告 (不阻止)
+    SIGNAL_WARN_AVG = 0.3
 
     def __init__(self, *,
                  skills_service: Optional[Any] = None,
                  min_cluster_size: int = MIN_CLUSTER_SIZE,
                  min_success_rate: float = MIN_SUCCESS_RATE,
                  max_existing_dup_jaccard: float = MAX_EXISTING_DUP_JACCARD,
-                 cluster_jaccard: float = CLUSTER_JACCARD_THRESHOLD):
+                 cluster_jaccard: float = CLUSTER_JACCARD_THRESHOLD,
+                 signal_filter_threshold: float = SIGNAL_FILTER_THRESHOLD,
+                 enable_signal_scoring: bool = True):
         """初始化抽象器
 
         Args:
@@ -164,12 +173,16 @@ class MemorySkillAbstractor:
             min_success_rate: 聚类最小成功率 (质量门控)
             max_existing_dup_jaccard: 与已有技能的最大 Jaccard (超过则跳过)
             cluster_jaccard: 聚类合并的 Jaccard 阈值
+            signal_filter_threshold: 信号强度过滤阈值 (低于此值不聚类)
+            enable_signal_scoring: 是否启用信号评分 (False 则不过滤)
         """
         self._skills_service = skills_service
         self.min_cluster_size = min_cluster_size
         self.min_success_rate = min_success_rate
         self.max_existing_dup_jaccard = max_existing_dup_jaccard
         self.cluster_jaccard = cluster_jaccard
+        self.signal_filter_threshold = signal_filter_threshold
+        self.enable_signal_scoring = enable_signal_scoring
 
     def _resolve_skills_service(self):
         if self._skills_service is not None:
@@ -232,6 +245,16 @@ class MemorySkillAbstractor:
                 )
                 return []
 
+            # 1.5 信号评分 + 过滤低价值信号 (可禁用)
+            if self.enable_signal_scoring:
+                memory_entries = self._score_and_filter_signals(memory_entries)
+                if len(memory_entries) < self.min_cluster_size:
+                    logger.info(
+                        "[MemAbstract] 信号过滤后记忆不足 (%d < %d), 跳过",
+                        len(memory_entries), self.min_cluster_size,
+                    )
+                    return []
+
             # 2. 聚类
             clusters = self.cluster_memories(memory_entries)
             logger.info(
@@ -248,11 +271,13 @@ class MemorySkillAbstractor:
                 )
                 results.append(result)
 
-            # 4. 排序: 质量门控通过的优先, 再按 cluster_size 降序
+            # 4. 排序: 质量门控通过的优先, 再按 cluster_size 降序,
+            #          再按平均信号强度降序
             results.sort(
                 key=lambda r: (
                     not r["quality_gate_passed"],
                     -r["cluster_size"],
+                    -r.get("avg_signal_strength", 0.0),
                 ),
             )
 
@@ -266,6 +291,57 @@ class MemorySkillAbstractor:
                         value=len(results), kind="counter",
                         labels={"auto_register": str(auto_register)})
             return results
+
+    # ─── 信号评分与过滤 ───
+
+    def _score_and_filter_signals(self,
+                                    entries: List[MemoryEntry],
+                                    ) -> List[MemoryEntry]:
+        """对记忆条目进行信号评分, 并过滤低价值信号
+
+        评分流程:
+            1. 加载已有技能 (用于 novelty 维度)
+            2. 调用 SignalScorer 给每条记忆打分
+            3. 过滤 signal_strength < threshold 的记忆
+
+        降级策略:
+            - 无 comment/rating 的 feedback → emotion 降级为中性, 权重重分配
+            - 无已有技能 → novelty 满分
+        """
+        from .signal_scorer import SignalScorer
+
+        scorer = SignalScorer(
+            filter_threshold=self.signal_filter_threshold,
+        )
+        # 加载已有技能 (用于 novelty 维度)
+        try:
+            svc = self._resolve_skills_service()
+            existing_skills = svc.list_all()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[MemAbstract] 加载已有技能失败, novelty 将满分: %s", e)
+            existing_skills = []
+
+        # 评分
+        high_value_count_before = 0
+        for entry in entries:
+            total, breakdown = scorer.score(
+                entry, entries, existing_skills,
+            )
+            entry.signal_strength = total
+            if total >= self.signal_filter_threshold:
+                high_value_count_before += 1
+
+        # 过滤
+        filtered = scorer.filter_high_value(
+            entries, threshold=self.signal_filter_threshold,
+        )
+        logger.info(
+            "[MemAbstract] 信号评分完成 | 输入=%d | 高价值=%d | "
+            "保留=%d | threshold=%.2f",
+            len(entries), high_value_count_before,
+            len(filtered), self.signal_filter_threshold,
+        )
+        return filtered
 
     # ─── 记忆加载 ───
 
@@ -1006,6 +1082,11 @@ class MemorySkillAbstractor:
             cluster, draft=draft,
         )
 
+        # 计算聚类平均信号强度
+        avg_signal = 0.0
+        if cluster.entries:
+            avg_signal = sum(e.signal_strength for e in cluster.entries) / cluster.size
+
         result: Dict[str, Any] = {
             "cluster_id": cluster.cluster_id,
             "cluster_size": cluster.size,
@@ -1022,6 +1103,8 @@ class MemorySkillAbstractor:
             "registered": False,
             "skill_id": None,
             "duplicate_of": duplicate_of or None,
+            # 信号强度
+            "avg_signal_strength": round(avg_signal, 3),
             # P0 结构化字段
             "draft_root_cause": draft.get("root_cause", ""),
             "draft_triggers": draft.get("triggers", []),

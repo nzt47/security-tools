@@ -39,7 +39,7 @@ class TestAllFailuresScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         self.assertEqual(len(clusters), 1)
         c = clusters[0]
@@ -62,7 +62,7 @@ class TestAllFailuresScenario(unittest.TestCase):
             )
             for i in range(4)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         self.assertTrue(len(c.anti_patterns) > 0)
@@ -77,7 +77,7 @@ class TestAllFailuresScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         results = abstractor.abstract_new_skills(memory_entries=entries)
         self.assertEqual(len(results), 1)
         self.assertFalse(results[0]["quality_gate_passed"])
@@ -101,7 +101,7 @@ class TestNoCommonAttributesScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # common_tool_names 应为空 (每个工具只出现 1 次 < 50%)
@@ -126,7 +126,7 @@ class TestNoCommonAttributesScenario(unittest.TestCase):
             )
             for i in range(4)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 不应崩溃
@@ -178,7 +178,7 @@ class TestMultiStepFailureChain(unittest.TestCase):
             for i in range(2)
         ]
         entries = success_entries + failure_entries_1 + failure_entries_2
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 成功率 = 5/9 ≈ 0.556
@@ -203,7 +203,7 @@ class TestMultiStepFailureChain(unittest.TestCase):
                         success=False, tool_calls=[{"name": "airflow"}])
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         results = abstractor.abstract_new_skills(memory_entries=success + failures)
         self.assertFalse(results[0]["quality_gate_passed"])
 
@@ -224,7 +224,7 @@ class TestNoClearTriggerScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 触发条件应非空 (降级到 params/tags)
@@ -247,7 +247,7 @@ class TestNoClearTriggerScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 不应崩溃
@@ -280,7 +280,7 @@ class TestConflictingParamsScenario(unittest.TestCase):
             for i in range(3)
         ]
         entries = success_entries + failure_entries
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 成功率 = 4/7 ≈ 0.571
@@ -307,7 +307,7 @@ class TestConflictingParamsScenario(unittest.TestCase):
                         success=False, params={"mode": "sync"})
             for i in range(2)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(success + failure)
         c = clusters[0]
         # 有失败 → if_then_rules 应非空
@@ -333,7 +333,7 @@ class TestExtremeComplexityScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         # 15 个工具都应进入 common_tool_names
@@ -361,7 +361,7 @@ class TestExtremeComplexityScenario(unittest.TestCase):
             )
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         c = clusters[0]
         with patch.object(abstractor, "_find_duplicate", return_value=None):
@@ -391,7 +391,7 @@ class TestLargeClusterScenario(unittest.TestCase):
             )
             for i in range(30)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         self.assertEqual(len(clusters), 1)
         c = clusters[0]
@@ -418,7 +418,7 @@ class TestLargeClusterScenario(unittest.TestCase):
             )
             for i in range(30)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         results = abstractor.abstract_new_skills(memory_entries=entries)
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0]["quality_gate_passed"])
@@ -443,7 +443,7 @@ class TestMixedSuccessRateClustersScenario(unittest.TestCase):
                         success=False, tool_calls=[{"name": "http"}])
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
             results = abstractor.abstract_new_skills(
                 memory_entries=cluster1 + cluster2, max_skills=5,
@@ -469,7 +469,7 @@ class TestMixedSuccessRateClustersScenario(unittest.TestCase):
                         success=True, tool_calls=[{"name": "jq"}])
             for i in range(4)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
             results = abstractor.abstract_new_skills(
                 memory_entries=big_failed + small_passed, max_skills=5,
@@ -491,7 +491,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
             MemoryEntry(source="t", source_id="only",
                         task_text="lonely task", success=True)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         results = abstractor.abstract_new_skills(memory_entries=entries)
         # 1 条 < min_cluster_size(3) → 提前返回空
         self.assertEqual(len(results), 0)
@@ -504,7 +504,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
             MemoryEntry(source="t", source_id="b",
                         task_text="analyze python code", success=True),
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         # 2 < min_cluster_size(3) → 提前返回空
         results = abstractor.abstract_new_skills(memory_entries=entries)
         self.assertEqual(len(results), 0)
@@ -517,7 +517,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
                         tool_calls=[{"name": "grep"}])
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         # 不应抛异常
         clusters = abstractor.cluster_memories(entries)
         # 空 task_text → token 集合为空 → Jaccard = 0 → 不聚类 → 5 个独立聚类
@@ -532,7 +532,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
                         task_text=long_text, success=True)
             for i in range(4)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         # 应正常聚类
         self.assertEqual(len(clusters), 1)
@@ -549,7 +549,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
                         tags=["mixed"])
             for i in range(5)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         self.assertEqual(len(clusters), 1)
         c = clusters[0]
@@ -564,7 +564,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
                         success=True, tool_calls=[{"name": "grep"}])
             for i in range(3)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         results = abstractor.abstract_new_skills(memory_entries=entries)
         self.assertEqual(len(results), 1)
         # size=3 >= 3, success_rate=1.0 >= 0.7 → 通过
@@ -584,7 +584,7 @@ class TestExtremeEdgeCases(unittest.TestCase):
                         success=False)
             for i in range(3)
         ]
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
             results = abstractor.abstract_new_skills(memory_entries=entries)
         self.assertEqual(len(results), 1)
