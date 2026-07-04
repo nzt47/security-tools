@@ -31,10 +31,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -71,35 +71,35 @@ jobs:
           echo ""
           echo "--- 检查日志格式 ---"
           python -c "
-import json
-import sys
+          import json
+          import sys
 
-errors = []
-with open('logs/extensions.log', 'r', encoding='utf-8') as f:
-    for i, line in enumerate(f, 1):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            log = json.loads(line)
-            # 检查必要字段
-            required = ['trace_id', 'module_name', 'action', 'duration_ms', 'status']
-            missing = [k for k in required if k not in log]
-            if missing:
-                errors.append(f'行 {i}: 缺少字段 {missing}')
-        except json.JSONDecodeError as e:
-            errors.append(f'行 {i}: JSON 解析错误 - {e}')
+          errors = []
+          with open('logs/extensions.log', 'r', encoding='utf-8') as f:
+              for i, line in enumerate(f, 1):
+                  line = line.strip()
+                  if not line:
+                      continue
+                  try:
+                      log = json.loads(line)
+                      # 检查必要字段
+                      required = ['trace_id', 'module_name', 'action', 'duration_ms', 'status']
+                      missing = [k for k in required if k not in log]
+                      if missing:
+                          errors.append(f'行 {i}: 缺少字段 {missing}')
+                  except json.JSONDecodeError as e:
+                      errors.append(f'行 {i}: JSON 解析错误 - {e}')
 
-if errors:
-    print('❌ 日志格式检查失败:')
-    for e in errors[:10]:
-        print(f'  {e}')
-    if len(errors) > 10:
-        print(f'  ... 还有 {len(errors) - 10} 个错误')
-    sys.exit(1)
-else:
-    print('✅ 所有日志格式正确')
-"
+          if errors:
+              print('❌ 日志格式检查失败:')
+              for e in errors[:10]:
+                  print(f'  {e}')
+              if len(errors) > 10:
+                  print(f'  ... 还有 {len(errors) - 10} 个错误')
+              sys.exit(1)
+          else:
+              print('✅ 所有日志格式正确')
+          "
 
           # 3. 检查是否有错误日志
           echo ""
@@ -110,7 +110,7 @@ else:
           }
 
       - name: 上传测试日志
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: extension-logs
           path: logs/
@@ -124,10 +124,10 @@ else:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -149,7 +149,7 @@ else:
           python -m pytest tests/unit/test_verification.py -v --tb=short --timeout=300 || true
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: extension-test-results
@@ -164,10 +164,10 @@ else:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置Python环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -180,59 +180,59 @@ else:
           echo "=== 验证扩展系统配置 ==="
 
           python -c "
-import yaml
-import sys
+          import yaml
+          import sys
 
-required_sections = [
-    'extensions.enabled',
-    'extensions.manager',
-    'extensions.market',
-    'extensions.hitl',
-    'logging.file.extensions_file',
-    'logging.rotation',
-]
+          required_sections = [
+              'extensions.enabled',
+              'extensions.manager',
+              'extensions.market',
+              'extensions.hitl',
+              'logging.file.extensions_file',
+              'logging.rotation',
+          ]
 
-def get_nested(config, path):
-    keys = path.split('.')
-    value = config
-    for k in keys:
-        if isinstance(value, dict):
-            value = value.get(k)
-        else:
-            return None
-    return value
+          def get_nested(config, path):
+              keys = path.split('.')
+              value = config
+              for k in keys:
+                  if isinstance(value, dict):
+                      value = value.get(k)
+                  else:
+                      return None
+              return value
 
-try:
-    with open('config.yaml', 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+          try:
+              with open('config.yaml', 'r', encoding='utf-8') as f:
+                  config = yaml.safe_load(f)
 
-    missing = []
-    for section in required_sections:
-        value = get_nested(config, section)
-        if value is None:
-            missing.append(section)
+              missing = []
+              for section in required_sections:
+                  value = get_nested(config, section)
+                  if value is None:
+                      missing.append(section)
 
-    if missing:
-        print('❌ 配置缺少以下字段:')
-        for m in missing:
-            print(f'  - {m}')
-        sys.exit(1)
-    else:
-        print('✅ 所有必需配置字段存在')
+              if missing:
+                  print('❌ 配置缺少以下字段:')
+                  for m in missing:
+                      print(f'  - {m}')
+                  sys.exit(1)
+              else:
+                  print('✅ 所有必需配置字段存在')
 
-    # 验证日志目录配置
-    if 'extensions_file' in get_nested(config, 'logging.file'):
-        print('✅ 扩展系统专用日志配置已启用')
+              # 验证日志目录配置
+              if 'extensions_file' in get_nested(config, 'logging.file'):
+                  print('✅ 扩展系统专用日志配置已启用')
 
-    # 验证 HITL 配置
-    hitl = get_nested(config, 'extensions.hitl')
-    if hitl:
-        print(f'✅ HITL 配置: enabled={hitl.get(\"enabled\")}, timeout={hitl.get(\"confirmation_timeout\")}s')
+              # 验证 HITL 配置
+              hitl = get_nested(config, 'extensions.hitl')
+              if hitl:
+                  print(f'✅ HITL 配置: enabled={hitl.get(\"enabled\")}, timeout={hitl.get(\"confirmation_timeout\")}s')
 
-except Exception as e:
-    print(f'❌ 配置验证失败: {e}')
-    sys.exit(1)
-"
+          except Exception as e:
+              print(f'❌ 配置验证失败: {e}')
+              sys.exit(1)
+          "
 
       - name: 检查日志脚本
         run: |
@@ -255,7 +255,7 @@ except Exception as e:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 生成报告
         run: |
@@ -284,39 +284,41 @@ except Exception as e:
           echo "🧪 单元测试: $TEST_STATUS"
           echo "⚙️ 配置验证: $CONFIG_STATUS"
 
+          mkdir -p test_reports
+
           # 生成 Markdown 报告
           cat > test_reports/extension_health.md << EOF
-# 扩展系统健康报告
+          # 扩展系统健康报告
 
-## 执行时间
-$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          ## 执行时间
+          $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
-## 整体状态
-**$STATUS**
+          ## 整体状态
+          **$STATUS**
 
-## 检查结果
+          ## 检查结果
 
-| 检查项 | 状态 |
-|--------|------|
-| 日志检查 | $LOG_STATUS |
-| 单元测试 | $TEST_STATUS |
-| 配置验证 | $CONFIG_STATUS |
+          | 检查项 | 状态 |
+          |--------|------|
+          | 日志检查 | $LOG_STATUS |
+          | 单元测试 | $TEST_STATUS |
+          | 配置验证 | $CONFIG_STATUS |
 
-## 快速命令
+          ## 快速命令
 
-\`\`\`bash
-# 查看日志统计
-python scripts/debug_extensions.py --summary
+          \`\`\`bash
+          # 查看日志统计
+          python scripts/debug_extensions.py --summary
 
-# 查看错误日志
-python scripts/debug_extensions.py --errors
+          # 查看错误日志
+          python scripts/debug_extensions.py --errors
 
-# 追踪具体问题
-python scripts/debug_extensions.py --trace <trace_id>
-\`\`\`
+          # 追踪具体问题
+          python scripts/debug_extensions.py --trace <trace_id>
+          \`\`\`
 
-## 最近日志摘要
-EOF
+          ## 最近日志摘要
+          EOF
 
           python scripts/debug_extensions.py --summary >> test_reports/extension_health.md 2>/dev/null || true
 
@@ -324,7 +326,7 @@ EOF
           echo "报告已生成: test_reports/extension_health.md"
 
       - name: 上传报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: extension-health-report
           path: test_reports/
@@ -333,8 +335,8 @@ EOF
       - name: 通知结果
         if: always()
         run: |
-          FINAL_STATUS="${{ needs.health-report.result }}"
-          if [ "$FINAL_STATUS" = "success" ]; then
+          # 使用 job.status 而非 needs.health-report.result（job 不能引用自身）
+          if [ "${{ job.status }}" = "success" ]; then
             echo "✅ 扩展系统健康检查全部通过！"
           else
             echo "❌ 扩展系统健康检查发现问题，请查看报告"
