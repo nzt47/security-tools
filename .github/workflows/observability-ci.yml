@@ -509,17 +509,18 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          # 过滤 Windows-only 包（E2E job 运行在 ubuntu-latest）：
-          # - pywin32：Windows 系统调用绑定
-          # - pypiwin32：pywin32 的 PyPI wrapper
-          # - comtypes：COM 接口库，仅 Windows 有发行版
-          grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          # 补充 app_server.py 所需但 requirements.txt 未包含的依赖：
-          # - flask：requirements.txt 由旧版 pyproject.toml 生成，未包含 flask
-          # - prometheus-flask-exporter：/metrics 端点所需
-          # - requests：E2E 测试脚本所需
-          # - lxml：agent/web/scraper.py 直接依赖，requirements.txt 未包含
-          pip install flask prometheus-flask-exporter requests lxml
+          # 使用 pip install -e . 安装项目依赖（长期修复方案）：
+          # - 自动遵循 pyproject.toml 中的 PEP 508 platform markers
+          #   在 Linux 上自动跳过 Windows-only 包（pywin32/pypiwin32/comtypes/wmi/pythoncom）
+          # - 一次性包含 app_server.py 所需的全部依赖：
+          #   flask（web 框架）、lxml（agent/web/scraper.py）、waitress（WSGI 服务器）、
+          #   prometheus-flask-exporter（/metrics 端点）等
+          # - 替代 `pip install -r requirements.txt` + 手动补充缺失依赖的临时方案
+          #   （requirements.txt 由旧版 pyproject.toml 生成，缺失 flask/lxml/waitress 等多个包）
+          # 详见 docs/observability/ci_yml_workflow_fix_commit_record.md 附录 A
+          pip install -e .
+          # requests：E2E 测试脚本所需（pyproject.toml 未显式声明，作为补充）
+          pip install requests
 
       - name: 启动 Prometheus 容器（checkout 后启动，避免 mount 失败）
         run: |
