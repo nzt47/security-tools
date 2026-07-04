@@ -514,7 +514,11 @@ jobs:
           # - pypiwin32：pywin32 的 PyPI wrapper
           # - comtypes：COM 接口库，仅 Windows 有发行版
           grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          pip install requests
+          # 补充 app_server.py 所需但 requirements.txt 未包含的依赖：
+          # - flask：requirements.txt 由旧版 pyproject.toml 生成，未包含 flask
+          # - prometheus-flask-exporter：/metrics 端点所需
+          # - requests：E2E 测试脚本所需
+          pip install flask prometheus-flask-exporter requests
 
       - name: 启动 Prometheus 容器（checkout 后启动，避免 mount 失败）
         run: |
