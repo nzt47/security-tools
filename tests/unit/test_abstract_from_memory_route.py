@@ -117,7 +117,7 @@ class TestAbstractRouteHealth(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={},
+                json={"enable_signal_scoring": False},
             )
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
@@ -136,7 +136,7 @@ class TestDefaultParams(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={},
+                json={"enable_signal_scoring": False},
             )
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
@@ -156,7 +156,7 @@ class TestDefaultParams(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={},
+                json={"enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 顶层字段
@@ -186,7 +186,7 @@ class TestAutoRegister(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"auto_register": True},
+                json={"auto_register": True, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         self.assertEqual(resp.status_code, 200)
@@ -208,7 +208,7 @@ class TestCustomParams(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"min_cluster_size": 10},
+                json={"min_cluster_size": 10, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 输入检查: 8 < 10 → 提前返回空 drafts, 不进入聚类阶段
@@ -246,7 +246,7 @@ class TestCustomParams(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"min_cluster_size": 10, "max_skills": 10},
+                json={"min_cluster_size": 10, "max_skills": 10, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 12 条 >= 10 → 输入检查通过; 聚成 2 类 (各 6 条), 都因 size=6 < 10 不通过质量门
@@ -274,7 +274,7 @@ class TestCustomParams(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"cluster_jaccard": 0.95, "max_skills": 10},
+                json={"cluster_jaccard": 0.95, "max_skills": 10, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 5 个独立聚类, 都因为 size=1 < 3 不通过质量门
@@ -345,7 +345,7 @@ class TestEmptyMemories(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={},
+                json={"enable_signal_scoring": False},
             )
         data = resp.get_json()
         self.assertEqual(resp.status_code, 200)
@@ -381,7 +381,7 @@ class TestMultiClusterScenario(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"max_skills": 5},
+                json={"max_skills": 5, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         self.assertEqual(resp.status_code, 200)
@@ -417,7 +417,7 @@ class TestMultiClusterScenario(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"auto_register": True, "max_skills": 5},
+                json={"auto_register": True, "max_skills": 5, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 只有 1 个聚类通过质量门 (高质量的那个)
@@ -445,7 +445,7 @@ class TestDuplicateDetection(_AbstractRouteTestBase):
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
-                json={"auto_register": True},
+                json={"auto_register": True, "enable_signal_scoring": False},
             )
         data = resp.get_json()
         # 草稿与已有技能重复 → 不通过质量门

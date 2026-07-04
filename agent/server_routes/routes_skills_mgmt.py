@@ -879,6 +879,7 @@ def register_routes(app, state):
             min_success_rate: float = 0.7 — 聚类最小成功率 (覆盖默认)
             cluster_jaccard: float = 0.5  — 聚类合并 Jaccard 阈值 (覆盖默认)
             max_existing_dup_jaccard: float = 0.7 — 与已有技能最大相似度
+            enable_signal_scoring: bool = True — 是否启用信号评分过滤
 
         Returns:
             {ok, total_input_memories, total_clusters,
@@ -907,6 +908,9 @@ def register_routes(app, state):
                 data.get("max_existing_dup_jaccard",
                          MemorySkillAbstractor.MAX_EXISTING_DUP_JACCARD),
             )
+            enable_signal_scoring = bool(
+                data.get("enable_signal_scoring", True),
+            )
 
             # 参数边界校验
             if days < 1:
@@ -931,6 +935,7 @@ def register_routes(app, state):
                 min_success_rate=min_success_rate,
                 max_existing_dup_jaccard=max_existing_dup_jaccard,
                 cluster_jaccard=cluster_jaccard,
+                enable_signal_scoring=enable_signal_scoring,
             )
 
             drafts = abstractor.abstract_new_skills(
