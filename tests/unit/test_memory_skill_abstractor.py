@@ -129,11 +129,11 @@ class TestClustering(unittest.TestCase):
         )
 
     def test_empty_input(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         self.assertEqual(abstractor.cluster_memories([]), [])
 
     def test_single_entry_one_cluster(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         entries = [self._make_entry("hello world")]
         clusters = abstractor.cluster_memories(entries)
         self.assertEqual(len(clusters), 1)
@@ -141,7 +141,7 @@ class TestClustering(unittest.TestCase):
 
     def test_similar_entries_merged(self):
         """相似文本应合并到一个聚类"""
-        abstractor = MemorySkillAbstractor(cluster_jaccard=0.3)
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False, cluster_jaccard=0.3)
         entries = [
             self._make_entry("analyze python code for bugs"),
             self._make_entry("analyze python code quality"),
@@ -153,7 +153,7 @@ class TestClustering(unittest.TestCase):
 
     def test_disjoint_entries_separate(self):
         """完全不相关的文本保持独立"""
-        abstractor = MemorySkillAbstractor(cluster_jaccard=0.5)
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False, cluster_jaccard=0.5)
         entries = [
             self._make_entry("python code analysis"),
             self._make_entry("weather forecast tokyo"),
@@ -164,7 +164,7 @@ class TestClustering(unittest.TestCase):
 
     def test_cluster_id_stable(self):
         """相同输入产生相同 cluster_id"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         entries = [
             self._make_entry("test task one"),
             self._make_entry("test task two"),
@@ -179,7 +179,7 @@ class TestClustering(unittest.TestCase):
 
     def test_cluster_id_changes_with_input(self):
         """不同输入产生不同 cluster_id"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         e1 = [self._make_entry("task alpha")]
         e2 = [self._make_entry("task beta")]
         c1 = abstractor.cluster_memories(e1)[0]
@@ -192,7 +192,7 @@ class TestPatternExtraction(unittest.TestCase):
 
     def test_common_tool_names_high_frequency(self):
         """工具调用频率 >= 50% 才纳入 common_tool_names"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         # 用相同 task_text 保证条目聚类在一起
         entries = [
             MemoryEntry(source="t", source_id="id-0", task_text="analyze code",
@@ -214,7 +214,7 @@ class TestPatternExtraction(unittest.TestCase):
 
     def test_common_params_intersection(self):
         """公共参数 = 所有条目都有的键的众数值"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         # 用相同 task_text 保证聚类
         entries = [
             MemoryEntry(source="t", source_id="id-0", task_text="analyze code",
@@ -238,7 +238,7 @@ class TestPatternExtraction(unittest.TestCase):
 
     def test_common_tags_threshold(self):
         """标签出现 >= 2 次才纳入 common_tags"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         # 用相同 task_text 保证聚类
         entries = [
             MemoryEntry(source="t", source_id="id-0", task_text="analyze code",
@@ -256,7 +256,7 @@ class TestPatternExtraction(unittest.TestCase):
         self.assertNotIn("gamma", clusters[0].common_tags)
 
     def test_success_rate_calculation(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         entries = [
             MemoryEntry(source="t", source_id="id-0", task_text="task", success=True),
             MemoryEntry(source="t", source_id="id-1", task_text="task", success=True),
@@ -273,7 +273,7 @@ class TestDraftGeneration(unittest.TestCase):
     """技能草稿生成"""
 
     def test_draft_has_required_fields(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc123",
             entries=[MemoryEntry(source="t", source_id=f"id-{i}",
@@ -301,7 +301,7 @@ class TestDraftGeneration(unittest.TestCase):
 
     def test_draft_id_includes_cluster_hash(self):
         """skill_id 包含 cluster_id 哈希, 保证幂等"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc123def456",
             entries=[MemoryEntry(source="t", source_id="id-0",
@@ -312,7 +312,7 @@ class TestDraftGeneration(unittest.TestCase):
         self.assertIn("abc123", draft["id"])
 
     def test_draft_content_includes_pattern_info(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0",
@@ -331,7 +331,7 @@ class TestDraftGeneration(unittest.TestCase):
 
     def test_draft_config_schema_inferred_from_params(self):
         """config_schema 从 default_params 推断类型"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0",
@@ -378,7 +378,7 @@ class TestStructuredExtraction(unittest.TestCase):
                 params=dict(params or {"language": "ruby"}),
                 tags=list(tags or ["code-review"]),
             ))
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         clusters = abstractor.cluster_memories(entries)
         return clusters[0] if clusters else None
 
@@ -435,7 +435,7 @@ class TestDraftStructuredContent(unittest.TestCase):
 
     def test_draft_includes_root_cause_section(self):
         """草稿 markdown 包含「核心原理」section"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -455,7 +455,7 @@ class TestDraftStructuredContent(unittest.TestCase):
         self.assertIn("测试根因", draft["content"])
 
     def test_draft_includes_trigger_section(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -467,7 +467,7 @@ class TestDraftStructuredContent(unittest.TestCase):
         self.assertIn("触发条件A", draft["content"])
 
     def test_draft_includes_checklist_section(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -479,7 +479,7 @@ class TestDraftStructuredContent(unittest.TestCase):
         self.assertIn("- [ ] 步骤A", draft["content"])
 
     def test_draft_includes_if_then_section(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -490,7 +490,7 @@ class TestDraftStructuredContent(unittest.TestCase):
         self.assertIn("## If-Then-Else", draft["content"])
 
     def test_draft_includes_anti_patterns_section(self):
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -503,7 +503,7 @@ class TestDraftStructuredContent(unittest.TestCase):
 
     def test_draft_dict_has_structured_fields(self):
         """草稿 dict 包含 5 个结构化字段"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = MemoryCluster(
             cluster_id="abc",
             entries=[MemoryEntry(source="t", source_id="id-0", task_text="task")],
@@ -521,7 +521,7 @@ class TestDraftStructuredContent(unittest.TestCase):
 
     def test_cluster_has_structured_fields_after_build(self):
         """_build_cluster 后 cluster 应有结构化字段"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         entries = [
             MemoryEntry(source="t", source_id=f"id-{i}",
                         task_text="analyze python code",
@@ -562,7 +562,7 @@ class TestComplexityGate(unittest.TestCase):
 
     def test_complexity_warning_when_steps_exceed_max(self):
         """步数 > 10 时应产生软警告, 但不阻止通过"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = self._make_passing_cluster(steps_count=15)
         # mock _find_duplicate 返回 None (不重复)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
@@ -577,7 +577,7 @@ class TestComplexityGate(unittest.TestCase):
 
     def test_no_warning_when_within_limit(self):
         """步数 <= 10 时无警告"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = self._make_passing_cluster(steps_count=5)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
             passed, reasons, dup = abstractor.check_quality_gate(
@@ -588,7 +588,7 @@ class TestComplexityGate(unittest.TestCase):
 
     def test_warning_doesnt_block_passing(self):
         """软警告不影响 passed=True"""
-        abstractor = MemorySkillAbstractor()
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False)
         cluster = self._make_passing_cluster(steps_count=20)
         with patch.object(abstractor, "_find_duplicate", return_value=None):
             passed, reasons, dup = abstractor.check_quality_gate(
@@ -624,7 +624,7 @@ class TestEndToEnd(unittest.TestCase):
 
     def test_end_to_end_register(self):
         """5 条相似记忆 → 1 个草稿 → 注册成技能"""
-        abstractor = MemorySkillAbstractor(skills_service=self.svc)
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False, skills_service=self.svc)
         entries = [
             MemoryEntry(source="workflow", source_id=f"wf-{i}",
                         task_text="analyze python code quality",
@@ -644,7 +644,7 @@ class TestEndToEnd(unittest.TestCase):
 
     def test_idempotency(self):
         """重复调用产生相同 skill_id"""
-        abstractor = MemorySkillAbstractor(skills_service=self.svc)
+        abstractor = MemorySkillAbstractor(enable_signal_scoring=False, skills_service=self.svc)
         entries = [
             MemoryEntry(source="workflow", source_id=f"wf-{i}",
                         task_text="analyze python code quality",
