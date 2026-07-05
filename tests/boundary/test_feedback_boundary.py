@@ -57,24 +57,24 @@ class TestSubmitNullBoundary:
     """submit_feedback 空值边界测试"""
 
     def test_null_None作为trace_id抛出IntegrityError(self, feedback_mgr):
-        """None 作为 trace_id 抛出 sqlite3.IntegrityError（NOT NULL 约束）
+        """None 作为 trace_id 现在抛出 ValueError（边界显性化校验）
 
-        源代码限制: submit_feedback 未对 trace_id 做空值校验，直接写入数据库
+        更新说明: feedback-skill 绑定改造后，submit_feedback 在写库前
+        会先做参数校验，None / 空字符串 trace_id 会被显性拒绝。
         """
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(ValueError):
             feedback_mgr.submit_feedback(
                 trace_id=None,  # type: ignore
                 feedback_type="like",
             )
 
     def test_empty_空字符串trace_id正常提交(self, feedback_mgr):
-        """空字符串 trace_id 正常提交（空字符串不违反 NOT NULL）"""
-        record = feedback_mgr.submit_feedback(
-            trace_id="",
-            feedback_type="like",
-        )
-        assert record.trace_id == ""
-        assert record.feedback_type == "like"
+        """空字符串 trace_id 现在被显性拒绝（边界显性化）"""
+        with pytest.raises(ValueError):
+            feedback_mgr.submit_feedback(
+                trace_id="",
+                feedback_type="like",
+            )
 
     def test_empty_空字符串comment正常提交(self, feedback_mgr):
         """空字符串 comment 正常提交"""
@@ -106,25 +106,22 @@ class TestSubmitExtremeBoundary:
     """submit_feedback 极值边界测试"""
 
     def test_extreme_负数rating正常存储(self, feedback_mgr):
-        """负数 rating 正常存储（源代码未做范围校验）"""
-        record = feedback_mgr.submit_feedback(
-            trace_id="trace_001",
-            feedback_type="like",
-            rating=-100,
-        )
-        assert record.rating == -100
-        # 验证数据库中确实存储了负数
-        fetched = feedback_mgr.get_feedback(record.feedback_id)
-        assert fetched.rating == -100
+        """负数 rating 现在被显性拒绝（边界显性化：rating 必须 0-5）"""
+        with pytest.raises(ValueError):
+            feedback_mgr.submit_feedback(
+                trace_id="trace_001",
+                feedback_type="like",
+                rating=-100,
+            )
 
     def test_extreme_超大rating正常存储(self, feedback_mgr):
-        """超大 rating 正常存储（源代码未做范围校验）"""
-        record = feedback_mgr.submit_feedback(
-            trace_id="trace_001",
-            feedback_type="like",
-            rating=999999,
-        )
-        assert record.rating == 999999
+        """超大 rating 现在被显性拒绝（边界显性化：rating 必须 0-5）"""
+        with pytest.raises(ValueError):
+            feedback_mgr.submit_feedback(
+                trace_id="trace_001",
+                feedback_type="like",
+                rating=999999,
+            )
 
     def test_extreme_边界rating零值(self, feedback_mgr):
         """边界 rating=0 正常存储"""
@@ -205,21 +202,20 @@ class TestSubmitTypeBoundary:
     """submit_feedback 类型边界测试"""
 
     def test_invalid_非法feedback_type正常存储(self, feedback_mgr):
-        """非法 feedback_type 正常存储（源代码未校验枚举值）"""
-        record = feedback_mgr.submit_feedback(
-            trace_id="trace_001",
-            feedback_type="unknown_type",
-        )
-        assert record.feedback_type == "unknown_type"
-        # 非法类型不会触发自动处理（既不是 like 也不是 dislike）
+        """非法 feedback_type 现在被显性拒绝（边界显性化：必须为 like/dislike/report/suggestion）"""
+        with pytest.raises(ValueError):
+            feedback_mgr.submit_feedback(
+                trace_id="trace_001",
+                feedback_type="unknown_type",
+            )
 
     def test_invalid_空字符串feedback_type正常存储(self, feedback_mgr):
-        """空字符串 feedback_type 正常存储"""
-        record = feedback_mgr.submit_feedback(
-            trace_id="trace_001",
-            feedback_type="",
-        )
-        assert record.feedback_type == ""
+        """空字符串 feedback_type 现在被显性拒绝（边界显性化）"""
+        with pytest.raises(ValueError):
+            feedback_mgr.submit_feedback(
+                trace_id="trace_001",
+                feedback_type="",
+            )
 
     def test_boundary_所有合法feedback_type正常存储(self, feedback_mgr):
         """所有合法 feedback_type 正常存储"""

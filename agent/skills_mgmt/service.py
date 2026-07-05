@@ -166,13 +166,229 @@ class SkillsMgmtService:
     def rollback_version(self, skill_id: str, target_version: str) -> Skill:
         return self.enhancer.rollback_version(skill_id, target_version)
 
-    def optimize_params(self, skill_id: str) -> Dict[str, Any]:
-        return self.enhancer.optimize_params(skill_id)
+    def optimize_params(self, skill_id: str,
+                        feedback_summary: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self.enhancer.optimize_params(skill_id,
+                                             feedback_summary=feedback_summary)
 
     def record_execution(self, skill_id: str, *,
-                         success: bool, latency_ms: float) -> None:
+                         success: bool, latency_ms: float,
+                         feedback_rating: int = 0,
+                         feedback_id: str = "",
+                         trace_id: str = "",
+                         params_used: Optional[Dict[str, Any]] = None) -> None:
         self.enhancer.record_execution(
-            skill_id, success=success, latency_ms=latency_ms)
+            skill_id, success=success, latency_ms=latency_ms,
+            feedback_rating=feedback_rating,
+            feedback_id=feedback_id, trace_id=trace_id,
+            params_used=params_used)
+
+    # ─── 反馈绑定 ───
+
+    def submit_skill_feedback(self, skill_id: str, *,
+                               trace_id: str,
+                               feedback_type: str,
+                               rating: int = 0,
+                               comment: str = "",
+                               category: str = "other",
+                               user_id: str = "",
+                               session_id: str = "",
+                               context: Optional[Dict[str, Any]] = None,
+                               workflow_id: str = "") -> Dict[str, Any]:
+        """提交针对某技能的用户反馈
+
+        将 feedback 模块与 skills_mgmt 模块打通：
+        - 反馈落库到 feedback 表（带 skill_id）
+        - 触发 enhancer.record_execution 同步指标
+        - 返回 feedback 记录 + 后续建议动作
+
+        Raises:
+            SkillNotFoundError: 技能不存在
+            ValueError: 参数非法
+        """
+        with traced_action("svc_submit_skill_feedback",
+                           skill_id=skill_id,
+                           feedback_type=feedback_type,
+                           rating=rating):
+            # 先校验技能存在（边界显性化）
+            self._require(skill_id)
+
+            from agent.feedback import get_feedback_manager
+            mgr = get_feedback_manager()
+            record = mgr.submit_feedback(
+                trace_id=trace_id,
+                feedback_type=feedback_type,
+                rating=rating,
+                comment=comment,
+                category=category,
+                user_id=user_id,
+                session_id=session_id,
+                context=context or {"skill_id": skill_id},
+                skill_id=skill_id,
+                workflow_id=workflow_id,
+            )
+
+            # 同步更新技能指标
+            self.enhancer.record_execution(
+                skill_id,
+                success=(feedback_type == "like"),
+                latency_ms=0.0,
+                feedback_rating=rating,
+                feedback_id=record.feedback_id,
+                trace_id=trace_id,
+            )
+
+            summary = mgr.get_skill_feedback_summary(skill_id)
+            return {
+                "feedback": record.to_dict(),
+                "summary": summary,
+            }
+
+    def get_skill_feedback_summary(self, skill_id: str,
+                                  days: int = 30) -> Dict[str, Any]:
+        """获取技能反馈聚合统计"""
+        self._require(skill_id)
+        return self.enhancer.get_skill_feedback_summary(skill_id, days=days)
+
+    def optimize_with_feedback(self, skill_id: str,
+                               days: int = 30) -> Dict[str, Any]:
+        """一键式：拉取反馈 + 触发参数优化"""
+        self._require(skill_id)
+        return self.enhancer.optimize_with_feedback(skill_id, days=days)
+
+    # ─── 重复技能检测与合并 ───
+
+    def list_duplicates(self, min_jaccard: float = 0.7) -> List[Dict[str, Any]]:
+        """扫描整个技能库，列出 Jaccard≥阈值的重复对
+
+        Args:
+            min_jaccard: 最小相似度阈值（默认 0.7）
+
+        Returns:
+            [{skill_a, skill_b, name_a, name_b, jaccard,
+              content_hash_match, recommend_action}, ...]
+            recommend_action: "merge" | "review"
+        """
+        skills = self.store.list_all()
+        return self.reviewer.find_duplicates(skills, min_jaccard=min_jaccard)
+
+    def find_duplicates_for(self, skill_id: str,
+                            min_jaccard: float = 0.7) -> List[Dict[str, Any]]:
+        """找出与指定技能重复的其他技能"""
+        target = self._require(skill_id)
+        others = [s for s in self.store.list_all() if s.id != skill_id]
+        return self.reviewer.find_duplicates_for(
+            target, others, min_jaccard=min_jaccard,
+        )
+
+    def merge_duplicate_skills(self, src_id: str, dst_id: str, *,
+                                strategy: str = "auto",
+                                rebind_feedback: bool = True) -> Dict[str, Any]:
+        """合并两个重复技能
+
+        Args:
+            src_id: 被合并方ID（将被删除）
+            dst_id: 合并保留方ID
+            strategy: auto | keep_dst | keep_src
+            rebind_feedback: 是否同时改绑 feedback 表（默认 True）
+
+        Returns:
+            {merged_id, removed_id, merged_fields, version_added,
+             feedback_rebound_count}
+
+        Raises:
+            SkillNotFoundError: 任一技能不存在
+            ValueError: src_id == dst_id
+        """
+        with traced_action("svc_merge_skills",
+                           src_id=src_id, dst_id=dst_id,
+                           strategy=strategy):
+            # 边界显性化
+            self._require(src_id)
+            self._require(dst_id)
+            if src_id == dst_id:
+                raise ValueError(
+                    f"src_id 与 dst_id 不能相同: {src_id}"
+                )
+
+            feedback_mgr = None
+            if rebind_feedback:
+                try:
+                    from agent.feedback import get_feedback_manager
+                    feedback_mgr = get_feedback_manager()
+                except Exception as e:
+                    logger.warning(
+                        "[Service] 获取 feedback_manager 失败，跳过反馈改绑: %s", e
+                    )
+
+            result = self.store.merge_skills(
+                src_id, dst_id,
+                strategy=strategy,
+                feedback_manager=feedback_mgr,
+            )
+
+            try:
+                from .observability import track_event
+                track_event("skills_merged", {
+                    "merged_id": result["merged_id"],
+                    "removed_id": result["removed_id"],
+                    "merged_fields": result["merged_fields"],
+                    "strategy": strategy,
+                })
+            except Exception:
+                pass
+            return result
+
+    def auto_merge_duplicates(self, min_jaccard: float = 0.85,
+                               max_merges: int = 10) -> Dict[str, Any]:
+        """自动合并高相似度技能对（Jaccard ≥ min_jaccard）
+
+        仅合并 recommend_action == "merge" 的对，避免误伤 review 类。
+        每次合并后重新扫描，因为合并会改变剩余技能的相似度关系。
+
+        Args:
+            min_jaccard: 自动合并阈值（默认 0.85，比 review 的 0.7 更严格）
+            max_merges: 单次最多合并多少对（防止意外批量操作）
+
+        Returns:
+            {scanned_pairs, merged_pairs: [...], skipped: int}
+        """
+        with traced_action("svc_auto_merge_duplicates",
+                           min_jaccard=min_jaccard,
+                           max_merges=max_merges):
+            merged_pairs: List[Dict[str, Any]] = []
+            total_scanned = 0
+
+            # 迭代合并：每次合并一对后重新扫描，直到没有可合并对或达到上限
+            while len(merged_pairs) < max_merges:
+                duplicates = self.list_duplicates(min_jaccard=min_jaccard)
+                merge_candidates = [
+                    d for d in duplicates
+                    if d["recommend_action"] == "merge"
+                ]
+                total_scanned = max(total_scanned, len(duplicates))
+
+                if not merge_candidates:
+                    break
+
+                # 取相似度最高的一对
+                dup = merge_candidates[0]
+                a, b = dup["skill_a"], dup["skill_b"]
+                try:
+                    result = self.merge_duplicate_skills(a, b)
+                    merged_pairs.append(result)
+                except Exception as e:
+                    logger.warning(
+                        "[Service] 自动合并失败 %s ↔ %s: %s",
+                        a, b, e,
+                    )
+                    break
+
+            return {
+                "scanned_pairs": total_scanned,
+                "merged_pairs": merged_pairs,
+                "skipped": 0,
+            }
 
     def set_enabled(self, skill_id: str, enabled: bool) -> Skill:
         return self.enhancer.set_enabled(skill_id, enabled)

@@ -6,6 +6,97 @@
 
 ---
 
+## [DI 重构] - 2026-07-05 切断 monitoring → error_handler 模块级硬依赖（循环依赖残留侧）
+
+### 背景
+前序工作已完成 `error_handler.py` 的 DI 重构（消除其对 `monitoring.metrics` 的延迟导入）。
+但循环依赖在 monitoring 包内仍有"另一侧"未处理：`decorators.py:16` 模块级
+`from agent.error_handler import (...)`。本次彻底切断该双向硬依赖。
+
+### Changed — agent/monitoring/decorators.py
+- 添加 `from __future__ import annotations`，类型注解延迟求值（不再模块级触发 Enum 导入）
+- 移除模块级 `from agent.error_handler import (...)` 块（6 个符号）
+- `handle_errors` 装饰器：
+  - 默认值从 `ErrorCategory.UNKNOWN` / `ErrorSeverity.ERROR` 改为 `None`
+  - 延迟导入移入 `except Exception as e:` 块内，**成功路径完全不依赖 error_handler**
+  - 使用 `_ErrorCategory` / `_ErrorSeverity` / `_YunshuError` 局部别名避免污染外层
+- `async_handle_errors` 装饰器：
+  - 延迟导入 `ErrorSeverity` 移入 `except Exception as e:` 块内
+- 移除未使用的 `RecoverableError` / `CriticalError` 导入
+
+### Added — 测试套件
+- **tests/unit/test_decorators_decoupling.py**：14 个解耦验证测试，覆盖 5 个维度：
+  - `TestModuleLevelDecoupling`（3）：模块级源码扫描、符号泄露检测、`__future__` 验证
+  - `TestMonitoringDecoratorsWorkWithoutErrorHandler`（3）：监控类装饰器成功路径不导入 error_handler
+  - `TestHandleErrorsLazyImportBehavior`（4）：成功路径零导入、异常路径延迟导入、向后兼容、默认值校验
+  - `TestAsyncHandleErrorsLazyImportBehavior`（2）：异步成功路径零导入、异常路径正常工作
+  - `TestTypeAnnotationsLazyEvaluation`（2）：字符串注解验证、模块可导入性
+
+### Fixed — 19 个预先存在的 test_error_handler*.py 失败（前序工作）
+详见上一节记录。关键结论：**0 个由 log_dict 结构化日志迁移导致**。
+
+### Verified — 测试无回归
+- `test_decorators_decoupling.py`：14 passed（新增）
+- `test_monitoring_decorators.py`：25 passed（原有，无回归）
+- `test_error_handler*.py` + DI 测试：492 + 29 passed
+- 完整 CI 套件：632 passed, 3 skipped, 0 failed
+
+### 架构影响
+| 路径 | 重构前 | 重构后 |
+|------|--------|--------|
+| `monitoring/__init__.py` → `decorators.py` → `error_handler` | 模块级硬依赖 | 函数体内延迟导入 |
+| 成功路径 error_handler 加载 | 必触发 | 不触发 |
+| 异常路径 error_handler 加载 | 必触发 | 延迟触发 |
+| 类型注解求值 | 模块级 | 字符串（`__future__.annotations`）|
+
+### 已知后续工作
+- `error_reporter.py:163` 延迟导入已无回环必要，可清理
+- `prometheus.py:35`、`self_healer.py:35`、`alert_evaluator.py:40`、`alert_notifier.py:37` 的延迟/防御导入可一并清理
+- `orchestrator/orchestrator.py` 6 处延迟导入可迁移到 DI 模式（与 lifecycle_manager 同构）
+
+---
+
+## [DI 重构] - 2026-07-04 error_handler + lifecycle_manager 依赖注入重构 & 19 个测试修复
+
+### Added — 依赖注入（DI）重构
+- **agent/error_handler.py**：`ErrorHandler.__init__` 新增 2 个 keyword-only 工厂参数
+  - `max_retries_factory` 替代 `get_default_max_retries()` 延迟导入
+  - `metrics_collector_factory` 替代 `get_metrics_collector()` 延迟导入
+  - 新增 `_get_metrics_collector()` / `_get_max_retries()` 辅助方法（DI 优先 + 延迟导入兜底）
+  - `RetryPolicy` / `with_retry` / `async_with_retry` 同步支持工厂参数
+- **agent/orchestrator/lifecycle_manager.py**：`LifecycleManager.__init__` 新增 6 个 keyword-only 工厂参数
+  - `tool_calling_service_factory` / `workflow_engine_factory` / `subagent_manager_factory`
+  - `search_engine_factory` / `extension_manager_factory` / `llm_service_factory`
+
+### Added — 测试套件（55 个新测试）
+- `tests/unit/test_error_handler_di.py`：29 个 DI 测试（7 个维度）
+- `tests/unit/test_lifecycle_manager_di.py`：26 个 DI 测试（10 个维度）
+
+### Added — CI/CD
+- `.github/workflows/log-perf-guard.yml` `di-unit-tests` job 扩展：
+  - 新增 lifecycle_manager DI 测试步骤（26 个）
+  - 新增 error_handler DI + 回归套件步骤（29 + 492 个）
+  - 覆盖率报告扩展为 3 个模块独立报告
+
+### Fixed — 19 个预先存在的 test_error_handler*.py 失败
+- 1 个 `ErrorCategory.SYSTEM` 不存在 → `CONFIG_ERROR`
+- 3 个 fixture 找不到 → 模块级 `error_handler` fixture
+- 1 个 API 误用 → `func_args` / `func_kwargs`
+- 3 个 Python 3.12 asyncio → `asyncio.run()`
+- 3 个 jitter 精度 → `jitter_factor=0.0`
+- 3 个 mock 路径失效 → DI 模式注入
+- 1 个 `should_retry` 默认行为断言
+- 2 个子串匹配 bug
+- 1 个 `custom_condition` 签名
+- 3 个 CircuitBreaker 状态断言
+- 1 个 `retryable_exceptions` 配置
+
+### Verified
+- 完整 CI 套件：632 passed, 3 skipped, 0 failed（82.79s）
+- 向后兼容：所有 DI 参数为可选 keyword-only，未注入时回落到延迟导入
+
+---
+
 ## [阶段 2] - 2026-07-01 boundary_test_coverage 指标定义修订 12.2%→100% 达 80% 目标
 
 ### 指标定义修订

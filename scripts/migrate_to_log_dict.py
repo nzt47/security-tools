@@ -165,6 +165,102 @@ def migrate_content(content: str) -> Tuple[str, int]:
     return ''.join(result), count
 
 
+def add_log_dict_import(content: str) -> Tuple[str, bool]:
+    """在文件内容中添加 log_dict 导入（如果尚未导入）
+
+    使用 AST 解析定位真实 import 语句，避免误识别 docstring 中的代码示例。
+
+    策略：
+    1. 若已存在 log_dict 导入，跳过
+    2. 若存在 'from agent.logging_utils import (...)' 多行块，插入 log_dict
+    3. 若存在 'from agent.logging_utils import xxx' 单行，追加 , log_dict
+    4. 否则在第一个连续 import 块末尾添加新行
+
+    Returns:
+        (新内容, 是否添加了导入)
+    """
+    # 用 AST 定位真实 import 行号，避免误匹配 docstring 中的代码
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        # 语法错误时回退到正则
+        tree = None
+
+    # 收集模块级 Import / ImportFrom 节点的行号范围
+    import_nodes = []
+    if tree is not None:
+        for node in tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                # node.lineno 是 1-based, end_lineno 是 1-based 闭区间
+                start = node.lineno - 1  # 转 0-based
+                end = (node.end_lineno or node.lineno) - 1
+                import_nodes.append((node, start, end))
+
+    # 检查是否已导入 log_dict
+    for node, _, _ in import_nodes:
+        if isinstance(node, ast.ImportFrom):
+            if node.module == 'agent.logging_utils':
+                for alias in node.names:
+                    if alias.name == 'log_dict':
+                        return content, False
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == 'log_dict':
+                    return content, False
+
+    lines = content.split('\n')
+
+    # 策略 2: 多行 from agent.logging_utils import (...)
+    for node, start, end in import_nodes:
+        if isinstance(node, ast.ImportFrom) and node.module == 'agent.logging_utils':
+            line = lines[start]
+            # 检查是否是多行 import（含 '(' 且不在同一行闭合）
+            if '(' in line and ')' not in line:
+                indent = line[:len(line) - len(line.lstrip())]
+                # 在最后一项后添加 log_dict
+                last_import_line = lines[end - 1]
+                stripped = last_import_line.strip()
+                if stripped and not stripped.endswith(','):
+                    lines[end - 1] = last_import_line + ','
+                lines.insert(end, f'{indent}    log_dict,')
+                return '\n'.join(lines), True
+
+    # 策略 3: 单行 from agent.logging_utils import xxx
+    for node, start, end in import_nodes:
+        if isinstance(node, ast.ImportFrom) and node.module == 'agent.logging_utils':
+            line = lines[start]
+            if '(' not in line:  # 单行 import
+                indent = line[:len(line) - len(line.lstrip())]
+                # 提取现有 import 列表
+                import_part = line[line.index('import') + 7:].strip()
+                lines[start] = f'{indent}from agent.logging_utils import {import_part}, log_dict'
+                return '\n'.join(lines), True
+
+    # 策略 4: 在第一个连续 import 块末尾添加
+    if import_nodes:
+        # 找第一个连续 import 块的末尾
+        first_start = import_nodes[0][1]
+        first_end = import_nodes[0][2]
+        for node, start, end in import_nodes[1:]:
+            # 允许中间有空行或注释，但只要 import 节点行号连续就归入同一块
+            if start <= first_end + 3:  # 允许最多 3 行间隔（空行/注释）
+                first_end = end
+            else:
+                break
+        lines.insert(first_end + 1, 'from agent.logging_utils import log_dict')
+        return '\n'.join(lines), True
+
+    # 兜底：在文件开头添加（跳过 docstring）
+    # 找到 docstring 结束位置
+    insert_at = 0
+    if tree is not None and tree.body and isinstance(tree.body[0], ast.Expr):
+        if isinstance(tree.body[0].value, (ast.Constant, ast.Str)):
+            insert_at = tree.body[0].end_lineno  # 1-based，正好是下一行
+    lines.insert(insert_at, 'from agent.logging_utils import log_dict')
+    lines.insert(insert_at + 1, '')
+    return '\n'.join(lines), True
+
+
 def migrate_file(file_path: str, dry_run: bool = False, show_diff: bool = False) -> int:
     """迁移单个文件，返回替换次数"""
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -175,6 +271,9 @@ def migrate_file(file_path: str, dry_run: bool = False, show_diff: bool = False)
     if count == 0:
         print(f"[SKIP] {file_path}: 无可迁移的 json.dumps 日志调用")
         return 0
+
+    # 添加 log_dict 导入
+    new_content, imported = add_log_dict_import(new_content)
 
     if show_diff:
         diff = difflib.unified_diff(
@@ -187,15 +286,18 @@ def migrate_file(file_path: str, dry_run: bool = False, show_diff: bool = False)
         print(''.join(diff))
 
     if dry_run:
-        print(f"[DRY-RUN] {file_path}: 将替换 {count} 处")
+        suffix = f"，新增 import" if imported else ""
+        print(f"[DRY-RUN] {file_path}: 将替换 {count} 处{suffix}")
         return count
     if show_diff:
-        print(f"[DIFF-ONLY] {file_path}: 将替换 {count} 处（未写入）")
+        suffix = f"，新增 import" if imported else ""
+        print(f"[DIFF-ONLY] {file_path}: 将替换 {count} 处{suffix}（未写入）")
         return count
 
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
-    print(f"[OK] {file_path}: 已替换 {count} 处")
+    suffix = "，新增 import" if imported else ""
+    print(f"[OK] {file_path}: 已替换 {count} 处{suffix}")
     return count
 
 

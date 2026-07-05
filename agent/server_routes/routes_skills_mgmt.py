@@ -434,16 +434,181 @@ def register_routes(app, state):
     def api_skills_mgmt_record_execution(skill_id: str):
         """上报一次技能执行结果 (用于性能追踪)
 
-        Body: {success: bool, latency_ms: number}
+        Body: {success: bool, latency_ms: number,
+               feedback_rating?: int(0-5), feedback_id?: str, trace_id?: str,
+               params_used?: dict}  # Item 4: 参数级追踪
         """
         try:
             data = request.get_json() or {}
+            params_used = data.get("params_used")
+            if params_used is not None and not isinstance(params_used, dict):
+                return jsonify({
+                    "ok": False,
+                    "error": "params_used 必须是 dict",
+                }), 400
             _svc().record_execution(
                 skill_id,
                 success=bool(data.get("success", True)),
                 latency_ms=float(data.get("latency_ms", 0)),
+                feedback_rating=int(data.get("feedback_rating", 0) or 0),
+                feedback_id=str(data.get("feedback_id", "") or ""),
+                trace_id=str(data.get("trace_id", "") or ""),
+                params_used=params_used,
             )
             return jsonify({"ok": True})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/param-stats", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_param_stats(skill_id: str):
+        """获取技能的参数级执行统计 (Item 4)
+
+        Returns:
+            {ok, skill_id, param_stats, avoid_params, current_default_hash}
+        """
+        try:
+            skill = _svc().get(skill_id)
+            from agent.skills_mgmt.enhancer import SkillEnhancer
+            current_hash = SkillEnhancer._hash_params(skill.default_params) \
+                if skill.default_params else None
+            return jsonify({
+                "ok": True,
+                "skill_id": skill_id,
+                "current_default_params": skill.default_params,
+                "current_default_hash": current_hash,
+                "param_stats": skill.metrics.param_stats,
+                "avoid_params": skill.metrics.avoid_params,
+            })
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  技能反馈绑定 (Feedback-Skill Binding)
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/<skill_id>/feedback", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_submit_feedback(skill_id: str):
+        """提交针对某技能的用户反馈
+
+        Body: {
+            trace_id: str,
+            feedback_type: "like"|"dislike"|"report"|"suggestion",
+            rating?: int(0-5),
+            comment?: str,
+            category?: str,
+            user_id?: str,
+            session_id?: str,
+            workflow_id?: str
+        }
+
+        Returns:
+            {ok, feedback: {...}, summary: {...}}
+            错误码:
+                - SKILL_NOT_FOUND (404)
+                - VALIDATION_ERROR (400)
+        """
+        try:
+            data = request.get_json() or {}
+            trace_id = str(data.get("trace_id", "") or "")
+            feedback_type = str(data.get("feedback_type", "") or "")
+            rating = int(data.get("rating", 0) or 0)
+
+            # 边界显性化
+            if not trace_id:
+                return jsonify({
+                    "ok": False,
+                    "error": "trace_id 不能为空",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            if feedback_type not in ("like", "dislike", "report", "suggestion"):
+                return jsonify({
+                    "ok": False,
+                    "error": f"feedback_type 非法: {feedback_type}",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            if rating < 0 or rating > 5:
+                return jsonify({
+                    "ok": False,
+                    "error": f"rating 必须在 0-5 之间: {rating}",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            result = _svc().submit_skill_feedback(
+                skill_id,
+                trace_id=trace_id,
+                feedback_type=feedback_type,
+                rating=rating,
+                comment=str(data.get("comment", "") or ""),
+                category=str(data.get("category", "other") or "other"),
+                user_id=str(data.get("user_id", "") or ""),
+                session_id=str(data.get("session_id", "") or ""),
+                workflow_id=str(data.get("workflow_id", "") or ""),
+            )
+            return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except ValueError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": "VALIDATION_ERROR",
+            }), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/feedback", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_get_feedback(skill_id: str):
+        """获取技能反馈聚合统计
+
+        Query: days=30 (统计窗口)
+
+        Returns:
+            {ok, summary: {skill_id, total_feedback, like_count,
+                            dislike_count, satisfaction_rate_percent,
+                            avg_rating, by_category, recommended_action, ...}}
+        """
+        try:
+            days = int(request.args.get("days", 30))
+            if days <= 0 or days > 365:
+                return jsonify({
+                    "ok": False,
+                    "error": "days 必须在 1-365 之间",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            summary = _svc().get_skill_feedback_summary(skill_id, days=days)
+            return jsonify({"ok": True, "summary": summary})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/optimize-with-feedback", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_optimize_with_feedback(skill_id: str):
+        """一键式：拉取反馈统计 + 触发参数优化
+
+        Query: days=30
+
+        Returns:
+            {ok, recommendations, actions_taken, metrics_snapshot, feedback_summary}
+        """
+        try:
+            days = int(request.args.get("days", 30))
+            result = _svc().optimize_with_feedback(skill_id, days=days)
+            return jsonify({"ok": True, **result})
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
@@ -470,6 +635,158 @@ def register_routes(app, state):
                 "statuses": [s.value for s in SkillStatus],
                 "tags": sorted(all_tags),
             })
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  重复技能检测与合并 (Jaccard≥0.7 触发)
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/duplicates", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_duplicates():
+        """扫描整个技能库，列出 Jaccard≥阈值的重复对
+
+        Query: min_jaccard=0.7
+
+        Returns:
+            {ok, total, duplicates: [{skill_a, skill_b, jaccard,
+                                       content_hash_match, recommend_action}]}
+        """
+        try:
+            min_jaccard = float(request.args.get("min_jaccard", 0.7))
+            if min_jaccard < 0.0 or min_jaccard > 1.0:
+                return jsonify({
+                    "ok": False,
+                    "error": "min_jaccard 必须在 0.0-1.0 之间",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            duplicates = _svc().list_duplicates(min_jaccard=min_jaccard)
+            return jsonify({
+                "ok": True,
+                "total": len(duplicates),
+                "duplicates": duplicates,
+            })
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/duplicates", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_duplicates_for(skill_id: str):
+        """找出与指定技能重复的其他技能
+
+        Query: min_jaccard=0.7
+        """
+        try:
+            min_jaccard = float(request.args.get("min_jaccard", 0.7))
+            duplicates = _svc().find_duplicates_for(
+                skill_id, min_jaccard=min_jaccard,
+            )
+            return jsonify({
+                "ok": True,
+                "skill_id": skill_id,
+                "total": len(duplicates),
+                "duplicates": duplicates,
+            })
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/merge", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_merge():
+        """合并两个重复技能
+
+        Body: {
+            src_id: str,            # 被合并方（将被删除）
+            dst_id: str,            # 合并保留方
+            strategy?: str,         # auto | keep_dst | keep_src (默认 auto)
+            rebind_feedback?: bool  # 是否改绑 feedback 表（默认 true）
+        }
+
+        Returns:
+            {ok, merged_id, removed_id, merged_fields, version_added,
+             feedback_rebound_count}
+            错误码:
+                - VALIDATION_ERROR (400)
+                - SKILL_NOT_FOUND (404)
+        """
+        try:
+            data = request.get_json() or {}
+            src_id = str(data.get("src_id", "") or "")
+            dst_id = str(data.get("dst_id", "") or "")
+            strategy = str(data.get("strategy", "auto") or "auto")
+            rebind_feedback = bool(data.get("rebind_feedback", True))
+
+            # 边界显性化
+            if not src_id or not dst_id:
+                return jsonify({
+                    "ok": False,
+                    "error": "src_id 与 dst_id 不能为空",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            if strategy not in ("auto", "keep_dst", "keep_src"):
+                return jsonify({
+                    "ok": False,
+                    "error": f"strategy 非法: {strategy}",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            result = _svc().merge_duplicate_skills(
+                src_id, dst_id,
+                strategy=strategy,
+                rebind_feedback=rebind_feedback,
+            )
+            return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except ValueError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": "VALIDATION_ERROR",
+            }), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/auto-merge", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_auto_merge():
+        """自动合并高相似度技能对（Jaccard ≥ 阈值）
+
+        仅合并 recommend_action == "merge" 的对，避免误伤 review 类。
+
+        Body: {min_jaccard?: 0.85, max_merges?: 10}
+        """
+        try:
+            data = request.get_json() or {}
+            min_jaccard = float(data.get("min_jaccard", 0.85))
+            max_merges = int(data.get("max_merges", 10))
+            if min_jaccard < 0.5 or min_jaccard > 1.0:
+                return jsonify({
+                    "ok": False,
+                    "error": "min_jaccard 必须在 0.5-1.0 之间",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+            if max_merges < 1 or max_merges > 100:
+                return jsonify({
+                    "ok": False,
+                    "error": "max_merges 必须在 1-100 之间",
+                    "code": "VALIDATION_ERROR",
+                }), 400
+
+            result = _svc().auto_merge_duplicates(
+                min_jaccard=min_jaccard,
+                max_merges=max_merges,
+            )
+            return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -543,7 +860,108 @@ def register_routes(app, state):
                             **_svc().load_skill_instruction(skill_id)})
         except SkillMgmtError as e:
             return _err(e)
+
+    # ═══════════════════════════════════════════════════
+    #  记忆 → 技能自动抽象
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/abstract-from-memory", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_mgmt_abstract_from_memory():
+        """从云枢记忆中自动抽象新技能草稿
+
+        Body:
+            days: int = 30        — 回溯最近 N 天的记忆
+            max_skills: int = 5   — 最多生成多少个草稿
+            auto_register: bool = False — True 时自动注册到技能库
+            min_cluster_size: int = 3   — 聚类最小大小 (覆盖默认)
+            min_success_rate: float = 0.7 — 聚类最小成功率 (覆盖默认)
+            cluster_jaccard: float = 0.5  — 聚类合并 Jaccard 阈值 (覆盖默认)
+            max_existing_dup_jaccard: float = 0.7 — 与已有技能最大相似度
+            enable_signal_scoring: bool = True — 是否启用信号评分过滤
+
+        Returns:
+            {ok, total_input_memories, total_clusters,
+             passed_clusters, registered_count,
+             drafts: [{cluster_id, cluster_size, success_rate,
+                       common_tool_names, common_tags,
+                       draft_skill_id, draft_name, draft_description,
+                       draft_content_preview, draft_default_params,
+                       quality_gate_passed, quality_gate_reasons,
+                       registered, skill_id, duplicate_of}, ...]}
+        """
+        try:
+            from agent.skills_mgmt.memory_abstractor import MemorySkillAbstractor
+
+            data = request.get_json() or {}
+            days = int(data.get("days", 30))
+            max_skills = int(data.get("max_skills", 5))
+            auto_register = bool(data.get("auto_register", False))
+            min_cluster_size = int(data.get("min_cluster_size",
+                                            MemorySkillAbstractor.MIN_CLUSTER_SIZE))
+            min_success_rate = float(data.get("min_success_rate",
+                                              MemorySkillAbstractor.MIN_SUCCESS_RATE))
+            cluster_jaccard = float(data.get("cluster_jaccard",
+                                             MemorySkillAbstractor.CLUSTER_JACCARD_THRESHOLD))
+            max_existing_dup_jaccard = float(
+                data.get("max_existing_dup_jaccard",
+                         MemorySkillAbstractor.MAX_EXISTING_DUP_JACCARD),
+            )
+            enable_signal_scoring = bool(
+                data.get("enable_signal_scoring", True),
+            )
+
+            # 参数边界校验
+            if days < 1:
+                return jsonify({"ok": False,
+                                "error": "days 必须 >= 1"}), 400
+            if max_skills < 1 or max_skills > 50:
+                return jsonify({"ok": False,
+                                "error": "max_skills 必须在 1..50"}), 400
+            if not (0.0 <= min_success_rate <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "min_success_rate 必须在 0..1"}), 400
+            if not (0.0 <= cluster_jaccard <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "cluster_jaccard 必须在 0..1"}), 400
+            if not (0.0 <= max_existing_dup_jaccard <= 1.0):
+                return jsonify({"ok": False,
+                                "error": "max_existing_dup_jaccard 必须在 0..1"}), 400
+
+            abstractor = MemorySkillAbstractor(
+                skills_service=_svc(),
+                min_cluster_size=min_cluster_size,
+                min_success_rate=min_success_rate,
+                max_existing_dup_jaccard=max_existing_dup_jaccard,
+                cluster_jaccard=cluster_jaccard,
+                enable_signal_scoring=enable_signal_scoring,
+            )
+
+            drafts = abstractor.abstract_new_skills(
+                days=days,
+                max_skills=max_skills,
+                auto_register=auto_register,
+            )
+
+            passed_count = sum(1 for d in drafts if d["quality_gate_passed"])
+            registered_count = sum(1 for d in drafts if d.get("registered"))
+
+            return jsonify({
+                "ok": True,
+                "total_input_memories": sum(
+                    d["cluster_size"] for d in drafts
+                ),
+                "total_clusters": len(drafts),
+                "passed_clusters": passed_count,
+                "registered_count": registered_count,
+                "drafts": drafts,
+            })
+        except ValueError as e:
+            return jsonify({"ok": False,
+                            "error": f"参数错误: {e}"}), 400
         except Exception as e:  # noqa: BLE001
+            logger.exception("[SkillsMgmt] abstract-from-memory 失败")
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/<skill_id>/scripts", methods=["GET"])

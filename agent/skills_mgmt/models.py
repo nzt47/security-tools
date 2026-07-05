@@ -10,7 +10,7 @@ from __future__ import annotations
 import enum
 import re
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
@@ -125,9 +125,21 @@ class SkillMetrics(BaseModel):
     p95_latency_ms: float = 0.0
     last_used_at: Optional[str] = None
     last_latency_ms: Optional[float] = None
+    # 参数级追踪 — 用于 Item 4 自动参数迭代优化
+    # 键是参数组合的 8 位哈希，值结构: {params, success, failure, total_latency_ms, last_used_at}
+    param_stats: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    # 黑名单参数组合 — 历史成功率极低，自动迭代时跳过
+    avoid_params: List[Dict[str, Any]] = Field(default_factory=list)
 
-    def record(self, success: bool, latency_ms: float) -> None:
-        """记录一次执行"""
+    def record(self, success: bool, latency_ms: float,
+               params_used: Optional[Dict[str, Any]] = None) -> None:
+        """记录一次执行
+
+        Args:
+            success: 是否成功
+            latency_ms: 延迟毫秒
+            params_used: 本次使用的参数组合 (None 表示用 default_params)
+        """
         self.usage_count += 1
         if success:
             self.success_count += 1
@@ -142,6 +154,32 @@ class SkillMetrics(BaseModel):
         self.last_used_at = datetime.now().isoformat()
         if self.usage_count > 0:
             self.success_rate = self.success_count / self.usage_count
+        # 参数级追踪
+        if params_used is not None:
+            self._record_param_stats(success, latency_ms, params_used)
+
+    def _record_param_stats(self, success: bool, latency_ms: float,
+                            params: Dict[str, Any]) -> None:
+        """记录单条参数组合的执行情况"""
+        import hashlib
+        import json as _json
+        try:
+            key_str = _json.dumps(params, sort_keys=True, ensure_ascii=False)
+        except (TypeError, ValueError):
+            key_str = str(sorted(params.items()))
+        key = hashlib.md5(key_str.encode("utf-8")).hexdigest()[:8]
+        stat = self.param_stats.get(key, {
+            "params": params,
+            "success": 0,
+            "failure": 0,
+            "total_latency_ms": 0.0,
+            "last_used_at": None,
+        })
+        stat["success"] = stat.get("success", 0) + (1 if success else 0)
+        stat["failure"] = stat.get("failure", 0) + (0 if success else 1)
+        stat["total_latency_ms"] = stat.get("total_latency_ms", 0.0) + latency_ms
+        stat["last_used_at"] = datetime.now().isoformat()
+        self.param_stats[key] = stat
 
 
 # ──────────────────────────────────────────────
@@ -180,8 +218,10 @@ class Skill(BaseModel):
         description="参数 JSON Schema (用于校验 default_params)"
     )
     default_params: Dict[str, Any] = Field(default_factory=dict)
-    dependencies: List[str] = Field(default_factory=list,
-                                    description="Python/系统依赖")
+    dependencies: List[Union[str, Dict[str, Any]]] = Field(
+        default_factory=list,
+        description="Python/系统依赖 — 支持纯字符串(无版本约束)或带版本约束的 dict",
+    )
 
     # 审核
     review: Optional[ReviewResult] = None

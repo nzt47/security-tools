@@ -48,6 +48,8 @@
       "covered_scenes": [
         "boundary",
         "empty",
+        "encoding",
+        "exception",
         "extreme",
         "invalid",
         "null",
@@ -664,6 +666,42 @@
       "boundary_tests": 1,
       "covered_scenes": [
         "extreme"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "api_gateway",
+      "description": "",
+      "total_tests": 23,
+      "boundary_tests": 8,
+      "covered_scenes": [
+        "boundary",
+        "invalid",
+        "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "skills_mgmt",
+      "description": "",
+      "total_tests": 70,
+      "boundary_tests": 15,
+      "covered_scenes": [
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],

@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from pathlib import Path
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ class StateManager:
         # 确保状态目录存在
         self._ensure_state_dir()
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "self._state_dir", "msg": f"状态管理器初始化完成，目录: {self._state_dir}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'state_manager', 'action': 'self._state_dir', 'msg': f'状态管理器初始化完成，目录: {self._state_dir}'}))
         
         # 启动自动保存线程（如果配置了）
         if self._auto_save_interval > 0:
@@ -163,9 +164,9 @@ class StateManager:
             # 清理旧备份
             self._cleanup_backups()
             
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "backup_path", "msg": f"状态备份已创建: {backup_path}"}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'state_manager', 'action': 'backup_path', 'msg': f'状态备份已创建: {backup_path}'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"创建状态备份失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'创建状态备份失败: {e}'}))
     
     def _cleanup_backups(self):
         """清理旧备份，保留最新的MAX_BACKUPS个"""
@@ -179,9 +180,9 @@ class StateManager:
             if len(backups) > self.MAX_BACKUPS:
                 for backup in backups[self.MAX_BACKUPS:]:
                     backup.unlink()
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "backup", "msg": f"已删除旧备份: {backup}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'backup', 'msg': f'已删除旧备份: {backup}'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"清理备份失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'清理备份失败: {e}'}))
     
     def save_state(
         self,
@@ -204,19 +205,19 @@ class StateManager:
         
         with self._lock:
             try:
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.state_id.len", "msg": f"开始保存状态，state_id: {state_id}, 数据键数量: {len(state_data.keys())}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.len', 'msg': f'开始保存状态，state_id: {state_id}, 数据键数量: {len(state_data.keys())}'}))
                 
                 # 生成状态ID
                 if state_id is None:
                     state_id = self._generate_state_id()
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id", "msg": f"自动生成状态ID: {state_id}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id', 'msg': f'自动生成状态ID: {state_id}'}))
                 else:
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id", "msg": f"使用自定义状态ID: {state_id}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id', 'msg': f'使用自定义状态ID: {state_id}'}))
                 
                 # 添加元数据
                 state_to_save = state_data.copy()
                 if include_timestamp:
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "开始构建元数据..."}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '开始构建元数据...'}))
                     # 先序列化一次获取数据大小
                     temp_state = state_to_save.copy()
                     temp_state['_metadata'] = {
@@ -233,25 +234,25 @@ class StateManager:
                         'created_at': datetime.now(timezone.utc).isoformat(),
                         'data_size': len(json_str_for_size.encode('utf-8'))
                     }
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "self.version", "msg": f"元数据构建完成，版本: {self.VERSION}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'self.version', 'msg': f'元数据构建完成，版本: {self.VERSION}'}))
                 
                 # 序列化并写入文件
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "开始序列化状态数据..."}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '开始序列化状态数据...'}))
                 json_str = self._serialize_state(state_to_save)
                 file_path = self._get_state_path(state_id)
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"状态文件路径: {file_path}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'状态文件路径: {file_path}'}))
                 
                 # 创建备份（仅对默认状态文件）
                 if state_id is None:
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "创建状态备份..."}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '创建状态备份...'}))
                     self._create_backup(state_id)
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "备份创建完成"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '备份创建完成'}))
                 
                 # 写入文件
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"开始写入状态文件: {file_path}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'开始写入状态文件: {file_path}'}))
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(json_str)
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"状态文件写入完成"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'状态文件写入完成'}))
                 
                 # 更新当前状态
                 self._current_state = state_to_save
@@ -260,7 +261,7 @@ class StateManager:
                 elapsed_ms = (time.time() - start_time) * 1000
                 data_size = len(json_str.encode('utf-8'))
                 
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.file_path.data_size", "msg": f"状态保存成功: {state_id}, 文件: {file_path}, 大小: {data_size} bytes, 数据键数量: {len(state_to_save.keys())}, 耗时: {elapsed_ms:.2f}ms"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'state_manager', 'action': 'state_id.file_path.data_size', 'msg': f'状态保存成功: {state_id}, 文件: {file_path}, 大小: {data_size} bytes, 数据键数量: {len(state_to_save.keys())}, 耗时: {elapsed_ms:.2f}ms'}))
                 
                 return StateSaveResult(
                     success=True,
@@ -275,8 +276,8 @@ class StateManager:
                 elapsed_ms = (time.time() - start_time) * 1000
                 error_msg = str(e)
                 
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "error_msg", "msg": f"状态保存失败: {error_msg}"}, ensure_ascii=False))
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.state_id.len", "msg": f"失败详情 - state_id: {state_id}, 数据键数量: {len(state_data.keys()) if state_data else 0}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'error_msg', 'msg': f'状态保存失败: {error_msg}'}))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.len', 'msg': f'失败详情 - state_id: {state_id}, 数据键数量: {(len(state_data.keys()) if state_data else 0)}'}))
                 
                 return StateSaveResult(
                     success=False,
@@ -300,22 +301,22 @@ class StateManager:
         
         with self._lock:
             try:
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.state_id", "msg": f"开始加载状态，state_id: {state_id}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id', 'msg': f'开始加载状态，state_id: {state_id}'}))
                 
                 file_path = self._get_state_path(state_id)
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"计算状态文件路径: {file_path}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'计算状态文件路径: {file_path}'}))
                 
                 if not file_path.exists():
-                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"指定的状态文件不存在: {file_path}"}, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'指定的状态文件不存在: {file_path}'}))
                     # 尝试查找最新的状态文件
                     if state_id is None:
-                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id", "msg": "未指定state_id，尝试查找最新状态文件..."}, ensure_ascii=False))
+                        logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id', 'msg': '未指定state_id，尝试查找最新状态文件...'}))
                         latest_file = self._find_latest_state()
                         if latest_file:
                             file_path = latest_file
-                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"找到最新状态文件: {file_path}"}, ensure_ascii=False))
+                            logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'找到最新状态文件: {file_path}'}))
                         else:
-                            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "未找到任何状态文件"}, ensure_ascii=False))
+                            logger.error(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '未找到任何状态文件'}))
                             return StateLoadResult(
                                 success=False,
                                 state_id="",
@@ -324,7 +325,7 @@ class StateManager:
                                 error_message="状态文件不存在"
                             )
                     else:
-                        logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"指定的状态文件不存在: {file_path}"}, ensure_ascii=False))
+                        logger.error(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'指定的状态文件不存在: {file_path}'}))
                         return StateLoadResult(
                             success=False,
                             state_id=state_id,
@@ -334,29 +335,29 @@ class StateManager:
                         )
                 
                 # 读取并解析状态文件
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"开始读取状态文件: {file_path}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'开始读取状态文件: {file_path}'}))
                 file_size = file_path.stat().st_size
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_size.bytes", "msg": f"文件大小: {file_size} bytes"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_size.bytes', 'msg': f'文件大小: {file_size} bytes'}))
                 
                 with open(file_path, 'r', encoding='utf-8') as f:
                     json_str = f.read()
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "状态文件读取完成"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '状态文件读取完成'}))
                 
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "开始反序列化状态数据..."}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '开始反序列化状态数据...'}))
                 state_data = self._deserialize_state(json_str)
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "len.state_data.keys", "msg": f"状态反序列化完成，数据键数量: {len(state_data.keys())}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'len.state_data.keys', 'msg': f'状态反序列化完成，数据键数量: {len(state_data.keys())}'}))
                 
                 # 提取状态ID
                 loaded_state_id = state_data.get('_metadata', {}).get('state_id', state_id or 'unknown')
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "loaded_state_id", "msg": f"提取到状态ID: {loaded_state_id}"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'loaded_state_id', 'msg': f'提取到状态ID: {loaded_state_id}'}))
                 
                 # 更新当前状态
                 self._current_state = state_data
-                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "当前内存状态已更新"}, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '当前内存状态已更新'}))
                 
                 elapsed_ms = (time.time() - start_time) * 1000
                 
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "loaded_state_id.file_path.file_size", "msg": f"状态加载成功: {loaded_state_id}, 文件: {file_path}, 大小: {file_size} bytes, 数据键数量: {len(state_data.keys())}, 耗时: {elapsed_ms:.2f}ms"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'state_manager', 'action': 'loaded_state_id.file_path.file_size', 'msg': f'状态加载成功: {loaded_state_id}, 文件: {file_path}, 大小: {file_size} bytes, 数据键数量: {len(state_data.keys())}, 耗时: {elapsed_ms:.2f}ms'}))
                 
                 return StateLoadResult(
                     success=True,
@@ -370,8 +371,8 @@ class StateManager:
                 elapsed_ms = (time.time() - start_time) * 1000
                 error_msg = f"JSON解析错误: {e}"
                 
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "error_msg", "msg": f"状态加载失败: {error_msg}"}, ensure_ascii=False))
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.state_id.file_path", "msg": f"失败详情 - state_id: {state_id}, 文件路径: {file_path if 'file_path' in dir() else '未知'}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'error_msg', 'msg': f'状态加载失败: {error_msg}'}))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if 'file_path' in dir() else '未知')}'}))
                 
                 return StateLoadResult(
                     success=False,
@@ -384,8 +385,8 @@ class StateManager:
                 elapsed_ms = (time.time() - start_time) * 1000
                 error_msg = str(e)
                 
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "error_msg", "msg": f"状态加载失败: {error_msg}"}, ensure_ascii=False))
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "state_id.state_id.file_path", "msg": f"失败详情 - state_id: {state_id}, 文件路径: {file_path if 'file_path' in dir() else '未知'}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'error_msg', 'msg': f'状态加载失败: {error_msg}'}))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if 'file_path' in dir() else '未知')}'}))
                 
                 return StateLoadResult(
                     success=False,
@@ -411,7 +412,7 @@ class StateManager:
             
             return None
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"查找最新状态文件失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'查找最新状态文件失败: {e}'}))
             return None
     
     def list_states(self) -> List[StateInfo]:
@@ -454,7 +455,7 @@ class StateManager:
                     continue
                 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"列出状态文件失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'列出状态文件失败: {e}'}))
         
         return states
     
@@ -464,11 +465,11 @@ class StateManager:
             file_path = self._get_state_path(state_id)
             if file_path.exists():
                 file_path.unlink()
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "file_path", "msg": f"状态文件已删除: {file_path}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'状态文件已删除: {file_path}'}))
                 return True
             return False
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"删除状态文件失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'删除状态文件失败: {e}'}))
             return False
     
     def get_current_state(self) -> Dict[str, Any]:
@@ -509,7 +510,7 @@ class StateManager:
             # 转换为logging模块的级别常量
             level_constant = getattr(logging, level.upper(), None)
             if level_constant is None:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "level", "msg": f"无效的日志级别: {level}"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'level', 'msg': f'无效的日志级别: {level}'}))
                 return False
             
             # 获取目标日志记录器
@@ -524,11 +525,11 @@ class StateManager:
                 for handler in target_logger.handlers:
                     handler.setLevel(level_constant)
             
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "logger_name", "msg": f"日志级别已调整: {logger_name or 'root'} 从 {old_level} 改为 {level.upper()}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'state_manager', 'action': 'logger_name', 'msg': f'日志级别已调整: {logger_name or 'root'} 从 {old_level} 改为 {level.upper()}'}))
             return True
         
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"设置日志级别失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'设置日志级别失败: {e}'}))
             return False
     
     def get_log_level(self, logger_name: str = None) -> str:
@@ -581,12 +582,12 @@ class StateManager:
                     if self._current_state:
                         self.save_state(self._current_state)
                 except Exception as e:
-                    logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": f"自动保存异常: {e}"}, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': f'自动保存异常: {e}'}))
         
         self._auto_save_thread = threading.Thread(target=auto_save_loop, daemon=True)
         self._auto_save_thread.start()
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "self._auto_save_interval", "msg": f"自动保存已启用，间隔: {self._auto_save_interval}秒"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'state_manager', 'action': 'self._auto_save_interval', 'msg': f'自动保存已启用，间隔: {self._auto_save_interval}秒'}))
     
     def stop_auto_save(self):
         """停止自动保存线程"""
@@ -594,7 +595,7 @@ class StateManager:
         if self._auto_save_thread:
             self._auto_save_thread.join(timeout=5)
             self._auto_save_thread = None
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "log", "msg": "自动保存已停止"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '自动保存已停止'}))
     
     def set_auto_save_interval(self, interval: int):
         """设置自动保存间隔"""
@@ -602,7 +603,7 @@ class StateManager:
         if self._auto_save_running:
             self.stop_auto_save()
             self._start_auto_save()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "state_manager", "action": "interval", "msg": f"自动保存间隔已更新为: {interval}秒"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'state_manager', 'action': 'interval', 'msg': f'自动保存间隔已更新为: {interval}秒'}))
 
 
 # 全局状态管理器实例

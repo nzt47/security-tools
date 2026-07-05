@@ -544,3 +544,30 @@ def get_manager() -> SystemPromptConfigManager:
     if _manager is None:
         _manager = SystemPromptConfigManager()
     return _manager
+
+
+def is_section_enabled(section_name: str, default: bool = True) -> bool:
+    """检查指定配置节是否启用
+
+    通过 SystemPromptConfigManager 加载配置，查询 section_name 对应的 enabled 状态。
+    用于运行时判断 lifetrace / persona / distillation / smart_tool_selection 等
+    配置节是否启用，从而控制 V2 功能与高级能力的开关。
+
+    Args:
+        section_name: 配置节名称（如 tool_definitions / working_memory /
+            lifetrace / persona / distillation / smart_tool_selection）
+        default: 配置节不存在或查询失败时的默认返回值
+
+    Returns:
+        bool: 配置节是否启用；不存在或异常时返回 default
+    """
+    try:
+        manager = get_manager()
+        config = manager.load()
+        sections = config.get("sections", {})
+        section = sections.get(section_name)
+        if section is None:
+            return default
+        return bool(section.get("enabled", default))
+    except Exception:
+        return default

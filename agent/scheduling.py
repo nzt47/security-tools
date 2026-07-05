@@ -22,6 +22,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Any, Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +63,10 @@ class Scheduler:
             import schedule
             self._schedule = schedule.Scheduler()
         except ImportError:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "schedule", "msg": "[调度系统] schedule 库未安装，使用自定义轮询代替"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'schedule', 'msg': '[调度系统] schedule 库未安装，使用自定义轮询代替'}))
             self._schedule = None
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 初始化完成"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 初始化完成'}))
 
     # ════════════════════════════════════════════════════════
     #  生命周期
@@ -74,7 +75,7 @@ class Scheduler:
     def start(self):
         """启动后台调度线程"""
         if self._running:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已在运行中"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 已在运行中'}))
             return
 
         self._running = True
@@ -90,14 +91,14 @@ class Scheduler:
             name="schedule-worker",
         )
         self._thread.start()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 后台线程已启动"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 后台线程已启动'}))
 
     def stop(self):
         """停止后台调度线程并持久化"""
         self._running = False
         self._stop_event.set()
         self.save_to_file()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已停止"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 已停止'}))
 
     # ════════════════════════════════════════════════════════
     #  后台调度循环
@@ -105,7 +106,7 @@ class Scheduler:
 
     def _run_loop(self):
         """后台循环 — 周期性检查并执行到期任务"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 调度循环开始"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 调度循环开始'}))
 
         while self._running and not self._stop_event.is_set():
             try:
@@ -114,10 +115,10 @@ class Scheduler:
                     self._schedule.run_pending()
                 time.sleep(1)
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "_run_loop", "msg": "[调度系统] 循环异常: %s" % (e)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'scheduling', 'action': '_run_loop', 'msg': '[调度系统] 循环异常: %s' % e}))
                 time.sleep(5)
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 调度循环已退出"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 调度循环已退出'}))
 
     # ════════════════════════════════════════════════════════
     #  任务管理
@@ -171,7 +172,7 @@ class Scheduler:
         # 持久化
         self.save_to_file()
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已创建任务: %s (id=%s, interval=%dmin, cron=%s)" % (name, task_id, interval_minutes, cron_expr)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 已创建任务: %s (id=%s, interval=%dmin, cron=%s)' % (name, task_id, interval_minutes, cron_expr)}))
         return {"ok": True, "task": self._task_to_dict(task)}
 
     def remove_task(self, task_id: str) -> dict:
@@ -190,7 +191,7 @@ class Scheduler:
         self._unregister_from_schedule(task_id)
 
         self.save_to_file()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "remove_task", "msg": "[调度系统] 已删除任务: %s" % (task_id)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'remove_task', 'msg': '[调度系统] 已删除任务: %s' % task_id}))
         return {"ok": True, "cancelled": True}
 
     def pause_task(self, task_id: str) -> dict:
@@ -204,7 +205,7 @@ class Scheduler:
             self._unregister_from_schedule(task_id)
             self.save_to_file()
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "pause_task", "msg": "[调度系统] 已暂停任务: %s" % (task_id)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'pause_task', 'msg': '[调度系统] 已暂停任务: %s' % task_id}))
         return {"ok": True, "paused": True}
 
     def resume_task(self, task_id: str) -> dict:
@@ -218,7 +219,7 @@ class Scheduler:
             self._register_with_schedule(task)
             self.save_to_file()
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "resume_task", "msg": "[调度系统] 已恢复任务: %s" % (task_id)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'resume_task', 'msg': '[调度系统] 已恢复任务: %s' % task_id}))
         return {"ok": True, "resumed": True}
 
     def get_tasks(self) -> dict:
@@ -262,9 +263,9 @@ class Scheduler:
             # 给 job 打标签便于后续查找
             job.tag(task_id)
             job.do(self._execute_task, task_id)
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已注册到 schedule: %s" % (task_id)}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 已注册到 schedule: %s' % task_id}))
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 注册任务到 schedule 失败: %s: %s" % (task_id, e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 注册任务到 schedule 失败: %s: %s' % (task_id, e)}))
 
     def _add_cron_job(self, task_id: str, cron_expr: str):
         """解析 cron 表达式并添加任务
@@ -316,7 +317,7 @@ class Scheduler:
             return self._schedule.every().day.at(at_time)
 
         # 不支持的复杂模式：降级为每 60 分钟轮询
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 不支持的 cron 模式: %s，降级为每 60 分钟轮询" % (cron_expr)}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 不支持的 cron 模式: %s，降级为每 60 分钟轮询' % cron_expr}))
         return self._schedule.every(60).minutes
 
     def _unregister_from_schedule(self, task_id: str):
@@ -325,9 +326,9 @@ class Scheduler:
             return
         try:
             self._schedule.clear(tag=task_id)
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "_unregister_from_schedule", "msg": "[调度系统] 已从 schedule 注销: %s" % (task_id)}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'scheduling', 'action': '_unregister_from_schedule', 'msg': '[调度系统] 已从 schedule 注销: %s' % task_id}))
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "_unregister_from_schedule", "msg": "[调度系统] 从 schedule 注销失败: %s: %s" % (task_id, e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': '_unregister_from_schedule', 'msg': '[调度系统] 从 schedule 注销失败: %s: %s' % (task_id, e)}))
 
     # ════════════════════════════════════════════════════════
     #  任务执行
@@ -364,7 +365,7 @@ class Scheduler:
 
         self.log_execution(task_id, success, result_msg if success else error_msg)
 
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 任务已执行: %s (成功=%s)" % (task_name, success)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 任务已执行: %s (成功=%s)' % (task_name, success)}))
 
     # ════════════════════════════════════════════════════════
     #  持久化
@@ -381,14 +382,14 @@ class Scheduler:
             SCHEDULES_FILE.parent.mkdir(parents=True, exist_ok=True)
             with open(SCHEDULES_FILE, "w", encoding="utf-8") as f:
                 json.dump(tasks_data, f, ensure_ascii=False, indent=2)
-            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "save_to_file", "msg": "[调度系统] 任务已持久化: %d 个" % (len(self._tasks))}, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'scheduling', 'action': 'save_to_file', 'msg': '[调度系统] 任务已持久化: %d 个' % len(self._tasks)}))
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "save_to_file", "msg": "[调度系统] 持久化失败: %s" % (e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'save_to_file', 'msg': '[调度系统] 持久化失败: %s' % e}))
 
     def load_from_file(self):
         """从 data/schedules.json 加载任务并重新注册到 schedule"""
         if not SCHEDULES_FILE.exists():
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 无持久化数据，跳过加载"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 无持久化数据，跳过加载'}))
             return
 
         try:
@@ -427,9 +428,9 @@ class Scheduler:
 
                     loaded_count += 1
 
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 已从文件恢复 %d 个任务" % (loaded_count)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 已从文件恢复 %d 个任务' % loaded_count}))
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 加载持久化数据失败: %s" % (e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 加载持久化数据失败: %s' % e}))
 
     def log_execution(self, task_id: str, success: bool, result: str):
         """记录执行历史到 data/schedule_history.jsonl"""
@@ -453,7 +454,7 @@ class Scheduler:
             # 保持历史行数在合理范围
             self._trim_history()
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 记录历史失败: %s" % (e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 记录历史失败: %s' % e}))
 
     def _trim_history(self, max_lines: int = 2000):
         """裁剪执行历史文件"""
@@ -493,7 +494,7 @@ class Scheduler:
                 "total": total,
             }
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "scheduling", "action": "log", "msg": "[调度系统] 读取历史失败: %s" % (e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 读取历史失败: %s' % e}))
             return {"ok": False, "error": str(e)}
 
     # ════════════════════════════════════════════════════════
