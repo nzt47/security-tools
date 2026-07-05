@@ -1756,6 +1756,36 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  运行时诊断路由（可观测性 E2E 测试所需的 7 个诊断端点）
+#  包含：/api/diagnostics/health、/api/diagnostics/trace、
+#        /api/diagnostics/trace/inject、/api/diagnostics/metrics、
+#        /api/diagnostics/logs、/api/observability/state、
+#        /api/diagnostics/tools
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_logging import register_routes as reg_logging
+
+    # 预处理 /metrics 路由冲突：
+    # app_server.py 在 PROMETHEUS_AVAILABLE 块中已注册 /metrics（endpoint: metrics_route）
+    # routes_logging.py 也注册 /metrics（endpoint: api_prometheus_metrics）
+    # Flask 不允许同一 URL 两个不同 endpoint，需先移除已有规则
+    for rule in list(app.url_map.iter_rules()):
+        if rule.rule == '/metrics':
+            app.url_map._rules.remove(rule)
+            app.url_map._rules_by_endpoint.pop(rule.endpoint, None)
+            app.view_functions.pop(rule.endpoint, None)
+            logger.info("已移除已有的 /metrics 路由规则（endpoint: %s），将由 routes_logging 重新注册",
+                        rule.endpoint)
+            break
+
+    reg_logging(app, lambda: None)
+    logger.info("运行时诊断路由注册成功 (/api/diagnostics/*, /api/observability/*)")
+except Exception as e:
+    logger.error("加载运行时诊断路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 
