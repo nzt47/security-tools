@@ -55,8 +55,12 @@ class ResponseBuilder:
         )
 
     @staticmethod
-    def workflow_result(result: Any = None) -> Response:
-        return Response(success=True, data=result, msg="handled_by_workflow")
+    def workflow_result(output: Any = "", intent: str = "", confidence: float = 1.0) -> Response:
+        return Response(
+            success=True,
+            data={"output": output, "intent": intent, "confidence": confidence},
+            msg="handled_by_workflow",
+        )
 
     @staticmethod
     def llm_result(text: str = "", model: str = "") -> Response:
