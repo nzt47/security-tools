@@ -1,0 +1,40 @@
+[importlinter]
+root_package = agent
+verbose = True
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 循环依赖防护规则
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# 架构原则：
+#   error_handler 位于底层，monitoring 位于上层
+#   依赖方向：monitoring → error_handler（允许）
+#   禁止方向：error_handler → monitoring（防止循环依赖）
+#
+# 例外：
+#   error_handler 内有 7 处延迟导入（函数体内）访问 monitoring.metrics 和
+#   monitoring.observability_config，这是 DI 模式的有意设计，已在 ignore_imports
+#   中白名单。新增的模块级导入将被捕获。
+
+# Contract 1: 核心循环依赖防护
+# 防止 error_handler 导入 monitoring.decorators（原始循环依赖路径）
+[importlinter:contract:forbid-error-handler-to-decorators]
+name = error_handler 不得导入 monitoring.decorators（核心循环依赖防护）
+type = forbidden
+source_modules =
+    agent.error_handler
+forbidden_modules =
+    agent.monitoring.decorators
+
+# Contract 2: 广义反向依赖防护
+# 防止 error_handler 导入任何 monitoring 子模块（延迟导入除外）
+[importlinter:contract:forbid-error-handler-to-monitoring]
+name = error_handler 不得在模块级导入 monitoring 子模块
+type = forbidden
+source_modules =
+    agent.error_handler
+forbidden_modules =
+    agent.monitoring
+ignore_imports =
+    agent.error_handler -> agent.monitoring.metrics
+    agent.error_handler -> agent.monitoring.observability_config
