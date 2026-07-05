@@ -1766,19 +1766,10 @@ except Exception as e:
 try:
     from agent.server_routes.routes_logging import register_routes as reg_logging
 
-    # 预处理 /metrics 路由冲突：
-    # app_server.py 在 PROMETHEUS_AVAILABLE 块中已注册 /metrics（endpoint: metrics_route）
-    # routes_logging.py 也注册 /metrics（endpoint: api_prometheus_metrics）
-    # Flask 不允许同一 URL 两个不同 endpoint，需先移除已有规则
-    for rule in list(app.url_map.iter_rules()):
-        if rule.rule == '/metrics':
-            app.url_map._rules.remove(rule)
-            app.url_map._rules_by_endpoint.pop(rule.endpoint, None)
-            app.view_functions.pop(rule.endpoint, None)
-            logger.info("已移除已有的 /metrics 路由规则（endpoint: %s），将由 routes_logging 重新注册",
-                        rule.endpoint)
-            break
-
+    # 注意：不要移除 PrometheusMetrics 已注册的 /metrics 规则（endpoint: prometheus_metrics）。
+    # routes_logging 也会注册 /metrics（endpoint: api_prometheus_metrics），但 werkzeug 按
+    # 规则添加顺序匹配，先注册的 PrometheusMetrics 规则会优先匹配，使用默认 REGISTRY，
+    # 返回 200。routes_logging 的 /metrics 规则不会被命中，仅作为备用存在。
     reg_logging(app, lambda: None)
     logger.info("运行时诊断路由注册成功 (/api/diagnostics/*, /api/observability/*)")
 except Exception as e:
@@ -4664,13 +4655,10 @@ def network_config_debug():
 # ════════════════════════════════════════════════════════════
 #  Prometheus 监控端点
 # ════════════════════════════════════════════════════════════
-
-if PROMETHEUS_AVAILABLE:
-    @app.route("/metrics")
-    def metrics_route():
-        """Prometheus 指标端点（使用默认 REGISTRY，包含 SafeFileReader 指标）"""
-        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-        return generate_latest(DEFAULT_REGISTRY), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+# /metrics 路由由 PrometheusMetrics(app, ...) 自动注册（endpoint: prometheus_metrics），
+# 使用 prometheus_client 默认 REGISTRY。无需在此重复注册。
+# routes_logging 也会注册 /metrics（endpoint: api_prometheus_metrics），但 werkzeug
+# 按规则添加顺序匹配，PrometheusMetrics 的规则先注册，会被优先命中。
 
 
 # ════════════════════════════════════════════════════════════
