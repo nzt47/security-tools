@@ -703,7 +703,7 @@ class TestAsyncWithRetry:
         async def func():
             return "async_ok"
 
-        result = asyncio.get_event_loop().run_until_complete(func())
+        result = asyncio.run(func())
         assert result == "async_ok"
 
     def test_async_retry_then_success(self):
@@ -716,7 +716,7 @@ class TestAsyncWithRetry:
                 raise RecoverableError("temp")
             return "recovered"
 
-        result = asyncio.get_event_loop().run_until_complete(func())
+        result = asyncio.run(func())
         assert result == "recovered"
         assert attempts[0] == 2
 
@@ -726,7 +726,7 @@ class TestAsyncWithRetry:
             raise RecoverableError("always")
 
         with pytest.raises(YunshuError):
-            asyncio.get_event_loop().run_until_complete(func())
+            asyncio.run(func())
 
 
 # ── 10. 集成场景 ─────────────────────────────────────────

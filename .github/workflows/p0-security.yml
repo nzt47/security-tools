@@ -99,8 +99,8 @@ jobs:
   # ============================================================================
   # Job 2: P0 回归测试 — 68 个防复发测试用例
   # ============================================================================
-  p0-regression-test:
-    name: P0 安全回归测试
+  p0-security-tests:
+    name: P0 Security Regression Test
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
@@ -257,7 +257,7 @@ jobs:
             echo "请在本地运行验证: python -m pytest tests/regression/test_p0_security_fix.py --collect-only -q"
             echo "注意: 数量验证降级为警告，实际测试执行见 P0 安全回归测试 Job"
             # 降级为警告（exit 0），避免 CI 因收集格式/依赖问题阻塞
-            # 实际测试执行在 p0-regression-test Job 中，那里失败才是真正的问题
+            # 实际测试执行在 p0-security-tests Job 中，那里失败才是真正的问题
           else
             echo "✅ 测试用例数量验证通过 ($NUM >= 68)"
           fi
@@ -303,7 +303,7 @@ jobs:
     name: P0 安全验证总结
     runs-on: ubuntu-22.04
     timeout-minutes: 15
-    needs: [static-scan, p0-regression-test, patch-integrity, cross-module-consistency]
+    needs: [static-scan, p0-security-tests, patch-integrity, cross-module-consistency]
     if: always()
     steps:
       - name: 生成总结报告
@@ -314,12 +314,12 @@ jobs:
           echo "| 验证项 | 状态 |"
           echo "|--------|------|"
           echo "| 静态扫描 | ${{ needs.static-scan.result == 'success' && '通过' || '失败' }} |"
-          echo "| P0 回归测试 | ${{ needs.p0-regression-test.result == 'success' && '通过' || '失败' }} |"
+          echo "| P0 回归测试 | ${{ needs.p0-security-tests.result == 'success' && '通过' || '失败' }} |"
           echo "| 补丁完整性 | ${{ needs.patch-integrity.result == 'success' && '通过' || '失败' }} |"
           echo "| 跨模块一致性 | ${{ needs.cross-module-consistency.result == 'success' && '通过' || '失败' }} |"
           echo ""
           if [ "${{ needs.static-scan.result }}" == "success" ] && \
-             [ "${{ needs.p0-regression-test.result }}" == "success" ] && \
+             [ "${{ needs.p0-security-tests.result }}" == "success" ] && \
              [ "${{ needs.patch-integrity.result }}" == "success" ] && \
              [ "${{ needs.cross-module-consistency.result }}" == "success" ]; then
             echo "P0 安全验证全部通过！"

@@ -2,10 +2,93 @@
 
 ## 目录
 
-1. [v1.3.0 - 2026年6月3日](#v130---2026年6月3日)
-2. [v1.2.0 - 2026年6月3日](#v120---2026年6月3日)
-3. [v1.1.0 - 2026年6月3日](#v110---2026年6月3日)
-4. [v1.0.0 - 2026年6月3日](#v100---2026年6月3日)
+1. [v1.5.0 - 2026年7月3日](#v150---2026年7月3日)
+2. [v1.4.0 - 2026年6月3日](#v140---2026年6月3日)
+3. [v1.3.0 - 2026年6月3日](#v130---2026年6月3日)
+4. [v1.2.0 - 2026年6月3日](#v120---2026年6月3日)
+5. [v1.1.0 - 2026年6月3日](#v110---2026年6月3日)
+6. [v1.0.0 - 2026年6月3日](#v100---2026年6月3日)
+
+---
+
+## v1.5.0 - 2026年7月3日
+
+### P0 安全修复
+
+#### P0-SEC-001：Bearer Token 脱敏失败
+
+- **问题**：`error_reporting_config.py` 使用 `split('=')` 处理 Token，OAuth Bearer Token 含 `=` 字符时 token 值泄露到日志
+- **修复**：Bearer 模式独立分支，整段替换为 `Bearer [REDACTED]`
+- **影响模块**：`agent/error_reporting_config.py`、`agent/logging_utils.py`、`agent/utils/sensitive_data_filter.py`
+- **Commit**：`fadc48f6`、`7aea6b5a`
+
+#### P0-SEC-002：贪婪正则吞噬 URL 参数
+
+- **问题**：脱敏正则 `\S+` / `[^"']*` 贪婪匹配，吞噬 `&` 分隔的相邻 URL 参数
+- **修复**：限定正则边界为 `[^&\s]+` / `[^"'\&\s]*`，遇 `&` 和空白停止
+- **影响模块**：`agent/error_reporting_config.py`、`agent/utils/sensitive_data_filter.py`、`agent/logging_utils.py`
+- **Commit**：`fadc48f6`、`7aea6b5a`
+
+### CI 防护体系
+
+| 改进项 | 说明 |
+|--------|------|
+| P0 安全验证工作流 | 新增 `.github/workflows/p0-security.yml`，5 个 Job 自动验证 |
+| 贪婪正则静态扫描 | 新增 `scripts/scan_sensitive_regex.py`，CI 中自动检测贪婪正则 |
+| 68 个防复发测试 | 新增 `tests/regression/test_p0_security_fix.py`，覆盖 P0-SEC-001/002 |
+| 通用脱敏工具 | 新增 `agent/utils/token_redactor.py`，供新模块使用 |
+
+### CI 健壮性优化（2026-07-03）
+
+| 优化项 | 修复前 | 修复后 |
+|--------|--------|--------|
+| Runner 版本 | `ubuntu-latest`（容量波动） | `ubuntu-22.04`（固定版本） |
+| 超时保护 | 无 | `timeout-minutes: 15`（所有 Job） |
+| 依赖安装 | 单次执行 | 3 次重试（应对 PyPI 瞬时问题） |
+| 测试数量验证 | `exit 1` 阻塞 CI | 降级为警告 + 3 种提取方法 |
+| 测试报告目录 | 未创建 | `mkdir -p test_reports` 前置创建 |
+
+### 补丁包
+
+- **文件**：`patches/p0_security/p0_security_full_patch.patch`（~54 KB）
+- **包含**：6 个文件（3 修改 + 3 新增），1079 insertions / 34 deletions
+- **基准**：commit `7e06d611`（P0 修复前）
+- **验证**：`git apply --check --reverse` 通过
+
+### 测试验证
+
+| 项目 | 结果 |
+|------|------|
+| 本地 P0 回归测试 | ✅ 68 passed in 0.95s |
+| 静态扫描 | ✅ 306 文件，0 风险项 |
+| 测试覆盖率 | 33.18%（仅 P0 测试用例） |
+| CI 补丁完整性验证 | ✅ 已修复（之前失败） |
+| CI 跨模块一致性 | ✅ 通过 |
+| CI 静态扫描 | ✅ 通过 |
+
+### 新增文档
+
+| 文档 | 说明 |
+|------|------|
+| `docs/security/RELEASE_NOTES_P0_SECURITY_20260703.md` | P0 安全修复发布说明 |
+| `docs/security/p0_security_fix_archive_20260703.md` | P0 修复完整日志归档 |
+| `docs/security/p0_deployment_verification_report.md` | P0 部署验证报告 |
+| `docs/security/p0_security_retrospective.md` | P0 安全修复复盘 |
+| `docs/security/confluence_sync_status_confirmation.md` | 同步任务确认单 |
+| `patches/p0_security/README.md` | 补丁包说明 |
+
+### 相关 Commit
+
+| Commit | 说明 |
+|--------|------|
+| `fadc48f6` | P0-SEC-001/002 修复（error_reporting_config + sensitive_data_filter） |
+| `7aea6b5a` | Bearer 独立正则修复（logging_utils） |
+| `991164a1` | 新增 token_redactor + scan_sensitive_regex |
+| `e174e276` | 新增 68 个防复发测试 |
+| `94b92c1d` | 新增 P0 安全验证 CI 工作流 |
+| `c80722b5` | 完整补丁打包 + 确认单 |
+| `fda7d1d5` | P0 修复完整日志归档 |
+| `0aaf3c31` | CI 健壮性优化 + Release Notes |
 
 ---
 

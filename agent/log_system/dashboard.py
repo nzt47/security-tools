@@ -26,6 +26,7 @@ from .storage import get_storage
 from .models import LogQuery, LogCategory, LogLevel
 from .analyzer import LogAnalyzer
 from .introspection import IntrospectionEngine
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -279,9 +280,9 @@ def register_prometheus_metrics(metrics_obj):
             'error_total': error_total,
             'insight_gauge': insight_gauge,
         }
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "prometheus", "msg": "[LogSystem] Prometheus 指标已注册"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'dashboard', 'action': 'prometheus', 'msg': '[LogSystem] Prometheus 指标已注册'}))
     except ImportError:
-        logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "prometheus_client", "msg": "[LogSystem] prometheus_client 不可用，跳过指标注册"}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'dashboard', 'action': 'prometheus_client', 'msg': '[LogSystem] prometheus_client 不可用，跳过指标注册'}))
 
 
 # ════════════════════════════════════════════════════════════
@@ -301,7 +302,7 @@ def register_log_system(app, metrics_obj=None):
     if metrics_obj:
         register_prometheus_metrics(metrics_obj)
 
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "dashboard", "action": "api", "msg": "[LogSystem] 仪表盘与 API 路由已注册"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'dashboard', 'action': 'api', 'msg': '[LogSystem] 仪表盘与 API 路由已注册'}))
 
     # 启动内省引擎后台循环
     engine = get_introspection()

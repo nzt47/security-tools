@@ -20,6 +20,7 @@ import tarfile
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from urllib.parse import urlparse
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ class InstallEngine:
         2. 使用 git clone
         3. 下载 ZIP 归档
         """
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "github.repo.subpath", "msg": f"[安装引擎] 从 GitHub 下载: {repo}/{subpath}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'github.repo.subpath', 'msg': f'[安装引擎] 从 GitHub 下载: {repo}/{subpath}'}))
 
         # 方法 1: gh CLI
         try:
@@ -85,7 +86,7 @@ class InstallEngine:
                 capture_output=True, text=True, timeout=15,
             )
             if result.returncode == 0:
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "cli.repo", "msg": f"[安装引擎] 使用 gh CLI 克隆: {repo}"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'installer', 'action': 'cli.repo', 'msg': f'[安装引擎] 使用 gh CLI 克隆: {repo}'}))
                 clone_dir = target_dir / "repo"
                 subprocess.run(
                     ["git", "clone", "--depth", "1",
@@ -127,14 +128,14 @@ class InstallEngine:
                     shutil.rmtree(clone_dir, ignore_errors=True)
                     return True
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "git.clone", "msg": f"[安装引擎] git clone 失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'installer', 'action': 'git.clone', 'msg': f'[安装引擎] git clone 失败: {e}'}))
 
         # 方法 3: 下载 ZIP
         try:
             import urllib.request
             zip_url = f"https://api.github.com/repos/{repo}/zipball/main"
             zip_path = target_dir / "archive.zip"
-            logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "zip.zip_url", "msg": f"[安装引擎] 下载 ZIP: {zip_url}"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'installer', 'action': 'zip.zip_url', 'msg': f'[安装引擎] 下载 ZIP: {zip_url}'}))
 
             urllib.request.urlretrieve(zip_url, zip_path)
             if zip_path.exists():
@@ -157,17 +158,17 @@ class InstallEngine:
                                     dst_f.write(src_f.read())
 
                 zip_path.unlink()
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "zip", "msg": f"[安装引擎] ZIP 下载并解压完成"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'installer', 'action': 'zip', 'msg': f'[安装引擎] ZIP 下载并解压完成'}))
                 return True
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "zip", "msg": f"[安装引擎] ZIP 下载失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'installer', 'action': 'zip', 'msg': f'[安装引擎] ZIP 下载失败: {e}'}))
 
         return False
 
     @staticmethod
     def download_from_url(url: str, target_dir: Path) -> bool:
         """从 URL 下载扩展包"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "url.url", "msg": f"[安装引擎] 从 URL 下载: {url}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'url.url', 'msg': f'[安装引擎] 从 URL 下载: {url}'}))
         try:
             import urllib.request
             parsed = urlparse(url)
@@ -201,16 +202,16 @@ class InstallEngine:
             return True
 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "url", "msg": f"[安装引擎] URL 下载失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'installer', 'action': 'url', 'msg': f'[安装引擎] URL 下载失败: {e}'}))
             return False
 
     @staticmethod
     def copy_from_local(source_path: str, target_dir: Path) -> bool:
         """从本地路径复制扩展包"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "source_path", "msg": f"[安装引擎] 从本地复制: {source_path}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'source_path', 'msg': f'[安装引擎] 从本地复制: {source_path}'}))
         src = Path(source_path)
         if not src.exists():
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "source_path", "msg": f"[安装引擎] 本地路径不存在: {source_path}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'installer', 'action': 'source_path', 'msg': f'[安装引擎] 本地路径不存在: {source_path}'}))
             return False
 
         try:
@@ -220,30 +221,30 @@ class InstallEngine:
                 InstallEngine._merge_dir(src, target_dir)
             return True
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "log", "msg": f"[安装引擎] 本地复制失败: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'installer', 'action': 'log', 'msg': f'[安装引擎] 本地复制失败: {e}'}))
             return False
 
     @staticmethod
     def install_npm_package(package: str, target_dir: Path) -> bool:
         """安装 npm 包到目标目录"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "npm.package", "msg": f"[安装引擎] 安装 npm 包: {package}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'npm.package', 'msg': f'[安装引擎] 安装 npm 包: {package}'}))
         try:
             result = subprocess.run(
                 ["npm", "install", "--prefix", str(target_dir), package],
                 capture_output=True, text=True, timeout=120,
             )
             if result.returncode != 0:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "npm.result.stderr", "msg": f"[安装引擎] npm 安装失败: {result.stderr[:200]}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'installer', 'action': 'npm.result.stderr', 'msg': f'[安装引擎] npm 安装失败: {result.stderr[:200]}'}))
                 return False
             return True
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "npm", "msg": f"[安装引擎] npm 不可用: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'installer', 'action': 'npm', 'msg': f'[安装引擎] npm 不可用: {e}'}))
             return False
 
     @staticmethod
     def install_pip_package(package: str) -> bool:
         """安装 pip 包"""
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "pip.package", "msg": f"[安装引擎] 安装 pip 包: {package}"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'pip.package', 'msg': f'[安装引擎] 安装 pip 包: {package}'}))
         try:
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", package],
@@ -251,7 +252,7 @@ class InstallEngine:
             )
             return True
         except subprocess.TimeoutExpired as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "installer", "action": "pip", "msg": f"[安装引擎] pip 安装超时: {e}"}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'installer', 'action': 'pip', 'msg': f'[安装引擎] pip 安装超时: {e}'}))
             return False
 
     @staticmethod

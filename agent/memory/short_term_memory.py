@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from agent.memory.base import MemoryCapability
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ class ShortTermMemory:
             True 表示保存成功
         """
         if not key:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "short_term_memory", "action": "save.key", "msg": "[ShortTermMemory] save 失败: key 为空"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'short_term_memory', 'action': 'save.key', 'msg': '[ShortTermMemory] save 失败: key 为空'}))
             return False
 
         now = time.time()
@@ -314,10 +315,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "short_term_memory",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'short_term_memory', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

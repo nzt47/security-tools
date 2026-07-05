@@ -25,6 +25,7 @@ from .models import (
     LogCategory, LogLevel, LogEntry,
 )
 from .analyzer import LogAnalyzer
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ try:
     _LLM_AVAILABLE = True
 except ImportError:
     _LLM_AVAILABLE = False
-    logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "toolcallingservice", "msg": "[Introspection] ToolCallingService 不可用，将仅使用规则引擎分析"}, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'introspection', 'action': 'toolcallingservice', 'msg': '[Introspection] ToolCallingService 不可用，将仅使用规则引擎分析'}))
 
 
 class IdleDetector:
@@ -455,7 +456,7 @@ class IntrospectionEngine:
     def start_background_loop(self, interval_seconds: int = 1800):
         """启动后台循环（在独立线程中定期执行）"""
         if self._thread and self._thread.is_alive():
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "log", "msg": "[Introspection] 后台循环已在运行"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'introspection', 'action': 'log', 'msg': '[Introspection] 后台循环已在运行'}))
             return
 
         def _loop():
@@ -473,7 +474,7 @@ class IntrospectionEngine:
     def stop_background_loop(self):
         """停止后台循环"""
         self._thread = None
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "introspection", "action": "log", "msg": "[Introspection] 后台循环已停止"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'introspection', 'action': 'log', 'msg': '[Introspection] 后台循环已停止'}))
 
     def get_status(self) -> dict:
         """获取内省引擎状态"""

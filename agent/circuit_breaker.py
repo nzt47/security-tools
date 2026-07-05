@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import threading
@@ -52,55 +53,153 @@ class CircuitState(str, Enum):
 
 
 class CircuitBreakerError(Exception):
-    """熔断器打开时抛出的业务错误（带明确业务错误码）"""
+    """熔断器打开时抛出的业务错误（带明确业务错误码）
 
-    def __init__(self, message: str, error_code: str = "CIRCUIT_OPEN",
-                 state: CircuitState = CircuitState.OPEN):
+    Attributes:
+        error_code: 业务错误码，默认 "CIRCUIT_BREAKER_OPEN"
+        state: 触发熔断时的熔断器状态
+        name: 熔断器名称（便于定位是哪个依赖被熔断）
+    """
+
+    def __init__(
+        self,
+        message: str,
+        error_code: str = "CIRCUIT_BREAKER_OPEN",
+        state: CircuitState = CircuitState.OPEN,
+        name: Optional[str] = None,
+    ):
         super().__init__(message)
         self.error_code = error_code
         self.state = state
+        self.name = name
+
+
+@dataclass
+class CircuitBreakerConfig:
+    """熔断器配置（dataclass，便于整体传入与序列化）
+
+    字段说明：
+        failure_threshold: 错误率阈值（0-1），默认 0.3 (30%)
+        min_requests: 计算错误率所需的最少请求数（防止样本不足误判）
+        reset_timeout: 熔断冷却期（秒），到期后进入半开
+        window_seconds: 错误率计算的时间窗口（秒）
+        max_attempts: 半开状态下最大探测请求数（同时作为成功恢复阈值）
+        name: 熔断器名称（用于日志和指标）
+    """
+    failure_threshold: float = 0.3
+    min_requests: int = 5
+    reset_timeout: float = 30.0
+    window_seconds: float = 60.0
+    max_attempts: int = 3
+    name: str = "default"
 
 
 @dataclass
 class CircuitStats:
-    """熔断器统计快照"""
+    """熔断器统计快照
+
+    新字段名（与测试契约对齐）：
+        total_requests: 总请求数
+        successes: 成功请求数
+        failures: 失败请求数
+        consecutive_failures: 连续失败数
+        state_transitions: 状态转换次数
+        last_reset: 最后一次重置的时间戳
+
+    向后兼容属性（只读 property 别名，供旧调用方使用）：
+        total_calls → total_requests
+        success_count → successes
+        failure_count → failures
+    """
     state: CircuitState = CircuitState.CLOSED
-    total_calls: int = 0
-    success_count: int = 0
-    failure_count: int = 0
+    total_requests: int = 0
+    successes: int = 0
+    failures: int = 0
     consecutive_failures: int = 0
     last_failure_time: float = 0.0
     last_state_change: float = 0.0
     half_open_attempts: int = 0
     half_open_successes: int = 0
+    # 新增：状态转换计数与最后重置时间
+    state_transitions: int = 0
+    last_reset: float = 0.0
     # 历史调用窗口（用于错误率计算）
-    _window: list = field(default_factory=list)  # [(timestamp, is_success)]
+    _window_entries: list = field(default_factory=list)  # [(timestamp, is_success)]
     _window_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    # ── 向后兼容只读属性（旧字段名 → 新字段名）──────────────
+    @property
+    def total_calls(self) -> int:
+        """旧字段名别名（向后兼容）"""
+        return self.total_requests
+
+    @property
+    def success_count(self) -> int:
+        """旧字段名别名（向后兼容）"""
+        return self.successes
+
+    @property
+    def failure_count(self) -> int:
+        """旧字段名别名（向后兼容）"""
+        return self.failures
 
 
 class CircuitBreaker:
     """熔断器实现
 
+    构造方式（三种，均向后兼容）：
+        1. CircuitBreaker()                                  # 无参，使用默认配置
+        2. CircuitBreaker(CircuitBreakerConfig(...))         # 传入配置对象
+        3. CircuitBreaker(name="x", failure_threshold=0.3)   # 散列关键字参数
+
     Args:
-        name: 熔断器名称（用于日志和指标）
-        failure_threshold: 错误率阈值（0-1），默认 0.3 (30%)
-        min_calls: 计算错误率所需的最少调用数（防止样本不足误判）
-        cooldown_seconds: 熔断冷却期（秒），到期后进入半开
-        half_open_max_calls: 半开状态下最大探测请求数
-        half_open_success_threshold: 半开状态下成功数达到此阈值即恢复
-        window_seconds: 错误率计算的时间窗口（秒）
+        config: 可选的 CircuitBreakerConfig 配置对象
+        **kwargs: 散列配置参数（向后兼容），支持 name/failure_threshold/
+                  min_calls/cooldown_seconds/half_open_max_calls/
+                  half_open_success_threshold/window_seconds
     """
 
     def __init__(
         self,
-        name: str = "default",
-        failure_threshold: float = 0.3,
-        min_calls: int = 5,
-        cooldown_seconds: float = 60.0,
-        half_open_max_calls: int = 3,
-        half_open_success_threshold: int = 2,
-        window_seconds: float = 60.0,
+        config: Optional[CircuitBreakerConfig] = None,
+        **kwargs,
     ):
+        if config is not None and isinstance(config, CircuitBreakerConfig):
+            # ── 配置对象路径 ──────────────────────────────
+            name = config.name
+            failure_threshold = config.failure_threshold
+            min_calls = config.min_requests
+            cooldown_seconds = config.reset_timeout
+            half_open_max_calls = config.max_attempts
+            # 半开成功恢复阈值 = 最大探测数（探测全成功才恢复）
+            half_open_success_threshold = config.max_attempts
+            window_seconds = config.window_seconds
+            self._config = config
+        else:
+            # ── 散列关键字参数路径（向后兼容）─────────────
+            # 兼容首个位置参数为 name 字符串的旧用法
+            if config is not None and isinstance(config, str):
+                kwargs.setdefault("name", config)
+            name = kwargs.get("name", "default")
+            failure_threshold = kwargs.get("failure_threshold", 0.3)
+            min_calls = kwargs.get("min_calls", 5)
+            cooldown_seconds = kwargs.get("cooldown_seconds", 60.0)
+            half_open_max_calls = kwargs.get("half_open_max_calls", 3)
+            half_open_success_threshold = kwargs.get(
+                "half_open_success_threshold", 2
+            )
+            window_seconds = kwargs.get("window_seconds", 60.0)
+            # 构造等价配置对象，便于外部读取统一配置视图
+            self._config = CircuitBreakerConfig(
+                failure_threshold=failure_threshold,
+                min_requests=min_calls,
+                reset_timeout=cooldown_seconds,
+                window_seconds=window_seconds,
+                max_attempts=half_open_max_calls,
+                name=name,
+            )
+
+        # 参数校验
         if not 0 < failure_threshold < 1:
             raise ValueError(f"failure_threshold 必须在 (0,1)，实际 {failure_threshold}")
         if min_calls < 1:
@@ -114,7 +213,11 @@ class CircuitBreaker:
         self.half_open_success_threshold = half_open_success_threshold
         self.window_seconds = window_seconds
 
-        self._stats = CircuitStats(last_state_change=time.time())
+        now = time.time()
+        self._stats = CircuitStats(
+            last_state_change=now,
+            last_reset=now,
+        )
         self._lock = threading.RLock()
 
     # ── 状态查询 ──────────────────────────────────────────────
@@ -128,19 +231,35 @@ class CircuitBreaker:
 
     @property
     def stats(self) -> CircuitStats:
-        """统计快照（不可变视图）"""
+        """统计快照（不可变视图，向后兼容旧字段名访问）"""
         with self._lock:
             return CircuitStats(
                 state=self._stats.state,
-                total_calls=self._stats.total_calls,
-                success_count=self._stats.success_count,
-                failure_count=self._stats.failure_count,
+                total_requests=self._stats.total_requests,
+                successes=self._stats.successes,
+                failures=self._stats.failures,
                 consecutive_failures=self._stats.consecutive_failures,
                 last_failure_time=self._stats.last_failure_time,
                 last_state_change=self._stats.last_state_change,
                 half_open_attempts=self._stats.half_open_attempts,
                 half_open_successes=self._stats.half_open_successes,
+                state_transitions=self._stats.state_transitions,
+                last_reset=self._stats.last_reset,
             )
+
+    @property
+    def metrics(self) -> CircuitStats:
+        """指标对象（返回内部统计对象，支持属性访问）
+
+        暴露字段：total_requests/successes/failures/
+                  consecutive_failures/state_transitions/last_reset
+        """
+        return self._stats
+
+    @property
+    def _window_entries(self) -> list:
+        """窗口条目列表（向后兼容外部访问）"""
+        return self._stats._window_entries
 
     # ── 调用入口 ──────────────────────────────────────────────
 
@@ -163,6 +282,7 @@ class CircuitBreaker:
             raise CircuitBreakerError(
                 f"熔断器 [{self.name}] 已打开，拒绝请求",
                 state=self._stats.state,
+                name=self.name,
             )
 
         is_success = False
@@ -201,21 +321,21 @@ class CircuitBreaker:
         """记录调用结果，触发状态转换"""
         with self._lock:
             now = time.time()
-            self._stats.total_calls += 1
+            self._stats.total_requests += 1
             if is_success:
-                self._stats.success_count += 1
+                self._stats.successes += 1
                 self._stats.consecutive_failures = 0
             else:
-                self._stats.failure_count += 1
+                self._stats.failures += 1
                 self._stats.consecutive_failures += 1
                 self._stats.last_failure_time = now
 
             # 维护滑动窗口
             with self._stats._window_lock:
-                self._stats._window.append((now, is_success))
+                self._stats._window_entries.append((now, is_success))
                 cutoff = now - self.window_seconds
-                self._stats._window = [
-                    (t, s) for t, s in self._stats._window if t >= cutoff
+                self._stats._window_entries = [
+                    (t, s) for t, s in self._stats._window_entries if t >= cutoff
                 ]
 
             current = self._stats.state
@@ -260,7 +380,7 @@ class CircuitBreaker:
     def _maybe_open_circuit(self, now: float) -> None:
         """CLOSED 状态下检查错误率，达标则打开熔断（必须持有锁）"""
         with self._stats._window_lock:
-            window = list(self._stats._window)
+            window = list(self._stats._window_entries)
         if len(window) < self.min_calls:
             return
         failures = sum(1 for _, s in window if not s)
@@ -269,23 +389,39 @@ class CircuitBreaker:
             self._set_state(CircuitState.OPEN)
 
     def _set_state(self, new_state: CircuitState) -> None:
-        """切换状态并记录日志"""
+        """切换状态并记录日志，同时递增状态转换计数"""
         old_state = self._stats.state
         if old_state == new_state:
             return
         self._stats.state = new_state
         self._stats.last_state_change = time.time()
+        # 递增状态转换计数
+        self._stats.state_transitions += 1
         self._log_action(
             "circuit_state_changed",
             {"from": old_state.value, "to": new_state.value},
         )
+
+    def _prune_window(self) -> None:
+        """清理过期窗口条目（按 window_seconds 阈值裁剪）"""
+        with self._lock:
+            now = time.time()
+            cutoff = now - self.window_seconds
+            with self._stats._window_lock:
+                self._stats._window_entries = [
+                    (t, s) for t, s in self._stats._window_entries if t >= cutoff
+                ]
 
     # ── 控制方法 ──────────────────────────────────────────────
 
     def reset(self) -> None:
         """重置熔断器到 CLOSED 状态（主要用于测试）"""
         with self._lock:
-            self._stats = CircuitStats(last_state_change=time.time())
+            now = time.time()
+            self._stats = CircuitStats(
+                last_state_change=now,
+                last_reset=now,
+            )
             self._log_action("circuit_reset", {})
 
     def force_open(self) -> None:
@@ -298,6 +434,111 @@ class CircuitBreaker:
         with self._lock:
             self._set_state(CircuitState.CLOSED)
             self._stats.consecutive_failures = 0
+
+    # ── 状态视图 ──────────────────────────────────────────────
+
+    def get_status(self) -> dict:
+        """返回熔断器状态快照（dict 形式，便于序列化与监控上报）
+
+        返回字段：
+            name: 熔断器名称
+            state: 当前状态（字符串）
+            failure_threshold: 错误率阈值
+            reset_timeout: 冷却期（秒）
+            window_seconds: 时间窗口（秒）
+            min_requests: 最少请求数
+            max_attempts: 半开最大探测数
+            metrics: 指标 dict（total_requests/successes/failures/
+                     consecutive_failures/state_transitions/last_reset）
+            current_failure_rate: 当前窗口失败率
+            time_since_last_state_change: 距上次状态转换的秒数
+            window_entries_count: 窗口条目数
+        """
+        with self._lock:
+            self._maybe_transition_to_half_open()
+            now = time.time()
+            # 计算窗口内失败率
+            with self._stats._window_lock:
+                window = list(self._stats._window_entries)
+            if window:
+                failures_in_window = sum(1 for _, s in window if not s)
+                current_failure_rate = failures_in_window / len(window)
+            else:
+                current_failure_rate = 0.0
+            return {
+                "name": self.name,
+                "state": self._stats.state.value,
+                "failure_threshold": self.failure_threshold,
+                "reset_timeout": self.cooldown_seconds,
+                "window_seconds": self.window_seconds,
+                "min_requests": self.min_calls,
+                "max_attempts": self.half_open_max_calls,
+                "metrics": {
+                    "total_requests": self._stats.total_requests,
+                    "successes": self._stats.successes,
+                    "failures": self._stats.failures,
+                    "consecutive_failures": self._stats.consecutive_failures,
+                    "state_transitions": self._stats.state_transitions,
+                    "last_reset": self._stats.last_reset,
+                },
+                "current_failure_rate": current_failure_rate,
+                "time_since_last_state_change": now - self._stats.last_state_change,
+                "window_entries_count": len(window),
+            }
+
+    # ── 装饰器接口 ────────────────────────────────────────────
+
+    def protect(self, func: Callable) -> Callable:
+        """同步装饰器：通过熔断器保护目标函数
+
+        使用方式：
+            @breaker.protect
+            def call_api(): ...
+
+        熔断器打开时抛出 CircuitBreakerError；函数异常时记录失败并重新抛出。
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if not self.allow_request():
+                raise CircuitBreakerError(
+                    f"熔断器 [{self.name}] 已打开，拒绝请求",
+                    state=self._stats.state,
+                    name=self.name,
+                )
+            is_success = False
+            try:
+                result = func(*args, **kwargs)
+                is_success = True
+                return result
+            finally:
+                self.record_result(is_success)
+
+        return wrapper
+
+    def protect_async(self, func: Callable) -> Callable:
+        """异步装饰器：通过熔断器保护目标异步函数
+
+        使用方式：
+            @breaker.protect_async
+            async def call_api(): ...
+        """
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            if not self.allow_request():
+                raise CircuitBreakerError(
+                    f"熔断器 [{self.name}] 已打开，拒绝请求",
+                    state=self._stats.state,
+                    name=self.name,
+                )
+            is_success = False
+            try:
+                result = await func(*args, **kwargs)
+                is_success = True
+                return result
+            finally:
+                self.record_result(is_success)
+
+        return wrapper
 
     # ── 可观测性 ──────────────────────────────────────────────
 
@@ -376,7 +617,101 @@ def get_circuit_breaker(
         return _breakers[name]
 
 
+def register_circuit_breaker(
+    name: str,
+    config: Optional[CircuitBreakerConfig] = None,
+) -> "CircuitBreaker":
+    """注册（或覆盖）全局共享的熔断器实例
+
+    Args:
+        name: 熔断器名称
+        config: 可选的配置对象；为 None 时按 name 创建默认配置
+
+    Returns:
+        新建的熔断器实例
+    """
+    with _breakers_lock:
+        if config is None:
+            config = CircuitBreakerConfig(name=name)
+        breaker = CircuitBreaker(config)
+        _breakers[name] = breaker
+        return breaker
+
+
+def get_all_circuit_breaker_status() -> dict:
+    """获取所有全局熔断器的状态快照（dict 形式）
+
+    Returns:
+        {name: status_dict, ...}
+    """
+    with _breakers_lock:
+        return {
+            name: breaker.get_status()
+            for name, breaker in _breakers.items()
+        }
+
+
 def reset_breakers() -> None:
     """清空全局熔断器注册表（测试用：在 fixture 中重置状态）"""
     with _breakers_lock:
         _breakers.clear()
+
+
+# ── 熔断器管理器（多实例隔离场景） ─────────────────────────────
+class CircuitBreakerManager:
+    """熔断器管理器：管理一组命名熔断器（独立于全局注册表）
+
+    适用场景：需要多套独立熔断器集合（如不同租户/模块）时使用。
+    """
+
+    def __init__(self):
+        self._breakers: dict[str, "CircuitBreaker"] = {}
+        self._lock = threading.Lock()
+
+    def register(
+        self,
+        name: str,
+        config: Optional[CircuitBreakerConfig] = None,
+    ) -> "CircuitBreaker":
+        """注册（或覆盖）一个命名熔断器
+
+        Args:
+            name: 熔断器名称
+            config: 可选配置对象；为 None 时按 name 创建默认配置
+
+        Returns:
+            新建的熔断器实例
+        """
+        with self._lock:
+            if config is None:
+                config = CircuitBreakerConfig(name=name)
+            breaker = CircuitBreaker(config)
+            self._breakers[name] = breaker
+            return breaker
+
+    def get(self, name: str) -> "CircuitBreaker":
+        """获取命名熔断器；不存在则自动创建默认配置实例"""
+        with self._lock:
+            if name not in self._breakers:
+                config = CircuitBreakerConfig(name=name)
+                self._breakers[name] = CircuitBreaker(config)
+            return self._breakers[name]
+
+    def get_all_status(self) -> dict:
+        """获取所有熔断器的状态快照"""
+        with self._lock:
+            return {
+                name: breaker.get_status()
+                for name, breaker in self._breakers.items()
+            }
+
+    def reset_all(self) -> None:
+        """重置所有熔断器到初始 CLOSED 状态"""
+        with self._lock:
+            for breaker in self._breakers.values():
+                breaker.reset()
+
+
+# ── 别名（与测试契约对齐） ─────────────────────────────────────
+CircuitBreakerState = CircuitState
+CircuitBreakerMetrics = CircuitStats

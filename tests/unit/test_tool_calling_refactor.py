@@ -153,7 +153,8 @@ class TestToolCallingServiceInit:
         assert service._primary_llm is mock_llm
         assert service._upgrade_llm is None
         assert service._model_upgraded is False
-        assert service._max_rounds == 5
+        # max_rounds 默认值由 Config 提供（tool_calling.max_rounds，缺省 20）
+        assert service._max_rounds == 20
         assert service._tool_timeout == 120
         assert service._task_timeout == 600
         assert service.last_steps == []
