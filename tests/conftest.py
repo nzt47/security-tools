@@ -60,7 +60,10 @@ def pytest_configure(config):
     _setup_test_logging(config)
 
 def pytest_collection_modifyitems(config, items):
-    """修改测试用例集合"""
+    """修改测试用例集合 - 合并自动标记和跳过逻辑"""
+    skip_slow = pytest.mark.skip(reason="需要 --runslow 选项才能运行慢速测试")
+    skip_llm = pytest.mark.skip(reason="需要 LLM 服务才能运行")
+
     for item in items:
         # 自动标记快速测试
         if "quick" not in item.keywords and "slow" not in item.keywords:
@@ -71,6 +74,14 @@ def pytest_collection_modifyitems(config, items):
         if "test_memory" in item.nodeid or "test_permission" in item.nodeid:
             item.add_marker(pytest.mark.p0)
             item.add_marker(pytest.mark.critical)
+
+        # 跳过慢速测试（除非 --runslow）
+        if "slow" in item.keywords and not config.getoption("--runslow"):
+            item.add_marker(skip_slow)
+
+        # 跳过需要 LLM 的测试（除非有 API key）
+        if "requires_llm" in item.keywords and not os.getenv("LLM_API_KEY"):
+            item.add_marker(skip_llm)
 
 def pytest_runtest_makereport(item, call):
     """生成测试报告"""
@@ -326,19 +337,8 @@ def assert_metrics_threshold(metrics: Dict[str, float], thresholds: Dict[str, fl
                 f"指标 {key} 超标: {value} > {threshold}"
 
 # ============================================================================
-# 测试跳过条件
+# 测试跳过条件（逻辑已合并到上方的 pytest_collection_modifyitems 中）
 # ============================================================================
-
-def pytest_collection_modifyitems(items):
-    """根据环境条件跳过测试"""
-    skip_slow = pytest.mark.skip(reason="需要 --runslow 选项才能运行慢速测试")
-    skip_llm = pytest.mark.skip(reason="需要 LLM 服务才能运行")
-
-    for item in items:
-        if "slow" in item.keywords and not item.config.getoption("--runslow"):
-            item.add_marker(skip_slow)
-        if "requires_llm" in item.keywords and not os.getenv("LLM_API_KEY"):
-            item.add_marker(skip_llm)
 
 def pytest_addoption(parser):
     """添加命令行选项"""

@@ -207,16 +207,24 @@ class ContextInjector:
     #  第三层：执行结果注入
     # ──────────────────────────────────────────────
 
-    def inject_result(self, result: ExecutionResult) -> Dict[str, Any]:
+    def inject_result(self, result: ExecutionResult,
+                      *, request_feedback: bool = False,
+                      trace_id: str = "") -> Dict[str, Any]:
         """第三层 — 注入脚本执行结果
 
         只注入执行结果（JSON），不注入代码。
         代码已在后台执行完毕，只把结果传给模型。
 
-        Returns: {prompt, skill_id, script_name, estimated_tokens, layer}
+        Args:
+            result: 脚本执行结果
+            request_feedback: 是否在结果后注入"请对该技能效果评分"的引导
+            trace_id: 关联追踪ID（用于反馈落库时绑定）
+
+        Returns: {prompt, skill_id, script_name, estimated_tokens, layer,
+                  feedback_request?}
         """
         t0 = time.time()
-        tid = _trace_id()
+        tid = trace_id or _trace_id()
 
         result_dict = result.to_dict()
         result_str = json.dumps(result_dict, ensure_ascii=False, indent=2)
@@ -234,6 +242,26 @@ class ContextInjector:
             truncated = False
 
         prompt = f"## 脚本执行结果：{result.skill_id}/{result.script_name}\n\n```json\n{result_str}\n```"
+
+        # 自解释 UI 原则：在执行结果后引导用户对技能效果评分
+        # 配合 feedback-skill 绑定，收集到的评分将驱动技能自进化
+        feedback_request = None
+        if request_feedback:
+            feedback_request = {
+                "skill_id": result.skill_id,
+                "trace_id": tid,
+                "prompt_text": (
+                    f"\n\n---\n**请对该技能效果评分（1-5 分）**\n"
+                    f"- 技能ID: `{result.skill_id}`\n"
+                    f"- 追踪ID: `{tid}`\n"
+                    f"- 评分方式: 回复 `score:5` 或调用 "
+                    f"`POST /api/skills-mgmt/{result.skill_id}/feedback`\n"
+                    f"- 评分将用于驱动该技能的参数优化、状态晋升或合并废弃"
+                ),
+            }
+            prompt += feedback_request["prompt_text"]
+            est_tokens += estimate_tokens(feedback_request["prompt_text"])
+
         elapsed = (time.time() - t0) * 1000
 
         logger.info(json.dumps({
@@ -247,11 +275,24 @@ class ContextInjector:
             "estimated_tokens": est_tokens,
             "truncated": truncated,
             "success": result.success,
+            "request_feedback": request_feedback,
         }, ensure_ascii=False))
 
         emit_metric("yunshu_skill_inject_tokens",
                     value=est_tokens, kind="histogram",
                     labels={"layer": "3", "skill_id": result.skill_id})
+
+        # 埋点预留：技能执行结果注入后请求反馈
+        if request_feedback:
+            try:
+                from .observability import track_event
+                track_event("skill_feedback_requested", {
+                    "skill_id": result.skill_id,
+                    "trace_id": tid,
+                    "success": result.success,
+                })
+            except Exception:
+                pass
 
         return {
             "prompt": prompt,
@@ -260,6 +301,7 @@ class ContextInjector:
             "estimated_tokens": est_tokens,
             "truncated": truncated,
             "layer": 3,
+            "feedback_request": feedback_request,
         }
 
     # ──────────────────────────────────────────────

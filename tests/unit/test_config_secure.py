@@ -159,9 +159,9 @@ class TestSensitiveDataFilter:
     def test_sanitize_api_key(self, filter):
         """测试脱敏API Key"""
         test_cases = [
-            ("sk-abc123def456ghi789jkl0", "***"),
-            ("pk-lmn123opq456rst789uvw0", "***"),
-            ("sk-proj-abc123def456ghi789", "***"),
+            ("sk-abc123def456ghi789jkl0", "[REDACTED]"),
+            ("pk-lmn123opq456rst789uvw0", "[REDACTED]"),
+            ("sk-proj-abc123def456ghi789", "[REDACTED]"),
         ]
         for input_text, expected in test_cases:
             result = filter._sanitize(input_text)
@@ -179,7 +179,7 @@ class TestSensitiveDataFilter:
         for input_text, expected in test_cases:
             result = filter._sanitize(input_text)
             # 检查是否脱敏成功（值被替换为***）
-            assert '***' in result, f"Failed for: {input_text}, got: {result}"
+            assert '[REDACTED]' in result, f"Failed for: {input_text}, got: {result}"
 
     @pytest.mark.p1
     def test_sanitize_url_params(self, filter):
@@ -191,7 +191,7 @@ class TestSensitiveDataFilter:
         for input_text in test_cases:
             result = filter._sanitize(input_text)
             # 检查敏感参数值是否被脱敏
-            assert '***' in result, f"Failed for: {input_text}, got: {result}"
+            assert '[REDACTED]' in result, f"Failed for: {input_text}, got: {result}"
 
     @pytest.mark.p1
     def test_sanitize_dict(self, filter):
@@ -209,11 +209,11 @@ class TestSensitiveDataFilter:
         sanitized = filter._sanitize_dict(test_dict)
         
         # 检查敏感字段是否被脱敏
-        assert sanitized['api_key'] == '***', f"api_key should be masked, got: {sanitized['api_key']}"
-        assert sanitized['password'] == '***', f"password should be masked, got: {sanitized['password']}"
-        assert sanitized['nested']['token'] == '***', f"nested token should be masked, got: {sanitized['nested']['token']}"
+        assert sanitized['api_key'] == '[REDACTED]', f"api_key should be masked, got: {sanitized['api_key']}"
+        assert sanitized['password'] == '[REDACTED]', f"password should be masked, got: {sanitized['password']}"
+        assert sanitized['nested']['token'] == '[REDACTED]', f"nested token should be masked, got: {sanitized['nested']['token']}"
         assert sanitized['nested']['normal'] == 'value'
-        assert sanitized['list'][0] == '***', f"list item should be masked, got: {sanitized['list'][0]}"
+        assert sanitized['list'][0] == '[REDACTED]', f"list item should be masked, got: {sanitized['list'][0]}"
         assert sanitized['list'][1] == 'normal'
 
     @pytest.mark.p1
@@ -234,7 +234,7 @@ class TestSensitiveDataFilter:
         result = filter.filter(record)
         assert result is True
         # 检查API Key是否被脱敏
-        assert '***' in record.msg, f"API Key should be masked, got: {record.msg}"
+        assert '[REDACTED]' in record.msg, f"API Key should be masked, got: {record.msg}"
 
 
 class TestAuditLogger:
