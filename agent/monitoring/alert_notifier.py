@@ -33,13 +33,6 @@ import requests
 
 from agent.monitoring.tracing import get_trace_id
 
-try:
-    from agent.error_handler import get_error_handler, RetryPolicy
-    _ERROR_HANDLER_AVAILABLE = True
-except ImportError:
-    _ERROR_HANDLER_AVAILABLE = False
-    logging.warning("[Alert] error_handler 模块不可用")
-
 logger = logging.getLogger(__name__)
 
 
