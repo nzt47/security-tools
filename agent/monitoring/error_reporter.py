@@ -34,6 +34,7 @@ from enum import Enum
 # 结构化日志必需：get_trace_id() 提供上下文追踪 ID
 # set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
+from agent.error_handler import with_retry, TemporaryNetworkError
 from pathlib import Path
 import queue
 import time
@@ -159,11 +160,6 @@ class WebhookReporter(BaseReporter):
         self.retry_times = config.get('retry_times', 3)
         self.retry_delay = config.get('retry_delay', 1)
         
-        # 延迟导入避免循环依赖
-        from agent.error_handler import (
-            with_retry,
-            TemporaryNetworkError
-        )
         self._send_webhook_with_retry = with_retry(
             max_retries=self.retry_times,
             initial_delay=self.retry_delay,
