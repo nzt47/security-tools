@@ -57,9 +57,9 @@ class TestResponseBuilder:
         assert "安全护栏" in d["error"]
 
     def test_workflow_result(self):
-        resp = ResponseBuilder.workflow_result({"msg": "ok"})
+        resp = ResponseBuilder.workflow_result(output="ok")
         assert resp.success
-        assert resp.data == {"msg": "ok"}
+        assert resp.data["output"] == "ok"
 
     def test_offline(self):
         resp = ResponseBuilder.offline("无网络")
