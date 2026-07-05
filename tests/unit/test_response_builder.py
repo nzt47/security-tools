@@ -46,9 +46,11 @@ class TestResponseBuilder:
         assert r.metadata["matched_pattern"] == "sql_injection"
 
     def test_workflow_result_response(self):
-        r = ResponseBuilder.workflow_result(result={"step": 1, "output": "done"})
+        r = ResponseBuilder.workflow_result(output="done", intent="search", confidence=0.9)
         assert r.success is True
-        assert r.data == {"step": 1, "output": "done"}
+        assert r.data["output"] == "done"
+        assert r.data["intent"] == "search"
+        assert r.data["confidence"] == 0.9
         assert r.msg == "handled_by_workflow"
 
     def test_llm_result_response(self):
