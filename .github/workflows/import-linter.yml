@@ -1,0 +1,114 @@
+# 循环依赖静态校验 CI 工作流
+#
+# 功能：
+# 1. PR/push 时自动运行 import-linter，检测 agent 包内的循环依赖
+# 2. 契约失败时退出码 1，自动阻断 PR 合并
+# 3. 自动评论校验结果到 PR
+#
+# 配置为 Required Status Check 的步骤：
+# 1. GitHub -> Settings -> Branches -> Branch protection rules
+# 2. 选择 main 分支 -> Edit
+# 3. Require status checks to pass before merging
+# 4. 搜索 "import-linter" -> 添加为 required check
+# 5. 保存
+#
+# 契约定义见 .importlinter
+
+name: 循环依赖校验
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'agent/**'
+      - '.importlinter'
+      - 'pyproject.toml'
+      - '.github/workflows/import-linter.yml'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'agent/**'
+      - '.importlinter'
+  workflow_dispatch: {}
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  import-linter:
+    name: 循环依赖校验
+    runs-on: ubuntu-latest
+    permissions:
+      # PR 评论需要 pull-requests: write 权限
+      pull-requests: write
+      contents: read
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装 import-linter
+        run: |
+          python -m pip install --upgrade pip
+          pip install import-linter>=2.0.0
+
+      - name: 运行循环依赖校验
+        id: lint_imports
+        run: |
+          echo "=== 循环依赖校验 ==="
+          lint-imports --config .importlinter
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE"
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::循环依赖校验失败，存在未豁免的违规导入。请修复违规或登记豁免。"
+            exit 1
+          fi
+          echo "::notice::循环依赖校验通过"
+
+      # ── PR 评论：校验结果 ──
+      - name: 评论校验结果到 PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const outcome = '${{ steps.lint_imports.outcome }}';
+            const status = outcome === 'success' ? '✅ 通过' : '❌ 失败';
+            let body = '## 循环依赖校验结果\n\n';
+            body += `**状态**: ${status}\n\n`;
+            body += '校验工具: [import-linter](https://import-linter.readthedocs.io/) v2.x\n';
+            body += '配置文件: `.importlinter`\n\n';
+
+            if (outcome === 'success') {
+              body += '### 契约状态\n\n';
+              body += '| 契约 | 状态 |\n';
+              body += '|------|------|\n';
+              body += '| error_handler 不得导入 monitoring.decorators | ✅ KEPT |\n';
+              body += '| error_handler 不得在模块级导入 monitoring 子模块 | ✅ KEPT |\n';
+              body += '\n> 所有循环依赖防护契约均通过。\n';
+            } else {
+              body += '### ❌ 违规详情\n\n';
+              body += '循环依赖防护契约被破坏。请检查上方 lint-imports 输出，定位违规导入并修复：\n\n';
+              body += '1. 检查 `agent/error_handler.py` 是否新增了 `from agent.monitoring...` 的模块级导入\n';
+              body += '2. 检查 `agent/monitoring/decorators.py` 是否新增了 `from agent.error_handler import ...` 的模块级导入\n';
+              body += '3. 若延迟导入确为必要（如 DI 工厂注入），请在 `.importlinter` 的 `ignore_imports` 中登记\n';
+            }
+
+            body += '\n> 完整配置见 `.importlinter`，详细输出见 Actions 日志';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
