@@ -30,6 +30,7 @@ from agent.memory.base import (
     MemoryResult,
     MemoryCapability,
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class HolographicAdapter(MemoryInterface):
                     l2_enabled=False,
                 )
             except ImportError:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "multilevelcache", "msg": "[HolographicAdapter] MultiLevelCache 不可用，跳过缓存"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'multilevelcache', 'msg': '[HolographicAdapter] MultiLevelCache 不可用，跳过缓存'}))
 
         # 确保目录存在并初始化数据库
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -125,7 +126,7 @@ class HolographicAdapter(MemoryInterface):
                 ON {self._CONTENT_TABLE}(created_at)
             """)
             conn.commit()
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "log", "msg": "[HolographicAdapter] 数据库表结构已就绪"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'log', 'msg': '[HolographicAdapter] 数据库表结构已就绪'}))
 
     # ── MemoryInterface 实现 ──
 
@@ -137,7 +138,7 @@ class HolographicAdapter(MemoryInterface):
     ) -> bool:
         """保存记忆到本地 SQLite + 同步 FTS5 索引"""
         if not key:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "save.key", "msg": "[HolographicAdapter] save 失败: key 为空"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'save.key', 'msg': '[HolographicAdapter] save 失败: key 为空'}))
             return False
 
         # 序列化 data（如果非字符串）
@@ -421,7 +422,7 @@ class HolographicAdapter(MemoryInterface):
 
                 if self._cache:
                     self._cache.clear()
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "holographic_adapter", "action": "log", "msg": "[HolographicAdapter] 已清空所有记忆"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'log', 'msg': '[HolographicAdapter] 已清空所有记忆'}))
                 return True
             except Exception as e:
                 logger.error("[HolographicAdapter] 清空失败: %s", e)

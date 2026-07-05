@@ -498,22 +498,28 @@ class TestDegradeHistoryAndCache:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_fallback_exception_handling(self):
-        """测试回退函数异常处理"""
+        """测试回退函数异常处理
+
+        主函数和 fallback 都失败时，返回 default_fallbacks 中的默认值。
+        schema 的 default_fallbacks 为 None，因此返回 None。
+        与 test_graceful_degrade_comprehensive.py::test_fallback_failure_returns_default 对齐。
+        """
         degrade = GracefulDegrade(DegradeConfig(max_retries=0))
-        
+
         def always_fail():
             raise ValueError("primary fail")
-        
+
         def failing_fallback():
             raise ValueError("fallback fail")
-        
+
         result = degrade.with_degrade(
             module=DegradeModule.SCHEMA,
             func=always_fail,
             fallback=failing_fallback
         )
-        
-        assert result is not None
+
+        # default_fallbacks["schema"] = None
+        assert result is None
 
     @pytest.mark.unit
     @pytest.mark.p0

@@ -16,6 +16,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from agent.extensions.base import BUILTIN_EXTENSIONS
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +67,10 @@ class ExtensionMarket:
                 with open(_LOCAL_INDEX_CACHE, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 self._cache = data
-                logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": "[扩展市场] 已获取社区扩展索引"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'market', 'action': 'log', 'msg': '[扩展市场] 已获取社区扩展索引'}))
                 return data
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": f"[扩展市场] 获取社区索引失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'market', 'action': 'log', 'msg': f'[扩展市场] 获取社区索引失败: {e}'}))
             return None
 
     def get_cached_community_index(self) -> Optional[Dict]:
@@ -82,7 +83,7 @@ class ExtensionMarket:
                     self._cache = json.load(f)
                 return self._cache
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "log", "msg": f"[扩展市场] 加载缓存索引失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'market', 'action': 'log', 'msg': f'[扩展市场] 加载缓存索引失败: {e}'}))
         return None
 
     def search_community(self, query: str, ext_type: str = None) -> List[Dict]:
@@ -182,7 +183,7 @@ class ExtensionMarket:
             return results
 
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "market", "action": "github", "msg": f"[扩展市场] GitHub 搜索失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'market', 'action': 'github', 'msg': f'[扩展市场] GitHub 搜索失败: {e}'}))
             return []
 
     # ── 统一搜索 ──

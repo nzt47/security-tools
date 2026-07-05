@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
 import requests
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,15 @@ class LokiClient:
         self._url = url or os.environ.get("LOKI_URL", "http://localhost:3100")
         self._enabled = enabled and self._url
         self._session = requests.Session()
+
+        # 配置化超时（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import get_loki_push_timeout, get_loki_query_timeout
+            self._push_timeout = get_loki_push_timeout()
+            self._query_timeout = get_loki_query_timeout()
+        except Exception:
+            self._push_timeout = 10
+            self._query_timeout = 30
         
         # 本地日志存储目录
         self._local_log_dir = os.path.join(
@@ -46,7 +56,7 @@ class LokiClient:
         )
         os.makedirs(self._local_log_dir, exist_ok=True)
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.client.init", "enabled": self._enabled, "url": self._url}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loki', 'action': 'loki.client.init', 'enabled': self._enabled, 'url': self._url}))
     
     def is_enabled(self) -> bool:
         """检查 Loki 是否启用"""
@@ -62,7 +72,7 @@ class LokiClient:
             with open(file_path, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.save_local.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'loki', 'action': 'loki.save_local.failed', 'error': str(e)}))
     
     def push_log(self, labels: Dict[str, str], message: str, timestamp: float = None):
         """推送日志到 Loki
@@ -93,11 +103,11 @@ class LokiClient:
             response = self._session.post(
                 f"{self._url}/loki/api/v1/push",
                 json=payload,
-                timeout=10
+                timeout=self._push_timeout
             )
             
             if response.status_code != 204:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.push.failed", "status_code": response.status_code, "response_text": response.text[:200]}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'loki', 'action': 'loki.push.failed', 'status_code': response.status_code, 'response_text': response.text[:200]}))
                 # 回退到本地存储
                 self._save_local_log({
                     'timestamp': timestamp or time.time(),
@@ -107,7 +117,7 @@ class LokiClient:
             else:
                 logger.debug(f"[Loki] 日志推送成功")
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.push.exception", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'loki', 'action': 'loki.push.exception', 'error': str(e)}))
             # 回退到本地存储
             self._save_local_log({
                 'timestamp': timestamp or time.time(),
@@ -149,16 +159,16 @@ class LokiClient:
                 response = self._session.get(
                     f"{self._url}/loki/api/v1/query_range",
                     params=params,
-                    timeout=30
+                    timeout=self._query_timeout
                 )
                 
                 if response.status_code == 200:
                     data = response.json()
                     results = self._parse_loki_response(data)
                 else:
-                    logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.query.failed", "status_code": response.status_code, "response_text": response.text[:200]}, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'loki', 'action': 'loki.query.failed', 'status_code': response.status_code, 'response_text': response.text[:200]}))
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.query.exception", "error": str(e)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'loki', 'action': 'loki.query.exception', 'error': str(e)}))
         
         # 如果 Loki 查询失败或未启用，从本地存储查询
         if not results:
@@ -184,7 +194,7 @@ class LokiClient:
                             'source': 'loki'
                         })
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.parse_response.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'loki', 'action': 'loki.parse_response.failed', 'error': str(e)}))
         
         return results
     
@@ -251,7 +261,7 @@ class LokiClient:
             results = results[:limit]
             
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.query_local.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'loki', 'action': 'loki.query_local.failed', 'error': str(e)}))
         
         return results
     
@@ -263,7 +273,7 @@ class LokiClient:
             try:
                 response = self._session.get(
                     f"{self._url}/loki/api/v1/labels",
-                    timeout=10
+                    timeout=self._query_timeout
                 )
                 
                 if response.status_code == 200:
@@ -271,7 +281,7 @@ class LokiClient:
                     if data.get('status') == 'success':
                         labels = data.get('data', {})
             except Exception as e:
-                logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.get_labels.failed", "error": str(e)}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'loki', 'action': 'loki.get_labels.failed', 'error': str(e)}))
         
         # 如果 Loki 查询失败，从本地存储获取标签
         if not labels:
@@ -300,7 +310,7 @@ class LokiClient:
                             except json.JSONDecodeError:
                                 continue
         except Exception as e:
-            logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "loki", "action": "loki.get_local_labels.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'loki', 'action': 'loki.get_local_labels.failed', 'error': str(e)}))
         
         return labels
 

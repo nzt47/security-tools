@@ -284,6 +284,238 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="http.max_retries 必须在 0-10 之间（0 表示不重试）",
         description="HTTP 客户端默认重试次数，用于 http_client.py 的 DEFAULT_MAX_RETRIES",
     ),
+    # HTTP 请求的默认超时秒数
+    ValidationRule(
+        path="http.timeout_sec",
+        validator=_range_validator(1, 300),
+        default=30,
+        error_message="http.timeout_sec 必须在 1-300 秒之间",
+        description="HTTP 请求默认超时秒数，用于 http_client.py 的 DEFAULT_TIMEOUT",
+    ),
+    # HTTP 连接超时秒数
+    ValidationRule(
+        path="http.connect_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="http.connect_timeout_sec 必须在 1-60 秒之间",
+        description="HTTP 连接建立超时秒数，用于 http_client.py 的 DEFAULT_CONNECT_TIMEOUT",
+    ),
+    # HTTP 连接池大小
+    ValidationRule(
+        path="http.pool_size",
+        validator=_range_validator(1, 100),
+        default=20,
+        error_message="http.pool_size 必须在 1-100 之间",
+        description="HTTP 连接池大小，用于 http_client.py 的 DEFAULT_POOL_SIZE",
+    ),
+
+    # ── 11. 缓存容量（cache） ──
+    # L1 内存缓存最大条目数
+    ValidationRule(
+        path="cache.l1_max_size",
+        validator=_range_validator(100, 10000),
+        default=1000,
+        error_message="cache.l1_max_size 必须在 100-10000 之间",
+        description="L1 内存缓存最大条目数，用于 multi_level_cache.py 的 MultiLevelCache 默认参数",
+    ),
+
+    # ── 12. 追踪缓存容量（tracing_cache） ──
+    # 追踪上下文缓存容量
+    ValidationRule(
+        path="tracing_cache.context_max_size",
+        validator=_range_validator(256, 16384),
+        default=4096,
+        error_message="tracing_cache.context_max_size 必须在 256-16384 之间",
+        description="追踪上下文缓存容量，用于 tracing_cache.py 的 TraceContextCache._context_cache",
+    ),
+    # Span 数据缓存容量
+    ValidationRule(
+        path="tracing_cache.span_max_size",
+        validator=_range_validator(128, 8192),
+        default=2048,
+        error_message="tracing_cache.span_max_size 必须在 128-8192 之间",
+        description="Span 数据缓存容量，用于 tracing_cache.py 的 TraceContextCache._span_cache",
+    ),
+    # Span 对象池大小
+    ValidationRule(
+        path="tracing_cache.span_pool_size",
+        validator=_range_validator(50, 2000),
+        default=500,
+        error_message="tracing_cache.span_pool_size 必须在 50-2000 之间",
+        description="Span 对象池大小，用于 tracing_cache.py 的 TraceContextCache._span_pool",
+    ),
+
+    # ── 13. 调度器常量（scheduler） ──
+    # tick 检查间隔（秒）
+    ValidationRule(
+        path="scheduler.check_interval_sec",
+        validator=_range_validator(1, 300),
+        default=10,
+        error_message="scheduler.check_interval_sec 必须在 1-300 秒之间",
+        description="调度器 tick 检查间隔，用于 task_scheduler.py 的 DEFAULT_CHECK_INTERVAL",
+    ),
+    # 系统命令执行超时（秒）
+    ValidationRule(
+        path="scheduler.command_timeout_sec",
+        validator=_range_validator(10, 3600),
+        default=300,
+        error_message="scheduler.command_timeout_sec 必须在 10-3600 秒之间",
+        description="系统命令执行超时，用于 task_scheduler.py 的 COMMAND_TIMEOUT",
+    ),
+    # 执行历史最大行数
+    ValidationRule(
+        path="scheduler.max_history_lines",
+        validator=_range_validator(100, 10000),
+        default=1000,
+        error_message="scheduler.max_history_lines 必须在 100-10000 之间",
+        description="执行历史最大行数，用于 task_scheduler.py 的 MAX_HISTORY_LINES",
+    ),
+    # 心跳间隔（秒）
+    ValidationRule(
+        path="scheduler.heartbeat_interval_sec",
+        validator=_range_validator(10, 600),
+        default=60,
+        error_message="scheduler.heartbeat_interval_sec 必须在 10-600 秒之间",
+        description="心跳检测间隔，用于 task_scheduler.py 的 HEARTBEAT_INTERVAL",
+    ),
+    # 心跳历史保留条数
+    ValidationRule(
+        path="scheduler.max_heartbeat_history",
+        validator=_range_validator(144, 14400),
+        default=1440,
+        error_message="scheduler.max_heartbeat_history 必须在 144-14400 之间",
+        description="心跳历史保留条数，用于 task_scheduler.py 的 MAX_HEARTBEAT_HISTORY",
+    ),
+
+    # ── 14. LLM 监控（llm_monitor） ──
+    # 环形缓冲区最大记录数
+    ValidationRule(
+        path="llm_monitor.max_records",
+        validator=_range_validator(100, 5000),
+        default=500,
+        error_message="llm_monitor.max_records 必须在 100-5000 之间",
+        description="LLM 交互记录环形缓冲区大小，用于 llm_monitor.py 的 MAX_RECORDS",
+    ),
+
+    # ── 15. Loki 日志推送（loki） ──
+    # 推送日志到 Loki 的超时（秒）
+    ValidationRule(
+        path="loki.push_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="loki.push_timeout_sec 必须在 1-60 秒之间",
+        description="Loki push API 超时，用于 monitoring/loki.py 的 _session.post",
+    ),
+    # 查询 Loki 的超时（秒）
+    ValidationRule(
+        path="loki.query_timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="loki.query_timeout_sec 必须在 1-120 秒之间",
+        description="Loki query_range/labels API 超时，用于 monitoring/loki.py 的 _session.get",
+    ),
+
+    # ── 16. 告警通知（alert） ──
+    # 告警通知超时（秒）
+    ValidationRule(
+        path="alert.timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="alert.timeout_sec 必须在 1-120 秒之间",
+        description="告警通知超时，用于 monitoring/alert_notifier.py 的 SMTP/Webhook 请求",
+    ),
+
+    # ── 17. Prometheus 指标导出（prometheus） ──
+    # Phase 4 Task 2: Prometheus exporter 重试次数配置化
+    ValidationRule(
+        path="prometheus.max_retries",
+        validator=_range_validator(0, 10),
+        default=3,
+        error_message="prometheus.max_retries 必须在 0-10 之间（0 表示不重试）",
+        description="Prometheus 指标导出重试次数，用于 monitoring/prometheus.py 的 RetryPolicy(max_retries=)",
+    ),
+
+    # ── 18. 混沌注入器（chaos） ──
+    # Phase 4 Task 2: 故障注入器线程清理超时配置化
+    ValidationRule(
+        path="chaos.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="chaos.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="混沌注入器内存压力线程清理超时，用于 monitoring/chaos_injector.py 的 thread.join(timeout=)",
+    ),
+
+    # ── 19. 资源监控器线程清理（resource_monitor.thread_join） ──
+    # Phase 4 Task 2: 资源监控采样线程清理超时配置化
+    ValidationRule(
+        path="resource_monitor.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="resource_monitor.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="资源监控采样线程清理超时，用于 monitoring/resource_monitor.py 的 _sample_thread.join(timeout=)",
+    ),
+
+    # ── 20. 搜索性能监控（search） ──
+    # Phase 4 Task 2: 搜索监控线程清理与请求超时配置化
+    ValidationRule(
+        path="search.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="search.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="搜索性能监控线程清理超时，用于 monitoring/search.py 的 _thread.join(timeout=)",
+    ),
+    ValidationRule(
+        path="search.config_apply_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="search.config_apply_timeout_sec 必须在 1-60 秒之间",
+        description="搜索配置应用请求超时，用于 monitoring/search.py 的 requests.post(/api/apply-network-config)",
+    ),
+    ValidationRule(
+        path="search.web_search_timeout_sec",
+        validator=_range_validator(1, 120),
+        default=30,
+        error_message="search.web_search_timeout_sec 必须在 1-120 秒之间",
+        description="搜索性能检测请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search)",
+    ),
+    ValidationRule(
+        path="search.status_check_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10,
+        error_message="search.status_check_timeout_sec 必须在 1-60 秒之间",
+        description="搜索状态查询请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search/status)",
+    ),
+
+    # ── 21. 自愈管理器（self_healer） ──
+    # Phase 4 Task 2: 自愈操作各类超时配置化
+    ValidationRule(
+        path="self_healer.restart_timeout_sec",
+        validator=_range_validator(10, 300),
+        default=60,
+        error_message="self_healer.restart_timeout_sec 必须在 10-300 秒之间",
+        description="服务重启命令超时，用于 monitoring/self_healer.py 的 subprocess.run(restart)",
+    ),
+    ValidationRule(
+        path="self_healer.sync_timeout_sec",
+        validator=_range_validator(1, 30),
+        default=5,
+        error_message="self_healer.sync_timeout_sec 必须在 1-30 秒之间",
+        description="系统同步命令超时，用于 monitoring/self_healer.py 的 subprocess.run(sync)",
+    ),
+    ValidationRule(
+        path="self_healer.verify_timeout_sec",
+        validator=_range_validator(10, 300),
+        default=60,
+        error_message="self_healer.verify_timeout_sec 必须在 10-300 秒之间",
+        description="自愈效果验证超时，用于 monitoring/self_healer.py 的 verify_heal(timeout=)",
+    ),
+    ValidationRule(
+        path="self_healer.thread_join_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=5,
+        error_message="self_healer.thread_join_timeout_sec 必须在 1-60 秒之间",
+        description="自愈健康检查线程清理超时，用于 monitoring/self_healer.py 的 _health_check_thread.join(timeout=)",
+    ),
 ]
 
 
@@ -434,6 +666,14 @@ class ObservabilityConfig:
 
             # 6. 触发回调
             self._fire_callbacks(key, value)
+
+            # 7. 配置变更可观测性（Loki 推送 + Prometheus 指标 + 高风险告警）
+            #    异步处理，不影响主流程；lazy import 避免循环依赖
+            try:
+                from agent.monitoring.config_observability import on_config_changed
+                on_config_changed(change_record)
+            except Exception as e:
+                logger.debug(f"配置变更可观测性通知失败（非致命）: {e}")
 
             logger.info(json.dumps({
                 "trace_id": get_trace_id(),
@@ -955,6 +1195,350 @@ def get_http_max_retries() -> int:
         return int(get_observability_config().get("http.max_retries", default=3))
     except Exception:
         return 3
+
+
+def get_http_timeout() -> int:
+    """读取 HTTP 请求默认超时秒数（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("http.timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+def get_http_connect_timeout() -> int:
+    """读取 HTTP 连接建立超时秒数（便捷函数，支持热加载）
+
+    Returns:
+        连接超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("http.connect_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_http_pool_size() -> int:
+    """读取 HTTP 连接池大小（便捷函数，支持热加载）
+
+    Returns:
+        连接池大小，默认 20
+    """
+    try:
+        return int(get_observability_config().get("http.pool_size", default=20))
+    except Exception:
+        return 20
+
+
+# ── 缓存容量便捷函数 ──
+
+def get_cache_l1_max_size() -> int:
+    """读取 L1 内存缓存最大条目数（便捷函数，支持热加载）
+
+    Returns:
+        最大条目数，默认 1000
+    """
+    try:
+        return int(get_observability_config().get("cache.l1_max_size", default=1000))
+    except Exception:
+        return 1000
+
+
+def get_tracing_cache_context_max_size() -> int:
+    """读取追踪上下文缓存容量（便捷函数，支持热加载）
+
+    Returns:
+        缓存容量，默认 4096
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.context_max_size", default=4096))
+    except Exception:
+        return 4096
+
+
+def get_tracing_cache_span_max_size() -> int:
+    """读取 Span 数据缓存容量（便捷函数，支持热加载）
+
+    Returns:
+        缓存容量，默认 2048
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.span_max_size", default=2048))
+    except Exception:
+        return 2048
+
+
+def get_tracing_cache_span_pool_size() -> int:
+    """读取 Span 对象池大小（便捷函数，支持热加载）
+
+    Returns:
+        对象池大小，默认 500
+    """
+    try:
+        return int(get_observability_config().get("tracing_cache.span_pool_size", default=500))
+    except Exception:
+        return 500
+
+
+# ── 调度器常量便捷函数 ──
+
+def get_scheduler_check_interval() -> int:
+    """读取调度器 tick 检查间隔（便捷函数，支持热加载）
+
+    Returns:
+        检查间隔秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("scheduler.check_interval_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_scheduler_command_timeout() -> int:
+    """读取系统命令执行超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 300
+    """
+    try:
+        return int(get_observability_config().get("scheduler.command_timeout_sec", default=300))
+    except Exception:
+        return 300
+
+
+def get_scheduler_max_history_lines() -> int:
+    """读取执行历史最大行数（便捷函数，支持热加载）
+
+    Returns:
+        最大行数，默认 1000
+    """
+    try:
+        return int(get_observability_config().get("scheduler.max_history_lines", default=1000))
+    except Exception:
+        return 1000
+
+
+def get_scheduler_heartbeat_interval() -> int:
+    """读取心跳检测间隔（便捷函数，支持热加载）
+
+    Returns:
+        间隔秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("scheduler.heartbeat_interval_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_scheduler_max_heartbeat_history() -> int:
+    """读取心跳历史保留条数（便捷函数，支持热加载）
+
+    Returns:
+        保留条数，默认 1440
+    """
+    try:
+        return int(get_observability_config().get("scheduler.max_heartbeat_history", default=1440))
+    except Exception:
+        return 1440
+
+
+# ── LLM 监控便捷函数 ──
+
+def get_llm_monitor_max_records() -> int:
+    """读取 LLM 交互记录环形缓冲区大小（便捷函数，支持热加载）
+
+    Returns:
+        最大记录数，默认 500
+    """
+    try:
+        return int(get_observability_config().get("llm_monitor.max_records", default=500))
+    except Exception:
+        return 500
+
+
+# ── Loki 日志推送便捷函数 ──
+
+def get_loki_push_timeout() -> int:
+    """读取 Loki push API 超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("loki.push_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_loki_query_timeout() -> int:
+    """读取 Loki query API 超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("loki.query_timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+# ── 告警通知便捷函数 ──
+
+def get_alert_timeout() -> int:
+    """读取告警通知超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("alert.timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+# ── Prometheus 指标导出便捷函数 ──
+
+def get_prometheus_max_retries() -> int:
+    """读取 Prometheus 指标导出重试次数（便捷函数，支持热加载）
+
+    Returns:
+        最大重试次数，默认 3
+    """
+    try:
+        return int(get_observability_config().get("prometheus.max_retries", default=3))
+    except Exception:
+        return 3
+
+
+# ── 混沌注入器便捷函数 ──
+
+def get_chaos_thread_join_timeout() -> int:
+    """读取混沌注入器线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("chaos.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+# ── 资源监控器线程清理便捷函数 ──
+
+def get_resource_monitor_thread_join_timeout() -> int:
+    """读取资源监控采样线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("resource_monitor.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+# ── 搜索性能监控便捷函数 ──
+
+def get_search_thread_join_timeout() -> int:
+    """读取搜索监控线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("search.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+def get_search_config_apply_timeout() -> int:
+    """读取搜索配置应用请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("search.config_apply_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+def get_search_web_search_timeout() -> int:
+    """读取搜索性能检测请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 30
+    """
+    try:
+        return int(get_observability_config().get("search.web_search_timeout_sec", default=30))
+    except Exception:
+        return 30
+
+
+def get_search_status_check_timeout() -> int:
+    """读取搜索状态查询请求超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 10
+    """
+    try:
+        return int(get_observability_config().get("search.status_check_timeout_sec", default=10))
+    except Exception:
+        return 10
+
+
+# ── 自愈管理器便捷函数 ──
+
+def get_self_healer_restart_timeout() -> int:
+    """读取服务重启命令超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("self_healer.restart_timeout_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_self_healer_sync_timeout() -> int:
+    """读取系统同步命令超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("self_healer.sync_timeout_sec", default=5))
+    except Exception:
+        return 5
+
+
+def get_self_healer_verify_timeout() -> int:
+    """读取自愈效果验证超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 60
+    """
+    try:
+        return int(get_observability_config().get("self_healer.verify_timeout_sec", default=60))
+    except Exception:
+        return 60
+
+
+def get_self_healer_thread_join_timeout() -> int:
+    """读取自愈健康检查线程清理超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 5
+    """
+    try:
+        return int(get_observability_config().get("self_healer.thread_join_timeout_sec", default=5))
+    except Exception:
+        return 5
 
 
 def reset_observability_config() -> None:

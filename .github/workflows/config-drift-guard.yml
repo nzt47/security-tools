@@ -1,0 +1,121 @@
+# Config Drift Guard — 配置漂移检测
+# 在 PR 合并前自动检测 observability_config.py 的默认值漂移
+# 详见: docs/observability/config_drift_detection_design.md
+
+name: Config Drift Guard
+
+on:
+  pull_request:
+    paths:
+      - 'agent/monitoring/observability_config.py'
+      - 'docs/observability/config_snapshot_master.json'
+      - 'scripts/config_snapshot.py'
+      - 'scripts/check_config_drift.py'
+      - '.github/workflows/config-drift-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  drift-detection:
+    name: 配置漂移检测
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          pip install -e . --quiet || true
+
+      - name: 重新生成快照（基于当前分支代码）
+        run: |
+          python scripts/config_snapshot.py \
+            --output /tmp/current_snapshot.json
+
+      - name: 加载 master 快照
+        id: master
+        run: |
+          if [ ! -f docs/observability/config_snapshot_master.json ]; then
+            echo "::warning::master 快照不存在，跳过漂移检测"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+      - name: 检测默认值漂移
+        if: steps.master.outputs.skip != 'true'
+        id: drift
+        run: |
+          # 对比 master 快照（已知良好状态）与当前分支运行时配置
+          # --fail-on-drift 模式下，high/critical 漂移会以非零退出码退出
+          EXIT_CODE=0
+          python scripts/check_config_drift.py \
+            --snapshot docs/observability/config_snapshot_master.json \
+            --json \
+            --output /tmp/drift_report.json \
+            --fail-on-drift || EXIT_CODE=$?
+
+          # 提取漂移统计
+          DRIFT_COUNT=$(python -c "import json; d=json.load(open('/tmp/drift_report.json')); print(d['summary']['drift_count'])")
+          echo "drift_count=$DRIFT_COUNT" >> $GITHUB_OUTPUT
+          echo "::notice::漂移检测完成 — 发现 $DRIFT_COUNT 个漂移"
+
+          exit ${EXIT_CODE}
+
+      - name: 上传漂移报告
+        if: always() && steps.master.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-drift-report
+          path: /tmp/drift_report.json
+          retention-days: 30
+
+      - name: PR 评论（漂移详情）
+        if: always() && steps.master.outputs.skip != 'true' && steps.drift.outputs.drift_count > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('/tmp/drift_report.json', 'utf-8'));
+            const summary = report.summary;
+
+            let body = `## 配置漂移检测报告\n\n`;
+            body += `| 类型 | 数量 |\n|------|------|\n`;
+            body += `| modified | ${summary.modified} |\n`;
+            body += `| removed | ${summary.removed} |\n`;
+            body += `| added | ${summary.added} |\n`;
+            body += `| **合计** | **${summary.drift_count}** |\n\n`;
+
+            if (report.drifts.length > 0) {
+              body += `### 漂移详情（前 10 个）\n\n`;
+              body += `| 路径 | 类型 | 严重 | 快照值 | 当前值 |\n`;
+              body += `|------|------|------|--------|--------|\n`;
+              for (const d of report.drifts.slice(0, 10)) {
+                body += `| \`${d.path}\` | ${d.type} | ${d.severity} | ${d.snapshot_value} | ${d.current_value} |\n`;
+              }
+              if (report.drifts.length > 10) {
+                body += `\n_...还有 ${report.drifts.length - 10} 个漂移，详见 artifact_\n`;
+              }
+            }
+
+            body += `\n### 处理建议\n`;
+            body += `- **modified**: 如确需修改默认值，请同时更新 \`docs/observability/config_snapshot_master.json\`\n`;
+            body += `- **removed**: 移除配置项时，请同步删除快照中的对应路径\n`;
+            body += `- **added**: 新增配置项时，请运行 \`python scripts/config_snapshot.py\` 更新快照\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

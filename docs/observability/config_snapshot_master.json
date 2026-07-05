@@ -1,0 +1,330 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-07-04T01:54:45",
+  "generated_from": "observability_config.py@06be055b",
+  "total_paths": 47,
+  "config": {
+    "tracing": {
+      "env": "development",
+      "log_level": "INFO",
+      "sampler_ratio": 0.1
+    },
+    "logging": {
+      "level": "INFO",
+      "output_path": ""
+    },
+    "metrics": {
+      "enabled": true
+    },
+    "health_check": {
+      "interval_sec": 60
+    },
+    "resource_monitor": {
+      "enabled": true,
+      "sample_interval_sec": 60,
+      "stress_test_interval_sec": 1.0,
+      "leak_slope_threshold": 1.0,
+      "history_size": 1440,
+      "persist_enabled": true,
+      "persist_path": "",
+      "persist_max_age_hours": 168,
+      "persist_batch_size": 100,
+      "thread_join_timeout_sec": 5
+    },
+    "time_window": {
+      "max_analyze_days": 36500
+    },
+    "retry": {
+      "default_max_retries": 3
+    },
+    "cognitive": {
+      "reflection_max_retries": 3
+    },
+    "http": {
+      "max_retries": 3,
+      "timeout_sec": 30,
+      "connect_timeout_sec": 10,
+      "pool_size": 20
+    },
+    "cache": {
+      "l1_max_size": 1000
+    },
+    "tracing_cache": {
+      "context_max_size": 4096,
+      "span_max_size": 2048,
+      "span_pool_size": 500
+    },
+    "scheduler": {
+      "check_interval_sec": 10,
+      "command_timeout_sec": 300,
+      "max_history_lines": 1000,
+      "heartbeat_interval_sec": 60,
+      "max_heartbeat_history": 1440
+    },
+    "llm_monitor": {
+      "max_records": 500
+    },
+    "loki": {
+      "push_timeout_sec": 10,
+      "query_timeout_sec": 30
+    },
+    "alert": {
+      "timeout_sec": 30
+    },
+    "prometheus": {
+      "max_retries": 3
+    },
+    "chaos": {
+      "thread_join_timeout_sec": 5
+    },
+    "search": {
+      "thread_join_timeout_sec": 5,
+      "config_apply_timeout_sec": 10,
+      "web_search_timeout_sec": 30,
+      "status_check_timeout_sec": 10
+    },
+    "self_healer": {
+      "restart_timeout_sec": 60,
+      "sync_timeout_sec": 5,
+      "verify_timeout_sec": 60,
+      "thread_join_timeout_sec": 5
+    }
+  },
+  "metadata": {
+    "tracing.env": {
+      "default": "development",
+      "description": "追踪环境类型",
+      "error_message": "tracing.env 必须是 development/staging/production 之一"
+    },
+    "tracing.log_level": {
+      "default": "INFO",
+      "description": "追踪日志级别",
+      "error_message": "tracing.log_level 必须是 DEBUG/INFO/WARN/ERROR/CRITICAL 之一"
+    },
+    "tracing.sampler_ratio": {
+      "default": 0.1,
+      "description": "追踪采样比例",
+      "error_message": "tracing.sampler_ratio 必须在 0.0-1.0 之间"
+    },
+    "logging.level": {
+      "default": "INFO",
+      "description": "全局日志级别",
+      "error_message": "logging.level 必须是合法日志级别"
+    },
+    "logging.output_path": {
+      "default": "",
+      "description": "日志输出路径（空表示 stdout）",
+      "error_message": "logging.output_path 父目录必须存在或为空（stdout）"
+    },
+    "metrics.enabled": {
+      "default": true,
+      "description": "是否启用指标采集",
+      "error_message": "metrics.enabled 必须是布尔值"
+    },
+    "health_check.interval_sec": {
+      "default": 60,
+      "description": "健康检查频率（秒）",
+      "error_message": "health_check.interval_sec 必须在 5-3600 秒之间"
+    },
+    "resource_monitor.enabled": {
+      "default": true,
+      "description": "是否启用资源监控",
+      "error_message": "resource_monitor.enabled 必须是布尔值"
+    },
+    "resource_monitor.sample_interval_sec": {
+      "default": 60,
+      "description": "资源采样间隔（秒）",
+      "error_message": "resource_monitor.sample_interval_sec 必须在 1-3600 秒之间"
+    },
+    "resource_monitor.stress_test_interval_sec": {
+      "default": 1.0,
+      "description": "压测模式采样间隔（秒）",
+      "error_message": "resource_monitor.stress_test_interval_sec 必须在 0.5-10 秒之间"
+    },
+    "resource_monitor.leak_slope_threshold": {
+      "default": 1.0,
+      "description": "资源增长斜率告警阈值（字节/采样）",
+      "error_message": "resource_monitor.leak_slope_threshold 必须非负"
+    },
+    "resource_monitor.history_size": {
+      "default": 1440,
+      "description": "历史采样保留数量",
+      "error_message": "resource_monitor.history_size 必须在 10-10000 之间"
+    },
+    "resource_monitor.persist_enabled": {
+      "default": true,
+      "description": "是否启用历史采样落盘（跨重启趋势分析）",
+      "error_message": "resource_monitor.persist_enabled 必须是布尔值"
+    },
+    "resource_monitor.persist_path": {
+      "default": "",
+      "description": "持久化文件路径（空表示使用默认 ./data/resource_monitor_history.jsonl）",
+      "error_message": "resource_monitor.persist_path 父目录必须存在或为空（使用默认路径）"
+    },
+    "resource_monitor.persist_max_age_hours": {
+      "default": 168,
+      "description": "持久化数据最大保留时长（小时），默认 7 天",
+      "error_message": "resource_monitor.persist_max_age_hours 必须在 1-720 小时之间（1 小时-30 天）"
+    },
+    "resource_monitor.persist_batch_size": {
+      "default": 100,
+      "description": "批量落盘的缓冲条数（达到此数量触发写入）",
+      "error_message": "resource_monitor.persist_batch_size 必须在 1-1000 之间"
+    },
+    "time_window.max_analyze_days": {
+      "default": 36500,
+      "description": "时间窗口分析上限天数，用于 data_analytics/replay_storage/defect_tracker 等模块的 timedelta(days=) 参数校验",
+      "error_message": "time_window.max_analyze_days 必须在 1-36500 之间（100 年上限）"
+    },
+    "retry.default_max_retries": {
+      "default": 3,
+      "description": "默认最大重试次数，用于 error_handler.py 的 RetryPolicy/with_retry/async_with_retry 装饰器默认值",
+      "error_message": "retry.default_max_retries 必须在 0-20 之间（0 表示不重试）"
+    },
+    "cognitive.reflection_max_retries": {
+      "default": 3,
+      "description": "认知反思引擎最大重试次数，用于 reflection.py 的 MAX_RETRIES 硬限制",
+      "error_message": "cognitive.reflection_max_retries 必须在 1-10 之间"
+    },
+    "http.max_retries": {
+      "default": 3,
+      "description": "HTTP 客户端默认重试次数，用于 http_client.py 的 DEFAULT_MAX_RETRIES",
+      "error_message": "http.max_retries 必须在 0-10 之间（0 表示不重试）"
+    },
+    "http.timeout_sec": {
+      "default": 30,
+      "description": "HTTP 请求默认超时秒数，用于 http_client.py 的 DEFAULT_TIMEOUT",
+      "error_message": "http.timeout_sec 必须在 1-300 秒之间"
+    },
+    "http.connect_timeout_sec": {
+      "default": 10,
+      "description": "HTTP 连接建立超时秒数，用于 http_client.py 的 DEFAULT_CONNECT_TIMEOUT",
+      "error_message": "http.connect_timeout_sec 必须在 1-60 秒之间"
+    },
+    "http.pool_size": {
+      "default": 20,
+      "description": "HTTP 连接池大小，用于 http_client.py 的 DEFAULT_POOL_SIZE",
+      "error_message": "http.pool_size 必须在 1-100 之间"
+    },
+    "cache.l1_max_size": {
+      "default": 1000,
+      "description": "L1 内存缓存最大条目数，用于 multi_level_cache.py 的 MultiLevelCache 默认参数",
+      "error_message": "cache.l1_max_size 必须在 100-10000 之间"
+    },
+    "tracing_cache.context_max_size": {
+      "default": 4096,
+      "description": "追踪上下文缓存容量，用于 tracing_cache.py 的 TraceContextCache._context_cache",
+      "error_message": "tracing_cache.context_max_size 必须在 256-16384 之间"
+    },
+    "tracing_cache.span_max_size": {
+      "default": 2048,
+      "description": "Span 数据缓存容量，用于 tracing_cache.py 的 TraceContextCache._span_cache",
+      "error_message": "tracing_cache.span_max_size 必须在 128-8192 之间"
+    },
+    "tracing_cache.span_pool_size": {
+      "default": 500,
+      "description": "Span 对象池大小，用于 tracing_cache.py 的 TraceContextCache._span_pool",
+      "error_message": "tracing_cache.span_pool_size 必须在 50-2000 之间"
+    },
+    "scheduler.check_interval_sec": {
+      "default": 10,
+      "description": "调度器 tick 检查间隔，用于 task_scheduler.py 的 DEFAULT_CHECK_INTERVAL",
+      "error_message": "scheduler.check_interval_sec 必须在 1-300 秒之间"
+    },
+    "scheduler.command_timeout_sec": {
+      "default": 300,
+      "description": "系统命令执行超时，用于 task_scheduler.py 的 COMMAND_TIMEOUT",
+      "error_message": "scheduler.command_timeout_sec 必须在 10-3600 秒之间"
+    },
+    "scheduler.max_history_lines": {
+      "default": 1000,
+      "description": "执行历史最大行数，用于 task_scheduler.py 的 MAX_HISTORY_LINES",
+      "error_message": "scheduler.max_history_lines 必须在 100-10000 之间"
+    },
+    "scheduler.heartbeat_interval_sec": {
+      "default": 60,
+      "description": "心跳检测间隔，用于 task_scheduler.py 的 HEARTBEAT_INTERVAL",
+      "error_message": "scheduler.heartbeat_interval_sec 必须在 10-600 秒之间"
+    },
+    "scheduler.max_heartbeat_history": {
+      "default": 1440,
+      "description": "心跳历史保留条数，用于 task_scheduler.py 的 MAX_HEARTBEAT_HISTORY",
+      "error_message": "scheduler.max_heartbeat_history 必须在 144-14400 之间"
+    },
+    "llm_monitor.max_records": {
+      "default": 500,
+      "description": "LLM 交互记录环形缓冲区大小，用于 llm_monitor.py 的 MAX_RECORDS",
+      "error_message": "llm_monitor.max_records 必须在 100-5000 之间"
+    },
+    "loki.push_timeout_sec": {
+      "default": 10,
+      "description": "Loki push API 超时，用于 monitoring/loki.py 的 _session.post",
+      "error_message": "loki.push_timeout_sec 必须在 1-60 秒之间"
+    },
+    "loki.query_timeout_sec": {
+      "default": 30,
+      "description": "Loki query_range/labels API 超时，用于 monitoring/loki.py 的 _session.get",
+      "error_message": "loki.query_timeout_sec 必须在 1-120 秒之间"
+    },
+    "alert.timeout_sec": {
+      "default": 30,
+      "description": "告警通知超时，用于 monitoring/alert_notifier.py 的 SMTP/Webhook 请求",
+      "error_message": "alert.timeout_sec 必须在 1-120 秒之间"
+    },
+    "prometheus.max_retries": {
+      "default": 3,
+      "description": "Prometheus 指标导出重试次数，用于 monitoring/prometheus.py 的 RetryPolicy(max_retries=)",
+      "error_message": "prometheus.max_retries 必须在 0-10 之间（0 表示不重试）"
+    },
+    "chaos.thread_join_timeout_sec": {
+      "default": 5,
+      "description": "混沌注入器内存压力线程清理超时，用于 monitoring/chaos_injector.py 的 thread.join(timeout=)",
+      "error_message": "chaos.thread_join_timeout_sec 必须在 1-60 秒之间"
+    },
+    "resource_monitor.thread_join_timeout_sec": {
+      "default": 5,
+      "description": "资源监控采样线程清理超时，用于 monitoring/resource_monitor.py 的 _sample_thread.join(timeout=)",
+      "error_message": "resource_monitor.thread_join_timeout_sec 必须在 1-60 秒之间"
+    },
+    "search.thread_join_timeout_sec": {
+      "default": 5,
+      "description": "搜索性能监控线程清理超时，用于 monitoring/search.py 的 _thread.join(timeout=)",
+      "error_message": "search.thread_join_timeout_sec 必须在 1-60 秒之间"
+    },
+    "search.config_apply_timeout_sec": {
+      "default": 10,
+      "description": "搜索配置应用请求超时，用于 monitoring/search.py 的 requests.post(/api/apply-network-config)",
+      "error_message": "search.config_apply_timeout_sec 必须在 1-60 秒之间"
+    },
+    "search.web_search_timeout_sec": {
+      "default": 30,
+      "description": "搜索性能检测请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search)",
+      "error_message": "search.web_search_timeout_sec 必须在 1-120 秒之间"
+    },
+    "search.status_check_timeout_sec": {
+      "default": 10,
+      "description": "搜索状态查询请求超时，用于 monitoring/search.py 的 requests.get(/api/web/search/status)",
+      "error_message": "search.status_check_timeout_sec 必须在 1-60 秒之间"
+    },
+    "self_healer.restart_timeout_sec": {
+      "default": 60,
+      "description": "服务重启命令超时，用于 monitoring/self_healer.py 的 subprocess.run(restart)",
+      "error_message": "self_healer.restart_timeout_sec 必须在 10-300 秒之间"
+    },
+    "self_healer.sync_timeout_sec": {
+      "default": 5,
+      "description": "系统同步命令超时，用于 monitoring/self_healer.py 的 subprocess.run(sync)",
+      "error_message": "self_healer.sync_timeout_sec 必须在 1-30 秒之间"
+    },
+    "self_healer.verify_timeout_sec": {
+      "default": 60,
+      "description": "自愈效果验证超时，用于 monitoring/self_healer.py 的 verify_heal(timeout=)",
+      "error_message": "self_healer.verify_timeout_sec 必须在 10-300 秒之间"
+    },
+    "self_healer.thread_join_timeout_sec": {
+      "default": 5,
+      "description": "自愈健康检查线程清理超时，用于 monitoring/self_healer.py 的 _health_check_thread.join(timeout=)",
+      "error_message": "self_healer.thread_join_timeout_sec 必须在 1-60 秒之间"
+    }
+  }
+}

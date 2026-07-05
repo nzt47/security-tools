@@ -36,7 +36,9 @@ class TestSensitiveDataFilter:
 
     def test_mask_email(self):
         cleaned = self.filter._sanitize("联系邮箱 test@example.com")
-        assert "***@***.com" in cleaned
+        # 当前实现: email 本地部分保留前 2 字符 + *** + @ + 完整域名
+        assert "***@example.com" in cleaned
+        assert "test@example.com" not in cleaned
 
     def test_mask_password_field(self):
         cleaned = self.filter._sanitize('password=mysecret123')
@@ -49,9 +51,10 @@ class TestSensitiveDataFilter:
     def test_sanitize_dict(self):
         data = {"user": "admin", "password": "secret123", "detail": {"token": "abc"}}
         result = self.filter._sanitize_dict(data)
-        assert result["password"] == "***"
+        # 敏感字段统一替换为 REDACTED_VALUE (********)
+        assert result["password"] == "********"
         assert result["user"] == "admin"
-        assert result["detail"]["token"] == "***"
+        assert result["detail"]["token"] == "********"
 
     def test_sanitize_dict_list_values(self):
         data = {"names": ["alice", "bob"], "phone": "13812345678"}

@@ -26,6 +26,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 from agent.monitoring.utils import calculate_percentiles, make_label_key, parse_label_key
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -530,7 +531,7 @@ class BusinessMetricsCollector:
         # 时间戳记录（用于时间范围查询）- 按标签键存储
         self._timestamps: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标收集器已初始化"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'business_metrics', 'action': 'log', 'msg': '[BusinessMetrics] 业务指标收集器已初始化'}))
     
     def record_interaction(
         self,
@@ -557,17 +558,16 @@ class BusinessMetricsCollector:
         try:
             self._increment_counter("yunshu_interaction_total", labels)
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "log", "msg": f"[BusinessMetrics] 记录交互计数器失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'log', 'msg': f'[BusinessMetrics] 记录交互计数器失败: {e}'}))
         
         # 记录耗时（埋点失败隔离）
         if duration is not None:
             try:
                 self._observe_histogram("yunshu_interaction_duration_seconds", labels, duration)
             except Exception as e:
-                logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "log", "msg": f"[BusinessMetrics] 记录交互耗时失败: {e}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'log', 'msg': f'[BusinessMetrics] 记录交互耗时失败: {e}'}))
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "type.interaction_type.model", "msg": f"[BusinessMetrics] 交互记录: type={interaction_type}, model={model}, "
-            f"success={success}, duration={duration}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'business_metrics', 'action': 'type.interaction_type.model', 'msg': f'[BusinessMetrics] 交互记录: type={interaction_type}, model={model}, success={success}, duration={duration}'}))
     
     def record_message_type(self, message_type: str, intent: str):
         """记录消息类型分布
@@ -610,8 +610,7 @@ class BusinessMetricsCollector:
         if duration is not None:
             self._observe_histogram("yunshu_tool_call_duration_seconds", labels, duration)
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "tool.tool_name.category", "msg": f"[BusinessMetrics] 工具调用记录: tool={tool_name}, category={tool_category}, "
-            f"success={success}, duration={duration}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'business_metrics', 'action': 'tool.tool_name.category', 'msg': f'[BusinessMetrics] 工具调用记录: tool={tool_name}, category={tool_category}, success={success}, duration={duration}'}))
     
     # ── 任务完成指标 ──
     
@@ -643,8 +642,7 @@ class BusinessMetricsCollector:
         if duration is not None:
             self._observe_histogram("yunshu_task_duration_seconds", labels, duration)
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "type.task_type.complexity", "msg": f"[BusinessMetrics] 任务记录: type={task_type}, complexity={complexity}, "
-            f"status={status}, duration={duration}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'business_metrics', 'action': 'type.task_type.complexity', 'msg': f'[BusinessMetrics] 任务记录: type={task_type}, complexity={complexity}, status={status}, duration={duration}'}))
     
     def update_task_completion_rate(self, task_type: str, complexity: str, rate: float):
         """更新任务完成率
@@ -714,7 +712,7 @@ class BusinessMetricsCollector:
         # 增加计数器
         self._increment_counter("yunshu_memory_search_total", labels)
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "type.memory_type.method", "msg": f"[BusinessMetrics] 记忆搜索记录: type={memory_type}, method={search_method}, hit={hit}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'business_metrics', 'action': 'type.memory_type.method', 'msg': f'[BusinessMetrics] 记忆搜索记录: type={memory_type}, method={search_method}, hit={hit}'}))
     
     def update_memory_hit_rate(self, memory_type: str, search_method: str, rate: float):
         """更新记忆搜索命中率
@@ -834,7 +832,7 @@ class BusinessMetricsCollector:
         }
         self._increment_counter("yunshu_extension_install_total", labels)
         
-        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "type.extension_type.source", "msg": f"[BusinessMetrics] 扩展安装记录: type={extension_type}, source={source}, success={success}"}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'business_metrics', 'action': 'type.extension_type.source', 'msg': f'[BusinessMetrics] 扩展安装记录: type={extension_type}, source={source}, success={success}'}))
     
     def record_extension_uninstall(self, extension_type: str, extension_id: str):
         """记录扩展卸载
@@ -1079,7 +1077,7 @@ class BusinessMetricsCollector:
                 self._timestamps[metric_name][label_key].append(time.time())
         except Exception as e:
             # 埋点失败隔离：记录日志但不向上传播异常
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "metric.metric_name.error", "msg": f"[BusinessMetrics] 计数器增加失败: metric={metric_name}, error={e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'metric.metric_name.error', 'msg': f'[BusinessMetrics] 计数器增加失败: metric={metric_name}, error={e}'}))
 
     def _set_gauge(self, metric_name: str, labels: Dict[str, str], value: float) -> None:
         """设置 Gauge 值（埋点失败隔离：内部异常不向上传播）"""
@@ -1088,7 +1086,7 @@ class BusinessMetricsCollector:
             with self._lock:
                 self._gauges[metric_name][label_key] = value
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "gauge.metric.metric_name", "msg": f"[BusinessMetrics] Gauge设置失败: metric={metric_name}, error={e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'gauge.metric.metric_name', 'msg': f'[BusinessMetrics] Gauge设置失败: metric={metric_name}, error={e}'}))
 
     def _observe_histogram(self, metric_name: str, labels: Dict[str, str], value: float) -> None:
         """观测 Histogram 值（埋点失败隔离：内部异常不向上传播）"""
@@ -1097,7 +1095,7 @@ class BusinessMetricsCollector:
             with self._lock:
                 self._histograms[metric_name][label_key].append(value)
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "histogram.metric.metric_name", "msg": f"[BusinessMetrics] Histogram观测失败: metric={metric_name}, error={e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'histogram.metric.metric_name', 'msg': f'[BusinessMetrics] Histogram观测失败: metric={metric_name}, error={e}'}))
     
     # ── 数据查询 ──
     
@@ -1248,7 +1246,7 @@ class BusinessMetricsCollector:
             self._gauges.clear()
             self._histograms.clear()
             self._timestamps.clear()
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "business_metrics", "action": "log", "msg": "[BusinessMetrics] 业务指标已重置"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'business_metrics', 'action': 'log', 'msg': '[BusinessMetrics] 业务指标已重置'}))
     
     def export_prometheus(self) -> str:
         """导出 Prometheus 格式的指标

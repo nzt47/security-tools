@@ -40,6 +40,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ try:
     _PSUTIL_AVAILABLE = True
 except ImportError:
     _PSUTIL_AVAILABLE = False
-    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "psutil", "msg": "[ResourceMonitor] psutil 未安装，文件句柄监控降级为不可用"}, ensure_ascii=False))
+    logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'psutil', 'msg': '[ResourceMonitor] psutil 未安装，文件句柄监控降级为不可用'}))
 
 # 业务指标收集器（惰性导入避免循环依赖）
 _business_collector = None
@@ -63,7 +64,7 @@ def _get_business_collector():
             from agent.monitoring.business_metrics import get_business_metrics_collector
             _business_collector = get_business_metrics_collector()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 业务指标收集器不可用: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 业务指标收集器不可用: {e}'}))
     return _business_collector
 
 
@@ -188,16 +189,7 @@ class ResourceMonitor:
         self._persist_buffer: List[ResourceSnapshot] = []
         self._persist_loaded = False  # 历史是否已加载（避免重复加载）
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "init",
-            "duration_ms": 0,
-            "psutil_available": _PSUTIL_AVAILABLE,
-            "history_size": self._history_size,
-            "persist_enabled": self._persist_enabled,
-            "persist_path": self._persist_path,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'init', 'psutil_available': _PSUTIL_AVAILABLE, 'history_size': self._history_size, 'persist_enabled': self._persist_enabled, 'persist_path': self._persist_path}))
 
     # ── 公开 API ──
 
@@ -215,31 +207,18 @@ class ResourceMonitor:
                 name="ResourceMonitor",
             )
             self._sample_thread.start()
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "start",
-                "duration_ms": 0,
-                "interval_sec": self._get_sample_interval(),
-                "stress_mode": self._stress_mode,
-                "history_loaded": len(self._history),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'start', 'interval_sec': self._get_sample_interval(), 'stress_mode': self._stress_mode, 'history_loaded': len(self._history)}))
             return True
 
     def stop(self) -> None:
         """停止周期性采样"""
         self._stop_event.set()
         if self._sample_thread and self._sample_thread.is_alive():
-            self._sample_thread.join(timeout=5)
+            self._sample_thread.join(timeout=self._get_config("thread_join_timeout_sec", 5))
         self._sample_thread = None
         # 停止前刷新持久化缓冲，确保最后的数据落盘
         self._flush_persist()
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "stop",
-            "duration_ms": 0,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'stop'}))
 
     def sample(self) -> ResourceSnapshot:
         """执行一次手动采样（同步，返回快照）"""
@@ -277,25 +256,10 @@ class ResourceMonitor:
             history = list(self._history)
 
         # 趋势计算入口日志（debug 级，便于排查样本不足或资源类型错误）
-        logger.debug(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "trend_start",
-            "duration_ms": 0,
-            "resource_type": resource_type,
-            "history_count": len(history),
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'trend_start', 'resource_type': resource_type, 'history_count': len(history)}))
 
         if len(history) < 2:
-            logger.debug(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "trend_skip",
-                "duration_ms": 0,
-                "resource_type": resource_type,
-                "reason": "history_insufficient",
-                "history_count": len(history),
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'trend_skip', 'resource_type': resource_type, 'reason': 'history_insufficient', 'history_count': len(history)}))
             return None
 
         # 提取时间序列 (x=index, y=value)
@@ -306,16 +270,7 @@ class ResourceMonitor:
                 series.append((idx, float(value)))
 
         if len(series) < 2:
-            logger.debug(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "trend_skip",
-                "duration_ms": 0,
-                "resource_type": resource_type,
-                "reason": "series_insufficient",
-                "series_count": len(series),
-                "history_count": len(history),
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'trend_skip', 'resource_type': resource_type, 'reason': 'series_insufficient', 'series_count': len(series), 'history_count': len(history)}))
             return None
 
         slope, intercept, r_squared = self._linear_regression(series)
@@ -333,33 +288,11 @@ class ResourceMonitor:
         )
 
         # 趋势分析结果日志（info 级，便于排查泄漏误报/漏报与阈值配置问题）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "trend_result",
-            "duration_ms": 0,
-            "resource_type": resource_type,
-            "slope": round(slope, 4),
-            "intercept": round(intercept, 4),
-            "r_squared": round(r_squared, 6),
-            "sample_count": len(series),
-            "is_leaking": is_leaking,
-            "threshold": threshold,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'trend_result', 'resource_type': resource_type, 'slope': round(slope, 4), 'intercept': round(intercept, 4), 'r_squared': round(r_squared, 6), 'sample_count': len(series), 'is_leaking': is_leaking, 'threshold': threshold}))
 
         if is_leaking:
             self._fire_leak_callbacks(result)
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "leak_detected",
-                "duration_ms": 0,
-                "resource_type": resource_type,
-                "slope": slope,
-                "threshold": threshold,
-                "r_squared": r_squared,
-                "sample_count": len(series),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'leak_detected', 'resource_type': resource_type, 'slope': slope, 'threshold': threshold, 'r_squared': r_squared, 'sample_count': len(series)}))
 
         return result
 
@@ -367,24 +300,13 @@ class ResourceMonitor:
         """启用压测模式：高频采样（1 秒），用于资源释放曲线分析"""
         with self._lock:
             self._stress_mode = True
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "enable_stress_mode",
-            "duration_ms": 0,
-            "interval_sec": self._get_config("stress_test_interval_sec", 1.0),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'enable_stress_mode', 'interval_sec': self._get_config('stress_test_interval_sec', 1.0)}))
 
     def disable_stress_mode(self) -> None:
         """关闭压测模式，恢复常规采样"""
         with self._lock:
             self._stress_mode = False
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "disable_stress_mode",
-            "duration_ms": 0,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'disable_stress_mode'}))
 
     def register_pool_provider(self, name: str, snapshot_func: Callable[[], Dict[str, int]], pool_type: str = "thread") -> None:
         """注册外部资源池采样提供者
@@ -396,14 +318,7 @@ class ResourceMonitor:
         """
         with self._lock:
             self._providers[name] = (snapshot_func, pool_type)
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "register_pool_provider",
-            "duration_ms": 0,
-            "name": name,
-            "pool_type": pool_type,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'register_pool_provider', 'name': name, 'pool_type': pool_type}))
 
     def register_leak_callback(self, callback: Callable[[TrendResult], None]) -> None:
         """注册泄漏告警回调"""
@@ -438,7 +353,7 @@ class ResourceMonitor:
                 tracemalloc.start(10)  # 保留 10 帧回溯
             self._tracemalloc_started = True
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "tracemalloc", "msg": f"[ResourceMonitor] tracemalloc 启动失败，内存监控降级: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'tracemalloc', 'msg': f'[ResourceMonitor] tracemalloc 启动失败，内存监控降级: {e}'}))
             self._tracemalloc_started = False
 
     def _get_config(self, key: str, default: Any) -> Any:
@@ -466,15 +381,7 @@ class ResourceMonitor:
                 self._do_sample()
             except Exception as e:
                 # 降级：采样失败仅记录日志，不中断循环
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "resource_monitor",
-                    "action": "sample_loop_error",
-                    "duration_ms": 0,
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "stack_trace": traceback.format_exc(),
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'resource_monitor', 'action': 'sample_loop_error', 'error': str(e), 'error_type': type(e).__name__, 'stack_trace': traceback.format_exc()}))
             interval = self._get_sample_interval()
             # 使用 wait 而非 sleep，便于快速响应 stop 与模式切换
             self._stop_event.wait(interval)
@@ -492,7 +399,7 @@ class ResourceMonitor:
         try:
             snap.memory = self._sample_memory()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 内存采样失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 内存采样失败: {e}'}))
         mem_ms = (time.time() - t0) * 1000
 
         # 2. 线程池采样
@@ -500,7 +407,7 @@ class ResourceMonitor:
         try:
             snap.thread_pool = self._sample_thread_pool()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 线程池采样失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 线程池采样失败: {e}'}))
         thread_ms = (time.time() - t1) * 1000
 
         # 3. 文件句柄采样（psutil，可能不可用）
@@ -508,7 +415,7 @@ class ResourceMonitor:
         try:
             snap.file_handles = self._sample_file_handles()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 文件句柄采样失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 文件句柄采样失败: {e}'}))
         fh_ms = (time.time() - t2) * 1000
 
         # 4. 数据库连接采样（依赖外部 provider 注册）
@@ -516,7 +423,7 @@ class ResourceMonitor:
         try:
             snap.db_connections = self._sample_db_connections()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 数据库连接采样失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 数据库连接采样失败: {e}'}))
         db_ms = (time.time() - t3) * 1000
 
         snap.sample_duration_ms = (time.time() - start) * 1000
@@ -531,23 +438,7 @@ class ResourceMonitor:
         self._persist_sample(snap)
 
         # 采样详情日志（info 级，含各子监控分步耗时，便于排查采样异常与性能瓶颈）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "sample",
-            "duration_ms": round(snap.sample_duration_ms, 3),
-            "memory_bytes": snap.memory.current_bytes,
-            "memory_peak_bytes": snap.memory.peak_bytes,
-            "memory_sample_ms": round(mem_ms, 3),
-            "active_threads": snap.thread_pool.active_threads,
-            "thread_sample_ms": round(thread_ms, 3),
-            "open_files": snap.file_handles.open_count,
-            "file_handle_available": snap.file_handles.available,
-            "file_handle_sample_ms": round(fh_ms, 3),
-            "db_pool_count": len(snap.db_connections.pools),
-            "db_sample_ms": round(db_ms, 3),
-            "history_count": len(self._history),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'sample', 'memory_bytes': snap.memory.current_bytes, 'memory_peak_bytes': snap.memory.peak_bytes, 'memory_sample_ms': round(mem_ms, 3), 'active_threads': snap.thread_pool.active_threads, 'thread_sample_ms': round(thread_ms, 3), 'open_files': snap.file_handles.open_count, 'file_handle_available': snap.file_handles.available, 'file_handle_sample_ms': round(fh_ms, 3), 'db_pool_count': len(snap.db_connections.pools), 'db_sample_ms': round(db_ms, 3), 'history_count': len(self._history)}))
 
         return snap
 
@@ -582,7 +473,7 @@ class ResourceMonitor:
                         "size": int(data.get("size", 0)),
                     }
             except Exception as e:
-                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "name", "msg": f"[ResourceMonitor] 池 {name} 采样失败: {e}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'name', 'msg': f'[ResourceMonitor] 池 {name} 采样失败: {e}'}))
         return stat
 
     def _sample_file_handles(self) -> FileHandleStat:
@@ -594,7 +485,7 @@ class ResourceMonitor:
             open_files = proc.open_files()
             return FileHandleStat(open_count=len(open_files), available=True)
         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 文件句柄采样受限: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 文件句柄采样受限: {e}'}))
             return FileHandleStat(available=False)
 
     def _sample_db_connections(self) -> DbConnectionStat:
@@ -610,7 +501,7 @@ class ResourceMonitor:
                         "size": int(data.get("size", 0)),
                     }
             except Exception as e:
-                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "name", "msg": f"[ResourceMonitor] 数据库连接池 {name} 采样失败: {e}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'name', 'msg': f'[ResourceMonitor] 数据库连接池 {name} 采样失败: {e}'}))
         return stat
 
     def _report_metrics(self, snap: ResourceSnapshot) -> None:
@@ -653,7 +544,7 @@ class ResourceMonitor:
                 )
         except Exception as e:
             # 埋点失败仅日志记录，不影响主业务流程
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 指标上报失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 指标上报失败: {e}'}))
 
     @staticmethod
     def _extract_value(snap: ResourceSnapshot, resource_type: str) -> Optional[float]:
@@ -696,16 +587,7 @@ class ResourceMonitor:
             r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
         result = (slope, intercept, max(0.0, min(1.0, r_squared)))
         # 回归计算结果日志（debug 级，便于排查拟合优度与斜率异常）
-        logger.debug(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "resource_monitor",
-            "action": "linear_regression",
-            "duration_ms": 0,
-            "n": n,
-            "slope": round(result[0], 6),
-            "intercept": round(result[1], 6),
-            "r_squared": round(result[2], 6),
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'linear_regression', 'n': n, 'slope': round(result[0], 6), 'intercept': round(result[1], 6), 'r_squared': round(result[2], 6)}))
         return result
 
     def _fire_leak_callbacks(self, result: TrendResult) -> None:
@@ -714,7 +596,7 @@ class ResourceMonitor:
             try:
                 callback(result)
             except Exception as e:
-                logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 泄漏告警回调执行失败: {e}"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 泄漏告警回调执行失败: {e}'}))
 
     # ── 持久化实现（跨重启趋势分析） ──
 
@@ -741,7 +623,7 @@ class ResourceMonitor:
             if should_flush:
                 self._flush_persist()
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 持久化缓冲失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 持久化缓冲失败: {e}'}))
 
     def _flush_persist(self) -> None:
         """将缓冲区快照批量写入磁盘（追加模式）
@@ -772,29 +654,15 @@ class ResourceMonitor:
                 try:
                     lines.append(json.dumps(snap.to_dict(), ensure_ascii=False))
                 except Exception as e:
-                    logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 快照序列化失败: {e}"}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 快照序列化失败: {e}'}))
 
             with open(self._persist_path, "a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
 
-            logger.debug(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "persist_flush",
-                "duration_ms": 0,
-                "count": len(lines),
-                "path": self._persist_path,
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'persist_flush', 'count': len(lines), 'path': self._persist_path}))
         except Exception as e:
             # 落盘失败仅日志，缓冲已清空，下一轮继续
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "persist_flush_failed",
-                "duration_ms": 0,
-                "path": self._persist_path,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'persist_flush_failed', 'path': self._persist_path, 'error': str(e)}))
 
     def _load_persisted_history(self) -> int:
         """启动时从磁盘加载历史快照（仅一次）
@@ -829,29 +697,15 @@ class ResourceMonitor:
                                 self._history.append(snap)
                             loaded += 1
                     except Exception as e:
-                        logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 历史行解析失败，跳过: {e}"}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 历史行解析失败，跳过: {e}'}))
 
             # 加载后触发过期清理（重写文件，仅保留有效数据）
             if loaded > 0:
                 self._rewrite_persisted_file()
 
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "load_persisted_history",
-                "duration_ms": 0,
-                "loaded": loaded,
-                "path": self._persist_path,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'resource_monitor', 'action': 'load_persisted_history', 'loaded': loaded, 'path': self._persist_path}))
         except Exception as e:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "load_persisted_history_failed",
-                "duration_ms": 0,
-                "path": self._persist_path,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'load_persisted_history_failed', 'path': self._persist_path, 'error': str(e)}))
         return loaded
 
     def _rewrite_persisted_file(self) -> None:
@@ -880,14 +734,7 @@ class ResourceMonitor:
                         continue  # 跳过损坏行
             # 原子替换
             os.replace(tmp_path, self._persist_path)
-            logger.debug(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "resource_monitor",
-                "action": "rewrite_persisted",
-                "duration_ms": 0,
-                "kept": kept,
-                "path": self._persist_path,
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'resource_monitor', 'action': 'rewrite_persisted', 'kept': kept, 'path': self._persist_path}))
         except Exception as e:
             # 清理临时文件
             try:
@@ -895,7 +742,7 @@ class ResourceMonitor:
                     os.remove(tmp_path)
             except Exception:
                 pass
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 重写持久化文件失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 重写持久化文件失败: {e}'}))
 
     def _dict_to_snapshot(self, data: Dict[str, Any]) -> Optional[ResourceSnapshot]:
         """从字典重建快照对象（容错：字段缺失返回 None）"""
@@ -927,7 +774,7 @@ class ResourceMonitor:
                 sample_duration_ms=float(data.get("sample_duration_ms", 0)),
             )
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": get_trace_id(), "module_name": "resource_monitor", "action": "log", "msg": f"[ResourceMonitor] 快照反序列化失败: {e}"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 快照反序列化失败: {e}'}))
             return None
 
     # ── 持久化公开 API ──

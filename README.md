@@ -309,3 +309,86 @@ python -m pytest tests/unit/test_task_scheduler.py tests/unit/test_task_schedule
 - [Bug 修复总结：浏览器状态泄漏](docs/browser_state_leak_bugfix_summary.md)
 - HTML 报告: `htmlcov_final_80plus/index.html`
 
+## 运维工具
+
+### P0 安全验证 Workflow 重建脚本
+
+**脚本路径**: `scripts/rebuild_p0_workflow.py`
+**单元测试**: `tests/unit/test_rebuild_p0_workflow.py`（44 个用例）
+**完整手册**: [docs/security/p0_workflow_rebuild_runbook.md](docs/security/p0_workflow_rebuild_runbook.md)
+**快速摘要**: [docs/security/p0_workflow_rebuild_summary.md](docs/security/p0_workflow_rebuild_summary.md)
+
+#### 使用场景
+
+当 P0 安全验证 CI 的"P0 回归测试"Job 持续因 "Set up job" 失败，且以下策略均无效时使用：
+- `rerun-failed-jobs` API 重跑
+- `workflow_dispatch` 触发新运行
+- 修改 Job 名称 / job_id
+
+诊断为 GitHub Actions 平台对 workflow 文件的持续性缓存故障（48 小时内 16/17 次失败），需通过删除旧 workflow 文件并用新文件名创建，强制生成新 workflow ID 绕过平台缓存。
+
+#### 调用方式
+
+```bash
+# 模拟运行（推荐先执行，验证流程无误）
+python scripts/rebuild_p0_workflow.py --dry-run
+
+# 交互模式（每次操作前确认）
+python scripts/rebuild_p0_workflow.py
+
+# 跳过确认提示（自动化场景）
+python scripts/rebuild_p0_workflow.py --yes
+```
+
+#### 操作流程
+
+| 步骤 | 操作 | 说明 |
+|------|------|------|
+| 1 | 前置检查 | 验证分支、工作目录状态、文件存在性 |
+| 2 | 备份 | 旧文件复制到 `docs/security/archive/p0-security.yml.backup_<timestamp>` |
+| 3 | 创建新文件 | `.github/workflows/p0-security-v2.yml`（内容与旧文件相同） |
+| 4 | 删除旧文件 | `git rm .github/workflows/p0-security.yml` |
+| 5 | 提交并推送 | 自动 commit + push 到 `phase2-visibility-convergence` |
+| 6 | 等待新 workflow | 轮询 GitHub API 确认新 workflow 出现 |
+| 7 | 等待首次运行 | 轮询确认首次 CI 运行已触发 |
+| 8 | 轮询验证 | 跟踪运行结果，判断 P0 回归测试 Job 是否通过 |
+
+#### 前置条件与权限要求
+
+| 权限项 | 要求 | 验证方法 |
+|--------|------|----------|
+| 仓库写权限 | 对 `nzt47/security-tools` 有 push 权限 | `git push --dry-run origin phase2-visibility-convergence` |
+| GitHub Token | `~/.git-credentials` 中有有效 token（`gho_` 前缀） | `git ls-remote https://github.com/nzt47/security-tools.git` |
+| Actions 查看权限 | 能访问仓库的 Actions 页面 | 浏览器打开 `https://github.com/nzt47/security-tools/actions` |
+| 本地分支 | 当前在 `phase2-visibility-convergence` 分支 | `git rev-parse --abbrev-ref HEAD` |
+| 工作目录状态 | workflow 文件无未提交变更 | `git status --porcelain .github/workflows/p0-security.yml` |
+
+#### 回滚步骤
+
+重建后如出现问题，根据 [完整回滚决策树](docs/security/p0_workflow_rebuild_runbook.md#44-回滚决策树) 选择对应场景：
+
+| 场景 | 触发条件 | 操作 |
+|------|----------|------|
+| A | P0 仍因 Set up job 失败（平台未恢复） | 记录失败 + 联系 GitHub 支持 |
+| B | 新 workflow 有配置问题 | 从备份或 git 历史恢复旧文件 |
+| C | 整个操作需撤销 | `git revert` 回退到重建前 commit |
+| D | 备份丢失且 git 历史不可用 | 从验证报告手工重建 workflow 文件 |
+
+**完整回滚决策树**（覆盖 12 种失败场景）见 [操作手册第 4.4 节](docs/security/p0_workflow_rebuild_runbook.md#44-回滚决策树)。
+
+#### 注意事项
+
+- 操作不可逆（旧 workflow 的运行历史保留在 GitHub Actions UI 中）
+- 新 workflow 会有全新的 workflow ID，所有 Job 缓存会被清除
+- 推送后会自动触发首次 CI 运行
+- `--dry-run` 模式不产生任何文件系统副作用（备份、创建、删除、推送均跳过）
+- 删除逻辑不使用 `git rm -f`，遇到未提交修改会自动拒绝（安全机制）
+
+#### 相关文档
+
+- [完整操作手册与验证报告](docs/security/p0_workflow_rebuild_runbook.md) — 含风险评估、dry-run 验证、12 种回滚场景
+- [快速摘要](docs/security/p0_workflow_rebuild_summary.md) — 团队快速阅读版（~3 分钟）
+- [P0 最终验证报告](docs/security/p0_final_verification_report.md) — 完整诊断过程和 17 次运行记录
+- [P0 安全修复归档](docs/security/p0_security_fix_archive_20260703.md)
+- [Release Notes](docs/security/RELEASE_NOTES_P0_SECURITY_20260703.md)
+

@@ -1,0 +1,433 @@
+# 日志性能守护 CI/CD 工作流
+#
+# 功能：
+#   1. 每次提交/PR 自动运行日志压力测试（stress_test + run_stress_comparison）
+#      验证日志管道在多线程并发下无错误、无性能回归
+#   2. 每次提交/PR 自动扫描新增的 `logger.X(json.dumps(...))` 反模式
+#      强制使用 log_dict 替代，避免未来出现双重序列化性能瓶颈
+#
+# 触发条件：
+#   - push 到任意分支
+#   - PR 到 main/master/develop
+#   - 每天凌晨 4 点定时全量扫描
+#
+# 机制说明：
+#   - 边界显性化：阈值不达标时 job 失败，阻断合并
+#   - 幂等性：每次运行独立 logger，不污染全局状态
+#   - 竞态防御：stress_test 内部已用线程独立计数器
+#   - 守护规则：增量扫描仅检查 git diff 中变更的文件
+
+name: 日志性能守护
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  schedule:
+    - cron: '0 4 * * *'  # 每天凌晨 4 点全量扫描
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - stress-only
+          - guard-only
+      full_scan:
+        description: '全量扫描（仅 guard 模式有效，更新豁免清单）'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ============================================================================
+  # 阶段 1：日志性能压力测试
+  # 验证 stress_test 在多线程并发下无错误，且新模式相比旧模式有性能提升
+  # ============================================================================
+  log-stress-test:
+    name: 日志压力测试
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'both' || github.event.inputs.mode == 'stress-only'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: 运行日志性能压力测试（快速模式）
+        # PR 时用 quick 模式（2 线程 × 1 秒），避免拖慢 CI
+        # 定时任务和 push 到 main 时用完整模式（8 线程 × 3 秒）
+        run: |
+          echo "=== 运行日志性能压力测试 ==="
+          if [ "${{ github.event_name }}" = "schedule" ] || \
+             [ "${{ github.event_name }}" = "push" ] && \
+             [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "完整模式：8 线程 × 3 秒"
+            python scripts/run_log_perf_stress_test.py \
+              --threads 8 \
+              --duration 3 \
+              --min-throughput 5000 \
+              --max-p99-us 500 \
+              --max-error-rate 0.01 \
+              --min-speedup 1.2 \
+              --json-report logs/log_perf_stress_test.json
+          else
+            echo "快速模式：2 线程 × 1 秒"
+            python scripts/run_log_perf_stress_test.py \
+              --quick \
+              --json-report logs/log_perf_stress_test.json
+          fi
+
+      - name: 上传压力测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-perf-stress-test-report
+          path: logs/log_perf_stress_test.json
+          retention-days: 30
+
+  # ============================================================================
+  # 阶段 2：双重序列化反模式守护
+  # 增量扫描 PR 中新增的 `logger.X(json.dumps(...))` 反模式
+  # 定时任务时全量扫描并更新豁免清单
+  # ============================================================================
+  double-serialization-guard:
+    name: 双重序列化守护
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'both' || github.event.inputs.mode == 'guard-only'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: 检出代码（完整历史用于 git diff）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: 执行双重序列化扫描
+        id: scan
+        run: |
+          echo "=== 双重序列化反模式扫描 ==="
+          if [ "${{ github.event_name }}" = "schedule" ] && \
+             [ "${{ github.event.inputs.full_scan }}" = "true" ]; then
+            echo "全量扫描模式（更新豁免清单）"
+            python scripts/check_double_serialization.py \
+              --full-scan \
+              --update-exemptions \
+              --exemption-file .trae/double_serialization_exemptions.json
+            echo "scan_mode=full" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "增量扫描模式：origin/${{ github.base_ref }} → HEAD"
+            python scripts/check_double_serialization.py \
+              --diff-scan \
+              --base "origin/${{ github.base_ref }}" \
+              --head HEAD \
+              --exemption-file .trae/double_serialization_exemptions.json
+            echo "scan_mode=diff" >> $GITHUB_OUTPUT
+          else
+            echo "增量扫描模式：HEAD~1 → HEAD"
+            python scripts/check_double_serialization.py \
+              --diff-scan \
+              --base HEAD~1 \
+              --head HEAD \
+              --exemption-file .trae/double_serialization_exemptions.json
+            echo "scan_mode=diff" >> $GITHUB_OUTPUT
+          fi
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: false
+
+      - name: PR 评论：双重序列化扫描结果
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = '${{ steps.scan.outputs.exit_code }}';
+            const scanMode = '${{ steps.scan.outputs.scan_mode }}';
+
+            const icon = exitCode === '0' ? '✅' : '⚠️';
+            const status = exitCode === '0' ? '无新增违规' : '发现新增违规，请迁移到 log_dict';
+
+            let body = '## 🔍 双重序列化反模式扫描\n\n';
+            body += `> ${icon} **${status}**\n\n`;
+            body += '| 指标 | 数值 |\n| --- | --- |\n';
+            body += `| 扫描模式 | ${scanMode} |\n`;
+            body += `| 退出码 | ${exitCode} |\n`;
+            body += `| 豁免清单 | .trae/double_serialization_exemptions.json |\n\n`;
+            body += '**迁移建议**：将 `logger.info(json.dumps(payload, ensure_ascii=False))` 替换为：\n';
+            body += '```python\n';
+            body += 'from agent.logging_utils import log_dict\n';
+            body += 'logger.info(log_dict(payload))\n';
+            body += '```\n';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: 提交更新的豁免清单
+        if: github.event_name == 'schedule' && github.event.inputs.full_scan == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .trae/double_serialization_exemptions.json
+          if git diff --staged --quiet; then
+            echo "豁免清单无变更，跳过提交"
+          else
+            git commit -m "chore: 自动更新双重序列化豁免清单 [skip ci]"
+            git push
+          fi
+
+  # ============================================================================
+  # 阶段 3：依赖注入单元测试
+  # 运行 TestStressTestDependencyInjection 的 21 个测试，覆盖 7 个维度：
+  #   filter_chain_factory 调用验证、log_dict_factory 调用验证、组合场景、
+  #   边界处理、互斥场景、mock 计数验证、结果一致性与解耦
+  # 同时运行完整日志测试套件（114 个测试）确保无回归
+  # 新增：lifecycle_manager DI 测试（26 个）+ error_handler DI 测试（29 个）
+  #       + error_handler 回归套件（492 个），覆盖 DI 重构后的全部路径
+  # ============================================================================
+  di-unit-tests:
+    name: 依赖注入单元测试
+    runs-on: ubuntu-latest
+    # 每次 PR/push 都运行；定时任务时也运行（每日构建）
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'both' || github.event.inputs.mode == 'stress-only'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest-cov  # 用于覆盖率报告
+
+      - name: 运行依赖注入单元测试（21 个测试）
+        run: |
+          echo "=== 运行 TestStressTestDependencyInjection ==="
+          python -m pytest \
+            tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection \
+            -v \
+            --tb=short \
+            --junit-xml=logs/di_test_results.xml \
+            --cov=agent/utils/perf_monitor \
+            --cov-report=term-missing \
+            --cov-report=xml:logs/di_coverage.xml
+
+      - name: 运行完整日志测试套件（114 个测试，确保无回归）
+        run: |
+          echo "=== 运行完整日志测试套件 ==="
+          python -m pytest \
+            tests/unit/test_perf_monitor.py \
+            tests/unit/test_log_dict_refactor.py \
+            tests/unit/test_log_dict_performance.py \
+            tests/unit/test_memory_comparison.py \
+            --tb=short \
+            --junit-xml=logs/full_log_test_results.xml
+
+      - name: 运行 lifecycle_manager DI 测试（26 个测试）
+        run: |
+          echo "=== 运行 lifecycle_manager 依赖注入测试 ==="
+          python -m pytest \
+            tests/unit/test_lifecycle_manager_di.py \
+            -v \
+            --tb=short \
+            --junit-xml=logs/lifecycle_di_test_results.xml \
+            --cov=agent/orchestrator/lifecycle_manager \
+            --cov-report=term-missing \
+            --cov-report=xml:logs/lifecycle_di_coverage.xml
+
+      - name: 运行 error_handler DI 测试 + 回归套件（29 + 492 个测试）
+        run: |
+          echo "=== 运行 error_handler DI 测试与回归套件 ==="
+          python -m pytest \
+            tests/unit/test_error_handler_di.py \
+            tests/unit/test_error_handler.py \
+            tests/unit/test_error_handler_comprehensive.py \
+            tests/unit/test_error_handler_edge.py \
+            -v \
+            --tb=short \
+            --junit-xml=logs/error_handler_test_results.xml \
+            --cov=agent/error_handler \
+            --cov-report=term-missing \
+            --cov-report=xml:logs/error_handler_coverage.xml
+
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: di-unit-test-report
+          path: |
+            logs/di_test_results.xml
+            logs/di_coverage.xml
+            logs/full_log_test_results.xml
+            logs/lifecycle_di_test_results.xml
+            logs/lifecycle_di_coverage.xml
+            logs/error_handler_test_results.xml
+            logs/error_handler_coverage.xml
+          retention-days: 30
+
+      - name: 测试覆盖率摘要
+        if: always()
+        run: |
+          echo "=== 测试覆盖率摘要 ==="
+          for cov_file in logs/di_coverage.xml logs/lifecycle_di_coverage.xml logs/error_handler_coverage.xml; do
+            if [ -f "$cov_file" ]; then
+              echo "--- $cov_file ---"
+              python -c "
+              import xml.etree.ElementTree as ET
+              try:
+                  tree = ET.parse('$cov_file')
+                  root = tree.getroot()
+                  line_rate = root.get('line-rate', 'N/A')
+                  branch_rate = root.get('branch-rate', 'N/A')
+                  print(f'行覆盖率: {float(line_rate)*100:.2f}%')
+                  print(f'分支覆盖率: {float(branch_rate)*100:.2f}%')
+              except Exception as e:
+                  print(f'解析覆盖率报告失败: {e}')
+              "
+            else
+              echo "⚠️ $cov_file 未生成"
+            fi
+          done
+
+  # ============================================================================
+  # 阶段 4：质量门禁（汇总检查）
+  # ============================================================================
+  log-perf-quality-gate:
+    name: 日志性能质量门禁
+    runs-on: ubuntu-latest
+    needs: [log-stress-test, double-serialization-guard, di-unit-tests]
+    if: always()
+    steps:
+      - name: 检查前置任务结果
+        run: |
+          STRESS="${{ needs.log-stress-test.result }}"
+          GUARD="${{ needs.double-serialization-guard.result }}"
+          DI_TESTS="${{ needs.di-unit-tests.result }}"
+
+          echo "压力测试结果: $STRESS"
+          echo "守护扫描结果: $GUARD"
+          echo "依赖注入单元测试结果: $DI_TESTS"
+
+          FAILED_JOBS=""
+          if [ "$STRESS" != "success" ]; then
+            echo "❌ 日志压力测试未通过，阻断合并"
+            FAILED_JOBS="$FAILED_JOBS log-stress-test"
+          fi
+          if [ "$GUARD" != "success" ]; then
+            echo "❌ 双重序列化守护未通过，阻断合并"
+            FAILED_JOBS="$FAILED_JOBS double-serialization-guard"
+          fi
+          if [ "$DI_TESTS" != "success" ]; then
+            echo "❌ 依赖注入单元测试未通过，阻断合并"
+            FAILED_JOBS="$FAILED_JOBS di-unit-tests"
+          fi
+
+          if [ -n "$FAILED_JOBS" ]; then
+            echo ""
+            echo "失败的任务:$FAILED_JOBS"
+            echo "::error::质量门禁未通过，失败任务:$FAILED_JOBS"
+            exit 1
+          fi
+          echo "✅ 日志性能质量门禁通过（压力测试 + 守护扫描 + 依赖注入测试）"
+
+  # ============================================================================
+  # 阶段 5：邮件通知（失败时发送）
+  # 仅在前置任务有失败时触发，发送邮件给维护者
+  # ============================================================================
+  notify-on-failure:
+    name: 失败邮件通知
+    runs-on: ubuntu-latest
+    needs: [log-stress-test, double-serialization-guard, di-unit-tests, log-perf-quality-gate]
+    if: always()
+    steps:
+      - name: 检查是否需要发送通知
+        id: check
+        run: |
+          STRESS="${{ needs.log-stress-test.result }}"
+          GUARD="${{ needs.double-serialization-guard.result }}"
+          DI_TESTS="${{ needs.di-unit-tests.result }}"
+          GATE="${{ needs.log-perf-quality-gate.result }}"
+
+          echo "stress=$STRESS guard=$GUARD di=$DI_TESTS gate=$GATE"
+
+          # 任何前置任务失败时发送通知（schedule 和 push 时）
+          if [ "$GATE" = "failure" ] && \
+             [ "${{ github.event_name }}" = "schedule" -o "${{ github.event_name }}" = "push" ]; then
+            echo "should_notify=true" >> $GITHUB_OUTPUT
+            echo "⚠️ 检测到任务失败，将发送邮件通知"
+          else
+            echo "should_notify=false" >> $GITHUB_OUTPUT
+            echo "✅ 无需发送通知（任务全部通过或非定时/push 触发）"
+          fi
+
+      - name: 发送邮件通知
+        if: steps.check.outputs.should_notify == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER_ADDRESS }}
+          server_port: ${{ secrets.MAIL_SERVER_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: '⚠️ 日志性能守护 CI 失败 - ${{ github.repository }}'
+          body: |
+            日志性能守护 CI 流水线检测到失败。
+
+            仓库: ${{ github.repository }}
+            分支: ${{ github.ref_name }}
+            触发事件: ${{ github.event_name }}
+            提交: ${{ github.sha }}
+            提交者: ${{ github.actor }}
+
+            任务结果:
+            - 日志压力测试: ${{ needs.log-stress-test.result }}
+            - 双重序列化守护: ${{ needs.double-serialization-guard.result }}
+            - 依赖注入单元测试: ${{ needs.di-unit-tests.result }}
+            - 质量门禁: ${{ needs.log-perf-quality-gate.result }}
+
+            查看详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            此邮件由 CI 自动发送，请勿回复。
+          to: ${{ vars.MAIL_NOTIFY_RECIPIENTS }}
+          from: CI Bot <${{ secrets.MAIL_USERNAME }}>
