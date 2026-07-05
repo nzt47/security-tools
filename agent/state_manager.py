@@ -372,7 +372,7 @@ class StateManager:
                 error_msg = f"JSON解析错误: {e}"
                 
                 logger.error(log_dict({'module_name': 'state_manager', 'action': 'error_msg', 'msg': f'状态加载失败: {error_msg}'}))
-                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if 'file_path' in dir() else '未知')}'}))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if "file_path" in dir() else "未知")}'}))
                 
                 return StateLoadResult(
                     success=False,
@@ -386,7 +386,7 @@ class StateManager:
                 error_msg = str(e)
                 
                 logger.error(log_dict({'module_name': 'state_manager', 'action': 'error_msg', 'msg': f'状态加载失败: {error_msg}'}))
-                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if 'file_path' in dir() else '未知')}'}))
+                logger.error(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.file_path', 'msg': f'失败详情 - state_id: {state_id}, 文件路径: {(file_path if "file_path" in dir() else "未知")}'}))
                 
                 return StateLoadResult(
                     success=False,
