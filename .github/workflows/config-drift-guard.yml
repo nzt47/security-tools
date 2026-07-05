@@ -35,7 +35,8 @@ jobs:
 
       - name: 安装依赖
         run: |
-          pip install -e . --quiet || true
+          python -m pip install --upgrade pip
+          pip install -e .
 
       - name: 重新生成快照（基于当前分支代码）
         run: |
