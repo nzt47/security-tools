@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple, Union
 
@@ -38,6 +39,18 @@ except ImportError:
     InvalidSpecifier = Exception  # type: ignore
     Version = None  # type: ignore
     InvalidVersion = Exception  # type: ignore
+
+
+# 解析 "name>=1.0,<2.0" 形式的字符串 — 提取 name 和 version_spec
+# 支持 PEP 508 子集: name + version_specifiers (不含 extras / markers / url)
+_NAME_VERSION_RE = re.compile(
+    r"""^\s*
+    (?P<name>[A-Za-z0-9][A-Za-z0-9._\-]*)       # 包名
+    \s*
+    (?P<version_spec>[<>=!~][^;\s\[]*)?          # 版本规范 (>=1.0,<2.0 等)
+    \s*$""",
+    re.VERBOSE,
+)
 
 
 # ──────────────────────────────────────────────
@@ -117,12 +130,22 @@ class DependencyConflictError(Exception):
 def _parse_dep(raw: Union[str, Dict[str, Any], Dependency]) -> Dependency:
     """解析单个依赖项 — 支持 str / dict / Dependency
 
-    str: "requests" → Dependency(name="requests", version_spec="*")
+    str 形式支持 PEP 508 子集:
+        "requests"            → name="requests", version_spec="*"
+        "requests>=1.0"       → name="requests", version_spec=">=1.0"
+        "requests>=1.0,<2.0"  → name="requests", version_spec=">=1.0,<2.0"
+        "requests==1.2.3"     → name="requests", version_spec="==1.2.3"
     dict: {"name": "openai", "version_spec": ">=1.0", "optional": False}
     """
     if isinstance(raw, Dependency):
         return raw
     if isinstance(raw, str):
+        match = _NAME_VERSION_RE.match(raw.strip())
+        if match:
+            name = match.group("name")
+            version_spec = (match.group("version_spec") or "").strip() or "*"
+            return Dependency(name=name, version_spec=version_spec, optional=False)
+        # 解析失败: 退化为整串当 name
         return Dependency(name=raw, version_spec="*", optional=False)
     if isinstance(raw, dict):
         return Dependency(
