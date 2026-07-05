@@ -38,6 +38,14 @@ from agent.orchestrator.response_builder import ResponseBuilder, Response
 import uuid
 from agent.logging_utils import log_dict
 
+# tool_calling 和 tool_router 无循环依赖，直接模块级导入（替代原 5 处方法体内延迟导入）
+from agent.tool_calling import (
+    ToolCallingService,
+    _summarize_tool_result,
+    _clean_for_json,
+)
+from agent.tool_router import get_tools_for_input
+
 logger = logging.getLogger(__name__)
 
 
@@ -691,11 +699,9 @@ class Orchestrator:
                 self._current_tool_steps = []
 
                 from agent import tools as _tools
-                from agent.tool_calling import _summarize_tool_result, _clean_for_json
                 _whitelist = self._get_enabled_tools_whitelist()
                 if self._is_smart_tool_selection_enabled():
                     try:
-                        from agent.tool_router import get_tools_for_input
                         _smart_tools = get_tools_for_input(user_input, _whitelist)
                         if _smart_tools:
                             _whitelist = _smart_tools
@@ -760,8 +766,7 @@ class Orchestrator:
                         _xml_tools = []
                         if _msg.content and _re.search(r'<[^>]*tool_calls[^>]*>', _msg.content):
                             try:
-                                from agent.tool_calling import ToolCallingService as _TCSvc
-                                _xml_tools = _TCSvc._extract_xml_tool_calls(_msg.content)
+                                _xml_tools = ToolCallingService._extract_xml_tool_calls(_msg.content)
                             except Exception as _xml_e:
                                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] XML 工具提取失败: %s' % (_xml_e,)}))
                         if _xml_tools:
@@ -909,7 +914,6 @@ class Orchestrator:
                     tools_whitelist = self._get_enabled_tools_whitelist()
                     if self._is_smart_tool_selection_enabled():
                         try:
-                            from agent.tool_router import get_tools_for_input
                             _smart = get_tools_for_input(user_input, tools_whitelist)
                             if _smart:
                                 tools_whitelist = _smart
@@ -922,7 +926,6 @@ class Orchestrator:
 
                     if _use_pro and self._llm_pro:
                         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[调度] %s → 深度模型处理' % (user_input[:20],)}))
-                        from agent.tool_calling import ToolCallingService
                         _tc_pro = ToolCallingService(
                             llm_service=self._llm_pro,
                             max_rounds=self._tool_calling_service._max_rounds,
