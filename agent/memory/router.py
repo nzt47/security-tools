@@ -25,6 +25,7 @@ from typing import Optional, Tuple, Any, List
 from agent.memory.base import MemoryInterface, MemoryResult
 from agent.memory.adapters.holographic_adapter import HolographicAdapter
 from agent.memory.adapters.mem0_adapter import Mem0Adapter
+from agent.logging_utils import log_dict
 
 # 延迟导入敏感数据过滤器，避免循环依赖
 # SensitiveDataFilter 来自 agent.utils.sensitive_data_filter（统一实现）
@@ -184,12 +185,12 @@ class MemoryRouter:
             cache: MultiLevelCache 实例
         """
         self._cache_layer = cache
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "router", "action": "log", "msg": "[MemoryRouter] 缓存层已附加"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'router', 'action': 'log', 'msg': '[MemoryRouter] 缓存层已附加'}))
 
     def detach_cache_layer(self):
         """移除缓存层"""
         self._cache_layer = None
-        logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "router", "action": "log", "msg": "[MemoryRouter] 缓存层已移除"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'router', 'action': 'log', 'msg': '[MemoryRouter] 缓存层已移除'}))
 
     # ── 敏感信息过滤 ──
 

@@ -46,6 +46,25 @@ class SearchPerformanceMonitor:
         # 模块专属 trace_id，用于后台线程中保持结构化日志的追踪链路
         # Python ContextVar 不自动继承到子线程，需在 _monitor_loop 入口显式 set_trace_id
         self._monitor_trace_id = f"search-monitor-{uuid.uuid4().hex[:16]}"
+
+        # 配置化超时（支持热加载，每次初始化时读取最新值）
+        try:
+            from agent.monitoring.observability_config import (
+                get_search_thread_join_timeout,
+                get_search_config_apply_timeout,
+                get_search_web_search_timeout,
+                get_search_status_check_timeout,
+            )
+            self._thread_join_timeout = get_search_thread_join_timeout()
+            self._config_apply_timeout = get_search_config_apply_timeout()
+            self._web_search_timeout = get_search_web_search_timeout()
+            self._status_check_timeout = get_search_status_check_timeout()
+        except Exception:
+            self._thread_join_timeout = 5
+            self._config_apply_timeout = 10
+            self._web_search_timeout = 30
+            self._status_check_timeout = 10
+
         self._load_performance_data()
 
     def _load_performance_data(self):
@@ -128,7 +147,7 @@ class SearchPerformanceMonitor:
         """停止性能监控"""
         self._running = False
         if self._thread:
-            self._thread.join(timeout=5)
+            self._thread.join(timeout=self._thread_join_timeout)
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "search_monitor",
@@ -184,7 +203,7 @@ class SearchPerformanceMonitor:
         try:
             # 1. 应用配置
             try:
-                r = requests.post(f"{self.base_url}/api/apply-network-config", timeout=10)
+                r = requests.post(f"{self.base_url}/api/apply-network-config", timeout=self._config_apply_timeout)
                 if r.json().get('ok'):
                     logger.info(json.dumps({
                         "trace_id": get_trace_id(),
@@ -216,7 +235,7 @@ class SearchPerformanceMonitor:
                 r = requests.get(
                     f"{self.base_url}/api/web/search",
                     params={'query': '人工智能最新发展', 'num_results': 3, 'engine': 'tavily'},
-                    timeout=30
+                    timeout=self._web_search_timeout
                 )
                 elapsed = time.time() - start_time
                 result = r.json()
@@ -261,7 +280,7 @@ class SearchPerformanceMonitor:
 
             # 3. 获取搜索引擎状态
             try:
-                r = requests.get(f"{self.base_url}/api/web/search/status", timeout=10)
+                r = requests.get(f"{self.base_url}/api/web/search/status", timeout=self._status_check_timeout)
                 status = r.json().get('status', {})
                 stats = status.get('stats', {})
                 timing = stats.get('engine_timing', {})

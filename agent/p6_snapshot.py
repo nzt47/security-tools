@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 from collections import defaultdict
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ class SnapshotFrequencyController:
         if elapsed >= self.min_interval_seconds:
             return True
 
-        logger.debug(json.dumps({"trace_id": str(uuid.uuid4())[:8], "module_name": "p6_snapshot", "action": "snapshot.frequency_rejected", "duration_ms": 0, "elapsed_seconds": round(elapsed, 1), "min_interval_seconds": self.min_interval_seconds}, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.frequency_rejected', 'elapsed_seconds': round(elapsed, 1), 'min_interval_seconds': self.min_interval_seconds}))
         return False
 
     def on_save_success(self):
@@ -166,7 +167,7 @@ class SnapshotPerformanceMonitor:
         trace_id = str(uuid.uuid4())[:8]
         self.metrics = PerformanceMetrics()
         self.start_time = time.time()
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "performance_monitor.init.success"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'performance_monitor.init.success'}))
 
     def record_save(self, elapsed_ms: float, space_saved: int = 0):
         """记录一次快照保存操作"""
@@ -177,7 +178,7 @@ class SnapshotPerformanceMonitor:
         self.metrics.last_save_time_ms = elapsed_ms
         self.metrics.total_space_saved_bytes += space_saved
         self.metrics.snapshot_count += 1
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "performance.record_save", "duration_ms": elapsed_ms, "total_space_saved_bytes": self.metrics.total_space_saved_bytes}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'performance.record_save', 'total_space_saved_bytes': self.metrics.total_space_saved_bytes}))
 
     def record_load(self, elapsed_ms: float):
         """记录一次快照加载操作"""
@@ -274,7 +275,7 @@ class StateSnapshotManager:
         # 快照状态索引（用于增量快照）
         self.last_module_checksums: Dict[str, str] = {}
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "manager.init.success", "snapshot_dir": str(self.snapshot_dir)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'manager.init.success', 'snapshot_dir': str(self.snapshot_dir)}))
 
     def _ensure_snapshot_dir(self):
         """确保快照目录存在"""
@@ -317,11 +318,11 @@ class StateSnapshotManager:
                 f.write(data)
 
             file_size = os.path.getsize(snapshot_path)
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.persist.success", "snapshot_id": snapshot.snapshot_id, "file_size": file_size, "is_incremental": snapshot.is_incremental}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.persist.success', 'snapshot_id': snapshot.snapshot_id, 'file_size': file_size, 'is_incremental': snapshot.is_incremental}))
             return True
 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.persist.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.persist.failed', 'error': str(e)}))
             return False
 
     def _load_snapshot_data(self, snapshot_id: Optional[str] = None) -> Optional[StateSnapshot]:
@@ -346,13 +347,13 @@ class StateSnapshotManager:
             # 再尝试完整快照
             snapshot_path = self._get_snapshot_path(snapshot_id, is_incremental=False)
             if not snapshot_path.exists():
-                logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.not_found", "snapshot_path": str(snapshot_path)}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.not_found', 'snapshot_path': str(snapshot_path)}))
                 return None
 
             return self._load_from_path(snapshot_path)
 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.failed', 'error': str(e)}))
             return None
 
     def _load_from_path(self, path: Path) -> Optional[StateSnapshot]:
@@ -376,7 +377,7 @@ class StateSnapshotManager:
                 # 合并基础快照和增量快照
                 snapshot = self._merge_snapshots(base_snapshot, snapshot)
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load_from_path.success", "file_name": path.name}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load_from_path.success', 'file_name': path.name}))
         return snapshot
 
     def _merge_snapshots(self, base: StateSnapshot, incremental: StateSnapshot) -> StateSnapshot:
@@ -409,7 +410,7 @@ class StateSnapshotManager:
         if snapshot.version.startswith("p6."):
             return True
 
-        logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.compatibility.failed", "snapshot_version": snapshot.version, "current_version": current_version}, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.compatibility.failed', 'snapshot_version': snapshot.version, 'current_version': current_version}))
         return False
 
     def _cleanup_old_snapshots(self):
@@ -428,9 +429,9 @@ class StateSnapshotManager:
                         snap_path = self._get_snapshot_path(snap_info.snapshot_id, is_incremental)
                         if snap_path.exists():
                             snap_path.unlink()
-                            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.cleanup.deleted", "snapshot_id": snap_info.snapshot_id}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.deleted', 'snapshot_id': snap_info.snapshot_id}))
                 except Exception as e:
-                    logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.cleanup.failed", "snapshot_id": snap_info.snapshot_id, "error": str(e)}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.failed', 'snapshot_id': snap_info.snapshot_id, 'error': str(e)}))
 
     def save_snapshot(
         self,
@@ -452,25 +453,25 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         start_time = time.time()
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.start", "force": force, "incremental": incremental, "target_class": digital_life.__class__.__name__}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.start', 'force': force, 'incremental': incremental, 'target_class': digital_life.__class__.__name__}))
 
         # 检查频率限制
         if not self.frequency_controller.can_save(force):
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.frequency_rejected", "last_save_time": self.frequency_controller.last_save_time, "min_interval_seconds": self.frequency_controller.min_interval_seconds}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.frequency_rejected', 'last_save_time': self.frequency_controller.last_save_time, 'min_interval_seconds': self.frequency_controller.min_interval_seconds}))
             return SnapshotResult(
                 success=False,
                 error_message="快照保存过于频繁"
             )
 
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.frequency_passed"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.frequency_passed'}))
 
             # 生成或使用提供的快照ID
             if snapshot_id is None:
                 snapshot_id = self._generate_snapshot_id()
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.id.generated", "snapshot_id": snapshot_id}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.id.generated', 'snapshot_id': snapshot_id}))
             else:
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.id.provided", "snapshot_id": snapshot_id}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.id.provided', 'snapshot_id': snapshot_id}))
 
             # 创建快照对象
             # 注意：force=True 只影响是否绕过频率限制，不覆盖 incremental 参数
@@ -484,62 +485,62 @@ class StateSnapshotManager:
             # 如果是增量快照，设置基础快照
             if incremental and self.current_snapshot:
                 snapshot.base_snapshot_id = self.current_snapshot.snapshot_id
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.incremental.base_set", "base_snapshot_id": snapshot.base_snapshot_id}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.incremental.base_set', 'base_snapshot_id': snapshot.base_snapshot_id}))
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.object.created", "version": snapshot.version}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.object.created', 'version': snapshot.version}))
 
             # 保存配置
             if hasattr(digital_life, "_config"):
                 snapshot.config = digital_life._config
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.config.saved", "config_keys_count": len(snapshot.config)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.config.saved', 'config_keys_count': len(snapshot.config)}))
             else:
-                logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.config.missing"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.config.missing'}))
 
             # 保存核心模块状态
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.modules.serialize.start"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.modules.serialize.start'}))
             space_saved = self._save_core_modules_with_delta(digital_life, snapshot, incremental)
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.modules.serialize.done", "modules_count": len(snapshot.module_states)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.modules.serialize.done', 'modules_count': len(snapshot.module_states)}))
 
             # 显示各模块状态
             for module_name, module_state in snapshot.module_states.items():
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.module.detail", "module_name": module_name, "initialized": module_state.initialized, "changed": module_state.changed, "priority": module_state.restore_priority, "data_size": len(module_state.state_data)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.module.detail', 'module_name': module_name, 'initialized': module_state.initialized, 'changed': module_state.changed, 'priority': module_state.restore_priority, 'data_size': len(module_state.state_data)}))
 
             # 计算总数据大小
             total_data_size = sum(len(ms.state_data) for ms in snapshot.module_states.values())
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.modules.total_size", "total_data_size": total_data_size}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.modules.total_size', 'total_data_size': total_data_size}))
             if space_saved > 0:
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.incremental.space_saved", "space_saved_bytes": space_saved}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.incremental.space_saved', 'space_saved_bytes': space_saved}))
 
             # 持久化
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.persist.start"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.persist.start'}))
             if not self._persist_snapshot(snapshot):
-                logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.persist.failed"}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.persist.failed'}))
                 return SnapshotResult(
                     success=False,
                     error_message="快照持久化失败"
                 )
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.persist.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.persist.success'}))
 
             # 更新频率控制器
             self.frequency_controller.on_save_success()
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "frequency_controller.updated", "save_count": str(self.frequency_controller.save_count)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'frequency_controller.updated', 'save_count': str(self.frequency_controller.save_count)}))
 
             # 更新模块校验和缓存（用于下次增量快照）
             self._update_module_checksums(snapshot)
 
             # 清理旧快照
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.cleanup.start"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.start'}))
             self._cleanup_old_snapshots()
 
             elapsed = (time.time() - start_time) * 1000
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.done", "duration_ms": elapsed}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.done'}))
 
             self.current_snapshot = snapshot
 
             # 记录性能数据
             self.performance_monitor.record_save(elapsed, space_saved)
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.success", "snapshot_id": snapshot_id}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.success', 'snapshot_id': snapshot_id}))
 
             return SnapshotResult(
                 success=True,
@@ -552,7 +553,7 @@ class StateSnapshotManager:
 
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.save.exception", "error": str(e), "exception_type": type(e).__name__, "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.exception', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
             elapsed = (time.time() - start_time) * 1000
             return SnapshotResult(
                 success=False,
@@ -571,7 +572,7 @@ class StateSnapshotManager:
         只保存变化的模块，减少存储占用
         """
         trace_id = str(uuid.uuid4())[:8]
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "core_modules.serialize.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'core_modules.serialize.start'}))
 
         total_space_saved = 0
 
@@ -594,14 +595,14 @@ class StateSnapshotManager:
             if incremental:
                 module_state.changed = checksum != self.last_module_checksums.get("body_sensor", "")
                 if not module_state.changed:
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.body_sensor.unchanged", "skip": True}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.body_sensor.unchanged', 'skip': True}))
                     total_space_saved += len(state_data)
                 else:
                     snapshot.module_states["body_sensor"] = module_state
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.body_sensor.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.body_sensor.serialized', 'data_size': len(state_data)}))
             else:
                 snapshot.module_states["body_sensor"] = module_state
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.body_sensor.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.body_sensor.serialized', 'data_size': len(state_data)}))
 
             # 记录性能数据
             module_serialize_start = time.time()
@@ -626,14 +627,14 @@ class StateSnapshotManager:
             if incremental:
                 module_state.changed = checksum != self.last_module_checksums.get("behavior", "")
                 if not module_state.changed:
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.behavior.unchanged", "skip": True}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.behavior.unchanged', 'skip': True}))
                     total_space_saved += len(state_data)
                 else:
                     snapshot.module_states["behavior"] = module_state
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.behavior.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.behavior.serialized', 'data_size': len(state_data)}))
             else:
                 snapshot.module_states["behavior"] = module_state
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.behavior.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.behavior.serialized', 'data_size': len(state_data)}))
 
             self.performance_monitor.record_module_serialize("behavior", 0, len(state_data))
 
@@ -654,14 +655,14 @@ class StateSnapshotManager:
             if incremental:
                 module_state.changed = checksum != self.last_module_checksums.get("permission", "")
                 if not module_state.changed:
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.permission.unchanged", "skip": True}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.permission.unchanged', 'skip': True}))
                     total_space_saved += len(state_data)
                 else:
                     snapshot.module_states["permission"] = module_state
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.permission.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.permission.serialized', 'data_size': len(state_data)}))
             else:
                 snapshot.module_states["permission"] = module_state
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.permission.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.permission.serialized', 'data_size': len(state_data)}))
 
             self.performance_monitor.record_module_serialize("permission", 0, len(state_data))
 
@@ -682,18 +683,18 @@ class StateSnapshotManager:
             if incremental:
                 module_state.changed = checksum != self.last_module_checksums.get("tools_registry", "")
                 if not module_state.changed:
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.tools_registry.unchanged", "skip": True}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.tools_registry.unchanged', 'skip': True}))
                     total_space_saved += len(state_data)
                 else:
                     snapshot.module_states["tools_registry"] = module_state
-                    logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.tools_registry.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.tools_registry.serialized', 'data_size': len(state_data)}))
             else:
                 snapshot.module_states["tools_registry"] = module_state
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "module.tools_registry.serialized", "data_size": len(state_data)}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.tools_registry.serialized', 'data_size': len(state_data)}))
 
             self.performance_monitor.record_module_serialize("tools_registry", 0, len(state_data))
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "core_modules.serialize.done", "modules_count": len(snapshot.module_states)}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'core_modules.serialize.done', 'modules_count': len(snapshot.module_states)}))
 
         return total_space_saved
 
@@ -723,11 +724,11 @@ class StateSnapshotManager:
                 if hasattr(body_sensor, "config"):
                     state["config"] = body_sensor.config
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.body_sensor.success", "initialized": state.get("initialized", False)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.body_sensor.success', 'initialized': state.get('initialized', False)}))
             return state
 
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.body_sensor.failed", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.body_sensor.failed', 'error': str(e)}))
             return {"initialized": False, "error": str(e)}
 
     def _serialize_behavior(self, behavior: Any) -> Dict[str, Any]:
@@ -754,11 +755,11 @@ class StateSnapshotManager:
             if hasattr(behavior, "THRESHOLDS"):
                 state["thresholds"] = behavior.THRESHOLDS
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.behavior.success", "mode": state['mode']}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.behavior.success', 'mode': state['mode']}))
             return state
 
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.behavior.failed", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.behavior.failed', 'error': str(e)}))
             return {"initialized": True, "error": str(e)}
 
     def _serialize_permission(self, permission: Any) -> Dict[str, Any]:
@@ -785,11 +786,11 @@ class StateSnapshotManager:
             if hasattr(permission, "SENSITIVE_EXTENSIONS"):
                 state["sensitive_extensions"] = list(permission.SENSITIVE_EXTENSIONS)
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.permission.success", "dangerous_patterns_count": state['dangerous_patterns_count']}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.permission.success', 'dangerous_patterns_count': state['dangerous_patterns_count']}))
             return state
 
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.permission.failed", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.permission.failed', 'error': str(e)}))
             return {"initialized": True, "error": str(e)}
 
     def _serialize_tools_registry(self, tools_registry: Any) -> Dict[str, Any]:
@@ -814,11 +815,11 @@ class StateSnapshotManager:
                 if hasattr(tools_registry, "_tools"):
                     state["tools"] = list(tools_registry._tools.keys())[:50]  # 最多50个工具
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.tools_registry.success", "tools_count": state['tools_count']}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.tools_registry.success', 'tools_count': state['tools_count']}))
             return state
 
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "serialize.tools_registry.failed", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'serialize.tools_registry.failed', 'error': str(e)}))
             return {"initialized": False, "error": str(e)}
 
     def _restore_body_sensor(self, body_sensor: Any, state: Dict[str, Any]) -> bool:
@@ -828,7 +829,7 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.body_sensor.start", "initialized": state.get("initialized", False)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.body_sensor.start', 'initialized': state.get('initialized', False)}))
 
             # 恢复初始化状态
             if hasattr(body_sensor, "_initialized"):
@@ -837,19 +838,19 @@ class StateSnapshotManager:
             # 恢复观察目录
             if "watch_dirs" in state and hasattr(body_sensor, "watch_dirs"):
                 body_sensor.watch_dirs = state["watch_dirs"]
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.body_sensor.watch_dirs_restored", "watch_dirs_count": len(state['watch_dirs'])}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.body_sensor.watch_dirs_restored', 'watch_dirs_count': len(state['watch_dirs'])}))
 
             # 恢复配置
             if "config" in state and hasattr(body_sensor, "config"):
                 body_sensor.config = state["config"]
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.body_sensor.config_restored"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.body_sensor.config_restored'}))
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.body_sensor.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.body_sensor.success'}))
             return True
 
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.body_sensor.failed", "error": str(e), "exception_type": type(e).__name__, "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.body_sensor.failed', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
             return False
 
     def _restore_behavior(self, behavior: Any, state: Dict[str, Any]) -> bool:
@@ -859,7 +860,7 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.start", "mode": state.get("mode", "NORMAL")}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.start', 'mode': state.get('mode', 'NORMAL')}))
 
             # 恢复当前行为模式
             if "mode" in state and hasattr(behavior, "_current_mode"):
@@ -869,23 +870,23 @@ class StateSnapshotManager:
                     mode_value = state["mode"]
                     if hasattr(BehaviorMode, mode_value):
                         behavior._current_mode = getattr(BehaviorMode, mode_value)
-                        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.mode_restored", "mode": mode_value}, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.mode_restored', 'mode': mode_value}))
                     else:
-                        logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.unknown_mode", "mode": mode_value}, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.unknown_mode', 'mode': mode_value}))
                 except ImportError:
-                    logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.module_not_found"}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.module_not_found'}))
 
             # 恢复模式历史
             if "mode_history" in state and hasattr(behavior, "_mode_history"):
                 behavior._mode_history = state["mode_history"].copy()
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.history_restored", "history_count": len(state['mode_history'])}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.history_restored', 'history_count': len(state['mode_history'])}))
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.success'}))
             return True
 
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.behavior.failed", "error": str(e), "exception_type": type(e).__name__, "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.behavior.failed', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
             return False
 
     def _restore_permission(self, permission: Any, state: Dict[str, Any]) -> bool:
@@ -895,19 +896,19 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.permission.start", "dangerous_patterns_count": state.get("dangerous_patterns_count", 0)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.permission.start', 'dangerous_patterns_count': state.get('dangerous_patterns_count', 0)}))
 
             # 敏感文件扩展名可更新
             if "sensitive_extensions" in state and hasattr(permission, "SENSITIVE_EXTENSIONS"):
                 # 注意：类属性需要谨慎处理
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.permission.sensitive_extensions", "count": len(state['sensitive_extensions'])}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.permission.sensitive_extensions', 'count': len(state['sensitive_extensions'])}))
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.permission.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.permission.success'}))
             return True
 
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.permission.failed", "error": str(e), "exception_type": type(e).__name__, "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.permission.failed', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
             return False
 
     def _restore_tools_registry(self, tools_registry: Any, state: Dict[str, Any]) -> bool:
@@ -917,18 +918,18 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.tools_registry.start", "tools_count": state.get("tools_count", 0)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.tools_registry.start', 'tools_count': state.get('tools_count', 0)}))
 
             # 工具列表信息记录（用于调试）
             if "tools" in state:
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.tools_registry.tools_list", "tools_preview": ', '.join(state['tools'][:5])}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.tools_registry.tools_list', 'tools_preview': ', '.join(state['tools'][:5])}))
 
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.tools_registry.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.tools_registry.success'}))
             return True
 
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore.tools_registry.failed", "error": str(e), "exception_type": type(e).__name__, "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'restore.tools_registry.failed', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
             return False
 
     def _restore_modules_by_priority(self, digital_life: Any, snapshot: StateSnapshot) -> bool:
@@ -942,7 +943,7 @@ class StateSnapshotManager:
             是否成功恢复
         """
         trace_id = str(uuid.uuid4())[:8]
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.start'}))
 
         # 按优先级排序模块
         sorted_modules = sorted(
@@ -951,24 +952,24 @@ class StateSnapshotManager:
             reverse=True
         )
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.order", "order": [name for name, _ in sorted_modules]}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.order', 'order': [name for name, _ in sorted_modules]}))
 
         success_count = 0
         total_count = len(sorted_modules)
 
         for module_name, module_state in sorted_modules:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.module.start", "module_name": module_name, "priority": module_state.restore_priority}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.module.start', 'module_name': module_name, 'priority': module_state.restore_priority}))
 
             # 检查模块是否初始化
             if not module_state.initialized:
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.module.skipped", "module_name": module_name}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.module.skipped', 'module_name': module_name}))
                 continue
 
             try:
                 # 校验数据完整性
                 checksum = self._compute_checksum(module_state.state_data)
                 if checksum != module_state.checksum:
-                    logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.module.checksum_mismatch", "module_name": module_name, "expected": module_state.checksum, "actual": checksum}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.module.checksum_mismatch', 'module_name': module_name, 'expected': module_state.checksum, 'actual': checksum}))
 
                 # 反序列化状态
                 state_data = pickle.loads(module_state.state_data)
@@ -992,13 +993,13 @@ class StateSnapshotManager:
                         success_count += 1
 
                 else:
-                    logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.module.unknown", "module_name": module_name}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.module.unknown', 'module_name': module_name}))
 
             except Exception as e:
                 import traceback
-                logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.module.exception", "module_name": module_name, "error": str(e), "traceback": traceback.format_exc()}, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.module.exception', 'module_name': module_name, 'error': str(e), 'traceback': traceback.format_exc()}))
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "restore_modules.done", "success_count": success_count, "total_count": total_count}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'restore_modules.done', 'success_count': success_count, 'total_count': total_count}))
 
         return success_count > 0
 
@@ -1018,56 +1019,56 @@ class StateSnapshotManager:
         """
         trace_id = str(uuid.uuid4())[:8]
         start_time = time.time()
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.start'}))
 
         # 1. 定位快照
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.locate.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.locate.start'}))
         if snapshot_id:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.locate.by_id", "snapshot_id": snapshot_id}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.locate.by_id', 'snapshot_id': snapshot_id}))
         else:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.locate.latest"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.locate.latest'}))
 
         snapshot = self._load_snapshot_data(snapshot_id)
         if not snapshot:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.not_found"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.not_found'}))
             return None
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.located", "snapshot_id": snapshot.snapshot_id, "version": snapshot.version, "created_at": str(snapshot.created_at), "config_keys_count": len(snapshot.config), "modules_count": len(snapshot.module_states), "is_incremental": snapshot.is_incremental}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.located', 'snapshot_id': snapshot.snapshot_id, 'version': snapshot.version, 'created_at': str(snapshot.created_at), 'config_keys_count': len(snapshot.config), 'modules_count': len(snapshot.module_states), 'is_incremental': snapshot.is_incremental}))
 
         # 2. 版本兼容性检查
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.compatibility.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.compatibility.start'}))
         if not self._check_compatibility(snapshot):
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.compatibility.failed"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.compatibility.failed'}))
             return None
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.compatibility.passed"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.compatibility.passed'}))
 
         # 3. 创建 DigitalLife 实例
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.create_instance.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.create_instance.start'}))
         if digital_life_class is None:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.no_class_provided"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.no_class_provided'}))
             # Phase 1/2 兼容模式：只返回快照数据
             self.current_snapshot = snapshot
             elapsed = (time.time() - start_time) * 1000
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.done", "duration_ms": elapsed, "restored_instance": False}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.done', 'restored_instance': False}))
             return snapshot
 
         try:
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.create_instance.with_config", "config": str(snapshot.config)}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.create_instance.with_config', 'config': str(snapshot.config)}))
             Yunshu = digital_life_class(snapshot.config)
-            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.create_instance.success"}, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.create_instance.success'}))
         except Exception as e:
             import traceback
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.create_instance.failed", "error": str(e), "traceback": traceback.format_exc()}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.create_instance.failed', 'error': str(e), 'traceback': traceback.format_exc()}))
             return None
 
         # 4. 按优先级恢复模块状态
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.restore_modules.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.restore_modules.start'}))
         if not self._restore_modules_by_priority(Yunshu, snapshot):
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.restore_modules.partial_failure"}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.restore_modules.partial_failure'}))
 
         # 5. 验证恢复结果
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.validate.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.validate.start'}))
         try:
             # 简单验证：检查核心模块是否存在
             core_modules_exists = (
@@ -1076,27 +1077,27 @@ class StateSnapshotManager:
                 hasattr(Yunshu, "_permission")
             )
             if core_modules_exists:
-                logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.validate.passed"}, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.validate.passed'}))
             else:
-                logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.validate.modules_missing"}, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.validate.modules_missing'}))
         except Exception as e:
-            logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.validate.exception", "error": str(e)}, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.validate.exception', 'error': str(e)}))
 
         # 6. 更新管理器状态
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.update_manager.start"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.update_manager.start'}))
         self.current_snapshot = snapshot
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.update_manager.current_updated"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.update_manager.current_updated'}))
 
         # 更新模块校验和缓存
         self._update_module_checksums(snapshot)
 
         elapsed = (time.time() - start_time) * 1000
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.done", "duration_ms": elapsed}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.done'}))
 
         # 记录性能数据
         self.performance_monitor.record_load(elapsed)
 
-        logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.load.success"}, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.success'}))
 
         return Yunshu
 
@@ -1138,7 +1139,7 @@ class StateSnapshotManager:
                         continue
 
         except Exception as e:
-            logger.error(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.list.failed", "error": str(e)}, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.list.failed', 'error': str(e)}))
 
         # 按创建时间倒序排列
         snapshots.sort(key=lambda x: x.created_at, reverse=True)
@@ -1167,9 +1168,9 @@ class StateSnapshotManager:
                         if snap_path.exists():
                             snap_path.unlink()
                             deleted_count += 1
-                            logger.info(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.cleanup.deleted", "snapshot_id": snap_info.snapshot_id}, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.deleted', 'snapshot_id': snap_info.snapshot_id}))
                 except Exception as e:
-                    logger.warning(json.dumps({"trace_id": trace_id, "module_name": "p6_snapshot", "action": "snapshot.cleanup.failed", "snapshot_id": snap_info.snapshot_id, "error": str(e)}, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.failed', 'snapshot_id': snap_info.snapshot_id, 'error': str(e)}))
 
         return deleted_count
 

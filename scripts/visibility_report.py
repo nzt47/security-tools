@@ -40,6 +40,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from agent.logging_utils import log_dict
 
 # 项目根目录
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -214,13 +215,7 @@ class MetricCollector:
         t0 = time.time()
         agent_dir = self.project_root / "agent"
         if not agent_dir.exists():
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_structured_log.agent_dir_missing",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "reason": "agent/ 目录不存在，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_structured_log.agent_dir_missing', 'reason': 'agent/ 目录不存在，返回 0.0'}))
             return 0.0
 
         total_logs = 0
@@ -239,28 +234,10 @@ class MetricCollector:
 
         elapsed_ms = round((time.time() - t0) * 1000, 2)
         if total_logs == 0:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_structured_log.no_logs",
-                "duration_ms": elapsed_ms,
-                "scanned_files": len(file_cache),
-                "total_logs": 0,
-                "coverage_percent": 100.0,
-                "reason": "无日志调用，视为通过（100%）",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_structured_log.no_logs', 'scanned_files': len(file_cache), 'total_logs': 0, 'coverage_percent': 100.0, 'reason': '无日志调用，视为通过（100%）'}))
             return 100.0  # 无日志则视为通过
         coverage = round(structured_logs / total_logs * 100, 1)
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "calc_structured_log.success",
-            "duration_ms": elapsed_ms,
-            "scanned_files": len(file_cache),
-            "total_logs": total_logs,
-            "structured_logs": structured_logs,
-            "coverage_percent": coverage,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_structured_log.success', 'scanned_files': len(file_cache), 'total_logs': total_logs, 'structured_logs': structured_logs, 'coverage_percent': coverage}))
         return coverage
 
     def _calc_trace_coverage(self) -> float:
@@ -269,13 +246,7 @@ class MetricCollector:
         t0 = time.time()
         routes_dir = self.project_root / "agent" / "server_routes"
         if not routes_dir.exists():
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_trace.routes_dir_missing",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "reason": "agent/server_routes/ 目录不存在，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_trace.routes_dir_missing', 'reason': 'agent/server_routes/ 目录不存在，返回 0.0'}))
             return 0.0
 
         total_routes = 0
@@ -296,26 +267,10 @@ class MetricCollector:
 
         elapsed_ms = round((time.time() - t0) * 1000, 2)
         if total_routes == 0:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_trace.no_routes",
-                "duration_ms": elapsed_ms,
-                "scanned_files": scanned_files,
-                "reason": "未扫描到 @app.route 装饰器，视为通过（100%）",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_trace.no_routes', 'scanned_files': scanned_files, 'reason': '未扫描到 @app.route 装饰器，视为通过（100%）'}))
             return 100.0
         coverage = round(traced_routes / total_routes * 100, 1)
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "calc_trace.success",
-            "duration_ms": elapsed_ms,
-            "scanned_files": scanned_files,
-            "total_routes": total_routes,
-            "traced_routes": traced_routes,
-            "coverage_percent": coverage,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_trace.success', 'scanned_files': scanned_files, 'total_routes': total_routes, 'traced_routes': traced_routes, 'coverage_percent': coverage}))
         return coverage
 
     def _count_health_endpoints(self) -> int:
@@ -413,34 +368,13 @@ class MetricCollector:
         coverage_xml = self.project_root / "coverage.xml"
 
         # 节点 1：方法入口（debug 级别，便于排查"为什么覆盖率是 0"）
-        logger.debug(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "read_test_coverage.enter",
-            "duration_ms": 0,
-            "path": str(coverage_xml),
-            "exists": coverage_xml.exists(),
-            "fallback_to_pyproject": False,
-            "reason": "方法入口：开始读取测试覆盖率，将优先检查 coverage.xml，缺失即返回 0.0",
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.enter', 'path': str(coverage_xml), 'exists': coverage_xml.exists(), 'fallback_to_pyproject': False, 'reason': '方法入口：开始读取测试覆盖率，将优先检查 coverage.xml，缺失即返回 0.0'}))
 
         if not coverage_xml.exists():
             # 节点 2：coverage.xml 不存在 → 返回 0.0（CI 中不应发生，本地需手动生成）
             # 显式不降级：不读取 pyproject.toml fail_under，避免用配置基线掩盖真实数据缺失
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "read_test_coverage.missing_xml",
-                "duration_ms": elapsed_ms,
-                "path": str(coverage_xml),
-                "return_value": 0.0,
-                "no_fallback": True,
-                "fallback_rejected": "pyproject.toml fail_under",
-                "reason": "coverage.xml 不存在，返回 0.0（不降级到 pyproject.toml）",
-                "ci_hint": "CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录",
-                "local_hint": "本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml",
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.missing_xml', 'path': str(coverage_xml), 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 不存在，返回 0.0（不降级到 pyproject.toml）', 'ci_hint': 'CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录', 'local_hint': '本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml'}))
             return 0.0
 
         import xml.etree.ElementTree as ET
@@ -452,51 +386,18 @@ class MetricCollector:
                 # 节点 3：成功读取有效 line-rate → 返回真实覆盖率百分比
                 elapsed_ms = round((time.time() - t0) * 1000, 2)
                 coverage_percent = round(line_rate * 100, 1)
-                logger.info(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "read_test_coverage.success",
-                    "duration_ms": elapsed_ms,
-                    "path": str(coverage_xml),
-                    "line_rate": line_rate,
-                    "coverage_percent": coverage_percent,
-                    "return_value": coverage_percent,
-                    "no_fallback": True,
-                    "source": "full-project-tests artifact (CI) 或本地生成",
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.success', 'path': str(coverage_xml), 'line_rate': line_rate, 'coverage_percent': coverage_percent, 'return_value': coverage_percent, 'no_fallback': True, 'source': 'full-project-tests artifact (CI) 或本地生成'}))
                 return coverage_percent
             # 节点 4：line-rate=0 → 视为无效数据，返回 0.0（不降级）
             # 常见原因：空报告、测试未覆盖任何行、或 coverage.py 生成失败
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "read_test_coverage.invalid_xml",
-                "duration_ms": elapsed_ms,
-                "path": str(coverage_xml),
-                "line_rate": line_rate,
-                "return_value": 0.0,
-                "no_fallback": True,
-                "fallback_rejected": "pyproject.toml fail_under",
-                "reason": "coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0（不降级）",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.invalid_xml', 'path': str(coverage_xml), 'line_rate': line_rate, 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0（不降级）'}))
             return 0.0
         except (ValueError, OSError, ET.ParseError) as e:
             # 节点 5：XML 解析异常 → 返回 0.0（不降级）
             # ET.ParseError 继承自 SyntaxError，不被 ValueError/OSError 覆盖，需显式捕获
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "read_test_coverage.parse_failed",
-                "duration_ms": elapsed_ms,
-                "path": str(coverage_xml),
-                "error": f"{type(e).__name__}: {e}",
-                "return_value": 0.0,
-                "no_fallback": True,
-                "fallback_rejected": "pyproject.toml fail_under",
-                "reason": "coverage.xml 解析失败，返回 0.0（不降级到 pyproject.toml）",
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.parse_failed', 'path': str(coverage_xml), 'error': f'{type(e).__name__}: {e}', 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 解析失败，返回 0.0（不降级到 pyproject.toml）'}))
             return 0.0
 
     def _calc_boundary_coverage(self) -> float:
@@ -525,27 +426,12 @@ class MetricCollector:
         # 1. 检查脚本是否存在
         script_path = self.project_root / "scripts" / "check_boundary_coverage.py"
         if not script_path.exists():
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.script_not_found",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "script_path": str(script_path),
-                "reason": "check_boundary_coverage.py 不存在，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.script_not_found', 'script_path': str(script_path), 'reason': 'check_boundary_coverage.py 不存在，返回 0.0'}))
             return 0.0
 
         # 2. 调用边界扫描脚本
         try:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.subprocess_start",
-                "duration_ms": 0,
-                "cmd": [sys.executable, str(script_path), "--json-only"],
-                "cwd": str(self.project_root),
-                "timeout_sec": 60,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.subprocess_start', 'cmd': [sys.executable, str(script_path), '--json-only'], 'cwd': str(self.project_root), 'timeout_sec': 60}))
             # Windows 下 subprocess 默认用 GBK 解码子进程输出，
             # check_boundary_coverage.py 输出含 emoji（✅/⚠️/❌）的 UTF-8 文本，
             # GBK 解码会触发 UnicodeDecodeError 导致 stdout/stderr 为空。
@@ -560,55 +446,23 @@ class MetricCollector:
                 cwd=self.project_root,
             )
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.subprocess_done",
-                "duration_ms": elapsed_ms,
-                "returncode": result.returncode,
-                "stdout_len": len(result.stdout) if result.stdout else 0,
-                "stderr_len": len(result.stderr) if result.stderr else 0,
-                "stderr_preview": (result.stderr[:500] if result.stderr else ""),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.subprocess_done', 'returncode': result.returncode, 'stdout_len': len(result.stdout) if result.stdout else 0, 'stderr_len': len(result.stderr) if result.stderr else 0, 'stderr_preview': result.stderr[:500] if result.stderr else ''}))
 
             # 3. 校验返回码（0=通过, 1=阻断, 2=脚本异常）
             if result.returncode not in (0, 1):
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_boundary_coverage.bad_returncode",
-                    "duration_ms": elapsed_ms,
-                    "returncode": result.returncode,
-                    "stderr": result.stderr[:1000] if result.stderr else "",
-                    "reason": f"返回码 {result.returncode} 非 0/1，脚本执行异常，返回 0.0",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.bad_returncode', 'returncode': result.returncode, 'stderr': result.stderr[:1000] if result.stderr else '', 'reason': f'返回码 {result.returncode} 非 0/1，脚本执行异常，返回 0.0'}))
                 return 0.0
 
             # 4. 校验 stdout 非空
             if not result.stdout:
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_boundary_coverage.empty_stdout",
-                    "duration_ms": elapsed_ms,
-                    "returncode": result.returncode,
-                    "reason": "stdout 为空，脚本未输出 JSON，返回 0.0",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.empty_stdout', 'returncode': result.returncode, 'reason': 'stdout 为空，脚本未输出 JSON，返回 0.0'}))
                 return 0.0
 
             # 5. 解析 JSON
             try:
                 data = json.loads(result.stdout)
             except json.JSONDecodeError as e:
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_boundary_coverage.json_parse_failed",
-                    "duration_ms": elapsed_ms,
-                    "error": f"{type(e).__name__}: {e}",
-                    "stdout_preview": result.stdout[:500],
-                    "reason": "stdout 非合法 JSON（可能日志被混入 stdout），返回 0.0",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.json_parse_failed', 'error': f'{type(e).__name__}: {e}', 'stdout_preview': result.stdout[:500], 'reason': 'stdout 非合法 JSON（可能日志被混入 stdout），返回 0.0'}))
                 return 0.0
 
             # 6. 提取字段并计算
@@ -620,82 +474,27 @@ class MetricCollector:
             scene_total = data.get("scene_total_count", 0)
             scene_pct = data.get("scene_coverage_percent")
             overall_status = data.get("overall_status", "unknown")
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.parsed",
-                "duration_ms": elapsed_ms,
-                "total_tests": total,
-                "total_boundary_tests": boundary,
-                "scene_covered_count": scene_covered,
-                "scene_total_count": scene_total,
-                "scene_coverage_percent": scene_pct,
-                "overall_status": overall_status,
-                "blocked_modules": data.get("blocked_modules", []),
-                "total_modules": data.get("total_modules", 0),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.parsed', 'total_tests': total, 'total_boundary_tests': boundary, 'scene_covered_count': scene_covered, 'scene_total_count': scene_total, 'scene_coverage_percent': scene_pct, 'overall_status': overall_status, 'blocked_modules': data.get('blocked_modules', []), 'total_modules': data.get('total_modules', 0)}))
 
             # 新指标优先：scene_coverage_percent（基于声明模块的必需场景覆盖率）
             # 该指标不受总测试数增长稀释影响，更真实反映边界测试质量
             if scene_pct is not None and scene_total > 0:
-                logger.info(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_boundary_coverage.success",
-                    "duration_ms": elapsed_ms,
-                    "metric": "scene_coverage_percent",
-                    "scene_covered_count": scene_covered,
-                    "scene_total_count": scene_total,
-                    "coverage_percent": scene_pct,
-                    "legacy_case_ratio": round(boundary / total * 100, 1) if total else 0.0,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.success', 'metric': 'scene_coverage_percent', 'scene_covered_count': scene_covered, 'scene_total_count': scene_total, 'coverage_percent': scene_pct, 'legacy_case_ratio': round(boundary / total * 100, 1) if total else 0.0}))
                 return float(scene_pct)
 
             # 降级：无 scene_coverage_percent 字段时使用旧指标（用例数比例）
             if total == 0:
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_boundary_coverage.zero_total_tests",
-                    "duration_ms": elapsed_ms,
-                    "reason": "total_tests=0 且无 scene_coverage_percent，返回 0.0",
-                    "hint": "请检查 tests/ 目录是否有测试文件，以及 boundary_config.yaml 的 test_root 配置",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.zero_total_tests', 'reason': 'total_tests=0 且无 scene_coverage_percent，返回 0.0', 'hint': '请检查 tests/ 目录是否有测试文件，以及 boundary_config.yaml 的 test_root 配置'}))
                 return 0.0
 
             coverage = round(boundary / total * 100, 1)
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.success",
-                "duration_ms": elapsed_ms,
-                "metric": "legacy_case_ratio",
-                "total_tests": total,
-                "total_boundary_tests": boundary,
-                "coverage_percent": coverage,
-                "reason": "scene_coverage_percent 字段缺失，降级使用用例数比例",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.success', 'metric': 'legacy_case_ratio', 'total_tests': total, 'total_boundary_tests': boundary, 'coverage_percent': coverage, 'reason': 'scene_coverage_percent 字段缺失，降级使用用例数比例'}))
             return coverage
 
         except subprocess.TimeoutExpired as e:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.timeout",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "error": f"{type(e).__name__}: {e}",
-                "reason": "subprocess 执行超时（60s），返回 0.0",
-                "hint": "请检查 check_boundary_coverage.py 是否有死循环或扫描范围过大",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.timeout', 'error': f'{type(e).__name__}: {e}', 'reason': 'subprocess 执行超时（60s），返回 0.0', 'hint': '请检查 check_boundary_coverage.py 是否有死循环或扫描范围过大'}))
         except (subprocess.SubprocessError, FileNotFoundError) as e:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_boundary_coverage.subprocess_error",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "error": f"{type(e).__name__}: {e}",
-                "reason": "subprocess 执行失败，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_boundary_coverage.subprocess_error', 'error': f'{type(e).__name__}: {e}', 'reason': 'subprocess 执行失败，返回 0.0'}))
         return 0.0
 
     def _count_contract_tests(self) -> int:
@@ -704,37 +503,15 @@ class MetricCollector:
         t0 = time.time()
         contract_dir = self.project_root / "tests" / "contract"
         if not contract_dir.exists():
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "count_contract_tests.dir_missing",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "path": str(contract_dir),
-                "reason": "tests/contract/ 目录不存在，返回 0",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'count_contract_tests.dir_missing', 'path': str(contract_dir), 'reason': 'tests/contract/ 目录不存在，返回 0'}))
             return 0
         # 统计 contracts/ 下的 *_contract.json 文件数
         contracts_dir = contract_dir / "contracts"
         if contracts_dir.exists():
             count = len(list(contracts_dir.glob("*_contract.json")))
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "count_contract_tests.success",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "contracts_dir": str(contracts_dir),
-                "contract_count": count,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'count_contract_tests.success', 'contracts_dir': str(contracts_dir), 'contract_count': count}))
             return count
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "count_contract_tests.contracts_subdir_missing",
-            "duration_ms": round((time.time() - t0) * 1000, 2),
-            "path": str(contracts_dir),
-            "reason": "tests/contract/contracts/ 子目录不存在，返回 0",
-            "hint": "请创建 tests/contract/contracts/ 并放置 *_contract.json 契约文件",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'count_contract_tests.contracts_subdir_missing', 'path': str(contracts_dir), 'reason': 'tests/contract/contracts/ 子目录不存在，返回 0', 'hint': '请创建 tests/contract/contracts/ 并放置 *_contract.json 契约文件'}))
         return 0
 
     def _calc_exception_coverage(self) -> float:
@@ -753,14 +530,7 @@ class MetricCollector:
         t0 = time.time()
         agent_dir = self.project_root / "agent"
         if not agent_dir.exists():
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_exception_coverage.dir_missing",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "path": str(agent_dir),
-                "reason": "agent/ 目录不存在，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_exception_coverage.dir_missing', 'path': str(agent_dir), 'reason': 'agent/ 目录不存在，返回 0.0'}))
             return 0.0
 
         total_files = 0
@@ -785,28 +555,11 @@ class MetricCollector:
                 # 解析失败：记录错误并跳过，不计入分母
                 skipped_files.append(str(py_file))
                 total_files -= 1
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "calc_exception_coverage.parse_failed",
-                    "duration_ms": 0,
-                    "path": str(py_file),
-                    "error": f"{type(e).__name__}: {e}",
-                    "reason": "AST 解析失败，跳过该文件",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_exception_coverage.parse_failed', 'path': str(py_file), 'error': f'{type(e).__name__}: {e}', 'reason': 'AST 解析失败，跳过该文件'}))
 
         coverage = round(handled_files / total_files * 100, 1) if total_files else 0.0
         elapsed_ms = round((time.time() - t0) * 1000, 2)
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "calc_exception_coverage.success",
-            "duration_ms": elapsed_ms,
-            "total_files": total_files,
-            "handled_files": handled_files,
-            "skipped_files": len(skipped_files),
-            "coverage_percent": coverage,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_exception_coverage.success', 'total_files': total_files, 'handled_files': handled_files, 'skipped_files': len(skipped_files), 'coverage_percent': coverage}))
         return coverage
 
     # ── 第三层：业务价值可见 ──
@@ -856,13 +609,7 @@ class MetricCollector:
         t0 = time.time()
         agent_dir = self.project_root / "agent"
         if not agent_dir.exists():
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_track.agent_dir_missing",
-                "duration_ms": round((time.time() - t0) * 1000, 2),
-                "reason": "agent/ 目录不存在，返回 0.0",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'calc_track.agent_dir_missing', 'reason': 'agent/ 目录不存在，返回 0.0'}))
             return 0.0
 
         total_modules = 0
@@ -893,25 +640,10 @@ class MetricCollector:
 
         elapsed_ms = round((time.time() - t0) * 1000, 2)
         if total_modules == 0:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "visibility_report",
-                "action": "calc_track.no_modules",
-                "duration_ms": elapsed_ms,
-                "reason": "agent/ 下无业务子目录，视为通过（100%）",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_track.no_modules', 'reason': 'agent/ 下无业务子目录，视为通过（100%）'}))
             return 100.0
         coverage = round(tracked_modules / total_modules * 100, 1)
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "calc_track.success",
-            "duration_ms": elapsed_ms,
-            "total_modules": total_modules,
-            "tracked_modules": tracked_modules,
-            "untracked_modules": untracked_list,
-            "coverage_percent": coverage,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'calc_track.success', 'total_modules': total_modules, 'tracked_modules': tracked_modules, 'untracked_modules': untracked_list, 'coverage_percent': coverage}))
         return coverage
 
     def _count_dashboards(self) -> int:
@@ -1260,30 +992,14 @@ def export_to_prometheus(report: VisibilityReport) -> str:
             try:
                 value = float(m.value)
             except (TypeError, ValueError):
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "export_prometheus.invalid_value",
-                    "duration_ms": round((time.time() - t0) * 1000, 2),
-                    "metric": m.name,
-                    "raw_value": m.value,
-                    "reason": "指标值无法转为 float，跳过该指标",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'export_prometheus.invalid_value', 'metric': m.name, 'raw_value': m.value, 'reason': '指标值无法转为 float，跳过该指标'}))
                 continue
             lines.append(
                 f'{prom_name}{{layer="{layer_label}",success="{success_label}"}} {value} {timestamp_ms}'
             )
 
     elapsed_ms = round((time.time() - t0) * 1000, 2)
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "visibility_report",
-        "action": "export_prometheus.success",
-        "duration_ms": elapsed_ms,
-        "lines": len(lines),
-        "metrics_count": len(seen_metric_help),
-        "overall_status": report.overall_status,
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'visibility_report', 'action': 'export_prometheus.success', 'lines': len(lines), 'metrics_count': len(seen_metric_help), 'overall_status': report.overall_status}))
     return "\n".join(lines) + "\n"
 
 
@@ -1344,27 +1060,13 @@ def _build_prometheus_handler(state: "_VisibilityMetricsState") -> type:
                     self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
                     self.end_headers()
                     self.wfile.write(body.encode("utf-8"))
-                    logger.info(json.dumps({
-                        "trace_id": trace_id,
-                        "module_name": "visibility_report",
-                        "action": "metrics_endpoint.empty_snapshot",
-                        "duration_ms": round((time.time() - t0) * 1000, 2),
-                        "reason": "首份报告尚未生成，返回降级指标",
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'visibility_report', 'action': 'metrics_endpoint.empty_snapshot', 'reason': '首份报告尚未生成，返回降级指标'}))
                     return
                 self.send_response(200)
                 self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
                 self.end_headers()
                 self.wfile.write(snapshot.encode("utf-8"))
-                logger.info(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "visibility_report",
-                    "action": "metrics_endpoint.served",
-                    "duration_ms": round((time.time() - t0) * 1000, 2),
-                    "status": status,
-                    "snapshot_age_sec": round(time.time() - last_update, 2),
-                    "error": error,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'metrics_endpoint.served', 'status': status, 'snapshot_age_sec': round(time.time() - last_update, 2), 'error': error}))
             elif self.path in ("/health", "/status", "/"):
                 # 健康检查端点（遵循可观测性约束：必须暴露依赖连接状态）
                 _, status, error, last_update = state.snapshot()
@@ -1420,24 +1122,10 @@ def serve_metrics(
                 report = generate_report(project_root, thresholds)
                 prom_text = export_to_prometheus(report)
                 state.update(prom_text, report.overall_status, error=None)
-                logger.info(json.dumps({
-                    "trace_id": thread_trace,
-                    "module_name": "visibility_report",
-                    "action": "serve_metrics.refresh.success",
-                    "duration_ms": round((time.time() - t0) * 1000, 2),
-                    "overall_status": report.overall_status,
-                    "next_refresh_sec": refresh_interval,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.refresh.success', 'overall_status': report.overall_status, 'next_refresh_sec': refresh_interval}))
             except Exception as e:
                 # 边界显性化：捕获异常并写入 state.error，不静默吞掉
-                logger.error(json.dumps({
-                    "trace_id": thread_trace,
-                    "module_name": "visibility_report",
-                    "action": "serve_metrics.refresh.failed",
-                    "duration_ms": round((time.time() - t0) * 1000, 2),
-                    "error": f"{type(e).__name__}: {e}",
-                    "stack": traceback.format_exc(),
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.refresh.failed', 'error': f'{type(e).__name__}: {e}', 'stack': traceback.format_exc()}))
                 state.update("", "degraded", error=f"{type(e).__name__}: {e}")
             time.sleep(max(refresh_interval, 10))
 
@@ -1450,39 +1138,15 @@ def serve_metrics(
     try:
         server = HTTPServer((host, port), handler_cls)
     except OSError as e:
-        logger.error(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "serve_metrics.bind_failed",
-            "duration_ms": 0,
-            "host": host,
-            "port": port,
-            "error": f"{type(e).__name__}: {e}",
-            "reason": "端口占用或绑定失败",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.bind_failed', 'host': host, 'port': port, 'error': f'{type(e).__name__}: {e}', 'reason': '端口占用或绑定失败'}))
         return 1
 
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "visibility_report",
-        "action": "serve_metrics.started",
-        "duration_ms": 0,
-        "host": host,
-        "port": port,
-        "refresh_interval_sec": refresh_interval,
-        "endpoints": ["/metrics", "/health"],
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.started', 'host': host, 'port': port, 'refresh_interval_sec': refresh_interval, 'endpoints': ['/metrics', '/health']}))
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "visibility_report",
-            "action": "serve_metrics.shutdown",
-            "duration_ms": 0,
-            "reason": "收到 KeyboardInterrupt，正在关闭",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.shutdown', 'reason': '收到 KeyboardInterrupt，正在关闭'}))
         server.shutdown()
     return 0
 
@@ -1554,12 +1218,7 @@ def generate_report(project_root: Path, thresholds: Dict[str, Any]) -> Visibilit
     trace_id = _trace_id()
     start = time.time()
 
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "visibility_report",
-        "action": "generate.start",
-        "timestamp": datetime.now().isoformat(),
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'visibility_report', 'action': 'generate.start', 'timestamp': datetime.now().isoformat()}))
 
     collector = MetricCollector(project_root, thresholds)
     layers = collector.collect_all()
@@ -1577,14 +1236,7 @@ def generate_report(project_root: Path, thresholds: Dict[str, Any]) -> Visibilit
     overall_status = "fail" if violations else "pass"
     duration_ms = (time.time() - start) * 1000
 
-    logger.info(json.dumps({
-        "trace_id": trace_id,
-        "module_name": "visibility_report",
-        "action": "generate.complete",
-        "duration_ms": round(duration_ms, 2),
-        "overall_status": overall_status,
-        "violations_count": len(violations),
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'visibility_report', 'action': 'generate.complete', 'overall_status': overall_status, 'violations_count': len(violations)}))
 
     return VisibilityReport(
         trace_id=trace_id,
