@@ -177,7 +177,11 @@ class Orchestrator:
             self._memory.score_and_save_message("assistant", workflow_result.output)
             if trace_id:
                 trace_store.end_trace(trace_id, workflow_result.output)
-            return ResponseBuilder.workflow_result(workflow_result.output).to_dict()
+            return ResponseBuilder.workflow_result(
+                output=workflow_result.output,
+                intent=workflow_result.intent,
+                confidence=workflow_result.confidence,
+            ).to_dict()
         if trace_id:
             trace_store.add_span(trace_id, TraceSpan(
                 span_id=f"{trace_id}_workflow",
