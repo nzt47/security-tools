@@ -31,20 +31,8 @@ except ImportError:
     logger.warning(log_dict({'module_name': 'prometheus', 'action': 'prometheus_client.not.installed', 'msg': '[WARN] prometheus_client not installed, Prometheus export disabled'}))
     _PROMETHEUS_AVAILABLE = False
 
-from agent.error_handler import (
-    YunshuError,
-    RecoverableError,
-    TemporaryNetworkError,
-    ExternalServiceError,
-    DataInvalidError,
-    ErrorSeverity,
-    ErrorCategory,
-    CircuitBreaker,
-    RetryPolicy,
-    ErrorHandler,
-    get_error_handler,
-    with_retry,
-)
+# error_handler 延迟导入（避免循环依赖：prometheus → error_handler → monitoring → prometheus）
+# 各方法在使用时通过 from agent.error_handler import ... 延迟导入
 _ERROR_HANDLER_AVAILABLE = True
 
 
@@ -61,7 +49,11 @@ class PrometheusMetricsExporter:
 
         self.port = port
         self.namespace = namespace
-        self._error_handler = get_error_handler() if _ERROR_HANDLER_AVAILABLE else None
+        try:
+            from agent.error_handler import get_error_handler
+            self._error_handler = get_error_handler()
+        except ImportError:
+            self._error_handler = None
 
         # 配置化重试次数（支持热加载，每次初始化时读取最新值）
         try:
@@ -71,13 +63,17 @@ class PrometheusMetricsExporter:
             self._max_retries = 3
 
         self._exporter_circuit_breaker = None
-        if _ERROR_HANDLER_AVAILABLE:
-            self._exporter_circuit_breaker = CircuitBreaker(
-                max_failures=10, reset_timeout=60.0, name="prometheus-exporter"
-            )
-            self._error_handler.register_circuit_breaker(
-                "prometheus-exporter", self._exporter_circuit_breaker
-            )
+        if _ERROR_HANDLER_AVAILABLE and self._error_handler:
+            try:
+                from agent.error_handler import CircuitBreaker
+                self._exporter_circuit_breaker = CircuitBreaker(
+                    max_failures=10, reset_timeout=60.0, name="prometheus-exporter"
+                )
+                self._error_handler.register_circuit_breaker(
+                    "prometheus-exporter", self._exporter_circuit_breaker
+                )
+            except ImportError:
+                pass
 
         # 定义指标
         self.v2_module_load_duration = Histogram(
@@ -147,6 +143,7 @@ class PrometheusMetricsExporter:
         if not _ERROR_HANDLER_AVAILABLE or not self._error_handler:
             return
         try:
+            from agent.error_handler import YunshuError, ErrorCategory
             if isinstance(error, YunshuError):
                 yunshu_error = error
                 if context:
@@ -242,6 +239,7 @@ class PrometheusMetricsExporter:
 
         if _ERROR_HANDLER_AVAILABLE and self._error_handler:
             try:
+                from agent.error_handler import RetryPolicy
                 retry_policy = RetryPolicy(
                     max_retries=self._max_retries, initial_delay=1.0, max_delay=10.0, backoff_factor=2.0
                 )
@@ -285,11 +283,12 @@ class PrometheusMetricsExporter:
 
     def execute_with_error_handling(
         self, func: Callable, *args,
-        retry_policy: Optional[RetryPolicy] = None,
+        retry_policy: "Optional[RetryPolicy]" = None,
         error_context: Optional[dict] = None, **kwargs
     ) -> Any:
         if not _ERROR_HANDLER_AVAILABLE or not self._error_handler:
             return func(*args, **kwargs)
+        from agent.error_handler import RetryPolicy
         retry_pol = retry_policy or RetryPolicy(
             max_retries=self._max_retries, initial_delay=0.5, max_delay=30.0, backoff_factor=2.0
         )
@@ -348,6 +347,7 @@ class RetryablePrometheusOperation:
 
     def record_metric(self, operation_name: str, operation_func: Callable, *args, **kwargs):
         if _ERROR_HANDLER_AVAILABLE:
+            from agent.error_handler import RetryPolicy
             self.exporter.execute_with_error_handling(
                 lambda: (
                     operation_func(*args, **kwargs),
