@@ -63,7 +63,7 @@ jobs:
         run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run stress test
-        run: python stress_test_error_reporting.py -c 50 -r 1000 -o ./logs/stress_test
+        run: python scripts/stress_test_error_reporting.py -c 50 -r 1000 -o ./logs/stress_test
       
       - name: Upload stress test results
         uses: actions/upload-artifact@v4
@@ -101,10 +101,10 @@ jobs:
         run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run error reporter tests
-        run: python test_error_reporter.py
-      
+        run: python -m pytest tests/unit/test_error_reporting.py -v --tb=short
+
       - name: Run DigitalLife integration test
-        run: python test_digital_life_error_reporting.py
+        run: python -m pytest tests/integration/test_digital_life_integration.py -v --tb=short
 
   docker-build:
     name: Docker Build and Test
@@ -154,7 +154,7 @@ jobs:
         run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
       
       - name: Run full stress test with high concurrency
-        run: python stress_test_error_reporting.py -c 100 -r 5000 -o ./logs/nightly_test
+        run: python scripts/stress_test_error_reporting.py -c 100 -r 5000 -o ./logs/nightly_test
       
       - name: Run Slack webhook test (dry run)
         run: python slack_config.py --test || true
