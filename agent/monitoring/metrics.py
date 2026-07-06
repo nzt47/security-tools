@@ -158,7 +158,7 @@ class MetricsCollector:
     
     def get_all_metrics(self) -> Dict:
         """获取所有指标
-        
+
         Returns:
             包含所有指标的字典:
             {
@@ -173,13 +173,18 @@ class MetricsCollector:
                 'generated_at': timestamp
             }
         """
+        # 注意：threading.Lock 不可重入，不能在持有 self._lock 时调用 get_stats()
+        # （get_stats 内部也会获取 self._lock，会导致死锁）
+        # 因此先在锁内复制名称快照与计数器，再在锁外调用 get_stats()
         with self._lock:
-            histograms = {
-                name: self.get_stats(name)
-                for name in self._histograms.keys()
-            }
+            histogram_names = list(self._histograms.keys())
             counters = dict(self._counters)
-        
+
+        histograms = {
+            name: self.get_stats(name)
+            for name in histogram_names
+        }
+
         return {
             'histograms': histograms,
             'counters': counters,
