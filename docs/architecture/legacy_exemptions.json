@@ -6,26 +6,6 @@
   "exemptions": [
     {
       "rule_id": "no_circular_dependency",
-      "source": "agent.cognitive.critic",
-      "target": "agent.graceful_degrade",
-      "reason": "存量循环依赖：critic 依赖 graceful_degrade 进行降级，graceful_degrade 通过函数内延迟 import 反向引用 critic。已通过延迟加载缓解，列入技术债务清单。",
-      "added_at": "2026-06-26",
-      "owner": "architecture-team",
-      "tech_debt_ticket": "ARCH-DEBT-001",
-      "mitigation": "graceful_degrade.py:464 使用函数内延迟 import（from agent.cognitive.critic import CriticEvaluator）打破模块加载时循环，运行期可正常工作。后续应通过接口抽象或事件解耦彻底消除循环。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.error_handler",
-      "target": "agent.monitoring.error_reporter",
-      "reason": "存量循环依赖：error_handler 在异常上报时延迟 import error_reporter 的 ErrorReporter 多通道能力，error_reporter 在 WebhookReporter 初始化时反向延迟 import error_handler 的 with_retry 与 TemporaryNetworkError。双向均使用函数内延迟 import，运行期可正常工作。",
-      "added_at": "2026-06-26",
-      "owner": "architecture-team",
-      "tech_debt_ticket": "ARCH-DEBT-002",
-      "mitigation": "error_handler.py:1176 与 error_reporter.py:158 均使用函数内延迟 import 打破模块加载时循环。后续应将 with_retry/TemporaryNetworkError 下沉到独立的基础设施模块（如 agent.utils.retry），消除 error_handler 与 monitoring 之间的双向耦合。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
       "source": "agent.monitoring.prometheus",
       "target": "agent.monitoring.observability_config",
       "reason": "配置化重试次数延迟导入：prometheus.py 在 __init__ 的 try/except 块中延迟 import get_prometheus_max_retries，运行时安全。observability_config 仅导入 tracing 模块，arch_rules 静态分析检测到 from 语句。",
