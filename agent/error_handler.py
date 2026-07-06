@@ -405,11 +405,37 @@ class RetryPolicy:
 class ErrorHandler:
     """统一错误处理器"""
 
-    def __init__(self):
+    def __init__(
+        self,
+        metrics_collector_factory: Optional[Callable[[], Any]] = None,
+    ) -> None:
+        """
+        Args:
+            metrics_collector_factory: 可选的 metrics collector 工厂（DI 模式）。
+                若提供则优先使用，未提供时在需要时延迟 import get_metrics_collector。
+                用于打破 error_handler -> agent.monitoring.metrics 的硬依赖，便于测试注入 mock。
+        """
         self._metrics: Dict[str, ErrorMetrics] = defaultdict(ErrorMetrics)
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
         self._lock = threading.Lock()
+        self._metrics_collector_factory: Optional[Callable[[], Any]] = metrics_collector_factory
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}, ensure_ascii=False))
+
+    def _get_metrics_collector(self) -> Any:
+        """获取 metrics collector（DI 优先，未注入时延迟 import）
+
+        成功路径零依赖模式：未注入 factory 时才在调用点延迟 import agent.monitoring.metrics，
+        避免模块级硬依赖。返回 None 时调用方应自行容错。
+        """
+        factory = self._metrics_collector_factory
+        if factory is not None:
+            return factory()
+        # 延迟 import 打破循环依赖
+        try:
+            from agent.monitoring.metrics import get_metrics_collector
+            return get_metrics_collector()
+        except Exception:
+            return None
 
     def register_circuit_breaker(
         self,
@@ -524,10 +550,10 @@ class ErrorHandler:
                 
                 if error_counter and attempt == 0:
                     try:
-                        from agent.monitoring.metrics import get_metrics_collector
-                        collector = get_metrics_collector()
-                        collector.increment_counter(f"{error_counter}.success")
-                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.success", "msg": f"[execute_with_retry] metrics 成功计数: {error_counter}.success"}, ensure_ascii=False))
+                        collector = self._get_metrics_collector()
+                        if collector is not None:
+                            collector.increment_counter(f"{error_counter}.success")
+                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.success", "msg": f"[execute_with_retry] metrics 成功计数: {error_counter}.success"}, ensure_ascii=False))
                     except Exception as metrics_err:
                         logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.metrics_err", "msg": f"[execute_with_retry] metrics 记录失败: {metrics_err}"}, ensure_ascii=False))
                 
@@ -559,10 +585,10 @@ class ErrorHandler:
                         f"exception_type={type(e).__name__}"}, ensure_ascii=False))
                     if error_counter:
                         try:
-                            from agent.monitoring.metrics import get_metrics_collector
-                            collector = get_metrics_collector()
-                            collector.increment_counter(f"{error_counter}.failure")
-                            logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.failure", "msg": f"[execute_with_retry] metrics 失败计数: {error_counter}.failure"}, ensure_ascii=False))
+                            collector = self._get_metrics_collector()
+                            if collector is not None:
+                                collector.increment_counter(f"{error_counter}.failure")
+                                logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.error_counter.failure", "msg": f"[execute_with_retry] metrics 失败计数: {error_counter}.failure"}, ensure_ascii=False))
                         except Exception as metrics_err:
                             logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "metrics.metrics_err", "msg": f"[execute_with_retry] metrics 记录失败: {metrics_err}"}, ensure_ascii=False))
                     raise self.record_error(e)
@@ -645,10 +671,16 @@ def with_retry(
     retryable_exceptions: Optional[Tuple[Type[Exception], ...]] = None,
     on_retry: Optional[Callable[[int, Exception], None]] = None,
     error_counter: Optional[str] = None,
+    metrics_collector_factory: Optional[Callable[[], Any]] = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     装饰器：自动重试
-    
+
+    Args:
+        metrics_collector_factory: 可选的 metrics collector 工厂（DI 模式）。
+            装饰器内部会将 factory 同步到全局 ErrorHandler 实例，
+            便于测试注入 mock collector 而无需 patch 延迟导入路径。
+
     用法:
         @with_retry(max_retries=3, initial_delay=1.0)
         def my_function():
@@ -676,6 +708,10 @@ def with_retry(
                 retryable_exceptions=retryable_exceptions,
             )
             handler = get_error_handler()
+            # DI 同步：将装饰器传入的 factory 同步到全局 ErrorHandler 实例，
+            # 这样 execute_with_retry 内部可通过 self._get_metrics_collector() 使用注入的 mock collector
+            if metrics_collector_factory is not None:
+                handler._metrics_collector_factory = metrics_collector_factory
             result = handler.execute_with_retry(
                 func,
                 retry_policy=policy,
@@ -686,7 +722,7 @@ def with_retry(
                 func_args=args,
                 func_kwargs=kwargs,
             )
-            
+
             logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "func.func.__name__", "msg": f"[with_retry] 函数执行成功: func={func.__name__}"}, ensure_ascii=False))
             return result
         return wrapper
