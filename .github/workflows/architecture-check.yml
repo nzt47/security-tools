@@ -46,7 +46,8 @@ jobs:
     permissions:
       # PR 评论需要 pull-requests: write 权限（评论架构规则校验报告）
       pull-requests: write
-      contents: read
+      # 自动提交依赖图文档需要 contents: write 权限（步骤"提交依赖图文档"在 push 事件时 git push 依赖图更新）
+      contents: write
     steps:
       - name: 检出代码（完整历史用于 git diff）
         uses: actions/checkout@v4
