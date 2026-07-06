@@ -240,7 +240,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install pytest-cov  # 用于覆盖率报告
+          pip install pytest-cov pytest-timeout  # pytest-cov 用于覆盖率报告；pytest-timeout 为 pytest.ini 中 --timeout 参数所需
 
       - name: 运行依赖注入单元测试（21 个测试）
         run: |
