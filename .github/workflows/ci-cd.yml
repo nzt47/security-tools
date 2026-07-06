@@ -98,8 +98,10 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-      
+        run: |
+          grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
+          pip install pytest  # requirements.txt 未包含 pytest，CI 需要安装
+
       - name: Run error reporter tests
         run: python -m pytest tests/unit/test_error_reporting.py -v --tb=short
 
