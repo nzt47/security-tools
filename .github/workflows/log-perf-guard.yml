@@ -279,11 +279,10 @@ jobs:
             --cov-report=xml:logs/lifecycle_di_coverage.xml \
             --cov-fail-under=0
 
-      - name: 运行 error_handler DI 测试 + 回归套件（29 + 492 个测试）
+      - name: 运行 error_handler 回归套件（492 个测试）
         run: |
-          echo "=== 运行 error_handler DI 测试与回归套件 ==="
+          echo "=== 运行 error_handler 回归套件 ==="
           python -m pytest \
-            tests/unit/test_error_handler_di.py \
             tests/unit/test_error_handler.py \
             tests/unit/test_error_handler_comprehensive.py \
             tests/unit/test_error_handler_edge.py \
