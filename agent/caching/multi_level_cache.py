@@ -353,26 +353,33 @@ class DiskCache:
                 return None
 
     def set(self, key: str, value: Any, ttl_seconds: int = 3600):
-        """设置缓存值"""
+        """设置缓存值
+
+        注意：磁盘 I/O（json.dump）放在锁外执行，避免多线程并发时
+        因长时间持锁导致性能急剧下降。每个 key 哈希到唯一文件路径，
+        不同线程写不同文件不会冲突；同一 key 的并发写最坏情况是
+        后写覆盖先写，符合缓存语义。
+        """
         file_path = self._get_file_path(key)
 
+        # 锁内只做大小检查与必要的淘汰（涉及目录遍历，需互斥）
         with self._lock:
-            # 检查大小限制
             if self._get_total_size() > self.max_size_bytes:
                 self._evict_oldest()
 
-            data = {
-                'key': key,
-                'value': value,
-                'timestamp': time.time(),
-                'ttl_seconds': ttl_seconds
-            }
+        # 锁外执行磁盘写入
+        data = {
+            'key': key,
+            'value': value,
+            'timestamp': time.time(),
+            'ttl_seconds': ttl_seconds
+        }
 
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f)
-            except Exception as e:
-                logger.error(log_dict({'module_name': 'multi_level_cache', 'action': 'log', 'msg': f'[DiskCache] 写入失败: {e}'}))
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f)
+        except Exception as e:
+            logger.error(log_dict({'module_name': 'multi_level_cache', 'action': 'log', 'msg': f'[DiskCache] 写入失败: {e}'}))
 
     def delete(self, key: str):
         """删除缓存"""
