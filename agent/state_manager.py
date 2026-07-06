@@ -525,7 +525,7 @@ class StateManager:
                 for handler in target_logger.handlers:
                     handler.setLevel(level_constant)
             
-            logger.info(log_dict({'module_name': 'state_manager', 'action': 'logger_name', 'msg': f'日志级别已调整: {logger_name or 'root'} 从 {old_level} 改为 {level.upper()}'}))
+            logger.info(log_dict({'module_name': 'state_manager', 'action': 'logger_name', 'msg': f'日志级别已调整: {logger_name or "root"} 从 {old_level} 改为 {level.upper()}'}))
             return True
         
         except Exception as e:
