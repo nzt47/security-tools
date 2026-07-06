@@ -31,12 +31,8 @@ from enum import Enum
 from agent.monitoring.tracing import get_trace_id, set_trace_id
 from agent.logging_utils import log_dict
 
-try:
-    from agent.error_handler import get_error_handler
-    _ERROR_HANDLER_AVAILABLE = True
-except ImportError:
-    _ERROR_HANDLER_AVAILABLE = False
-    logging.warning("[Heal] error_handler 模块不可用")
+from agent.error_handler import get_error_handler
+_ERROR_HANDLER_AVAILABLE = True
 
 logger = logging.getLogger(__name__)
 

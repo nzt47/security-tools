@@ -31,6 +31,7 @@ except ImportError:
     logger.warning(log_dict({'module_name': 'prometheus', 'action': 'prometheus_client.not.installed', 'msg': '[WARN] prometheus_client not installed, Prometheus export disabled'}))
     _PROMETHEUS_AVAILABLE = False
 
+<<<<<<< HEAD
 try:
     from agent.error_handler import (
         YunshuError,
@@ -50,6 +51,23 @@ try:
 except ImportError:
     logger.warning(log_dict({'module_name': 'prometheus', 'action': 'error_handler.module.not', 'msg': '[WARN] error_handler module not available, error handling disabled'}))
     _ERROR_HANDLER_AVAILABLE = False
+=======
+from agent.error_handler import (
+    YunshuError,
+    RecoverableError,
+    TemporaryNetworkError,
+    ExternalServiceError,
+    DataInvalidError,
+    ErrorSeverity,
+    ErrorCategory,
+    CircuitBreaker,
+    RetryPolicy,
+    ErrorHandler,
+    get_error_handler,
+    with_retry,
+)
+_ERROR_HANDLER_AVAILABLE = True
+>>>>>>> d91f79c2
 
 
 class PrometheusMetricsExporter:

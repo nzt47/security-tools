@@ -37,6 +37,17 @@ from agent.orchestrator.message_handler import MessageHandler
 from agent.orchestrator.response_builder import ResponseBuilder, Response
 import uuid
 from agent.logging_utils import log_dict
+<<<<<<< HEAD
+=======
+
+# tool_calling 和 tool_router 无循环依赖，直接模块级导入（替代原 5 处方法体内延迟导入）
+from agent.tool_calling import (
+    ToolCallingService,
+    _summarize_tool_result,
+    _clean_for_json,
+)
+from agent.tool_router import get_tools_for_input
+>>>>>>> d91f79c2
 
 logger = logging.getLogger(__name__)
 
@@ -518,6 +529,48 @@ class Orchestrator:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._check_context_usage.log', 'message': '检查上下文使用率时出错: %s' % (e,)}))
             return None
 
+    @staticmethod
+    def _extract_keywords(text: str, max_keywords: int = 3) -> list:
+        """从文本中提取关键词
+
+        规则：
+        - 空字符串/纯特殊字符 → []
+        - 短句（≤4字）→ 整体作为一个关键词
+        - 长句 → 按标点/空格分割，过滤停用词与过短片段，去重
+        """
+        if not text or not text.strip():
+            return []
+
+        # 纯特殊字符（无中文/字母数字）→ []
+        if not _re.search(r'[\w\u4e00-\u9fff]', text):
+            return []
+
+        # 短句（≤4个字符）→ 整体作为关键词
+        if len(text) <= 4:
+            return [text]
+
+        # 长句 → 按标点/空格分割
+        segments = _re.split(r'[，。！？；：、,.\!?;:\s]+', text)
+        stopwords = {'帮我', '一下', '这个', '的', '了', '是', '在', '我',
+                     '你', '他', '她', '它', '和', '与', '及', '并', '而'}
+        keywords = []
+        for seg in segments:
+            seg = seg.strip()
+            if not seg or len(seg) < 2:
+                continue
+            if seg in stopwords:
+                continue
+            if seg not in keywords:
+                keywords.append(seg)
+            if len(keywords) >= max_keywords:
+                break
+
+        # 无标点长句分割后只有一个片段 → 直接返回
+        if not keywords:
+            return [text]
+
+        return keywords[:max_keywords]
+
     # ════════════════════════════════════════════════════════════════════
     #  LLM 调用
     # ════════════════════════════════════════════════════════════════════
@@ -649,11 +702,9 @@ class Orchestrator:
                 self._current_tool_steps = []
 
                 from agent import tools as _tools
-                from agent.tool_calling import _summarize_tool_result, _clean_for_json
                 _whitelist = self._get_enabled_tools_whitelist()
                 if self._is_smart_tool_selection_enabled():
                     try:
-                        from agent.tool_router import get_tools_for_input
                         _smart_tools = get_tools_for_input(user_input, _whitelist)
                         if _smart_tools:
                             _whitelist = _smart_tools
@@ -718,8 +769,7 @@ class Orchestrator:
                         _xml_tools = []
                         if _msg.content and _re.search(r'<[^>]*tool_calls[^>]*>', _msg.content):
                             try:
-                                from agent.tool_calling import ToolCallingService as _TCSvc
-                                _xml_tools = _TCSvc._extract_xml_tool_calls(_msg.content)
+                                _xml_tools = ToolCallingService._extract_xml_tool_calls(_msg.content)
                             except Exception as _xml_e:
                                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] XML 工具提取失败: %s' % (_xml_e,)}))
                         if _xml_tools:
@@ -867,7 +917,6 @@ class Orchestrator:
                     tools_whitelist = self._get_enabled_tools_whitelist()
                     if self._is_smart_tool_selection_enabled():
                         try:
-                            from agent.tool_router import get_tools_for_input
                             _smart = get_tools_for_input(user_input, tools_whitelist)
                             if _smart:
                                 tools_whitelist = _smart
@@ -880,7 +929,10 @@ class Orchestrator:
 
                     if _use_pro and self._llm_pro:
                         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[调度] %s → 深度模型处理' % (user_input[:20],)}))
+<<<<<<< HEAD
                         from agent.tool_calling import ToolCallingService
+=======
+>>>>>>> d91f79c2
                         _tc_pro = ToolCallingService(
                             llm_service=self._llm_pro,
                             max_rounds=self._tool_calling_service._max_rounds,

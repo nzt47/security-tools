@@ -166,7 +166,17 @@ class LifecycleManager:
             logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._check_module_availability.log', 'message': '   - %s: %s' % (name, status)}))
 
     def _configure_v2_features(self):
+<<<<<<< HEAD
         """配置 V2 功能开关"""
+=======
+        """配置 V2 功能开关
+
+        综合三个条件决定 V2 功能是否启用：
+        1. 用户配置请求（features.v2_xxx）
+        2. 模块可用性（_LIFETRACE_AVAILABLE / _PERSONA_AVAILABLE）
+        3. UI 配置节开关（is_section_enabled，配置模块异常时默认启用）
+        """
+>>>>>>> d91f79c2
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._configure_v2_features.v2', 'message': '[V2] V2 功能配置:'}))
         features = self._config.get("features", {})
         requested_lifetrace = features.get("v2_lifetrace", False)
@@ -175,10 +185,24 @@ class LifecycleManager:
 
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._configure_v2_features.v2_lifetrace', 'message': '  请求: v2_lifetrace=%s, v2_persona=%s, v2_distillation=%s' % (requested_lifetrace, requested_persona, requested_distillation)}))
 
-        self._v2_lifetrace = requested_lifetrace and _LIFETRACE_AVAILABLE
-        self._v2_persona = requested_persona and _PERSONA_AVAILABLE
-        self._v2_distillation = requested_distillation and _PERSONA_AVAILABLE
+        # 查询 UI 配置节开关；配置模块异常时默认启用（不阻塞 V2 功能）
+        try:
+            from agent.system_prompt_config import is_section_enabled
+            lifetrace_section_enabled = is_section_enabled("lifetrace", default=True)
+            persona_section_enabled = is_section_enabled("persona", default=True)
+            distillation_section_enabled = is_section_enabled("distillation", default=True)
+        except Exception:
+            lifetrace_section_enabled = True
+            persona_section_enabled = True
+            distillation_section_enabled = True
 
+<<<<<<< HEAD
+=======
+        self._v2_lifetrace = requested_lifetrace and _LIFETRACE_AVAILABLE and lifetrace_section_enabled
+        self._v2_persona = requested_persona and _PERSONA_AVAILABLE and persona_section_enabled
+        self._v2_distillation = requested_distillation and _PERSONA_AVAILABLE and distillation_section_enabled
+
+>>>>>>> d91f79c2
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._configure_v2_features.v2_lifetrace', 'message': '  实际: v2_lifetrace=%s, v2_persona=%s, v2_distillation=%s' % (self._v2_lifetrace, self._v2_persona, self._v2_distillation)}))
 
         if requested_lifetrace and not _LIFETRACE_AVAILABLE:

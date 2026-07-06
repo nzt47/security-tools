@@ -36,13 +36,6 @@ except ImportError:
     _METRICS_AVAILABLE = False
     logging.warning("[Alert] metrics 模块不可用")
 
-try:
-    from agent.error_handler import get_error_handler, YunshuError, ErrorCategory
-    _ERROR_HANDLER_AVAILABLE = True
-except ImportError:
-    _ERROR_HANDLER_AVAILABLE = False
-    logging.warning("[Alert] error_handler 模块不可用")
-
 logger = logging.getLogger(__name__)
 
 
