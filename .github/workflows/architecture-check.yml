@@ -92,6 +92,18 @@ jobs:
           echo "exit_code=$EXIT_CODE"
           if [ $EXIT_CODE -ne 0 ]; then
             echo "::error::架构规则校验失败，存在未豁免违规。请修复违规或登记豁免。"
+            echo ""
+            echo "═══════════════════════════════════════════════════════════"
+            echo "=== 详细违规报告（Markdown）==="
+            echo "═══════════════════════════════════════════════════════════"
+            cat docs/architecture/arch_rules_report.md 2>/dev/null || echo "(Markdown 报告文件不存在)"
+            echo ""
+            echo "═══════════════════════════════════════════════════════════"
+            echo "=== 详细违规报告（JSON）==="
+            echo "═══════════════════════════════════════════════════════════"
+            cat docs/architecture/arch_rules_report.json 2>/dev/null || echo "(JSON 报告文件不存在)"
+            echo ""
+            echo "═══════════════════════════════════════════════════════════"
             exit 1
           fi
           echo "::notice::架构规则校验通过"
