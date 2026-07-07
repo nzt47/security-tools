@@ -503,6 +503,37 @@ class FileReporter(BaseReporter):
             self.file_path.rename(self.file_path.with_suffix('.1.log'))
 
 
+class SentryReporter(BaseReporter):
+    """Sentry/GlitchTip 上报器
+
+    通过 agent.error_reporting_config.capture_error 将错误上报到 Sentry/GlitchTip。
+    - enabled=False 或 level 低于 min_level 时跳过
+    - is_sentry_enabled() 返回 False（未初始化）时跳过
+    - capture_error 抛异常时不传播，返回 False
+    """
+
+    def send(self, report: ErrorReport) -> bool:
+        if not self.should_report(AlertLevel(report.level)):
+            return False
+
+        from agent.error_reporting_config import capture_error, is_sentry_enabled
+        if not is_sentry_enabled():
+            return False
+
+        try:
+            error = Exception(f"{report.error_type}: {report.error_message}")
+            result = capture_error(
+                error=error,
+                level=report.level,
+                context=report.context,
+                trace_id=report.trace_id,
+                user_id=report.user_id,
+            )
+            return result is not None
+        except Exception:
+            return False
+
+
 class ErrorReporter:
     """错误上报管理器"""
     
