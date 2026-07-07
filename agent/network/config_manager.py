@@ -246,7 +246,7 @@ class NetworkConfigManager:
         for instance in self._cache.get('llm_instances', []):
             if not instance.get('id'):
                 instance["id"] = str(uuid.uuid4())
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 为实例 {instance.get('name')} 自动生成 ID: {instance["id"]}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 为实例 {instance.get("name")} 自动生成 ID: {instance["id"]}'}))
 
     def _save(self, data: dict):
         """保存网络配置到文件"""
@@ -780,7 +780,7 @@ class NetworkConfigManager:
         """添加 LLM 实例"""
         import datetime
         
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 开始添加 LLM 实例: name={instance.get('name')}, provider={instance.get('provider')}'}))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 开始添加 LLM 实例: name={instance.get("name")}, provider={instance.get("provider")}'}))
         
         new_instance = deepcopy(_DEFAULT_LLM_INSTANCE)
         new_instance.update(instance)
@@ -788,7 +788,7 @@ class NetworkConfigManager:
         new_instance["created_at"] = datetime.datetime.now().isoformat()
         new_instance["updated_at"] = new_instance["created_at"]
         
-        logger.debug(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] LLM 实例初始化完成: id={new_instance["id"]}, model={new_instance.get('model')}'}))
+        logger.debug(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] LLM 实例初始化完成: id={new_instance["id"]}, model={new_instance.get("model")}'}))
 
         config = self._load()
         
@@ -808,7 +808,7 @@ class NetworkConfigManager:
         self._save(config)
         self._add_change_log('add', 'llm_instance', {'id': new_instance["id"], 'name': new_instance["name"]})
 
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 已成功添加 LLM 实例: id={new_instance["id"]}, name={new_instance["name"]}, provider={new_instance.get('provider')}'}))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 已成功添加 LLM 实例: id={new_instance["id"]}, name={new_instance["name"]}, provider={new_instance.get("provider")}'}))
         return self.get_llm_instance(new_instance["id"])
 
     def update_llm_instance(self, instance_id: str, updates: dict) -> Optional[dict]:
@@ -849,7 +849,7 @@ class NetworkConfigManager:
                 self._save(config)
                 self._add_change_log('update', 'llm_instance', {'id': actual_id, 'name': instance.get('name')})
                 
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get('name')}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get("name")}'}))
                 return self.get_llm_instance(actual_id)
         
         logger.warning(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 更新 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
@@ -919,7 +919,7 @@ class NetworkConfigManager:
         
         # 获取实际的实例 ID（优先使用 UUID，如果没有则使用名称）
         actual_id = instance_found.get('id') or instance_found.get('name')
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 找到实例: name={instance_found.get('name')}, actual_id={actual_id}'}))
+        logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 找到实例: name={instance_found.get("name")}, actual_id={actual_id}'}))
         
         # 更新所有实例的 is_default 标记
         for instance in config.get('llm_instances', []):
@@ -1058,10 +1058,10 @@ class NetworkConfigManager:
 
                 app_instance._web_search.update_config(update_config)
                 logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': '[网络配置] [即时生效] 搜索引擎配置已更新:'}))
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 默认引擎: {search_config.get('default_engine')}'}))
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 优先级: {search_config.get('engine_priority')}'}))
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 超时: {search_config.get('timeout')}s'}))
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 启用状态: {search_config.get('engine_enabled')}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 默认引擎: {search_config.get("default_engine")}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 优先级: {search_config.get("engine_priority")}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 超时: {search_config.get("timeout")}s'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'  - 启用状态: {search_config.get("engine_enabled")}'}))
             else:
                 logger.warning(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': '[网络配置] 应用实例无 _web_search 属性，跳过搜索引擎配置应用'}))
         except Exception as e:
