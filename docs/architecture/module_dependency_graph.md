@@ -29,10 +29,11 @@ flowchart LR
     subgraph core [core]
         agent_api_gateway["agent.api_gateway"]
         agent_async_executor["agent.async_executor"]:::crosslayer
-        agent_behavior_controller["agent.behavior_controller"]
+        agent_behavior_controller["agent.behavior_controller"]:::crosslayer
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
         agent_compression_tools["agent.compression_tools"]:::crosslayer
+        agent_config_validation["agent.config_validation"]:::crosslayer
         agent_data_analytics["agent.data_analytics"]
         agent_data_process_tools["agent.data_process_tools"]:::crosslayer
         agent_diagram_tools["agent.diagram_tools"]:::crosslayer
@@ -367,6 +368,8 @@ flowchart LR
     agent_digital_life_persona -.-> agent_extensions_store
     agent_digital_life_persona -.-> agent_extensions_base
     agent_scheduling --> agent_logging_utils
+    agent_network_config --> agent_logging_utils
+    agent_network_config -.-> agent_tools
     agent_digital_life_state --> agent_state_manager
     agent_digital_life_state --> agent_logging_utils
     agent_digital_life_state --> agent_p6_snapshot
@@ -471,6 +474,8 @@ flowchart LR
     agent_extensions_mcp_installer --> agent_extensions_installer
     agent_extensions_mcp_installer --> agent_extensions_store
     agent_extensions_mcp_installer -.-> agent_logging_utils
+    agent_extensions_security_checker -.-> agent_logging_utils
+    agent_extensions_security_checker --> agent_extensions_base
     agent_log_system_optimized_storage -.-> agent_logging_utils
     agent_log_system_safe_logger -.-> agent_utils_sensitive_data_filter
     agent_log_system_handlers -.-> agent_logging_utils
@@ -618,6 +623,7 @@ flowchart LR
     agent_server_routes_routes_config -.-> agent_network_config
     agent_server_routes_routes_config --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_config -.-> agent_logging_utils
+    agent_server_routes_routes_config -.-> agent_config_validation
     agent_server_routes_routes_config -.-> agent_tools
     agent_server_routes_extensions -.-> agent_server_auth
     agent_server_routes_routes_sessions -.-> agent_server_auth
@@ -791,9 +797,16 @@ flowchart LR
     agent_p6 --> agent_p6_snapshot
     agent_p6 --> agent_p6_performance
     agent_p6 --> agent_p6_frequency
+    agent_p6_snapshot --> agent_p6_performance
+    agent_p6_snapshot --> agent_p6_frequency
+    agent_p6_snapshot -.-> agent_logging_utils
+    agent_p6_snapshot -.-> agent_behavior_controller
     agent_p6_observability -.-> agent_monitoring_business_metrics
     agent_network --> agent_network_config_manager
     agent_network --> agent_network_config_validator
+    agent_network_config_manager --> agent_network_config_validator
+    agent_network_config_manager -.-> agent_logging_utils
+    agent_network_config_manager -.-> agent_tools
     agent_network_observability -.-> agent_monitoring_business_metrics
     agent_audit --> agent_audit_logger
     agent_audit_logger -.-> agent_observability_tracer
@@ -858,10 +871,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 314
-- 模块节点数: 252
-- 依赖边数: 530
-- 跨层调用数: 334
+- 扫描文件数: 315
+- 模块节点数: 253
+- 依赖边数: 542
+- 跨层调用数: 341
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1095.72 ms
+- 构建耗时: 1132.20 ms

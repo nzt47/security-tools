@@ -1,5 +1,5 @@
 {
-  "trace_id": "135fbfc12d8e4488",
+  "trace_id": "3f3c963dafcf4a1f",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 63,
+      "in_degree": 67,
       "out_degree": 1
     },
     {
@@ -327,7 +327,7 @@
       "name": "behavior_controller",
       "layer": "core",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 0
     },
     {
@@ -335,7 +335,7 @@
       "name": "tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 11,
       "out_degree": 1
     },
     {
@@ -359,7 +359,7 @@
       "name": "base",
       "layer": "extensions",
       "file_path": "",
-      "in_degree": 14,
+      "in_degree": 15,
       "out_degree": 0
     },
     {
@@ -369,6 +369,14 @@
       "file_path": "agent/scheduling.py",
       "in_degree": 6,
       "out_degree": 1
+    },
+    {
+      "path": "agent.network_config",
+      "name": "network_config",
+      "layer": "core",
+      "file_path": "agent/network_config.py",
+      "in_degree": 3,
+      "out_degree": 2
     },
     {
       "path": "agent.digital_life_state",
@@ -784,7 +792,7 @@
       "layer": "extensions",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 0
+      "out_degree": 2
     },
     {
       "path": "agent.extensions.observability",
@@ -1256,14 +1264,14 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_config.py",
       "in_degree": 0,
-      "out_degree": 5
+      "out_degree": 6
     },
     {
-      "path": "agent.network_config",
-      "name": "network_config",
+      "path": "agent.config_validation",
+      "name": "config_validation",
       "layer": "core",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 1,
       "out_degree": 0
     },
     {
@@ -1808,14 +1816,14 @@
       "layer": "p6",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 4
     },
     {
       "path": "agent.p6.performance",
       "name": "performance",
       "layer": "p6",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 0
     },
     {
@@ -1823,7 +1831,7 @@
       "name": "frequency",
       "layer": "p6",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 0
     },
     {
@@ -1848,14 +1856,14 @@
       "layer": "network",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 3
     },
     {
       "path": "agent.network.config_validator",
       "name": "config_validator",
       "layer": "network",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 0
     },
     {
@@ -2627,6 +2635,32 @@
       "line": 25,
       "source_file": "agent/scheduling.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network_config",
+      "target": "agent.logging_utils",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 28,
+      "source_file": "agent/network_config.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network_config",
+      "target": "agent.tools",
+      "source_layer": "core",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 696,
+      "source_file": "agent/network_config.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -3979,6 +4013,32 @@
       "line": 27,
       "source_file": "agent/extensions/mcp_installer.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_checker",
+      "target": "agent.logging_utils",
+      "source_layer": "extensions",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/extensions/security_checker.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_checker",
+      "target": "agent.extensions.base",
+      "source_layer": "extensions",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 297,
+      "source_file": "agent/extensions/security_checker.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -5848,7 +5908,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 9,
+      "line": 10,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5861,7 +5921,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 10,
+      "line": 11,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5874,7 +5934,7 @@
       "source_layer": "server_routes",
       "target_layer": "server_routes",
       "import_type": "from_import",
-      "line": 11,
+      "line": 12,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5887,7 +5947,20 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 12,
+      "line": 13,
+      "source_file": "agent/server_routes/routes_config.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_config",
+      "target": "agent.config_validation",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 14,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5900,7 +5973,7 @@
       "source_layer": "server_routes",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 564,
+      "line": 575,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8144,6 +8217,58 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.p6.snapshot",
+      "target": "agent.p6.performance",
+      "source_layer": "p6",
+      "target_layer": "p6",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/p6/snapshot.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.p6.snapshot",
+      "target": "agent.p6.frequency",
+      "source_layer": "p6",
+      "target_layer": "p6",
+      "import_type": "from_import",
+      "line": 34,
+      "source_file": "agent/p6/snapshot.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.p6.snapshot",
+      "target": "agent.logging_utils",
+      "source_layer": "p6",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 35,
+      "source_file": "agent/p6/snapshot.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.p6.snapshot",
+      "target": "agent.behavior_controller",
+      "source_layer": "p6",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 737,
+      "source_file": "agent/p6/snapshot.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.p6.observability",
       "target": "agent.monitoring.business_metrics",
       "source_layer": "p6",
@@ -8178,6 +8303,45 @@
       "line": 10,
       "source_file": "agent/network/__init__.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network.config_manager",
+      "target": "agent.network.config_validator",
+      "source_layer": "network",
+      "target_layer": "network",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/network/config_manager.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network.config_manager",
+      "target": "agent.logging_utils",
+      "source_layer": "network",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/network/config_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network.config_manager",
+      "target": "agent.tools",
+      "source_layer": "network",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 659,
+      "source_file": "agent/network/config_manager.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -8912,14 +9076,14 @@
     }
   ],
   "stats": {
-    "total_files": 314,
-    "total_nodes": 252,
-    "total_edges": 530,
-    "cross_layer_edges": 334,
+    "total_files": 315,
+    "total_nodes": 253,
+    "total_edges": 542,
+    "cross_layer_edges": 341,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 52,
+      "core": 53,
       "unknown": 1,
       "response_workflows": 1,
       "utils": 4,
@@ -8952,6 +9116,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1095.7170220000023
+    "build_duration_ms": 1132.20149
   }
 }
