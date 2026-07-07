@@ -174,6 +174,32 @@ python -m pytest tests/unit/test_system_tools.py -v
 python -m pytest tests/unit/ --cov=agent --cov-report=html -p no:cacheprovider
 ```
 
+### 当前测试状态（2026-07-07 批量测试）
+
+使用批量测试脚本（`scripts/run_tests_batched.py`）逐文件运行全量单元测试，单文件超时 120 秒：
+
+| 指标 | 数值 |
+|------|------|
+| 测试文件总数 | 214 |
+| 已运行文件 | 211（跳过 3 个已知死锁文件） |
+| 文件通过 | 185（87.7%） |
+| 文件失败 | 26（均为预存在问题） |
+| 用例通过 | 7255 / 7478（97.0%） |
+
+**跳过的已知死锁文件**（`pytest-timeout` 的 thread 方法在 Windows 上无法杀死死锁线程）：
+- `test_context_engineering.py` — `system_tools.py:118` `exec()` 线程卡死
+- `test_caching_multi_level.py` — 锁死锁
+- `test_dependency_graph.py` — 锁死锁
+
+**26 个失败文件均为预存在问题**，与配置校验重构无关，主要分类：
+- SearchEngine 初始化问题（默认引擎为空、缺少 `bing` 键）— 7 个用例
+- OpenTelemetry API 变更（`_OPENTELEMETRY_AVAILABLE`、`_init_opentelemetry` 属性缺失）— 6 个用例
+- Selenium/Chrome 浏览器驱动不可用 — 89 个用例
+- TaskScheduler API 变更（`start` 方法缺失、`type` 键变更、cron 逻辑）— 23 个用例
+- 其他模块预存在问题（PDF 工具、文本工具、内存向量存储等）
+
+**详细报告**：[docs/test_reports/batch_test_report_20260707.md](docs/test_reports/batch_test_report_20260707.md)
+
 ### 三大核心模块 80%+ 覆盖率
 
 | 模块 | 覆盖率 | 目标 | 状态 | 测试文件 |
