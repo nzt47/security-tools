@@ -217,6 +217,10 @@ class Skill(BaseModel):
         default_factory=dict,
         description="参数 JSON Schema (用于校验 default_params)"
     )
+    output_schema: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="输出 JSON Schema (用于 ExecutionResult 后置验证门控)"
+    )
     default_params: Dict[str, Any] = Field(default_factory=dict)
     dependencies: List[Union[str, Dict[str, Any]]] = Field(
         default_factory=list,

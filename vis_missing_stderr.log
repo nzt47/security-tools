@@ -1,1 +1,0 @@
-09:04:17 [    INFO] visibility_report             : {"trace_id": "8c65d7ab32c54d27", "module_name": "visibility_report", "action": "generate.complete", "duration_ms": 1346.44, "overall_status": "fail", "violations_count": 4}
