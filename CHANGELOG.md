@@ -6,6 +6,44 @@
 
 ---
 
+## [重构] - 2026-07-07 配置校验统一重构 & 回归测试验证
+
+### Changed — 搜索实例校验逻辑统一
+- **agent/config_validation.py**（新增）：共享声明式校验基础设施
+  - `ValidationRule` 数据类 + 验证器工厂（range/choice/bool/path/url/non_empty_string）
+  - `validate_dict_against_rules` 辅助函数
+  - `SEARCH_INSTANCE_VALIDATION_RULES` 规则集
+- **agent/server_routes/routes_config.py**（修改）：
+  - `validate_search_instance` 改用声明式规则集校验 name/timeout
+  - 添加 `time.perf_counter()` 校验耗时日志（debug 级别）
+  - 条件逻辑（engine_type 枚举/api_endpoint 条件必填）保留在包装函数中
+- **app_server.py**（修改）：
+  - 消除重复的 `_validate_search_instance` 副本，改为从 routes_config 导入
+  - **附带修复**：原副本缺失"未知引擎类型"检查，导致 app_server 端点接受未知引擎类型
+
+### Added — 测试与文档
+- **tests/unit/test_search_instance_validation.py**：71 个边界测试
+- **scripts/run_tests_batched.py**：批量测试脚本（逐文件运行，单文件超时控制）
+- **docs/reviews/search_instance_validation_unification_review.md**：技术决策文档
+- **docs/reviews/refactor_regression_test_final_report.md**：回归测试最终报告
+- **docs/test_reports/batch_test_report_20260707.md**：批量测试详细报告
+
+### Verified — 回归测试无回归
+- **重构相关测试**：82 个全部通过（71 新增 + 11 现有回归）
+- **全量批量测试**：211 文件运行，185 通过，7255/7478 用例通过（97.0%）
+- **26 个失败文件**：全部为预存在问题（Selenium 驱动、TaskScheduler API 变更、OpenTelemetry API 变更等），与本次重构无关
+- **3 个已知死锁文件跳过**：test_context_engineering.py、test_caching_multi_level.py、test_dependency_graph.py
+
+### 架构影响
+| 路径 | 重构前 | 重构后 |
+|------|--------|--------|
+| 校验逻辑分布 | routes_config.py + app_server.py（重复副本） | config_validation.py（共享）+ routes_config.py（包装） |
+| 校验规则定义 | 命令式 if/else 内联 | 声明式 ValidationRule 数据类 |
+| 校验耗时可观测性 | 无 | perf_counter 计时 + debug 日志 |
+| app_server 未知引擎检查 | 缺失（bug） | 已修复（通过导入统一逻辑） |
+
+---
+
 ## [DI 重构] - 2026-07-05 切断 monitoring → error_handler 模块级硬依赖（循环依赖残留侧）
 
 ### 背景
