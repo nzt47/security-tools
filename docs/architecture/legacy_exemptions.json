@@ -2,7 +2,7 @@
   "description": "架构规则校验存量豁免清单",
   "purpose": "对存量代码中已知的架构违规进行豁免，仅对新增代码强制执行架构规则。新增违规不在此清单中将被阻断合并。",
   "created_at": "2026-06-26",
-  "last_updated": "2026-07-06",
+  "last_updated": "2026-07-07",
   "exemptions": [
     {
       "rule_id": "no_circular_dependency",
@@ -63,6 +63,16 @@
       "owner": "observability-team",
       "tech_debt_ticket": "ARCH-DEBT-006",
       "mitigation": "error_handler.py:339 使用函数内延迟 import，运行期不会触发循环。后续应将默认重试次数作为参数传入 RetryPolicy。"
+    },
+    {
+      "rule_id": "no_circular_dependency",
+      "source": "agent.monitoring.prometheus",
+      "target": "agent.error_handler",
+      "reason": "重试策略延迟导入：prometheus.py 在 execute_with_error_handling 等方法内延迟 import RetryPolicy/YunshuError/CircuitBreaker/get_error_handler，运行时安全。arch_rules 静态分析检测到 from 语句。与 ARCH-DEBT-003~006 同源（延迟导入修复），CI 在 Linux 环境检测到此循环但本地 Windows 未检测到（依赖图构建差异）。",
+      "added_at": "2026-07-07",
+      "owner": "observability-team",
+      "tech_debt_ticket": "ARCH-DEBT-007",
+      "mitigation": "prometheus.py:291/242/146/68/53/350 共 7 处函数内延迟 import（from agent.error_handler import ...），运行期不会触发循环。后续应通过依赖注入将 RetryPolicy/ErrorHandler 实例作为参数传入 PrometheusMetricsExporter，彻底消除 prometheus→error_handler 静态依赖边。"
     }
   ],
   "guidelines": [
