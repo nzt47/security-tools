@@ -1,5 +1,5 @@
 {
-  "trace_id": "ce2c0a88cae94272",
+  "trace_id": "fc5e34a84cff4072",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 59,
+      "in_degree": 60,
       "out_degree": 1
     },
     {
@@ -143,7 +143,7 @@
       "name": "observability_config",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 24,
+      "in_degree": 30,
       "out_degree": 3
     },
     {
@@ -271,7 +271,7 @@
       "name": "weekly_report_generator",
       "layer": "core",
       "file_path": "agent/weekly_report_generator.py",
-      "in_degree": 0,
+      "in_degree": 1,
       "out_degree": 2
     },
     {
@@ -377,6 +377,14 @@
       "file_path": "agent/software_backends.py",
       "in_degree": 1,
       "out_degree": 1
+    },
+    {
+      "path": "agent.task_scheduler",
+      "name": "task_scheduler",
+      "layer": "core",
+      "file_path": "agent/task_scheduler.py",
+      "in_degree": 5,
+      "out_degree": 8
     },
     {
       "path": "agent.api_gateway",
@@ -1000,14 +1008,6 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 19,
-      "out_degree": 0
-    },
-    {
-      "path": "agent.task_scheduler",
-      "name": "task_scheduler",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 5,
       "out_degree": 0
     },
     {
@@ -2668,6 +2668,110 @@
       "line": 7,
       "source_file": "agent/software_backends.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.logging_utils",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 24,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.weekly_report_generator",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 452,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 298,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 350,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 249,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 160,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 200,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 414,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -8682,8 +8786,8 @@
   "stats": {
     "total_files": 314,
     "total_nodes": 249,
-    "total_edges": 514,
-    "cross_layer_edges": 322,
+    "total_edges": 522,
+    "cross_layer_edges": 328,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -8720,6 +8824,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1085.1211180000178
+    "build_duration_ms": 1012.7040229999977
   }
 }
