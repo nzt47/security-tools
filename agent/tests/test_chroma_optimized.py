@@ -143,7 +143,7 @@ class TestCacheMechanism:
 
         # 添加 5 个条目
         for i in range(5):
-            cache.put(f"/path{i}", f"collection{i}", {'index': i})
+            cache.put(f"/path{i}", f"collection{i}", {"index": i})
 
         # 检查前两个应该被淘汰
         assert cache.get("/path0", "collection0") is None
@@ -570,3 +570,4 @@ def test_async_save_monitor_integration():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
