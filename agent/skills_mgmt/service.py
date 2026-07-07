@@ -56,6 +56,15 @@ class SkillsMgmtService:
         self.loader = SkillLoader(self.file_store)
         self.executor = SkillExecutor(self.file_store)
         self.injector = ContextInjector(self.loader)
+        self._mcp_adapter = None  # 延迟初始化 MCP 适配器
+
+    @property
+    def mcp_adapter(self):
+        """延迟初始化 MCP 适配器 (首次访问时创建)"""
+        if self._mcp_adapter is None:
+            from .mcp_adapter import McpSkillAdapter
+            self._mcp_adapter = McpSkillAdapter(self)
+        return self._mcp_adapter
 
     # ─── 创建 ───
 
