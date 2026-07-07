@@ -42,6 +42,8 @@ certifi==2026.5.20
     #   selenium
 cffi==2.0.0
     # via trio
+cryptography==44.0.0
+    # via config_secure (AES-GCM 加密)
 charset-normalizer==3.4.7
     # via requests
 chromadb==1.5.9
