@@ -108,7 +108,7 @@ def register_routes(app, state):
                 encoding=payload.get("encoding", "json"),
             )
         except ReplayStorageError as e:
-            logger.warning(log_dict({'module_name': 'routes_replay', 'action': 'code.code', 'msg': f'[ReplayAPI] 存储失败 code={e.code} replay_id={payload.get('replay_id')}: {e.message}'}))
+            logger.warning(log_dict({'module_name': 'routes_replay', 'action': 'code.code', 'msg': f'[ReplayAPI] 存储失败 code={e.code} replay_id={payload.get("replay_id")}: {e.message}'}))
             return jsonify({
                 "ok": False,
                 "error_code": e.code,
