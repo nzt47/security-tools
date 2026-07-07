@@ -279,7 +279,7 @@ if __name__ == "__main__":
     # 测试序列化器
     test_data = {
         "items": [
-            {"id": f"item_{i}", "content": f"测试内容 {i}" * 10, "metadata": {"index": i}}
+            {"id": f"item_{i}", "content": f"测试内容 {i}" * 10, "metadata": {'index': i}}
             for i in range(100)
         ],
         "total": 100,
