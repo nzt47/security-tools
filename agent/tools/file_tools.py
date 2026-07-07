@@ -615,7 +615,7 @@ def _get_single_file_info(path: str) -> dict:
             logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[_get_single_file_info] 读取符号链接目标失败: path={path}, error={e}'}))
             pass
 
-    logger.info(log_dict({'module_name': 'file_tools', 'action': 'type.info', 'msg': f'[_get_single_file_info] 文件信息获取完成: type={info['type']}, size={info['size']}'}))
+    logger.info(log_dict({'module_name': 'file_tools', 'action': 'type.info', 'msg': f'[_get_single_file_info] 文件信息获取完成: type={info["type"]}, size={info["size"]}'}))
     return info
 
 
