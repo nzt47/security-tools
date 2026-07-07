@@ -832,7 +832,7 @@ class NetworkConfigManager:
         # 检查名称是否重复
         if any(i["name"] == new_instance["name"] for i in config["llm_instances"]):
             logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {new_instance["name"]}'}))
-            raise ValueError(f"LLM 实例名称已存在: {new_instance["name"]}")
+            raise ValueError(f"LLM 实例名称已存在: {new_instance['name']}")
 
         # 加密保存 API Key
         api_key = new_instance.get('api_key', '')
@@ -870,7 +870,7 @@ class NetworkConfigManager:
                 if 'name' in updates:
                     if any(i["name"] == updates["name"] and (i.get('id') or i.get('name')) != actual_id for i in instances):
                         logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {updates["name"]}'}))
-                        raise ValueError(f"LLM 实例名称已存在: {updates["name"]}")
+                        raise ValueError(f"LLM 实例名称已存在: {updates['name']}")
 
                 # 处理 API Key 更新
                 api_key = updates.get('api_key', '')
@@ -999,7 +999,7 @@ class NetworkConfigManager:
         
         # 检查名称是否重复
         if any(s["name"] == new_service["name"] for s in config["mcp"].get('services', [])):
-            raise ValueError(f"MCP 服务名称已存在: {new_service["name"]}")
+            raise ValueError(f"MCP 服务名称已存在: {new_service['name']}")
 
         config["mcp"]["services"].append(new_service)
         self._save(config)
@@ -1020,7 +1020,7 @@ class NetworkConfigManager:
                 # 检查名称是否与其他服务重复
                 if 'name' in updates:
                     if any(s["name"] == updates["name"] and s["id"] != service_id for s in services):
-                        raise ValueError(f"MCP 服务名称已存在: {updates["name"]}")
+                        raise ValueError(f"MCP 服务名称已存在: {updates['name']}")
 
                 service.update(updates)
                 service["updated_at"] = datetime.datetime.now().isoformat()
