@@ -135,7 +135,7 @@ class TestChromaCache:
         cache = ChromaInitCache(max_size=3)
 
         for i in range(5):
-            cache.put(f"/path{i}", f"collection{i}", {"index": i})
+            cache.put(f"/path{i}", f"collection{i}", {'index': i})
 
         # 最早的两个应该被淘汰
         assert cache.get("/path0", "collection0") is None
