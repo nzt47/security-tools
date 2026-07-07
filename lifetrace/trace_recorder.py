@@ -37,7 +37,11 @@ class TraceRecorder:
 
         # 状态
         self.is_recording = False
-        self._lock = threading.Lock()
+        # 使用 RLock（可重入锁）避免回调重入死锁
+        # 历史问题：record_chat 持锁时触发 callbacks，若回调中再次调用 record_* 会死锁
+        # 同时 _auto_classify_topic 在持锁时调用 topic_tree.add_to_topic，
+        # 5 线程并发竞争 + CI 环境性能不足时易触发 pytest-timeout
+        self._lock = threading.RLock()
 
         logger.info("TraceRecorder 初始化完成")
 
