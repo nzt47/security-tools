@@ -51,7 +51,7 @@ def _check_skill_security(source: str, skill_name: str = "", description: str = 
     report = format_report(result)
     result["report"] = report
     
-    logger.info(log_dict({'module_name': 'security_check_skill', 'action': 'skill_info', 'msg': f'[安全检查技能] 已完成技能检查: {skill_info['name']}'}))
+    logger.info(log_dict({'module_name': 'security_check_skill', 'action': 'skill_info', 'msg': f'[安全检查技能] 已完成技能检查: {skill_info["name"]}'}))
     return result
 
 
