@@ -102,20 +102,16 @@ def _safe_get_trace_id() -> str:
     """安全获取当前线程上下文的 trace_id，无上下文时返回新的 uuid
 
     用于日志关联 OpenTelemetry 链路；失败不影响主流程。
+    tracing 模块不可用时返回空串（便于上层判空跳过链路关联）。
     """
     try:
-        # 优先从 contextvars 取（OpenTelemetry / loguru 等会注入）
-        try:
-            from contextvars import ContextVar
-            cv: Optional[ContextVar] = ContextVar("_yunshu_trace_id", default="")
-            tid = cv.get()
-            if tid:
-                return tid
-        except Exception:
-            pass
+        from agent.monitoring.tracing import get_trace_id
+        tid = get_trace_id()
+        if tid:
+            return tid
         return uuid.uuid4().hex
     except Exception:
-        return "no-trace"
+        return ""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -170,7 +166,7 @@ def get_config() -> Dict[str, Any]:
             "sample_rate": _parse_sample_rate(raw_sample_rate, 1.0, "SENTRY_SAMPLE_RATE"),
             "traces_sample_rate": _parse_sample_rate(raw_traces_rate, 0.0, "SENTRY_TRACES_SAMPLE_RATE"),
             "release": os.environ.get("SENTRY_RELEASE", ""),
-            "server_name": os.environ.get("SENTRY_SERVER_NAME", ""),
+            "server_name": os.environ.get("SENTRY_SERVER_NAME", "yunshu-backend"),
             "min_level": os.environ.get("SENTRY_MIN_LEVEL", "error"),
         },
     }
