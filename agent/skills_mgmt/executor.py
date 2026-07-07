@@ -39,7 +39,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .file_store import SkillFileStore
 from .observability import logger, emit_metric
@@ -67,7 +67,9 @@ class ExecutionResult:
                  duration_ms: float,
                  result: Any = None,
                  error: Optional[str] = None,
-                 timed_out: bool = False):
+                 timed_out: bool = False,
+                 validation_status: str = "skipped",
+                 validation_errors: Optional[List[Dict[str, Any]]] = None):
         self.skill_id = skill_id
         self.script_name = script_name
         self.success = success
@@ -78,6 +80,9 @@ class ExecutionResult:
         self.result = result  # 解析后的 JSON 结果（如脚本输出了 JSON）
         self.error = error
         self.timed_out = timed_out
+        # 输出后置验证门控: skipped | passed | failed
+        self.validation_status = validation_status
+        self.validation_errors = validation_errors or []
 
     def to_dict(self) -> Dict[str, Any]:
         d = {
@@ -97,6 +102,10 @@ class ExecutionResult:
             d["error"] = self.error
         if self.timed_out:
             d["timed_out"] = True
+        # 输出验证门控状态(末尾追加,不破坏现有字段顺序)
+        d["validation_status"] = self.validation_status
+        if self.validation_errors:
+            d["validation_errors"] = self.validation_errors
         # stderr 仅在失败时包含（调试用）
         if not self.success and self.stderr:
             d["stderr"] = self.stderr[-500:]
@@ -183,6 +192,9 @@ class SkillExecutor:
         # 通过 stdin 传递参数
         stdin_data = json.dumps(params, ensure_ascii=False)
 
+        # 预加载 output_schema(用于后置验证门控)
+        output_schema = self._load_output_schema(skill_id)
+
         logger.info(json.dumps({
             "trace_id": tid,
             "module_name": "executor",
@@ -191,6 +203,7 @@ class SkillExecutor:
             "script_name": script_name,
             "timeout": use_timeout,
             "params_keys": list(params.keys()),
+            "has_output_schema": bool(output_schema),
         }, ensure_ascii=False))
 
         try:
@@ -219,6 +232,16 @@ class SkillExecutor:
             if success and stdout:
                 result_data = self._extract_json(stdout)
 
+            # ── 输出后置验证门控 ──
+            validation_status = "skipped"
+            validation_errors: List[Dict[str, Any]] = []
+            if success and result_data is not None and output_schema:
+                validation_status, validation_errors = self._validate_output(
+                    result_data, output_schema, skill_id,
+                )
+                if validation_status == "failed":
+                    success = False
+
             # 记录执行结果
             logger.info(json.dumps({
                 "trace_id": tid,
@@ -231,6 +254,8 @@ class SkillExecutor:
                 "success": success,
                 "stdout_chars": len(stdout),
                 "stderr_chars": len(stderr),
+                "validation_status": validation_status,
+                "validation_errors_count": len(validation_errors),
             }, ensure_ascii=False))
 
             emit_metric("yunshu_skill_exec_latency_ms",
@@ -241,14 +266,24 @@ class SkillExecutor:
                         value=1, kind="counter",
                         labels={"skill_id": skill_id,
                                 "success": str(success).lower()})
+            emit_metric("yunshu_skill_validation_total",
+                        value=1, kind="counter",
+                        labels={"skill_id": skill_id,
+                                "status": validation_status})
 
             if not success:
+                error_msg = f"脚本退出码 {proc.returncode}"
+                if validation_status == "failed":
+                    error_msg += (f"; 输出 schema 校验失败"
+                                  f"({len(validation_errors)} 处)")
                 return ExecutionResult(
                     skill_id=skill_id, script_name=script_name,
                     success=False, exit_code=proc.returncode,
                     stdout=stdout, stderr=stderr,
                     duration_ms=elapsed,
-                    error=f"脚本退出码 {proc.returncode}",
+                    error=error_msg,
+                    validation_status=validation_status,
+                    validation_errors=validation_errors,
                 )
 
             return ExecutionResult(
@@ -257,6 +292,8 @@ class SkillExecutor:
                 stdout=stdout, stderr=stderr,
                 duration_ms=elapsed,
                 result=result_data,
+                validation_status=validation_status,
+                validation_errors=validation_errors,
             )
 
         except subprocess.TimeoutExpired as e:
@@ -343,6 +380,79 @@ class SkillExecutor:
             return json.loads(stdout.strip())
         except json.JSONDecodeError:
             return None
+
+    # ──────────────────────────────────────────────
+    #  输出 schema 后置验证门控
+    # ──────────────────────────────────────────────
+
+    def _load_output_schema(self, skill_id: str) -> Dict[str, Any]:
+        """从 skill.md front matter 加载 output_schema"""
+        try:
+            meta = self.fs.get_metadata(skill_id) or {}
+            schema = meta.get("output_schema") or {}
+            if schema and not isinstance(schema, dict):
+                logger.warning(
+                    "[Executor] skill=%s output_schema 非对象,跳过校验",
+                    skill_id,
+                )
+                return {}
+            return schema
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "[Executor] skill=%s 加载 output_schema 失败: %s",
+                skill_id, e,
+            )
+            return {}
+
+    def _validate_output(self, result: Any,
+                         schema: Dict[str, Any],
+                         skill_id: str) -> Tuple[str, List[Dict[str, Any]]]:
+        """校验脚本输出是否符合 output_schema
+
+        Returns:
+            (status, errors): status ∈ {passed, failed, skipped}
+        """
+        if not schema:
+            return "skipped", []
+
+        try:
+            import jsonschema
+        except ImportError:
+            logger.warning(
+                "[Executor] jsonschema 未安装,跳过输出校验 (skill=%s)",
+                skill_id,
+            )
+            return "skipped", []
+
+        try:
+            jsonschema.validate(instance=result, schema=schema)
+            logger.info(
+                "[Executor] skill=%s 输出 schema 校验通过",
+                skill_id,
+            )
+            return "passed", []
+        except jsonschema.ValidationError as e:
+            path = ".".join(str(p) for p in e.absolute_path) or "(root)"
+            errors = [{
+                "field": path,
+                "message": e.message,
+                "validator": e.validator,
+            }]
+            logger.warning(
+                "[Executor] skill=%s 输出 schema 校验失败 | path=%s | msg=%s",
+                skill_id, path, e.message,
+            )
+            return "failed", errors
+        except jsonschema.SchemaError as e:
+            logger.error(
+                "[Executor] skill=%s output_schema 本身非法: %s",
+                skill_id, e.message,
+            )
+            return "skipped", [{
+                "field": "(schema)",
+                "message": f"output_schema 非法: {e.message}",
+                "validator": "schema",
+            }]
 
     # ──────────────────────────────────────────────
     #  健康检查
