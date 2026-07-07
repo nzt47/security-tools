@@ -604,13 +604,13 @@ def _get_single_file_info(path: str) -> dict:
 
     if not is_dir:
         info["extension"] = os.path.splitext(path)[1].lower()
-        logger.debug(log_dict({'module_name': 'file_tools', 'action': 'extension.info', 'msg': f'[_get_single_file_info] 文件扩展名: extension={info['extension']}'}))
+        logger.debug(log_dict({'module_name': 'file_tools', 'action': 'extension.info', 'msg': f'[_get_single_file_info] 文件扩展名: extension={info["extension"]}'}))
 
     if is_link:
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'log', 'msg': f'[_get_single_file_info] 文件是符号链接，尝试读取目标'}))
         try:
             info["link_target"] = os.readlink(path)
-            logger.info(log_dict({'module_name': 'file_tools', 'action': 'link_target.info', 'msg': f'[_get_single_file_info] 符号链接目标: link_target={info['link_target']}'}))
+            logger.info(log_dict({'module_name': 'file_tools', 'action': 'link_target.info', 'msg': f'[_get_single_file_info] 符号链接目标: link_target={info["link_target"]}'}))
         except OSError as e:
             logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[_get_single_file_info] 读取符号链接目标失败: path={path}, error={e}'}))
             pass
