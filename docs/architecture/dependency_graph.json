@@ -1,5 +1,5 @@
 {
-  "trace_id": "fc5e34a84cff4072",
+  "trace_id": "135fbfc12d8e4488",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 60,
+      "in_degree": 63,
       "out_degree": 1
     },
     {
@@ -192,7 +192,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 1
     },
     {
       "path": "agent.tools.workspace_tools",
@@ -233,6 +233,22 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 0
+    },
+    {
+      "path": "agent.error_reporting_config",
+      "name": "error_reporting_config",
+      "layer": "core",
+      "file_path": "agent/error_reporting_config.py",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.monitoring.tracing",
+      "name": "tracing",
+      "layer": "monitoring",
+      "file_path": "",
+      "in_degree": 37,
+      "out_degree": 2
     },
     {
       "path": "agent.memory_optimized",
@@ -289,14 +305,6 @@
       "file_path": "agent/multi_tenant.py",
       "in_degree": 0,
       "out_degree": 1
-    },
-    {
-      "path": "agent.monitoring.tracing",
-      "name": "tracing",
-      "layer": "monitoring",
-      "file_path": "",
-      "in_degree": 36,
-      "out_degree": 2
     },
     {
       "path": "agent.llm_monitor",
@@ -763,6 +771,22 @@
       "out_degree": 2
     },
     {
+      "path": "agent.extensions.security_check_skill",
+      "name": "security_check_skill",
+      "layer": "extensions",
+      "file_path": "agent/extensions/security_check_skill.py",
+      "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.extensions.security_checker",
+      "name": "security_checker",
+      "layer": "extensions",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
       "path": "agent.extensions.observability",
       "name": "observability",
       "layer": "extensions",
@@ -1007,7 +1031,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "",
-      "in_degree": 19,
+      "in_degree": 20,
       "out_degree": 0
     },
     {
@@ -1175,16 +1199,8 @@
       "name": "replay_storage",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 1,
-      "out_degree": 1
-    },
-    {
-      "path": "agent.error_reporting_config",
-      "name": "error_reporting_config",
-      "layer": "core",
-      "file_path": "",
       "in_degree": 2,
-      "out_degree": 0
+      "out_degree": 1
     },
     {
       "path": "agent.monitoring.loki",
@@ -1215,6 +1231,14 @@
       "name": "routes_panorama",
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_panorama.py",
+      "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.server_routes.routes_replay",
+      "name": "routes_replay",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_replay.py",
       "in_degree": 0,
       "out_degree": 3
     },
@@ -2381,6 +2405,19 @@
       "import_type": "from_import",
       "line": 53,
       "source_file": "agent/system_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.error_reporting_config",
+      "target": "agent.monitoring.tracing",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 108,
+      "source_file": "agent/error_reporting_config.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -3812,6 +3849,45 @@
       "line": 31,
       "source_file": "agent/extensions/channels_installer.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_check_skill",
+      "target": "agent.extensions.security_checker",
+      "source_layer": "extensions",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 19,
+      "source_file": "agent/extensions/security_check_skill.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_check_skill",
+      "target": "agent.logging_utils",
+      "source_layer": "extensions",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/extensions/security_check_skill.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_check_skill",
+      "target": "agent.extensions.security_checker",
+      "source_layer": "extensions",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 172,
+      "source_file": "agent/extensions/security_check_skill.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -5593,6 +5669,45 @@
       "line": 6,
       "source_file": "agent/server_routes/routes_panorama.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_replay",
+      "target": "agent.server_auth",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 27,
+      "source_file": "agent/server_routes/routes_replay.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_replay",
+      "target": "agent.monitoring.replay_storage",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 28,
+      "source_file": "agent/server_routes/routes_replay.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_replay",
+      "target": "agent.logging_utils",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/server_routes/routes_replay.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -8679,6 +8794,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.file_tools",
+      "target": "agent.logging_utils",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 15,
+      "source_file": "agent/tools/file_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.observability",
       "target": "agent.monitoring.business_metrics",
       "source_layer": "tools",
@@ -8785,9 +8913,9 @@
   ],
   "stats": {
     "total_files": 314,
-    "total_nodes": 249,
-    "total_edges": 522,
-    "cross_layer_edges": 328,
+    "total_nodes": 252,
+    "total_edges": 530,
+    "cross_layer_edges": 334,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -8800,7 +8928,7 @@
       "tools": 19,
       "skills_mgmt": 8,
       "workflow_learning": 3,
-      "extensions": 13,
+      "extensions": 15,
       "lazy_loader": 3,
       "orchestrator": 10,
       "cognitive": 11,
@@ -8812,7 +8940,7 @@
       "prompt_manager": 3,
       "memory": 11,
       "guardrails": 4,
-      "server_routes": 24,
+      "server_routes": 25,
       "health": 4,
       "observability": 4,
       "workflow_engine": 3,
@@ -8824,6 +8952,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1012.7040229999977
+    "build_duration_ms": 1095.7170220000023
   }
 }
