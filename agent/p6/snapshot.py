@@ -625,7 +625,7 @@ class StateSnapshotManager:
             if hasattr(behavior, "THRESHOLDS"):
                 state["thresholds"] = behavior.THRESHOLDS
                 
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BehaviorController 序列化完成，当前模式: {state['mode']}'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BehaviorController 序列化完成，当前模式: {state["mode"]}'}))
             return state
             
         except Exception as e:
@@ -655,7 +655,7 @@ class StateSnapshotManager:
             if hasattr(permission, "SENSITIVE_EXTENSIONS"):
                 state["sensitive_extensions"] = list(permission.SENSITIVE_EXTENSIONS)
                 
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] PermissionSystem 序列化完成，危险模式: {state['dangerous_patterns_count']}个'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] PermissionSystem 序列化完成，危险模式: {state["dangerous_patterns_count"]}个'}))
             return state
             
         except Exception as e:
@@ -683,7 +683,7 @@ class StateSnapshotManager:
                 if hasattr(tools_registry, "_tools"):
                     state["tools"] = list(tools_registry._tools.keys())[:50]  # 最多50个工具
                     
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 序列化完成，工具数量: {state['tools_count']}'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 序列化完成，工具数量: {state["tools_count"]}'}))
             return state
             
         except Exception as e:
@@ -705,7 +705,7 @@ class StateSnapshotManager:
             # 恢复观察目录
             if "watch_dirs" in state and hasattr(body_sensor, "watch_dirs"):
                 body_sensor.watch_dirs = state["watch_dirs"]
-                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BodySensor 观察目录恢复: {len(state['watch_dirs'])}个目录'}))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BodySensor 观察目录恢复: {len(state["watch_dirs"])}个目录'}))
                 
             # 恢复配置
             if "config" in state and hasattr(body_sensor, "config"):
@@ -747,7 +747,7 @@ class StateSnapshotManager:
             # 恢复模式历史
             if "mode_history" in state and hasattr(behavior, "_mode_history"):
                 behavior._mode_history = state["mode_history"].copy()
-                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BehaviorController 模式历史恢复: {len(state['mode_history'])}条记录'}))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BehaviorController 模式历史恢复: {len(state["mode_history"])}条记录'}))
                 
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ✓ BehaviorController 恢复完成'}))
             return True
@@ -770,7 +770,7 @@ class StateSnapshotManager:
             # 敏感文件扩展名可更新
             if "sensitive_extensions" in state and hasattr(permission, "SENSITIVE_EXTENSIONS"):
                 # 注意：类属性需要谨慎处理
-                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] PermissionSystem 敏感扩展名统计: {len(state['sensitive_extensions'])}个'}))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] PermissionSystem 敏感扩展名统计: {len(state["sensitive_extensions"])}个'}))
                 
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ✓ PermissionSystem 恢复完成'}))
             return True
@@ -792,7 +792,7 @@ class StateSnapshotManager:
             
             # 工具列表信息记录（用于调试）
             if "tools" in state:
-                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 工具列表: {', '.join(state['tools'][:5])}...'}))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 工具列表: {', '.join(state["tools"][:5])}...'}))
                 
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ✓ ToolsRegistry 恢复完成'}))
             return True
