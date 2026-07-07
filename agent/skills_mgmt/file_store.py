@@ -74,6 +74,7 @@ _META_FIELDS = {
     "id", "name", "description", "category", "tags", "version",
     "enabled", "status", "author", "source", "source_url",
     "content_type", "default_params", "dependencies",
+    "config_schema", "output_schema",
 }
 
 
@@ -159,6 +160,138 @@ class SkillMDParser:
             parts.append("")
             parts.append(body)
         return "\n".join(parts)
+
+    # ════════════════════════════════════════════════════════════
+    #  agentskills.io 标准兼容(双向适配)
+    # ════════════════════════════════════════════════════════════
+
+    _AGENTSILLSIO_FIELD_MAP = {
+        "id": "name",
+        "name": "title",
+        "description": "description",
+        "version": "version",
+        "author": "author",
+        "tags": "tags",
+    }
+
+    _YUNSHU_RESERVED_FIELDS = (
+        "category", "content_type", "default_params",
+        "dependencies", "config_schema", "output_schema",
+        "source", "source_url", "enabled", "status",
+    )
+
+    @classmethod
+    def to_agentskills_io(cls, skill_data: Dict[str, Any],
+                          *, body: str = "") -> str:
+        """把云枢 Skill 字段序列化为 agentskills.io 标准 SKILL.md"""
+        import enum
+
+        def _coerce(o):
+            if isinstance(o, enum.Enum):
+                return o.value
+            raise TypeError(f"不可序列化: {type(o).__name__}")
+
+        try:
+            clean = json.loads(json.dumps(
+                skill_data, default=_coerce, ensure_ascii=False,
+            ))
+        except (TypeError, ValueError):
+            clean = skill_data
+
+        front: Dict[str, Any] = {}
+        for yunshu_key, std_key in cls._AGENTSILLSIO_FIELD_MAP.items():
+            val = clean.get(yunshu_key)
+            if val not in (None, "", [], {}):
+                front[std_key] = val
+
+        if "license" not in front:
+            front["license"] = "MIT"
+
+        yunshu_extra: Dict[str, Any] = {}
+        for key in cls._YUNSHU_RESERVED_FIELDS:
+            val = clean.get(key)
+            if val not in (None, "", [], {}):
+                yunshu_extra[key] = val
+        if yunshu_extra:
+            front["_yunshu"] = yunshu_extra
+
+        yaml_block = yaml.safe_dump(
+            front, allow_unicode=True, default_flow_style=False,
+            sort_keys=False,
+        ).strip()
+        parts = [_FRONT_MATTER_SEP, yaml_block, _FRONT_MATTER_SEP]
+
+        instruction = body or clean.get("content", "")
+        if instruction:
+            parts.append("")
+            parts.append(instruction)
+        return "\n".join(parts)
+
+    @classmethod
+    def from_agentskills_io(cls, text: str) -> Dict[str, Any]:
+        """解析 agentskills.io 标准 SKILL.md → 云枢 Skill 字段 dict"""
+        if not text.strip():
+            return {}
+
+        lines = text.splitlines()
+        if not lines or lines[0].strip() != _FRONT_MATTER_SEP:
+            return {"content": text.strip()}
+
+        end_idx = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == _FRONT_MATTER_SEP:
+                end_idx = i
+                break
+        if end_idx is None:
+            from .exceptions import SkillFileError, ErrorCode
+            raise SkillFileError(
+                "agentskills.io front matter 未闭合(缺少结束的 ---)",
+                code=ErrorCode.MD_NO_FRONTMATTER,
+            )
+
+        yaml_block = "\n".join(lines[1:end_idx])
+        body = "\n".join(lines[end_idx + 1:]).strip()
+
+        try:
+            std_meta = yaml.safe_load(yaml_block) or {}
+            if not isinstance(std_meta, dict):
+                from .exceptions import SkillFileError, ErrorCode
+                raise SkillFileError(
+                    f"agentskills.io front matter 根节点必须是对象, "
+                    f"got {type(std_meta).__name__}",
+                    code=ErrorCode.MD_YAML_ERROR,
+                )
+        except yaml.YAMLError as e:
+            from .exceptions import SkillFileError, ErrorCode
+            raise SkillFileError(
+                f"agentskills.io YAML 解析失败: {e}",
+                code=ErrorCode.MD_YAML_ERROR,
+            ) from e
+
+        yunshu_data: Dict[str, Any] = {}
+        for yunshu_key, std_key in cls._AGENTSILLSIO_FIELD_MAP.items():
+            val = std_meta.pop(std_key, None)
+            if val is not None:
+                yunshu_data[yunshu_key] = val
+
+        yunshu_extra = std_meta.pop("_yunshu", {})
+        if isinstance(yunshu_extra, dict):
+            for key in cls._YUNSHU_RESERVED_FIELDS:
+                if key in yunshu_extra:
+                    yunshu_data[key] = yunshu_extra[key]
+
+        if "license" in std_meta:
+            logger.debug("[agentskills.io] 丢弃未映射字段 license=%s",
+                         std_meta["license"])
+
+        if body:
+            yunshu_data["content"] = body
+
+        yunshu_data.setdefault("category", "community")
+        yunshu_data.setdefault("content_type", "markdown")
+        yunshu_data.setdefault("version", "0.1.0")
+
+        return yunshu_data
 
 
 # ════════════════════════════════════════════════════════════
