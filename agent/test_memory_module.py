@@ -123,7 +123,7 @@ def test_vector_store_recent():
         )
         
         for i in range(10):
-            vs.add(f"记忆条目 #{i+1}", {'index': i})
+            vs.add(f"记忆条目 #{i+1}", {"index": i})
         
         print(f"[OK] 添加了 10 条记忆")
         
