@@ -20,7 +20,7 @@ def register_all(dl):
         "type": "object",
         "properties": {
             "path": {"type": "string", "description": "要审查的文件路径（绝对路径），可选"},
-            "diff": {'type': 'string', 'description': 'git diff 文本内容，可选。如果未提供 path 则使用此内容'},
+            "diff": {"type": "string", "description": "git diff 文本内容，可选。如果未提供 path 则使用此内容"},
             "dimensions": {
                 "type": "array",
                 "items": {"type": "string", "enum": ["安全", "性能", "可维护性", "API兼容性", "测试"]},
