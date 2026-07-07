@@ -2452,18 +2452,7 @@ def api_llm_instance_test(instance_id):
 #  搜索引擎实例管理 API
 # ════════════════════════════════════════════════════════════
 
-def _validate_search_instance(instance: dict) -> list:
-    errors = []
-    if not instance.get('name'):
-        errors.append('名称不能为空')
-    engine_type = instance.get('engine_type', '')
-    if not engine_type:
-        errors.append('引擎类型不能为空')
-    if engine_type == 'custom' and not instance.get('api_endpoint'):
-        errors.append('自定义引擎必须提供 API 端点 URL')
-    if instance.get('timeout', 30) < 1 or instance.get('timeout', 30) > 300:
-        errors.append('超时必须在 1-300 秒之间')
-    return errors
+from agent.server_routes.routes_config import validate_search_instance as _validate_search_instance
 
 
 @app.route("/api/search/instances", methods=["GET"])
