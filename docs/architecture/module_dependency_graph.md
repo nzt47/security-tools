@@ -369,6 +369,14 @@ flowchart LR
     agent_digital_life_state --> agent_p6_snapshot
     agent_digital_life_state --> agent_behavior_controller
     agent_software_backends --> agent_logging_utils
+    agent_task_scheduler --> agent_logging_utils
+    agent_task_scheduler --> agent_weekly_report_generator
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_prometheus_exporter -.-> agent_monitoring_prometheus
@@ -841,8 +849,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 314
 - 模块节点数: 249
-- 依赖边数: 514
-- 跨层调用数: 322
+- 依赖边数: 522
+- 跨层调用数: 328
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1085.12 ms
+- 构建耗时: 1012.70 ms
