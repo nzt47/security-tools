@@ -20,8 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装 Python 依赖（过滤 Windows-only 包：pywin32/pypiwin32/comtypes 在 Linux 上无法安装）
+RUN grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install --no-cache-dir -r /dev/stdin
 
 # 复制应用代码
 COPY . .
