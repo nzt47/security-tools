@@ -29,6 +29,9 @@ from collections import defaultdict
 import statistics
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 加入项目根目录，确保 `from agent.monitoring import ...` 能在直接运行脚本时找到 agent 包
+# （否则 sys.path[0] 是 scripts/ 目录，不包含项目根目录）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -186,7 +189,7 @@ class StressTestRunner:
                 except Exception as e:
                     with lock:
                         errors.append(str(e))
-        
+
         start = time.time()
         with ThreadPoolExecutor(max_workers=self.config['concurrency']) as executor:
             futures = [executor.submit(worker, i) for i in range(self.config['concurrency'])]

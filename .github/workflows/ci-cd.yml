@@ -100,7 +100,7 @@ jobs:
       - name: Install dependencies
         run: |
           grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          pip install pytest  # requirements.txt 未包含 pytest，CI 需要安装
+          pip install pytest pytest-timeout pytest-asyncio  # pytest-timeout 为 pytest.ini 中 --timeout 参数所需；pytest-asyncio 为异步测试所需
 
       - name: Run error reporter tests
         run: python -m pytest tests/unit/test_error_reporting.py -v --tb=short
