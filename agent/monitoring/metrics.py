@@ -76,7 +76,9 @@ class MetricsCollector:
         """初始化指标收集器"""
         self._histograms: Dict[str, List[float]] = defaultdict(list)
         self._counters: Dict[str, int] = defaultdict(int)
-        self._lock = threading.Lock()
+        # 使用 RLock（可重入锁）避免 get_all_metrics → get_stats 重入死锁
+        # 历史问题：threading.Lock 不可重入，若在持锁时调用 get_stats 会永久阻塞
+        self._lock = threading.RLock()
         
         logger.info("[Metrics] 指标收集器已初始化")
     
@@ -173,9 +175,8 @@ class MetricsCollector:
                 'generated_at': timestamp
             }
         """
-        # 注意：threading.Lock 不可重入，不能在持有 self._lock 时调用 get_stats()
-        # （get_stats 内部也会获取 self._lock，会导致死锁）
-        # 因此先在锁内复制名称快照与计数器，再在锁外调用 get_stats()
+        # 使用 RLock 后理论上可在持锁时调用 get_stats（可重入），但为减少锁持有时间
+        # 仍采用「锁内复制快照 → 锁外计算」的模式，降低锁竞争
         with self._lock:
             histogram_names = list(self._histograms.keys())
             counters = dict(self._counters)
