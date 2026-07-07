@@ -117,7 +117,7 @@ class LongTermMemory:
 
     用法:
         ltm = LongTermMemory(db_path="./data/memory/long_term.db")
-        await ltm.save("user_pref", {"theme": "dark"}, tags=["preference"], importance=5)
+        await ltm.save("user_pref", {'theme': 'dark'}, tags=["preference"], importance=5)
         entry = await ltm.get("user_pref")
     """
 
