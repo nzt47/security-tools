@@ -81,18 +81,57 @@ _SAFE_BUILTINS = {
 }
 
 
+def _sandbox_worker(code, safe_builtins, result_queue):
+    """沙盒子进程入口函数
+
+    在独立进程中执行用户代码，捕获 stdout/stderr 和异常，
+    通过 Queue 回传结果。若进程被强制终止，Queue 不会有数据，
+    主进程据此判断超时。
+    """
+    import sys
+    import io
+
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+
+    error = None
+    try:
+        safe_globals = {"__builtins__": safe_builtins}
+        exec(code, safe_globals)
+    except Exception as e:
+        # 不暴露异常类型（防止类遍历攻击）
+        error = f"{type(e).__name__}: {e}"
+
+    stdout_val = sys.stdout.getvalue()[:10000]
+    stderr_val = sys.stderr.getvalue()[:5000]
+
+    sys.stdout = old_stdout
+    sys.stderr = old_stderr
+
+    result_queue.put({
+        "stdout": stdout_val,
+        "stderr": stderr_val,
+        "error": error,
+    })
+
+
 def run_sandbox(code, timeout_sec=5):
     """在受限的 Python 沙盒中执行代码
 
     安全措施：
     - 仅暴露纯函数内置（无异常类、无反射函数）
-    - 在独立线程中执行，带超时
+    - 在独立进程中执行，带超时强杀（替代 threading 方案）
     - 预检查已知逃逸模式
     - 捕获 stdout/stderr 输出
+
+    与旧版（threading）的区别：
+    - 超时后进程被 terminate 强制终止，不会泄漏 CPU
+    - 子进程的 stdout/stderr 修改不影响主进程
+    - 代价：进程启动比线程慢约 50-100ms
     """
-    import sys
-    import threading
-    import io
+    import multiprocessing
 
     result = {"stdout": "", "stderr": "", "error": None, "timed_out": False}
 
@@ -102,38 +141,50 @@ def run_sandbox(code, timeout_sec=5):
             result["error"] = f"代码包含被禁止的模式: {pattern}"
             return result
 
-    # 创建受限的全局命名空间
-    safe_globals = {"__builtins__": _SAFE_BUILTINS}
+    # 使用 Queue 接收子进程结果
+    result_queue = multiprocessing.Queue()
 
-    # 捕获输出
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    sys.stdout = io.StringIO()
-    sys.stderr = io.StringIO()
+    # 显式指定 spawn 方式，避免 fork 继承父进程锁状态
+    ctx = multiprocessing.get_context("spawn")
+    process = ctx.Process(
+        target=_sandbox_worker,
+        args=(code, _SAFE_BUILTINS, result_queue),
+        daemon=True,
+    )
+    process.start()
+    process.join(timeout=timeout_sec)
 
-    exc = [None]
+    if process.is_alive():
+        # 超时：强制终止子进程
+        process.terminate()
+        process.join(timeout=2)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
 
-    def _run():
-        try:
-            exec(code, safe_globals)
-        except Exception as e:
-            # 不暴露异常类型（防止类遍历攻击）
-            exc[0] = str(type(e).__name__) + ": " + str(e)
-
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
-    thread.join(timeout=timeout_sec)
-
-    result["stdout"] = sys.stdout.getvalue()[:10000]
-    result["stderr"] = sys.stderr.getvalue()[:5000]
-    result["timed_out"] = thread.is_alive()
-    if exc[0]:
-        result["error"] = exc[0]
-    if result["timed_out"]:
+        result["timed_out"] = True
         result["error"] = f"执行超时 ({timeout_sec}秒)"
+        result_queue.close()
+        result_queue.join_thread()
+        return result
 
-    sys.stdout = old_stdout
-    sys.stderr = old_stderr
+    # 正常结束：从 Queue 读取结果
+    try:
+        child_result = result_queue.get(timeout=1)
+        result["stdout"] = child_result["stdout"]
+        result["stderr"] = child_result["stderr"]
+        result["error"] = child_result["error"]
+    except Exception:
+        result["error"] = "子进程异常终止，未返回结果"
+
+    # 检查子进程退出码（负值表示被信号杀死）
+    if process.exitcode is not None and process.exitcode < 0:
+        if not result["error"]:
+            result["error"] = f"子进程被信号 {-process.exitcode} 终止"
+
+    result_queue.close()
+    result_queue.join_thread()
+
     return result
 
 

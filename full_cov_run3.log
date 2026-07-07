@@ -1,5 +1,0 @@
-ERROR: usage: python -m pytest [options] [file_or_dir] [file_or_dir] [...]
-python -m pytest: error: unrecognized arguments: --timeout=30
-  inifile: C:\Users\Administrator\agent\pytest.ini
-  rootdir: C:\Users\Administrator\agent
-
