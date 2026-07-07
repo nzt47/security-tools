@@ -95,6 +95,8 @@ flowchart LR
         agent_extensions_observability["agent.extensions.observability"]
         agent_extensions_plugins_installer["agent.extensions.plugins_installer"]
         agent_extensions_sandbox["agent.extensions.sandbox"]
+        agent_extensions_security_check_skill["agent.extensions.security_check_skill"]
+        agent_extensions_security_checker["agent.extensions.security_checker"]
         agent_extensions_skills_installer["agent.extensions.skills_installer"]
         agent_extensions_store["agent.extensions.store"]:::crosslayer
     end
@@ -237,6 +239,7 @@ flowchart LR
         agent_server_routes_routes_panorama["agent.server_routes.routes_panorama"]
         agent_server_routes_routes_permission["agent.server_routes.routes_permission"]
         agent_server_routes_routes_personality["agent.server_routes.routes_personality"]
+        agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_sessions["agent.server_routes.routes_sessions"]
         agent_server_routes_routes_skills["agent.server_routes.routes_skills"]
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
@@ -347,6 +350,7 @@ flowchart LR
     agent_system_tools -.-> agent_tools_process_tools
     agent_system_tools -.-> agent_tools_task_tools
     agent_system_tools -.-> agent_tools_shell_tools
+    agent_error_reporting_config -.-> agent_monitoring_tracing
     agent_memory_optimized --> agent_logging_utils
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_skills_mgmt
@@ -457,6 +461,9 @@ flowchart LR
     agent_extensions_channels_installer --> agent_extensions_installer
     agent_extensions_channels_installer --> agent_extensions_store
     agent_extensions_channels_installer -.-> agent_logging_utils
+    agent_extensions_security_check_skill --> agent_extensions_security_checker
+    agent_extensions_security_check_skill -.-> agent_logging_utils
+    agent_extensions_security_check_skill --> agent_extensions_security_checker
     agent_extensions_observability -.-> agent_monitoring_business_metrics
     agent_extensions_dependency_manager -.-> agent_monitoring_tracing
     agent_extensions_dependency_manager -.-> agent_logging_utils
@@ -594,6 +601,9 @@ flowchart LR
     agent_server_routes_routes_panorama -.-> agent_server_auth
     agent_server_routes_routes_panorama -.-> agent_tools
     agent_server_routes_routes_panorama --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_replay -.-> agent_server_auth
+    agent_server_routes_routes_replay -.-> agent_monitoring_replay_storage
+    agent_server_routes_routes_replay -.-> agent_logging_utils
     agent_server_routes_observability -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_dashboard -.-> agent_server_auth
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
@@ -831,6 +841,7 @@ flowchart LR
     agent_tools_code_tools -.-> agent_scheduling
     agent_tools_core_tools --> agent
     agent_tools_core_tools -.-> agent_system_tools
+    agent_tools_file_tools -.-> agent_logging_utils
     agent_tools_observability -.-> agent_monitoring_business_metrics
     agent_tools_discovery_service -.-> agent_extensions_base
     agent_tools_discovery_service --> agent_tools_mcp_connector
@@ -848,9 +859,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 314
-- 模块节点数: 249
-- 依赖边数: 522
-- 跨层调用数: 328
+- 模块节点数: 252
+- 依赖边数: 530
+- 跨层调用数: 334
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1012.70 ms
+- 构建耗时: 1095.72 ms
