@@ -595,7 +595,7 @@ class StateSnapshotManager:
                 if hasattr(body_sensor, "config"):
                     state["config"] = body_sensor.config
                     
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BodySensor 序列化完成，状态: {state.get('initialized', False)}'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] BodySensor 序列化完成，状态: {state.get("initialized", False)}'}))
             return state
             
         except Exception as e:
@@ -696,7 +696,7 @@ class StateSnapshotManager:
         Phase 3: 实现 BodySensor 的完整恢复
         """
         try:
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 BodySensor: 状态={state.get('initialized', False)}'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 BodySensor: 状态={state.get("initialized", False)}'}))
             
             # 恢复初始化状态
             if hasattr(body_sensor, "_initialized"):
@@ -728,7 +728,7 @@ class StateSnapshotManager:
         Phase 3: 实现 BehaviorController 的完整恢复
         """
         try:
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 BehaviorController: 当前模式={state.get('mode', 'NORMAL')}'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 BehaviorController: 当前模式={state.get("mode", "NORMAL")}'}))
             
             # 恢复当前行为模式
             if "mode" in state and hasattr(behavior, "_current_mode"):
@@ -765,7 +765,7 @@ class StateSnapshotManager:
         Phase 3: 实现 PermissionSystem 的完整恢复
         """
         try:
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 PermissionSystem: 危险模式={state.get('dangerous_patterns_count', 0)}个'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 PermissionSystem: 危险模式={state.get("dangerous_patterns_count", 0)}个'}))
             
             # 敏感文件扩展名可更新
             if "sensitive_extensions" in state and hasattr(permission, "SENSITIVE_EXTENSIONS"):
@@ -788,11 +788,11 @@ class StateSnapshotManager:
         Phase 3: 实现 ToolsRegistry 的完整恢复
         """
         try:
-            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 ToolsRegistry: 工具数量={state.get('tools_count', 0)}个'}))
+            logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 恢复 ToolsRegistry: 工具数量={state.get("tools_count", 0)}个'}))
             
             # 工具列表信息记录（用于调试）
             if "tools" in state:
-                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 工具列表: {', '.join(state["tools"][:5])}...'}))
+                logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ToolsRegistry 工具列表: {", ".join(state["tools"][:5])}...'}))
                 
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ✓ ToolsRegistry 恢复完成'}))
             return True
@@ -917,7 +917,7 @@ class StateSnapshotManager:
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] │   ├─ 创建时间: {snapshot.created_at}'}))
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] │   ├─ 配置键数: {len(snapshot.config)}'}))
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] │   ├─ 模块数: {len(snapshot.module_states)}'}))
-        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] │   └─ 类型: {('增量' if snapshot.is_incremental else '完整')}快照'}))
+        logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] │   └─ 类型: {("增量" if snapshot.is_incremental else "完整")}快照'}))
         
         # 2. 版本兼容性检查
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] ├─ 步骤2: 版本兼容性检查...'}))
