@@ -62,6 +62,16 @@ class ErrorCode:
     SCRIPT_EXEC_BLOCKED = "SKILL_SCRIPT_EXEC_BLOCKED"
     SCRIPT_NOT_FOUND = "SKILL_SCRIPT_NOT_FOUND"
 
+    # MCP 协议 (7xxx)
+    MCP_SDK_UNAVAILABLE = "SKILL_MCP_SDK_UNAVAILABLE"
+    MCP_SERVER_UNREACHABLE = "SKILL_MCP_SERVER_UNREACHABLE"
+    MCP_PROTOCOL_ERROR = "SKILL_MCP_PROTOCOL_ERROR"
+    MCP_TOOL_NOT_FOUND = "SKILL_MCP_TOOL_NOT_FOUND"
+
+    # 输出校验 (8xxx) — 后置验证门控
+    OUTPUT_SCHEMA_INVALID = "SKILL_OUTPUT_SCHEMA_INVALID"
+    OUTPUT_VALIDATION_FAILED = "SKILL_OUTPUT_VALIDATION_FAILED"
+
 
 class SkillMgmtError(Exception):
     """技能管理系统基础异常
@@ -166,6 +176,24 @@ class SkillExecutionError(SkillMgmtError):
             details["duration_ms"] = duration_ms
         use_code = code or ErrorCode.SCRIPT_EXEC_FAILED
         super().__init__(message, code=use_code, details=details)
+
+
+class SkillMcpError(SkillMgmtError):
+    """MCP 协议层异常 — SDK 缺失/server 不可达/协议错误"""
+    code = ErrorCode.MCP_PROTOCOL_ERROR
+
+
+class SkillOutputValidationError(SkillMgmtError):
+    """输出 schema 校验失败异常"""
+
+    def __init__(self, message: str, *, skill_id: str = "",
+                 validation_errors: Optional[list] = None):
+        super().__init__(
+            message,
+            code=ErrorCode.OUTPUT_VALIDATION_FAILED,
+            details={"skill_id": skill_id,
+                     "validation_errors": validation_errors or []},
+        )
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):
