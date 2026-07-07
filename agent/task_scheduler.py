@@ -221,7 +221,7 @@ class TaskScheduler:
         except Exception as e:
             result["status"] = "failed"
             result["error"] = str(e)[:500]
-            logger.error(log_dict({'module_name': 'task_scheduler', 'action': 'task', 'msg': f'[TaskScheduler] 任务执行失败: {task['name']}: {e}'}))
+            logger.error(log_dict({'module_name': 'task_scheduler', 'action': 'task', 'msg': f'[TaskScheduler] 任务执行失败: {task["name"]}: {e}'}))
 
         end_time = datetime.now()
         result["end_time"] = end_time.isoformat()
