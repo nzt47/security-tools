@@ -140,6 +140,8 @@ keyboard==0.13.5
     # via Yunshu (pyproject.toml)
 kubernetes==36.0.2
     # via chromadb
+lxml==6.1.0
+    # via Yunshu (web scraper HTML 解析)
 markdown-it-py==4.2.0
     # via rich
 markupsafe==3.0.3
