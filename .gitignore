@@ -41,3 +41,15 @@ data/audit/
 
 # Claude worktrees（本地工作树，不应作为 submodule 提交）
 .claude/worktrees/
+
+# 根目录临时脚本/日志（不入库）
+/_*.py
+/_*.txt
+/_*.xml
+/check_*.py
+/diagnose_*.py
+/verify_*.py
+/test_*.py
+/demo_*.py
+/*.log
+/commit_msg*.txt
