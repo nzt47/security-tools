@@ -350,7 +350,7 @@ class SkillSecurityChecker:
     
     def perform_full_check(self, source: str, skill_info: Dict, temp_dir: Optional[Path] = None) -> Dict[str, Any]:
         """执行完整的安装前检查"""
-        logger.info(log_dict({'module_name': 'security_checker', 'action': 'skill_info.get', 'msg': f'[安全检查器] 开始检查技能: {skill_info.get('name', source)}'}))
+        logger.info(log_dict({'module_name': 'security_checker', 'action': 'skill_info.get', 'msg': f'[安全检查器] 开始检查技能: {skill_info.get("name", source)}'}))
         
         # 执行安全评估
         security = self.assess_security(source, skill_info, temp_dir)
