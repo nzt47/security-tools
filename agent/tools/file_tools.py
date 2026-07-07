@@ -435,7 +435,7 @@ def list_directory(path: str = ".", show_hidden: bool = False, max_items: int = 
                 info = _get_single_file_info(item_path)
                 info["name"] = name
                 items.append(info)
-                logger.debug(log_dict({'module_name': 'file_tools', 'action': 'name.name.type', 'msg': f'[list_directory] 获取文件信息成功: name={name}, type={info.get('type')}'}))
+                logger.debug(log_dict({'module_name': 'file_tools', 'action': 'name.name.type', 'msg': f'[list_directory] 获取文件信息成功: name={name}, type={info.get("type")}'}))
             except OSError as e:
                 logger.warning(log_dict({'module_name': 'file_tools', 'action': 'name.name.error', 'msg': f'[list_directory] 获取文件信息失败: name={name}, error={e}'}))
                 items.append({"name": name, "type": "unknown"})
