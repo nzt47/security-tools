@@ -529,16 +529,25 @@ jobs:
         run: |
           echo "=== 启动 Prometheus 容器 ==="
           CONFIG_FILE="${{ github.workspace }}/monitoring/prometheus.yml"
+          ALERT_FILE="${{ github.workspace }}/monitoring/alerts.yml"
           if [ ! -f "$CONFIG_FILE" ]; then
             echo "::error::Prometheus 配置文件不存在: $CONFIG_FILE"
             echo "请检查 monitoring/prometheus.yml 是否已提交到仓库"
             exit 1
           fi
+          if [ ! -f "$ALERT_FILE" ]; then
+            echo "::error::Prometheus 告警规则文件不存在: $ALERT_FILE"
+            echo "请检查 monitoring/alerts.yml 是否已提交到仓库"
+            exit 1
+          fi
           docker rm -f prometheus 2>/dev/null || true
+          # 同时挂载 prometheus.yml 和 alerts.yml
+          # prometheus.yml 中 rule_files: ["alerts.yml"] 要求 alerts.yml 在同目录下
           docker run -d \
             --name prometheus \
             -p 9090:9090 \
             -v "$CONFIG_FILE:/etc/prometheus/prometheus.yml" \
+            -v "$ALERT_FILE:/etc/prometheus/alerts.yml" \
             prom/prometheus:latest
           echo "等待 Prometheus 就绪..."
           for i in {1..30}; do
@@ -554,6 +563,16 @@ jobs:
             docker logs prometheus
             exit 1
           fi
+          # 验证告警规则已加载
+          echo "=== 验证告警规则加载 ==="
+          RULES_COUNT=$(curl -s http://localhost:9090/api/v1/rules | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(len(g.get('rules',[])) for g in d.get('data',{}).get('groups',[])))" 2>/dev/null || echo "0")
+          if [ "$RULES_COUNT" = "0" ]; then
+            echo "::error::Prometheus 未加载任何告警规则"
+            echo "Prometheus 容器日志："
+            docker logs prometheus
+            exit 1
+          fi
+          echo "✅ 已加载 $RULES_COUNT 条告警规则"
 
       - name: 启动应用服务（后台）
         run: |
