@@ -133,6 +133,9 @@ class ToolCallingService:
         self._abort_event = threading.Event()
         self._timeout_event = threading.Event()
 
+        from agent.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+        self._circuit_breaker = CircuitBreaker(CircuitBreakerConfig(name="tool_calling"))
+
     @property
     def _current_llm(self):
         """获取当前活跃的 LLM（如已升级则返回升级后的）"""

@@ -65,6 +65,7 @@ class DegradeMetrics:
     """降级指标快照"""
     total_degrades: int = 0
     text_only_count: int = 0
+    retry_count: int = 0
     degrade_history: list = field(default_factory=list)
 
 
@@ -179,13 +180,14 @@ class GracefulDegrade:
         return module.value if isinstance(module, DegradeModule) else str(module)
 
     def _get_module_state(self, module: "DegradeModule | str") -> dict:
-        """获取模块状态（含 error_count/success_count）"""
+        """获取模块状态（含 error_count/success_count/consecutive_errors）"""
         key = self._module_key(module)
         with self._lock:
             if key not in self._module_states:
                 self._module_states[key] = {
                     "error_count": 0,
                     "success_count": 0,
+                    "consecutive_errors": 0,
                     "level": DegradeLevel.NORMAL,
                 }
             return self._module_states[key]
@@ -233,8 +235,10 @@ class GracefulDegrade:
         with self._lock:
             if success:
                 state["success_count"] += 1
+                state["consecutive_errors"] = 0
             else:
                 state["error_count"] += 1
+                state["consecutive_errors"] += 1
 
     def _record_degrade(self, module: "DegradeModule | str", level: DegradeLevel) -> None:
         """记录降级事件"""
@@ -285,6 +289,7 @@ class GracefulDegrade:
             return DegradeMetrics(
                 total_degrades=self._metrics.total_degrades,
                 text_only_count=self._metrics.text_only_count,
+                retry_count=self._metrics.retry_count,
                 degrade_history=list(self._metrics.degrade_history),
             )
 
@@ -443,6 +448,7 @@ class GracefulDegrade:
         # 1. 降级期内直接返回 fallback / 缓存 / 默认值，不调用主函数
         if self.is_degraded(component):
             self._record_degrade(module, DegradeLevel.FALLBACK)
+            self._record_module_result(module, success=False)
             self._log_action("degrade_short_circuit", {
                 "component": component,
                 "level": self.get_state(component).level.value,
@@ -463,6 +469,7 @@ class GracefulDegrade:
         should_degrade, level = self._should_degrade(module)
         if should_degrade:
             self._record_degrade(module, level)
+            self._record_module_result(module, success=False)
             # 尝试从缓存获取
             cached = self._cache_get(component)
             if cached is not None:
@@ -499,6 +506,8 @@ class GracefulDegrade:
                 last_exc = exc
                 self._record_module_result(module, success=False)
                 self._record_failure(component)
+                with self._lock:
+                    self._metrics.retry_count += 1
                 self._log_action("degrade_call_failure", {
                     "component": component,
                     "attempt": attempt,
