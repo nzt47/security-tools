@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import time
@@ -473,7 +474,7 @@ class OfflineEvolver:
                     strategy=strategy,
                     params=new_params,
                     parent_version=skill.version,
-                    metrics=skill.metrics,  # 骨架阶段用历史指标占位
+                    metrics=self._predict_metrics(skill, new_params),
                 ))
                 strategy_counts[strategy.value] = strategy_counts.get(strategy.value, 0) + 1
             except Exception as e:
@@ -545,6 +546,87 @@ class OfflineEvolver:
         if best_hash is None:
             return None
         return skill.metrics.param_stats[best_hash].get("params")
+
+    def _predict_metrics(self, skill: Skill,
+                         params: Dict[str, Any]) -> SkillMetrics:
+        """预测参数组合对应的运行指标
+
+        优先级:
+            1. 命中 param_stats → 返回历史实际指标 (最可靠)
+            2. 未命中 → 启发式估算 (基于参数偏离基线的程度)
+        """
+        matched = self._lookup_param_stats(skill, params)
+        if matched is not None:
+            return matched
+        return self._heuristic_predict(skill, params)
+
+    def _lookup_param_stats(self, skill: Skill,
+                            params: Dict[str, Any]) -> Optional[SkillMetrics]:
+        """从 param_stats 中查找匹配的参数组合的实际指标"""
+        try:
+            key_str = json.dumps(params, sort_keys=True, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return None
+        key = hashlib.md5(key_str.encode("utf-8")).hexdigest()[:8]
+        stat = skill.metrics.param_stats.get(key)
+        if stat is None:
+            return None
+        total = stat.get("success", 0) + stat.get("failure", 0)
+        if total == 0:
+            return None
+        success_rate = stat.get("success", 0) / total
+        avg_latency = stat.get("total_latency_ms", 0.0) / total
+        return SkillMetrics(
+            usage_count=total,
+            success_count=stat.get("success", 0),
+            failure_count=stat.get("failure", 0),
+            success_rate=success_rate,
+            avg_latency_ms=avg_latency,
+            p95_latency_ms=avg_latency * 1.5,
+        )
+
+    def _heuristic_predict(self, skill: Skill,
+                           params: Dict[str, Any]) -> SkillMetrics:
+        """启发式估算: 基于参数偏离基线预测指标变化
+
+        简化模型:
+            - 小幅偏离 (<15%): 模拟探索更优解 → 成功率小幅提升
+            - 中幅偏离 (15-40%): 成功率持平,延迟略增
+            - 大幅偏离 (>40%): 成功率下降,延迟上升 (风险探索)
+        """
+        base = skill.metrics
+        base_params = skill.default_params
+
+        deviations: List[float] = []
+        for key, base_val in base_params.items():
+            new_val = params.get(key, base_val)
+            if isinstance(base_val, (int, float)) and isinstance(new_val, (int, float)):
+                if base_val != 0:
+                    deviations.append(abs(new_val - base_val) / abs(base_val))
+
+        avg_deviation = sum(deviations) / len(deviations) if deviations else 0.0
+
+        if avg_deviation < 0.15:
+            success_delta = 0.05 * (1 - avg_deviation / 0.15)
+            latency_factor = 1.0 - 0.05 * (1 - avg_deviation / 0.15)
+        elif avg_deviation < 0.4:
+            success_delta = 0.0
+            latency_factor = 1.0 + 0.05 * avg_deviation
+        else:
+            success_delta = -0.1 * (avg_deviation - 0.4)
+            latency_factor = 1.0 + 0.1 * avg_deviation
+
+        new_success_rate = max(0.0, min(1.0, base.success_rate + success_delta))
+        new_latency = max(100.0, base.avg_latency_ms * latency_factor)
+
+        return SkillMetrics(
+            usage_count=base.usage_count,
+            success_count=int(base.usage_count * new_success_rate),
+            failure_count=base.usage_count - int(base.usage_count * new_success_rate),
+            success_rate=new_success_rate,
+            avg_latency_ms=new_latency,
+            p95_latency_ms=new_latency * 1.5,
+        )
 
     def _compute_objectives(self, variant: Variant) -> Dict[str, float]:
         """计算多目标值 (用于帕累托支配判断)
