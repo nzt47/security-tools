@@ -36,6 +36,7 @@ class TestVectorStoreBasics:
         import memory.vector_store
         assert memory.vector_store is not None
 
+    @pytest.fixture
     def vector_store(self):
         """VectorStore 实例"""
         try:
