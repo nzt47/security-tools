@@ -53,3 +53,10 @@ data/audit/
 /demo_*.py
 /*.log
 /commit_msg*.txt
+
+# 根目录 PowerShell 脚本/测试结果（不入库）
+/check_*.ps1
+/verify_*.ps1
+/test_result*.txt
+/test_run*.txt
+/CUsers*
