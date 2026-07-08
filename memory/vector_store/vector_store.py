@@ -334,10 +334,14 @@ class VectorStore:
             import chromadb
             from chromadb.config import Settings
             from sentence_transformers import SentenceTransformer
-            self._chroma_client = chromadb.Client(Settings(
-                persist_directory=self.persist_dir,
-                anonymized_telemetry=False
-            ))
+            # chromadb 0.4.x：PersistentClient 才真正持久化到磁盘
+            # 旧版用 chromadb.Client(Settings(persist_directory=...)) 实际创建的是 ephemeral 客户端，
+            # 且 ephemeral client 有单例缓存，第二次以不同 settings 实例化会报
+            # "An instance of Chroma already exists for ephemeral with different settings"
+            self._chroma_client = chromadb.PersistentClient(
+                path=self.persist_dir,
+                settings=Settings(anonymized_telemetry=False)
+            )
             self._chroma_collection = self._chroma_client.get_or_create_collection(
                 name=self.collection_name,
                 metadata={"description": "云枢智能体记忆库"}
@@ -349,8 +353,12 @@ class VectorStore:
             self._use_chroma = False
             self._items = []
             self._id_to_index = {}
-            if self._inverted_index:
+            # fallback 必须加载磁盘 JSON，否则持久化失效（vs2 重新打开时 _items 为空）
+            self._load_from_file()
+            # fallback 必须重建倒排索引，否则 BM25 搜索返回 0 结果
+            if self._inverted_index is None:
                 self._inverted_index = InvertedIndex()
+            self._rebuild_inverted_index()
 
     def _load_from_file(self):
         """从 JSON 文件加载记忆"""
