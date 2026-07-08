@@ -10,9 +10,10 @@
     - invoke_mcp_skill 非 MCP 类技能抛 SkillMcpError
 """
 import sys
-import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
