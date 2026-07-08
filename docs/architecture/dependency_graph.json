@@ -1,5 +1,5 @@
 {
-  "trace_id": "2a8508e2a2cb41a2",
+  "trace_id": "6c0f6256b52445ae",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -3451,7 +3451,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 216,
+      "line": 225,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3464,7 +3464,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 317,
+      "line": 326,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9076,7 +9076,7 @@
     }
   ],
   "stats": {
-    "total_files": 315,
+    "total_files": 316,
     "total_nodes": 253,
     "total_edges": 542,
     "cross_layer_edges": 341,
@@ -9116,6 +9116,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1086.4255169999951
+    "build_duration_ms": 1122.201146000009
   }
 }
