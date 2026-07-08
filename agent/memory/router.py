@@ -87,6 +87,7 @@ class MemoryRouter:
         self._sensitive_filter_enabled = False
         self._memory_boundary_enabled = False
         self._sensitive_filter = None
+        self._memory_classification_enabled = False
 
         logger.info("[MemoryRouter] 初始化完成，默认适配器: %s", self._default.__class__.__name__)
 
@@ -213,6 +214,21 @@ class MemoryRouter:
         if not self._sensitive_filter_enabled:
             return (False, content, [])
 
+        # 支持自定义敏感模式（_sensitive_patterns 属性优先）
+        custom_patterns = getattr(self, '_sensitive_patterns', None)
+        if custom_patterns:
+            import re
+            content_str = str(content)
+            has_sensitive = False
+            filtered = content_str
+            matched_patterns = []
+            for pattern in custom_patterns:
+                if re.search(pattern, content_str, re.IGNORECASE):
+                    has_sensitive = True
+                    matched_patterns.append(pattern)
+                    filtered = re.sub(pattern, '[REDACTED]', filtered, flags=re.IGNORECASE)
+            return (has_sensitive, filtered, matched_patterns)
+
         # 延迟初始化敏感过滤器
         if self._sensitive_filter is None:
             self._sensitive_filter = _get_sensitive_filter()
@@ -246,6 +262,26 @@ class MemoryRouter:
             filtered = content
 
         return (has_sensitive, filtered, patterns)
+
+    def _classify_context(self, data: str) -> str:
+        """分类上下文数据为长期或临时存储
+
+        启用 _memory_classification_enabled 时，根据内容关键词判断存储类别。
+
+        Args:
+            data: 待分类的文本数据
+
+        Returns:
+            str: "long_term" 或 "temporary"
+        """
+        if not self._memory_classification_enabled:
+            return "temporary"
+
+        long_term_keywords = ["偏好", "设置", "配置", "喜欢", "习惯", "姓名", "年龄", "地址"]
+        for keyword in long_term_keywords:
+            if keyword in data:
+                return "long_term"
+        return "temporary"
 
     # ── 便捷方法（路由 + 执行） ──
 

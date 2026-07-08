@@ -448,7 +448,6 @@ class GracefulDegrade:
         # 1. 降级期内直接返回 fallback / 缓存 / 默认值，不调用主函数
         if self.is_degraded(component):
             self._record_degrade(module, DegradeLevel.FALLBACK)
-            self._record_module_result(module, success=False)
             self._log_action("degrade_short_circuit", {
                 "component": component,
                 "level": self.get_state(component).level.value,
@@ -463,7 +462,25 @@ class GracefulDegrade:
                     self._log_action("fallback_failed", {
                         "component": component, "error": str(fb_exc)[:200],
                     })
-            return self.default_fallbacks.get(component)
+                return self._get_module_default(component)
+            # 半开模式：无 fallback 时试探性调用 func，成功则清除降级状态
+            try:
+                result = func(*args, **kwargs)
+                self._record_module_result(module, success=True)
+                self._maybe_recover(component)
+                self._cache_set(component, result)
+                self._log_action("degrade_half_open_success", {
+                    "component": component,
+                })
+                return result
+            except Exception as exc:
+                self._record_module_result(module, success=False)
+                self._record_failure(component)
+                self._log_action("degrade_half_open_failed", {
+                    "component": component,
+                    "error": str(exc)[:200],
+                })
+                return self._get_module_default(component)
 
         # 2. 基于错误率自动降级
         should_degrade, level = self._should_degrade(module)

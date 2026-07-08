@@ -97,6 +97,31 @@ class ToolCallError(Exception):
     pass
 
 
+def _validate_output_with_schema(response: str, max_retries: int = 3) -> dict:
+    """用输出 Schema 校验 LLM 响应
+
+    校验 response 是否为合法 JSON 且包含 output_type 和 content 字段。
+
+    Args:
+        response: LLM 返回的响应文本（JSON 字符串）
+        max_retries: 最大重试次数（用于返回 retry_count）
+
+    Returns:
+        dict: {"valid": bool, "content": str, "retry_count": int}
+    """
+    import json as _json
+
+    for attempt in range(max_retries + 1):
+        try:
+            data = _json.loads(response)
+            if isinstance(data, dict) and "output_type" in data and "content" in data:
+                return {"valid": True, "content": data["content"], "retry_count": attempt}
+        except (ValueError, TypeError):
+            pass
+
+    return {"valid": False, "content": response, "retry_count": max_retries}
+
+
 class ToolCallingService:
     """LLM 工具调用编排引擎（支持多模型路由）"""
 
@@ -135,6 +160,14 @@ class ToolCallingService:
 
         from agent.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
         self._circuit_breaker = CircuitBreaker(CircuitBreakerConfig(name="tool_calling"))
+
+        # Schema 验证配置（P1 输出 Schema 验证能力）
+        try:
+            self._schema_validation_enabled = global_config.get("verification", "schema_validation", default=False)
+            self._schema_max_retries = global_config.get("verification", "schema_max_retries", default=3)
+        except Exception:
+            self._schema_validation_enabled = False
+            self._schema_max_retries = 3
 
     @property
     def _current_llm(self):
