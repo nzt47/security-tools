@@ -1,5 +1,5 @@
 {
-  "trace_id": "6c0f6256b52445ae",
+  "trace_id": "ae714c17ea2d4e00",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -40,7 +40,7 @@
       "layer": "core",
       "file_path": "agent/tool_calling.py",
       "in_degree": 4,
-      "out_degree": 5
+      "out_degree": 6
     },
     {
       "path": "agent",
@@ -63,7 +63,7 @@
       "name": "circuit_breaker",
       "layer": "core",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 0
     },
     {
@@ -2134,11 +2134,24 @@
     },
     {
       "source": "agent.tool_calling",
+      "target": "agent.circuit_breaker",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 136,
+      "source_file": "agent/tool_calling.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_calling",
       "target": "agent.response_workflows",
       "source_layer": "core",
       "target_layer": "response_workflows",
       "import_type": "from_import",
-      "line": 688,
+      "line": 691,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9076,9 +9089,9 @@
     }
   ],
   "stats": {
-    "total_files": 316,
+    "total_files": 317,
     "total_nodes": 253,
-    "total_edges": 542,
+    "total_edges": 543,
     "cross_layer_edges": 341,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -9116,6 +9129,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1122.201146000009
+    "build_duration_ms": 1128.8413030000015
   }
 }
