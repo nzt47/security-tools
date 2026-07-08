@@ -65,7 +65,7 @@ class RecoveryStatus(str, Enum):
     """恢复状态"""
     NONE = "none"               # 无恢复操作
     IN_PROGRESS = "in_progress"  # 恢复中
-    SUCCESS = "success"         # 恢复成功
+    SUCCESS = "completed"       # 恢复成功
     FAILED = "failed"           # 恢复失败
 
 
