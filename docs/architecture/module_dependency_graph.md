@@ -258,6 +258,7 @@ flowchart LR
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
         agent_skills_mgmt_observability["agent.skills_mgmt.observability"]
+        agent_skills_mgmt_offline_evolver["agent.skills_mgmt.offline_evolver"]:::crosslayer
         agent_skills_mgmt_reviewer["agent.skills_mgmt.reviewer"]:::crosslayer
         agent_skills_mgmt_service["agent.skills_mgmt.service"]:::crosslayer
     end
@@ -576,6 +577,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
     agent_server_routes_routes_logging -.-> agent_server_auth
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
     agent_server_routes_routes_logging -.-> agent_monitoring_metrics
@@ -873,9 +875,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 317
-- 模块节点数: 253
-- 依赖边数: 543
-- 跨层调用数: 341
+- 模块节点数: 254
+- 依赖边数: 544
+- 跨层调用数: 342
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1128.84 ms
+- 构建耗时: 1137.21 ms
