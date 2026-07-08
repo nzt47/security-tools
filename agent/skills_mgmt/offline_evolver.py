@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import random
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -174,41 +175,90 @@ class OfflineEvolver:
         Returns:
             EvolutionResult — 包含提升幅度、是否提交、错误信息
         """
+        t_total = time.time()
         with traced_action("evolve_once", skill_id=skill_id):
+            # 步骤1: 加载技能
+            t0 = time.time()
             try:
                 skill = self._store.get(skill_id)
             except SkillNotFoundError:
+                logger.warning(json.dumps({
+                    "module_name": "offline_evolver",
+                    "action": "evolve_once.skill_not_found",
+                    "skill_id": skill_id,
+                    "duration_ms": round((time.time() - t0) * 1000, 2),
+                }, ensure_ascii=False))
                 return EvolutionResult(
                     skill_id=skill_id, skipped=True,
                     error=f"技能不存在: {skill_id}",
                 )
 
-            # 候选资格校验
+            # 步骤2: 候选资格校验
             if not self._is_candidate(skill):
+                logger.info(json.dumps({
+                    "module_name": "offline_evolver",
+                    "action": "evolve_once.not_candidate",
+                    "skill_id": skill_id,
+                    "usage_count": skill.metrics.usage_count,
+                    "success_rate": round(skill.metrics.success_rate, 4),
+                    "load_ms": round((time.time() - t0) * 1000, 2),
+                }, ensure_ascii=False))
                 return EvolutionResult(
                     skill_id=skill_id, skipped=True,
                     error=f"不满足候选条件 (usage={skill.metrics.usage_count}, "
                           f"success_rate={skill.metrics.success_rate:.2f})",
                 )
 
+            # 步骤3: 评估基线
+            t_eval_base = time.time()
             old_score = self._evaluate_skill(skill)
             old_version = skill.version
+            logger.info(json.dumps({
+                "module_name": "offline_evolver",
+                "action": "evolve_once.baseline",
+                "skill_id": skill_id,
+                "old_score": old_score,
+                "old_version": old_version,
+                "baseline_eval_ms": round((time.time() - t_eval_base) * 1000, 2),
+            }, ensure_ascii=False))
 
-            # 生成变异体
+            # 步骤4: 生成变异体
+            t_mutate = time.time()
             variants = self._mutate(skill, strategies or self._sample_strategies())
+            mutate_ms = (time.time() - t_mutate) * 1000
             if not variants:
+                logger.warning(json.dumps({
+                    "module_name": "offline_evolver",
+                    "action": "evolve_once.no_variants",
+                    "skill_id": skill_id,
+                    "mutate_ms": round(mutate_ms, 2),
+                }, ensure_ascii=False))
                 return EvolutionResult(
                     skill_id=skill_id, skipped=True,
                     error="未生成任何变异体",
                 )
 
-            # 评估 + 帕累托筛选
+            # 步骤5: 评估变异体
+            t_eval = time.time()
             for v in variants:
                 v.score = self._evaluate(v)
                 v.objectives = self._compute_objectives(v)
+            eval_ms = (time.time() - t_eval) * 1000
 
+            # 步骤6: 帕累托筛选 (性能热点)
             pareto = self._pareto_filter(variants)
             best = self._pick_best(pareto.front)
+
+            logger.info(json.dumps({
+                "module_name": "offline_evolver",
+                "action": "evolve_once.pareto_done",
+                "skill_id": skill_id,
+                "variants_count": len(variants),
+                "pareto_front_size": len(pareto.front),
+                "dominated_count": pareto.dominated_count,
+                "mutate_ms": round(mutate_ms, 2),
+                "eval_ms": round(eval_ms, 2),
+            }, ensure_ascii=False))
 
             if best is None or best.score is None:
                 return EvolutionResult(
@@ -224,7 +274,8 @@ class OfflineEvolver:
                 improvement=round(improvement, 4),
             )
 
-            # 提交判定
+            # 步骤7: 提交判定
+            t_commit = time.time()
             if improvement >= self.improvement_threshold:
                 committed = self._commit(best)
                 result.new_version = committed.new_version if committed else ""
@@ -235,14 +286,40 @@ class OfflineEvolver:
                     "module_name": "offline_evolver",
                     "action": "evolve_once.skip_commit",
                     "skill_id": skill_id,
-                    "improvement": improvement,
+                    "improvement": round(improvement, 4),
                     "threshold": self.improvement_threshold,
+                    "best_score": best.score,
+                    "old_score": old_score,
                 }, ensure_ascii=False))
+            commit_ms = (time.time() - t_commit) * 1000
+
+            # 汇总日志 + 性能埋点
+            total_ms = (time.time() - t_total) * 1000
+            logger.info(json.dumps({
+                "module_name": "offline_evolver",
+                "action": "evolve_once.done",
+                "skill_id": skill_id,
+                "strategy": best.strategy.value,
+                "improvement": round(improvement, 4),
+                "committed": result.committed,
+                "total_ms": round(total_ms, 2),
+                "breakdown_ms": {
+                    "mutate": round(mutate_ms, 2),
+                    "eval": round(eval_ms, 2),
+                    "commit": round(commit_ms, 2),
+                },
+            }, ensure_ascii=False))
 
             emit_metric("yunshu_skill_evolution_total",
                         value=1, kind="counter",
                         labels={"skill_id": skill_id,
                                 "committed": str(result.committed).lower()})
+            emit_metric("yunshu_skill_evolve_latency_ms",
+                        value=total_ms, kind="histogram",
+                        labels={"skill_id": skill_id})
+            emit_metric("yunshu_skill_pareto_variants_count",
+                        value=len(variants), kind="gauge",
+                        labels={"skill_id": skill_id})
             return result
 
     def evolve_batch(self, skill_ids: Optional[List[str]] = None, *,
@@ -375,11 +452,21 @@ class OfflineEvolver:
         """
         variants: List[Variant] = []
         base_params = dict(skill.default_params)
+        strategy_counts: Dict[str, int] = {}
 
         for strategy in strategies:
             try:
+                t_strat = time.time()
                 new_params = self._apply_strategy(skill, strategy, base_params)
+                strat_ms = (time.time() - t_strat) * 1000
                 if new_params is None:
+                    logger.debug(json.dumps({
+                        "module_name": "offline_evolver",
+                        "action": "mutate.no_params",
+                        "skill_id": skill.id,
+                        "strategy": strategy.value,
+                        "strat_ms": round(strat_ms, 2),
+                    }, ensure_ascii=False))
                     continue
                 variants.append(Variant(
                     skill_id=skill.id,
@@ -388,6 +475,7 @@ class OfflineEvolver:
                     parent_version=skill.version,
                     metrics=skill.metrics,  # 骨架阶段用历史指标占位
                 ))
+                strategy_counts[strategy.value] = strategy_counts.get(strategy.value, 0) + 1
             except Exception as e:
                 logger.warning(json.dumps({
                     "module_name": "offline_evolver",
@@ -396,6 +484,16 @@ class OfflineEvolver:
                     "strategy": strategy.value,
                     "error": str(e),
                 }, ensure_ascii=False))
+
+        logger.info(json.dumps({
+            "module_name": "offline_evolver",
+            "action": "mutate.done",
+            "skill_id": skill.id,
+            "base_params_count": len(base_params),
+            "strategies_requested": len(strategies),
+            "variants_generated": len(variants),
+            "strategy_counts": strategy_counts,
+        }, ensure_ascii=False))
 
         return variants
 
@@ -497,9 +595,17 @@ class OfflineEvolver:
 
         变异体 A 支配 B 当且仅当:
             A 在所有目标上 >= B,且至少一个目标 > B
+
+        性能: O(n²) 支配判断,n=变异体数量。日志记录判断次数和耗时,
+        便于定位瓶颈(当 n > 100 时应考虑改用快速非支配排序)。
         """
-        if not variants:
+        n = len(variants)
+        if n == 0:
             return ParetoFront(front=[], dominated_count=0, total_count=0)
+
+        t_start = time.time()
+        domination_checks = 0  # 支配判断调用次数(性能指标)
+        early_exit_count = 0    # 提前break的次数
 
         front: List[Variant] = []
         dominated_count = 0
@@ -513,18 +619,44 @@ class OfflineEvolver:
                     continue
                 if v_j.objectives is None:
                     v_j.objectives = self._compute_objectives(v_j)
+                domination_checks += 1
                 if self._dominates(v_j.objectives, v_i.objectives):
                     is_dominated = True
+                    early_exit_count += 1
                     break
             if not is_dominated:
                 front.append(v_i)
             else:
                 dominated_count += 1
 
+        elapsed_ms = (time.time() - t_start) * 1000
+        non_dominated_ratio = len(front) / n if n > 0 else 0.0
+
+        logger.info(json.dumps({
+            "module_name": "offline_evolver",
+            "action": "pareto_filter.detail",
+            "variants_count": n,
+            "domination_checks": domination_checks,
+            "early_exit_count": early_exit_count,
+            "theoretical_max_checks": n * (n - 1),
+            "front_size": len(front),
+            "dominated_count": dominated_count,
+            "non_dominated_ratio": round(non_dominated_ratio, 4),
+            "elapsed_ms": round(elapsed_ms, 2),
+            "avg_check_us": round(elapsed_ms * 1000 / domination_checks, 2) if domination_checks > 0 else 0,
+        }, ensure_ascii=False))
+
+        emit_metric("yunshu_skill_pareto_filter_latency_ms",
+                    value=elapsed_ms, kind="histogram")
+        emit_metric("yunshu_skill_pareto_domination_checks",
+                    value=domination_checks, kind="counter")
+        emit_metric("yunshu_skill_pareto_front_ratio",
+                    value=non_dominated_ratio, kind="gauge")
+
         return ParetoFront(
             front=front,
             dominated_count=dominated_count,
-            total_count=len(variants),
+            total_count=n,
         )
 
     @staticmethod
