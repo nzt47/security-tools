@@ -455,6 +455,12 @@ class TestDisasterRecoveryE2E:
             assert len(backup_ids) >= 1
             logger.info("[断言通过] 至少创建了一个备份")
 
+            logger.info("[步骤4.1] 循环结束后执行全量备份，确保最后一批数据被备份")
+            final_backup_id = dr.trigger_backup(BackupType.FULL)
+            if final_backup_id:
+                backup_ids.append(final_backup_id)
+                logger.info(f"  最终全量备份: {final_backup_id}")
+
             logger.info("[步骤5] 恢复最新备份")
             backup_list = dr.get_backup_list()
             logger.info(f"  备份列表长度: {len(backup_list)}")
