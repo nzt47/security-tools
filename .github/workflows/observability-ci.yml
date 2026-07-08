@@ -19,6 +19,7 @@ on:
       - 'agent/observability/**'
       - 'agent/prometheus_exporter.py'
       - 'monitoring/**'
+      - 'lifetrace/**'
       - 'tests/**/test_*tracing*.py'
       - 'tests/**/test_*prometheus*.py'
       - 'tests/**/test_*observability*.py'
