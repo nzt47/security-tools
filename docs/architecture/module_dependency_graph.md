@@ -329,6 +329,7 @@ flowchart LR
     agent_tool_calling --> agent
     agent_tool_calling --> agent_rate_limiter
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling -.-> agent_response_workflows
     agent_p6_config_loader --> agent_p6_snapshot
     agent_logging_utils -.-> agent_utils
@@ -871,10 +872,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 316
+- 扫描文件数: 317
 - 模块节点数: 253
-- 依赖边数: 542
+- 依赖边数: 543
 - 跨层调用数: 341
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1122.20 ms
+- 构建耗时: 1128.84 ms
