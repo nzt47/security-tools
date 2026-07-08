@@ -169,7 +169,14 @@ def print_report(report: BatchEvolutionReport) -> None:
     print("-" * 70)
 
     for i, r in enumerate(report.results, 1):
-        status = "✓ COMMITTED" if r.committed else ("⊘ SKIPPED" if r.skipped else "✗ FAILED")
+        if r.committed:
+            status = "✓ COMMITTED"
+        elif r.skipped:
+            status = "⊘ SKIPPED"
+        elif r.error:
+            status = "✗ FAILED"
+        else:
+            status = "⊘ BELOW_THRESHOLD"
         print(f"  [{i}] {r.skill_id}")
         print(f"      状态:     {status}")
         if r.strategy:
