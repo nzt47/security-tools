@@ -1050,3 +1050,139 @@ def register_routes(app, state):
             return _err(e)
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  P1.5 Slash 命令解析器 — 统一入口
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/skill/<skill_id>", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_slash(skill_id: str):
+        """Slash 命令解析器 — 统一技能操作入口
+
+        Body: {
+            command: "info|execute|evolve|params|versions",
+            params?: dict,        # execute/params 命令的参数
+            script_name?: str,    # execute 命令的脚本名
+            timeout?: float,      # execute 命令的超时
+            patch?: dict,         # params 命令的更新字段
+            strategies?: list,    # evolve 命令的变异策略
+        }
+
+        Returns:
+            {ok, command, result, ...} — 各命令的统一响应格式
+        """
+        try:
+            data = request.get_json() or {}
+            command = (data.get("command") or "").strip().lower()
+            if not command:
+                return jsonify({
+                    "ok": False,
+                    "error": "缺少 command 参数",
+                    "code": "SKILL_VALIDATION_ERROR",
+                    "supported_commands": ["info", "execute", "evolve",
+                                           "params", "versions"],
+                }), 400
+
+            svc = _svc()
+
+            # ─── info: 获取技能详情 ───
+            if command == "info":
+                skill = svc.get(skill_id)
+                return jsonify({
+                    "ok": True,
+                    "command": "info",
+                    "skill": skill.to_dict() if hasattr(skill, "to_dict") else skill.model_dump(),
+                })
+
+            # ─── execute: 执行技能脚本 ───
+            if command == "execute":
+                script_name = data.get("script_name", "main.py")
+                params = data.get("params")
+                timeout = data.get("timeout")
+                if timeout is not None:
+                    timeout = float(timeout)
+                result = svc.execute_skill_script(
+                    skill_id, script_name=script_name,
+                    params=params, timeout=timeout,
+                )
+                return jsonify({
+                    "ok": result.success,
+                    "command": "execute",
+                    "success": result.success,
+                    "result": result.result,
+                    "error": result.error,
+                    "exit_code": result.exit_code,
+                    "duration_ms": result.duration_ms,
+                    "validation_status": getattr(result, "validation_status", "skipped"),
+                })
+
+            # ─── evolve: 触发离线进化 ───
+            if command == "evolve":
+                from agent.skills_mgmt.offline_evolver import (
+                    OfflineEvolver, EvolutionStrategy,
+                )
+                strategies = None
+                if data.get("strategies"):
+                    strategies = [EvolutionStrategy(s) for s in data["strategies"]]
+                evolver = OfflineEvolver(svc.store, svc.enhancer)
+                result = evolver.evolve_once(skill_id, strategies=strategies)
+                return jsonify({
+                    "ok": not result.skipped and result.error is None,
+                    "command": "evolve",
+                    "skill_id": result.skill_id,
+                    "strategy": result.strategy.value if result.strategy else None,
+                    "old_version": result.old_version,
+                    "new_version": result.new_version,
+                    "improvement": result.improvement,
+                    "committed": result.committed,
+                    "skipped": result.skipped,
+                    "error": result.error,
+                })
+
+            # ─── params: 更新参数 ───
+            if command == "params":
+                patch = data.get("patch") or {}
+                if not patch:
+                    return jsonify({
+                        "ok": False,
+                        "error": "params 命令需要 patch 字段",
+                        "code": "SKILL_VALIDATION_ERROR",
+                    }), 400
+                updated = svc.update(skill_id, patch)
+                return jsonify({
+                    "ok": True,
+                    "command": "params",
+                    "skill": updated.to_dict() if hasattr(updated, "to_dict") else updated.model_dump(),
+                })
+
+            # ─── versions: 获取版本历史 ───
+            if command == "versions":
+                versions = svc.list_versions(skill_id)
+                return jsonify({
+                    "ok": True,
+                    "command": "versions",
+                    "versions": [v.to_dict() if hasattr(v, "to_dict") else v.model_dump()
+                                 for v in versions],
+                })
+
+            # ─── 未知命令 ───
+            return jsonify({
+                "ok": False,
+                "error": f"不支持的命令: {command}",
+                "code": "SKILL_VALIDATION_ERROR",
+                "supported_commands": ["info", "execute", "evolve",
+                                       "params", "versions"],
+            }), 400
+
+        except SkillNotFoundError as e:
+            return _err(e)
+        except SkillMgmtError as e:
+            return _err(e)
+        except ValueError as e:
+            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+        except Exception as e:  # noqa: BLE001
+            logger.exception("slash command failed: skill_id=%s", skill_id)
+            return jsonify({"ok": False, "error": str(e)}), 500
