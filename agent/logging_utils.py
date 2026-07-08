@@ -529,6 +529,43 @@ def setup_agent_logging(
         else:
             logging.getLogger(module).setLevel(logging.INFO)
 
+    # 生产环境强制输出 DEBUG 日志的关键调试模块
+    # 这些模块的 DEBUG 日志在非 debug_mode 下也会输出到控制台/文件，
+    # 便于线上排查配置错误。专用 handler 仅放行 DEBUG 级别记录，
+    # INFO+ 记录仍由根 logger 的 handler 处理，避免重复输出。
+    always_debug_modules = [
+        "agent.config_validation",  # 配置校验调试信息（18 条 DEBUG 日志）
+    ]
+    for module in always_debug_modules:
+        module_logger = logging.getLogger(module)
+        module_logger.setLevel(logging.DEBUG)
+
+        # 专用 DEBUG handler：仅放行 DEBUG 级别记录
+        debug_console = logging.StreamHandler(sys.stdout)
+        debug_console.setLevel(logging.DEBUG)
+        debug_console.setFormatter(formatter)
+        debug_console.addFilter(SensitiveDataFilter())
+        debug_console.addFilter(EmojiFilter())
+        debug_console.addFilter(
+            lambda record: record.levelno == logging.DEBUG
+        )
+        module_logger.addHandler(debug_console)
+
+        if enable_file and log_file:
+            debug_file = create_rotating_file_handler(
+                log_file,
+                rotation_config or LogRotationConfig(),
+                file_formatter,
+            )
+            debug_file.setLevel(logging.DEBUG)
+            debug_file.addFilter(SensitiveDataFilter())
+            debug_file.addFilter(EmojiFilter())
+            debug_file.addFilter(DictToJsonFilter())
+            debug_file.addFilter(
+                lambda record: record.levelno == logging.DEBUG
+            )
+            module_logger.addHandler(debug_file)
+
     # 规划引擎模块
     planning_modules = [
         "planning.core",
@@ -803,11 +840,13 @@ class AuditLogger:
     def __init__(self):
         self._logger = logging.getLogger("agent.audit")
         self._logger.setLevel(logging.INFO)
-        
+
         # 确保审计日志有独立处理器（输出到单独文件）
         if not self._logger.handlers:
+            log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'audit.log')
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
             handler = logging.FileHandler(
-                os.path.join(os.path.dirname(__file__), '..', 'logs', 'audit.log'),
+                log_path,
                 encoding='utf-8'
             )
             handler.setFormatter(logging.Formatter(

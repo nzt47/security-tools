@@ -254,8 +254,7 @@ jobs:
           echo "=== 运行性能测试 ==="
           pytest tests/benchmark/ \
             -v \
-            --benchmark-only \
-            --benchmark-json=test_reports/benchmark.json \
+            -o addopts="" \
             --timeout=300
 
       - name: 上传性能报告
