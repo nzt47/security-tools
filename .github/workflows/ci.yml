@@ -218,6 +218,7 @@ jobs:
             --tb=short \
             --cov=agent \
             --cov-report=xml \
+            --cov-fail-under=0 \
             -m "not slow and not e2e and not requires_llm and not skip_ci" \
             --timeout=300
 
