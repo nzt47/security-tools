@@ -1,5 +1,5 @@
 {
-  "trace_id": "3f3c963dafcf4a1f",
+  "trace_id": "2a8508e2a2cb41a2",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -9116,6 +9116,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1132.20149
+    "build_duration_ms": 1086.4255169999951
   }
 }
