@@ -448,6 +448,7 @@ class GracefulDegrade:
         # 1. 降级期内直接返回 fallback / 缓存 / 默认值，不调用主函数
         if self.is_degraded(component):
             self._record_degrade(module, DegradeLevel.FALLBACK)
+            self._record_module_result(module, success=False)
             self._log_action("degrade_short_circuit", {
                 "component": component,
                 "level": self.get_state(component).level.value,
