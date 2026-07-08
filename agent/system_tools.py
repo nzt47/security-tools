@@ -141,11 +141,12 @@ def run_sandbox(code, timeout_sec=5):
             result["error"] = f"代码包含被禁止的模式: {pattern}"
             return result
 
-    # 使用 Queue 接收子进程结果
-    result_queue = multiprocessing.Queue()
-
     # 显式指定 spawn 方式，避免 fork 继承父进程锁状态
     ctx = multiprocessing.get_context("spawn")
+
+    # Queue 必须与 Process 使用同一上下文，否则跨 fork/spawn 共享 SemLock 会报错
+    result_queue = ctx.Queue()
+
     process = ctx.Process(
         target=_sandbox_worker,
         args=(code, _SAFE_BUILTINS, result_queue),
@@ -198,7 +199,8 @@ def get_clipboard():
         import pyperclip
         content = pyperclip.paste()
         return {"ok": True, "content": content[:10000]}
-    except ImportError:
+    except Exception:
+        # pyperclip 在无 xclip/xsel 的 Linux CI 会抛 PyperclipException（非 ImportError）
         try:
             import subprocess
             result = subprocess.run(
@@ -218,7 +220,8 @@ def set_clipboard(text):
         import pyperclip
         pyperclip.copy(text)
         return {"ok": True}
-    except ImportError:
+    except Exception:
+        # 同 get_clipboard：覆盖 PyperclipException
         try:
             import subprocess
             subprocess.run(
