@@ -194,7 +194,13 @@ def test_access_logger():
             print(f"  - {record['datetime']} | {record['endpoint']} | {record['client_ip']} | {record['status_code']}")
 
         # 验证敏感字段被过滤
-        assert records[0]["query_params"]["api_key"] == "********", "query_params 中的敏感字段应被过滤"
+        # records 按时间倒序，需找到包含 api_key 的记录（第一次调用）
+        api_key_record = next(
+            (r for r in records if "api_key" in r.get("query_params", {})),
+            None,
+        )
+        assert api_key_record is not None, "应存在包含 api_key 的访问记录"
+        assert api_key_record["query_params"]["api_key"] == "********", "query_params 中的敏感字段应被过滤"
 
         print("✓ 访问日志读取和过滤测试通过")
 
