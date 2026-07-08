@@ -209,6 +209,7 @@ class TestPathSecurity:
 
     @pytest.mark.unit
     @pytest.mark.p3
+    @pytest.mark.skipif(os.name != "nt", reason="Windows 路径保护检测仅在 Windows 生效")
     def test_is_protected_path_windows_system_dirs(self):
         """测试 Windows 系统保护目录检测"""
         assert is_protected_path(r"C:\Windows\System32") is True
@@ -420,7 +421,7 @@ class TestWorkspaceOperations:
     @pytest.fixture
     def temp_workspace(self, monkeypatch):
         with tempfile.TemporaryDirectory() as tmpdir:
-            monkeypatch.setattr("agent.system_tools.WORKSPACE_DIR", tmpdir)
+            monkeypatch.setattr("agent.tools.workspace_tools.WORKSPACE_DIR", tmpdir)
             yield tmpdir
 
     @pytest.mark.unit
@@ -497,7 +498,7 @@ class TestScheduledTasks:
     def temp_task_file(self, monkeypatch):
         with tempfile.TemporaryDirectory() as tmpdir:
             task_file = os.path.join(tmpdir, "tasks.json")
-            monkeypatch.setattr("agent.system_tools.SCHEDULED_TASKS_FILE", task_file)
+            monkeypatch.setattr("agent.tools.task_tools.SCHEDULED_TASKS_FILE", task_file)
             yield task_file
 
     @pytest.mark.unit
@@ -591,6 +592,7 @@ class TestSystemToolsBasicFunctions:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.skipif(os.name != "nt", reason="Windows 路径保护检测仅在 Windows 生效")
     def test_is_protected_path_windows(self):
         """测试 Windows 系统保护路径检测"""
         assert is_protected_path(r"C:\Windows\System32") is True
@@ -715,7 +717,7 @@ class TestSystemToolsBasicFunctions:
         with tempfile.TemporaryDirectory() as tmpdir:
             result = read_file(tmpdir)
             assert result["ok"] is False
-            assert "不是文件" in result["error"]
+            assert "目录而非文件" in result["error"]
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -992,7 +994,7 @@ class TestWriteFileExceptions:
     @pytest.mark.p0
     def test_write_file_create_dir_error(self):
         """测试创建目录失败"""
-        with patch("agent.system_tools.safe_resolve_path", return_value="test.txt"):
+        with patch("agent.tools.file_tools.safe_resolve_path", return_value="test.txt"):
             with patch("os.makedirs", side_effect=OSError("mkdir error")):
                 result = write_file("test.txt", "content")
                 assert result["ok"] is False
@@ -1006,7 +1008,7 @@ class TestListDirectory:
     @pytest.mark.p0
     def test_list_directory_invalid_path(self):
         """测试无效路径"""
-        with patch("agent.system_tools.safe_resolve_path", side_effect=ValueError("invalid path")):
+        with patch("agent.tools.file_tools.safe_resolve_path", side_effect=ValueError("invalid path")):
             result = list_directory("invalid")
             assert result["ok"] is False
             assert "invalid path" in result["error"]
@@ -1037,7 +1039,7 @@ class TestListDirectory:
     @pytest.mark.p0
     def test_list_directory_permission_error(self):
         """测试无权限访问目录"""
-        with patch("agent.system_tools.safe_resolve_path", return_value="test_dir"):
+        with patch("agent.tools.file_tools.safe_resolve_path", return_value="test_dir"):
             with patch("os.listdir", side_effect=PermissionError("permission denied")):
                 result = list_directory("test_dir")
                 assert result["ok"] is False
@@ -1079,7 +1081,7 @@ class TestGetFileInfo:
     @pytest.mark.p0
     def test_get_file_info_invalid_path(self):
         """测试无效路径"""
-        with patch("agent.system_tools.safe_resolve_path", side_effect=ValueError("invalid")):
+        with patch("agent.tools.file_tools.safe_resolve_path", side_effect=ValueError("invalid")):
             result = get_file_info("invalid")
             assert result["ok"] is False
 
@@ -1115,7 +1117,7 @@ class TestSearchFiles:
     @pytest.mark.p0
     def test_search_files_invalid_root(self):
         """测试无效搜索根目录"""
-        with patch("agent.system_tools.safe_resolve_path", side_effect=ValueError("invalid")):
+        with patch("agent.tools.file_tools.safe_resolve_path", side_effect=ValueError("invalid")):
             result = search_files("*.txt", "invalid")
             assert result["ok"] is False
 
@@ -1507,7 +1509,7 @@ class TestSystemToolsWorkspace:
     @pytest.mark.p0
     def test_workspace_init(self):
         """测试工作区初始化"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             result = init_workspace()
             
             assert os.path.isdir(result)
@@ -1518,7 +1520,7 @@ class TestSystemToolsWorkspace:
     @pytest.mark.p0
     def test_workspace_write_and_read(self):
         """测试工作区写入和读取"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()) as workspace:
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()) as workspace:
             init_workspace()
             
             # 写入文件
@@ -1534,7 +1536,7 @@ class TestSystemToolsWorkspace:
     @pytest.mark.p0
     def test_workspace_path_traversal(self):
         """测试工作区路径遍历防护"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             
             with pytest.raises(ValueError):
@@ -1729,7 +1731,7 @@ class TestSystemToolsScheduledTasks:
     @pytest.mark.p0
     def test_list_scheduled_tasks_empty(self):
         """测试列出空的定时任务列表"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": []}):
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": []}):
             result = list_scheduled_tasks()
             assert result == {"tasks": []}
 
@@ -1737,8 +1739,8 @@ class TestSystemToolsScheduledTasks:
     @pytest.mark.p0
     def test_create_scheduled_task_whitelist(self):
         """测试创建白名单内的定时任务"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": []}):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": []}):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = create_scheduled_task("test", "echo hello", 60)
                 assert result["ok"] is True
                 assert "task" in result
@@ -1748,7 +1750,7 @@ class TestSystemToolsScheduledTasks:
     @pytest.mark.p0
     def test_create_scheduled_task_not_whitelisted(self):
         """测试创建非白名单命令的定时任务"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": []}):
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": []}):
             result = create_scheduled_task("test", "rm -rf /", 60)
             assert result["ok"] is False
             assert "不在白名单中" in result["error"]
@@ -1758,8 +1760,8 @@ class TestSystemToolsScheduledTasks:
     def test_delete_scheduled_task_exists(self):
         """测试删除存在的定时任务"""
         tasks_data = {"tasks": [{"id": "123", "name": "test"}]}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = delete_scheduled_task("123")
                 assert result["ok"] is True
                 assert result["deleted"] is True
@@ -1770,8 +1772,8 @@ class TestSystemToolsScheduledTasks:
     def test_delete_scheduled_task_not_exists(self):
         """测试删除不存在的定时任务"""
         tasks_data = {"tasks": [{"id": "456", "name": "test"}]}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = delete_scheduled_task("123")
                 assert result["ok"] is True
                 assert result["deleted"] is False
@@ -1782,8 +1784,8 @@ class TestSystemToolsScheduledTasks:
     def test_toggle_scheduled_task_enable(self):
         """测试启用定时任务"""
         tasks_data = {"tasks": [{"id": "123", "name": "test", "enabled": False}]}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = toggle_scheduled_task("123", True)
                 assert result["ok"] is True
                 mock_save.assert_called_once()
@@ -1793,8 +1795,8 @@ class TestSystemToolsScheduledTasks:
     def test_toggle_scheduled_task_disable(self):
         """测试禁用定时任务"""
         tasks_data = {"tasks": [{"id": "123", "name": "test", "enabled": True}]}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = toggle_scheduled_task("123", False)
                 assert result["ok"] is True
                 mock_save.assert_called_once()
@@ -1804,7 +1806,7 @@ class TestSystemToolsScheduledTasks:
     def test_toggle_scheduled_task_not_exists(self):
         """测试切换不存在的定时任务"""
         tasks_data = {"tasks": []}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
             result = toggle_scheduled_task("123", True)
             assert result["ok"] is False
             assert "任务不存在" in result["error"]
@@ -1817,9 +1819,9 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_get_browser_selenium_not_installed(self):
         """测试 selenium 未安装时浏览器不可用"""
-        with patch('agent.system_tools._browser_instance', None):
-            with patch('agent.system_tools.logger'):
-                with patch('agent.system_tools.get_browser') as mock_browser:
+        with patch('agent.tools.browser_tools._browser_instance', None):
+            with patch('agent.tools.browser_tools.logger'):
+                with patch('agent.tools.browser_tools.get_browser') as mock_browser:
                     mock_browser.return_value = None
                     result = mock_browser()
                     assert result is None
@@ -1828,9 +1830,9 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_get_browser_import_error(self):
         """测试浏览器启动 ImportError 异常"""
-        with patch('agent.system_tools._browser_instance', None):
-            with patch('agent.system_tools.logger'):
-                with patch('agent.system_tools.get_browser') as mock_browser:
+        with patch('agent.tools.browser_tools._browser_instance', None):
+            with patch('agent.tools.browser_tools.logger'):
+                with patch('agent.tools.browser_tools.get_browser') as mock_browser:
                     mock_browser.return_value = None
                     result = mock_browser()
                     assert result is None
@@ -1839,9 +1841,9 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_get_browser_generic_exception(self):
         """测试浏览器启动通用异常"""
-        with patch('agent.system_tools._browser_instance', None):
-            with patch('agent.system_tools.logger'):
-                with patch('agent.system_tools.get_browser') as mock_browser:
+        with patch('agent.tools.browser_tools._browser_instance', None):
+            with patch('agent.tools.browser_tools.logger'):
+                with patch('agent.tools.browser_tools.get_browser') as mock_browser:
                     mock_browser.return_value = None
                     result = mock_browser()
                     assert result is None
@@ -1875,7 +1877,7 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_browser_navigate_browser_not_available(self):
         """测试浏览器不可用时的导航"""
-        with patch('agent.system_tools.get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser', return_value=None):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
             assert "浏览器不可用" in result["error"]
@@ -1884,7 +1886,7 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_browser_screenshot_browser_not_available(self):
         """测试浏览器不可用时截图"""
-        with patch('agent.system_tools.get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser', return_value=None):
             result = browser_screenshot()
             assert result["ok"] is False
             assert "浏览器不可用" in result["error"]
@@ -1893,7 +1895,7 @@ class TestSystemToolsBrowser:
     @pytest.mark.p0
     def test_browser_close_no_instance(self):
         """测试关闭不存在的浏览器实例"""
-        with patch('agent.system_tools._browser_instance', None):
+        with patch('agent.tools.browser_tools._browser_instance', None):
             browser_close()  # 应不会报错
             assert True  # 函数执行无异常
 
@@ -1913,7 +1915,7 @@ class TestSystemToolsProcessManagement:
     @pytest.mark.p0
     def test_start_process_exception(self):
         """测试启动程序异常"""
-        with patch('agent.system_tools.subprocess.Popen', side_effect=Exception("Failed")):
+        with patch('agent.tools.process_tools.subprocess.Popen', side_effect=Exception("Failed")):
             result = start_process("notepad.exe")
             assert result["ok"] is False
             assert "Failed" in result["error"]
@@ -1957,7 +1959,7 @@ class TestSystemToolsLoadSaveTasks:
     @pytest.mark.p0
     def test_load_tasks_file_missing(self):
         """测试任务文件不存在时的加载"""
-        with patch('agent.system_tools.SCHEDULED_TASKS_FILE', '/tmp/not_exist.json'):
+        with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', '/tmp/not_exist.json'):
             result = list_scheduled_tasks()
             assert result == {"tasks": []}
 
@@ -1966,8 +1968,8 @@ class TestSystemToolsLoadSaveTasks:
     def test_save_tasks_creates_directory(self):
         """测试保存任务时创建目录"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.SCHEDULED_TASKS_FILE', os.path.join(tmpdir, 'tasks.json')):
-                with patch('agent.system_tools.os.makedirs') as mock_mkdirs:
+            with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', os.path.join(tmpdir, 'tasks.json')):
+                with patch('agent.tools.task_tools.os.makedirs') as mock_mkdirs:
                     mock_mkdirs.side_effect = lambda *args, **kwargs: None
                     create_scheduled_task("test", "echo hello")
                     mock_mkdirs.assert_called_once()
@@ -1980,7 +1982,7 @@ class TestSystemToolsWorkspaceComplete:
     @pytest.mark.p0
     def test_delete_workspace_root_directory_blocked(self):
         """测试删除工作区根目录被阻止"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             with pytest.raises(ValueError):
                 delete_workspace("")
@@ -1989,11 +1991,11 @@ class TestSystemToolsWorkspaceComplete:
     @pytest.mark.p0
     def test_delete_workspace_directory_with_shutil_rmtree(self):
         """测试删除目录时调用 shutil.rmtree"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             test_dir = "test_dir"
             os.makedirs(os.path.join(os.environ.get('AGENT_WORKSPACE', '.'), test_dir), exist_ok=True)
-            with patch('agent.system_tools.shutil.rmtree') as mock_rmtree:
+            with patch('agent.tools.workspace_tools.shutil.rmtree') as mock_rmtree:
                 try:
                     delete_workspace(test_dir)
                 except Exception:
@@ -2005,7 +2007,7 @@ class TestSystemToolsWorkspaceComplete:
     @pytest.mark.p0
     def test_list_workspace_directory_listing(self):
         """测试列出工作区目录内容"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             write_workspace("test1.txt", "content1")
             write_workspace("test2.txt", "content2")
@@ -2140,7 +2142,7 @@ class TestReadFileBoundaryCases:
             temp_path = f.name
         try:
             # 强制不识别为二进制，测试文本解码路径
-            with patch("agent.system_tools.is_binary_content", return_value=False):
+            with patch("agent.tools.file_tools.is_binary_content", return_value=False):
                 result = read_file(temp_path, encoding="utf-8")
                 assert result["ok"] is True
                 assert result["binary"] is False
@@ -2156,7 +2158,7 @@ class TestReadFileBoundaryCases:
             f.write(b"\xff\xfe\xfd")
             temp_path = f.name
         try:
-            with patch("agent.system_tools.is_binary_content", return_value=False):
+            with patch("agent.tools.file_tools.is_binary_content", return_value=False):
                 # 测试编码降级路径
                 result = read_file(temp_path, encoding="utf-8")
                 assert result["ok"] is True
@@ -2221,7 +2223,7 @@ class TestListDirectoryBoundaryCases:
             with open(os.path.join(temp_dir, "test.txt"), "w") as f:
                 f.write("test")
             
-            with patch("agent.system_tools._get_single_file_info", side_effect=OSError("stat failed")):
+            with patch("agent.tools.file_tools._get_single_file_info", side_effect=OSError("stat failed")):
                 result = list_directory(temp_dir)
                 assert result["ok"] is True
                 # 验证错误处理
@@ -2377,7 +2379,7 @@ class TestBrowserControl:
     @pytest.mark.p0
     def test_browser_navigate_browser_unavailable(self):
         """测试浏览器不可用"""
-        with patch("agent.system_tools.get_browser", return_value=None):
+        with patch("agent.tools.browser_tools.get_browser", return_value=None):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
             assert "浏览器不可用" in result["error"]
@@ -2386,7 +2388,7 @@ class TestBrowserControl:
     @pytest.mark.p0
     def test_browser_screenshot_browser_unavailable(self):
         """测试截图时浏览器不可用"""
-        with patch("agent.system_tools.get_browser", return_value=None):
+        with patch("agent.tools.browser_tools.get_browser", return_value=None):
             result = browser_screenshot()
             assert result["ok"] is False
             assert "浏览器不可用" in result["error"]
@@ -2395,7 +2397,7 @@ class TestBrowserControl:
     @pytest.mark.p0
     def test_browser_close_no_instance(self):
         """测试关闭浏览器时无实例"""
-        with patch("agent.system_tools._browser_instance", None):
+        with patch("agent.tools.browser_tools._browser_instance", None):
             result = browser_close()
             # 应该正常执行，无异常
 
@@ -2404,7 +2406,7 @@ class TestBrowserControl:
     def test_cleanup_browser_instance(self):
         """测试清理浏览器实例"""
         mock_browser = MagicMock()
-        with patch("agent.system_tools._browser_instance", mock_browser):
+        with patch("agent.tools.browser_tools._browser_instance", mock_browser):
             _cleanup_browser_instance()
             mock_browser.quit.assert_called_once()
 
@@ -2414,7 +2416,7 @@ class TestBrowserControl:
         """测试清理浏览器实例时 quit 失败"""
         mock_browser = MagicMock()
         mock_browser.quit.side_effect = Exception("quit failed")
-        with patch("agent.system_tools._browser_instance", mock_browser):
+        with patch("agent.tools.browser_tools._browser_instance", mock_browser):
             _cleanup_browser_instance()
             # 应该正常执行，无异常
 
@@ -2433,7 +2435,7 @@ class TestBrowserNavigateSuccess:
         mock_body.text = "Page content"
         mock_browser.find_element.return_value = mock_body
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is True
             assert result["title"] == "Test Page"
@@ -2446,7 +2448,7 @@ class TestBrowserNavigateSuccess:
         mock_browser = MagicMock()
         mock_browser.get.side_effect = Exception("navigation failed")
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
             assert "navigation failed" in result["error"]
@@ -2458,7 +2460,7 @@ class TestBrowserNavigateSuccess:
         mock_browser = MagicMock()
         mock_browser.get_screenshot_as_base64.return_value = "base64_data"
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is True
             assert "screenshot_base64" in result
@@ -2470,7 +2472,7 @@ class TestBrowserNavigateSuccess:
         mock_browser = MagicMock()
         mock_browser.get_screenshot_as_base64.side_effect = Exception("screenshot failed")
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is False
             assert "screenshot failed" in result["error"]
@@ -2562,7 +2564,7 @@ class TestTaskSchedulerFunctions:
         """测试加载任务文件不存在"""
         with tempfile.TemporaryDirectory() as temp_dir:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
-            with patch("agent.system_tools.SCHEDULED_TASKS_FILE", tasks_file):
+            with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
                 result = _load_tasks()
                 # 应该返回默认空任务
                 assert "tasks" in result
@@ -2576,7 +2578,7 @@ class TestTaskSchedulerFunctions:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
             with open(tasks_file, "w") as f:
                 f.write("invalid json")
-            with patch("agent.system_tools.SCHEDULED_TASKS_FILE", tasks_file):
+            with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
                 result = _load_tasks()
                 # 应该返回默认空任务
                 assert "tasks" in result
@@ -2587,8 +2589,8 @@ class TestTaskSchedulerFunctions:
         """测试保存任务文件权限错误"""
         with tempfile.TemporaryDirectory() as temp_dir:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
-            with patch("agent.system_tools.SCHEDULED_TASKS_FILE", tasks_file):
-                with patch("agent.system_tools.open", side_effect=PermissionError("permission denied")):
+            with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
+                with patch("agent.tools.task_tools.open", side_effect=PermissionError("permission denied")):
                     try:
                         _save_tasks({"tasks": []})
                     except PermissionError:
@@ -2602,7 +2604,7 @@ class TestTaskSchedulerFunctions:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
             with open(tasks_file, "w") as f:
                 f.write('{"tasks": []}')
-            with patch("agent.system_tools.SCHEDULED_TASKS_FILE", tasks_file):
+            with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
                 result = toggle_scheduled_task("nonexistent", True)
                 assert result["ok"] is False
                 assert "不存在" in result["error"]
@@ -2611,9 +2613,9 @@ class TestTaskSchedulerFunctions:
     @pytest.mark.p0
     def test_toggle_scheduled_task_success(self):
         """测试切换任务状态成功"""
-        with patch("agent.system_tools._load_tasks") as mock_load:
+        with patch("agent.tools.task_tools._load_tasks") as mock_load:
             mock_load.return_value = {"tasks": [{"id": "task1", "enabled": False}]}
-            with patch("agent.system_tools._save_tasks") as mock_save:
+            with patch("agent.tools.task_tools._save_tasks") as mock_save:
                 result = toggle_scheduled_task("task1", True)
                 assert result["ok"] is True
                 mock_save.assert_called_once()
@@ -2632,7 +2634,7 @@ class TestBrowserControlEdgeCases:
         mock_browser = MagicMock()
         mock_browser.get.side_effect = Exception("timeout")
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
 
@@ -2645,7 +2647,7 @@ class TestBrowserControlEdgeCases:
         mock_browser.current_url = "http://example.com"
         mock_browser.find_element.side_effect = Exception("element not found")
         
-        with patch("agent.system_tools.get_browser", return_value=mock_browser):
+        with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_navigate("http://example.com")
             # 应该返回部分结果或失败
             assert result is not None
@@ -3396,7 +3398,7 @@ class TestSystemToolsEdgeCases:
         with tempfile.TemporaryDirectory() as tmpdir:
             result = read_file(tmpdir)
             assert result["ok"] is False
-            assert "不是文件" in result["error"]
+            assert "目录而非文件" in result["error"]
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -3638,7 +3640,7 @@ class TestSystemToolsWorkspaceEdgeCases:
     @pytest.mark.p0
     def test_list_workspace_file_content(self):
         """测试列出工作区文件内容"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             write_workspace("test.txt", "test content")
             
@@ -3652,7 +3654,7 @@ class TestSystemToolsWorkspaceEdgeCases:
     @pytest.mark.p0
     def test_list_workspace_nonexistent(self):
         """测试列出不存在的路径"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             
             result = list_workspace("nonexistent")
@@ -3664,7 +3666,7 @@ class TestSystemToolsWorkspaceEdgeCases:
     @pytest.mark.p0
     def test_delete_workspace_file(self):
         """测试删除工作区文件"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             write_workspace("test.txt", "test content")
             
@@ -3676,7 +3678,7 @@ class TestSystemToolsWorkspaceEdgeCases:
     @pytest.mark.p0
     def test_delete_workspace_nonexistent(self):
         """测试删除不存在的文件"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             
             # 删除不存在文件的行为可能不同
@@ -3691,7 +3693,7 @@ class TestSystemToolsWorkspaceEdgeCases:
     @pytest.mark.p0
     def test_delete_workspace_protected_path(self):
         """测试删除保护路径"""
-        with patch('agent.system_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
+        with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tempfile.mkdtemp()):
             init_workspace()
             
             with pytest.raises(ValueError):
@@ -4009,6 +4011,7 @@ class TestWriteFileExtended:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.skipif(os.name != "nt", reason="Windows 保护路径检测仅在 Windows 生效")
     def test_write_file_protected_path(self):
         """测试受保护路径被拒绝"""
         result = write_file("C:\\Windows\\System32\\test.txt", "content")
@@ -4931,7 +4934,7 @@ class TestSystemToolsScheduledTasksComplete:
     @pytest.mark.p0
     def test_load_tasks_no_file(self):
         """测试加载不存在的任务文件"""
-        with patch('agent.system_tools.SCHEDULED_TASKS_FILE', '/nonexistent_path_xyz.json'):
+        with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', '/nonexistent_path_xyz.json'):
             result = _load_tasks()
             assert result == {"tasks": []}
 
@@ -4941,7 +4944,7 @@ class TestSystemToolsScheduledTasksComplete:
         """测试保存任务"""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = os.path.join(tmpdir, "subdir", "tasks.json")
-            with patch('agent.system_tools.SCHEDULED_TASKS_FILE', test_file):
+            with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', test_file):
                 _save_tasks({"tasks": [{"id": "1", "name": "test"}]})
                 assert os.path.exists(test_file)
 
@@ -4957,8 +4960,8 @@ class TestSystemToolsScheduledTasksComplete:
     @pytest.mark.p0
     def test_create_scheduled_task_python(self):
         """测试创建 python 任务"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": []}):
-            with patch('agent.system_tools._save_tasks'):
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": []}):
+            with patch('agent.tools.task_tools._save_tasks'):
                 result = create_scheduled_task("py", "python test.py")
                 assert result["ok"] is True
 
@@ -4973,8 +4976,8 @@ class TestSystemToolsScheduledTasksComplete:
     @pytest.mark.p0
     def test_delete_scheduled_task(self):
         """测试删除任务"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": [{"id": "1"}]}):
-            with patch('agent.system_tools._save_tasks') as mock_save:
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": [{"id": "1"}]}):
+            with patch('agent.tools.task_tools._save_tasks') as mock_save:
                 result = delete_scheduled_task("1")
                 assert result["ok"] is True
                 assert result["deleted"] is True
@@ -4985,8 +4988,8 @@ class TestSystemToolsScheduledTasksComplete:
     def test_toggle_scheduled_task_enable(self):
         """测试启用任务"""
         tasks_data = {"tasks": [{"id": "1", "enabled": False}]}
-        with patch('agent.system_tools._load_tasks', return_value=tasks_data):
-            with patch('agent.system_tools._save_tasks'):
+        with patch('agent.tools.task_tools._load_tasks', return_value=tasks_data):
+            with patch('agent.tools.task_tools._save_tasks'):
                 result = toggle_scheduled_task("1", True)
                 assert result["ok"] is True
 
@@ -4994,7 +4997,7 @@ class TestSystemToolsScheduledTasksComplete:
     @pytest.mark.p0
     def test_toggle_scheduled_task_not_exists(self):
         """测试切换不存在的任务"""
-        with patch('agent.system_tools._load_tasks', return_value={"tasks": []}):
+        with patch('agent.tools.task_tools._load_tasks', return_value={"tasks": []}):
             result = toggle_scheduled_task("999", True)
             assert result["ok"] is False
 
@@ -5056,7 +5059,7 @@ class TestSystemToolsBrowserComplete:
     @pytest.mark.p0
     def test_browser_screenshot_no_browser(self):
         """测试无浏览器时截图"""
-        with patch('agent.system_tools.get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser', return_value=None):
             result = browser_screenshot()
             assert result["ok"] is False
 
@@ -5084,10 +5087,10 @@ class TestSystemToolsProcessManagementComplete:
     @pytest.mark.p0
     def test_start_process_subprocess_exception(self):
         """测试启动进程异常"""
-        with patch('agent.system_tools.subprocess') as mock_sub:
+        with patch('agent.tools.process_tools.subprocess') as mock_sub:
             mock_sub.Popen.side_effect = OSError("Cannot start")
             mock_sub.CREATE_NO_WINDOW = 0
-            with patch('agent.system_tools.os.name', 'nt'):
+            with patch('agent.tools.process_tools.os.name', 'nt'):
                 result = start_process("notepad.exe")
                 assert result["ok"] is False
                 assert "Cannot start" in result["error"]
@@ -5096,7 +5099,7 @@ class TestSystemToolsProcessManagementComplete:
     @pytest.mark.p0
     def test_list_processes_no_psutil(self):
         """测试无 psutil"""
-        with patch('agent.system_tools.list_processes') as mock_lp:
+        with patch('agent.tools.process_tools.list_processes') as mock_lp:
             mock_lp.return_value = []
             result = list_processes()
             assert isinstance(result, list)
@@ -5117,7 +5120,7 @@ class TestSystemToolsProcessManagementComplete:
         mock_psutil.process_iter.return_value = [mock_proc]
         
         with patch.dict('sys.modules', {'psutil': mock_psutil}):
-            with patch('agent.system_tools.psutil', mock_psutil, create=True):
+            with patch('agent.tools.process_tools.psutil', mock_psutil, create=True):
                 result = list_processes()
                 assert isinstance(result, list)
 
@@ -5129,8 +5132,8 @@ class TestSystemToolsProcessManagementComplete:
         mock_psutil.NoSuchProcess = Exception
         
         with patch.dict('sys.modules', {'psutil': mock_psutil}):
-            with patch('agent.system_tools.psutil', mock_psutil, create=True):
-                with patch('agent.system_tools.stop_process') as mock_stop:
+            with patch('agent.tools.process_tools.psutil', mock_psutil, create=True):
+                with patch('agent.tools.process_tools.stop_process') as mock_stop:
                     mock_stop.return_value = {"ok": False, "error": "进程不存在"}
                     result = stop_process(99999)
                     assert "ok" in result
@@ -5139,8 +5142,8 @@ class TestSystemToolsProcessManagementComplete:
     @pytest.mark.p0
     def test_stop_process_whitelisted(self):
         """测试终止白名单进程"""
-        with patch('agent.system_tools.subprocess'):
-            with patch('agent.system_tools.os.name', 'nt'):
+        with patch('agent.tools.process_tools.subprocess'):
+            with patch('agent.tools.process_tools.os.name', 'nt'):
                 # 直接调用函数测试返回值结构
                 result = stop_process(1234)
                 # 可能会因 psutil 未安装而失败，但至少能验证函数被调用
@@ -5155,7 +5158,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_init_workspace(self):
         """测试初始化工作区"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 result = init_workspace()
                 assert os.path.isdir(result)
                 assert os.path.exists(os.path.join(tmpdir, ".gitkeep"))
@@ -5166,7 +5169,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_init_workspace_existing(self):
         """测试初始化已存在的工作区"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 # 再次初始化不应该报错
                 result = init_workspace()
@@ -5177,7 +5180,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_list_workspace_file(self):
         """测试列出工作区文件"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 test_file = os.path.join(tmpdir, "test.txt")
                 with open(test_file, "w") as f:
@@ -5191,7 +5194,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_list_workspace_dir(self):
         """测试列出工作区目录"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 result = list_workspace("")
                 assert result["type"] == "dir"
@@ -5208,7 +5211,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_list_workspace_not_exists(self):
         """测试列出不存在的路径"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 result = list_workspace("nonexistent")
                 assert "error" in result
@@ -5218,7 +5221,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_write_workspace(self):
         """测试写入工作区"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 result = write_workspace("test.txt", "content")
                 assert result["ok"] is True
@@ -5228,7 +5231,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_write_workspace_with_subdirs(self):
         """测试写入带子目录的工作区"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 result = write_workspace("a/b/c.txt", "content")
                 assert result["ok"] is True
@@ -5245,7 +5248,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
     def test_delete_workspace_file(self):
         """测试删除工作区文件"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.system_tools.WORKSPACE_DIR', tmpdir):
+            with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 test_file = os.path.join(tmpdir, "test.txt")
                 with open(test_file, "w") as f:
