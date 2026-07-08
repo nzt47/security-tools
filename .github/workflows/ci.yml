@@ -255,6 +255,7 @@ jobs:
           pytest tests/benchmark/ \
             -v \
             -o addopts="" \
+            -o "python_files=benchmark_*.py" \
             --timeout=300
 
       - name: 上传性能报告
