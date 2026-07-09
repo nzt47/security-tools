@@ -68,6 +68,7 @@ class BrowserAgent:
     
     def _do_navigate(self, url: str, wait_seconds: float = 2.0) -> dict:
         """实际的导航逻辑（不含重试，失败抛出异常）"""
+        from agent.error_handler import NetworkTimeoutError
         result = self.navigate(url, wait_seconds=wait_seconds)
         if not result.get("ok"):
             raise NetworkTimeoutError(f"导航失败: {result.get('error', '未知错误')}")
@@ -184,10 +185,16 @@ class BrowserAgent:
 
     def navigate_with_retry(self, url: str, max_retries: int = 2, wait_seconds: float = 2.0) -> dict:
         """带重试的页面导航"""
-        try:
-            return self._navigate_with_retry(url, wait_seconds=wait_seconds)
-        except Exception as e:
-            return {"ok": False, "error": f"导航失败: {e}"}
+        from agent.error_handler import NetworkTimeoutError
+        last_error = None
+        for attempt in range(max_retries + 1):
+            try:
+                return self._do_navigate(url, wait_seconds=wait_seconds)
+            except NetworkTimeoutError as e:
+                last_error = e
+                if attempt < max_retries:
+                    time.sleep(wait_seconds)
+        return {"ok": False, "error": f"导航失败: {last_error}"}
 
     # ── 截图与 PDF ────────────────────────────────────────────────
 

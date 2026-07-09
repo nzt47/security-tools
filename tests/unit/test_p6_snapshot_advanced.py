@@ -733,11 +733,25 @@ class MockDigitalLife:
     """模拟 DigitalLife 实例"""
     def __init__(self, config=None):
         self._config = config or {"name": "test"}
-        self._body = MagicMock()
-        self._behavior = MagicMock()
-        self._permission = MagicMock()
-        self._tools_registry = MagicMock()
+        # spec=[] 限制 mock 不自动创建属性，使 hasattr 返回 False，
+        # 让 _serialize_* 返回默认可 pickle 状态（避免 MagicMock 进入 state dict）
+        self._body = MagicMock(spec=[])
+        self._behavior = MagicMock(spec=[])
+        self._permission = MagicMock(spec=[])
+        self._tools_registry = MagicMock(spec=[])
         self.__class__.__name__ = "DigitalLife"
+
+    def __getstate__(self):
+        # pickle 时丢弃 MagicMock 属性（不可序列化），只保留可序列化状态
+        return {"_config": self._config, "__class_name__": self.__class__.__name__}
+
+    def __setstate__(self, state):
+        self._config = state.get("_config", {"name": "test"})
+        self._body = MagicMock(spec=[])
+        self._behavior = MagicMock(spec=[])
+        self._permission = MagicMock(spec=[])
+        self._tools_registry = MagicMock(spec=[])
+        self.__class__.__name__ = state.get("__class_name__", "DigitalLife")
 
 
 class TestSnapshotSaveBasic:

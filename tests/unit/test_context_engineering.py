@@ -209,7 +209,7 @@ class TestSensitiveDataFilter:
         result = filter.check({"password": "secret123"})
 
         assert result.allowed is False
-        assert any(v.pattern_name == "password" for v in result.violations)
+        assert any(v.pattern_name == "password_field" for v in result.violations)
 
     def test_filter_detects_api_key(self, filter):
         """验证检测 API Key"""
