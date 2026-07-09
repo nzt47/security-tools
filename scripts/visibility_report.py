@@ -374,7 +374,7 @@ class MetricCollector:
             # 节点 2：coverage.xml 不存在 → 返回 0.0（CI 中不应发生，本地需手动生成）
             # 显式不降级：不读取 pyproject.toml fail_under，避免用配置基线掩盖真实数据缺失
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.missing_xml', 'path': str(coverage_xml), 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 不存在，返回 0.0（不降级到 pyproject.toml）', 'ci_hint': 'CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录', 'local_hint': '本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml'}))
+            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.missing_xml', 'path': str(coverage_xml), 'return_value': 0.0, 'duration_ms': elapsed_ms, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 不存在，返回 0.0（不降级到 pyproject.toml）', 'ci_hint': 'CI 中应由 full-project-tests job 上传 full-coverage-report artifact，visibility-report job 下载后放置于项目根目录', 'local_hint': '本地运行可执行 `pytest --cov=agent --cov=scripts --cov-report=xml` 生成 coverage.xml'}))
             return 0.0
 
         import xml.etree.ElementTree as ET
@@ -386,18 +386,18 @@ class MetricCollector:
                 # 节点 3：成功读取有效 line-rate → 返回真实覆盖率百分比
                 elapsed_ms = round((time.time() - t0) * 1000, 2)
                 coverage_percent = round(line_rate * 100, 1)
-                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.success', 'path': str(coverage_xml), 'line_rate': line_rate, 'coverage_percent': coverage_percent, 'return_value': coverage_percent, 'no_fallback': True, 'source': 'full-project-tests artifact (CI) 或本地生成'}))
+                logger.info(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.success', 'path': str(coverage_xml), 'line_rate': line_rate, 'coverage_percent': coverage_percent, 'return_value': coverage_percent, 'duration_ms': elapsed_ms, 'no_fallback': True, 'source': 'full-project-tests artifact (CI) 或本地生成'}))
                 return coverage_percent
             # 节点 4：line-rate=0 → 视为无效数据，返回 0.0（不降级）
             # 常见原因：空报告、测试未覆盖任何行、或 coverage.py 生成失败
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.invalid_xml', 'path': str(coverage_xml), 'line_rate': line_rate, 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0（不降级）'}))
+            logger.warning(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.invalid_xml', 'path': str(coverage_xml), 'line_rate': line_rate, 'return_value': 0.0, 'duration_ms': elapsed_ms, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml line-rate=0，可能是空报告或测试未覆盖任何行，返回 0.0（不降级）'}))
             return 0.0
         except (ValueError, OSError, ET.ParseError) as e:
             # 节点 5：XML 解析异常 → 返回 0.0（不降级）
             # ET.ParseError 继承自 SyntaxError，不被 ValueError/OSError 覆盖，需显式捕获
             elapsed_ms = round((time.time() - t0) * 1000, 2)
-            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.parse_failed', 'path': str(coverage_xml), 'error': f'{type(e).__name__}: {e}', 'return_value': 0.0, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 解析失败，返回 0.0（不降级到 pyproject.toml）'}))
+            logger.error(log_dict({'module_name': 'visibility_report', 'action': 'read_test_coverage.parse_failed', 'path': str(coverage_xml), 'error': f'{type(e).__name__}: {e}', 'return_value': 0.0, 'duration_ms': elapsed_ms, 'no_fallback': True, 'fallback_rejected': 'pyproject.toml fail_under', 'reason': 'coverage.xml 解析失败，返回 0.0（不降级到 pyproject.toml）'}))
             return 0.0
 
     def _calc_boundary_coverage(self) -> float:

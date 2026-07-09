@@ -286,7 +286,7 @@ class MemorySkillAbstractor:
                 "passed": sum(1 for r in results if r["quality_gate_passed"]),
                 "registered": sum(1 for r in results if r.get("registered")),
             }
-            logger.info("[MemAbstract] 抽象完成 | %s", summary)
+            logger.info("[MemAbstract] 抽象完成 | %s", str(summary))
             emit_metric("yunshu_memory_abstract_total",
                         value=len(results), kind="counter",
                         labels={"auto_register": str(auto_register)})

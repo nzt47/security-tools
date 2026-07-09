@@ -26,6 +26,9 @@ from agent.system_tools import (
     set_clipboard,
     _cleanup_browser_instance,
 )
+# Why: browser 函数内部访问的是 browser_tools 模块的 _browser_instance/get_browser/logger，
+# 必须直接 patch 该模块才能生效；system_tools 仅是重新导出函数的薄包装。
+import agent.tools.browser_tools as bt
 
 
 # === 来自 test_system_tools_sandbox_browser_ultimate.py ===
@@ -293,7 +296,7 @@ class TestBrowserGetInstance:
     def test_get_browser_returns_cached_instance(self):
         """测试第二次调用返回缓存实例"""
         mock_browser = MagicMock()
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             result = get_browser()
             assert result is mock_browser
 
@@ -319,8 +322,8 @@ class TestBrowserGetInstance:
             'selenium.webdriver.chrome': mock_selenium_module.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_selenium_module.webdriver.chrome.options,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     assert result is mock_chrome_instance
 
@@ -330,8 +333,8 @@ class TestBrowserGetInstance:
         """测试 selenium 完全未安装"""
         with patch.dict(sys.modules, {'selenium': None}):
             with patch('builtins.__import__', side_effect=ImportError("No selenium")):
-                with patch.object(system_tools, '_browser_instance', None):
-                    with patch('agent.system_tools.logger'):
+                with patch('agent.tools.browser_tools._browser_instance', None):
+                    with patch('agent.tools.browser_tools.logger'):
                         result = get_browser()
                         assert result is None
 
@@ -351,8 +354,8 @@ class TestBrowserGetInstance:
                           side_effect=lambda name, *args, **kwargs:
                           (_ for _ in ()).throw(ImportError("options not found"))
                           if 'options' in name else __import__(name, *args, **kwargs)):
-                    with patch.object(system_tools, '_browser_instance', None):
-                        with patch('agent.system_tools.logger'):
+                    with patch('agent.tools.browser_tools._browser_instance', None):
+                        with patch('agent.tools.browser_tools.logger'):
                             result = get_browser()
                             assert result is None
 
@@ -373,8 +376,8 @@ class TestBrowserGetInstance:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     assert result is None
 
@@ -398,8 +401,8 @@ class TestBrowserGetInstance:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     # 启动后 set_page_load_timeout 失败, 应返回 None
                     assert result is None
@@ -428,8 +431,8 @@ class TestBrowserGetInstance:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     # window_handles 失败应被捕获, 但实例应正常返回
                     # 实际上代码会在 set_page_load_timeout 成功后调用 window_handles
@@ -459,8 +462,8 @@ class TestBrowserGetInstance:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger') as mock_logger:
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger') as mock_logger:
                     get_browser()
                     # 验证 logger.info 被调用
                     assert mock_logger.info.called
@@ -473,7 +476,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_uppercase_protocol(self):
         """测试大写协议 - 应被允许（startswith 大小写敏感）"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("HTTP://example.com")
             # 大写 HTTP 不以 "http://" 开头, 应被拒绝
             assert result["ok"] is False
@@ -483,7 +486,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_mixed_case_protocol(self):
         """测试混合大小写协议"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("Http://example.com")
             # Http 不以 http:// 开头
             assert result["ok"] is False
@@ -492,7 +495,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_localhost_in_query_string_blocked(self):
         """测试 URL 查询参数中包含 localhost 也被阻止"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("http://example.com/?redirect=localhost:8080")
             # 'localhost' 在 URL 中应触发内网拦截
             assert result["ok"] is False
@@ -502,7 +505,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_127_in_url_blocked(self):
         """测试 URL 中包含 127.0.0.1"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("http://evil.com/?url=http://127.0.0.1")
             assert result["ok"] is False
 
@@ -510,7 +513,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_192_168_blocked(self):
         """测试 192.168 IP 段"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("http://192.168.1.100/")
             assert result["ok"] is False
 
@@ -518,7 +521,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_10_blocked(self):
         """测试 10.0.0.0/8 IP 段"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("http://10.255.255.255/")
             assert result["ok"] is False
 
@@ -526,7 +529,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_172_16_blocked(self):
         """测试 172.16.0.0/12 IP 段"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_navigate("http://172.20.1.1/")
             assert result["ok"] is False
 
@@ -534,7 +537,7 @@ class TestBrowserNavigate:
     @pytest.mark.p0
     def test_navigate_with_get_browser_exception(self):
         """测试 get_browser 自身抛异常"""
-        with patch.object(system_tools, 'get_browser', side_effect=Exception("browser error")):
+        with patch('agent.tools.browser_tools.get_browser',side_effect=Exception("browser error")):
             with pytest.raises(Exception):
                 browser_navigate("http://example.com")
 
@@ -545,7 +548,7 @@ class TestBrowserNavigate:
         mock_browser = MagicMock()
         mock_browser.get.side_effect = Exception("Page load timeout")
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
             assert "timeout" in result["error"].lower() or "error" in result["error"].lower()
@@ -559,7 +562,7 @@ class TestBrowserNavigate:
         mock_browser.title = "Page"
         mock_browser.find_element.side_effect = Exception("Element not found")
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
 
@@ -571,7 +574,7 @@ class TestBrowserNavigate:
         mock_browser.get.return_value = None
         type(mock_browser).title = PropertyMock(side_effect=Exception("title error"))
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
 
@@ -585,7 +588,7 @@ class TestBrowserNavigate:
         mock_browser.find_element.return_value.text = "Body"
         type(mock_browser).current_url = PropertyMock(side_effect=Exception("url error"))
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
 
@@ -601,7 +604,7 @@ class TestBrowserScreenshot:
         mock_browser = MagicMock()
         mock_browser.get_screenshot_as_base64.return_value = long_b64
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is True
             # 验证被截断
@@ -614,7 +617,7 @@ class TestBrowserScreenshot:
         mock_browser = MagicMock()
         mock_browser.get_screenshot_as_base64.side_effect = Exception("Screenshot failed")
 
-        with patch.object(system_tools, 'get_browser', return_value=mock_browser):
+        with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is False
             assert "Screenshot failed" in result["error"]
@@ -623,7 +626,7 @@ class TestBrowserScreenshot:
     @pytest.mark.p0
     def test_screenshot_with_browser_unavailable(self):
         """测试浏览器不可用"""
-        with patch.object(system_tools, 'get_browser', return_value=None):
+        with patch('agent.tools.browser_tools.get_browser',return_value=None):
             result = browser_screenshot()
             assert result["ok"] is False
             assert "不可用" in result["error"]
@@ -636,19 +639,19 @@ class TestBrowserCloseEdgeCases:
     @pytest.mark.p0
     def test_close_when_instance_is_none(self):
         """测试实例为 None 时关闭"""
-        with patch.object(system_tools, '_browser_instance', None):
+        with patch('agent.tools.browser_tools._browser_instance', None):
             # 不应抛错
             browser_close()
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_close_when_instance_is_falsy(self):
         """测试实例为 falsy 值时关闭"""
-        with patch.object(system_tools, '_browser_instance', 0):
+        with patch('agent.tools.browser_tools._browser_instance', 0):
             browser_close()
             # 0 是 falsy, if not 0 不进入分支
-            assert system_tools._browser_instance == 0
+            assert bt._browser_instance == 0
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -657,11 +660,11 @@ class TestBrowserCloseEdgeCases:
         mock_browser = MagicMock()
         mock_browser.quit.side_effect = Exception("Quit failed")
 
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             # 不应抛错
             browser_close()
             # _browser_instance 应被设置为 None
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -671,10 +674,10 @@ class TestBrowserCloseEdgeCases:
         # 没有 quit 方法
         del mock_browser.quit
 
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             # 不应抛错
             browser_close()
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
 
 class TestSandboxThreadSafety:
@@ -757,16 +760,16 @@ class TestBrowserLazyLoading:
     def test_browser_not_created_until_first_use(self):
         """测试浏览器在首次调用前不会被创建"""
         # 重置单例
-        with patch.object(system_tools, '_browser_instance', None):
+        with patch('agent.tools.browser_tools._browser_instance', None):
             # 不调用 get_browser, 验证没有副作用
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_browser_singleton_after_creation(self):
         """测试创建后保持单例"""
         mock_browser = MagicMock()
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             # 多次调用应返回同一实例
             assert get_browser() is mock_browser
             assert get_browser() is mock_browser
@@ -792,13 +795,13 @@ class TestBrowserLazyLoading:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     # 应返回 None
                     assert result is None
                     # _browser_instance 应保持 None（因为在赋值前抛错）
-                    assert system_tools._browser_instance is None
+                    assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -826,15 +829,15 @@ class TestBrowserLazyLoading:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch.object(system_tools, '_browser_instance', None):
-                with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
                     result = get_browser()
                     # 当前实现: 返回 None
                     assert result is None
                     # 但 _browser_instance 可能已被赋值为部分初始化的 chrome_instance
                     # 这是已知的状态泄漏问题
                     # 注意: 当前测试记录当前行为, 不做断言
-                    if system_tools._browser_instance is not None:
+                    if bt._browser_instance is not None:
                         # 检测到状态泄漏
                         import warnings
                         warnings.warn(
@@ -862,7 +865,7 @@ class TestBrowserInstanceStateLeakFix:
     @pytest.fixture(autouse=True)
     def reset_browser_instance(self):
         """每个测试前重置 _browser_instance"""
-        with patch.object(system_tools, '_browser_instance', None):
+        with patch('agent.tools.browser_tools._browser_instance', None):
             yield
 
     @pytest.mark.unit
@@ -888,11 +891,11 @@ class TestBrowserInstanceStateLeakFix:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools.logger'):
                 result = get_browser()
                 # 修复后: 返回 None 且 _browser_instance 已被清理
                 assert result is None
-                assert system_tools._browser_instance is None, \
+                assert bt._browser_instance is None, \
                     "Bug: set_page_load_timeout 失败后 _browser_instance 未被清理"
 
     @pytest.mark.unit
@@ -917,7 +920,7 @@ class TestBrowserInstanceStateLeakFix:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools.logger'):
                 get_browser()
                 # quit 应被调用以释放浏览器资源
                 mock_chrome_instance.quit.assert_called()
@@ -945,11 +948,11 @@ class TestBrowserInstanceStateLeakFix:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools.logger'):
                 result = get_browser()
                 # 即使 quit 失败, _browser_instance 仍应被清理为 None
                 assert result is None
-                assert system_tools._browser_instance is None
+                assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -981,11 +984,11 @@ class TestBrowserInstanceStateLeakFix:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools.logger'):
                 # 第一次调用: 失败, _browser_instance 应被清理
                 result1 = get_browser()
                 assert result1 is None
-                assert system_tools._browser_instance is None
+                assert bt._browser_instance is None
 
                 # 第二次调用: 修复后会创建新实例, 而非返回已损坏的 mock_chrome_first
                 result2 = get_browser()
@@ -1013,10 +1016,10 @@ class TestBrowserInstanceStateLeakFix:
             'selenium.webdriver.chrome': mock_selenium.webdriver.chrome,
             'selenium.webdriver.chrome.options': mock_options_module,
         }):
-            with patch('agent.system_tools.logger'):
+            with patch('agent.tools.browser_tools.logger'):
                 result = get_browser()
                 assert result is None
-                assert system_tools._browser_instance is None
+                assert bt._browser_instance is None
 
 
 class TestCleanupBrowserInstance:
@@ -1024,7 +1027,7 @@ class TestCleanupBrowserInstance:
 
     @pytest.fixture(autouse=True)
     def reset_browser_instance(self):
-        with patch.object(system_tools, '_browser_instance', None):
+        with patch('agent.tools.browser_tools._browser_instance', None):
             yield
 
     @pytest.mark.unit
@@ -1032,17 +1035,17 @@ class TestCleanupBrowserInstance:
     def test_cleanup_with_none_instance(self):
         """测试清理 None 实例（无操作）"""
         _cleanup_browser_instance()
-        assert system_tools._browser_instance is None
+        assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_cleanup_with_valid_instance(self):
         """测试清理有效实例"""
         mock_browser = MagicMock()
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             _cleanup_browser_instance()
             mock_browser.quit.assert_called_once()
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -1050,20 +1053,20 @@ class TestCleanupBrowserInstance:
         """测试 quit 抛异常时仍清理"""
         mock_browser = MagicMock()
         mock_browser.quit.side_effect = Exception("quit failed")
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             _cleanup_browser_instance()
             # 不应抛错, _browser_instance 仍被清理
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_cleanup_with_no_quit_method(self):
         """测试没有 quit 方法的实例"""
         mock_browser = MagicMock(spec=[])  # 没有 quit 方法
-        with patch.object(system_tools, '_browser_instance', mock_browser):
+        with patch('agent.tools.browser_tools._browser_instance', mock_browser):
             _cleanup_browser_instance()
             # 不应抛 AttributeError
-            assert system_tools._browser_instance is None
+            assert bt._browser_instance is None
 
 
 class TestStartProcessExceptions:

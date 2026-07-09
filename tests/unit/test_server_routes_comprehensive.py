@@ -16,7 +16,7 @@
 设计原则: AAA, Mock 外部依赖 (ExtensionManager/Market/Tracer)
 
 注意: tracing_middleware 引用了一些在 tracing.py 中尚未实现的符号
-(_init_opentelemetry, get_tracer, SpanKind, StatusCode, record_request_metrics,
+(init_observability, get_tracer, SpanKind, StatusCode, record_request_metrics,
 get_logger_with_context, _OPENTELEMETRY_AVAILABLE)。在导入前注入 mock。
 """
 
@@ -31,8 +31,8 @@ from flask import Flask, jsonify
 # 在导入 tracing_middleware 前,向 tracing 模块注入缺失符号的 mock
 import agent.monitoring.tracing as _tracing_mod
 
-if not hasattr(_tracing_mod, "_init_opentelemetry"):
-    _tracing_mod._init_opentelemetry = lambda: None
+if not hasattr(_tracing_mod, "init_observability"):
+    _tracing_mod.init_observability = lambda: None
 if not hasattr(_tracing_mod, "_OPENTELEMETRY_AVAILABLE"):
     _tracing_mod._OPENTELEMETRY_AVAILABLE = False
 if not hasattr(_tracing_mod, "get_tracer"):
@@ -186,14 +186,14 @@ class TestTraceAsyncRoute:
         @trace_async_route("TestService")
         async def api_endpoint():
             return "async-result"
-        result = asyncio.get_event_loop().run_until_complete(api_endpoint())
+        result = asyncio.run(api_endpoint())
         assert result == "async-result"
 
     def test_async_decorator_default_service(self):
         @trace_async_route()
         async def api_endpoint():
             return "ok"
-        result = asyncio.get_event_loop().run_until_complete(api_endpoint())
+        result = asyncio.run(api_endpoint())
         assert result == "ok"
 
     def test_async_decorator_propagates_exception(self):
@@ -201,7 +201,7 @@ class TestTraceAsyncRoute:
         async def api_fail():
             raise RuntimeError("async 失败")
         with pytest.raises(RuntimeError):
-            asyncio.get_event_loop().run_until_complete(api_fail())
+            asyncio.run(api_fail())
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -330,14 +330,14 @@ class TestTracingMiddlewareHelpers:
 
     def test_get_tracer_returns_none_when_unavailable(self):
         # 当 OTel 不可用时,_get_tracer 应返回 None
-        with mock.patch("agent.server_routes.tracing_middleware._OPENTELEMETRY_AVAILABLE", False):
+        with mock.patch("agent.server_routes.tracing_middleware.is_opentelemetry_available", return_value=False):
             # 重置全局 _tracer
             import agent.server_routes.tracing_middleware as mod
             original = mod._tracer
             mod._tracer = None
             try:
-                # 注意:_get_tracer 会调用 _init_opentelemetry 和 get_tracer
-                with mock.patch("agent.server_routes.tracing_middleware._init_opentelemetry"):
+                # 注意:_get_tracer 会调用 init_observability 和 get_tracer
+                with mock.patch("agent.server_routes.tracing_middleware.init_observability"):
                     result = _get_tracer()
                 assert result is None
             finally:
@@ -365,7 +365,7 @@ class TestFlaskHandlers:
     def test_before_request_sets_trace_id(self):
         app = Flask(__name__)
         with app.test_request_context("/api/test", headers={"X-Trace-Id": "abc123"}):
-            with mock.patch("agent.server_routes.tracing_middleware._init_opentelemetry"), \
+            with mock.patch("agent.server_routes.tracing_middleware.init_observability"), \
                  mock.patch("agent.server_routes.tracing_middleware.extract_trace_context",
                             return_value={"trace_id": "abc123"}), \
                  mock.patch("agent.server_routes.tracing_middleware.set_trace_id") as m:
@@ -375,7 +375,7 @@ class TestFlaskHandlers:
     def test_before_request_no_trace_id(self):
         app = Flask(__name__)
         with app.test_request_context("/api/test"):
-            with mock.patch("agent.server_routes.tracing_middleware._init_opentelemetry"), \
+            with mock.patch("agent.server_routes.tracing_middleware.init_observability"), \
                  mock.patch("agent.server_routes.tracing_middleware.extract_trace_context",
                             return_value={}), \
                  mock.patch("agent.server_routes.tracing_middleware.set_trace_id") as m:

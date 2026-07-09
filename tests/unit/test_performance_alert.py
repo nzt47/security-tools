@@ -424,13 +424,13 @@ class TestGlobalFunctions:
 
     def test_get_alert_manager_with_config(self):
         """测试带配置获取告警管理器"""
-        # 重置全局实例
-        import agent.performance_monitor as pm
-        pm._alert_manager = None
-        
+        # 重置全局实例（实际全局变量在 agent.monitoring.performance,非薄包装模块）
+        import agent.monitoring.performance as perf
+        perf._alert_manager = None
+
         config = AlertConfig(cpu_threshold=75.0)
         manager = get_alert_manager(config)
-        
+
         assert manager.config.cpu_threshold == 75.0
 
     def test_setup_performance_monitoring(self):

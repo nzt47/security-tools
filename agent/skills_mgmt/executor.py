@@ -312,11 +312,15 @@ class SkillExecutor:
                         labels={"skill_id": skill_id,
                                 "success": "false",
                                 "reason": "timeout"})
-            raise SkillExecutionError(
-                f"脚本执行超时（{use_timeout}秒）: {skill_id}/{script_name}",
-                code=ErrorCode.SCRIPT_EXEC_TIMEOUT,
+            # 契约: 超时返回 ExecutionResult(timed_out=True) 而非抛异常
+            # 见 skill_manager.execute docstring "超时返回 result 而非异常"
+            return ExecutionResult(
                 skill_id=skill_id, script_name=script_name,
+                success=False, exit_code=-1,
+                stdout="", stderr=str(e),
                 duration_ms=elapsed,
+                error=f"脚本执行超时（{use_timeout}秒）: {skill_id}/{script_name}",
+                timed_out=True,
             )
 
         except Exception as e:

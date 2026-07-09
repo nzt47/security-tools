@@ -304,13 +304,16 @@ class TestOptimizeV2Initialization:
                 pass
             def _init_core_modules(self, config):
                 pass
-        
+
         with patch('agent.v2_performance_patch.logger') as mock_logger:
             OptimizedClass = optimize_v2_initialization(MockV2Class)
             instance = OptimizedClass()
-            
-            mock_logger.info.assert_any_call("V2 优化初始化 - 第一阶段：核心模块")
-            mock_logger.info.assert_any_call("V2 优化初始化 - 第二阶段：并行初始化")
+
+            # 源码使用 log_dict 包装结构化日志,第一个参数是 dict
+            # 验证日志被调用且包含期望消息
+            all_calls = [str(c) for c in mock_logger.info.call_args_list]
+            assert any("V2 优化初始化 - 第一阶段：核心模块" in arg for arg in all_calls)
+            assert any("V2 优化初始化 - 第二阶段：并行初始化" in arg for arg in all_calls)
 
 
 class TestEdgeCases:
