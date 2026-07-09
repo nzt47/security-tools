@@ -110,6 +110,9 @@ flowchart LR
         agent_guardrails_output_guard["agent.guardrails.output_guard"]:::crosslayer
         agent_guardrails_output_schema["agent.guardrails.output_schema"]
     end
+    subgraph handoff [handoff]
+        agent_handoff_handoff_generator["agent.handoff.handoff_generator"]:::crosslayer
+    end
     subgraph health [health]
         agent_health_assessor["agent.health.assessor"]:::crosslayer
         agent_health_dashboard["agent.health.dashboard"]
@@ -304,6 +307,7 @@ flowchart LR
         agent_utils_observability["agent.utils.observability"]
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
         agent_utils_sensitive_data_filter["agent.utils.sensitive_data_filter"]:::crosslayer
+        agent_utils_token_redactor["agent.utils.token_redactor"]:::crosslayer
     end
     subgraph web [web]
         agent_web["agent.web"]:::crosslayer
@@ -411,6 +415,8 @@ flowchart LR
     agent_subagent_observability -.-> agent_monitoring_business_metrics
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_sandbox
+    agent_web_browser_agent -.-> agent_error_handler
+    agent_web_browser_agent -.-> agent_error_handler
     agent_web_browser_agent -.-> agent_error_handler
     agent_web_search -.-> agent_logging_utils
     agent_web_observability -.-> agent_monitoring_business_metrics
@@ -631,6 +637,7 @@ flowchart LR
     agent_server_routes_extensions -.-> agent_server_auth
     agent_server_routes_routes_sessions -.-> agent_server_auth
     agent_server_routes_routes_sessions --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_sessions -.-> agent_handoff_handoff_generator
     agent_server_routes_routes_skills -.-> agent_server_auth
     agent_server_routes_routes_skills -.-> agent_tools
     agent_server_routes_routes_skills --> agent_server_routes_tracing_decorator
@@ -792,6 +799,8 @@ flowchart LR
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_prompt_builder -.-> agent_digital_life
     agent_data_observability -.-> agent_monitoring_business_metrics
+    agent_handoff_handoff_generator -.-> agent_utils_token_redactor
+    agent_handoff_handoff_generator -.-> agent_state_manager
     agent_model_router_adapters -.-> agent_logging_utils
     agent_model_router_observability -.-> agent_monitoring_business_metrics
     agent_workflow_learning_observability -.-> agent_monitoring_business_metrics
@@ -874,10 +883,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 317
-- 模块节点数: 254
-- 依赖边数: 544
-- 跨层调用数: 342
+- 扫描文件数: 319
+- 模块节点数: 256
+- 依赖边数: 549
+- 跨层调用数: 347
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1168.38 ms
+- 构建耗时: 1152.47 ms
