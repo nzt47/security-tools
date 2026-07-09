@@ -749,3 +749,17 @@ def get_decision_sequence(trace_id: str) -> list:
         }
         for s in spans
     ]
+
+
+def record_request_metrics(method: str, path: str, status_code: int, duration_ms: float) -> None:
+    """记录 HTTP 请求指标（结构化日志，best-effort）"""
+    logger.debug(
+        '{"trace_id": "%s", "module_name": "tracing", "action": "record_request_metrics", '
+        '"method": "%s", "path": "%s", "status_code": %d, "duration_ms": %.2f}',
+        get_trace_id() or '', method, path, status_code, duration_ms
+    )
+
+
+def get_logger_with_context(name: str) -> logging.Logger:
+    """获取带追踪上下文的 logger（返回标准 logger，trace_id 通过 filter/processor 注入）"""
+    return logging.getLogger(name)

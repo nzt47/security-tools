@@ -139,11 +139,13 @@ class TestOutputSchema:
         assert result.content == "Hello"
     
     def test_parse_and_validate_failure(self):
-        """测试解析并验证失败"""
+        """测试解析并验证失败 — 无效 JSON 触发降级路径，返回降级 TextResponse"""
         validator = OutputSchemaValidator()
         output = "invalid json"
         result = validator.parse_and_validate(output)
-        assert isinstance(result, ErrorMessage)
+        # 无效 JSON 经重试后触发降级，返回 degraded TextResponse 而非 ErrorMessage
+        assert isinstance(result, TextResponse)
+        assert result.source.startswith("degraded_")
     
     def test_builder_text(self):
         """测试构建器 - 文本响应"""
@@ -309,10 +311,6 @@ class TestHITL:
         assert result.approved is False
         assert result.status == ApprovalStatus.REJECTED
     
-    @pytest.mark.xfail(
-        reason="HITLManager.request_async_approval 方法待统一重构 — 源码未实现异步审批",
-        strict=False
-    )
     def test_request_async_approval(self):
         """测试异步确认请求"""
         hitl = HITLManager()
@@ -339,10 +337,6 @@ class TestHITL:
         assert len(callback_called) == 1
         assert callback_called[0].approved is True
     
-    @pytest.mark.xfail(
-        reason="HITLManager approve/reject 方法待统一重构 — 依赖 request_async_approval",
-        strict=False
-    )
     def test_approve_and_reject_request(self):
         """测试批准和拒绝请求"""
         hitl = HITLManager()
@@ -367,10 +361,6 @@ class TestHITL:
         assert request.status == ApprovalStatus.APPROVED
         assert request.approver == "test_user"
     
-    @pytest.mark.xfail(
-        reason="HITLManager timeout_seconds 参数/超时处理待统一重构 — 源码未实现",
-        strict=False
-    )
     def test_timeout_handler(self):
         """测试超时处理"""
         hitl = HITLManager(timeout_seconds=1)
@@ -394,10 +384,6 @@ class TestHITL:
         assert callback_called[0].status == ApprovalStatus.TIMEOUT
         assert callback_called[0].approved is False
     
-    @pytest.mark.xfail(
-        reason="HITLManager cancel_request 方法待统一重构 — 依赖 request_async_approval",
-        strict=False
-    )
     def test_cancel_request(self):
         """测试取消请求"""
         hitl = HITLManager()
@@ -413,10 +399,6 @@ class TestHITL:
         request = hitl.get_request_status(request_id)
         assert request is None or request.status == ApprovalStatus.CANCELLED
     
-    @pytest.mark.xfail(
-        reason="HITLManager get_pending_requests 方法待统一重构 — 依赖 request_async_approval",
-        strict=False
-    )
     def test_get_pending_requests(self):
         """测试获取待处理请求"""
         hitl = HITLManager()

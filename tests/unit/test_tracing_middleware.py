@@ -180,7 +180,6 @@ class TestTracingMiddleware:
 class TestMetricsIntegration:
     """指标集成测试"""
     
-    @pytest.mark.xfail(reason="record_request_metrics 函数源码未实现,待统一重构", strict=False)
     def test_record_request_metrics(self):
         """测试记录请求指标"""
         from agent.monitoring.tracing import record_request_metrics
@@ -195,7 +194,6 @@ class TestMetricsIntegration:
 class TestLoggingIntegration:
     """日志集成测试"""
     
-    @pytest.mark.xfail(reason="get_logger_with_context 函数源码未实现,待统一重构", strict=False)
     def test_get_logger_with_context(self):
         """测试带上下文的 logger"""
         from agent.monitoring.tracing import get_logger_with_context
