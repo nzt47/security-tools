@@ -55,18 +55,22 @@ def _restore_golden():
     root.setLevel(_GOLDEN_LEVEL)
 
 
-def _isolate_agent_loggers():
-    """清理所有 agent.* logger 的 handlers/filters/level，恢复默认传播状态。
+def _isolate_test_loggers():
+    """清理所有动态创建的 logger 的 handlers/filters/level，恢复默认传播状态。
 
-    Why: agent 模块的 observability.py 用 logging.getLogger("agent.<mod>")
-    创建子 logger，默认无 handler、propagate=True、level=NOTSET（继承 root）。
+    Why: agent 模块的 observability.py 用 logging.getLogger("agent.<mod>")、
+    scripts/visibility_report.py 用 logging.getLogger("visibility_report")
+    等创建子 logger，默认无 handler、propagate=True、level=NOTSET（继承 root）。
     但某些测试可能给这些子 logger 添加了 handler/filter 或改变 level/propagate，
-    导致后续测试的 caplog 捕获不到日志（如 audit 模块 trackEvent 日志被过滤）。
-    agent.* logger 是动态创建的，session 快照抓不到，故用「强制清理」策略。
+    导致后续测试的 caplog 捕获不到日志（如 audit trackEvent 日志被过滤、
+    visibility_report 的结构化 JSON 日志被吞）。
+    动态 logger 是按需创建的，session 快照抓不到，故用「强制清理」策略。
+
+    保留 pytest 框架自身的 logger（以 "pytest" 开头），避免干扰测试框架行为。
     """
     manager = logging.Logger.manager.loggerDict
     for name, obj in list(manager.items()):
-        if not name.startswith("agent"):
+        if name.startswith("pytest"):
             continue
         if not isinstance(obj, logging.Logger):
             continue  # 跳过 Placeholder
@@ -90,23 +94,23 @@ def _unit_logger_golden_snapshot():
 
 @pytest.fixture(scope="function", autouse=True)
 def _unit_isolate_logger():
-    """每个 unit 测试前后强制恢复 root logger 到黄金状态，并清理 agent.* logger。
+    """每个 unit 测试前后强制恢复 root logger 到黄金状态，并清理所有动态 logger。
 
     执行顺序（与顶层 reset_global_singletons 协同）：
     1. 顶层 fixture yield 前快照（可能被污染）
-    2. 本 fixture yield 前恢复到黄金状态 + 清理 agent.* logger（覆盖污染）
+    2. 本 fixture yield 前恢复到黄金状态 + 清理动态 logger（覆盖污染）
     3. caplog fixture 设置（给指定 logger 添加 handler）
     4. 测试执行（logger 干净）
     5. caplog fixture 清理
-    6. 本 fixture yield 后恢复到黄金状态 + 清理 agent.* logger
+    6. 本 fixture yield 后恢复到黄金状态 + 清理动态 logger
     7. 顶层 fixture yield 后恢复到步骤1快照（可能被污染，但下一测试的
        步骤2会再次恢复到黄金状态）
     """
     _restore_golden()
-    _isolate_agent_loggers()
+    _isolate_test_loggers()
     yield
     _restore_golden()
-    _isolate_agent_loggers()
+    _isolate_test_loggers()
 
 
 @pytest.fixture(scope="function", autouse=True)
