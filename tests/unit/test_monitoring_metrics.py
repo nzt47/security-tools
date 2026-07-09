@@ -83,11 +83,11 @@ class TestMetricsCollectorLatency:
         
         stats = collector.get_stats("test.latency")
         assert stats["count"] == 3
-        assert stats["sum"] == 0.6
+        assert stats["sum"] == pytest.approx(0.6)
         assert abs(stats["avg"] - 0.2) < 0.0001
-        assert stats["min"] == 0.1
-        assert stats["max"] == 0.3
-        assert stats["p50"] == 0.2
+        assert stats["min"] == pytest.approx(0.1)
+        assert stats["max"] == pytest.approx(0.3)
+        assert stats["p50"] == pytest.approx(0.2)
 
     def test_record_latency_different_metrics(self):
         """测试记录不同指标"""
