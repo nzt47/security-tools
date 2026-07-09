@@ -56,3 +56,7 @@ safety>=2.3.0,<4.0.0              # 依赖安全检查 - 检查已知漏洞
 # - torch>=2.0.0
 # - transformers>=4.0.0
 # - numpy>=1.24.0
+
+# ===== 测试专用运行时依赖（CI 环境必需） =====
+cssselect>=1.2.0,<2.0.0           # CSS 选择器 - lxml 的 cssselect 扩展，web_scraper 测试需要
+pypdf>=4.0.0,<6.0.0              # PDF 处理 - pdf_tools 测试需要

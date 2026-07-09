@@ -279,7 +279,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p0
     def test_sync_init(self):
         """测试同步初始化"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = OptimizedChromaDB(
                 persist_directory=tmpdir,
                 collection_name="test_sync",
@@ -294,7 +294,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p0
     def test_async_init(self):
         """测试异步初始化"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = OptimizedChromaDB(
                 persist_directory=tmpdir,
                 collection_name="test_async",
@@ -314,7 +314,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p0
     def test_cache_hit(self):
         """测试缓存命中"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             OptimizedChromaDB._cache.clear()
 
             db1 = OptimizedChromaDB(
@@ -338,7 +338,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p0
     def test_vector_operations(self):
         """测试向量操作封装"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = OptimizedChromaDB(
                 persist_directory=tmpdir,
                 collection_name="test_ops",
@@ -360,7 +360,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p1
     def test_get_stats(self):
         """测试获取统计信息"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             OptimizedChromaDB._stats = ChromaInitStats()
 
             db = OptimizedChromaDB(
@@ -380,7 +380,7 @@ class TestOptimizedChromaDB:
         """测试全局统计"""
         OptimizedChromaDB._stats = ChromaInitStats()
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = OptimizedChromaDB(
                 persist_directory=tmpdir,
                 collection_name="test_global",
@@ -395,7 +395,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p1
     def test_clear_cache(self):
         """测试清空全局缓存"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             OptimizedChromaDB._cache.put(tmpdir, "test", {"key": "value"})
 
             OptimizedChromaDB.clear_cache()
@@ -407,7 +407,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p2
     def test_uninitialized_access(self):
         """测试未初始化时访问集合"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = OptimizedChromaDB(
                 persist_directory=tmpdir,
                 collection_name="test_uninit",
@@ -422,7 +422,7 @@ class TestOptimizedChromaDB:
     @pytest.mark.p2
     def test_progress_callback(self):
         """测试进度回调"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             updates = []
 
             def callback(progress):
@@ -511,7 +511,7 @@ class TestFactoryFunction:
     @pytest.mark.p1
     def test_create_optimized_chroma(self):
         """测试工厂函数"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = create_optimized_chroma(
                 persist_directory=tmpdir,
                 collection_name="test_factory",
@@ -524,7 +524,7 @@ class TestFactoryFunction:
     @pytest.mark.p1
     def test_create_async(self):
         """测试异步工厂函数"""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db = create_optimized_chroma(
                 persist_directory=tmpdir,
                 collection_name="test_async_factory",
