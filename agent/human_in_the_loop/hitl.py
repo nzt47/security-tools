@@ -49,13 +49,16 @@ class HITLManager:
         "stop_process": "终止进程", "browser_navigate": "浏览器导航",
     }
     CRITICAL_ACTIONS = {"format": "格式化磁盘", "shutdown": "关闭系统", "rm -rf /": "递归删除根目录"}
+    # 数据库写操作(中等风险,需审慎但非致命)
+    MEDIUM_RISK_ACTIONS = {"insert", "update", "delete", "drop", "execute_command", "run_shell"}
 
     def assess(self, tool_name: str, params: dict) -> RiskLevel:
-        if any(c in str(params) for c in self.CRITICAL_ACTIONS):
+        # 致命风险: 工具名直接命中(format/shutdown) 或参数含危险命令(rm -rf /)
+        if tool_name in self.CRITICAL_ACTIONS or any(c in str(params) for c in self.CRITICAL_ACTIONS):
             return RiskLevel.CRITICAL
         if tool_name in self.HIGH_RISK_ACTIONS:
             return RiskLevel.HIGH
-        if tool_name in ("execute_command", "run_shell"):
+        if tool_name in self.MEDIUM_RISK_ACTIONS:
             return RiskLevel.MEDIUM
         return RiskLevel.LOW
 
@@ -63,12 +66,14 @@ class HITLManager:
         risk = self.assess(tool_name, params)
         req = ApprovalRequest(tool_name, self.HIGH_RISK_ACTIONS.get(tool_name, tool_name), risk, params)
         if risk == RiskLevel.CRITICAL:
+            req.status = ApprovalStatus.REJECTED
             logger.critical(f"[HITL] ⛔ 拒绝: {tool_name}")
             return req
         if risk == RiskLevel.HIGH:
             logger.warning(f"[HITL] ⚠️ 需确认: {tool_name}")
             return req
         req.approved = True
+        req.status = ApprovalStatus.APPROVED
         return req
 
 

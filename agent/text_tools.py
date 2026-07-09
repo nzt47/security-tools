@@ -157,7 +157,7 @@ PATTERN_8_RE = re.compile(
 # ════════════════════════════════════════════════════════════════════════════════
 
 PATTERN_9_RE = re.compile(
-    r"(?:不仅……而且……|不仅仅(?:是|在于).*?而(?:是|在于)|"
+    r"(?:不仅……而且……|不仅(?:是|在于).*?而且(?:是|在于)|不仅仅(?:是|在于).*?而(?:是|在于)|"
     r"不仅仅是关于.*?而是|这不仅仅是|这不单单是)"
 )
 
@@ -178,8 +178,9 @@ PATTERN_10_RE = re.compile(
 # ════════════════════════════════════════════════════════════════════════════════
 
 # 检测同一句话中用近义词重复描述同一事物
+# 捕获组首字符必须为非空白,避免匹配缩进空格产生误报
 PATTERN_11_RE = re.compile(
-    r"([^。，；]{2,10})(?:，|\s)[^。，；]{0,20}"
+    r"([^\s。，；][^。，；]{1,9})(?:，|\s)[^。，；]{0,20}"
     r"(?:和|与|以及)?\1"
 )
 
@@ -692,7 +693,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
     # ── 额外：三连句检测（同长度句子连续出现）──
     if aggressive:
         sentences = re.split(r"[。！？\n]+", text)
-        sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
+        sentences = [s.strip() for s in sentences if len(s.strip()) >= 8]
         same_length_count = 0
         for i in range(len(sentences) - 2):
             l1, l2, l3 = len(sentences[i]), len(sentences[i + 1]), len(sentences[i + 2])

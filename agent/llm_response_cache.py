@@ -179,7 +179,7 @@ class LLMResponseCache:
         """
         start_time = time.perf_counter()
         prompt_hash = self._hash_prompt(prompt)
-        ttl = ttl_seconds or self.default_ttl
+        ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl
 
         with self._lock:
             was_known = prompt_hash in self._known_hashes
