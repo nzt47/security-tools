@@ -13,6 +13,7 @@
   时拍黄金快照，每个测试前后强制恢复，确保每个测试从干净配置开始。
 """
 import logging
+from unittest.mock import patch
 
 import pytest
 
@@ -54,6 +55,27 @@ def _restore_golden():
     root.setLevel(_GOLDEN_LEVEL)
 
 
+def _isolate_agent_loggers():
+    """清理所有 agent.* logger 的 handlers/filters/level，恢复默认传播状态。
+
+    Why: agent 模块的 observability.py 用 logging.getLogger("agent.<mod>")
+    创建子 logger，默认无 handler、propagate=True、level=NOTSET（继承 root）。
+    但某些测试可能给这些子 logger 添加了 handler/filter 或改变 level/propagate，
+    导致后续测试的 caplog 捕获不到日志（如 audit 模块 trackEvent 日志被过滤）。
+    agent.* logger 是动态创建的，session 快照抓不到，故用「强制清理」策略。
+    """
+    manager = logging.Logger.manager.loggerDict
+    for name, obj in list(manager.items()):
+        if not name.startswith("agent"):
+            continue
+        if not isinstance(obj, logging.Logger):
+            continue  # 跳过 Placeholder
+        obj.handlers.clear()
+        obj.setLevel(logging.NOTSET)
+        obj.filters.clear()
+        obj.propagate = True
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _unit_logger_golden_snapshot():
     """session 开始时快照 root logger 黄金状态。
@@ -68,16 +90,39 @@ def _unit_logger_golden_snapshot():
 
 @pytest.fixture(scope="function", autouse=True)
 def _unit_isolate_logger():
-    """每个 unit 测试前后强制恢复 root logger 到黄金状态。
+    """每个 unit 测试前后强制恢复 root logger 到黄金状态，并清理 agent.* logger。
 
     执行顺序（与顶层 reset_global_singletons 协同）：
     1. 顶层 fixture yield 前快照（可能被污染）
-    2. 本 fixture yield 前恢复到黄金状态（覆盖污染）
-    3. 测试执行（logger 干净）
-    4. 本 fixture yield 后恢复到黄金状态
-    5. 顶层 fixture yield 后恢复到步骤1快照（可能被污染，但下一测试的
+    2. 本 fixture yield 前恢复到黄金状态 + 清理 agent.* logger（覆盖污染）
+    3. caplog fixture 设置（给指定 logger 添加 handler）
+    4. 测试执行（logger 干净）
+    5. caplog fixture 清理
+    6. 本 fixture yield 后恢复到黄金状态 + 清理 agent.* logger
+    7. 顶层 fixture yield 后恢复到步骤1快照（可能被污染，但下一测试的
        步骤2会再次恢复到黄金状态）
     """
     _restore_golden()
+    _isolate_agent_loggers()
     yield
     _restore_golden()
+    _isolate_agent_loggers()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _disable_optional_systems_safety():
+    """默认禁用可选系统可用性标志，避免 CI 加载 chromadb/onnxruntime 等 C 扩展触发 SIGILL。
+
+    Why: Python 3.12 + onnxruntime（chromadb 依赖）在某些 CPU 上执行非法指令
+    导致 SIGILL（exit code 132）。SIGILL 是 OS 信号，try/except 无法捕获，
+    会导致整个测试进程崩溃，连带 fail-fast 取消其他 matrix 版本。单元测试
+    应聚焦配置逻辑，不应实际加载重量级 C 扩展。
+
+    显式 patch 为 True 的测试不受影响：mock.patch 嵌套时内层 patch 覆盖外层，
+    内层退出后恢复到本 fixture 设置的 False，外层退出后恢复到原始值。
+    """
+    with patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False), \
+         patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False), \
+         patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False), \
+         patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False):
+        yield
