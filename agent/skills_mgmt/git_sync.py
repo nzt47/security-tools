@@ -324,6 +324,8 @@ class GitSync:
             args = ["pull"]
             if rebase:
                 args.append("--rebase")
+            else:
+                args.append("--no-rebase")
             args.extend(["origin", branch])
             result = self._run_git(*args, check=False)
 
