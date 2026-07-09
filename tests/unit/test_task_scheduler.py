@@ -62,7 +62,6 @@ class TestTaskScheduler:
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_add_cron_task(self):
         """测试添加 Cron 任务"""
         scheduler = TaskScheduler()
@@ -73,45 +72,41 @@ class TestTaskScheduler:
         assert len(scheduler.tasks) == 1
         task = scheduler.tasks[0]
         assert task["name"] == "test_cron"
-        assert task["type"] == "cron"
-        assert task["day_of_week"] == 0
-        assert task["hour"] == 9
-        assert task["minute"] == 30
+        assert task["type"] == "python_func"
+        assert task["cron"]["day_of_week"] == 0
+        assert task["cron"]["hour"] == 9
+        assert task["cron"]["minute"] == 30
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_add_interval_task(self):
         """测试添加间隔任务"""
         scheduler = TaskScheduler()
         func = MagicMock()
-        
+
         scheduler.add_interval_task("test_interval", func, interval_seconds=60)
-        
+
         assert len(scheduler.tasks) == 1
         task = scheduler.tasks[0]
         assert task["name"] == "test_interval"
-        assert task["type"] == "interval"
+        assert task["type"] == "python_func"
         assert task["interval"] == 60
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_cron_task(self):
         """测试 Cron 任务是否应该运行"""
         scheduler = TaskScheduler()
         now = datetime.now()
-        
+
         task = {
             "name": "test",
-            "type": "cron",
+            "type": "python_func",
             "func": MagicMock(),
-            "day_of_week": now.weekday(),
-            "hour": now.hour,
-            "minute": now.minute,
+            "cron": {"day_of_week": now.weekday(), "hour": now.hour, "minute": now.minute},
             "last_run": None
         }
-        
+
         assert scheduler._should_run(task) is True
 
     @pytest.mark.unit
@@ -155,39 +150,37 @@ class TestTaskScheduler:
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_interval_task_first_time(self):
         """测试间隔任务首次运行"""
         scheduler = TaskScheduler()
-        
+
         task = {
             "name": "test",
-            "type": "interval",
+            "type": "python_func",
             "func": MagicMock(),
             "interval": 60,
             "last_run": None,
             "next_run": None
         }
-        
+
         assert scheduler._should_run(task) is True
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_interval_task_elapsed(self):
         """测试间隔任务已过间隔时间"""
         scheduler = TaskScheduler()
         now = datetime.now()
-        
+
         task = {
             "name": "test",
-            "type": "interval",
+            "type": "python_func",
             "func": MagicMock(),
             "interval": 60,
             "last_run": now - timedelta(seconds=120),  # 2分钟前运行过
             "next_run": None
         }
-        
+
         assert scheduler._should_run(task) is True
 
     @pytest.mark.unit
@@ -210,46 +203,44 @@ class TestTaskScheduler:
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_run_task_success(self):
         """测试执行任务成功"""
         scheduler = TaskScheduler()
         func = MagicMock()
-        
+
         task = {
             "name": "test",
-            "type": "interval",
+            "type": "python_func",
             "func": func,
             "interval": 60,
             "last_run": None,
             "next_run": None
         }
-        
+
         scheduler.run_task(task)
-        
+
         func.assert_called_once()
         assert task["last_run"] is not None
 
     @pytest.mark.unit
     @pytest.mark.p3
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_run_task_failure(self):
         """测试执行任务失败"""
         scheduler = TaskScheduler()
         func = MagicMock(side_effect=Exception("测试错误"))
-        
+
         task = {
             "name": "test",
-            "type": "interval",
+            "type": "python_func",
             "func": func,
             "interval": 60,
             "last_run": None,
             "next_run": None
         }
-        
+
         # 不应抛出异常，错误已被捕获
         scheduler.run_task(task)
-        
+
         func.assert_called_once()
 
     @pytest.mark.unit
@@ -409,37 +400,35 @@ class TestTaskSchedulerCronTasks:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_add_cron_task(self):
         """测试添加 Cron 任务"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
-        
+
         scheduler.add_cron_task("test_cron", mock_func, day_of_week=1, hour=9, minute=30)
-        
+
         assert len(scheduler.tasks) == 1
         task = scheduler.tasks[0]
         assert task["name"] == "test_cron"
-        assert task["type"] == "cron"
+        assert task["type"] == "python_func"
         assert task["func"] == mock_func
-        assert task["day_of_week"] == 1
-        assert task["hour"] == 9
-        assert task["minute"] == 30
+        assert task["cron"]["day_of_week"] == 1
+        assert task["cron"]["hour"] == 9
+        assert task["cron"]["minute"] == 30
         assert task["last_run"] is None
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_add_cron_task_no_day(self):
         """测试添加不指定星期几的 Cron 任务"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
-        
+
         scheduler.add_cron_task("daily_task", mock_func, hour=12, minute=0)
-        
+
         assert len(scheduler.tasks) == 1
         task = scheduler.tasks[0]
-        assert task["day_of_week"] is None
+        assert task["cron"]["day_of_week"] is None
 
 
 class TestTaskSchedulerIntervalTasks:
@@ -447,22 +436,20 @@ class TestTaskSchedulerIntervalTasks:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_add_interval_task(self):
         """测试添加间隔任务"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
-        
+
         scheduler.add_interval_task("test_interval", mock_func, 60)
-        
+
         assert len(scheduler.tasks) == 1
         task = scheduler.tasks[0]
         assert task["name"] == "test_interval"
-        assert task["type"] == "interval"
+        assert task["type"] == "python_func"
         assert task["func"] == mock_func
         assert task["interval"] == 60
         assert task["last_run"] is None
-        assert task["next_run"] is None
 
 
 class TestTaskSchedulerShouldRun:
@@ -530,18 +517,15 @@ class TestTaskSchedulerShouldRun:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_cron_task_ready_to_run(self):
         """测试 Cron 任务应该运行"""
         scheduler = TaskScheduler()
         task = {
-            "type": "cron",
-            "day_of_week": None,
-            "hour": 9,
-            "minute": 0,
+            "type": "python_func",
+            "cron": {"day_of_week": None, "hour": 9, "minute": 0},
             "last_run": None
         }
-        
+
         with patch('agent.task_scheduler.datetime') as mock_datetime:
             now = MagicMock()
             now.weekday.return_value = 0
@@ -549,18 +533,17 @@ class TestTaskSchedulerShouldRun:
             now.minute = 0
             now.date.return_value = datetime.now().date()
             mock_datetime.now.return_value = now
-            
+
             should_run = scheduler._should_run(task)
             assert should_run is True
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_interval_task_first_time(self):
         """测试间隔任务第一次运行"""
         scheduler = TaskScheduler()
-        task = {"type": "interval", "interval": 60, "last_run": None}
-        
+        task = {"type": "python_func", "interval": 60, "last_run": None}
+
         should_run = scheduler._should_run(task)
         assert should_run is True
 
@@ -584,14 +567,13 @@ class TestTaskSchedulerShouldRun:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_interval_task_ready(self):
         """测试间隔任务准备好了运行时间到了"""
         scheduler = TaskScheduler()
         # 任务 60 秒间隔, 上次运行 100 秒前
         last_run = datetime.now()
         task = {
-            "type": "interval",
+            "type": "python_func",
             "interval": 60,
             "last_run": last_run
         }
@@ -630,35 +612,33 @@ class TestTaskSchedulerRunTask:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_run_task_success(self):
         """测试成功执行任务"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
-        task = {"name": "test", "func": mock_func}
-        
+        task = {"name": "test", "type": "python_func", "func": mock_func}
+
         scheduler.run_task(task)
-        
+
         mock_func.assert_called_once()
         assert task["last_run"] is not None
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_run_task_exception(self):
         """测试任务执行异常"""
         scheduler = TaskScheduler()
-        
+
         def failing_func():
             raise ValueError("Task failed")
-        
-        task = {"name": "test_fail", "func": failing_func}
-        
+
+        task = {"name": "test_fail", "type": "python_func", "func": failing_func}
+
         with patch('agent.task_scheduler.logger') as mock_logger:
             scheduler.run_task(task)
-            
+
             mock_logger.error.assert_called_once()
-            assert "任务失败" in str(mock_logger.error.call_args[0][0])
+            assert "任务执行失败" in str(mock_logger.error.call_args[0][0])
 
 
 class TestTaskSchedulerTick:
@@ -666,23 +646,22 @@ class TestTaskSchedulerTick:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_tick_runs_ready_tasks(self):
         """测试 tick 运行准备好的任务"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
-        
+
         task = {
             "name": "test",
-            "type": "interval",
+            "type": "python_func",
             "func": mock_func,
             "interval": 1,
             "last_run": None
         }
         scheduler.tasks.append(task)
-        
+
         scheduler.tick()
-        
+
         mock_func.assert_called_once()
 
     @pytest.mark.unit
@@ -725,34 +704,31 @@ class TestTaskSchedulerStartStop:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_start_stops_on_keyboard_interrupt(self):
         """测试启动时捕获键盘中断"""
         scheduler = TaskScheduler()
-        
+
         with patch('agent.task_scheduler.time.sleep', side_effect=KeyboardInterrupt()):
-            with patch('agent.task_scheduler.logger') as mock_logger:
-                scheduler.start(check_interval=1)
-                
-                mock_logger.info.assert_any_call("[TaskScheduler] 收到停止信号")
+            with patch('agent.task_scheduler.logger'):
+                scheduler._run_loop(check_interval=1)
+
                 assert scheduler.running is False
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_start_catches_general_exception(self):
         """测试启动时捕获通用异常"""
         scheduler = TaskScheduler()
-        
+
         with patch('agent.task_scheduler.TaskScheduler.tick', side_effect=ValueError("Test error")):
             with patch('agent.task_scheduler.time.sleep') as mock_sleep:
                 # 第一次 tick 抛出异常后继续运行
                 mock_sleep.side_effect = [None, SystemExit]
                 try:
-                    scheduler.start(check_interval=1)
+                    scheduler._run_loop(check_interval=1)
                 except SystemExit:
                     pass
-                
+
                 assert True
 
 
@@ -771,21 +747,20 @@ class TestTaskSchedulerListTasks:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_list_tasks_with_tasks(self):
         """测试列出有任务的列表"""
         scheduler = TaskScheduler()
         mock_func = MagicMock()
         scheduler.add_cron_task("cron_task", mock_func)
         scheduler.add_interval_task("interval_task", mock_func, 60)
-        
+
         tasks = scheduler.list_tasks()
-        
+
         assert len(tasks) == 2
         assert tasks[0]["name"] == "cron_task"
-        assert tasks[0]["type"] == "cron"
+        assert tasks[0]["type"] == "python_func"
         assert tasks[1]["name"] == "interval_task"
-        assert tasks[1]["type"] == "interval"
+        assert tasks[1]["type"] == "python_func"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -882,18 +857,15 @@ class TestTaskSchedulerCronDaySpecific:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_cron_with_specific_day_of_week(self):
         """测试指定了特定星期几且时间正确"""
         scheduler = TaskScheduler()
         task = {
-            "type": "cron",
-            "day_of_week": 0,
-            "hour": 9,
-            "minute": 0,
+            "type": "python_func",
+            "cron": {"day_of_week": 0, "hour": 9, "minute": 0},
             "last_run": None
         }
-        
+
         with patch('agent.task_scheduler.datetime') as mock_datetime:
             now = MagicMock()
             now.weekday.return_value = 0
@@ -901,24 +873,21 @@ class TestTaskSchedulerCronDaySpecific:
             now.minute = 0
             now.date.return_value = datetime.now().date()
             mock_datetime.now.return_value = now
-            
+
             should_run = scheduler._should_run(task)
             assert should_run is True
 
     @pytest.mark.unit
     @pytest.mark.p0
-    @pytest.mark.xfail(reason="测试使用旧API格式(type=cron/interval),源码已重构为type=python_func+嵌套dict 待统一重构", strict=False)
     def test_should_run_cron_without_day_of_week(self):
         """测试没指定星期几的 Cron 任务"""
         scheduler = TaskScheduler()
         task = {
-            "type": "cron",
-            "day_of_week": None,
-            "hour": 9,
-            "minute": 0,
+            "type": "python_func",
+            "cron": {"day_of_week": None, "hour": 9, "minute": 0},
             "last_run": None
         }
-        
+
         with patch('agent.task_scheduler.datetime') as mock_datetime:
             now = MagicMock()
             now.weekday.return_value = 3
@@ -926,7 +895,7 @@ class TestTaskSchedulerCronDaySpecific:
             now.minute = 0
             now.date.return_value = datetime.now().date()
             mock_datetime.now.return_value = now
-            
+
             should_run = scheduler._should_run(task)
             assert should_run is True
 

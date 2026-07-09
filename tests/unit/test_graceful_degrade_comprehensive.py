@@ -218,16 +218,22 @@ class TestWithDegrade:
         assert result == "fallback"
         assert call_count[0] == 0  # 主函数未被调用
 
-    @pytest.mark.xfail(
-        reason="源码 with_degrade 实现半开模式(降级期+无fallback试探调用func),测试期望保守策略(直接返回default) 待统一重构",
-        strict=False,
-    )
     def test_already_degraded_no_fallback_returns_default(self, manager):
-        """降级期且无 fallback 应返回 default_fallbacks"""
+        """降级期且无 fallback：半开模式试探失败时返回模块默认值
+
+        源码 with_degrade 在降级期+无 fallback 时采用半开模式：
+        试探性调用 func，成功则恢复降级状态并返回结果，失败则返回
+        _get_module_default(component) 预设的降级默认值。
+        """
         manager.force_degrade("schema")
-        result = manager.with_degrade(DegradeModule.SCHEMA, func=lambda: "x")
-        # schema 不在 default_fallbacks，返回 None
-        assert result is None
+
+        # 半开模式试探调用 func，func 仍失败则返回模块默认值
+        def still_failing():
+            raise RuntimeError("schema still down")
+
+        result = manager.with_degrade(DegradeModule.SCHEMA, func=still_failing)
+        # _get_module_default("schema") 返回预设的降级默认值
+        assert result == {"valid": False, "errors": ["degraded"], "warnings": []}
 
     def test_fallback_failure_returns_default(self, manager):
         """fallback 也失败时应返回 default_fallbacks"""
