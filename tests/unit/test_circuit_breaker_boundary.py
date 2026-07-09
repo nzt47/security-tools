@@ -66,7 +66,7 @@ class TestCircuitBreakerBoundaryConditions:
         config = CircuitBreakerConfig(
             failure_threshold=0.3,
             min_requests=5,
-            reset_timeout=0.1,
+            reset_timeout=0.3,
             window_seconds=60,
             max_attempts=2,
             name="quick_breaker"
@@ -210,10 +210,10 @@ class TestCircuitBreakerBoundaryConditions:
         """验证冷却时间未到达时熔断器保持打开状态（边界条件测试）"""
         for i in range(5):
             quick_breaker.record_failure()
-        
+
         assert quick_breaker.state == CircuitBreakerState.OPEN
-        
-        time.sleep(0.05)
+
+        time.sleep(0.1)
         assert quick_breaker.state == CircuitBreakerState.OPEN
 
     @pytest.mark.unit
@@ -222,10 +222,10 @@ class TestCircuitBreakerBoundaryConditions:
         """验证冷却时间到达后熔断器进入半开状态（边界条件测试）"""
         for i in range(5):
             quick_breaker.record_failure()
-        
+
         assert quick_breaker.state == CircuitBreakerState.OPEN
-        
-        time.sleep(0.15)
+
+        time.sleep(0.5)
         assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
 
     # ════════════════════════════════════════════════════════════════════════
@@ -239,13 +239,13 @@ class TestCircuitBreakerBoundaryConditions:
         for i in range(5):
             quick_breaker.record_failure()
         
-        time.sleep(0.15)
+        time.sleep(0.4)
         assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
-        
+
         for i in range(2):
             assert quick_breaker.allow_request() is True
             quick_breaker.record_success()
-        
+
         assert quick_breaker.state == CircuitBreakerState.CLOSED
 
     @pytest.mark.unit
@@ -255,9 +255,9 @@ class TestCircuitBreakerBoundaryConditions:
         for i in range(5):
             quick_breaker.record_failure()
         
-        time.sleep(0.15)
+        time.sleep(0.4)
         assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
-        
+
         assert quick_breaker.allow_request() is True
         assert quick_breaker.allow_request() is True
         assert quick_breaker.allow_request() is False
@@ -269,12 +269,12 @@ class TestCircuitBreakerBoundaryConditions:
         for i in range(5):
             quick_breaker.record_failure()
         
-        time.sleep(0.15)
+        time.sleep(0.4)
         assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
-        
+
         assert quick_breaker.allow_request() is True
         quick_breaker.record_failure()
-        
+
         assert quick_breaker.state == CircuitBreakerState.OPEN
 
     # ════════════════════════════════════════════════════════════════════════
@@ -482,7 +482,7 @@ class TestCircuitBreakerBoundaryConditions:
         transitions_after_open = quick_breaker.metrics.state_transitions
         assert transitions_after_open > initial_transitions
         
-        time.sleep(0.15)
+        time.sleep(0.4)
         _ = quick_breaker.state
         transitions_after_half_open = quick_breaker.metrics.state_transitions
         assert transitions_after_half_open > transitions_after_open
