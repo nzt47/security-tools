@@ -13,15 +13,12 @@ class TestSearchEngineInit:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 源码默认 _default_engine='' 而非 'duckduckgo'",
-        strict=False
-    )
     def test_init_default_config(self):
         """测试默认配置初始化"""
         engine = SearchEngine()
 
-        assert engine._default_engine == "duckduckgo"
+        # 源码 __init__ 中 _default_engine 默认为空字符串（不再自动设为 'duckduckgo'）
+        assert engine._default_engine == ""
         assert engine._http_client is None
         assert engine._stats["searches"] == 0
 
@@ -36,10 +33,6 @@ class TestSearchEngineInit:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — config 中的 *_api_key 不再自动映射到 _api_keys",
-        strict=False
-    )
     def test_init_with_api_keys(self):
         """测试带 API Key 初始化"""
         config = {
@@ -48,6 +41,9 @@ class TestSearchEngineInit:
             "brave_api_key": "test_brave_key",
         }
         engine = SearchEngine(config=config)
+
+        # 源码 __init__ 不再自动映射 *_api_key 到 _api_keys，需通过 update_config 触发映射
+        engine.update_config(config)
 
         assert engine._api_keys["bing"] == "test_bing_key"
         assert engine._api_keys["google"] == "test_google_key"
@@ -200,16 +196,12 @@ class TestSearchEngineEngines:
 
     @pytest.mark.unit
     @pytest.mark.p1
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 源码默认 _default_engine='' 而非 'duckduckgo'",
-        strict=False
-    )
     def test_engine_selection(self):
         """测试引擎选择"""
         engine = SearchEngine()
 
-        # 默认引擎
-        assert engine._default_engine == "duckduckgo"
+        # 默认引擎为空字符串（需手动注册并设置）
+        assert engine._default_engine == ""
 
         # 自定义引擎
         engine2 = SearchEngine(config={"default_engine": "bing"})
