@@ -4,6 +4,7 @@
 import pytest
 import os
 import sys
+from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 from agent.system_tools import (
     is_protected_path,
@@ -71,6 +72,19 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+
+@contextmanager
+def _windows_path_env():
+    """模拟 Windows 路径环境
+
+    is_protected_path() 内部调用 os.path.abspath()，在 Linux 上会将
+    Windows 路径转换为 cwd 前缀的 Linux 路径，导致保护目录匹配失败。
+    同时 mock os.name/os.sep/os.path.abspath 使跨平台测试一致。
+    """
+    with patch('os.name', 'nt'), \
+         patch('os.sep', '\\'), \
+         patch('os.path.abspath', side_effect=lambda p: os.path.normpath(p)):
+        yield
 
 
 class TestWindowsPathProtection:
@@ -691,7 +705,7 @@ class TestWindowsPathProtection_system_tools_platform_mock:
 
     def test_windows_protected_directories(self):
         """测试Windows保护目录列表"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             for protected_dir in PROTECTED_SYSTEM_DIRS_WIN:
                 assert is_protected_path(protected_dir) is True, f"{protected_dir} should be protected"
 
@@ -703,7 +717,7 @@ class TestWindowsPathProtection_system_tools_platform_mock:
 
     def test_windows_subdirectory_of_protected(self):
         """测试保护目录的子目录"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             assert is_protected_path(r"C:\Windows\System32\config") is True
             assert is_protected_path(r"C:\Program Files\SomeApp") is True
 
@@ -1298,10 +1312,10 @@ class TestPathProtectionUnix_system_tools_path:
 class TestPathProtectionCrossPlatform:
     """跨平台路径保护测试（使用模拟）"""
 
-    @patch("os.name", "nt")
     def test_windows_protection_with_mock(self):
         """使用 mock 测试 Windows 保护目录检测"""
-        assert is_protected_path("C:\\Windows\\System32\\test.exe") is True
+        with _windows_path_env():
+            assert is_protected_path("C:\\Windows\\System32\\test.exe") is True
 
     def test_protected_dirs_constants(self):
         """验证保护目录常量已正确定义"""
