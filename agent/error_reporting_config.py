@@ -309,9 +309,10 @@ def is_sentry_enabled() -> bool:
 
 def _reset_for_test() -> None:
     """测试辅助：重置全局状态（仅测试用）"""
-    global _sentry_initialized, _sentry_init_lock
+    global _sentry_initialized, _sentry_init_lock, _sensitive_patterns
     _sentry_initialized = False
     _sentry_init_lock = None
+    _sensitive_patterns = list(_DEFAULT_SENSITIVE_PATTERNS)
 
 
 # ═══════════════════════════════════════════════════════════════
