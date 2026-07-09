@@ -60,3 +60,33 @@ data/audit/
 /test_result*.txt
 /test_run*.txt
 /CUsers*
+
+# 运行时数据产物（日志/数据库/多租户状态，不入库）
+agent/data/api_access.log
+agent/data/api_keys.json
+agent/data/extensions.json
+agent/data/role_assignments.json
+agent/data/tenants.json
+agent/data/users.json
+agent/data/tool_router_test_report.json
+data/failures/
+data/persona/distillation_history.json
+data/scheduled_tasks.json
+data/search_performance.json
+data/skills.json
+data/task_history.jsonl
+
+# 测试产物（覆盖率/成本日志/报告，不入库）
+.coverage
+test_cost_log.jsonl
+test_reports/
+
+# CI 调试产物
+_ci_logs.zip
+_ci_logs/
+
+# 运行时缓存
+cache/
+
+# 自动生成的文档报告
+docs/observability/boundary_coverage_report.md
