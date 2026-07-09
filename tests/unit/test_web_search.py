@@ -8,20 +8,13 @@ from agent.web.search import SearchEngine
 class TestSearchEngineInit:
     """测试 SearchEngine 初始化"""
 
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 源码默认 _default_engine='' 而非 'duckduckgo'",
-        strict=False
-    )
     def test_init_default(self):
         """测试默认初始化"""
         engine = SearchEngine()
-        assert engine._default_engine == "duckduckgo"
+        # 源码 __init__ 中 _default_engine 默认为空字符串（不再自动设为 'duckduckgo'）
+        assert engine._default_engine == ""
         assert engine._cache == {}
 
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — config 中的 *_api_key 不再自动映射到 _api_keys",
-        strict=False
-    )
     def test_init_with_config(self):
         """测试使用自定义配置初始化"""
         config = {
@@ -34,9 +27,12 @@ class TestSearchEngineInit:
         }
         engine = SearchEngine(config)
         assert engine._default_engine == "bing"
+        # 源码 __init__ 不再自动映射 *_api_key 到 _api_keys，需通过 update_config 触发映射
+        engine.update_config(config)
         assert engine._api_keys["bing"] == "test_bing_key"
         assert engine._api_keys["google"] == "test_google_key"
-        assert engine._api_keys["google_cx"] == "test_cx"
+        # google_cx 不以 _api_key 结尾，update_config 不会映射它，仍保留在 _config 中
+        assert engine._config.get("google_cx") == "test_cx"
         assert engine._api_keys["brave"] == "test_brave_key"
         assert engine._cache_ttl == 600
 
@@ -59,16 +55,15 @@ class TestSearchEngineSearch:
         assert "不支持的搜索引擎" in result["error"]
 
     @patch("time.time")
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 默认引擎非 'duckduckgo',缓存键不匹配",
-        strict=False
-    )
     def test_search_cache_hit(self, mock_time):
         """测试缓存命中"""
         mock_time.return_value = 1000
         engine = SearchEngine()
+        # 注册一个引擎，使搜索流程能进入缓存检查阶段
+        engine.register_engine("duckduckgo", "DuckDuckGo", engine._search_duckduckgo)
         cache_data = {"ok": True, "results": ["cached result"]}
-        engine._cache["duckduckgo:test query:10:1"] = {
+        # 源码缓存键格式为 f"any:{query}:{num_results}:{page}"
+        engine._cache["any:test query:10:1"] = {
             "time": 900,
             "data": cache_data,
         }
@@ -77,14 +72,12 @@ class TestSearchEngineSearch:
         assert engine._stats["cached_hits"] == 1
 
     @patch("agent.web.search.SearchEngine._search_duckduckgo")
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 默认引擎非 'duckduckgo',不会调用 _search_duckduckgo",
-        strict=False
-    )
     def test_search_no_cache(self, mock_search):
         """测试无缓存时搜索"""
         mock_search.return_value = {"ok": True, "results": ["result 1"]}
         engine = SearchEngine()
+        # 注册 duckduckgo 引擎，使其进入引擎优先级列表从而被自动选中
+        engine.register_engine("duckduckgo", "DuckDuckGo", engine._search_duckduckgo)
         mock_http = MagicMock()
         engine.set_http_client(mock_http)
         result = engine.search("test query")
@@ -378,16 +371,19 @@ class TestSearchEngineUtils:
         assert results[0]["title"] == "Page 1 Title"
         assert results[0]["url"] == "https://example.com/page1"
 
-    @pytest.mark.xfail(
-        reason="SearchEngine 动态注册 API 待测试适配 — 源码不再自动注册 4 个引擎",
-        strict=False
-    )
     def test_get_available_engines(self):
         """测试获取可用引擎"""
         engine = SearchEngine({"bing_api_key": "test_key"})
+        # 源码不再自动注册引擎，需手动注册 4 个引擎
+        engine.register_engine("duckduckgo", "DuckDuckGo", engine._search_duckduckgo, needs_key=False)
+        engine.register_engine("bing", "Bing", engine._search_bing, needs_key=True)
+        engine.register_engine("google", "Google", engine._search_google, needs_key=True)
+        engine.register_engine("brave", "Brave", engine._search_brave, needs_key=True)
+        # 通过 update_config 配置 Bing 的 API Key
+        engine.update_config({"bing_api_key": "test_key"})
         available = engine.get_available_engines()
         assert len(available) == 4
-        # 检查 duckduckgo 总是可用
+        # 检查 duckduckgo 总是可用（无需 API Key）
         assert any(e["name"] == "duckduckgo" and e["configured"] for e in available)
         # 检查 Bing 已配置
         assert any(e["name"] == "bing" and e["configured"] for e in available)

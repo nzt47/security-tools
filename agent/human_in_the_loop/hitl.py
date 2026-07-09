@@ -2,6 +2,7 @@
 import logging
 import json
 import uuid
+import threading
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class ApprovalStatus(Enum):
     REJECTED = "rejected"        # 已拒绝
     TIMEOUT = "timeout"          # 超时未响应
     AUTO_APPROVED = "auto"       # 自动批准（低风险）
+    CANCELLED = "cancelled"      # 已取消
 
 class ConfirmationMode(Enum):
     """确认模式枚举"""
@@ -41,6 +43,11 @@ class ApprovalRequest:
         self.approved = False
         self.status = ApprovalStatus.PENDING
         self.mode = ConfirmationMode.INLINE if risk_level in (RiskLevel.HIGH, RiskLevel.CRITICAL) else ConfirmationMode.NONE
+        # 异步审批扩展字段（不影响同步 request_approval 流程）
+        self.request_id = None     # 请求唯一标识
+        self.approver = None       # 审批人
+        self.callback = None       # 状态变更回调
+        self._timer = None         # 超时定时器（内部使用）
 
 class HITLManager:
     HIGH_RISK_ACTIONS = {
@@ -75,6 +82,112 @@ class HITLManager:
         req.approved = True
         req.status = ApprovalStatus.APPROVED
         return req
+
+    def __init__(self, timeout_seconds: int = 300):
+        # 默认审批超时（秒）；0 或 None 表示不启用超时
+        self.default_timeout = timeout_seconds
+        # 全部请求历史（含已处理），便于 get_request_status 查询终态
+        self._requests = {}
+        self._lock = threading.Lock()
+
+    def request_async_approval(self, action: str, params: dict,
+                               callback=None, timeout_seconds: int = None) -> str:
+        """发起异步审批请求，返回 request_id。
+
+        无论风险等级均创建 pending 请求并返回 id，由调用方显式 approve/reject/cancel。
+        超时（若启用）后自动触发 callback 并标记 TIMEOUT。
+        """
+        risk = self.assess(action, params)
+        req = ApprovalRequest(action, self.HIGH_RISK_ACTIONS.get(action, action), risk, params)
+        req.request_id = uuid.uuid4().hex
+        req.callback = callback
+
+        # 解析超时：参数优先，回退到实例默认值
+        if timeout_seconds is not None:
+            timeout = timeout_seconds
+        else:
+            timeout = self.default_timeout
+
+        with self._lock:
+            self._requests[req.request_id] = req
+
+        # 启动超时定时器（daemon 线程，进程退出不阻塞）
+        if timeout is not None and timeout > 0:
+            timer = threading.Timer(timeout, self._handle_timeout, args=(req.request_id,))
+            timer.daemon = True
+            timer.start()
+            req._timer = timer
+
+        logger.info(f"[HITL] 异步审批请求创建: {action} (id={req.request_id})")
+        return req.request_id
+
+    def _handle_timeout(self, request_id: str):
+        """超时回调：标记 TIMEOUT 并通知 callback。"""
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != ApprovalStatus.PENDING:
+                return  # 已被 approve/reject/cancel，忽略
+            req.status = ApprovalStatus.TIMEOUT
+            req.approved = False
+            callback = req.callback
+
+        if callback is not None:
+            try:
+                callback(req)
+            except Exception as e:
+                logger.error(f"[HITL] timeout callback 执行失败: {e}")
+
+    def _finalize(self, request_id: str, status: ApprovalStatus,
+                  approved: bool, approver: str = None) -> bool:
+        """内部：将 PENDING 请求转为终态并触发 callback。"""
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != ApprovalStatus.PENDING:
+                return False
+            req.status = status
+            req.approved = approved
+            req.approver = approver
+            if req._timer is not None:
+                req._timer.cancel()
+                req._timer = None
+            callback = req.callback
+
+        if callback is not None:
+            try:
+                callback(req)
+            except Exception as e:
+                logger.error(f"[HITL] callback 执行失败: {e}")
+        return True
+
+    def approve_request(self, request_id: str, approver: str = None) -> bool:
+        """批准请求，返回是否成功（请求存在且仍 PENDING）。"""
+        return self._finalize(request_id, ApprovalStatus.APPROVED, True, approver)
+
+    def reject_request(self, request_id: str, approver: str = None) -> bool:
+        """拒绝请求，返回是否成功。"""
+        return self._finalize(request_id, ApprovalStatus.REJECTED, False, approver)
+
+    def cancel_request(self, request_id: str) -> bool:
+        """取消请求（不触发 callback），返回是否成功。"""
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != ApprovalStatus.PENDING:
+                return False
+            req.status = ApprovalStatus.CANCELLED
+            if req._timer is not None:
+                req._timer.cancel()
+                req._timer = None
+        return True
+
+    def get_request_status(self, request_id: str):
+        """查询请求状态（含已处理的历史请求），不存在返回 None。"""
+        with self._lock:
+            return self._requests.get(request_id)
+
+    def get_pending_requests(self):
+        """返回所有仍处于 PENDING 状态的请求列表。"""
+        with self._lock:
+            return [r for r in self._requests.values() if r.status == ApprovalStatus.PENDING]
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):
