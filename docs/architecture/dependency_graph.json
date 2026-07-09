@@ -1,5 +1,5 @@
 {
-  "trace_id": "79dbfd7381664da5",
+  "trace_id": "8e323dc4611a4bd1",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -135,7 +135,7 @@
       "name": "error_handler",
       "layer": "core",
       "file_path": "agent/error_handler.py",
-      "in_degree": 11,
+      "in_degree": 13,
       "out_degree": 6
     },
     {
@@ -263,7 +263,7 @@
       "name": "state_manager",
       "layer": "core",
       "file_path": "agent/state_manager.py",
-      "in_degree": 7,
+      "in_degree": 8,
       "out_degree": 3
     },
     {
@@ -584,7 +584,7 @@
       "layer": "web",
       "file_path": "agent/web/browser_agent.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 3
     },
     {
       "path": "agent.web.search",
@@ -1296,6 +1296,14 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_sessions.py",
       "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.handoff.handoff_generator",
+      "name": "handoff_generator",
+      "layer": "handoff",
+      "file_path": "",
+      "in_degree": 1,
       "out_degree": 2
     },
     {
@@ -1785,6 +1793,14 @@
       "file_path": "agent/data/observability.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.utils.token_redactor",
+      "name": "token_redactor",
+      "layer": "utils",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.model_router.adapters",
@@ -3200,6 +3216,32 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 55,
+      "source_file": "agent/web/browser_agent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.web.browser_agent",
+      "target": "agent.error_handler",
+      "source_layer": "web",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 71,
+      "source_file": "agent/web/browser_agent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.web.browser_agent",
+      "target": "agent.error_handler",
+      "source_layer": "web",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 188,
       "source_file": "agent/web/browser_agent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6054,6 +6096,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_sessions",
+      "target": "agent.handoff.handoff_generator",
+      "source_layer": "server_routes",
+      "target_layer": "handoff",
+      "import_type": "from_import",
+      "line": 215,
+      "source_file": "agent/server_routes/routes_sessions.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_skills",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -8100,7 +8155,7 @@
       "source_layer": "orchestrator",
       "target_layer": "response_workflows",
       "import_type": "from_import",
-      "line": 242,
+      "line": 250,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8113,7 +8168,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 705,
+      "line": 713,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -8141,6 +8196,32 @@
       "import_type": "from_import",
       "line": 17,
       "source_file": "agent/data/observability.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.handoff.handoff_generator",
+      "target": "agent.utils.token_redactor",
+      "source_layer": "handoff",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 22,
+      "source_file": "agent/handoff/handoff_generator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.handoff.handoff_generator",
+      "target": "agent.state_manager",
+      "source_layer": "handoff",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 194,
+      "source_file": "agent/handoff/handoff_generator.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -9110,17 +9191,17 @@
     }
   ],
   "stats": {
-    "total_files": 317,
-    "total_nodes": 254,
-    "total_edges": 544,
-    "cross_layer_edges": 342,
+    "total_files": 319,
+    "total_nodes": 256,
+    "total_edges": 549,
+    "cross_layer_edges": 347,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 53,
       "unknown": 1,
       "response_workflows": 1,
-      "utils": 4,
+      "utils": 5,
       "monitoring": 27,
       "caching": 2,
       "tools": 19,
@@ -9140,6 +9221,7 @@
       "guardrails": 4,
       "server_routes": 25,
       "health": 4,
+      "handoff": 1,
       "observability": 4,
       "workflow_engine": 3,
       "task_planner": 4,
@@ -9150,6 +9232,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1168.3798389999965
+    "build_duration_ms": 1152.466351000001
   }
 }
