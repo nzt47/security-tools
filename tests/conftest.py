@@ -315,6 +315,78 @@ def reset_environment():
     os.environ.clear()
     os.environ.update(original_env)
 
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_global_singletons():
+    """每个测试后清理模块级全局单例与 ContextVar，防止测试间状态污染。
+
+    Why: error_handler/metrics/state_manager/tracing 均为模块级单例，其内部
+    计数器、字典、注册表会在测试间累积；circuit_breaker/disaster_recovery/
+    graceful_degrade 的 _trace_id_ctx ContextVar 也会泄漏 trace_id。
+    除 tracing 为懒加载单例外，其余 getter 不重建实例，故采用「清空实例内部
+    状态容器」策略以保持实例引用稳定（避免 session-scope fixture 持有的旧
+    引用失效）。
+    另: setup_agent_logging() 会清除 root logger 的 handler 并添加带
+    EmojiFilter/SensitiveDataFilter 的 handler，若不恢复会导致后续测试的
+    emoji 被替换为 [ROCKET] 等、audit 模块日志被过滤。故在 yield 前快照
+    root logger 的 handlers/level，yield 后恢复。
+    """
+    # 0. 快照 root logger 状态（防止 setup_agent_logging 污染）
+    _root_logger = logging.getLogger()
+    _saved_handlers = _root_logger.handlers[:]
+    _saved_level = _root_logger.level
+    yield
+    # 0. 恢复 root logger 状态
+    _root_logger.handlers = _saved_handlers
+    _root_logger.setLevel(_saved_level)
+    # 1. ErrorHandler: 清空错误计数与熔断器注册表
+    try:
+        from agent.error_handler import get_error_handler
+        _inst = get_error_handler()
+        _inst._metrics.clear()
+        _inst._circuit_breakers.clear()
+    except Exception:
+        pass
+    # 2. MetricsCollector: 清空 histogram 与 counter
+    try:
+        from agent.monitoring.metrics import get_metrics_collector
+        _inst = get_metrics_collector()
+        _inst._histograms.clear()
+        _inst._counters.clear()
+    except Exception:
+        pass
+    # 3. ServerState: __init__ 无副作用，重新初始化实例属性（不替换实例）
+    try:
+        from agent.state_manager import get_server_state
+        get_server_state().__init__()
+    except Exception:
+        pass
+    # 4. TraceStorage: 懒加载单例，置 None 触发下次访问重建
+    try:
+        import agent.monitoring.tracing as _tr
+        _tr._trace_storage_singleton = None
+    except Exception:
+        pass
+    # 5. ContextVar 重置：circuit_breaker / disaster_recovery / graceful_degrade
+    for _mod_path, _var_name in (
+        ("agent.circuit_breaker", "_trace_id_ctx"),
+        ("agent.disaster_recovery", "_trace_id_ctx"),
+        ("agent.graceful_degrade", "_trace_id_ctx"),
+    ):
+        try:
+            _mod = __import__(_mod_path, fromlist=[_var_name])
+            _var = getattr(_mod, _var_name, None)
+            if _var is not None:
+                _var.set("")
+        except Exception:
+            pass
+    # 6. browser_tools: 保留原有清理（防止真实 Chrome 实例泄漏）
+    try:
+        import agent.tools.browser_tools as _bt
+        _bt._browser_instance = None
+    except Exception:
+        pass
+
 # ============================================================================
 # 测试断言辅助函数
 # ============================================================================
