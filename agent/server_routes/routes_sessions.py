@@ -198,6 +198,33 @@ def register_routes(app, state):
                     })
         return jsonify({"ok": True})
 
+    # ── 会话交接文档 ──
+
+    @app.route("/api/handoff", methods=["POST"])
+    @trace_route("Sessions")
+    @require_token
+    def api_handoff():
+        """生成交接文档 — LLM 压缩当前会话为 Markdown，保存到 OS 临时目录
+
+        请求体（均可选）:
+            session_id: 目标会话 ID，缺省取当前会话
+            intent: 下一 session 用途描述，用于 skill 推荐
+        """
+        data = request.get_json() or {}
+        try:
+            from agent.handoff.handoff_generator import generate_handoff
+            result = generate_handoff(
+                state,
+                session_id=data.get("session_id"),
+                intent=data.get("intent"),
+            )
+            return jsonify(result)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            logger.exception("handoff 生成失败")
+            return jsonify({"error": f"handoff 生成失败: {e}"}), 500
+
 
 def _safe_call(func, *args, action="safe_call", **kwargs):
     """安全调用包装器——捕获异常并记录结构化日志后重新抛出
