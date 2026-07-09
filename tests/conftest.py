@@ -380,10 +380,35 @@ def reset_global_singletons():
                 _var.set("")
         except Exception:
             pass
-    # 6. browser_tools: 保留原有清理（防止真实 Chrome 实例泄漏）
+    # 6. CircuitBreaker: 清空所有命名熔断器实例（如 schema_validation）
+    # Why: OutputSchemaValidator.parse_and_validate 通过 get_circuit_breaker("schema_validation")
+    # 获取命名熔断器，前序测试的 record_failure 累积会导致熔断器打开，后续测试进入降级路径
+    try:
+        from agent.circuit_breaker import reset_breakers
+        reset_breakers()
+    except Exception:
+        pass
+    # 7. GracefulDegrade: 重置降级管理器单例状态（_states/_metrics/_module_states）
+    # Why: 前序测试触发错误会累积 _states 中的错误计数，导致降级级别升至 LENIENT，
+    # 使 OutputSchemaValidator 返回 degraded_lenient 响应而非 ErrorMessage
+    try:
+        from agent.graceful_degrade import reset_degrade_manager
+        reset_degrade_manager()
+    except Exception:
+        pass
+    # 8. browser_tools: 保留原有清理（防止真实 Chrome 实例泄漏）
     try:
         import agent.tools.browser_tools as _bt
         _bt._browser_instance = None
+    except Exception:
+        pass
+    # 9. error_reporting_config: 重置敏感字段模式列表
+    # Why: set_sensitive_patterns 会覆盖默认 _sensitive_patterns，若前序测试未恢复，
+    # 会导致 Authorization 等敏感 key 不被识别，后续测试脱敏行为异常
+    # 注: 只重置 _sensitive_patterns，不调用 _reset_for_test() 以避免影响 _sentry_initialized
+    try:
+        import agent.error_reporting_config as _erc
+        _erc._sensitive_patterns = list(_erc._DEFAULT_SENSITIVE_PATTERNS)
     except Exception:
         pass
 
