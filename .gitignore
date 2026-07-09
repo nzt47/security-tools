@@ -75,6 +75,7 @@ data/scheduled_tasks.json
 data/search_performance.json
 data/skills.json
 data/task_history.jsonl
+data/auto_tuning/
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage
