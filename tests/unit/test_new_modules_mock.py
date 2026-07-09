@@ -310,14 +310,9 @@ class TestFilterSensitive:
         """覆盖自定义敏感字段模式"""
         set_sensitive_patterns(["custom_secret"])
         assert _is_sensitive_key("custom_secret") is True
-        # 恢复默认
-        set_sensitive_patterns([
-            "password", "passwd", "pwd", "token", "access_token",
-            "refresh_token", "api_key", "apikey", "secret",
-            "id_card", "idcard", "id_number",
-            "bank_card", "bankcard", "card_number",
-            "phone", "mobile",
-        ])
+        # 恢复默认（使用 _DEFAULT_SENSITIVE_PATTERNS 避免手写列表遗漏字段）
+        from agent.error_reporting_config import _DEFAULT_SENSITIVE_PATTERNS
+        set_sensitive_patterns(_DEFAULT_SENSITIVE_PATTERNS)
 
 
 class TestSentryBeforeSend:
