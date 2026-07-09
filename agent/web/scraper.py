@@ -338,7 +338,7 @@ class Scraper:
         """清洗 HTML（移除脚本、样式、注释）"""
         try:
             tree = lxml_html.fromstring(html_content)
-            for elem in tree.xpath("//script | //style | //noscript | //iframe | //comment()"):
+            for elem in tree.xpath("//script | //style | //noscript | //iframe | //comment() | //link"):
                 elem.getparent().remove(elem)
             return lxml_html.tostring(tree, encoding="unicode", method="html")
         except Exception:
