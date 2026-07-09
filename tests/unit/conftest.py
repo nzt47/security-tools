@@ -12,10 +12,19 @@
 - 本 conftest 的「session 黄金状态 + function 强制恢复」：session 开始
   时拍黄金快照，每个测试前后强制恢复，确保每个测试从干净配置开始。
 """
+import os
+import sys
 import logging
+from contextlib import ExitStack
 from unittest.mock import patch
 
 import pytest
+
+
+# CI Linux 环境：chromadb/onnxruntime/hnswlib 的 manylinux wheel 编译时使用了
+# GitHub Actions runner CPU 不支持的指令集（AVX2/AVX-512），触发 SIGILL
+# （exit code 132）。本地 Windows 不受影响。
+_CI_LINUX = sys.platform == 'linux' and bool(os.environ.get('CI'))
 
 
 _GOLDEN_HANDLERS = None
@@ -124,9 +133,24 @@ def _disable_optional_systems_safety():
 
     显式 patch 为 True 的测试不受影响：mock.patch 嵌套时内层 patch 覆盖外层，
     内层退出后恢复到本 fixture 设置的 False，外层退出后恢复到原始值。
+
+    CI Linux 额外防护：通过 patch.dict(sys.modules) 将 chromadb /
+    sentence_transformers 设为 None，使 `import chromadb` 抛 ImportError 而非
+    触发 native 扩展加载。复用业务代码已有的 ImportError fallback 路径
+    （VectorStore→JSON fallback，OptimizedChromaDB→MockChromaClient），
+    无需改动业务逻辑。本地 Windows 不触发此防护，仍用真实 chromadb。
     """
-    with patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False), \
-         patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False), \
-         patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False), \
-         patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False):
+    with ExitStack() as stack:
+        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False))
+        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False))
+        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False))
+        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False))
+        if _CI_LINUX:
+            # sys.modules[name] = None 会让 `import name` 抛 ImportError，而非
+            # 加载真实 native 扩展。patch.dict 退出后自动恢复 sys.modules 原状。
+            stack.enter_context(patch.dict(sys.modules, {
+                'chromadb': None,
+                'chromadb.config': None,
+                'sentence_transformers': None,
+            }))
         yield
