@@ -367,17 +367,21 @@ def reset_global_singletons():
         _tr._trace_storage_singleton = None
     except Exception:
         pass
-    # 5. ContextVar 重置：circuit_breaker / disaster_recovery / graceful_degrade
+    # 5. ContextVar 重置：circuit_breaker / disaster_recovery / graceful_degrade / tracing
+    # Why: tracing._current_trace_id 若被前序测试 set_trace_id() 设置且未恢复，
+    # TraceContext.__enter__ 会复用旧值而非生成新 ID，导致唯一性/长度断言失败
     for _mod_path, _var_name in (
         ("agent.circuit_breaker", "_trace_id_ctx"),
         ("agent.disaster_recovery", "_trace_id_ctx"),
         ("agent.graceful_degrade", "_trace_id_ctx"),
+        ("agent.monitoring.tracing", "_current_trace_id"),
+        ("agent.monitoring.tracing", "_current_span_id"),
     ):
         try:
             _mod = __import__(_mod_path, fromlist=[_var_name])
             _var = getattr(_mod, _var_name, None)
             if _var is not None:
-                _var.set("")
+                _var.set(None)
         except Exception:
             pass
     # 6. CircuitBreaker: 清空所有命名熔断器实例（如 schema_validation）
