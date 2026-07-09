@@ -52,7 +52,7 @@ class Scheduler:
     """
 
     def __init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._tasks: Dict[str, dict] = {}  # task_id -> task_info
@@ -304,8 +304,9 @@ class Scheduler:
             return self._schedule.every().hour.at(f":{minute.zfill(2)}")
 
         # 模式 4: M H * * W → 每周固定星期几的固定时间
-        weekday_names = ["monday", "tuesday", "wednesday", "thursday",
-                        "friday", "saturday", "sunday"]
+        # cron 标准: 0=Sunday, 1=Monday, ..., 6=Saturday
+        weekday_names = ["sunday", "monday", "tuesday", "wednesday",
+                        "thursday", "friday", "saturday"]
         if at_time and day == "*" and month == "*" and weekday.isdigit():
             wd_idx = int(weekday)
             if 0 <= wd_idx < 7:
