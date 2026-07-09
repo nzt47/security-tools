@@ -273,7 +273,7 @@ class TestWeeklyReportGenerator:
             assert not generator._analytics_loaded
 
             with patch("agent.data_analytics.DataAnalytics") as MockDataAnalytics, \
-                 patch("agent.memory.vector_store.VectorStore") as MockVectorStore:
+                 patch("memory.vector_store.VectorStore") as MockVectorStore:
 
                 mock_vs = Mock()
                 MockVectorStore.return_value = mock_vs

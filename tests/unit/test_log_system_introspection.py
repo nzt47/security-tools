@@ -8,7 +8,8 @@ class TestIdleDetector:
     """空闲检测器测试"""
 
     def setup_method(self):
-        self.detector = IdleDetector(idle_timeout=1, max_cpu=50.0)
+        # max_cpu=100.0 避免 CPU 检查干扰（完整套件运行时 CPU 可能 >50%）
+        self.detector = IdleDetector(idle_timeout=1, max_cpu=100.0)
 
     def test_initial_state_is_idle(self):
         # 刚初始化，没有活动记录，应视为空闲

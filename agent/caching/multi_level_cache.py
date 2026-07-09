@@ -71,7 +71,7 @@ class CacheEntry:
 
     def is_expired(self) -> bool:
         """检查是否过期"""
-        return time.time() - self.timestamp > self.ttl_seconds
+        return time.time() - self.timestamp >= self.ttl_seconds
 
     def to_dict(self) -> dict:
         """转换为字典（用于序列化）"""
@@ -216,7 +216,7 @@ class LRUCache:
     def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None):
         """设置缓存条目"""
         hash_key = self._hash_key(key)
-        ttl = ttl_seconds or self.default_ttl
+        ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl
 
         with self._lock:
             # 如果已存在，更新
@@ -294,7 +294,7 @@ class DiskCache:
 
     def _is_expired(self, timestamp: float, ttl_seconds: int) -> bool:
         """检查是否过期"""
-        return time.time() - timestamp > ttl_seconds
+        return time.time() - timestamp >= ttl_seconds
 
     def _get_total_size(self) -> int:
         """获取当前缓存目录大小"""
@@ -519,7 +519,7 @@ class MultiLevelCache:
             value: 缓存值
             ttl_seconds: 过期时间（秒），默认使用L1的TTL
         """
-        ttl = ttl_seconds or self._l1_ttl
+        ttl = ttl_seconds if ttl_seconds is not None else self._l1_ttl
 
         # 写入L1
         self._l1_cache.set(key, value, ttl)

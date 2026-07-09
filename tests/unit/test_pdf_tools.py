@@ -53,11 +53,16 @@ class TestPDFTools:
 
     def test_split_pdf_default_ranges(self, tmp_path):
         """测试拆分 PDF（默认每页一个文件）"""
+        # 创建占位文件以通过 os.path.exists 检查
+        src_file = tmp_path / "test.pdf"
+        src_file.write_bytes(b"")
+
         mock_reader = MagicMock()
         mock_reader.pages = [MagicMock(), MagicMock(), MagicMock()]
-        
-        with patch("pypdf.PdfReader", return_value=mock_reader):
-            result = pdf_tools.split_pdf("test.pdf", str(tmp_path))
+
+        with patch("pypdf.PdfReader", return_value=mock_reader), \
+             patch("pypdf.PdfWriter"):
+            result = pdf_tools.split_pdf(str(src_file), str(tmp_path / "output"))
             assert result["ok"] is True
             assert result["total_outputs"] == 3
 
@@ -75,22 +80,26 @@ class TestPDFTools:
         # None 应返回所有页
         assert pdf_tools._normalize_pages(3, None) == [0, 1, 2]
         
-        # 超出范围的页码应被过滤
-        assert pdf_tools._normalize_pages(5, [0, 1, 6, 10]) == [0, 4]
+        # 超出范围的页码应被过滤（源码为 1-based,0/6/10 均超出 [1,5] 范围,仅 1 有效）
+        assert pdf_tools._normalize_pages(5, [0, 1, 6, 10]) == [0]
 
     @patch("pypdf.PdfReader")
-    def test_read_pdf_text_with_pages(self, mock_reader_class):
+    def test_read_pdf_text_with_pages(self, mock_reader_class, tmp_path):
         """测试按指定页码读取 PDF 文本"""
+        # 创建占位文件以通过 os.path.exists 检查
+        src_file = tmp_path / "test.pdf"
+        src_file.write_bytes(b"")
+
         mock_page1 = MagicMock()
         mock_page1.extract_text.return_value = "Page 1 content"
         mock_page3 = MagicMock()
         mock_page3.extract_text.return_value = "Page 3 content"
-        
+
         mock_reader = MagicMock()
         mock_reader.pages = [mock_page1, MagicMock(), mock_page3]
         mock_reader_class.return_value = mock_reader
-        
-        result = pdf_tools.read_pdf_text("test.pdf", pages=[1, 3])
+
+        result = pdf_tools.read_pdf_text(str(src_file), pages=[1, 3])
         assert result["ok"] is True
         assert "Page 1 content" in result["text"]
         assert "Page 3 content" in result["text"]
@@ -99,19 +108,26 @@ class TestPDFTools:
 
     @patch("pypdf.PdfWriter")
     @patch("pypdf.PdfReader")
-    def test_merge_pdfs_success(self, mock_reader_class, mock_writer_class):
+    def test_merge_pdfs_success(self, mock_reader_class, mock_writer_class, tmp_path):
         """测试成功合并 PDF"""
+        # 创建占位文件以通过 os.path.exists 检查
+        file1 = tmp_path / "file1.pdf"
+        file1.write_bytes(b"")
+        file2 = tmp_path / "file2.pdf"
+        file2.write_bytes(b"")
+        output_path = tmp_path / "output.pdf"
+
         mock_page = MagicMock()
         mock_reader1 = MagicMock()
         mock_reader1.pages = [mock_page]
         mock_reader2 = MagicMock()
         mock_reader2.pages = [mock_page]
-        
+
         mock_reader_class.side_effect = [mock_reader1, mock_reader2]
         mock_writer = MagicMock()
         mock_writer_class.return_value = mock_writer
-        
-        result = pdf_tools.merge_pdfs(["file1.pdf", "file2.pdf"], "output.pdf")
+
+        result = pdf_tools.merge_pdfs([str(file1), str(file2)], str(output_path))
         assert result["ok"] is True
         assert result["total_pages"] == 2
         assert result["merged_files"] == 2

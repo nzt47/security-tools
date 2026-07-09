@@ -281,7 +281,11 @@ class TestStructuredLogFormat:
         parsed = None
         for record in caplog.records:
             try:
-                data = json.loads(record.getMessage())
+                # log_dict 模式下 record.msg 是 dict；传统模式下 getMessage() 返回 JSON 字符串
+                if isinstance(record.msg, dict):
+                    data = record.msg
+                else:
+                    data = json.loads(record.getMessage())
                 if isinstance(data, dict) and "action" in data:
                     parsed = data
                     break

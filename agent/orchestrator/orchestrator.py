@@ -112,7 +112,15 @@ class Orchestrator:
         """
         result = self.process(user_input)
         if isinstance(result, dict):
-            return result.get("response", "") or result.get("data", "") or ""
+            text = result.get("response", "")
+            if not text:
+                data = result.get("data", "")
+                if isinstance(data, str):
+                    text = data
+                elif isinstance(data, dict):
+                    # workflow_result: data.output, llm_result: data.text
+                    text = data.get("output", "") or data.get("text", "")
+            return text
         return str(result)
 
     def process(self, user_input: str, **kwargs) -> dict:

@@ -497,7 +497,24 @@ class OutputSchemaValidator:
         
         # 解析为具体类型
         if isinstance(output, str):
-            output_dict = json.loads(output)
+            try:
+                output_dict = json.loads(output)
+            except (json.JSONDecodeError, ValueError) as e:
+                # validate 通过但 JSON 解析失败,返回错误消息而非崩溃
+                logger.warning(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "output_schema",
+                    "action": "parse_and_validate",
+                    "duration_ms": (time.time() - start_time) * 1000,
+                    "error": f"JSON 解析失败: {e}"
+                }))
+                return ErrorMessage(
+                    error=ErrorDetail(
+                        error_code="SCHEMA_PARSE_ERROR",
+                        message=f"输出 JSON 解析失败: {e}",
+                        suggestion="请检查输出格式是否为有效 JSON"
+                    )
+                )
         else:
             output_dict = output
         
