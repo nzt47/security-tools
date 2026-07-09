@@ -1188,9 +1188,8 @@ class NetworkConfigManager:
         
         logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': '[网络配置] 搜索引擎配置更新完成'}))
 
-        return errors
+        return self.get_search_engines()
 
-        return errors
     def validate_llm_instance(self, instance: dict) -> List[str]:
         """验证 LLM 实例配置（委派到 config_validator）"""
         return validate_llm_instance(instance)
