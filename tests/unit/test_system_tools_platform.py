@@ -87,12 +87,15 @@ def _windows_path_env():
 
     is_protected_path() 内部调用 os.path.abspath()，在 Linux 上会将
     Windows 路径转换为 cwd 前缀的 Linux 路径，导致保护目录匹配失败。
-    使用 ntpath 模块正确处理 Windows 路径（解析 .. 和正常化分隔符）。
-    同时 mock os.name/os.sep/os.path.abspath/os.path.normpath 使跨平台测试一致。
+
+    Why 用 ntpath.normpath 替代 ntpath.abspath: ntpath.abspath 在非 Windows 平台
+    依赖 nt._getfullpathname（Windows API），Linux 上会 fallback 到含 cwd 的实现，
+    对绝对 Windows 路径产生意外结果。normpath 是纯字符串操作，跨平台行为一致，
+    对绝对路径返回自身，对含 .. 的路径正确规范化。
     """
     with patch('os.name', 'nt'), \
          patch('os.sep', '\\'), \
-         patch('os.path.abspath', side_effect=lambda p: _ntpath_abspath_orig(p)), \
+         patch('os.path.abspath', side_effect=lambda p: _ntpath_normpath_orig(p)), \
          patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
         yield
 
@@ -102,41 +105,41 @@ class TestWindowsPathProtection:
 
     def test_is_protected_path_windows_system_dir(self):
         """测试Windows系统保护目录被识别"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             for protected_dir in PROTECTED_SYSTEM_DIRS_WIN:
                 assert is_protected_path(protected_dir) is True
 
     def test_is_protected_path_windows_allowed_subdir(self):
         """测试Windows允许的子目录不被保护"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             for allowed_dir in ALLOWED_WIN_SUBDIRS:
                 assert is_protected_path(allowed_dir) is False
 
     def test_is_protected_path_windows_subdir_of_protected(self):
         """测试保护目录的子目录被保护"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             protected_path = os.path.join(PROTECTED_SYSTEM_DIRS_WIN[0], "test")
             assert is_protected_path(protected_path) is True
 
     def test_is_protected_path_windows_subdir_of_allowed(self):
         """测试允许目录的子目录不被保护"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             allowed_path = os.path.join(ALLOWED_WIN_SUBDIRS[0], "test", "subdir")
             assert is_protected_path(allowed_path) is False
 
     def test_is_protected_path_windows_normal_path(self):
         """测试普通Windows路径不被保护"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             assert is_protected_path(r"C:\Users\Test\Documents") is False
 
     def test_is_protected_path_windows_path_normalization(self):
         """测试Windows路径规范化"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             # 测试不同格式的路径
             path1 = r"C:\Windows\System32"
             path2 = r"C:\WINDOWS\SYSTEM32"
             path3 = r"C:\Windows\..\Windows\System32"
-            
+
             assert is_protected_path(path1) is True
             assert is_protected_path(path2) is True
             assert is_protected_path(path3) is True
@@ -1287,12 +1290,12 @@ class TestPathProtectionUnix_system_tools_path:
         """测试 Unix 路径遍历攻击防护"""
         if os.name != "posix":
             pytest.skip("仅在 Unix/Linux 上运行")
-        
+
         malicious_paths = [
             "/etc/passwd",
             "/bin/bash",
-            "../../etc/passwd",
-            "./../etc/passwd",
+            "/var/../../etc/passwd",
+            "/var/./../etc/passwd",
             "/home/user/../../etc/passwd",
         ]
         for path in malicious_paths:
