@@ -251,6 +251,16 @@ class TestCategorize:
         self._setup_status_mock(mock_git_sync, "")
         assert resolver.categorize(_make_conflict("skill.md")) == "content_conflict"
 
+    def test_short_line_skipped(self, mock_git_sync, resolver):
+        """git status --porcelain 中的短行（<3 字符）被跳过，不影响后续匹配"""
+        self._setup_status_mock(mock_git_sync, "\nUU skill.md\n")
+        assert resolver.categorize(_make_conflict("skill.md")) == "content_conflict"
+
+    def test_unknown_status_code_defaults_to_content_conflict(self, mock_git_sync, resolver):
+        """文件在 status 中但状态码非已知类型（如 DD）时返回 content_conflict"""
+        self._setup_status_mock(mock_git_sync, "DD skill.md\n")
+        assert resolver.categorize(_make_conflict("skill.md")) == "content_conflict"
+
 
 # ═══════════════════════════════════════════════════════════════════
 #  5. auto_resolve 方法

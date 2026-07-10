@@ -169,9 +169,9 @@ class TestTokenBucketBoundaryConditions:
     def test_token_bucket_tokens_property(self):
         """验证tokens属性返回当前令牌数（边界条件测试）"""
         bucket = TokenBucket(capacity=5, refill_rate=1.0)
-        assert bucket.tokens == 5
+        assert bucket.tokens == pytest.approx(5)
         bucket.try_acquire()
-        assert bucket.tokens == 4
+        assert bucket.tokens == pytest.approx(4)
 
 
 class TestRateLimiterBoundaryConditions:

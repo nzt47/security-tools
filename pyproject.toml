@@ -61,6 +61,7 @@ dependencies = [
   "jsonschema>=4.0.0,<5.0.0",
   "pypdf>=4.0.0,<6.0.0",
   "cssselect>=1.2.0,<2.0.0",
+  "pdfplumber>=0.10.0,<0.12.0",
   # Windows-only 依赖（pyttsx3 的间接依赖）。
   # 使用 PEP 508 platform markers，在 Linux/macOS 上自动跳过，
   # 替代 CI workflow 中的 `grep -v 'pywin32|pypiwin32|comtypes'` 过滤方案。
