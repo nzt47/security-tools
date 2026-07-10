@@ -2821,14 +2821,18 @@ class TestUnixProtectedPath:
         Why: is_protected_path 根据 os.name 分支——Windows 只检查
         PROTECTED_SYSTEM_DIRS_WIN，Unix 只检查 PROTECTED_SYSTEM_DIRS_UNIX。
         因此同一断言在两个平台上期望值相反，必须按平台分别验证。
+        Note: 用 sys.platform 判断实际平台并显式 mock os.name，避免前序测试
+        patch('os.name', 'nt') 未恢复导致 os.name 污染。
         """
-        result = is_protected_path("/etc/passwd")
-        if os.name == "nt":
-            # Windows 上 Unix 路径不进入 Unix 检测分支，不被保护
-            assert result is False
+        import sys
+        if sys.platform == "win32":
+            with patch('os.name', 'nt'):
+                result = is_protected_path("/etc/passwd")
+                assert result is False
         else:
-            # Linux/Unix 上 /etc 属于 PROTECTED_SYSTEM_DIRS_UNIX，被保护
-            assert result is True
+            with patch('os.name', 'posix'):
+                result = is_protected_path("/etc/passwd")
+                assert result is True
 
 
 class TestSearchFilesMaxWalk:
