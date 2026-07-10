@@ -145,7 +145,6 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
-            --maxfail=5 \
             -m "not slow and not skip_ci" \
             --timeout=300
           # 失败时根据输出中的 --randomly-seed=<N> 本地复现：

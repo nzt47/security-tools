@@ -25,6 +25,13 @@ from agent.scheduling import (
     get_schedule_scheduler,
 )
 
+# 检测 schedule 第三方库是否可用（CI 可能未安装该可选依赖）
+try:
+    import schedule as _schedule_lib  # noqa: F401
+    _HAS_SCHEDULE_LIB = True
+except ImportError:
+    _HAS_SCHEDULE_LIB = False
+
 
 # ============================================================================
 # Fixtures
@@ -70,6 +77,7 @@ class TestSchedulerInit:
         assert scheduler._tasks == {}
         assert scheduler._stop_event is not None
 
+    @pytest.mark.skipif(not _HAS_SCHEDULE_LIB, reason="schedule 库未安装")
     def test_init_with_schedule_lib(self, scheduler):
         # schedule 库已安装时 _schedule 不为 None
         assert scheduler._schedule is not None
