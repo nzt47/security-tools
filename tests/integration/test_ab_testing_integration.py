@@ -197,8 +197,8 @@ class TestABTestingIntegration:
             1 for i in range(100)
             if mgr.assign_variant(exp_low.experiment_id, f"u_{i}") is None
         )
-        # 95% 应被流量过滤
-        assert none_count > 90
+        # 95% 应被流量过滤（概率波动容忍：5%流量比例下100样本标准差约2.18）
+        assert none_count > 85
 
     def test_record_metric_and_analyze_significance(self, ab_test_manager):
         """测试 5：指标记录与显著性检验"""
