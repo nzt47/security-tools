@@ -77,6 +77,7 @@ data/skills.json
 data/task_history.jsonl
 data/auto_tuning/
 data/resource_monitor_history.jsonl
+data/schedules.json
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage
@@ -88,6 +89,8 @@ test_reports/
 # CI 调试产物
 _ci_logs.zip
 _ci_logs/
+ci_*.txt
+new_ci_*.txt
 
 # 运行时缓存
 cache/
