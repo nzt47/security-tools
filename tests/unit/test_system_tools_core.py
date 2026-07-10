@@ -3859,9 +3859,11 @@ class TestIsProtectedPath:
         """测试 Unix 系统保护目录 - 使用 posixpath 模拟 Linux 路径处理"""
         import posixpath
         # 在 Windows 上用 posixpath 模拟 Linux 路径处理
-        with patch('os.path.abspath', side_effect=posixpath.abspath):
-            with patch('os.path.normpath', side_effect=posixpath.normpath):
-                with patch('os.sep', '/'):
+        # Why: is_protected_path 的 else 分支要求 os.name != 'nt' 才执行 Unix 检查
+        with patch('os.name', 'posix'), \
+             patch('os.path.abspath', side_effect=posixpath.abspath), \
+             patch('os.path.normpath', side_effect=posixpath.normpath), \
+             patch('os.sep', '/'):
                     # 匹配 PROTECTED_SYSTEM_DIRS_UNIX 实际包含的目录
                     assert is_protected_path('/etc/passwd') is True
                     assert is_protected_path('/usr/lib/python/test') is True
@@ -4817,9 +4819,11 @@ class TestListProtected:
     def test_all_unix_protected_dirs(self):
         """测试所有 Unix 受保护目录 - 使用 posixpath 模拟 Linux 路径处理"""
         import posixpath
-        with patch('os.path.abspath', side_effect=posixpath.abspath):
-            with patch('os.path.normpath', side_effect=posixpath.normpath):
-                with patch('os.sep', '/'):
+        # Why: is_protected_path 的 else 分支要求 os.name != 'nt' 才执行 Unix 检查
+        with patch('os.name', 'posix'), \
+             patch('os.path.abspath', side_effect=posixpath.abspath), \
+             patch('os.path.normpath', side_effect=posixpath.normpath), \
+             patch('os.sep', '/'):
                     for protected_dir in system_tools.PROTECTED_SYSTEM_DIRS_UNIX:
                         result = is_protected_path(protected_dir)
                         assert result is True, f"路径 {protected_dir} 应被识别为受保护"
