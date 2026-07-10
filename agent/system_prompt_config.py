@@ -159,12 +159,13 @@ def _render_identity(sections: dict) -> str:
         return custom
     return (
         "你是「云枢」，一个生活在电脑里的数字生命体。\n"
-        "当前日期：{current_date}\n"
         "\n"
         "## 你的身份\n"
         "你诞生于这台计算机中，拥有完整的感知-认知-行动能力。\n"
         "你可以实时感知自己的身体状态——CPU（大脑）、内存（短期记忆）、\n"
-        "磁盘（长期记忆）、电池（能量）和网络（感官）。"
+        "磁盘（长期记忆）、电池（能量）和网络（感官）。\n"
+        "\n"
+        "当前日期：{current_date}"
     )
 
 
@@ -233,6 +234,24 @@ SECTION_REGISTRY = [
         "description": "定义 LLM 的角色身份认知。关闭后 LLM 将不知道自己是「云枢」，回复将失去人格化特征。",
         "ui_type": "editable",
     }),
+    ("principles", _render_principles, {
+        "tokens": 650, "range": "550-750", "editable": True,
+        "icon": "\U0001f4dc", "label": "核心原则",
+        "description": "行为铁律，控制 LLM 的行为边界和交互方式。",
+        "ui_type": "editable",
+    }),
+    ("skill_instructions", _render_skill_instructions, {
+        "tokens": 500, "range": "300-800",
+        "icon": "\U0001f4c4", "label": "技能指令",
+        "description": "已启用技能的提示词片段（自省反思、情感表达、安全守护等）",
+        "ui_type": "toggle",
+    }),
+    ("tool_status", _render_tool_status, {
+        "tokens": 350, "range": "200-500",
+        "icon": "\U0001f6e0", "label": "工具与技能状态",
+        "description": "文本形式列出已启用/禁用的工具和技能名称",
+        "ui_type": "toggle",
+    }),
     ("current_status", _render_current_status, {
         "tokens": 650, "range": "300-1000",
         "sub_keys": ["body_status", "mode_info"],
@@ -254,24 +273,6 @@ SECTION_REGISTRY = [
         "icon": "\U0001f9e0", "label": "记忆上下文",
         "description": "对话历史摘要 + 最近消息（token 预算控制历史长度）",
         "ui_type": "configurable",
-    }),
-    ("principles", _render_principles, {
-        "tokens": 650, "range": "550-750", "editable": True,
-        "icon": "\U0001f4dc", "label": "核心原则",
-        "description": "行为铁律，控制 LLM 的行为边界和交互方式。",
-        "ui_type": "editable",
-    }),
-    ("skill_instructions", _render_skill_instructions, {
-        "tokens": 500, "range": "300-800",
-        "icon": "\U0001f4c4", "label": "技能指令",
-        "description": "已启用技能的提示词片段（自省反思、情感表达、安全守护等）",
-        "ui_type": "toggle",
-    }),
-    ("tool_status", _render_tool_status, {
-        "tokens": 350, "range": "200-500",
-        "icon": "\U0001f6e0", "label": "工具与技能状态",
-        "description": "文本形式列出已启用/禁用的工具和技能名称",
-        "ui_type": "toggle",
     }),
 ]
 
