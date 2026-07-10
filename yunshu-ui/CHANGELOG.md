@@ -60,15 +60,17 @@ All notable changes to the Yunshu-UI project will be documented in this file.
 ### Changed
 - `SkillManagement.tsx` 新增 `visual-editor` Tab，懒加载 VisualEditor
 - `vitest.config.ts` 将 VisualEditor 核心模块纳入覆盖率统计
-- `package.json` 新增 `@xyflow/react`、`zustand`、`lucide-react` 依赖
+- `package.json` 版本号 0.0.0 → 0.1.0
 
 ### Documentation
-- `P2_可视化脚手架.md` — P2-2 技术方案文档（Phase 1-5 实施计划）
-- `P2_性能对比报告.md` — 5 种优化策略对比 + 极端场景分析 + 内存检测
-- `P2_生产环境性能基线建议.md` — 部署性能基线 + 监控指标 + 降级策略
-- `P2_测试报告总结.md` — 集成测试 suite 报告
+- `P2_可视化脚手架.md` — P2-2 技术方案文档（已有，Phase 1-5 实施计划）
+- `P2_性能对比报告.md` — 新增，5 种优化策略对比 + 极端场景分析 + 内存检测
+- `P2_生产环境性能基线建议.md` — 新增，部署性能基线 + 监控指标 + 降级策略
+- `P2_测试报告总结.md` — 新增，集成测试 suite 报告
 
 ### Dependencies
-- `@xyflow/react` ^12.11.2 — ReactFlow 可视化画布
-- `zustand` ^5.0.3 — 轻量状态管理
-- `lucide-react` ^0.511.0 — 图标库
+- `@xyflow/react` ^12.11.2 — ReactFlow 可视化画布（新增）
+- `@testing-library/react` ^16.3.2 — React 测试库（新增）
+- `@testing-library/jest-dom` ^6.9.1 — React 测试 DOM 断言（新增）
+- `jsdom` ^25.0.1 — jsdom 测试环境（新增）
+- `vitest` ^2.1.9 — Vitest 测试框架（新增）
