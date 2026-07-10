@@ -3706,6 +3706,11 @@ class TestSystemToolsWorkspaceEdgeCases:
 class TestSystemToolsSandboxEdgeCases:
     """测试沙盒边缘情况"""
 
+    @pytest.fixture(autouse=True)
+    def _mock_spawn(self, mock_sandbox_spawn):
+        """Mock multiprocessing spawn 避免 CI Linux pickle 错误"""
+        self._spawn = mock_sandbox_spawn
+
     @pytest.mark.unit
     @pytest.mark.p0
     def test_run_sandbox_with_import(self):
