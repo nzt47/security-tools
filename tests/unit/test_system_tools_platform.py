@@ -219,12 +219,11 @@ class TestPathProtectionEdgeCases:
 
     def test_is_protected_path_absolute_vs_relative(self):
         """测试绝对路径和相对路径"""
-        with patch('os.name', 'nt'):
-            with patch('os.sep', '\\'):
-                # 相对路径应该被规范化后检查
-                # 注意：这取决于当前工作目录，所以我们直接测试规范化行为
-                absolute_path = r"C:\Windows\System32"
-                assert is_protected_path(absolute_path) is True
+        with _windows_path_env():
+            # 相对路径应该被规范化后检查
+            # 注意：这取决于当前工作目录，所以我们直接测试规范化行为
+            absolute_path = r"C:\Windows\System32"
+            assert is_protected_path(absolute_path) is True
 
 
 class TestSafeResolvePath:
@@ -454,7 +453,8 @@ class TestSafeResolvePathComplete:
     def test_safe_resolve_protected_path_raises(self):
         """测试解析保护路径抛出异常"""
         with patch('os.path.abspath', return_value=r"C:\Windows\System32"):
-            with patch('agent.system_tools.is_protected_path', return_value=True):
+            # Why: safe_resolve_path 实现在 agent.tools.file_tools，直接引用同模块 is_protected_path
+            with patch('agent.tools.file_tools.is_protected_path', return_value=True):
                 with pytest.raises(ValueError, match="路径位于系统保护目录"):
                     safe_resolve_path(r"C:\Windows\System32")
 
@@ -827,14 +827,14 @@ class TestSafeResolvePath_system_tools_platform_mock:
     def test_safe_resolve_protected_path(self):
         """测试保护路径解析"""
         # 在Windows上测试Windows保护目录
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             with pytest.raises(ValueError, match="系统保护目录"):
                 safe_resolve_path(r"C:\Windows\System32")
 
     def test_safe_resolve_traversal_attack(self):
         """测试路径遍历攻击防护"""
         # 在Windows上测试Windows路径遍历攻击
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             with pytest.raises(ValueError, match="系统保护目录"):
                 safe_resolve_path(r"C:\Users\Public\..\..\Windows\System32")
 
