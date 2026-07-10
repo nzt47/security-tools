@@ -797,6 +797,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_response_workflows
     agent_orchestrator_orchestrator --> agent
+    agent_orchestrator_prompt_builder -.-> agent_logging_utils
     agent_orchestrator_prompt_builder -.-> agent_digital_life
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_handoff_handoff_generator -.-> agent_utils_token_redactor
@@ -885,8 +886,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 321
 - 模块节点数: 256
-- 依赖边数: 549
-- 跨层调用数: 347
+- 依赖边数: 550
+- 跨层调用数: 348
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1136.91 ms
+- 构建耗时: 1053.32 ms
