@@ -78,6 +78,29 @@ from agent.system_tools import (
     _guess_mime_type,
 )
 import time
+import stat as stat_module
+import ntpath
+
+# Why: Windows 上 os.path 即 ntpath，patch('os.path.normpath') 会同时替换 ntpath.normpath，
+# 若 side_effect 中调用 ntpath.normpath 会触发无限递归，故提前保存原始引用
+_ntpath_normpath_orig = ntpath.normpath
+_ntpath_abspath_orig = ntpath.abspath
+
+from contextlib import contextmanager
+
+@contextmanager
+def _windows_path_env():
+    """模拟 Windows 路径环境
+
+    Why: Linux 上 os.path.abspath 将 Windows 路径当相对路径处理，
+    导致保护目录匹配失败。用 ntpath 正确解析 Windows 路径。
+    """
+    with patch('os.name', 'nt'), \
+         patch('os.sep', '\\'), \
+         patch('os.path.abspath', side_effect=lambda p: _ntpath_abspath_orig(p)), \
+         patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
+        yield
+
 from agent.system_tools import (
     is_protected_path,
     safe_resolve_path,
@@ -244,8 +267,13 @@ class TestPathSecurity:
     @pytest.mark.p3
     def test_safe_resolve_path_protected(self):
         """测试安全路径解析 - 保护目录"""
-        with pytest.raises(ValueError):
-            safe_resolve_path(r"C:\Windows\System32\test.txt")
+        # Why: Linux 上 os.path.abspath 对 Windows 绝对路径返回 cwd 前缀的 Linux 路径，
+        # 无法匹配 Windows 保护目录列表，需 mock Windows 路径环境
+        with patch('os.name', 'nt'), patch('os.sep', '\\'), \
+             patch('os.path.abspath', side_effect=lambda p: _ntpath_normpath_orig(p)), \
+             patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
+            with pytest.raises(ValueError):
+                safe_resolve_path(r"C:\Windows\System32\test.txt")
 
     @pytest.mark.unit
     @pytest.mark.p3
@@ -653,9 +681,12 @@ class TestSystemToolsBasicFunctions:
     @pytest.mark.p0
     def test_safe_resolve_path_invalid(self):
         """测试安全路径解析 - 无效路径（触发异常分支）"""
-        # 使用保护路径来触发 ValueError
-        with pytest.raises(ValueError):
-            safe_resolve_path(r"C:\Windows\System32")
+        # Why: Linux 上 Windows 路径不触发保护，需 mock Windows 路径环境
+        with patch('os.name', 'nt'), patch('os.sep', '\\'), \
+             patch('os.path.abspath', side_effect=lambda p: _ntpath_normpath_orig(p)), \
+             patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
+            with pytest.raises(ValueError):
+                safe_resolve_path(r"C:\Windows\System32")
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -789,8 +820,12 @@ class TestSystemToolsBasicFunctions:
     @pytest.mark.p0
     def test_write_file_protected_path(self):
         """测试写入保护路径"""
-        result = write_file(r"C:\Windows\System32\test.txt", "test")
-        assert result["ok"] is False
+        # Why: Linux 上 Windows 路径不触发保护目录检查，需 mock Windows 路径环境
+        with patch('os.name', 'nt'), patch('os.sep', '\\'), \
+             patch('os.path.abspath', side_effect=lambda p: _ntpath_normpath_orig(p)), \
+             patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
+            result = write_file(r"C:\Windows\System32\test.txt", "test")
+            assert result["ok"] is False
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -2293,8 +2328,13 @@ class TestSearchFilesBoundaryCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(os.path.join(temp_dir, "test.txt"), "w") as f:
                 f.write("test")
-            
-            with patch("os.stat", side_effect=OSError("stat failed")):
+
+            # Why: os.path.exists/isdir 内部调用 os.stat，若 os.stat 总是抛 OSError，
+            # search_files 会在路径检查阶段提前返回 ok=False。需 mock exists/isdir
+            # 让路径检查通过，只让遍历文件时的 os.stat 抛 OSError。
+            with patch("os.path.exists", return_value=True), \
+                 patch("os.path.isdir", return_value=True), \
+                 patch("os.stat", side_effect=OSError("stat failed")):
                 result = search_files("*.txt", temp_dir)
                 assert result["ok"] is True
                 # 应该跳过有问题的文件
@@ -2502,7 +2542,8 @@ class TestSearchFilesBoundaryConditions:
                 with patch("os.stat") as mock_stat:
                     mock_stat.return_value = MagicMock(
                         st_size=100,
-                        st_mtime=time.time()
+                        st_mtime=time.time(),
+                        st_mode=stat_module.S_IFDIR
                     )
                     result = search_files("*.txt", temp_dir)
                     # 验证正常执行
@@ -2533,7 +2574,8 @@ class TestSearchFilesBoundaryConditions:
                 with patch("os.stat") as mock_stat:
                     mock_stat.return_value = MagicMock(
                         st_size=100,
-                        st_mtime=time.time()
+                        st_mtime=time.time(),
+                        st_mode=stat_module.S_IFDIR
                     )
                     result = search_files("*.txt", temp_dir, max_results=5)
                     # 验证达到最大结果数后截断
@@ -2794,9 +2836,10 @@ class TestSearchFilesMaxWalk:
                 with patch("os.stat") as mock_stat:
                     mock_stat.return_value = MagicMock(
                         st_size=100,
-                        st_mtime=time.time()
+                        st_mtime=time.time(),
+                        st_mode=stat_module.S_IFDIR
                     )
-                    
+
                     result = search_files("*.txt", temp_dir)
                     assert result["ok"] is True
                     # 验证 truncated 标志
@@ -3505,17 +3548,14 @@ class TestSystemToolsEdgeCases:
             temp_path = f.name
 
         try:
-            if os.name != "nt":
-                # CI 可能以 root 运行，root 不受 chmod 限制
-                if hasattr(os, 'geteuid') and os.geteuid() == 0:
-                    pytest.skip("root 用户不受文件权限限制")
-                os.chmod(temp_path, 0o000)
+            # Why: Linux 上 chmod 0o000 不阻止 os.stat（仅需父目录执行权限），
+            # root 用户也不受 chmod 限制，需 mock os.stat 模拟权限错误场景
+            with patch('os.path.exists', return_value=True), \
+                 patch('os.stat', side_effect=PermissionError("Permission denied")):
                 result = get_file_info(temp_path)
                 assert result["ok"] is False
-                os.chmod(temp_path, 0o644)  # 恢复权限
-            else:
-                pytest.skip("Windows 权限测试受限")
         finally:
+            os.chmod(temp_path, 0o644)
             os.unlink(temp_path)
 
     @pytest.mark.unit
@@ -4486,12 +4526,13 @@ class TestBrowserControl_system_tools_ultimate_2:
     @pytest.mark.p0
     def test_get_browser_selenium_not_installed(self):
         """测试 selenium 未安装的情况"""
-        with patch.dict(sys.modules, {'selenium': None, 'selenium.webdriver': None}):
-            with patch('builtins.__import__', side_effect=ImportError("No module named 'selenium'")):
-                # 重置全局实例
-                with patch('agent.tools.browser_tools._browser_instance', None):
-                    result = get_browser()
-                    assert result is None
+        # Why: patch _browser_instance 必须在 patch __import__ 之前，
+        # 否则 mock 内部 __import__ 调用会触发 ImportError。
+        # sys.modules['selenium']=None 已足够让 from selenium import webdriver 抛 ImportError
+        with patch('agent.tools.browser_tools._browser_instance', None), \
+             patch.dict(sys.modules, {'selenium': None, 'selenium.webdriver': None}):
+            result = get_browser()
+            assert result is None
 
     @pytest.mark.unit
     @pytest.mark.p0
