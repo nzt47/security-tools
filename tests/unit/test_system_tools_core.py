@@ -2816,12 +2816,19 @@ class TestUnixProtectedPath:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_is_protected_path_unix_dirs(self):
-        """测试 Unix 系统保护目录"""
-        # 在 Windows 上，Unix 路径不会被检测为保护路径
-        # 这个测试验证 Unix 路径在 Windows 上的行为
+        """测试 Unix 系统保护目录的平台相关行为
+
+        Why: is_protected_path 根据 os.name 分支——Windows 只检查
+        PROTECTED_SYSTEM_DIRS_WIN，Unix 只检查 PROTECTED_SYSTEM_DIRS_UNIX。
+        因此同一断言在两个平台上期望值相反，必须按平台分别验证。
+        """
         result = is_protected_path("/etc/passwd")
-        # 在 Windows 上，Unix 路径不应该被保护
-        assert result is False
+        if os.name == "nt":
+            # Windows 上 Unix 路径不进入 Unix 检测分支，不被保护
+            assert result is False
+        else:
+            # Linux/Unix 上 /etc 属于 PROTECTED_SYSTEM_DIRS_UNIX，被保护
+            assert result is True
 
 
 class TestSearchFilesMaxWalk:
