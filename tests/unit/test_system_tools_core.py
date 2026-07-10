@@ -3503,9 +3503,12 @@ class TestSystemToolsEdgeCases:
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
             f.write(b"content")
             temp_path = f.name
-        
+
         try:
             if os.name != "nt":
+                # CI 可能以 root 运行，root 不受 chmod 限制
+                if hasattr(os, 'geteuid') and os.geteuid() == 0:
+                    pytest.skip("root 用户不受文件权限限制")
                 os.chmod(temp_path, 0o000)
                 result = get_file_info(temp_path)
                 assert result["ok"] is False
@@ -4810,9 +4813,14 @@ class TestListProtected:
     @pytest.mark.p0
     def test_all_windows_protected_dirs(self):
         """测试所有 Windows 受保护目录"""
-        for protected_dir in system_tools.PROTECTED_SYSTEM_DIRS_WIN:
-            result = is_protected_path(protected_dir)
-            assert result is True, f"路径 {protected_dir} 应被识别为受保护"
+        # Why: Linux 上 posixpath 无法正确解析 Windows 路径，需 mock os.name 和路径函数
+        with patch('os.name', 'nt'), \
+             patch('os.sep', '\\'), \
+             patch('os.path.abspath', side_effect=lambda p: p), \
+             patch('os.path.normpath', side_effect=lambda p: p):
+            for protected_dir in system_tools.PROTECTED_SYSTEM_DIRS_WIN:
+                result = is_protected_path(protected_dir)
+                assert result is True, f"路径 {protected_dir} 应被识别为受保护"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -4866,6 +4874,11 @@ SystemTools 最后补充测试 - 修复版
 
 class TestSystemToolsSandboxComplete_system_tools_ultimate_coverage:
     """沙盒完整测试"""
+
+    @pytest.fixture(autouse=True)
+    def _mock_spawn(self, mock_sandbox_spawn):
+        """Mock multiprocessing spawn 避免 CI Linux pickle 错误"""
+        self._spawn = mock_sandbox_spawn
 
     @pytest.mark.unit
     @pytest.mark.p0
