@@ -415,6 +415,14 @@ def reset_global_singletons():
         _erc._sensitive_patterns = list(_erc._DEFAULT_SENSITIVE_PATTERNS)
     except Exception:
         pass
+    # 10. system_prompt_config: 重置 _manager 单例
+    # Why: 前序测试调用 get_manager() 创建单例并缓存配置,可能导致后续测试
+    # 的配置查询读到陈旧缓存。重置确保每个测试拿到干净的配置管理器。
+    try:
+        import agent.system_prompt_config as _spc
+        _spc._manager = None
+    except Exception:
+        pass
 
 # ============================================================================
 # 测试断言辅助函数
