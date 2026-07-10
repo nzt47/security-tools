@@ -178,7 +178,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-py${{ matrix.python-version }}
-          path: htmlcov/
+          path: |
+            htmlcov/
+            coverage.xml
+            .coverage
           retention-days: 30
 
       - name: 上传测试结果
@@ -294,7 +297,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-py${{ env.PYTHON_VERSION }}
-          path: htmlcov/
+          path: .
 
       - name: 检查覆盖率
         run: |
