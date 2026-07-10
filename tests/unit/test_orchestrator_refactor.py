@@ -399,13 +399,7 @@ class TestLifecycleManagerModuleAvailability:
                            side_effect=mock_is_section_enabled) as mock_fn:
                     mgr._configure_v2_features()
 
-                    # 诊断: 验证 mock 是否被调用
-                    if not mock_fn.called:
-                        print(f"[DIAG] mock 未被调用! _v2_lifetrace={mgr._v2_lifetrace}")
-                        import agent.system_prompt_config as _spc
-                        print(f"[DIAG] is_section_enabled = {_spc.is_section_enabled}")
-                        print(f"[DIAG] is mock = {hasattr(_spc.is_section_enabled, '_mock')}")
-
+                    assert mock_fn.called
                     assert mgr._v2_lifetrace is False
                     assert mgr._v2_persona is False
                     assert mgr._v2_distillation is False
