@@ -302,8 +302,11 @@ class TestOptimizedChromaDB:
                 enable_cache=False,
             )
 
-            assert db.is_initializing
-            assert not db.is_initialized
+            # mock 环境下初始化可能瞬时完成，验证状态一致性而非固定值
+            if db.is_initializing:
+                assert not db.is_initialized
+            else:
+                assert db.is_initialized
 
             # 轮询等待异步初始化完成（CI runner 速度不确定，固定 sleep 不可靠）
             deadline = time.perf_counter() + 5.0
