@@ -26,6 +26,10 @@ export default defineConfig({
         'src/components/StateInspector/**/*.ts',
         'src/components/StateInspector/**/*.tsx',
         'src/components/ObservabilityDevtools/**/*.tsx',
+        'src/components/VisualEditor/stores/**/*.ts',
+        'src/components/VisualEditor/generator/**/*.ts',
+        'src/components/VisualEditor/validator/**/*.ts',
+        'src/components/VisualEditor/nodes/**/*.tsx',
       ],
       exclude: [
         'src/**/*.test.*',
