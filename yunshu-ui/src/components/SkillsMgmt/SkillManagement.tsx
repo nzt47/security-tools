@@ -8,7 +8,7 @@
  * - 健康检查结果以颜色徽章展示（在线/离线），帮助判断后端可用性
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { trackEvent } from '../../lib/skillsApi';
 import SkillList from './SkillList';
@@ -19,7 +19,12 @@ import WorkflowRepo from './WorkflowRepo';
 import WorkflowMatcher from './WorkflowMatcher';
 import './SkillManagement.css';
 
-export type SkillMgmtTab = 'skills' | 'workflows';
+// 懒加载可视化编辑器（性能策略 4：延迟加载 @xyflow/react ~150KB）
+const VisualEditor = lazy(() =>
+  import('../VisualEditor').then((m) => ({ default: m.VisualEditor })),
+);
+
+export type SkillMgmtTab = 'skills' | 'workflows' | 'visual-editor';
 
 export interface SkillManagementProps {
   onClose: () => void;
@@ -131,6 +136,14 @@ const SkillManagement: React.FC<SkillManagementProps> = ({ onClose }) => {
               <span className="skmgmt-tab-badge">{workflows.length}</span>
             )}
           </button>
+          <button
+            className={`skmgmt-tab ${tab === 'visual-editor' ? 'active' : ''}`}
+            onClick={() => handleTabChange('visual-editor')}
+            type="button"
+            title="可视化拖拽编排工作流"
+          >
+            可视化编辑器
+          </button>
 
           {/* 右侧动作按钮 */}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, padding: '6px 0' }}>
@@ -192,13 +205,25 @@ const SkillManagement: React.FC<SkillManagementProps> = ({ onClose }) => {
                 <SkillDetail />
               </div>
             </>
-          ) : (
+          ) : tab === 'workflows' ? (
             <div className="skmgmt-detail-pane" style={{ maxWidth: 'none' }}>
               <div className="skmgmt-help-tip">
                 提示：智能体从大模型成功交互中学习方法，自动生成可执行工作流。
                 匹配到的本地工作流会优先执行，避免冗余 LLM 调用，提升响应速度。
               </div>
               <WorkflowRepo />
+            </div>
+          ) : (
+            <div className="skmgmt-detail-pane" style={{ maxWidth: 'none', display: 'flex', flexDirection: 'column' }}>
+              <div className="skmgmt-help-tip">
+                提示：从左侧面板拖拽节点到画布，连线编排工作流，右侧编辑属性，底部实时预览 YAML。
+                快捷键：Delete 删除选中节点 / Ctrl+Z 撤销 / Ctrl+Y 重做。
+              </div>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <Suspense fallback={<div style={{ padding: 24, color: '#64748b' }}>加载可视化编辑器…</div>}>
+                  <VisualEditor />
+                </Suspense>
+              </div>
             </div>
           )}
         </div>
