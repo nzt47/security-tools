@@ -12,6 +12,8 @@
 import logging
 from datetime import datetime
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 
@@ -223,6 +225,17 @@ class PromptBuilder:
         token_limit = token_limit or self._memory_token_limit
         messages = []
 
+        # 固定 system 消息前置（提升 LLM 前缀缓存命中率）
+        if tool_calling_service:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "⚡ 立即检查：用户这句话需要工具吗？如果需要，直接发起函数调用。"
+                    "绝对禁止只发文字描述你将要做的操作。"
+                    "没调用工具 = 没执行。立即行动。"
+                ),
+            })
+
         # 优先使用 budget_context（Token 预算分配）
         try:
             recent = memory._storage.load_recent_messages(limit=50)
@@ -244,18 +257,18 @@ class PromptBuilder:
             except Exception:
                 pass
 
-        # 工具调用提示
-        if tool_calling_service:
-            messages.append({
-                "role": "system",
-                "content": (
-                    "⚡ 立即检查：用户这句话需要工具吗？如果需要，直接发起函数调用。"
-                    "绝对禁止只发文字描述你将要做的操作。"
-                    "没调用工具 = 没执行。立即行动。"
-                ),
-            })
-
         messages.append({"role": "user", "content": user_input})
+
+        logger.debug(log_dict({
+            'module_name': 'prompt_builder',
+            'action': 'prompt_builder.build_context_messages.prompt_order',
+            'message': '[PromptOrder] fixed=[tool_urge@idx0] dynamic=[budget_context@idx1-%d, user_input@idx%d]' % (
+                len(messages) - 2, len(messages) - 1
+            ),
+            'messages_count': len(messages),
+            'has_tool_urge': bool(tool_calling_service),
+        }))
+
         return messages
 
     # ════════════════════════════════════════════════════════════════
