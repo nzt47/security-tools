@@ -222,6 +222,14 @@ from agent.system_tools import (
 import agent.tools.browser_tools as bt
 
 
+@pytest.fixture(autouse=True)
+def _mock_sandbox_spawn_global(mock_sandbox_spawn):
+    """模块级 autouse: mock multiprocessing spawn 避免 CI Linux pickle Connection 错误。
+    只 patch multiprocessing.get_context，对不使用 multiprocessing 的测试无影响。
+    """
+    yield
+
+
 # === 来自 test_system_tools.py ===
 
 """
@@ -1074,7 +1082,9 @@ class TestListDirectory:
     def test_list_directory_permission_error(self):
         """测试无权限访问目录"""
         with patch("agent.tools.file_tools.safe_resolve_path", return_value="test_dir"):
-            with patch("os.listdir", side_effect=PermissionError("permission denied")):
+            with patch("os.path.exists", return_value=True), \
+                 patch("os.path.isdir", return_value=True), \
+                 patch("os.listdir", side_effect=PermissionError("permission denied")):
                 result = list_directory("test_dir")
                 assert result["ok"] is False
                 assert "没有权限" in result["error"]
