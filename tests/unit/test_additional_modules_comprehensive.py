@@ -514,6 +514,11 @@ class TestSandboxConstants:
 class TestRunSandbox:
     """测试 run_sandbox 函数"""
 
+    @pytest.fixture(autouse=True)
+    def _mock_spawn(self, mock_sandbox_spawn):
+        """Mock multiprocessing spawn 避免 CI Linux pickle 错误"""
+        self._spawn = mock_sandbox_spawn
+
     def test_run_sandbox_simple_print(self):
         from agent.system_tools import run_sandbox, _SAFE_BUILTINS
         # print 不在安全内置函数中，会触发 NameError
@@ -541,6 +546,8 @@ class TestRunSandbox:
     def test_run_sandbox_timeout(self):
         from agent.system_tools import run_sandbox
         # 使用一个会死循环的代码，设置很短的超时
+        # force_timeout 模拟进程不退出，避免 threading 无法终止死循环线程
+        self._spawn.force_timeout = True
         result = run_sandbox("while True: pass", timeout_sec=1)
         assert result["timed_out"] is True
 
