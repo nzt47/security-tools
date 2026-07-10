@@ -213,7 +213,7 @@ class TestPathProtectionEdgeCases:
 
     def test_is_protected_path_traversal_attack(self):
         """测试路径遍历攻击被阻止"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             malicious_path = r"C:\Users\Test\..\..\Windows\System32"
             assert is_protected_path(malicious_path) is True
 
@@ -233,7 +233,7 @@ class TestSafeResolvePath:
         """测试路径解析成功"""
         with patch('os.name', 'nt'):
             with patch('os.path.abspath', return_value=r"C:\Users\Test\Documents"):
-                with patch('agent.system_tools.is_protected_path', return_value=False):
+                with patch('agent.tools.file_tools.is_protected_path', return_value=False):
                     result = safe_resolve_path("test.txt")
                     assert result == r"C:\Users\Test\Documents"
 
@@ -241,7 +241,7 @@ class TestSafeResolvePath:
         """测试解析受保护路径抛出异常"""
         with patch('os.name', 'nt'):
             with patch('os.path.abspath', return_value=r"C:\Windows\System32"):
-                with patch('agent.system_tools.is_protected_path', return_value=True):
+                with patch('agent.tools.file_tools.is_protected_path', return_value=True):
                     with pytest.raises(ValueError, match="路径位于系统保护目录"):
                         safe_resolve_path(r"C:\Windows\System32")
 
@@ -446,7 +446,7 @@ class TestSafeResolvePathComplete:
     def test_safe_resolve_normal_path(self):
         """测试正常路径解析"""
         with patch('os.path.abspath', return_value=r"C:\Users\Test\Documents\file.txt"):
-            with patch('agent.system_tools.is_protected_path', return_value=False):
+            with patch('agent.tools.file_tools.is_protected_path', return_value=False):
                 result = safe_resolve_path(r"C:\Users\Test\Documents\file.txt")
                 assert result == r"C:\Users\Test\Documents\file.txt"
 
