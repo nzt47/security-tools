@@ -74,6 +74,13 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 
+# 在模块级保存 ntpath 原始函数引用。
+# Windows 上 os.path 即 ntpath，patch('os.path.abspath') 会同时替换 ntpath.abspath，
+# 若在 side_effect 中调用 ntpath.abspath 会触发无限递归。故必须提前保存原始引用。
+_ntpath_abspath_orig = ntpath.abspath
+_ntpath_normpath_orig = ntpath.normpath
+
+
 @contextmanager
 def _windows_path_env():
     """模拟 Windows 路径环境
@@ -85,8 +92,8 @@ def _windows_path_env():
     """
     with patch('os.name', 'nt'), \
          patch('os.sep', '\\'), \
-         patch('os.path.abspath', side_effect=lambda p: ntpath.abspath(p)), \
-         patch('os.path.normpath', side_effect=lambda p: ntpath.normpath(p)):
+         patch('os.path.abspath', side_effect=lambda p: _ntpath_abspath_orig(p)), \
+         patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
         yield
 
 
@@ -782,7 +789,7 @@ class TestPathTraversalAttack_system_tools_platform_mock:
 
     def test_path_traversal_windows(self):
         """测试Windows路径遍历攻击"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             # 使用绝对路径测试路径遍历攻击（从已知位置开始）
             traversal_paths = [
                 r"C:\Users\Public\..\..\Windows\System32",
@@ -897,7 +904,7 @@ class TestCrossPlatformPathCheck:
 
     def test_unix_path_on_windows(self):
         """测试Windows系统上的Unix路径"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             # Windows系统上Unix路径不应被视为保护路径
             assert is_protected_path("/etc/passwd") is False
 
@@ -1010,14 +1017,14 @@ class TestPathTraversal:
         """测试 Unix 正斜杠路径遍历"""
         if os.name != "posix":
             pytest.skip("仅在 Unix/Linux 上运行")
-        
+
         malicious_paths = [
             "/etc/../etc/passwd",
             "/bin/../etc/shadow",
         ]
         for path in malicious_paths:
-            result = safe_resolve_path(path)
-            assert is_protected_path(result) or "etc" in result
+            with pytest.raises(ValueError, match="路径位于系统保护目录"):
+                safe_resolve_path(path)
 
     def test_path_normalization_dot(self):
         """测试路径规范化（点号）"""

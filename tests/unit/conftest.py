@@ -154,3 +154,113 @@ def _disable_optional_systems_safety():
                 'sentence_transformers': None,
             }))
         yield
+
+
+# ════════════════════════════════════════════════════════════
+#  run_sandbox 测试专用：Fake spawn context
+# ════════════════════════════════════════════════════════════
+# Why: CI Linux spawn 方式 pickle Connection 对象时报
+# `Can't pickle rebuild_connection` 错误（9个测试失败，跨 3.10/3.11）。
+# 改用 threading 在当前进程中执行 target，避免子进程 pickle。
+# 测试仍验证 run_sandbox 的预检查、超时处理、结果解析逻辑。
+import queue as _queue_module
+import threading as _threading_module
+
+
+class _FakeMPQueue:
+    """模拟 multiprocessing.Queue，使用线程安全 queue.Queue"""
+
+    def __init__(self):
+        self._q = _queue_module.Queue()
+
+    def put(self, item):
+        self._q.put(item)
+
+    def get(self, timeout=None):
+        return self._q.get(timeout=timeout)
+
+    def close(self):
+        pass
+
+    def join_thread(self):
+        pass
+
+
+class _FakeMPProcess:
+    """模拟 multiprocessing.Process，在线程中执行 target
+
+    force_timeout=True 时不执行 target，is_alive 总返回 True，
+    用于模拟超时场景（threading 无法安全终止死循环线程）。
+    """
+
+    def __init__(self, target, args=(), daemon=False, force_timeout=False):
+        self._target = target
+        self._args = args
+        self._daemon = daemon
+        self._force_timeout = force_timeout
+        self._thread = None
+        self.exitcode = None
+
+    def start(self):
+        if self._force_timeout:
+            return
+        self._thread = _threading_module.Thread(
+            target=self._run, daemon=self._daemon
+        )
+        self._thread.start()
+
+    def _run(self):
+        try:
+            self._target(*self._args)
+            self.exitcode = 0
+        except SystemExit as e:
+            self.exitcode = e.code if isinstance(e.code, int) else 1
+        except Exception:
+            self.exitcode = 1
+
+    def join(self, timeout=None):
+        if self._thread:
+            self._thread.join(timeout=timeout)
+
+    def is_alive(self):
+        if self._force_timeout:
+            return True
+        return self._thread is not None and self._thread.is_alive()
+
+    def terminate(self):
+        pass
+
+    def kill(self):
+        pass
+
+
+class _FakeSpawnContext:
+    """模拟 multiprocessing.spawn context"""
+
+    def __init__(self):
+        self.force_timeout = False
+
+    def Queue(self):
+        return _FakeMPQueue()
+
+    def Process(self, target, args=(), daemon=False):
+        return _FakeMPProcess(
+            target, args, daemon, force_timeout=self.force_timeout
+        )
+
+
+@pytest.fixture
+def mock_sandbox_spawn():
+    """Mock multiprocessing.spawn context 避免 CI Linux pickle 错误。
+
+    用法：在测试类中通过 autouse fixture 引用：
+        @pytest.fixture(autouse=True)
+        def _mock_spawn(self, mock_sandbox_spawn):
+            self._spawn = mock_sandbox_spawn
+
+    超时测试设置 self._spawn.force_timeout = True 模拟进程不退出。
+    """
+    import multiprocessing
+    ctx = _FakeSpawnContext()
+    with patch.object(multiprocessing, 'get_context', return_value=ctx):
+        yield ctx
