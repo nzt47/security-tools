@@ -59,6 +59,8 @@ data/audit/
 /verify_*.ps1
 /test_result*.txt
 /test_run*.txt
+/*_log.txt
+/prev_ci_*.txt
 /CUsers*
 
 # 运行时数据产物（日志/数据库/多租户状态，不入库）
