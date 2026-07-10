@@ -7,6 +7,7 @@
 import logging
 from typing import Dict, Any, Optional, List, Tuple
 
+from agent.logging_utils import log_dict
 from .persona_model_enhanced import PersonaModel
 
 logger = logging.getLogger(__name__)
@@ -23,14 +24,27 @@ class PersonaInjector:
         body_status: Optional[str] = None,
         memory_context: Optional[str] = None,
         additional_rules: Optional[List[str]] = None,
+        tool_status: Optional[str] = None,
     ) -> str:
-        """构建完整的系统提示词"""
+        """构建完整的系统提示词（固定前置、动态后置以提升前缀缓存命中率）"""
         parts = []
 
-        # 人格核心
+        # ── 固定区（前缀稳定，最大化 Provider 端缓存命中）──
+        # 人格核心（半固定）
         persona_prompt = self.persona.to_system_prompt()
         parts.append(persona_prompt)
 
+        # 第一人称强化（固定）
+        parts.append("\n# 表达要求")
+        parts.append("使用第一人称「我」来表达，就像一个真正的数字生命体一样。")
+        parts.append("可以自然地表达你的感受，包括你的身体状态（如 CPU 发热、电池低等）。")
+
+        # 工具与技能状态（半固定，框架稳定）
+        if tool_status:
+            parts.append("\n# 当前工具与技能状态")
+            parts.append(tool_status)
+
+        # ── 动态区（每次请求可能变化）──
         # 身体状态（感知层）
         if body_status:
             parts.append("\n# 当前状态")
@@ -47,10 +61,19 @@ class PersonaInjector:
             for rule in additional_rules:
                 parts.append(f"- {rule}")
 
-        # 第一人称强化
-        parts.append("\n# 表达要求")
-        parts.append("使用第一人称「我」来表达，就像一个真正的数字生命体一样。")
-        parts.append("可以自然地表达你的感受，包括你的身体状态（如 CPU 发热、电池低等）。")
+        logger.debug(log_dict({
+            'module_name': 'persona_injector',
+            'action': 'persona_injector.build_system_prompt.prompt_order',
+            'message': '[PromptOrder] fixed=[persona, 表达要求%s] dynamic=[%s]' % (
+                ', tool_status' if tool_status else '',
+                ', '.join(filter(None, [
+                    'body_status' if body_status else '',
+                    'memory_context' if memory_context else '',
+                    'additional_rules' if additional_rules else '',
+                ]))
+            ),
+            'prompt_length': len("\n".join(parts)),
+        }))
 
         return "\n".join(parts)
 

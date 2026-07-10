@@ -672,6 +672,17 @@ class Orchestrator:
 
         # ── 2. 组装上下文消息 ──
         messages = []
+        # 固定 system 消息前置（提升 LLM 前缀缓存命中率）
+        if self._tool_calling_service:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "⚡ 立即检查：用户这句话需要工具吗？如果需要，直接发起函数调用。"
+                    "绝对禁止只发文字描述你将要做的操作。"
+                    "没调用工具 = 没执行。立即行动。"
+                ),
+            })
+        # 动态历史消息
         try:
             recent = self._memory._storage.load_recent_messages(limit=50)
             summary_data = self._memory.load_summary()
@@ -693,17 +704,17 @@ class Orchestrator:
             except Exception:
                 pass
 
-        if self._tool_calling_service:
-            messages.append({
-                "role": "system",
-                "content": (
-                    "⚡ 立即检查：用户这句话需要工具吗？如果需要，直接发起函数调用。"
-                    "绝对禁止只发文字描述你将要做的操作。"
-                    "没调用工具 = 没执行。立即行动。"
-                ),
-            })
-
         messages.append({"role": "user", "content": user_input})
+
+        logger.debug(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator._call_llm.prompt_order',
+            'message': '[PromptOrder] fixed=[tool_urge@idx0] dynamic=[budget_context@idx1-%d, user_input@idx%d]' % (
+                len(messages) - 2, len(messages) - 1
+            ),
+            'messages_count': len(messages),
+            'has_tool_urge': bool(self._tool_calling_service),
+        }))
 
         if self._llm:
             try:
@@ -890,11 +901,12 @@ class Orchestrator:
 
         if self._v2_persona and self._persona_injector:
             memory_context = self._get_lifetrace_context(user_input)
-            tool_status_text = "## 当前工具与技能状态\n" + self._build_tool_status_text()
+            tool_status_text = self._build_tool_status_text()
             system_prompt = self._persona_injector.build_system_prompt(
                 body_status=body_status,
                 memory_context=memory_context,
-            ) + "\n\n" + tool_status_text
+                tool_status=tool_status_text,
+            )
         else:
             memory_context = self._get_lifetrace_context(user_input) if self._v2_lifetrace else ""
             tool_status = self._build_tool_status_text()
