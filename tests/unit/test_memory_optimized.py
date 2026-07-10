@@ -302,13 +302,9 @@ class TestOptimizedChromaDB:
                 enable_cache=False,
             )
 
-            # mock 环境下初始化可能瞬时完成，验证状态一致性而非固定值
-            if db.is_initializing:
-                assert not db.is_initialized
-            else:
-                assert db.is_initialized
-
             # 轮询等待异步初始化完成（CI runner 速度不确定，固定 sleep 不可靠）
+            # Why: 不断言初始状态——_init_sync() 设置 _initialized=True 与 do_init()
+            # finally 设置 _initializing=False 之间存在窗口，两者可同时为 True
             deadline = time.perf_counter() + 5.0
             while db.is_initializing and time.perf_counter() < deadline:
                 time.sleep(0.05)
