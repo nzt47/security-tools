@@ -110,10 +110,11 @@ def is_protected_path(path: str) -> bool:
         for protected in PROTECTED_SYSTEM_DIRS_WIN:
             if abs_path.lower().startswith(protected.lower() + os.sep) or abs_path.lower() == protected.lower():
                 return True
-    # Unix 系统保护目录检测
-    for protected in PROTECTED_SYSTEM_DIRS_UNIX:
-        if abs_path.startswith(protected + os.sep) or abs_path == protected:
-            return True
+    else:
+        # Unix 系统保护目录检测
+        for protected in PROTECTED_SYSTEM_DIRS_UNIX:
+            if abs_path.startswith(protected + os.sep) or abs_path == protected:
+                return True
 
     return False
 

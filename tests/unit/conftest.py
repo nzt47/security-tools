@@ -264,3 +264,42 @@ def mock_sandbox_spawn():
     ctx = _FakeSpawnContext()
     with patch.object(multiprocessing, 'get_context', return_value=ctx):
         yield ctx
+
+
+# ════════════════════════════════════════════════════════════
+#  test_orchestrator_refactor 失败诊断
+# ════════════════════════════════════════════════════════════
+# Why: patch('agent.system_prompt_config.is_section_enabled', ...) mock
+# 在某些环境下可能不生效（模块加载时机、_manager 单例缓存污染、
+# CONFIG_FILE 内容与代码默认值不一致）。此 hook 在测试失败时
+# 打印关键诊断信息，帮助定位 mock 失效根因。
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if (report.when == "call" and report.failed
+            and "test_orchestrator_refactor" in item.nodeid):
+        try:
+            import agent.system_prompt_config as _mod
+            print("\n" + "=" * 60)
+            print(f"[DIAG] 失败测试: {item.name}")
+            print(f"[DIAG] CONFIG_FILE = {_mod.CONFIG_FILE}")
+            print(f"[DIAG] CONFIG_FILE exists = {os.path.exists(_mod.CONFIG_FILE)}")
+            _fn = _mod.is_section_enabled
+            print(f"[DIAG] is_section_enabled = {_fn}")
+            print(f"[DIAG] is mock = {hasattr(_fn, '_mock')}")
+            print(f"[DIAG] _manager = {_mod._manager}")
+            if _mod._manager is not None:
+                _cache = _mod._manager._cache
+                if _cache is not None:
+                    _sections = _cache.get("sections", {})
+                    for _k in ("lifetrace", "smart_tool_selection",
+                               "tool_definitions", "persona", "distillation"):
+                        _sec = _sections.get(_k, {})
+                        print(f"[DIAG]   sections[{_k}].enabled = "
+                              f"{_sec.get('enabled', 'N/A')}")
+            print("=" * 60 + "\n")
+        except Exception as _e:
+            print(f"[DIAG] 诊断输出失败: {_e}")
+
