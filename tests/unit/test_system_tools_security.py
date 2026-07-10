@@ -31,6 +31,14 @@ from agent.system_tools import (
 import agent.tools.browser_tools as bt
 
 
+@pytest.fixture(autouse=True)
+def _mock_sandbox_spawn_global(mock_sandbox_spawn):
+    """模块级 autouse: mock multiprocessing spawn 避免 CI Linux pickle Connection 错误。
+    只 patch multiprocessing.get_context，对不使用 multiprocessing 的测试无影响。
+    """
+    yield
+
+
 # === 来自 test_system_tools_sandbox_browser_ultimate.py ===
 
 # -*- coding: utf-8 -*-
