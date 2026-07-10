@@ -294,7 +294,7 @@ class TestPathCaseInsensitivity:
 
     def test_is_protected_path_case_insensitive_windows(self):
         """测试Windows路径大小写不敏感"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             paths = [
                 r"C:\Windows\System32",
                 r"C:\windows\system32",
@@ -364,16 +364,14 @@ class TestWindowsPathProtectionComplete:
 
     def test_windows_path_case_insensitive(self):
         """测试Windows路径大小写不敏感"""
-        with patch('os.name', 'nt'):
-            with patch('os.path.abspath', side_effect=lambda x: x):
-                with patch('os.path.normpath', side_effect=lambda x: x):
-                    paths = [
-                        r"C:\WINDOWS\system32",
-                        r"C:\Windows\SYSTEM32",
-                        r"c:\windows\system32",
-                    ]
-                    for path in paths:
-                        assert is_protected_path(path) is True
+        with _windows_path_env():
+            paths = [
+                r"C:\WINDOWS\system32",
+                r"C:\Windows\SYSTEM32",
+                r"c:\windows\system32",
+            ]
+            for path in paths:
+                assert is_protected_path(path) is True
 
     def test_windows_allowed_subdirs(self):
         """测试Windows允许的子目录"""
@@ -644,7 +642,9 @@ class TestCrossPlatformProcess:
 
     def test_process_creation_flags_windows(self):
         """测试Windows进程创建标志"""
-        with patch('os.name', 'nt'):
+        # Linux 上 subprocess.CREATE_NO_WINDOW 不存在，需 create=True 创建属性
+        with patch('os.name', 'nt'), \
+             patch('subprocess.CREATE_NO_WINDOW', 0x08000000, create=True):
             with patch('subprocess.Popen') as mock_popen:
                 mock_proc = MagicMock()
                 mock_proc.pid = 12345
@@ -656,7 +656,7 @@ class TestCrossPlatformProcess:
                 assert mock_popen.called
                 call_kwargs = mock_popen.call_args[1]
                 assert 'creationflags' in call_kwargs
-                assert call_kwargs['creationflags'] == subprocess.CREATE_NO_WINDOW
+                assert call_kwargs['creationflags'] == 0x08000000
 
     def test_process_creation_flags_unix(self):
         """测试Unix进程创建标志"""
@@ -739,7 +739,7 @@ class TestWindowsPathProtection_system_tools_platform_mock:
 
     def test_windows_path_case_insensitive(self):
         """测试Windows路径大小写不敏感"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             assert is_protected_path(r"c:\windows\system32") is True
             assert is_protected_path(r"C:\WINDOWS\SYSTEM32") is True
 
@@ -1184,11 +1184,11 @@ class TestErrorHandling:
 class TestMockScenarios:
     """使用 Mock 的场景测试"""
 
-    @patch("os.name", "nt")
     def test_windows_paths_with_mock(self):
         """使用 Mock 测试 Windows 路径"""
-        assert is_protected_path("C:\\Windows\\System32") is True
-        assert is_protected_path("C:\\Users\\test") is False
+        with _windows_path_env():
+            assert is_protected_path("C:\\Windows\\System32") is True
+            assert is_protected_path("C:\\Users\\test") is False
 
     def test_unix_paths_skip_on_windows(self):
         """Unix 路径测试在 Windows 上跳过"""

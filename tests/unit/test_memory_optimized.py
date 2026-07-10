@@ -408,15 +408,18 @@ class TestOptimizedChromaDB:
     def test_uninitialized_access(self):
         """测试未初始化时访问集合"""
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
-            db = OptimizedChromaDB(
-                persist_directory=tmpdir,
-                collection_name="test_uninit",
-                enable_async=True,
-                enable_cache=False,
-            )
+            # mock _init_async 不启动线程，确保 _initialized 保持 False
+            # CI Linux 上 MockChromaClient 初始化极快，异步线程可能在断言前完成
+            with patch.object(OptimizedChromaDB, '_init_async', lambda self: None):
+                db = OptimizedChromaDB(
+                    persist_directory=tmpdir,
+                    collection_name="test_uninit",
+                    enable_async=True,
+                    enable_cache=False,
+                )
 
-            with pytest.raises(RuntimeError):
-                _ = db.collection
+                with pytest.raises(RuntimeError):
+                    _ = db.collection
 
     @pytest.mark.unit
     @pytest.mark.p2
