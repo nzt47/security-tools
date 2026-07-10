@@ -305,7 +305,10 @@ class TestOptimizedChromaDB:
             assert db.is_initializing
             assert not db.is_initialized
 
-            time.sleep(0.1)
+            # 轮询等待异步初始化完成（CI runner 速度不确定，固定 sleep 不可靠）
+            deadline = time.perf_counter() + 5.0
+            while db.is_initializing and time.perf_counter() < deadline:
+                time.sleep(0.05)
 
             assert db.is_initialized
             assert not db.is_initializing
@@ -534,5 +537,8 @@ class TestFactoryFunction:
                 async_init=True,
             )
 
-            time.sleep(0.1)
+            # 轮询等待异步初始化完成（CI runner 速度不确定，固定 sleep 不可靠）
+            deadline = time.perf_counter() + 5.0
+            while db.is_initializing and time.perf_counter() < deadline:
+                time.sleep(0.05)
             assert db.is_initialized
