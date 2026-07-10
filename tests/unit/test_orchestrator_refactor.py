@@ -20,6 +20,20 @@ from typing import Any as _Any, Optional
 builtins.Any = _Any
 
 import agent.orchestrator.subagent_manager  # noqa: E402
+import agent.system_prompt_config as _spc_mod
+
+
+@pytest.fixture(autouse=True)
+def _reset_spc_manager():
+    """每个测试前重置 system_prompt_config._manager 单例。
+
+    Why: is_section_enabled() 内部调用 get_manager() 读取配置文件。
+    若前序测试已创建 _manager 单例并缓存配置，可能影响后续测试的 mock 行为。
+    重置为 None 确保每个测试从干净状态开始，改善测试隔离。
+    """
+    _spc_mod._manager = None
+    yield
+    _spc_mod._manager = None
 
 
 # ============================================================================
@@ -382,8 +396,15 @@ class TestLifecycleManagerModuleAvailability:
 
             with patch('agent.orchestrator.lifecycle_manager.logger'):
                 with patch('agent.system_prompt_config.is_section_enabled',
-                           side_effect=mock_is_section_enabled):
+                           side_effect=mock_is_section_enabled) as mock_fn:
                     mgr._configure_v2_features()
+
+                    # 诊断: 验证 mock 是否被调用
+                    if not mock_fn.called:
+                        print(f"[DIAG] mock 未被调用! _v2_lifetrace={mgr._v2_lifetrace}")
+                        import agent.system_prompt_config as _spc
+                        print(f"[DIAG] is_section_enabled = {_spc.is_section_enabled}")
+                        print(f"[DIAG] is mock = {hasattr(_spc.is_section_enabled, '_mock')}")
 
                     assert mgr._v2_lifetrace is False
                     assert mgr._v2_persona is False
