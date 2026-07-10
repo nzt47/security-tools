@@ -1294,13 +1294,17 @@ class TestMainBlock:
         import subprocess
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
+        # Why: 硬编码 Windows 路径在 Linux CI 上不存在，使用项目根目录的动态路径
+        project_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..')
+        )
         result = subprocess.run(
             [sys.executable, "-c",
              "import runpy; runpy.run_module('agent.task_scheduler', run_name='__main__')"],
             capture_output=True,
             text=True,
             timeout=30,
-            cwd=r"C:\Users\Administrator\agent",
+            cwd=project_root,
             env=env
         )
         # 即使有编码问题（已被 PYTHONIOENCODING 缓解），只关心代码是否被执行
