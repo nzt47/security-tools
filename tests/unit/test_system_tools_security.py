@@ -339,33 +339,31 @@ class TestBrowserGetInstance:
     @pytest.mark.p0
     def test_get_browser_import_error_selenium(self):
         """测试 selenium 完全未安装"""
+        # Why: sys.modules['selenium']=None 已足够让 `from selenium import webdriver` 抛 ImportError;
+        # 不再 patch builtins.__import__，否则 patch 内部 import 也会触发 ImportError 导致测试自身失败
         with patch.dict(sys.modules, {'selenium': None}):
-            with patch('builtins.__import__', side_effect=ImportError("No selenium")):
-                with patch('agent.tools.browser_tools._browser_instance', None):
-                    with patch('agent.tools.browser_tools.logger'):
-                        result = get_browser()
-                        assert result is None
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
+                    result = get_browser()
+                    assert result is None
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_get_browser_options_exception(self):
         """测试 Options() 抛异常"""
         mock_selenium = MagicMock()
-        # Options() 自身抛异常
+        # Why: sys.modules['selenium.webdriver.chrome.options']=None 让
+        # `from selenium.webdriver.chrome.options import Options` 抛 ImportError;
+        # 不再 patch builtins.__import__ 以避免 RecursionError
         with patch.dict(sys.modules, {
             'selenium': mock_selenium,
             'selenium.webdriver': mock_selenium.webdriver,
+            'selenium.webdriver.chrome.options': None,
         }):
-            with patch.dict(sys.modules, {'selenium.webdriver.chrome.options': None}):
-                # 模拟从 selenium.webdriver.chrome.options 导入 Options 抛 ImportError
-                with patch('builtins.__import__',
-                          side_effect=lambda name, *args, **kwargs:
-                          (_ for _ in ()).throw(ImportError("options not found"))
-                          if 'options' in name else __import__(name, *args, **kwargs)):
-                    with patch('agent.tools.browser_tools._browser_instance', None):
-                        with patch('agent.tools.browser_tools.logger'):
-                            result = get_browser()
-                            assert result is None
+            with patch('agent.tools.browser_tools._browser_instance', None):
+                with patch('agent.tools.browser_tools.logger'):
+                    result = get_browser()
+                    assert result is None
 
     @pytest.mark.unit
     @pytest.mark.p0
