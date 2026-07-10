@@ -267,11 +267,7 @@ class TestPathSecurity:
     @pytest.mark.p3
     def test_safe_resolve_path_protected(self):
         """测试安全路径解析 - 保护目录"""
-        # Why: Linux 上 os.path.abspath 对 Windows 绝对路径返回 cwd 前缀的 Linux 路径，
-        # 无法匹配 Windows 保护目录列表，需 mock Windows 路径环境
-        with patch('os.name', 'nt'), patch('os.sep', '\\'), \
-             patch('os.path.abspath', side_effect=lambda p: _ntpath_normpath_orig(p)), \
-             patch('os.path.normpath', side_effect=lambda p: _ntpath_normpath_orig(p)):
+        with _windows_path_env():
             with pytest.raises(ValueError):
                 safe_resolve_path(r"C:\Windows\System32\test.txt")
 
@@ -1584,6 +1580,12 @@ class TestSystemToolsWorkspace:
 class TestSystemToolsSandbox:
     """测试 Python 沙盒功能"""
 
+    @pytest.fixture(autouse=True)
+    def _mock_spawn(self, mock_sandbox_spawn):
+        # Why: CI Linux multiprocessing.spawn pickle Connection 对象失败
+        # (Can't pickle rebuild_connection)，用 mock_sandbox_spawn 替换为线程执行
+        self._spawn = mock_sandbox_spawn
+
     @pytest.mark.unit
     @pytest.mark.p0
     def test_run_sandbox_basic(self):
@@ -2540,11 +2542,10 @@ class TestSearchFilesBoundaryConditions:
                     (temp_dir, [], [f"file{i}.txt" for i in range(100)])
                 ]
                 with patch("os.stat") as mock_stat:
-                    mock_stat.return_value = MagicMock(
-                        st_size=100,
-                        st_mtime=time.time(),
-                        st_mode=stat_module.S_IFDIR
-                    )
+                    mock_stat.return_value = os.stat_result((
+                        stat_module.S_IFDIR | 0o755, 0, 0, 1, 0, 0,
+                        100, time.time(), time.time(), time.time()
+                    ))
                     result = search_files("*.txt", temp_dir)
                     # 验证正常执行
                     assert result["ok"] is True
@@ -2572,11 +2573,10 @@ class TestSearchFilesBoundaryConditions:
                 files = [f"file{i}.txt" for i in range(100)]
                 mock_walk.return_value = [(temp_dir, [], files)]
                 with patch("os.stat") as mock_stat:
-                    mock_stat.return_value = MagicMock(
-                        st_size=100,
-                        st_mtime=time.time(),
-                        st_mode=stat_module.S_IFDIR
-                    )
+                    mock_stat.return_value = os.stat_result((
+                        stat_module.S_IFDIR | 0o755, 0, 0, 1, 0, 0,
+                        100, time.time(), time.time(), time.time()
+                    ))
                     result = search_files("*.txt", temp_dir, max_results=5)
                     # 验证达到最大结果数后截断
                     assert len(result["results"]) == 5
@@ -2834,11 +2834,10 @@ class TestSearchFilesMaxWalk:
                 mock_walk.return_value = [(temp_dir, [], files)]
                 
                 with patch("os.stat") as mock_stat:
-                    mock_stat.return_value = MagicMock(
-                        st_size=100,
-                        st_mtime=time.time(),
-                        st_mode=stat_module.S_IFDIR
-                    )
+                    mock_stat.return_value = os.stat_result((
+                        stat_module.S_IFDIR | 0o755, 0, 0, 1, 0, 0,
+                        100, time.time(), time.time(), time.time()
+                    ))
 
                     result = search_files("*.txt", temp_dir)
                     assert result["ok"] is True
@@ -2863,12 +2862,10 @@ class TestGetSingleFileInfoLinkTarget:
             with patch("os.path.islink", return_value=True):
                 with patch("os.readlink", return_value=target_file):
                     with patch("os.stat") as mock_stat:
-                        mock_stat.return_value = MagicMock(
-                            st_size=100,
-                            st_mtime=time.time(),
-                            st_ctime=time.time(),
-                            st_mode=0o777
-                        )
+                        mock_stat.return_value = os.stat_result((
+                            0o777, 0, 0, 1, 0, 0,
+                            100, time.time(), time.time(), time.time()
+                        ))
                         with patch("os.path.isdir", return_value=False):
                             info = _get_single_file_info(os.path.join(temp_dir, "link.txt"))
                             assert info["is_link"] is True
