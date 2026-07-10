@@ -454,9 +454,9 @@ class TestReplayStorageInit:
         assert (tmp_path / "replays" / "replay_meta.db").exists()
 
     def test_init_fails_on_invalid_path(self):
-        """无效路径应抛 ReplayStorageError"""
+        """无效路径应抛 ReplayStorageError（\0 在所有平台都是非法路径字符）"""
         with pytest.raises(ReplayStorageError, match=REPLAY_ERR_STORAGE_FAILED):
-            ReplayStorage("Z:\\invalid<>path|cannot")
+            ReplayStorage("invalid\0path")
 
     def test_global_singleton(self, tmp_path):
         _reset_global_for_test()
