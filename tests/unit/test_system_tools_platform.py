@@ -4,6 +4,7 @@
 import pytest
 import os
 import sys
+import ntpath
 from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 from agent.system_tools import (
@@ -79,11 +80,13 @@ def _windows_path_env():
 
     is_protected_path() 内部调用 os.path.abspath()，在 Linux 上会将
     Windows 路径转换为 cwd 前缀的 Linux 路径，导致保护目录匹配失败。
-    同时 mock os.name/os.sep/os.path.abspath 使跨平台测试一致。
+    使用 ntpath 模块正确处理 Windows 路径（解析 .. 和正常化分隔符）。
+    同时 mock os.name/os.sep/os.path.abspath/os.path.normpath 使跨平台测试一致。
     """
     with patch('os.name', 'nt'), \
          patch('os.sep', '\\'), \
-         patch('os.path.abspath', side_effect=lambda p: os.path.normpath(p)):
+         patch('os.path.abspath', side_effect=lambda p: ntpath.abspath(p)), \
+         patch('os.path.normpath', side_effect=lambda p: ntpath.normpath(p)):
         yield
 
 
@@ -261,7 +264,7 @@ class TestCrossPlatformBehavior:
 
     def test_is_protected_path_unix_on_windows(self):
         """测试Windows系统上检查Unix路径格式"""
-        with patch('os.name', 'nt'):
+        with _windows_path_env():
             # 在Windows上，Unix格式路径应该不会被识别为保护路径
             assert is_protected_path("/etc") is False
 
