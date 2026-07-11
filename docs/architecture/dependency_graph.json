@@ -1,5 +1,5 @@
 {
-  "trace_id": "015ecfe68ad34f51",
+  "trace_id": "f36c612871294b29",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -3553,7 +3553,7 @@
       "source_layer": "caching",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 436,
+      "line": 439,
       "source_file": "agent/caching/multi_level_cache.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9245,6 +9245,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1053.3164730000024
+    "build_duration_ms": 1163.6389710000117
   }
 }
