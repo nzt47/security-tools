@@ -1777,6 +1777,47 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  分身管理 / 资产管理 / CLI / Computer Use 路由
+# ════════════════════════════════════════════════════════════
+
+try:
+    from types import SimpleNamespace
+    from agent.server_routes.routes_subagent import register_routes as reg_subagent
+    _subagent_state = SimpleNamespace(Yunshu=_Yunshu)
+    reg_subagent(app, _subagent_state)
+    logger.info("分身管理路由已注册 (/api/subagent/*)")
+except Exception as e:
+    logger.error("加载分身管理路由失败: %s", e)
+
+try:
+    from types import SimpleNamespace
+    from agent.server_routes.routes_assets import register_routes as reg_assets
+    _assets_state = SimpleNamespace(
+        session_mgr=None,
+        vector_store=None,
+        skills_mgr=_skills_mgr,
+    )
+    reg_assets(app, _assets_state)
+    logger.info("资产管理路由已注册 (/api/assets/*)")
+except Exception as e:
+    logger.error("加载资产管理路由失败: %s", e)
+
+try:
+    from agent.server_routes.routes_cli import register_routes as reg_cli
+    reg_cli(app, lambda: None)
+    logger.info("CLI 软件路由已注册 (/api/cli/*)")
+except Exception as e:
+    logger.error("加载 CLI 路由失败: %s", e)
+
+try:
+    from agent.server_routes.routes_computer_use import register_routes as reg_computer_use
+    reg_computer_use(app, lambda: None)
+    logger.info("Computer Use 路由已注册 (/api/computer-use/*)")
+except Exception as e:
+    logger.error("加载 Computer Use 路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 
@@ -4594,17 +4635,29 @@ def api_task_cancel(task_id):
 
 @app.route("/")
 def index():
-    from flask import make_response, redirect
-    # 用随机参数破坏浏览器缓存
-    import time as t_mod, random
-    ver = int(t_mod.time() * 1000)
-    return redirect(f"/chat?v={ver}")
+    from flask import redirect
+    return redirect("/static/chat")
 
 @app.route("/chat")
 def chat_page():
-    from flask import make_response
-    html = render_template("index.html")
-    resp = make_response(html)
+    from flask import redirect
+    return redirect("/static/chat")
+
+@app.route("/legacy")
+def legacy_ui():
+    """旧版界面入口（云枢·数字生命体）"""
+    from flask import Response
+    response = render_template("index.html")
+    return Response(response, mimetype='text/html; charset=utf-8')
+
+@app.route("/static/<path:subpath>")
+def spa_fallback(subpath):
+    from flask import make_response, send_from_directory
+    full_path = os.path.join(app.static_folder, subpath)
+    if os.path.isfile(full_path):
+        resp = make_response(send_from_directory(app.static_folder, subpath))
+    else:
+        resp = make_response(send_from_directory(app.template_folder, 'spa.html'))
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
