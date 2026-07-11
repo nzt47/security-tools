@@ -1,0 +1,69 @@
+# Sandbox multiprocessing 边界测试 CI
+# 每次提交和 PR 时自动运行 27 个边界测试，防止并发回归
+# 覆盖：超时强杀、进程崩溃、资源管理、进程隔离、返回值结构
+
+name: Sandbox 边界测试
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'agent/system_tools.py'
+      - 'tests/unit/test_sandbox_multiprocess_boundary.py'
+      - '.github/workflows/sandbox-boundary-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'agent/system_tools.py'
+      - 'tests/unit/test_sandbox_multiprocess_boundary.py'
+      - '.github/workflows/sandbox-boundary-tests.yml'
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  sandbox-boundary-tests:
+    name: Sandbox 边界测试 (27 cases)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-timeout
+          pip install -e . --no-deps || true
+
+      - name: 运行 Sandbox 边界测试
+        run: |
+          python -B -m pytest tests/unit/test_sandbox_multiprocess_boundary.py \
+            --override-ini=addopts= \
+            -p no:cacheprovider \
+            --tb=short \
+            -v \
+            --timeout=120
+
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-boundary-test-results
+          path: |
+            test-results.xml
+            .pytest_cache/
+          retention-days: 7
