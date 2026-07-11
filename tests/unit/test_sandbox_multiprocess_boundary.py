@@ -15,6 +15,15 @@ import pytest
 from agent.system_tools import run_sandbox
 
 
+@pytest.fixture(autouse=True)
+def _mock_spawn(mock_sandbox_spawn):
+    """Why: CI Linux multiprocessing.spawn pickle Connection 对象失败
+    (Can't pickle rebuild_connection)，用 mock_sandbox_spawn 替换为线程执行。
+    与 test_system_tools_core.py::TestSystemToolsSandbox 保持一致。
+    """
+    yield
+
+
 # ════════════════════════════════════════════════════════════
 #  超时场景
 # ════════════════════════════════════════════════════════════
