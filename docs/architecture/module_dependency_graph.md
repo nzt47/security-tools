@@ -230,6 +230,7 @@ flowchart LR
     subgraph server_routes [server_routes]
         agent_server_routes_extensions["agent.server_routes.extensions"]
         agent_server_routes_observability["agent.server_routes.observability"]
+        agent_server_routes_routes_assets["agent.server_routes.routes_assets"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_chat["agent.server_routes.routes_chat"]
         agent_server_routes_routes_config["agent.server_routes.routes_config"]
@@ -602,6 +603,7 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_monitoring_loki
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
+    agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
@@ -884,10 +886,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 321
-- 模块节点数: 256
-- 依赖边数: 550
+- 扫描文件数: 324
+- 模块节点数: 257
+- 依赖边数: 551
 - 跨层调用数: 348
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1163.64 ms
+- 构建耗时: 1128.03 ms
