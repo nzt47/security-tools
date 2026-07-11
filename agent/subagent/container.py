@@ -271,6 +271,7 @@ class SubagentContainer:
             "memory_provider": self.config.memory_provider,
             "tool_sources": list(self.config.tool_sources),
             "permissions": list(self.config.permissions),
+            "tags": list(self.config.tags),
             "context_window": self.config.context_window,
             "context_used": len(self.context),
             "ttl_seconds": self.config.ttl_seconds,
