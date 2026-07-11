@@ -102,7 +102,7 @@ def _log_struct(action: str, message: str, duration_ms: int = 0, **extra):
     logger.info(_json.dumps(payload, ensure_ascii=False))
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static-assets')
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
