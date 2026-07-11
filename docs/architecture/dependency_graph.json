@@ -1,5 +1,5 @@
 {
-  "trace_id": "f36c612871294b29",
+  "trace_id": "555e9ddefa9d41fa",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -1047,7 +1047,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 18,
+      "in_degree": 19,
       "out_degree": 1
     },
     {
@@ -1225,6 +1225,14 @@
       "file_path": "",
       "in_degree": 4,
       "out_degree": 2
+    },
+    {
+      "path": "agent.server_routes.routes_assets",
+      "name": "routes_assets",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_assets.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.server_routes.routes_business_dashboard",
@@ -5641,6 +5649,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_assets",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 15,
+      "source_file": "agent/server_routes/routes_assets.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_business_dashboard",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -9204,9 +9225,9 @@
     }
   ],
   "stats": {
-    "total_files": 321,
-    "total_nodes": 256,
-    "total_edges": 550,
+    "total_files": 324,
+    "total_nodes": 257,
+    "total_edges": 551,
     "cross_layer_edges": 348,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -9232,7 +9253,7 @@
       "prompt_manager": 3,
       "memory": 11,
       "guardrails": 4,
-      "server_routes": 25,
+      "server_routes": 26,
       "health": 4,
       "handoff": 1,
       "observability": 4,
@@ -9245,6 +9266,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1163.6389710000117
+    "build_duration_ms": 1128.0298009999967
   }
 }
