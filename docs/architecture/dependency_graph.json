@@ -1,5 +1,5 @@
 {
-  "trace_id": "555e9ddefa9d41fa",
+  "trace_id": "55d87e7b5b284611",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -8917,7 +8917,7 @@
       "source_layer": "tools",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 12,
+      "line": 13,
       "source_file": "agent/tools/tool_generator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9266,6 +9266,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1128.0298009999967
+    "build_duration_ms": 1147.8142460000029
   }
 }
