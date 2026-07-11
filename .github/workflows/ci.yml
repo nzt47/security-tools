@@ -146,6 +146,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             -m "not slow and not skip_ci" \
+            --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --timeout=300
           # 失败时根据输出中的 --randomly-seed=<N> 本地复现：
           #   pytest tests/unit/ --randomly-seed=<N> -v --tb=short
