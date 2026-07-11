@@ -674,29 +674,30 @@ class DisasterRecovery:
 
         Returns:
             True 完整，False 损坏或不存在
+
+        注意：文件读取和校验在锁外执行，只读操作无需持锁保护。
         """
-        with self._lock:
-            backup_dir = Path(self._config.backup_dir)
-            backup_file = backup_dir / f"{backup_id}.json"
-            if not backup_file.exists():
+        backup_dir = Path(self._config.backup_dir)
+        backup_file = backup_dir / f"{backup_id}.json"
+        if not backup_file.exists():
+            return False
+
+        try:
+            with open(backup_file, "r", encoding="utf-8") as f:
+                content = json.load(f)
+
+            stored_checksum = content.get("checksum", "")
+            if not stored_checksum:
                 return False
 
-            try:
-                with open(backup_file, "r", encoding="utf-8") as f:
-                    content = json.load(f)
-
-                stored_checksum = content.get("checksum", "")
-                if not stored_checksum:
-                    return False
-
-                data = content.get("data", {})
-                # 重新计算校验和并比对
-                computed_checksum = hashlib.md5(
-                    json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")
-                ).hexdigest()
-                return stored_checksum == computed_checksum
-            except (json.JSONDecodeError, OSError, Exception):
-                return False
+            data = content.get("data", {})
+            # 重新计算校验和并比对
+            computed_checksum = hashlib.md5(
+                json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")
+            ).hexdigest()
+            return stored_checksum == computed_checksum
+        except (json.JSONDecodeError, OSError, Exception):
+            return False
 
     # ── 备份列表 ─────────────────────────────────────────────
 
@@ -705,40 +706,42 @@ class DisasterRecovery:
 
         Returns:
             BackupInfo 列表
+
+        注意：目录遍历和文件读取在锁外执行，因为这些是只读的磁盘操作，
+        不访问共享内存状态，无需持锁保护。
         """
-        with self._lock:
-            backup_dir = Path(self._config.backup_dir)
-            if not backup_dir.exists():
-                return []
+        backup_dir = Path(self._config.backup_dir)
+        if not backup_dir.exists():
+            return []
 
-            backups: list[BackupInfo] = []
-            for meta_file in backup_dir.glob("*_meta.json"):
-                try:
-                    with open(meta_file, "r", encoding="utf-8") as f:
-                        meta = json.load(f)
-                    backup_id = meta.get("backup_id", "")
-                    if not backup_id:
-                        continue
-                    # 兼容未知的 backup_type 值
-                    raw_type = meta.get("backup_type", "full")
-                    try:
-                        bt = BackupType(raw_type)
-                    except ValueError:
-                        bt = BackupType.FULL
-                    backups.append(BackupInfo(
-                        backup_id=backup_id,
-                        timestamp=meta.get("timestamp", ""),
-                        backup_type=bt,
-                        checksum=meta.get("checksum", ""),
-                        size=meta.get("size", 0),
-                        providers=meta.get("providers", []),
-                    ))
-                except Exception:
+        backups: list[BackupInfo] = []
+        for meta_file in backup_dir.glob("*_meta.json"):
+            try:
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                backup_id = meta.get("backup_id", "")
+                if not backup_id:
                     continue
+                # 兼容未知的 backup_type 值
+                raw_type = meta.get("backup_type", "full")
+                try:
+                    bt = BackupType(raw_type)
+                except ValueError:
+                    bt = BackupType.FULL
+                backups.append(BackupInfo(
+                    backup_id=backup_id,
+                    timestamp=meta.get("timestamp", ""),
+                    backup_type=bt,
+                    checksum=meta.get("checksum", ""),
+                    size=meta.get("size", 0),
+                    providers=meta.get("providers", []),
+                ))
+            except Exception:
+                continue
 
-            # 按时间戳降序排列（最新的在前）
-            backups.sort(key=lambda b: b.timestamp, reverse=True)
-            return backups
+        # 按时间戳降序排列（最新的在前）
+        backups.sort(key=lambda b: b.timestamp, reverse=True)
+        return backups
 
     def _cleanup_old_backups_new(self) -> None:
         """清理过期备份（新 API），保留最新 max_backups 个"""
@@ -782,70 +785,81 @@ class DisasterRecovery:
 
         Returns:
             True 恢复成功，False 恢复失败
+
+        注意：文件 I/O、校验和外部 restore_func 回调在锁外执行。
+        锁只保护内存状态（_recovery_status、_restored_providers）的变更。
         """
+        # 锁内：设置 IN_PROGRESS 状态 + 快照 providers
         with self._lock:
             self._recovery_status.status = RecoveryStatus.IN_PROGRESS
             self._recovery_status.backup_id = backup_id
             self._recovery_status.error = ""
-
             backup_dir = Path(self._config.backup_dir)
-            backup_file = backup_dir / f"{backup_id}.json"
-            if not backup_file.exists():
+            providers_snapshot = dict(self._backup_providers)
+
+        # 锁外：检查文件存在
+        backup_file = backup_dir / f"{backup_id}.json"
+        if not backup_file.exists():
+            with self._lock:
                 self._recovery_status.status = RecoveryStatus.FAILED
                 self._recovery_status.error = f"备份文件不存在: {backup_id}"
+            self._log_action("restore_failed", {
+                "backup_id": backup_id,
+                "error": "备份文件不存在",
+            })
+            return False
+
+        # 锁外：校验 + 读取 + 恢复
+        try:
+            if not self._verify_backup(backup_id):
+                with self._lock:
+                    self._recovery_status.status = RecoveryStatus.FAILED
+                    self._recovery_status.error = "备份校验失败"
                 self._log_action("restore_failed", {
                     "backup_id": backup_id,
-                    "error": "备份文件不存在",
+                    "error": "备份校验失败",
                 })
                 return False
 
-            try:
-                # 先验证备份完整性
-                if not self._verify_backup(backup_id):
-                    self._recovery_status.status = RecoveryStatus.FAILED
-                    self._recovery_status.error = "备份校验失败"
-                    self._log_action("restore_failed", {
-                        "backup_id": backup_id,
-                        "error": "备份校验失败",
-                    })
-                    return False
+            with open(backup_file, "r", encoding="utf-8") as f:
+                content = json.load(f)
 
-                with open(backup_file, "r", encoding="utf-8") as f:
-                    content = json.load(f)
+            data = content.get("data", {})
+            restored: list[str] = []
 
-                data = content.get("data", {})
-                restored: list[str] = []
+            # 锁外：逐个调用提供者的恢复函数
+            for name, (_backup_func, restore_func) in providers_snapshot.items():
+                if name in data:
+                    try:
+                        restore_func(data[name])
+                        restored.append(name)
+                    except Exception as exc:
+                        # 单个提供者恢复失败不中断整体流程
+                        self._log_action("restore_provider_failed", {
+                            "provider": name,
+                            "error": str(exc)[:200],
+                        })
+                        restored.append(name)
 
-                # 逐个调用提供者的恢复函数
-                for name, (_backup_func, restore_func) in self._backup_providers.items():
-                    if name in data:
-                        try:
-                            restore_func(data[name])
-                            restored.append(name)
-                        except Exception as exc:
-                            # 单个提供者恢复失败不中断整体流程
-                            self._log_action("restore_provider_failed", {
-                                "provider": name,
-                                "error": str(exc)[:200],
-                            })
-                            restored.append(name)
-
+            # 锁内：更新最终状态
+            with self._lock:
                 self._recovery_status.status = RecoveryStatus.SUCCESS
                 self._recovery_status.backup_id = backup_id
                 self._restored_providers = restored
-                self._log_action("restore_success", {
-                    "backup_id": backup_id,
-                    "restored_providers": restored,
-                })
-                return True
-            except Exception as exc:
+            self._log_action("restore_success", {
+                "backup_id": backup_id,
+                "restored_providers": restored,
+            })
+            return True
+        except Exception as exc:
+            with self._lock:
                 self._recovery_status.status = RecoveryStatus.FAILED
                 self._recovery_status.error = str(exc)[:200]
-                self._log_action("restore_failed", {
-                    "backup_id": backup_id,
-                    "error": str(exc)[:200],
-                })
-                return False
+            self._log_action("restore_failed", {
+                "backup_id": backup_id,
+                "error": str(exc)[:200],
+            })
+            return False
 
     # ── 启动时自动恢复 ───────────────────────────────────────
 
@@ -854,18 +868,20 @@ class DisasterRecovery:
 
         Returns:
             True 恢复成功，False 无备份或恢复失败
-        """
-        with self._lock:
-            backups = self.get_backup_list()
-            if not backups:
-                self._log_action("auto_recover_no_backups", {})
-                return False
 
-            latest = backups[0]
-            self._log_action("auto_recover_start", {
-                "backup_id": latest.backup_id,
-            })
-            return self.restore_from_backup(latest.backup_id)
+        注意：不持有外层锁，get_backup_list 和 restore_from_backup
+        各自管理自己的锁，避免锁嵌套。
+        """
+        backups = self.get_backup_list()
+        if not backups:
+            self._log_action("auto_recover_no_backups", {})
+            return False
+
+        latest = backups[0]
+        self._log_action("auto_recover_start", {
+            "backup_id": latest.backup_id,
+        })
+        return self.restore_from_backup(latest.backup_id)
 
     # ── 数据库修复 ───────────────────────────────────────────
 
@@ -986,33 +1002,43 @@ class DisasterRecovery:
         Returns:
             包含 config / backup_providers / backup_count / latest_backup /
             recovery_status / scheduler_running 的字典
+
+        注意：get_backup_list 在锁外调用（自己管理锁），锁内只取内存状态快照。
         """
+        # 锁外：读取磁盘数据
+        backups = self.get_backup_list()
+        latest = backups[0] if backups else None
+
+        # 锁内：取内存状态快照
         with self._lock:
-            backups = self.get_backup_list()
-            latest = backups[0] if backups else None
-            return {
-                "config": {
-                    "enabled": self._config.enabled,
-                    "backup_dir": self._config.backup_dir,
-                    "max_backups": self._config.max_backups,
-                    "backup_interval_minutes": self._config.backup_interval_minutes,
-                    "auto_recover": self._config.auto_recover,
-                    "compress": self._config.compress,
-                },
-                "backup_providers": list(self._backup_providers.keys()),
-                "backup_count": len(backups),
-                "latest_backup": latest.backup_id if latest else None,
-                "recovery_status": {
-                    "status": self._recovery_status.status.value,
-                    "backup_id": self._recovery_status.backup_id,
-                    "restored_files": list(self._restored_providers),
-                    "error": self._recovery_status.error,
-                },
-                "scheduler_running": (
-                    self._backup_thread is not None
-                    and self._backup_thread.is_alive()
-                ),
+            config_snapshot = {
+                "enabled": self._config.enabled,
+                "backup_dir": self._config.backup_dir,
+                "max_backups": self._config.max_backups,
+                "backup_interval_minutes": self._config.backup_interval_minutes,
+                "auto_recover": self._config.auto_recover,
+                "compress": self._config.compress,
             }
+            provider_names = list(self._backup_providers.keys())
+            recovery_snapshot = {
+                "status": self._recovery_status.status.value,
+                "backup_id": self._recovery_status.backup_id,
+                "restored_files": list(self._restored_providers),
+                "error": self._recovery_status.error,
+            }
+            scheduler_running = (
+                self._backup_thread is not None
+                and self._backup_thread.is_alive()
+            )
+
+        return {
+            "config": config_snapshot,
+            "backup_providers": provider_names,
+            "backup_count": len(backups),
+            "latest_backup": latest.backup_id if latest else None,
+            "recovery_status": recovery_snapshot,
+            "scheduler_running": scheduler_running,
+        }
 
 
 # ============================================================================
