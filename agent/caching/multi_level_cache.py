@@ -332,25 +332,28 @@ class DiskCache:
                 logger.warning(log_dict({'module_name': 'multi_level_cache', 'action': 'log', 'msg': f'[DiskCache] 删除文件失败: {e}'}))
 
     def get(self, key: str) -> Optional[Any]:
-        """获取缓存值"""
+        """获取缓存值
+
+        注意：磁盘 I/O 在锁外执行。每个 key 哈希到唯一文件路径，
+        不存在并发冲突，无需持锁保护。
+        """
         file_path = self._get_file_path(key)
 
-        with self._lock:
-            if not file_path.exists():
+        if not file_path.exists():
+            return None
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            if self._is_expired(data['timestamp'], data['ttl_seconds']):
+                file_path.unlink()
                 return None
 
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-
-                if self._is_expired(data['timestamp'], data['ttl_seconds']):
-                    file_path.unlink()
-                    return None
-
-                return data['value']
-            except Exception as e:
-                logger.error(log_dict({'module_name': 'multi_level_cache', 'action': 'log', 'msg': f'[DiskCache] 读取失败: {e}'}))
-                return None
+            return data['value']
+        except Exception as e:
+            logger.error(log_dict({'module_name': 'multi_level_cache', 'action': 'log', 'msg': f'[DiskCache] 读取失败: {e}'}))
+            return None
 
     def set(self, key: str, value: Any, ttl_seconds: int = 3600):
         """设置缓存值
