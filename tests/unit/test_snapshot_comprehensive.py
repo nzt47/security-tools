@@ -1023,3 +1023,50 @@ class TestCleanupSnapshotsEdgeCases:
             deleted = manager.cleanup_snapshots(keep_count=1)
         # 即使 unlink 失败，函数也正常返回（deleted_count 可能为 0）
         assert isinstance(deleted, int)
+
+
+# ── A 类未覆盖场景补充测试 ──
+
+class TestLoadSnapshotDataOuterException:
+    """A1: _load_snapshot_data 外层 except（完整快照损坏）"""
+
+    def test_load_corrupted_full_snapshot_returns_none(self, manager):
+        # 写入损坏的完整快照文件（pickle.loads 抛异常 → 外层 except 返回 None）
+        path = manager._get_snapshot_path("corrupt_full_snap", is_incremental=False)
+        path.write_bytes(b"not_valid_pickle_data_at_all")
+        result = manager._load_snapshot_data("corrupt_full_snap")
+        assert result is None
+
+    def test_load_corrupted_full_snapshot_latest_returns_none(self, manager, fake_digital_life):
+        # 先保存一个正常快照
+        manager.save_snapshot(fake_digital_life, snapshot_id="normal_before_corrupt", force=True)
+        # 再写入一个损坏的快照（文件名排序在后，会被当作 latest）
+        path = manager._get_snapshot_path("zzz_corrupt_latest", is_incremental=False)
+        path.write_bytes(b"corrupted")
+        # 加载 latest 应返回 None（损坏文件 pickle.loads 失败 → 外层 except）
+        result = manager._load_snapshot_data()
+        assert result is None
+
+
+class TestCleanupSnapshotsKeepZero:
+    """A5: cleanup_snapshots keep_count=0 边界"""
+
+    def test_cleanup_keep_zero_deletes_all(self, manager, fake_digital_life):
+        for i in range(3):
+            manager.save_snapshot(fake_digital_life, snapshot_id=f"keep0_{i}", force=True)
+            time.sleep(0.01)
+        deleted = manager.cleanup_snapshots(keep_count=0)
+        assert deleted == 3
+        assert len(manager.list_snapshots()) == 0
+
+    def test_cleanup_keep_one_preserves_latest(self, manager, fake_digital_life):
+        ids = []
+        for i in range(3):
+            sid = f"keep1_{i}"
+            manager.save_snapshot(fake_digital_life, snapshot_id=sid, force=True)
+            ids.append(sid)
+            time.sleep(0.01)
+        deleted = manager.cleanup_snapshots(keep_count=1)
+        assert deleted == 2
+        remaining = manager.list_snapshots()
+        assert len(remaining) == 1

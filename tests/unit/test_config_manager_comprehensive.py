@@ -869,10 +869,10 @@ class TestUpdateWebhookEdgeCases:
 
 
 class TestUpdateMcpConfigEdgeCases:
-    """_update_mcp_config 无 id 分支（源码 bug 行为验证）"""
+    """_update_mcp_config 无 id 分支与 else 分支覆盖"""
 
     def test_update_mcp_service_without_id_no_auto_generate(self, manager):
-        # 源码 bug：无 id 的 service 不会自动生成 id（else 分支属于 if existing:）
+        # 无 id 的 service 不被处理（if 'id' in service 守卫了整个逻辑）
         mcp_config = {
             "enabled": True,
             "services": [{"name": "no_id_service", "address": "remote"}],
@@ -880,7 +880,7 @@ class TestUpdateMcpConfigEdgeCases:
         manager._update_mcp_config(mcp_config)
         config = manager._load()
         service = config["mcp"]["services"][0]
-        # 验证源码 bug 行为：无 id 不会自动生成
+        # 无 id 不会被自动生成
         assert "id" not in service or service.get("id") is None or service["id"] == ""
 
     def test_update_mcp_with_existing_service_id(self, manager):
@@ -897,6 +897,24 @@ class TestUpdateMcpConfigEdgeCases:
         config = manager._load()
         # config["mcp"] 被直接覆盖为最新传入值
         assert config["mcp"]["enabled"] is False
+
+    def test_update_mcp_new_service_with_id_sets_timestamp(self, manager):
+        # 修复后 else 分支可达：有 id 但不在 old_services 中 → 设置时间戳记录 add 日志
+        mcp_config = {
+            "enabled": True,
+            "services": [{"id": "mcp_new_1", "name": "new_service", "address": "host"}],
+        }
+        manager._update_mcp_config(mcp_config)
+        config = manager._load()
+        service = config["mcp"]["services"][0]
+        # id 被保留（不再重新生成）
+        assert service["id"] == "mcp_new_1"
+        # 时间戳被设置
+        assert "created_at" in service
+        assert "updated_at" in service
+        # 变更日志记录了 add 操作
+        logs = config["change_log"]
+        assert any(l["action"] == "add" and l["section"] == "mcp_service" for l in logs)
 
 
 class TestRegisterSearchInstanceEdgeCases:
@@ -1207,3 +1225,91 @@ class TestImportConfigEdgeCases:
         assert config["network"]["timeout"] == 60  # 覆盖
         assert config["network"]["max_retries"] == 3  # 保留
         assert config["network"]["proxy_enabled"] is True  # 新增
+
+
+# ── A 类未覆盖场景补充测试 ──
+
+class TestApplySearchInstancesImportError:
+    """A3: apply_search_instances ImportError 降级"""
+
+    def test_import_error_swallowed(self, manager):
+        # agent.tools 模块不可用时 ImportError 被静默捕获
+        search_engine = MagicMock()
+        search_engine._engine_registry = {}
+        search_engine._api_keys = {}
+        with patch.dict("sys.modules", {"agent.tools": None}):
+            # 不应抛异常
+            manager.apply_search_instances(search_engine)
+
+    def test_import_error_does_not_affect_registration(self, manager, secure_manager):
+        # 即使 ImportError，搜索实例仍应被注册到 search_engine
+        manager._update_search_instances([{"name": "pre_import_test", "engine_type": "custom", "enabled": True}])
+        search_engine = MagicMock()
+        search_engine._engine_registry = {}
+        search_engine._api_keys = {}
+        with patch.dict("sys.modules", {"agent.tools": None}):
+            manager.apply_search_instances(search_engine)
+        # register_engine 应被调用（import 失败不影响注册）
+        assert search_engine.register_engine.called
+
+
+class TestApplyToAppInstanceSource:
+    """A4: apply_to_app LLM 实例选择 instance_source 验证"""
+
+    def test_default_instance_selected(self, manager, secure_manager):
+        # 设置默认 LLM 实例，验证 instance_source = "default(...)"
+        manager.add_llm_instance({"name": "default_src", "provider": "openai", "model": "gpt-4"})
+        raw = manager.get_raw_config()
+        inst_id = next(i["id"] for i in raw["llm_instances"] if i["name"] == "default_src")
+        manager.set_default_llm_instance(inst_id)
+        secure_manager._store[f"llm_{inst_id}_api_key"] = "sk-defaultkey123456"
+
+        app = MagicMock()
+        app.configure_llm = MagicMock(return_value={"ok": True})
+        manager.apply_to_app(app)
+        # configure_llm 应使用默认实例的配置
+        call_kwargs = app.configure_llm.call_args
+        assert call_kwargs.kwargs.get("provider") == "openai"
+        assert call_kwargs.kwargs.get("model") == "gpt-4"
+
+    def test_first_enabled_selected_when_no_default(self, manager, secure_manager):
+        # 无默认实例，验证 instance_source = "first_enabled(...)"
+        # 添加两个启用的实例，第一个应被选中
+        manager.add_llm_instance({"name": "first_enabled", "provider": "anthropic", "model": "claude-3"})
+        manager.add_llm_instance({"name": "second_enabled", "provider": "google", "model": "gemini"})
+        raw = manager.get_raw_config()
+        first_id = next(i["id"] for i in raw["llm_instances"] if i["name"] == "first_enabled")
+        secure_manager._store[f"llm_{first_id}_api_key"] = "sk-firstkey123456"
+
+        app = MagicMock()
+        app.configure_llm = MagicMock(return_value={"ok": True})
+        manager.apply_to_app(app)
+        call_kwargs = app.configure_llm.call_args
+        # 应使用第一个启用实例的配置
+        assert call_kwargs.kwargs.get("provider") == "anthropic"
+        assert call_kwargs.kwargs.get("model") == "claude-3"
+
+    def test_legacy_used_when_no_instances(self, manager, secure_manager):
+        # 无 llm_instances，使用 legacy llm 配置
+        secure_manager._store["llm_api_key"] = "sk-legacylegacy12"
+        manager.update({"llm": {"enabled": True, "provider": "openai", "model": "gpt-4", "api_key": "sk-legacylegacy12"}})
+        app = MagicMock()
+        app.configure_llm = MagicMock(return_value={"ok": True})
+        manager.apply_to_app(app)
+        call_kwargs = app.configure_llm.call_args
+        assert call_kwargs.kwargs.get("provider") == "openai"
+
+    def test_disabled_instance_not_selected(self, manager, secure_manager):
+        # 禁用的实例不应被选中为 first_enabled
+        manager.add_llm_instance({"name": "disabled_inst", "provider": "openai", "model": "gpt-4", "enabled": False})
+        manager.add_llm_instance({"name": "enabled_inst", "provider": "anthropic", "model": "claude-3", "enabled": True})
+        raw = manager.get_raw_config()
+        enabled_id = next(i["id"] for i in raw["llm_instances"] if i["name"] == "enabled_inst")
+        secure_manager._store[f"llm_{enabled_id}_api_key"] = "sk-enabledkey1234"
+
+        app = MagicMock()
+        app.configure_llm = MagicMock(return_value={"ok": True})
+        manager.apply_to_app(app)
+        call_kwargs = app.configure_llm.call_args
+        # 应使用启用实例，而非禁用实例
+        assert call_kwargs.kwargs.get("provider") == "anthropic"
