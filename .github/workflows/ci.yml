@@ -137,7 +137,7 @@ jobs:
 
       - name: 运行单元测试
         run: |
-          echo "=== 运行快速单元测试（随机顺序，seed 见输出）==="
+          echo "=== 运行快速单元测试（固定顺序，禁用 pytest-randomly 避免 OOM）==="
           pytest tests/unit/ \
             -v \
             --tb=short \
@@ -145,11 +145,14 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
+            -p no:randomly \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --timeout=300
-          # 失败时根据输出中的 --randomly-seed=<N> 本地复现：
-          #   pytest tests/unit/ --randomly-seed=<N> -v --tb=short
+          # 方案 A：禁用 pytest-randomly 随机顺序，避免某些测试组合下内存累积导致 OOM (exit 137)。
+          # 彻底隔离方案见 coverage-ci.yml 的 --forked（方案 B）。
+          # 本地复现失败测试：
+          #   pytest tests/unit/ -v --tb=short
 
       - name: 运行新模块专项测试
         run: |
