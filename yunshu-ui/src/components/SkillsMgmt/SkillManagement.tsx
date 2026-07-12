@@ -26,11 +26,7 @@ const VisualEditor = lazy(() =>
 
 export type SkillMgmtTab = 'skills' | 'workflows' | 'visual-editor';
 
-export interface SkillManagementProps {
-  onClose: () => void;
-}
-
-const SkillManagement: React.FC<SkillManagementProps> = ({ onClose }) => {
+const SkillManagement: React.FC<{ onClose?: () => void }> = () => {
   const [tab, setTab] = useState<SkillMgmtTab>('skills');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [reviewerOpen, setReviewerOpen] = useState(false);
@@ -76,34 +72,18 @@ const SkillManagement: React.FC<SkillManagementProps> = ({ onClose }) => {
   };
 
   return (
-    <div
-      className="skill-mgmt-overlay"
-      onClick={(e) => {
-        // 点击遮罩层关闭
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="skill-mgmt-panel" role="dialog" aria-label="技能管理与工作流学习">
-        {/* ─── 顶部标题栏 ─── */}
-        <div className="skmgmt-header">
-          <div className="skmgmt-title-area">
-            <h2 className="skmgmt-title">技能管理 & 工作流学习</h2>
-            <span className="skmgmt-subtitle">
-              综合技能管理 · 工作流自动学习 · 本地优先执行
-            </span>
-            <HealthBadge label="技能服务" status={skillsHealth} />
-            <HealthBadge label="工作流服务" status={workflowHealth} />
-          </div>
-          <button
-            className="skmgmt-close-btn"
-            onClick={onClose}
-            title="关闭（Esc）"
-            type="button"
-            aria-label="关闭"
-          >
-            ×
-          </button>
+    <div className="skill-mgmt-panel" role="dialog" aria-label="技能管理与工作流学习">
+      {/* ─── 顶部标题栏 ─── */}
+      <div className="skmgmt-header">
+        <div className="skmgmt-title-area">
+          <h2 className="skmgmt-title">技能管理 & 工作流学习</h2>
+          <span className="skmgmt-subtitle">
+            综合技能管理 · 工作流自动学习 · 本地优先执行
+          </span>
+          <HealthBadge label="技能服务" status={skillsHealth} />
+          <HealthBadge label="工作流服务" status={workflowHealth} />
         </div>
+      </div>
 
         {/* ─── Tab 切换 ─── */}
         <div className="skmgmt-tabs">
@@ -250,7 +230,6 @@ const SkillManagement: React.FC<SkillManagementProps> = ({ onClose }) => {
         {matcherOpen && (
           <WorkflowMatcher onClose={() => setMatcherOpen(false)} />
         )}
-      </div>
     </div>
   );
 };
