@@ -200,6 +200,7 @@ class _FakeMPProcess:
         self._force_timeout = force_timeout
         self._thread = None
         self.exitcode = None
+        self.pid = None  # mock 模式下无真实 PID
 
     def start(self):
         if self._force_timeout:
