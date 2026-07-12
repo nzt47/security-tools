@@ -24,7 +24,7 @@
  */
 
 import { record } from 'rrweb';
-import type { recordOptions, eventWithTime } from 'rrweb/typings/all';
+import type { recordOptions, eventWithTime } from 'rrweb/typings/types';
 
 // ─── 业务错误码（边界显性化） ────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ export function startReplayRecording(): boolean {
         mousemoveTimeout: config.samplingInterval * 5,
         scroll: 300,
         input: 'last',
-      },
+      } as Record<string, unknown>,
       // 屏蔽标记为 data-rrweb-mask 的元素（密码框、token 输入框等）
       blockClass: 'rrweb-mask',
       maskTextClass: 'rrweb-mask-text',

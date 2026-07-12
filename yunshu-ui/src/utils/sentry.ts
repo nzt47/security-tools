@@ -156,11 +156,11 @@ export function initSentry(): boolean {
   try {
     const integrations: any[] = [
       // 自动捕获 React 组件渲染错误
-      Sentry.reactRouterV6BrowserTracingIntegration?.() ??
-        Sentry.browserTracingIntegration?.(),
+      (Sentry as any).reactRouterV6BrowserTracingIntegration?.() ??
+        (Sentry as any).browserTracingIntegration?.(),
     ].filter(Boolean);
 
-    const options: BrowserOptions = {
+    const options = {
       dsn: config.dsn,
       environment: config.environment,
       sampleRate: config.sampleRate,
@@ -172,7 +172,7 @@ export function initSentry(): boolean {
       attachStacktrace: true,
       sendDefaultPii: false, // 不采集 PII，满足隐私约束
       beforeSend: (event) => filterSensitiveData(event),
-    };
+    } as BrowserOptions;
 
     Sentry.init(options);
     _initialized = true;

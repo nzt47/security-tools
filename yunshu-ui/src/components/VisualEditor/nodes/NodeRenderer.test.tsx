@@ -144,6 +144,11 @@ describe('LoopNode', () => {
     );
     expect(getByText('循环: 0 次')).toBeTruthy();
   });
+
+  it('selected=true 时附加 ve-node-selected 类', () => {
+    const { container } = renderNode(<LoopNode data={base} selected />);
+    expect(container.querySelector('.ve-node-selected')).toBeTruthy();
+  });
 });
 
 // ─── 4. AgentNode ───────────────────────────────────────
@@ -166,6 +171,11 @@ describe('AgentNode', () => {
     const { container } = renderNode(<AgentNode data={base} />);
     expect(countHandles(container, 'target')).toBe(1);
     expect(countHandles(container, 'source')).toBe(1);
+  });
+
+  it('selected=true 时附加 ve-node-selected 类', () => {
+    const { container } = renderNode(<AgentNode data={base} selected />);
+    expect(container.querySelector('.ve-node-selected')).toBeTruthy();
   });
 });
 
@@ -194,6 +204,11 @@ describe('WorkflowNode', () => {
       <WorkflowNode data={{ label: 'x', nodeType: 'workflow' }} />,
     );
     expect(queryByText(/^ID:/)).toBeNull();
+  });
+
+  it('selected=true 时附加 ve-node-selected 类', () => {
+    const { container } = renderNode(<WorkflowNode data={base} selected />);
+    expect(container.querySelector('.ve-node-selected')).toBeTruthy();
   });
 });
 
