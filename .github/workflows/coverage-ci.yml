@@ -1,0 +1,138 @@
+# 云枢系统覆盖率检查
+# 自动生成 by scripts/generate_coverage_workflow.py
+# 覆盖率数据文件修复：.coverage 隐藏文件改名中转（upload-artifact@v4 兼容）
+
+name: 云枢系统覆盖率检查
+
+on:
+  push:
+    branches: [main, master, develop, 'release/**']
+  pull_request:
+    branches: [main, master, develop]
+
+env:
+  PYTHON_VERSION: '3.10'
+  COVERAGE_THRESHOLD: 40
+
+jobs:
+  # ============================================================================
+  # 单元测试 + 覆盖率数据上传
+  # ============================================================================
+  unit-tests:
+    name: 单元测试 (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-timeout pytest-asyncio pytest-randomly
+          pip install -e .
+
+      - name: 运行单元测试
+        run: |
+          pytest tests/unit/ \
+            --cov=agent \
+            --cov-report=xml \
+            --cov-report=html \
+            -v --tb=short --cov-report=term-missing -m "not slow and not skip_ci" --timeout=300
+
+      # 关键修复 1：把隐藏文件 .coverage 改名为非隐藏文件
+      # Why: actions/upload-artifact@v4 对 . 开头的隐藏文件上传不稳定
+      - name: 准备覆盖率数据
+        run: |
+          cp .coverage coverage_raw.data
+          ls -la coverage_raw.data coverage.xml
+
+      # 关键修复 2：上传三个产物（原始 SQLite 数据 + XML 报告 + HTML 报告）
+      - name: 上传覆盖率报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-py${{ matrix.python-version }}
+          path: |
+            htmlcov/
+            coverage.xml
+            coverage_raw.data
+          retention-days: 30
+
+      - name: 上传测试结果
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-unit-py${{ matrix.python-version }}
+          path: test-results/
+          retention-days: 30
+
+  # ============================================================================
+  # 覆盖率检查（依赖单元测试通过）
+  # ============================================================================
+  coverage-check:
+    name: 覆盖率检查
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-timeout
+          pip install -e .
+
+      # 关键修复 3：下载到 path: .（当前目录），让文件直接落在根目录
+      - name: 下载覆盖率报告
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-py${{ env.PYTHON_VERSION }}
+          path: .
+
+      - name: 检查覆盖率
+        run: |
+          echo "=== 检查覆盖率 ==="
+          ls -la coverage_raw.data coverage.xml || true
+
+          # 关键修复 4：把非隐藏名还原成 .coverage，coverage 命令才能识别
+          cp coverage_raw.data .coverage
+
+          # 合并覆盖率数据（多 Python 版本矩阵场景）
+          # Why: 单版本时 "No data to combine" 是正常的，|| true 容错
+          coverage combine || true
+
+          # 生成覆盖率报告（输出表格供人看）
+          coverage report
+
+          # 检查是否达标（阈值断言，低于 N% 则退出码非 0）
+          coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+
+      - name: 生成覆盖率报告
+        run: |
+          coverage html -d test_reports/htmlcov
+          coverage xml -o test_reports/coverage.xml
+
+      - name: 上传完整覆盖率报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-coverage-report
+          path: test_reports/
