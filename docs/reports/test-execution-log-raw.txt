@@ -1,0 +1,919 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.0, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.12.0', 'Platform': 'Windows-10-10.0.19045-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'langsmith': '0.8.5', 'asyncio': '1.4.0', 'cov': '7.1.0', 'html': '4.2.0', 'json-report': '1.5.0', 'metadata': '3.1.1', 'randomly': '4.1.0', 'timeout': '2.4.0', 'xdist': '3.8.0'}, 'CI': 'true'}
+Using --randomly-seed=2786002818
+rootdir: C:\Users\Administrator\agent
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.13.0, langsmith-0.8.5, asyncio-1.4.0, cov-7.1.0, html-4.2.0, json-report-1.5.0, metadata-3.1.1, randomly-4.1.0, timeout-2.4.0, xdist-3.8.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+timeout: 30.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 224 items
+
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_auto_generate_id PASSED [  0%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_frequency_blocked PASSED [  0%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_force_bypasses_frequency PASSED [  1%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_exception_returns_failure PASSED [  1%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_no_config_attribute PASSED [  2%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_persist_failure PASSED [  2%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_incremental PASSED [  3%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_success PASSED [  3%]
+tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_2 PASSED [  4%]
+tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_1 PASSED [  4%]
+tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_incompatible_version PASSED [  4%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_deletes_excess PASSED [  5%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_no_excess PASSED [  5%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotEdgeCases::test_load_restore_failure_continues PASSED [  6%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshotsEdgeCases::test_cleanup_swallows_unlink_error PASSED [  6%]
+tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_skips_unchanged_modules PASSED [  7%]
+tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_applies_changed_modules PASSED [  7%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_full PASSED [  8%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_none PASSED [  8%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_exception PASSED [  8%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_full PASSED [  9%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_exception PASSED [  9%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_empty PASSED [ 10%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_exception PASSED [ 10%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_long_history PASSED [ 11%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_exception PASSED [ 11%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_minimal PASSED [ 12%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_full PASSED [ 12%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_full PASSED [ 12%]
+tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_truncates_to_50 PASSED [ 13%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_no_excess PASSED [ 13%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_removes_excess PASSED [ 14%]
+tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums_overwrites PASSED [ 14%]
+tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums PASSED [ 15%]
+tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshotsEdgeCases::test_cleanup_swallows_delete_error PASSED [ 15%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_records_changed_module PASSED [ 16%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_behavior PASSED [ 16%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_permission PASSED [ 16%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_tools PASSED [ 17%]
+tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_uncompressed PASSED [ 17%]
+tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_failure_returns_false PASSED [ 18%]
+tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_compressed PASSED [ 18%]
+tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_incremental PASSED [ 19%]
+tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_after_operations PASSED [ 19%]
+tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_no_crash PASSED [ 20%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_success PASSED [ 20%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_exception PASSED [ 20%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_exception PASSED [ 21%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_exception PASSED [ 21%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_success PASSED [ 22%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_exception PASSED [ 22%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_success PASSED [ 23%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_success PASSED [ 23%]
+tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_stable_for_same_data PASSED [ 24%]
+tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_differs_on_config_change PASSED [ 24%]
+tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_returns_hex_string PASSED [ 25%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_body_with_get_method PASSED [ 25%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_module_exception_continues PASSED [ 25%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_with_mode_history PASSED [ 26%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_unknown_mode_logs_warning PASSED [ 26%]
+tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_multiple_snapshots PASSED [ 27%]
+tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_empty PASSED [ 27%]
+tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_includes_incremental PASSED [ 28%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_with_changed_module PASSED [ 28%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_body_with_get_method PASSED [ 29%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_full_save_all_modules PASSED [ 29%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_skip_unchanged PASSED [ 29%]
+tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_no_body_attribute PASSED [ 30%]
+tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_handles_dir_iteration_error PASSED [ 30%]
+tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_skips_non_snapshot_files PASSED [ 31%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_checksum_mismatch_continues PASSED [ 31%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_all_modules PASSED [ 32%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_skip_uninitialized PASSED [ 32%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_priority_order PASSED [ 33%]
+tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_unknown_module PASSED [ 33%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_from_path_incremental_merges_base PASSED [ 33%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_incremental_file_corrupted_falls_back_to_full PASSED [ 34%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_specific_snapshot_not_found PASSED [ 34%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_latest_snapshot PASSED [ 35%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_decompresses PASSED [ 35%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_uncompressed PASSED [ 36%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_full_snapshot PASSED [ 36%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_returns_none_when_no_snapshots PASSED [ 37%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_snapshot_data_without_class PASSED [ 37%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_incompatible_version PASSED [ 37%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_class_creation_failure PASSED [ 38%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_with_class_creates_instance PASSED [ 38%]
+tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_none_when_no_snapshot PASSED [ 39%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_seeds_builtins_when_empty PASSED [ 39%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_rebuilds_priority_with_valid_ids PASSED [ 40%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_disabled_instances PASSED [ 40%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_instance_without_id PASSED [ 41%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_removes_stale_priority_entries PASSED [ 41%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_name_conflict PASSED [ 41%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_clears_default PASSED [ 42%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_masked_api_key_skipped PASSED [ 42%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_set_default_llm_instance_by_name PASSED [ 43%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_by_name PASSED [ 43%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_api_key_encrypted PASSED [ 44%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_not_found_returns_none PASSED [ 44%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_no_search_engine_returns_early PASSED [ 45%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_seeds_builtins_when_empty PASSED [ 45%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_registers_existing_instances PASSED [ 45%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_skips_disabled_instances PASSED [ 46%]
+tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_rebuilds_engine_priority PASSED [ 46%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_web_http PASSED [ 47%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_register_exception_swallowed PASSED [ 47%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_first_enabled_llm_instance PASSED [ 48%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_search_exception_swallowed PASSED [ 48%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_http_exception_swallowed PASSED [ 49%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_default_llm_instance PASSED [ 49%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_configure_llm_method PASSED [ 50%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_llm_instances_uses_legacy PASSED [ 50%]
+tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_error_reporting PASSED [ 50%]
+tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_assigns_ids_to_instances_without_id PASSED [ 51%]
+tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_missing_keys PASSED [ 51%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_masked_skipped PASSED [ 52%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_only_masked_marker PASSED [ 52%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_with_api_key PASSED [ 53%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_id PASSED [ 53%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_default_llm_instance_clears_default PASSED [ 54%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_not_found PASSED [ 54%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_not_found PASSED [ 54%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_duplicate_name_raises PASSED [ 55%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_by_name PASSED [ 55%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_masked_api_key_skipped PASSED [ 56%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_by_name PASSED [ 56%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_by_name PASSED [ 57%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_not_found PASSED [ 57%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_duplicate_name_raises PASSED [ 58%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_name PASSED [ 58%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_not_found PASSED [ 58%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance PASSED [ 59%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance PASSED [ 59%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance PASSED [ 60%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance PASSED [ 60%]
+tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instances_empty PASSED [ 61%]
+tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_with_entries PASSED [ 61%]
+tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_empty PASSED [ 62%]
+tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_change_log_limit PASSED [ 62%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_get_search_engines_returns_api_keys PASSED [ 62%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_engine_enabled PASSED [ 63%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_max_results PASSED [ 63%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_with_api_key_syncs PASSED [ 64%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_handler_fallback_to_custom PASSED [ 64%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_custom_engine_no_api_key_sync PASSED [ 65%]
+tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_uses_cache PASSED [ 65%]
+tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_from_existing_file PASSED [ 66%]
+tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_handles_json_error PASSED [ 66%]
+tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_creates_default_when_no_file PASSED [ 66%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfig::test_update_mcp_with_new_service PASSED [ 67%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_exception_returns_default PASSED [ 67%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_with_manager PASSED [ 68%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_with_manager PASSED [ 68%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_without_manager PASSED [ 69%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_without_manager PASSED [ 69%]
+tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_exception_does_not_raise PASSED [ 70%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_skip PASSED [ 70%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_merge PASSED [ 70%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_overwrite PASSED [ 71%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_invalid_json_raises PASSED [ 71%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_returns_default PASSED [ 72%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_export_config_returns_json PASSED [ 72%]
+tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_clears_custom_config PASSED [ 73%]
+tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_invalid_json_raises_value_error PASSED [ 73%]
+tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_skip_strategy_keeps_existing PASSED [ 74%]
+tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_merge_strategy_deep_merge PASSED [ 74%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_long PASSED [ 75%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_search_instance_api_key_masked PASSED [ 75%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_webhook_url_masked PASSED [ 75%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_instance_api_key_masked PASSED [ 76%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_returns_config_with_structure PASSED [ 76%]
+tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_short PASSED [ 77%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_webhook_url PASSED [ 77%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_adds_change_log PASSED [ 78%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key_masked_skipped PASSED [ 78%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_search_api_keys PASSED [ 79%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key PASSED [ 79%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_returns_config PASSED [ 79%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_mcp_config PASSED [ 80%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_engine_priority PASSED [ 80%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_empty PASSED [ 81%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_timeout PASSED [ 81%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_get_search_engines PASSED [ 82%]
+tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_default_engine PASSED [ 82%]
+tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_not_truncated_below_100 PASSED [ 83%]
+tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_truncated_at_100 PASSED [ 83%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_with_existing_service_id PASSED [ 83%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_service_without_id_no_auto_generate PASSED [ 84%]
+tests/unit/test_config_manager_comprehensive.py::TestSeedBuiltinSearch::test_seeds_three_builtins PASSED [ 84%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_add_new_search_instance PASSED [ 85%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_update_existing_search_instance PASSED [ 85%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_name_conflict PASSED [ 86%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_delete_mcp_service_not_found PASSED [ 86%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_not_found PASSED [ 87%]
+tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_returns_raw_config PASSED [ 87%]
+tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_llm_instance_api_key_decrypted PASSED [ 87%]
+tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_llm_instance PASSED [ 88%]
+tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_mcp_service PASSED [ 88%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_web_http PASSED [ 89%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_instance PASSED [ 89%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_http_timeout PASSED [ 90%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_exception_handled PASSED [ 90%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_search_config PASSED [ 91%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_incomplete_skips PASSED [ 91%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_configures_llm PASSED [ 91%]
+tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_disabled_skips PASSED [ 92%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_builtin_engine PASSED [ 92%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_sets_default PASSED [ 93%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_custom_engine PASSED [ 93%]
+tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_no_search_engine_returns_early PASSED [ 94%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_add_new_instance PASSED [ 94%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_masked_api_key_not_saved PASSED [ 95%]
+tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_update_existing_instance PASSED [ 95%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_duplicate_name_raises PASSED [ 95%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_not_found PASSED [ 96%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_by_id PASSED [ 96%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service PASSED [ 97%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service_duplicate_name_raises PASSED [ 97%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service PASSED [ 98%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service PASSED [ 98%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service_not_found PASSED [ 99%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_services_empty PASSED [ 99%]
+tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_not_found PASSED [100%]
+
+================================== 所有测试通过！✓ ===================================
+
+测试统计:
+  通过: 224
+  失败: 0
+  跳过: 0
+============================== slowest durations ==============================
+0.10s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_deletes_excess
+0.09s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_removes_excess
+0.08s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshotsEdgeCases::test_cleanup_swallows_delete_error
+0.07s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshotsEdgeCases::test_cleanup_swallows_unlink_error
+0.05s call     tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_multiple_snapshots
+0.05s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_default_llm_instance
+0.03s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_latest_snapshot
+0.02s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_without_manager
+0.02s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_auto_generate_id
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_removes_excess
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_first_enabled_llm_instance
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_from_path_incremental_merges_base
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotEdgeCases::test_load_restore_failure_continues
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_with_class_creates_instance
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_force_bypasses_frequency
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_configures_llm
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_llm_instances_uses_legacy
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_includes_incremental
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_incomplete_skips
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_http_timeout
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_incompatible_version
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_incremental
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_search_config
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_disabled_skips
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_exception_does_not_raise
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_exception_handled
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_skip
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_search_exception_swallowed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_merge
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_http_exception_swallowed
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_auto_generate_id
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_multiple_snapshots
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_change_log_limit
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_class_creation_failure
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_overwrite
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_priority_order
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_force_bypasses_frequency
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_snapshot_data_without_class
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_unknown_module
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_with_manager
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_without_manager
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_module_exception_continues
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_skips_non_snapshot_files
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_clears_custom_config
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums_overwrites
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_merge
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_without_manager
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_not_found
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_overwrite
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_exception_does_not_raise
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_frequency_blocked
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_no_config_attribute
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_incremental_file_corrupted_falls_back_to_full
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotEdgeCases::test_load_restore_failure_continues
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_skip_unchanged
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_api_key_encrypted
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_full_snapshot
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_auto_generate_id
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_default_llm_instance_clears_default
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_clears_default
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_skip
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_after_operations
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_service_without_id_no_auto_generate
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_name_conflict
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_incompatible_version
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_returns_default
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums_overwrites
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_removes_stale_priority_entries
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_success
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshotsEdgeCases::test_cleanup_swallows_delete_error
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_duplicate_name_raises
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_creates_default_when_no_file
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_long_history
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_unknown_module
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_disabled_skips
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_exception_returns_failure
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_not_found
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_latest_snapshot
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_export_config_returns_json
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_add_new_search_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_mcp_config
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_error_reporting
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_exception
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_after_operations
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_clears_custom_config
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_frequency_blocked
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_handles_dir_iteration_error
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_all_modules
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key_masked_skipped
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_webhook_url
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_returns_config_with_structure
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_2
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_body_with_get_method
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_rebuilds_engine_priority
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_skip
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_uncompressed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_search_api_keys
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_no_excess
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_overwrite
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_exception_returns_default
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfig::test_update_mcp_with_new_service
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_adds_change_log
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_with_mode_history
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_class_creation_failure
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_search_config
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_handles_json_error
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_update_existing_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_get_search_engines
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_checksum_mismatch_continues
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_duplicate_name_raises
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_full_snapshot
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_no_excess
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_merge_strategy_deep_merge
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_truncates_to_50
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_from_existing_file
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_max_results
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_update_existing_search_instance
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_webhook_url
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_long
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_no_search_engine_returns_early
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_rebuilds_priority_with_valid_ids
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_configure_llm_method
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_with_manager
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_by_name
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_invalid_json_raises
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_unknown_mode_logs_warning
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_skips_unchanged_modules
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_instance_api_key_masked
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_default_engine
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_returns_raw_config
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_truncated_at_100
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_default_llm_instance
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_incremental
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_invalid_json_raises
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_custom_engine_no_api_key_sync
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_rebuilds_priority_with_valid_ids
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_not_found
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_duplicate_name_raises
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_handler_fallback_to_custom
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_not_found
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_not_found
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_service_without_id_no_auto_generate
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_clears_default
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_tools
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_body_with_get_method
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_with_entries
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_module_exception_continues
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_empty
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_configure_llm_method
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service_not_found
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_not_found_returns_none
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_empty
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service_not_found
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_frequency_blocked
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_short
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_search_instance_api_key_masked
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_only_masked_marker
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_by_name
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_no_search_engine_returns_early
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_mcp_service
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_differs_on_config_change
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_default_llm_instance_clears_default
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_name
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_with_manager
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_with_changed_module
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_no_body_attribute
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_masked_api_key_skipped
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_body_with_get_method
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_skip_strategy_keeps_existing
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_full_snapshot
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_clears_custom_config
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_success
+0.01s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_success
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_exception_handled
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_seeds_builtins_when_empty
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_http_timeout
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_from_path_incremental_merges_base
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_engine_priority
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_decompresses
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_seeds_builtins_when_empty
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_web_http
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_search_exception_swallowed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_timeout
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_skip_unchanged
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_invalid_json_raises_value_error
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_register_exception_swallowed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_not_truncated_below_100
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_with_mode_history
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_name_conflict
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_success
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSeedBuiltinSearch::test_seeds_three_builtins
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_skips_non_snapshot_files
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_returns_hex_string
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_masked_api_key_skipped
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_includes_incremental
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_snapshot_data_without_class
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_by_id
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshotsEdgeCases::test_cleanup_swallows_unlink_error
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service_duplicate_name_raises
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_with_class_creates_instance
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_incompatible_version
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_register_exception_swallowed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_duplicate_name_raises
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_api_key_encrypted
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_masked_skipped
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_configures_llm
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_delete_mcp_service_not_found
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_custom_engine
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_http_exception_swallowed
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_with_api_key
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_not_found
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_id
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_success
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_webhook_url_masked
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_records_changed_module
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_masked_api_key_skipped
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_empty
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instances_empty
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_after_operations
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_engine_enabled
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_instance
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_specific_snapshot_not_found
+0.01s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_incomplete_skips
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_applies_changed_modules
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_llm_instance
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_persist_failure
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_no_crash
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_full
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_seeds_builtins_when_empty
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_incremental_file_corrupted_falls_back_to_full
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_uses_cache
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_none
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_empty
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_permission
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_deletes_excess
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_from_path_incremental_merges_base
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshotsEdgeCases::test_cleanup_swallows_delete_error
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_permission
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_exception
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_incomplete_skips
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotEdgeCases::test_load_restore_failure_continues
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_llm_instance_api_key_decrypted
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_skip_uninitialized
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_truncates_to_50
+0.01s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_priority_order
+0.01s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_rebuilds_engine_priority
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_not_found
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_services_empty
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_exception
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_masked_api_key_skipped
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_builtin_engine
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_by_name
+0.01s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_with_existing_service_id
+0.01s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_success
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_full
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_no_config_attribute
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_exception
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_none_when_no_snapshot
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_disabled_instances
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_sets_default
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_incremental
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_masked_api_key_not_saved
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_web_http
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_name_conflict
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_full
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_no_excess
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_with_api_key_syncs
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_change_log_limit
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_full_save_all_modules
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_missing_keys
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_failure_returns_false
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_exception
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_success
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_instance_without_id
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_seeds_builtins_when_empty
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_skips_disabled_instances
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_name_conflict
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_behavior
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_compressed
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_exception
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_add_new_instance
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_get_search_engines_returns_api_keys
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_llm_instances_uses_legacy
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_by_name
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_set_default_llm_instance_by_name
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_removes_stale_priority_entries
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_assigns_ids_to_instances_without_id
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_exception_returns_failure
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_returns_config
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_no_excess
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_behavior
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_returns_none_when_no_snapshots
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_exception
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_class_creation_failure
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_unknown_mode_logs_warning
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_minimal
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_exception
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_by_name
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_full
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_success
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_first_enabled_llm_instance
+0.00s teardown tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_registers_existing_instances
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_uncompressed
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_stable_for_same_data
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_incompatible_version
+0.00s teardown tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_1
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_multiple_snapshots
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_tools
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_returns_default
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_no_excess
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_full_save_all_modules
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_by_name
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_no_excess
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshots::test_cleanup_removes_excess
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_all_modules
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_includes_incremental
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_skip_uninitialized
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_set_default_llm_instance_by_name
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_with_class_creates_instance
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_merge
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_invalid_json_raises_value_error
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_records_changed_module
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_skips_non_snapshot_files
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_by_name
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_no_body_attribute
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_long
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_with_changed_module
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_set_default_llm_instance_by_name
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_search_exception_swallowed
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_force_bypasses_frequency
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_body_with_get_method
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_exception
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_latest_snapshot
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_no_search_engine_returns_early
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_checksum_mismatch_continues
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_without_manager
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_incremental
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_registers_existing_instances
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_default_llm_instance_clears_default
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_no_search_engine_returns_early
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_masked_skipped
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotDataEdgeCases::test_load_incremental_file_corrupted_falls_back_to_full
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_by_name
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_name_conflict
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_persist_failure
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfig::test_update_mcp_with_new_service
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_delete_mcp_service_not_found
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_none_when_no_snapshot
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key_masked_skipped
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_llm_instance
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupOldSnapshotsEdgeCases::test_cleanup_swallows_unlink_error
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_by_name
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_all_modules
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCleanupSnapshots::test_cleanup_deletes_excess
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_snapshot_data_without_class
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_returns_raw_config
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_skip_strategy_keeps_existing
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_webhook_url_masked
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_skips_disabled_instances
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_full
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_assigns_ids_to_instances_without_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_update_existing_search_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_engine_priority
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_handles_json_error
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_web_http
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_search_api_keys
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_with_manager
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_full
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_merge_strategy_deep_merge
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_disabled_skips
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_empty
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_by_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_default_llm_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_services_empty
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_get_search_engines
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_default_engine
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_exception
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_compressed
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_duplicate_name_raises
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_timeout
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_search_api_keys
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_http_timeout
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_empty
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_none
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_instance_without_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_masked_api_key_skipped
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_by_name
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_returns_none_when_no_snapshots
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_export_config_returns_json
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_instance_api_key_masked
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_creates_default_when_no_file
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_builtin_engine
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_not_found
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_with_api_key_syncs
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_no_config_attribute
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_not_found
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_change_log_limit
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_handles_dir_iteration_error
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_llm_exception_handled
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_adds_change_log
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_incompatible_version
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_masked_api_key_not_saved
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service_duplicate_name_raises
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_missing_keys
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_skip_strategy_keeps_existing
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_search_instance_api_key_masked
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_add_new_search_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_returns_config
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_name
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSeedBuiltinSearch::test_seeds_three_builtins
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_duplicate_name_raises
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_with_existing_service_id
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_uncompressed
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_webhook_url
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_not_found
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_updates_search_config
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_empty
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_handler_fallback_to_custom
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_skips_unchanged_modules
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_custom_engine
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_uses_cache
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_success
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_short
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_get_search_engines_returns_api_keys
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_failure_returns_false
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_llm_instance_api_key_decrypted
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_not_found
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_custom_engine_no_api_key_sync
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_mcp_service
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_configure_llm_method
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_masked_skipped
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_instance_without_id
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_by_name
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_persist_failure
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_adds_change_log
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_not_truncated_below_100
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_timeout
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_duplicate_name_raises
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_seeds_builtins_when_empty
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_not_found
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_mcp_config
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_truncated_at_100
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_add_new_instance
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_long_history
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_skips_disabled_instances
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_exception
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_exception_returns_default
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_update_existing_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_web_http
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_1
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_no_crash
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_returns_config_with_structure
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_error_reporting
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_truncates_to_50
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_llm_api_key_masked_skipped
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_llm_instances_uses_legacy
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_with_api_key
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_name_conflict
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_empty
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_specific_snapshot_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_sets_default
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_success
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_configures_llm
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_max_results
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_removes_stale_priority_entries
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_masked_api_key_skipped
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_from_existing_file
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_incremental
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_registers_existing_instances
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_engine_enabled
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_decompresses
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_duplicate_name_raises
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_not_found_returns_none
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSaveSnapshot::test_save_exception_returns_failure
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_uncompressed
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_duplicate_name_raises
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_priority_order
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instances_empty
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_applies_changed_modules
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_api_key_encrypted
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_by_name
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_engine_enabled
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_by_name
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_success
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_with_entries
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_rebuilds_priority_with_valid_ids
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_not_found
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_disabled_instances
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_2
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_full
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_default_engine
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_rebuilds_engine_priority
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_returns_config
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_http_exception_swallowed
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_module_exception_continues
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_minimal
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_uses_first_enabled_llm_instance
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_seeds_builtins_when_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_engine_priority
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_skip_unchanged
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_only_masked_marker
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_full
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_add_llm_instance_with_api_key
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_delete_llm_instance_clears_default
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_tools
+0.00s setup    tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_register_exception_swallowed
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstancesEdgeCases::test_apply_skips_disabled_instances
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_update_search_config_max_results
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriorityEdgeCases::test_restore_body_with_get_method
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_with_entries
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_by_id
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_permission
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_incremental_with_changed_module
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToAppEdgeCases::test_apply_to_app_no_web_http
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateWebhookEdgeCases::test_update_webhook_only_masked_marker
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_web_http
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_merge_strategy_deep_merge
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_skips_unchanged_behavior
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service_duplicate_name_raises
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdate::test_update_mcp_config
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesDeltaIncremental::test_incremental_records_changed_module
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_add_mcp_service
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_body_with_get_method
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplyToApp::test_apply_to_app_no_instance
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instance_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_export_config_returns_json
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_get_search_engines
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_custom_engine_no_api_key_sync
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_no_body_attribute
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_service_without_id_no_auto_generate
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_update_mcp_service_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfig::test_update_mcp_with_new_service
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_search_instance_api_key_masked
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_long
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApiEdgeCases::test_update_llm_instance_not_found_returns_none
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_webhook_url_masked
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_api_key_masked_short
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_get_llm_instances_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchEngines::test_update_search_config_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_reset_returns_default
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_delete_llm_instance_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_update_llm_instance_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_creates_default_when_no_file
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_llm_instance_api_key_decrypted
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_llm_instance_api_key_masked
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_add_new_search_instance
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_failure_returns_false
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_services_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_delete_mcp_service_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetAll::test_returns_config_with_structure
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_add_new_instance
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSearchConfigEdgeCases::test_get_search_engines_returns_api_keys
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateSearchInstances::test_update_existing_search_instance
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSaveCoreModulesWithDelta::test_full_save_all_modules
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLlmInstanceApi::test_set_default_llm_instance_not_found
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_checksum_mismatch_continues
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_update_mcp_service_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestGetRawConfig::test_returns_raw_config
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApi::test_get_mcp_service_not_found
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_uses_cache
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_update_existing_instance
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_unknown_module
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateMcpConfigEdgeCases::test_update_mcp_with_existing_service_id
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestChangeLog::test_get_change_log_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestUpdateLlmInstances::test_masked_api_key_not_saved
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestMcpServiceApiEdgeCases::test_delete_mcp_service_not_found
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_returns_hex_string
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_not_truncated_below_100
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestListSnapshotsEdgeCases::test_list_handles_dir_iteration_error
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestAddChangeLogEdgeCases::test_change_log_truncated_at_100
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_handler_fallback_to_custom
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_handles_json_error
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_exception_does_not_raise
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_differs_on_config_change
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestLoad::test_load_from_existing_file
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshot::test_load_returns_none_when_no_snapshot
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_with_mode_history
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_with_manager
+0.00s setup    tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_stable_for_same_data
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreModulesByPriority::test_restore_skip_uninitialized
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_custom_engine
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_decompresses
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_from_path_uncompressed
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_exception
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_sets_default
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_empty
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_compressed
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreBehaviorEdgeCases::test_restore_unknown_mode_logs_warning
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_minimal
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_body_sensor_success
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_incremental
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_register_builtin_engine
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_behavior_success
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestPersistSnapshot::test_persist_uncompressed
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstanceEdgeCases::test_builtin_engine_with_api_key_syncs
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_exception_returns_default
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_tools_registry_success
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_full
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestRestoreMethods::test_restore_permission_success
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSeedBuiltinSearch::test_seeds_three_builtins
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_save_secure_without_manager
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_specific_snapshot_not_found
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_tools_registry_none
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_long_history
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_behavior_full
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_full
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_with_manager
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_permission_exception
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestSerializeMethods::test_serialize_body_sensor_full
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_assigns_ids_to_instances_without_id
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestSecureStorage::test_load_secure_without_manager
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_incompatible_version
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_llm_instance
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestResetExportImport::test_import_config_invalid_json_raises
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums_overwrites
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestValidate::test_validate_mcp_service
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestListSnapshots::test_list_empty
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestImportConfigEdgeCases::test_import_invalid_json_raises_value_error
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestLoadSnapshotData::test_load_returns_none_when_no_snapshots
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestShowPerformancePanel::test_show_panel_no_crash
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_skips_unchanged_modules
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_returns_hex_string
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_missing_keys
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_differs_on_config_change
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestRegisterSearchInstance::test_no_search_engine_returns_early
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestUpdateModuleChecksums::test_update_checksums
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_2
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestComputeChecksum::test_compute_checksum_stable_for_same_data
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestEnsureConfigStructure::test_adds_error_reporting
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestMergeSnapshots::test_merge_applies_changed_modules
+0.00s call     tests/unit/test_snapshot_comprehensive.py::TestCheckCompatibility::test_compatible_p6_1
+0.00s call     tests/unit/test_config_manager_comprehensive.py::TestApplySearchInstances::test_no_search_engine_returns_early
+============================= 224 passed in 4.56s =============================
