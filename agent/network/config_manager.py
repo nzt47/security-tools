@@ -506,17 +506,17 @@ class NetworkConfigManager:
     def _update_mcp_config(self, mcp_config: dict):
         """更新 MCP 配置"""
         config = self._load()
+        old_services = config.get("mcp", {}).get("services", [])
         config["mcp"] = mcp_config
-        
+
         # 添加变更日志
         if 'services' in mcp_config:
             for service in mcp_config["services"]:
                 if 'id' in service:
-                    existing = next((s for s in config["mcp"]["services"] if s["id"] == service["id"]), None)
+                    existing = next((s for s in old_services if s.get("id") == service["id"]), None)
                     if existing:
                         self._add_change_log('update', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
                     else:
-                        service["id"] = str(uuid.uuid4())
                         service["created_at"] = datetime.datetime.now().isoformat()
                         service["updated_at"] = service["created_at"]
                         self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
