@@ -4,6 +4,7 @@ import { ChatWindow, Message } from './components/Chat';
 import { StatusIndicator } from './components/Status';
 import { ToastContainer, ToastData } from './components/Status';
 import { useChatStream } from './hooks/useChatStream';
+import { trackEvent, TrackEventName } from './config/observability';
 import SkillManagement from './components/SkillsMgmt/SkillManagement';
 import './styles/theme.css';
 import './App.css';
@@ -84,13 +85,23 @@ const App: React.FC = () => {
   };
 
   const loadMessages = async (sid: string) => {
+    const startTime = performance.now();
     try {
       const res = await fetch(`${API_BASE}/api/sessions/${sid}/messages`);
+      const duration = performance.now() - startTime;
       if (!res.ok) {
         if (res.status === 404) {
           // 会话可能已被删除
           localStorage.removeItem('yunshu_session_id');
           setSessionId('');
+        } else {
+          // 非 404 错误记录失败埋点
+          trackEvent(TrackEventName.DASHBOARD_LOAD, {
+            module: 'messages',
+            success: false,
+            http_status: res.status,
+            duration_ms: Number(duration.toFixed(2)),
+          });
         }
         return;
       }
@@ -104,6 +115,11 @@ const App: React.FC = () => {
         toolSteps: msg.role === 'assistant' ? (msg.tool_steps || undefined) : undefined,
       }));
       setMessages(msgs);
+      trackEvent(TrackEventName.DASHBOARD_LOAD, {
+        module: 'messages',
+        success: true,
+        duration_ms: Number(duration.toFixed(2)),
+      });
     } catch (e) {
       console.error('加载消息失败:', e);
     }
