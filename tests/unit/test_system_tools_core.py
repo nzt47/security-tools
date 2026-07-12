@@ -2148,6 +2148,7 @@ class TestSystemToolsMimeTypeComplete:
 class TestSafeResolvePathExceptions:
     """测试 safe_resolve_path 的异常处理"""
 
+    @pytest.mark.forked_incompatible
     @pytest.mark.unit
     @pytest.mark.p0
     def test_safe_resolve_path_value_error(self):
@@ -2156,6 +2157,7 @@ class TestSafeResolvePathExceptions:
             with pytest.raises(ValueError, match="路径解析失败"):
                 safe_resolve_path("test/path")
 
+    @pytest.mark.forked_incompatible
     @pytest.mark.unit
     @pytest.mark.p0
     def test_safe_resolve_path_os_error(self):
@@ -3944,6 +3946,7 @@ class TestIsProtectedPath:
 class TestSafeResolvePath:
     """测试 safe_resolve_path 函数（覆盖行 128-129 异常分支）"""
 
+    @pytest.mark.forked_incompatible
     @pytest.mark.unit
     @pytest.mark.p0
     def test_safe_resolve_path_value_error_in_normpath(self):
@@ -3953,6 +3956,7 @@ class TestSafeResolvePath:
             with pytest.raises(ValueError, match="路径解析失败"):
                 safe_resolve_path("test_path")
 
+    @pytest.mark.forked_incompatible
     @pytest.mark.unit
     @pytest.mark.p0
     def test_safe_resolve_path_oserror(self):
