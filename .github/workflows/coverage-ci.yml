@@ -5,10 +5,18 @@
 name: 云枢系统覆盖率检查
 
 on:
-  push:
-    branches: [main, master, develop, 'release/**']
-  pull_request:
-    branches: [main, master, develop]
+  workflow_dispatch:
+    inputs:
+      python_versions:
+        description: 'Python 版本（空格分隔）'
+        required: false
+        default: '3.10 3.11 3.12'
+        type: string
+
+# 并发控制：同一 workflow 只跑最新一次，避免与 ci.yml 的 unit-tests 矩阵抢占 runner
+concurrency:
+  group: coverage-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PYTHON_VERSION: '3.10'
