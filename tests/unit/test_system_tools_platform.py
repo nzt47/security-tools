@@ -248,12 +248,14 @@ class TestSafeResolvePath:
                     with pytest.raises(ValueError, match="路径位于系统保护目录"):
                         safe_resolve_path(r"C:\Windows\System32")
 
+    @pytest.mark.forked_incompatible
     def test_safe_resolve_path_value_error(self):
         """测试路径解析值错误"""
         with patch('os.path.abspath', side_effect=ValueError("Invalid path")):
             with pytest.raises(ValueError, match="路径解析失败"):
                 safe_resolve_path("/invalid/path")
 
+    @pytest.mark.forked_incompatible
     def test_safe_resolve_path_os_error(self):
         """测试路径解析OS错误"""
         with patch('os.path.abspath', side_effect=OSError("OS error")):
@@ -461,12 +463,14 @@ class TestSafeResolvePathComplete:
                 with pytest.raises(ValueError, match="路径位于系统保护目录"):
                     safe_resolve_path(r"C:\Windows\System32")
 
+    @pytest.mark.forked_incompatible
     def test_safe_resolve_value_error(self):
         """测试路径解析值错误"""
         with patch('os.path.abspath', side_effect=ValueError("Invalid characters")):
             with pytest.raises(ValueError, match="路径解析失败"):
                 safe_resolve_path("invalid:path")
 
+    @pytest.mark.forked_incompatible
     def test_safe_resolve_os_error(self):
         """测试路径解析OS错误"""
         with patch('os.path.abspath', side_effect=OSError("Path too long")):
@@ -841,6 +845,7 @@ class TestSafeResolvePath_system_tools_platform_mock:
             with pytest.raises(ValueError, match="系统保护目录"):
                 safe_resolve_path(r"C:\Users\Public\..\..\Windows\System32")
 
+    @pytest.mark.forked_incompatible
     def test_safe_resolve_invalid_path(self):
         """测试无效路径"""
         with patch('os.path.abspath', side_effect=ValueError("Invalid path")):
