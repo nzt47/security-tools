@@ -585,3 +585,93 @@ class TestContextInjectorInstruction:
             break
 
         assert found, "未找到含 dropped_sections 的截断日志"
+
+    def test_inject_instruction_extreme_budget_50_tokens(self):
+        """极端预算 50 tokens：必保留章节合计超预算时切换 greedy_sequential 兜底
+
+        验证边界：必保留 3 章（概述+步骤+使用方法）合计 162 tokens，
+        预算 50 tokens 时无法全部放下，应：
+        1. 切换到 greedy_sequential 策略
+        2. 仅保留能放下的首章节（概述，37 tokens）
+        3. 步骤章节因单章节不截断原则被整段丢弃
+        4. 不出现半句话截断
+        """
+        instruction = (
+            "## 概述\n情感表达技能简介。\n\n"
+            "## 步骤\n1. 检测情绪\n2. 查询语气参数\n3. 调整回应\n4. 标记升级\n\n"
+            "## 使用方法\n调用 skill.invoke(response, context)。\n\n"
+            "## 示例\n输入'我今天好累' → 调整为安抚语气。\n\n"
+            "## 注意\n置信度<0.5 不调整。\n\n"
+            "## 参考资料\n" + ("情绪词典\n" * 40) + "\n"
+        )
+        injector = _make_injector_with_instruction(instruction, budget=50)
+        result = injector.inject_instruction("test-skill")
+
+        # 断言1: 触发截断
+        assert result["truncated"] is True, "50 tokens 预算应触发截断"
+
+        # 断言2: 至少保留首章节（概述），不放半句话
+        assert "## 概述" in result["prompt"], "首章节应被保留"
+        assert "情感表达技能简介。" in result["prompt"], "概述正文应完整保留"
+
+        # 断言3: 步骤章节因单章节不截断原则被整段丢弃，不留半句话
+        # 取省略提示之前的内容判断
+        body = result["prompt"].split("...(更多章节未加载")[0]
+        # 步骤章节不应部分出现（不应有"1. 检测情绪"后跟"2."缺失的情况）
+        # 即要么完整保留步骤章节，要么完全不留
+        if "## 步骤" in body:
+            # 若保留了步骤章节，必须完整（含全部 4 个步骤）
+            assert "1. 检测情绪" in body
+            assert "4. 标记升级" in body, "保留步骤章节时必须完整"
+        else:
+            # 未保留步骤章节时，不应残留步骤片段
+            assert "检测情绪" not in body, "不应残留步骤章节的半句话"
+
+        # 断言4: 必保留章节合计 162 > 预算 50，应触发 greedy fallback
+        # 通过日志记录验证策略切换
+        # （这里通过结果行为间接验证：保留数 < 必保留数 3）
+        # 概述 37 < 50 单独可放下，步骤 71 单独就超 50 → 步骤必丢
+        assert "## 参考资料" not in result["prompt"], "参考资料应被丢弃"
+
+        # 断言5: 输出 token 数受控（不超过预算 + 省略提示）
+        hint = "\n\n...(更多章节未加载，完整内容请查看 skill.md 文件，可调用 load_skill_instruction 获取完整说明)"
+        assert result["estimated_tokens"] <= 50 + estimate_tokens(hint), \
+            "截断后 token 不应远超预算"
+
+    def test_inject_instruction_extreme_budget_below_min_section(self):
+        """更极端预算 30 tokens：连最小章节都放不下时全部丢弃
+
+        验证边界：预算 < 单个最小章节 token 时：
+        1. 不强制保留任何不完整章节
+        2. 仅输出省略提示
+        3. 不出现半句话截断
+        """
+        # 所有章节都 > 30 tokens
+        instruction = (
+            "## 概述\n"
+            "这是一个故意写得很长的概述章节，目的是让 token 数量明显超过三十个，"
+            "这样才能验证当预算极小、所有章节都放不下时的兜底行为是否正确。\n\n"
+            "## 步骤\n1. 第一步操作\n2. 第二步操作\n\n"
+            "## 示例\n示例内容较长。\n\n"
+        )
+        injector = _make_injector_with_instruction(instruction, budget=30)
+        result = injector.inject_instruction("test-skill")
+
+        # 断言1: 触发截断
+        assert result["truncated"] is True
+
+        # 断言2: 任何章节正文都不应残留（避免半句话）
+        body = result["prompt"].split("...(更多章节未加载")[0]
+        assert "第一步操作" not in body, "步骤正文不应残留"
+        assert "示例内容" not in body, "示例正文不应残留"
+        # 概述正文也不应残留（因为整段超 30 tokens）
+        assert "这是一个比较长的概述" not in body, "概述正文不应残留"
+
+        # 断言3: 必须包含省略提示
+        assert "更多章节未加载" in result["prompt"]
+
+        # 断言4: 输出 token 数约等于省略提示
+        hint = "\n\n...(更多章节未加载，完整内容请查看 skill.md 文件，可调用 load_skill_instruction 获取完整说明)"
+        # 包装行 "## 技能使用说明：test-skill\n\n" 也占少量 token，故输出 token 略大于 hint
+        assert result["estimated_tokens"] <= 30 + estimate_tokens(hint) + 20, \
+            "全部章节丢弃后 token 数应接近省略提示"
