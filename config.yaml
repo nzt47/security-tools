@@ -426,6 +426,28 @@ skills_mgmt:
     # 模板兜底模式（LLM 不可用时使用模板生成）
     template_fallback: true
 
+  # 检索配置（预留，当前仅 tfidf 生效，未来扩展点已在 SkillLoader.match 接口预留）
+  retrieval:
+    method: tfidf  # tfidf | vector | bm25 | fused
+    vector:
+      enabled: false
+      model: BAAI/bge-small-zh-v1.5
+    bm25:
+      enabled: false
+    reranker:
+      enabled: false
+      model: BAAI/bge-reranker-base
+    # 多路融合权重（仅 method=fused 时生效，当前预留）
+    fusion:
+      weights:
+        tfidf: 0.2
+        vector: 0.6
+        bm25: 0.2
+
+  # 规模监控（技能数超过阈值时建议升级检索方式）
+  scale:
+    upgrade_threshold: 30
+
 # ═══════════════════════════════════════════════════════════════
 #  智能工作流学习系统配置 (Workflow Learning)
 #  从大模型成功交互中学习方法，自动生成可执行工作流

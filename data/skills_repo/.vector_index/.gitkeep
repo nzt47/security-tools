@@ -1,0 +1,2 @@
+# 预留目录：未来向量检索索引（如 ChromaDB / FAISS）持久化位置
+# 当前为空，仅在技能数超过 upgrade_threshold(30) 启用向量检索后使用
