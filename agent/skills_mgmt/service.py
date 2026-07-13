@@ -604,6 +604,15 @@ class SkillsMgmtService:
                     1 for s in all_skills
                     if s.status == SkillStatus.REJECTED.value),
             },
+            # 规模监控：当技能数增长到阈值时建议升级检索方式
+            # 当前仅 TF-IDF，未来扩展点已在 match() 接口预留（use_vector/use_bm25/use_reranker）
+            "scale_monitoring": {
+                "total_skills": len(all_skills),
+                "upgrade_threshold": 30,
+                "upgrade_recommended": len(all_skills) >= 30,
+                "current_method": "tfidf",
+                "available_methods": ["tfidf"],  # 未来扩展: ["tfidf", "vector", "bm25", "reranker"]
+            },
         }
 
     # ─── 内部 ───
