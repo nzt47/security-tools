@@ -6,6 +6,184 @@
 
 ---
 
+## [Release] v1.2.0 - 2026-07-14: config_manager 测试强化 + TLM Step 2 记忆系统
+
+**Tag**: `v1.2.0` (commit `fc4d89ea`)
+**提交范围**: `bd628a4a^..fc4d89ea`（21 个提交）
+**影响模块**: `agent/network/config_manager.py`, `agent/p6/snapshot.py`, `agent/orchestrator/lifecycle_manager.py`
+**PR**: #9 (已合并, fast-forward)
+**质量评级**: B+（96% 覆盖率，1 处死代码待清理）
+
+### 概览
+
+| 指标 | 起始 | 完成 | 变化 |
+|------|------|------|------|
+| 单元测试数 | 0 | 235 | +235 |
+| 性能基准测试 | 0 | 13 | +13 |
+| 代码覆盖率 | ~0% | 96% | +96% |
+| Bug 修复 | — | 4 | — |
+| 性能优化 | — | 3 | — |
+| 安全隐患修复 | — | 2 | — |
+| 重复逻辑消除 | 55 行 | 0 | -55 |
+
+### Added — 新增功能
+
+- **TLM Step 2: 启用 ShortTermMemory 与 MemoryReviewer** (`f3ecef02`)
+  - `orchestrator/lifecycle_manager.py`: 新增 ShortTermMemory / LongTermMemory / MemoryReviewer 实例化（DI 模式）
+  - `server_routes/routes_memory.py`: 新增 `GET/POST /api/memory/review` 路由
+  - 26 个集成测试覆盖 save/get/ttl/lru/review/stale_detection/suggestions/health_score
+
+- **235 个单元测试** (`bd628a4a`)
+  - config_manager.py: 143 个测试，覆盖率 94%
+  - snapshot.py: 92 个测试，覆盖率 98%
+  - 13 个性能基准测试（批量操作 10/50/100/200 实例）
+
+- **代码质量分析报告** (`fc4d89ea`)
+  - `docs/reports/code-quality-analysis-20260714.md` (300 行)
+  - 按函数覆盖率分布、未覆盖代码详细分析、复杂度评估、安全性评估
+
+### Changed — 重构与优化
+
+- **P2: 字典索引替代线性查找** (`42a01d79`)
+  - 优化前: O(n) 查找 × N 次 = O(n²)
+  - 优化后: O(n) 构建索引 + O(1) 查找 × N 次 = O(n)
+  - 100 实例批量更新: 2.03ms → 0.77ms (2.6x 加速)
+
+- **P3: 变更日志 insert(0) → append** (`931f5379`)
+  - 插入 1 条日志: O(n) → O(1)
+  - 截断到 100 条: O(n) → O(n) 仅超限时
+  - 读取时 `[::-1]` 反转保持最新在前
+
+- **P3: 无 id MCP service 自动生成** (`931f5379`)
+  - 修复 `if 'id' in service` 守卫导致的跳过
+  - 无 id 的 service 现在自动生成 id 并记录日志
+
+- **提取通用方法消除重复** (`e263aad7`)
+  - `_update_llm_instances`: 31 行 → 5 行
+  - `_update_search_instances`: 24 行 → 5 行
+  - 提取 `_upsert_collection_item` 和 `_upsert_collection_batch`
+
+### Fixed — Bug 修复
+
+- **死代码分支** (`812cf880`): `config["mcp"] = mcp_config` 引用覆盖导致查重始终找到自身。修复: 覆盖前保存 `old_services` 快照
+- **无 id MCP service 跳过** (`931f5379`): `if 'id' in service` 守卫导致无 id 的 service 完全不处理。修复: 自动生成 id
+- **引用覆盖查重失效** (`812cf880`): Python 引用语义使覆盖后两个列表指向同一对象。修复: 保存旧值快照
+- **`_update_search_instances` created_at** (`931f5379`): 不支持传入已有 created_at。修复: 统一为 `item.get('created_at') or now()`
+- **memory_abstractor 死代码导入** (`6578392c`): 修复 `_load_long_term_memories` 中的导入错误
+- **CI pytest-randomly OOM** (`8e35adcc`): 组合方案 A+B 治理，保留 --forked + 标记 9 个不兼容测试跳过
+
+### Security — 安全隐患修复
+
+- **隐患 1: `hasattr` 不在 try-except 内** (`c8b8d59b`)
+  - 位置: `apply_to_app` LLM 配置块
+  - 问题: Python 3 的 `hasattr` 只捕获 `AttributeError`，若 `configure_llm` 是 property 且 getter 抛其他异常会传播
+  - 修复: 用 try-except 保护 `hasattr` 检查
+
+- **隐患 2: `_save_secure`/`_load_secure` 过宽异常捕获** (`c8b8d59b`)
+  - 问题: `except Exception` 可能隐藏加密库严重错误
+  - 修复: 收窄为 `except (OSError, ValueError, TypeError, RuntimeError)`
+
+### Test Quality — 测试技术亮点
+
+| 技术 | 用途 |
+|------|------|
+| `MagicMock(spec=[...])` | 限制属性使 `hasattr` 返回 False |
+| `_RaisingLen`/`_RaisingStr`/`_RaisingGetDict` | 触发 `hasattr` 守卫外的异常路径 |
+| `secure_manager._store` 字典 | 替代 `return_value`（`side_effect` 优先级问题） |
+| 参数化测试 | 批量验证相同逻辑，减少重复代码 |
+
+### Known Issues — 已知问题
+
+- **`_upsert_collection_item` 0% 覆盖率** (23 行死代码): 被 `_upsert_collection_batch` 完全替代，建议在后续 PR 中删除（P1）
+- **`update` 方法转发调用未测试** (4 行): 测试直接调用内部方法，未通过 `update()` 触发（P3）
+- **防御性代码路径未覆盖** (3 行): hasattr except 块和 LLM 配置应用失败日志（P4，可选）
+
+### Documents — 发布文档
+
+| 文档 | 路径 |
+|------|------|
+| Release Note | `docs/releases/v1.2.0.md` |
+| 代码质量报告 | `docs/reports/code-quality-analysis-20260714.md` |
+| Wiki 技术文档 | `docs/wiki/deadcode_fix_and_boundary_tests_wiki.md` |
+| 性能优化方案 | `docs/reports/performance-optimization-plan-20260713.md` |
+| hasattr 审计报告 | `docs/reports/hasattr-audit-report-20260713.md` |
+| 测试执行日志 | `docs/reports/test-execution-log-20260713.md` |
+| 未覆盖场景分析 | `docs/reports/uncovered-scenarios-analysis-20260713.md` |
+| Git Diff 评审 | `docs/reviews/refactor-git-diff-review-20260713.md` |
+| 团队分享 | `docs/shares/team-share-config-manager-20260713.md` |
+
+### Commit History — 提交历史
+
+| Commit | 类型 | 描述 |
+|--------|------|------|
+| `fc4d89ea` | docs | 代码质量分析报告 |
+| `c8b8d59b` | fix | hasattr 隐患修复 + v1.2.0 版本归档 |
+| `f3ecef02` | feat | TLM Step 2 - ShortTermMemory 与 MemoryReviewer |
+| `6578392c` | fix | memory_abstractor 死代码导入修复 |
+| `931f5379` | perf | P3 日志优化 + 无 id MCP 修复 |
+| `42a01d79` | perf | P2 字典索引优化 + 基准测试 |
+| `e263aad7` | refactor | 提取通用方法消除重复 |
+| `812cf880` | fix | _update_mcp_config 死代码修复 + 边界测试 |
+| `8e35adcc` | fix(ci) | --forked + 跳过不兼容测试 |
+| `bd628a4a` | test | 补充单元测试覆盖率达 94% |
+
+### Upgrade Guide — 升级指南
+
+本次变更无需用户操作：
+- API 接口完全不变
+- 配置文件格式不变
+- 行为变化仅影响边缘场景（MCP 无 id service 现在自动生成 id，搜索实例支持传入 created_at）
+
+---
+
+## [Feature] - 2026-07-14 TLM Step 3: 集成 sqlite-vec 向量存储后端
+
+### Added — sqlite-vec 轻量级向量后端
+- **memory/vector_store/sqlite_vec_backend.py**（新增）: SqliteVecBackend 类
+  - 基于 sqlite-vec vec0 虚拟表 + metadata 普通表双表设计
+  - 支持精确 KNN 查询（余弦距离）、批量添加、按 ID 查找、最近记录、清空、统计
+  - WAL 模式 + threading.Lock 保证线程安全
+  - 向量维度构造期固定，不可变
+- **requirements.txt**: 添加 `sqlite-vec>=0.1.9` 依赖
+- **tests/unit/test_vector_store_sqlite_vec.py**（新增）: 27 个单元测试
+  - TestSqliteVecBackend: 13 个后端核心功能测试（add/search/get_by_id/get_recent/clear/count/get_stats/recall@1）
+  - TestVectorStoreBackendImmutable: 5 个 _backend 不可变性测试（线程安全契约）
+  - TestVectorStoreSqliteVecIntegration: 9 个 VectorStore 集成测试（mock encoder，避免 55s 模型加载）
+
+### Changed — VectorStore 后端优先级与并发修复
+- **memory/vector_store/vector_store.py**:
+  - 后端优先级改为：sqlite-vec > chromadb > JSON（原：chromadb > JSON）
+  - 新增 `_backend` 不可变字段（构造期确定，运行期不再修改）
+  - `_use_chroma` 改为只读 property（基于 `_backend` 派生），修复运行期并发修改问题
+  - 删除 add()/search() 中运行期 `self._use_chroma = False` 赋值（line 460/578）
+  - 新增 `_init_sqlite_vec()` 方法，从 encoder 动态获取向量维度
+  - add/search/batch_add/count/items/get_by_id/get_recent/clear 添加 sqlite-vec 分支
+  - `get_stats()` 新增 `backend` 字段（"sqlite_vec"|"chromadb"|"json"）和 `sqlite_vec` 统计子字段
+
+### Fixed — _use_chroma 并发问题
+- 原问题：VectorStore.add()（line 460）和 search()（line 578）在运行期修改 `self._use_chroma` 布尔标志
+- 风险：多线程并发调用时，一个线程修改标志会导致其他线程的 _use_chroma 检查结果不一致
+- 修复：引入 `_backend` 构造期不可变字段，`_use_chroma` 改为只读 property
+
+### API 契约
+- VectorStore 公共 API 签名未变（add/search/batch_add/get_by_id/get_recent/clear/count/get_stats）
+- `get_stats()` 响应新增 `backend` 字段（增量字段，向后兼容）
+- 现有 chromadb/JSON 路径行为保持不变
+
+### Verified
+- `pytest tests/unit/test_vector_store_sqlite_vec.py` 27 个测试全部通过
+- recall@1=1.0 验证通过（查询向量与某条记录完全相同时，top1 为该记录，distance=0）
+- 跨连接持久化验证通过（重新打开数据库后数据仍在）
+- _use_chroma 运行期赋值抛 AttributeError（property 只读契约）
+
+### 迁移结果（前置验证）
+- 数据量: 1659 条
+- 迁移耗时: 52525ms（30 条/s）
+- recall@1: 1.0
+- 模型加载: 55659ms（torch 2.13.0+cpu，sentence_transformers paraphrase-multilingual-MiniLM-L12-v2）
+
+---
+
 ## [Feature] - 2026-07-13 TLM Step 2: 启用 ShortTermMemory 与 MemoryReviewer
 
 ### Added — TLM L1 层与记忆审查器接入
