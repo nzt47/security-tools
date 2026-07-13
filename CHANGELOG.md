@@ -6,13 +6,14 @@
 
 ---
 
-## [Release] v1.2.0 - 2026-07-14: config_manager 测试强化 + TLM Step 2 记忆系统
+## [Release] v1.2.0 - 2026-07-14: config_manager 测试强化 + TLM Step 2 记忆系统 ✅ 已发布
 
 **Tag**: `v1.2.0` (commit `fc4d89ea`)
 **提交范围**: `bd628a4a^..fc4d89ea`（21 个提交）
 **影响模块**: `agent/network/config_manager.py`, `agent/p6/snapshot.py`, `agent/orchestrator/lifecycle_manager.py`
 **PR**: #9 (已合并, fast-forward)
 **质量评级**: B+（96% 覆盖率，1 处死代码待清理）
+**发布状态**: ✅ 已发布 (2026-07-14, tag 已推送至 origin + gitee)
 
 ### 概览
 
