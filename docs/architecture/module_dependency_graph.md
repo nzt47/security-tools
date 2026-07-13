@@ -50,7 +50,7 @@ flowchart LR
         agent_llm_monitor["agent.llm_monitor"]
         agent_llm_response_cache["agent.llm_response_cache"]
         agent_logging_utils["agent.logging_utils"]:::crosslayer
-        agent_memory_optimized["agent.memory_optimized"]:::crosslayer
+        agent_memory_optimized["agent.memory_optimized"]
         agent_multi_tenant["agent.multi_tenant"]
         agent_network_config["agent.network_config"]:::crosslayer
         agent_p6_config_loader["agent.p6_config_loader"]
@@ -145,11 +145,11 @@ flowchart LR
         agent_memory_adapters_mem0_adapter["agent.memory.adapters.mem0_adapter"]
         agent_memory_base["agent.memory.base"]
         agent_memory_filter["agent.memory.filter"]
-        agent_memory_long_term_memory["agent.memory.long_term_memory"]
+        agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_observability["agent.memory.observability"]
-        agent_memory_reviewer["agent.memory.reviewer"]
+        agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]
-        agent_memory_short_term_memory["agent.memory.short_term_memory"]
+        agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]
@@ -435,7 +435,7 @@ flowchart LR
     agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
     agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
-    agent_skills_mgmt_memory_abstractor -.-> agent_memory_optimized
+    agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
     agent_skills_mgmt_creator -.-> agent_extensions_market
@@ -776,6 +776,9 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_discovery_service
     agent_orchestrator_lifecycle_manager -.-> agent_extensions_market
     agent_orchestrator_lifecycle_manager --> agent
+    agent_orchestrator_lifecycle_manager -.-> agent_memory_short_term_memory
+    agent_orchestrator_lifecycle_manager -.-> agent_memory_long_term_memory
+    agent_orchestrator_lifecycle_manager -.-> agent_memory_reviewer
     agent_orchestrator_lifecycle_manager -.-> agent_tool_calling
     agent_orchestrator_lifecycle_manager -.-> agent_subagent_lifecycle
     agent_orchestrator_lifecycle_manager -.-> agent_extensions_manager
@@ -888,8 +891,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 324
 - 模块节点数: 257
-- 依赖边数: 551
-- 跨层调用数: 348
+- 依赖边数: 554
+- 跨层调用数: 351
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1151.38 ms
+- 构建耗时: 1217.60 ms
