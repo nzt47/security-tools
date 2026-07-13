@@ -446,70 +446,80 @@ class NetworkConfigManager:
         logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': '[网络配置] 配置已更新到文件'}))
         return self.get_all()
 
+    def _upsert_collection_item(
+        self,
+        collection: list,
+        item: dict,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> Optional[str]:
+        """通用集合项新增/更新（消除 _update_llm_instances / _update_search_instances 重复逻辑）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            item: 要新增或更新的项（有 id → 更新，无 id → 新增）
+            section: 变更日志的 section 名
+            secure_key_prefix: 加密存储 key 前缀（None 表示不加密）
+
+        Returns:
+            项的 id（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        item_id = item.get('id')
+
+        if not item_id:
+            item["id"] = str(uuid.uuid4())
+            item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+            item["updated_at"] = item["created_at"]
+
+            if secure_key_prefix:
+                api_key = item.get('api_key', '')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+            collection.append(item)
+            self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+            return item["id"]
+        else:
+            existing = next((i for i in collection if i.get("id") == item_id), None)
+            if existing:
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                existing.update(item)
+                existing["updated_at"] = datetime.datetime.now().isoformat()
+                self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                return item_id
+        return None
+
     def _update_llm_instances(self, instances: list):
         """更新 LLM 实例配置"""
         config = self._load()
-        
         for instance in instances:
-            instance_id = instance.get('id')
-            if not instance_id:
-                # 新增实例
-                instance["id"] = str(uuid.uuid4())
-                instance["created_at"] = instance.get('created_at') or datetime.datetime.now().isoformat()
-                instance["updated_at"] = instance["created_at"]
-                
-                # 加密保存 API Key
-                api_key = instance.get('api_key', '')
-                if api_key and api_key != '***' and not api_key.startswith('***'):
-                    self._save_secure(f'llm_{instance["id"]}_api_key', api_key)
-                
-                config["llm_instances"].append(instance)
-                self._add_change_log('add', 'llm_instance', {'id': instance["id"], 'name': instance.get('name')})
-            else:
-                # 更新现有实例
-                existing = next((i for i in config["llm_instances"] if i["id"] == instance_id), None)
-                if existing:
-                    # 处理 API Key 更新
-                    api_key = instance.get('api_key', '')
-                    if api_key and api_key != '***' and not api_key.startswith('***'):
-                        self._save_secure(f'llm_{instance_id}_api_key', api_key)
-                    
-                    existing.update(instance)
-                    existing["updated_at"] = datetime.datetime.now().isoformat()
-                    self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
+            self._upsert_collection_item(
+                config["llm_instances"], instance, 'llm_instance', secure_key_prefix='llm_'
+            )
 
     def _update_search_instances(self, instances: list):
         """更新搜索实例配置"""
         config = self._load()
         for inst in instances:
-            inst_id = inst.get('id')
-            if not inst_id:
-                # 新增
-                inst["id"] = str(uuid.uuid4())
-                inst["created_at"] = datetime.datetime.now().isoformat()
-                inst["updated_at"] = inst["created_at"]
-                api_key = inst.get('api_key', '')
-                if api_key and api_key != '***' and not api_key.startswith('***'):
-                    self._save_secure(f'search_{inst["id"]}_api_key', api_key)
-                config["search_instances"].append(inst)
-                self._add_change_log('add', 'search_instance', {'id': inst["id"], 'name': inst.get('name')})
-            else:
-                existing = next((i for i in config["search_instances"] if i["id"] == inst_id), None)
-                if existing:
-                    api_key = inst.get('api_key', '')
-                    if api_key and api_key != '***' and not api_key.startswith('***'):
-                        self._save_secure(f'search_{inst_id}_api_key', api_key)
-                    existing.update(inst)
-                    existing["updated_at"] = datetime.datetime.now().isoformat()
-                    self._add_change_log('update', 'search_instance', {'id': inst_id, 'name': inst.get('name')})
+            self._upsert_collection_item(
+                config["search_instances"], inst, 'search_instance', secure_key_prefix='search_'
+            )
 
     def _update_mcp_config(self, mcp_config: dict):
-        """更新 MCP 配置"""
+        """更新 MCP 配置
+
+        注意：MCP 模式与 LLM/Search 不同 —— 先覆盖整个 mcp 配置，
+        再用 old_services 查重。因此不使用 _upsert_collection_item
+        （service 已在 mcp_config["services"] 中，无需 append）。
+        """
         config = self._load()
         old_services = config.get("mcp", {}).get("services", [])
         config["mcp"] = mcp_config
 
-        # 添加变更日志
         if 'services' in mcp_config:
             for service in mcp_config["services"]:
                 if 'id' in service:
