@@ -1,5 +1,5 @@
 {
-  "trace_id": "13aa1d9976db455c",
+  "trace_id": "942f5c62bada495e",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -8488,7 +8488,7 @@
       "source_layer": "network",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 659,
+      "line": 669,
       "source_file": "agent/network/config_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9266,6 +9266,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 1236.1829590000043
+    "build_duration_ms": 1130.3296160000116
   }
 }
