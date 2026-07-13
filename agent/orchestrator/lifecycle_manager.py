@@ -93,6 +93,8 @@ class LifecycleManager:
         search_engine_factory: Optional[Callable] = None,
         extension_manager_factory: Optional[Callable] = None,
         llm_service_factory: Optional[Callable] = None,
+        short_term_memory_factory: Optional[Callable] = None,
+        memory_reviewer_factory: Optional[Callable] = None,
     ):
         """
         初始化数字生命——唤醒云枢
@@ -129,6 +131,8 @@ class LifecycleManager:
         self._search_engine_factory = search_engine_factory
         self._extension_manager_factory = extension_manager_factory
         self._llm_service_factory = llm_service_factory
+        self._short_term_memory_factory = short_term_memory_factory
+        self._memory_reviewer_factory = memory_reviewer_factory
 
         self._log_initialization_start()
         self._check_module_availability()
@@ -262,6 +266,46 @@ class LifecycleManager:
             logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.persona', 'message': '[P5] Persona 配置为懒加载模式，将在首次访问时初始化'}))
         if self._v2_distillation:
             logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.distillation', 'message': '[P5] Distillation 配置为懒加载模式，将在首次访问时初始化'}))
+
+        # ── 3.5 TLM L1: 短期记忆（纯内存+LRU+TTL）──
+        try:
+            if self._short_term_memory_factory is not None:
+                self._short_term_memory = self._short_term_memory_factory()
+            else:
+                from agent.memory.short_term_memory import ShortTermMemory
+                stm_cfg = memory_cfg.get("short_term", {})
+                self._short_term_memory = ShortTermMemory(
+                    max_size=stm_cfg.get("max_size", 100),
+                    default_ttl=stm_cfg.get("default_ttl", 300),
+                    cleanup_interval=stm_cfg.get("cleanup_interval", 60),
+                )
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.shorttermmemory', 'message': '[ok] 短期记忆（ShortTermMemory）已激活'}))
+        except Exception as e:
+            self._short_term_memory = None
+            logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.shorttermmemory.fail', 'message': '[WARN] 短期记忆初始化失败: %s' % (e,), 'error': str(e)}))
+
+        # ── 3.6 TLM 记忆审查器（依赖 LongTermMemory）──
+        self._long_term_memory = None
+        self._memory_reviewer = None
+        try:
+            if self._memory_reviewer_factory is not None:
+                self._memory_reviewer = self._memory_reviewer_factory()
+            else:
+                from agent.memory.long_term_memory import LongTermMemory
+                from agent.memory.reviewer import MemoryReviewer
+                ltm_cfg = memory_cfg.get("long_term", {})
+                self._long_term_memory = LongTermMemory(
+                    db_path=ltm_cfg.get("db_path", "./data/memory/long_term.db"),
+                )
+                reviewer_cfg = memory_cfg.get("reviewer", {})
+                self._memory_reviewer = MemoryReviewer(
+                    long_term_memory=self._long_term_memory,
+                    stale_threshold_days=reviewer_cfg.get("stale_threshold_days", 30),
+                    similarity_threshold=reviewer_cfg.get("similarity_threshold", 0.85),
+                )
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.memoryreviewer', 'message': '[ok] 记忆审查器（MemoryReviewer）已激活'}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.memoryreviewer.fail', 'message': '[WARN] 记忆审查器初始化失败: %s' % (e,), 'error': str(e)}))
 
         # ── 4. 我的本能：行为控制 ──
         self._behavior = BehaviorController()
