@@ -493,21 +493,77 @@ class NetworkConfigManager:
                 return item_id
         return None
 
+    def _upsert_collection_batch(
+        self,
+        collection: list,
+        items: list,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> list:
+        """批量集合项新增/更新（字典索引优化，O(1) 查重替代 O(n) 线性查找）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            items: 要新增或更新的项列表
+            section: 变更日志的 section 名
+            secure_key_prefix: 加密存储 key 前缀（None 表示不加密）
+
+        Returns:
+            每个项的 id 列表（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        # 构建索引：O(n) 一次，后续每次查找 O(1)
+        id_index = {item.get("id"): item for item in collection if item.get("id")}
+
+        result_ids = []
+        for item in items:
+            item_id = item.get('id')
+
+            if not item_id:
+                # 新增
+                item["id"] = str(uuid.uuid4())
+                item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+                item["updated_at"] = item["created_at"]
+
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+                collection.append(item)
+                id_index[item["id"]] = item  # 新增项也加入索引，防止后续重复
+                self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+                result_ids.append(item["id"])
+            else:
+                # 更新：O(1) 字典查找
+                existing = id_index.get(item_id)
+                if existing:
+                    if secure_key_prefix:
+                        api_key = item.get('api_key', '')
+                        if api_key and api_key != '***' and not api_key.startswith('***'):
+                            self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                    existing.update(item)
+                    existing["updated_at"] = datetime.datetime.now().isoformat()
+                    self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                    result_ids.append(item_id)
+                else:
+                    result_ids.append(None)
+
+        return result_ids
+
     def _update_llm_instances(self, instances: list):
         """更新 LLM 实例配置"""
         config = self._load()
-        for instance in instances:
-            self._upsert_collection_item(
-                config["llm_instances"], instance, 'llm_instance', secure_key_prefix='llm_'
-            )
+        self._upsert_collection_batch(
+            config["llm_instances"], instances, 'llm_instance', secure_key_prefix='llm_'
+        )
 
     def _update_search_instances(self, instances: list):
         """更新搜索实例配置"""
         config = self._load()
-        for inst in instances:
-            self._upsert_collection_item(
-                config["search_instances"], inst, 'search_instance', secure_key_prefix='search_'
-            )
+        self._upsert_collection_batch(
+            config["search_instances"], instances, 'search_instance', secure_key_prefix='search_'
+        )
 
     def _update_mcp_config(self, mcp_config: dict):
         """更新 MCP 配置
