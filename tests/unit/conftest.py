@@ -139,12 +139,21 @@ def _disable_optional_systems_safety():
     触发 native 扩展加载。复用业务代码已有的 ImportError fallback 路径
     （VectorStore→JSON fallback，OptimizedChromaDB→MockChromaClient），
     无需改动业务逻辑。本地 Windows 不触发此防护，仍用真实 chromadb。
+
+    sqlite-vec 全局禁用（所有环境）：VectorStore.__init__ 优先级为
+    sqlite-vec > chromadb > JSON，sqlite-vec 后端会加载 sentence_transformers
+    模型（55s+）并可能触发 HuggingFace 下载。任何间接实例化 VectorStore 的
+    测试（如 weekly_report_generator / task_scheduler 调用链）都会受影响。
+    sqlite-vec 专项测试在 test_vector_store_sqlite_vec.py 中通过 autouse
+    fixture 覆盖启用真实 sqlite_vec 模块。
     """
     with ExitStack() as stack:
         stack.enter_context(patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False))
         stack.enter_context(patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False))
         stack.enter_context(patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False))
         stack.enter_context(patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False))
+        # 全局禁用 sqlite-vec：让所有 VectorStore 实例化降级到 JSON fallback
+        stack.enter_context(patch.dict(sys.modules, {'sqlite_vec': None}))
         if _CI_LINUX:
             # sys.modules[name] = None 会让 `import name` 抛 ImportError，而非
             # 加载真实 native 扩展。patch.dict 退出后自动恢复 sys.modules 原状。
