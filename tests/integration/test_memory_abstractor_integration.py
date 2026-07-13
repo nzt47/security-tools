@@ -893,15 +893,26 @@ class TestLoadLongTermMemories:
         assert result == []
 
     def test_loads_entries(self, abstractor):
-        mock_mgr = MagicMock()
-        mock_mgr.list_recent.return_value = [
-            {"id": "m1", "content": "memory", "success": True, "timestamp": ""},
-        ]
+        from agent.memory.long_term_memory import LongTermMemoryEntry
+        mock_entry = LongTermMemoryEntry(
+            key="m1",
+            content="memory",
+            importance=3,
+            tags=[],
+            created_at=0,
+            metadata={"success": True},
+        )
+        mock_ltm = MagicMock()
+        mock_ltm.list_unverified.return_value = [mock_entry]
+        mock_ltm.list_sensitive.return_value = []
         with patch("agent.skills_mgmt.memory_abstractor.MemorySkillAbstractor._cutoff_ts", return_value=0):
-            with patch.dict("sys.modules", {"agent.memory_optimized": MagicMock(MemoryManager=lambda: mock_mgr)}):
+            with patch("agent.memory.long_term_memory.LongTermMemory", return_value=mock_ltm):
                 result = abstractor._load_long_term_memories(days=30)
         assert len(result) == 1
         assert result[0].source == "long_term_memory"
+        assert result[0].source_id == "m1"
+        assert result[0].task_text == "memory"
+        assert result[0].success is True
 
 
 # ============================================================================
