@@ -6,6 +6,35 @@
 
 ---
 
+## [Feature] - 2026-07-13 TLM Step 2: 启用 ShortTermMemory 与 MemoryReviewer
+
+### Added — TLM L1 层与记忆审查器接入
+- **agent/orchestrator/lifecycle_manager.py**:
+  - `_initialize_core_systems` 新增 ShortTermMemory / LongTermMemory / MemoryReviewer 实例化（第 3.5/3.6 段）
+  - `__init__` 新增 `short_term_memory_factory` / `memory_reviewer_factory` DI 参数，与现有 6 个 factory 模式一致
+  - 初始化失败时降级为 None，不阻塞启动
+- **agent/server_routes/routes_memory.py**:
+  - 新增 `GET /api/memory/review`: 返回上次审查结果 + LTM 统计
+  - 新增 `POST /api/memory/review`: 触发 `review_quick()`
+  - reviewer 未启用时返回 503，内部异常返回 500
+- **tests/integration/test_short_term_memory_integration.py**（新增）: 14 个集成测试
+  - 覆盖 save/get/ttl/lru/cleanup_expired/clear_task_memory/clear_all/get_stats/list_entries
+- **tests/integration/test_memory_reviewer_integration.py**（新增）: 12 个集成测试
+  - 覆盖 review/review_quick/get_last_review/stale_detection/duplicate_detection/suggestions/health_score
+- **tests/integration/test_routes_memory_review.py**（新增）: 8 个路由测试
+  - 覆盖 GET/POST/503/500 边界场景
+
+### API 契约
+- 新增路由 `/api/memory/review` 属于 TLM_DESIGN.md §4 白名单内
+- 现有 22 个路由签名未变
+
+### Verified
+- `pytest tests/unit/ tests/integration/ -q` 全套通过
+- `/api/memory/review` GET 返回 `{last_review, stats}`
+- `/api/memory/review` POST 返回 `{ok: True, result: ReviewResult}`
+
+---
+
 ## [重构] - 2026-07-07 配置校验统一重构 & 回归测试验证
 
 ### Changed — 搜索实例校验逻辑统一
