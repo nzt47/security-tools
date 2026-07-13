@@ -430,26 +430,39 @@ class MemorySkillAbstractor:
     def _load_long_term_memories(self, *, days: int) -> List[MemoryEntry]:
         """从长期记忆库加载"""
         try:
-            from agent.memory_optimized import MemoryManager
+            from agent.memory.long_term_memory import LongTermMemory
+            from datetime import datetime, timezone
         except Exception:
             return []
-        mgr = MemoryManager()
+        ltm = LongTermMemory()
         cutoff = self._cutoff_ts(days)
         entries: List[MemoryEntry] = []
-        for mem in mgr.list_recent(limit=200):
-            ts = mem.get("timestamp", "")
-            if ts and self._parse_ts(ts) < cutoff:
+        raw_entries = ltm.list_unverified(limit=200) + ltm.list_sensitive(limit=200)
+        seen_keys: set = set()
+        for entry in raw_entries:
+            if entry.key in seen_keys:
                 continue
+            seen_keys.add(entry.key)
+            if entry.created_at and entry.created_at < cutoff:
+                continue
+            content = entry.content
+            if isinstance(content, dict):
+                task_text = content.get("content") or content.get("summary", "")
+            else:
+                task_text = str(content) if content else ""
+            meta = entry.metadata or {}
             entries.append(MemoryEntry(
                 source="long_term_memory",
-                source_id=str(mem.get("id", "")),
-                task_text=mem.get("content") or mem.get("summary", ""),
-                success=bool(mem.get("success", True)),
-                tool_calls=mem.get("tool_calls", []),
-                params=mem.get("params", {}),
-                tags=mem.get("tags", []),
-                timestamp=ts,
-                session_id=mem.get("session_id", ""),
+                source_id=str(entry.key),
+                task_text=task_text,
+                success=bool(meta.get("success", True)),
+                tool_calls=meta.get("tool_calls", []),
+                params=meta.get("params", {}),
+                tags=list(entry.tags or []),
+                timestamp=datetime.fromtimestamp(
+                    entry.created_at, tz=timezone.utc
+                ).isoformat() if entry.created_at else "",
+                session_id=str(meta.get("session_id", "")),
             ))
         return entries
 
