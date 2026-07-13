@@ -260,9 +260,10 @@ class VectorStore:
     """
     向量存储 — 统一实现
 
-    根据环境自动选择存储引擎：
-    - ChromaDB（首选：需要 chromadb + sentence-transformers）
-    - JSON Fallback + 倒排索引 BM25（次选：纯文本关键词搜索）
+    根据环境自动选择存储引擎（优先级：sqlite-vec > chromadb > JSON）：
+    - sqlite-vec（首选：轻量级，需 sqlite-vec + sentence-transformers，384 维）
+    - ChromaDB（次选：需 chromadb + sentence-transformers）
+    - JSON Fallback + 倒排索引 BM25（兜底：纯文本关键词搜索）
 
     优化特性（已整合）：
     - 倒排索引 + BM25 评分：替代原始字符匹配，排序更准确
@@ -270,6 +271,10 @@ class VectorStore:
     - 批量添加（batch_add）：批量写入优化
     - ID 查找（get_by_id）：直接定位记忆项
     - 异步搜索（search_async）：非阻塞搜索
+
+    线程安全：
+    - _backend 字段在构造期确定后不可变，运行期不再修改
+    - _use_chroma 为只读 property（基于 _backend 派生）
     """
 
     def __init__(self, collection_name: str = "agent_memory",
@@ -301,30 +306,77 @@ class VectorStore:
             ttl_seconds=cache_ttl,
         ) if cache_size > 0 else None
 
-        # ── 存储引擎初始化 ──
-        # 首次实例化时延迟检测 chromadb + sentence_transformers 可用性
+        # ── 存储引擎初始化（优先级：sqlite-vec > chromadb > JSON）──
+        # _backend 在构造期确定后不可变，保证线程安全（运行期不再修改 _use_chroma）
+        self._backend = "json"
+        self._sqlite_vec_backend = None
+        self._encoder = None  # sentence_transformers 编码器（sqlite-vec/chromadb 共用）
+        self._items: List[MemoryItem] = []
+        self._id_to_index: Dict[str, int] = {}
+        self._inverted_index = None
+        self._chroma_client = None
+        self._chroma_collection = None
+
         _check_chroma_available()
-        if HAS_CHROMA and HAS_SENTENCE_TRANSFORMERS:
-            self._use_chroma = True
-            self._inverted_index = None  # ChromaDB 模式下无需倒排索引
-            self._id_to_index: Dict[str, int] = {}
-            self._init_chroma()
+
+        # 优先级 1: sqlite-vec（轻量级，需 sentence_transformers 编码）
+        if HAS_SENTENCE_TRANSFORMERS and self._init_sqlite_vec():
+            self._backend = "sqlite_vec"
+        # 优先级 2: ChromaDB（重量级，需 chromadb + sentence_transformers）
+        elif HAS_CHROMA and HAS_SENTENCE_TRANSFORMERS:
+            self._backend = "chromadb"
+            self._init_chroma()  # 内部失败时会将 _backend 改为 "json"
+        # 优先级 3: JSON Fallback + BM25
         else:
-            self._use_chroma = False
-            self._items: List[MemoryItem] = []
-            self._id_to_index: Dict[str, int] = {}
+            self._backend = "json"
             self._load_from_file()
-            # ── 倒排索引（仅 JSON fallback 模式）──
             if enable_inverted_index:
                 self._inverted_index = InvertedIndex()
                 self._rebuild_inverted_index()
                 logger.info("[OK] 倒排索引已启用 (BM25)")
-            else:
-                self._inverted_index = None
 
         logger.info(f"向量存储初始化完成: {collection_name}")
         logger.info(f"   ├─ 持久化目录: {persist_dir}")
-        logger.info(f"   ├─ 存储类型: {'ChromaDB' if self._use_chroma else 'JSON + BM25'}")
+        logger.info(f"   ├─ 存储后端: {self._backend}")
+
+    @property
+    def _use_chroma(self) -> bool:
+        """是否使用 ChromaDB 后端（只读，基于 _backend 不可变字段派生）
+
+        保留以兼容现有代码的 _use_chroma 检查。
+        """
+        return self._backend == "chromadb"
+
+    def _init_sqlite_vec(self) -> bool:
+        """初始化 sqlite-vec 后端
+
+        Returns:
+            True 表示成功初始化
+        """
+        try:
+            import sqlite_vec  # noqa: F401
+            from sentence_transformers import SentenceTransformer
+            # 延迟导入，避免模块导入时拉起 sqlite-vec 扩展
+            from .sqlite_vec_backend import SqliteVecBackend
+
+            # 先初始化 encoder，再从 encoder 动态获取向量维度
+            self._encoder = SentenceTransformer(self.model_name)
+            dim = self._encoder.get_sentence_embedding_dimension()
+
+            db_path = os.path.join(self.persist_dir, f"{self.collection_name}_vec.db")
+            self._sqlite_vec_backend = SqliteVecBackend(
+                db_path=db_path,
+                collection_name=self.collection_name,
+                dim=dim,
+            )
+            logger.info(f"✅ sqlite-vec 后端启用: {db_path} (dim={dim})")
+            return True
+        except ImportError as e:
+            logger.info(f"sqlite-vec 不可用，降级: {e}")
+            return False
+        except Exception as e:
+            logger.warning(f"sqlite-vec 初始化失败: {e}")
+            return False
 
     def _init_chroma(self):
         """初始化 ChromaDB"""
@@ -350,7 +402,8 @@ class VectorStore:
             logger.info(f"✅ ChromaDB 集合创建成功: {self.collection_name}")
         except Exception as e:
             logger.warning(f"⚠️ ChromaDB 初始化失败: {e}，使用 fallback")
-            self._use_chroma = False
+            # 构造期允许修改 _backend（尚未对外发布）
+            self._backend = "json"
             self._items = []
             self._id_to_index = {}
             # fallback 必须加载磁盘 JSON，否则持久化失效（vs2 重新打开时 _items 为空）
@@ -398,6 +451,8 @@ class VectorStore:
     @property
     def count(self) -> int:
         """获取记忆数量"""
+        if self._backend == "sqlite_vec":
+            return self._sqlite_vec_backend.count()
         if self._use_chroma:
             try:
                 return self._chroma_collection.count()
@@ -408,6 +463,15 @@ class VectorStore:
     @property
     def items(self) -> List[MemoryItem]:
         """获取所有记忆项"""
+        if self._backend == "sqlite_vec":
+            # sqlite-vec 不支持高效全量拉取，仅返回最近 N 条
+            recent = self._sqlite_vec_backend.get_recent(limit=10000)
+            return [
+                MemoryItem(
+                    id=r["id"], content=r["content"],
+                    metadata=r["metadata"], timestamp=r["timestamp"],
+                ) for r in recent
+            ]
         if self._use_chroma:
             try:
                 all_data = self._chroma_collection.get()
@@ -445,7 +509,19 @@ class VectorStore:
         if self._query_cache:
             self._query_cache.invalidate()
 
-        if self._use_chroma:
+        if self._backend == "sqlite_vec":
+            embedding = self._encoder.encode([content]).tolist()
+            if self._sqlite_vec_backend.add(
+                item_id=item_id,
+                content=content,
+                embedding=embedding[0],
+                metadata=metadata,
+                timestamp=metadata["created_at"],
+            ):
+                logger.info(f"✅ 添加记忆 [sqlite-vec]: {item_id}")
+            else:
+                logger.error(f"sqlite-vec 添加失败: {item_id}")
+        elif self._backend == "chromadb":
             try:
                 embedding = self._encoder.encode([content]).tolist()
                 self._chroma_collection.add(
@@ -456,13 +532,10 @@ class VectorStore:
                 )
                 logger.info(f"✅ 添加记忆 [Chroma]: {item_id}")
             except Exception as e:
-                logger.warning(f"ChromaDB 添加失败: {e}")
-                self._use_chroma = False
-                self._items = []
-                self._id_to_index = {}
-                self._load_from_file()
+                # 不再修改 _backend（线程安全），仅本次降级到 JSON 路径
+                logger.warning(f"ChromaDB 添加失败: {e}，本次降级到 JSON")
                 self._add_fallback(item_id, content, metadata)
-        else:
+        else:  # json
             self._add_fallback(item_id, content, metadata)
 
         logger.debug(f"   ├─ 内容: {content[:60]}...")
@@ -470,7 +543,7 @@ class VectorStore:
         return item_id
 
     def batch_add(self, items: List[Dict[str, Any]]) -> List[str]:
-        """批量添加记忆项（仅在 JSON fallback 模式下生效）
+        """批量添加记忆项
 
         Args:
             items: 记忆项列表，每项包含 content（必填）和 metadata（可选）
@@ -478,6 +551,33 @@ class VectorStore:
         Returns:
             记忆项ID列表
         """
+        if self._backend == "sqlite_vec":
+            # 失效缓存
+            if self._query_cache:
+                self._query_cache.invalidate()
+
+            contents = [item.get("content", "") for item in items]
+            embeddings = self._encoder.encode(contents).tolist()
+            now_iso = datetime.now().isoformat()
+            backend_items = []
+            item_ids = []
+            for i, item_data in enumerate(items):
+                content = item_data.get("content", "")
+                metadata = item_data.get("metadata", {})
+                metadata["created_at"] = now_iso
+                item_id = f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{i}"
+                backend_items.append({
+                    "id": item_id,
+                    "content": content,
+                    "embedding": embeddings[i],
+                    "metadata": metadata,
+                    "timestamp": now_iso,
+                })
+                item_ids.append(item_id)
+            self._sqlite_vec_backend.batch_add(backend_items)
+            logger.info(f"✅ 批量添加完成 [sqlite-vec]: {len(item_ids)} 条")
+            return item_ids
+
         if self._use_chroma:
             # ChromaDB 模式下逐条添加
             return [self.add(item.get("content", ""), item.get("metadata")) for item in items]
@@ -530,10 +630,11 @@ class VectorStore:
         """
         搜索记忆
 
-        搜索路径（自动选择）:
-        1. ChromaDB 语义搜索（首选）
-        2. 倒排索引 + BM25 关键词搜索（次选，JSON fallback 模式）
-        3. 原始字符匹配（兜底）
+        搜索路径（按 _backend 自动选择）:
+        1. sqlite-vec KNN 向量搜索（首选）
+        2. ChromaDB 语义搜索（次选）
+        3. 倒排索引 + BM25 关键词搜索（JSON fallback 模式）
+        4. 原始字符匹配（兜底）
 
         Args:
             query: 查询文本
@@ -550,6 +651,25 @@ class VectorStore:
             if cached is not None:
                 logger.info(f"   ├─ [缓存命中] 返回 {len(cached)} 条")
                 return cached
+
+        # ── sqlite-vec KNN 搜索 ──
+        if self._backend == "sqlite_vec":
+            try:
+                query_vec = self._encoder.encode([query]).tolist()[0]
+                raw_results = self._sqlite_vec_backend.search(query_vec, top_k=top_k)
+                items = [
+                    MemoryItem(
+                        id=r["id"], content=r["content"],
+                        metadata=r["metadata"], timestamp=r["timestamp"],
+                    ) for r in raw_results
+                ]
+                logger.info(f"   ├─ sqlite-vec 匹配结果数: {len(items)}")
+                if self._query_cache:
+                    self._query_cache.set(query, top_k, items)
+                return items
+            except Exception as e:
+                logger.error(f"sqlite-vec 搜索失败: {e}")
+                return []
 
         # ── ChromaDB 搜索 ──
         if self._use_chroma:
@@ -574,8 +694,8 @@ class VectorStore:
                     self._query_cache.set(query, top_k, items)
                 return items
             except Exception as e:
-                logger.warning(f"ChromaDB 搜索失败: {e}，使用 fallback")
-                self._use_chroma = False
+                # 不再修改 _backend（线程安全），仅本次降级到 JSON 搜索路径
+                logger.warning(f"ChromaDB 搜索失败: {e}，本次降级到 JSON")
 
         # ── JSON Fallback 搜索 ──
         # 混合策略：BM25（英文精准搜索） + 原始评分（中英文兜底）
@@ -642,7 +762,15 @@ class VectorStore:
         return bool(re.search(r'[a-zA-Z]{3,}', query))
 
     def get_by_id(self, item_id: str) -> Optional[MemoryItem]:
-        """根据 ID 获取记忆项（仅 JSON fallback 模式，ChromaDB 模式下有限支持）"""
+        """根据 ID 获取记忆项"""
+        if self._backend == "sqlite_vec":
+            r = self._sqlite_vec_backend.get_by_id(item_id)
+            if r is None:
+                return None
+            return MemoryItem(
+                id=r["id"], content=r["content"],
+                metadata=r["metadata"], timestamp=r["timestamp"],
+            )
         if self._use_chroma:
             try:
                 all_data = self._chroma_collection.get()
@@ -666,6 +794,14 @@ class VectorStore:
 
     def get_recent(self, limit: int = 10) -> List[MemoryItem]:
         """获取最近的记忆"""
+        if self._backend == "sqlite_vec":
+            rows = self._sqlite_vec_backend.get_recent(limit=limit)
+            return [
+                MemoryItem(
+                    id=r["id"], content=r["content"],
+                    metadata=r["metadata"], timestamp=r["timestamp"],
+                ) for r in rows
+            ]
         if self._use_chroma:
             try:
                 all_items = self.items
@@ -681,6 +817,11 @@ class VectorStore:
         """清空记忆"""
         if self._query_cache:
             self._query_cache.invalidate()
+
+        if self._backend == "sqlite_vec":
+            self._sqlite_vec_backend.clear()
+            logger.info("🗑️ sqlite-vec 数据已清空")
+            return
 
         if self._use_chroma:
             try:
@@ -704,11 +845,15 @@ class VectorStore:
     def get_stats(self) -> Dict[str, Any]:
         """获取存储统计信息"""
         stats = {
-            "type": "chroma" if self._use_chroma else "fallback",
+            "backend": self._backend,
+            "type": "sqlite_vec" if self._backend == "sqlite_vec"
+                    else ("chroma" if self._use_chroma else "fallback"),
             "count": self.count,
             "persist_dir": self.persist_dir,
             "collection_name": self.collection_name,
         }
+        if self._backend == "sqlite_vec" and self._sqlite_vec_backend:
+            stats["sqlite_vec"] = self._sqlite_vec_backend.get_stats()
         if self._query_cache:
             stats["cache"] = self._query_cache.get_stats()
         if self._inverted_index:

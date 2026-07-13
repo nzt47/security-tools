@@ -2,8 +2,24 @@
 
 import time
 import tempfile
+import sys
 import pytest
+from unittest.mock import patch
 from memory.vector_store import VectorStore
+
+
+@pytest.fixture(autouse=True)
+def _disable_sqlite_vec_for_perf_tests():
+    """禁用 sqlite-vec 后端，让性能测试使用 JSON fallback。
+
+    Why: sqlite-vec 后端需要加载 sentence_transformers 模型（55s+），
+    会导致性能测试超时且测量失真。sqlite-vec 后端的性能测试应独立编写。
+    """
+    original = sys.modules.get('sqlite_vec')
+    with patch.dict(sys.modules, {'sqlite_vec': None}):
+        yield
+    if original is not None:
+        sys.modules['sqlite_vec'] = original
 
 
 @pytest.fixture
