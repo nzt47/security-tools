@@ -841,8 +841,8 @@ class TestAddChangeLogEdgeCases:
         # 再添加一条，应触发截断
         manager._add_change_log("update", "test")
         assert len(config["change_log"]) == 100
-        # 最新一条在头部
-        assert config["change_log"][0]["action"] == "update"
+        # 追加顺序：最新一条在末尾（get_change_log 反转为最新在前）
+        assert config["change_log"][-1]["action"] == "update"
 
     def test_change_log_not_truncated_below_100(self, manager):
         config = manager._load()
@@ -871,8 +871,8 @@ class TestUpdateWebhookEdgeCases:
 class TestUpdateMcpConfigEdgeCases:
     """_update_mcp_config 无 id 分支与 else 分支覆盖"""
 
-    def test_update_mcp_service_without_id_no_auto_generate(self, manager):
-        # 无 id 的 service 不被处理（if 'id' in service 守卫了整个逻辑）
+    def test_update_mcp_service_without_id_auto_generate(self, manager):
+        # 无 id 的 service 现在会自动生成 id（修复了原 if 'id' in service 守卫导致的跳过）
         mcp_config = {
             "enabled": True,
             "services": [{"name": "no_id_service", "address": "remote"}],
@@ -880,8 +880,9 @@ class TestUpdateMcpConfigEdgeCases:
         manager._update_mcp_config(mcp_config)
         config = manager._load()
         service = config["mcp"]["services"][0]
-        # 无 id 不会被自动生成
-        assert "id" not in service or service.get("id") is None or service["id"] == ""
+        # 无 id 会自动生成
+        assert service.get("id") is not None and service["id"] != ""
+        assert "created_at" in service  # 新增 service 应有时间戳
 
     def test_update_mcp_with_existing_service_id(self, manager):
         # 先添加一个带 id 的 service
