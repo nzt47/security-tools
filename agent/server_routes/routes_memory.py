@@ -101,6 +101,38 @@ def register_routes(app, state):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/memory/review", methods=["GET", "POST"])
+    @trace_route("Memory")
+    @require_token
+    @log_request()
+    def api_memory_review():
+        """记忆库审查接口
+
+        GET: 返回上次审查结果 + LTM 统计
+        POST: 触发快速审查 (review_quick)
+        """
+        try:
+            reviewer = Yunshu._memory_reviewer
+            if reviewer is None:
+                return jsonify({"ok": False, "error": "记忆审查器未启用"}), 503
+
+            if request.method == "GET":
+                last_review = reviewer.get_last_review()
+                return jsonify({
+                    "last_review": vars(last_review) if last_review else None,
+                    "stats": Yunshu._long_term_memory.get_stats() if Yunshu._long_term_memory else {},
+                })
+            else:  # POST
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result = loop.run_until_complete(reviewer.review_quick())
+                finally:
+                    loop.close()
+                return jsonify({"ok": True, "result": result})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/memory/summary", methods=["PUT"])
     @trace_route("Memory")
     @require_token
