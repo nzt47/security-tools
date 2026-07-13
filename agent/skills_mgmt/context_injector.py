@@ -119,14 +119,38 @@ def _section_title(section: str) -> str:
 def _classify_section(section: str, idx: int) -> int:
     """章节优先级：0=必保留(首章节+步骤)，1=次保留(示例/注意)，2=可裁剪(参考)"""
     if idx == 0:
+        logger.info(json.dumps({
+            "module_name": "context_injector",
+            "action": "classify_section",
+            "index": idx, "title": _section_title(section),
+            "priority": 0, "reason": "first section always must_keep",
+        }, ensure_ascii=False))
         return 0
     title_line = section.split('\n', 1)[0]
     for kw in _MUST_KEEP_KEYWORDS:
         if kw in title_line:
+            logger.info(json.dumps({
+                "module_name": "context_injector",
+                "action": "classify_section",
+                "index": idx, "title": _section_title(section),
+                "priority": 0, "reason": f"matched must_keep keyword: {kw}",
+            }, ensure_ascii=False))
             return 0
     for kw in _SECONDARY_KEYWORDS:
         if kw in title_line:
+            logger.info(json.dumps({
+                "module_name": "context_injector",
+                "action": "classify_section",
+                "index": idx, "title": _section_title(section),
+                "priority": 1, "reason": f"matched secondary keyword: {kw}",
+            }, ensure_ascii=False))
             return 1
+    logger.info(json.dumps({
+        "module_name": "context_injector",
+        "action": "classify_section",
+        "index": idx, "title": _section_title(section),
+        "priority": 2, "reason": "no keyword matched, droppable reference",
+    }, ensure_ascii=False))
     return 2
 
 
@@ -234,6 +258,13 @@ def _select_sections_by_budget(sections: List[str], budget: int,
 
     # 必保留仍超预算：按原顺序逐步加载直到预算耗尽
     if must_keep_tokens > budget:
+        logger.info(json.dumps({
+            "trace_id": trace_id,
+            "module_name": "context_injector",
+            "action": "select_sections.fallback_to_greedy",
+            "reason": f"must_keep_tokens({must_keep_tokens}) > budget({budget})",
+            "implication": "放弃优先级保留，改用顺序贪心，单章节仍不截断",
+        }, ensure_ascii=False))
         return _greedy_select_until_budget(sections, budget, trace_id=trace_id)
 
     # 必保留可放下，依次尝试次保留、可裁剪
@@ -255,6 +286,14 @@ def _select_sections_by_budget(sections: List[str], budget: int,
                 continue
             sec_tokens = estimate_tokens(s)
             if used + sec_tokens > budget:
+                logger.info(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "context_injector",
+                    "action": "select_sections.drop_one",
+                    "index": i, "title": _section_title(s),
+                    "tokens": sec_tokens, "priority": p,
+                    "reason": f"used({used})+sec({sec_tokens})>budget({budget})",
+                }, ensure_ascii=False))
                 section_stats.append({
                     "index": i, "title": _section_title(s),
                     "tokens": sec_tokens, "priority": p,
@@ -263,6 +302,14 @@ def _select_sections_by_budget(sections: List[str], budget: int,
                 continue
             selected_indices.add(i)
             used += sec_tokens
+            logger.info(json.dumps({
+                "trace_id": trace_id,
+                "module_name": "context_injector",
+                "action": "select_sections.keep_one",
+                "index": i, "title": _section_title(s),
+                "tokens": sec_tokens, "priority": p,
+                "reason": f"fits remaining budget, used={used}/{budget}",
+            }, ensure_ascii=False))
             section_stats.append({
                 "index": i, "title": _section_title(s),
                 "tokens": sec_tokens, "priority": p,
