@@ -286,10 +286,10 @@ class NetworkConfigManager:
             "section": section,
             "details": details or {},
         }
-        # 只保留最近 100 条日志
-        self._cache["change_log"].insert(0, log_entry)
+        # 追加到尾部 O(1)，读取时反转；仅保留最近 100 条
+        self._cache["change_log"].append(log_entry)
         if len(self._cache["change_log"]) > 100:
-            self._cache["change_log"] = self._cache["change_log"][:100]
+            self._cache["change_log"] = self._cache["change_log"][-100:]
 
     def get_all(self) -> dict:
         """获取完整配置（敏感信息脱敏）"""
@@ -321,6 +321,8 @@ class NetworkConfigManager:
 
         # 脱敏处理
         safe_config = deepcopy(config)
+        # change_log 现为追加顺序（最新在末尾），返回时反转为最新在前
+        safe_config["change_log"] = safe_config.get("change_log", [])[::-1]
         
         # LLM API Key 脱敏
         if safe_config["llm"].get('api_key'):
@@ -578,14 +580,16 @@ class NetworkConfigManager:
 
         if 'services' in mcp_config:
             for service in mcp_config["services"]:
-                if 'id' in service:
-                    existing = next((s for s in old_services if s.get("id") == service["id"]), None)
-                    if existing:
-                        self._add_change_log('update', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
-                    else:
-                        service["created_at"] = datetime.datetime.now().isoformat()
-                        service["updated_at"] = service["created_at"]
-                        self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
+                # 无 id 的 service 自动生成（修复原 if 'id' in service 守卫导致的跳过）
+                if not service.get('id'):
+                    service["id"] = str(uuid.uuid4())
+                existing = next((s for s in old_services if s.get("id") == service["id"]), None)
+                if existing:
+                    self._add_change_log('update', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
+                else:
+                    service["created_at"] = datetime.datetime.now().isoformat()
+                    service["updated_at"] = service["created_at"]
+                    self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
 
     def _register_search_instance(self, instance: dict, search_engine):
         """注册单个搜索实例到 SearchEngine
@@ -1080,9 +1084,10 @@ class NetworkConfigManager:
         return False
 
     def get_change_log(self, limit: int = 20) -> List[dict]:
-        """获取配置变更日志"""
+        """获取配置变更日志（最新在前）"""
         config = self._load()
-        return config.get('change_log', [])[:limit]
+        # change_log 为追加顺序（最新在末尾），反转为最新在前
+        return config.get('change_log', [])[::-1][:limit]
 
     def apply_to_app(self, app_instance=None):
         """将网络配置应用到应用实例
