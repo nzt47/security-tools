@@ -261,7 +261,7 @@ class NetworkConfigManager:
             try:
                 self._secure_manager.set_secure_value(key, value)
                 logger.info(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 已加密保存: {key}'}))
-            except Exception as e:
+            except (OSError, ValueError, TypeError, RuntimeError) as e:
                 logger.error(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 加密保存失败 {key}: {e}'}))
         else:
             logger.warning(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': '[网络配置] SecureManager 未初始化，敏感信息将明文存储'}))
@@ -271,7 +271,7 @@ class NetworkConfigManager:
         if self._secure_manager:
             try:
                 return self._secure_manager.get_secure_value(key, default)
-            except Exception as e:
+            except (OSError, ValueError, TypeError, RuntimeError) as e:
                 logger.error(log_dict({'module_name': 'network_config', 'action': 'log', 'msg': f'[网络配置] 加密加载失败 {key}: {e}'}))
                 return default
         return default
@@ -1149,7 +1149,14 @@ class NetworkConfigManager:
             logger.warning(log_dict({'module_name': 'config_manager', 'action': 'log', 'msg': '[网络配置] 注册搜索实例失败: %s' % (e,), 'exc_info': True}))
 
         # 应用到 LLM 配置
-        if app_instance and hasattr(app_instance, 'configure_llm'):
+        # 注意：hasattr 只捕获 AttributeError，若 configure_llm 是 property 且
+        # getter 抛其他异常会传播，因此用 try-except 保护
+        try:
+            _has_configure_llm = app_instance and hasattr(app_instance, 'configure_llm')
+        except Exception:
+            _has_configure_llm = False
+
+        if _has_configure_llm:
             llm = config["llm"]
 
             # ── 确定最终 LLM 参数：优先使用 llm_instances 中配置的实例 ──
