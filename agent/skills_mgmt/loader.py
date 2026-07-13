@@ -108,7 +108,9 @@ class SkillMatch:
     def __init__(self, skill_id: str, name: str, description: str,
                  score: float, estimated_tokens: int,
                  category: str = "", tags: Optional[List[str]] = None,
-                 version: str = "", enabled: bool = True):
+                 version: str = "", enabled: bool = True,
+                 # 以下为预留扩展字段，向后兼容（默认 None 不影响现有调用）
+                 score_breakdown: Optional[Dict[str, Any]] = None):
         self.skill_id = skill_id
         self.name = name
         self.description = description
@@ -118,6 +120,9 @@ class SkillMatch:
         self.tags = tags or []
         self.version = version
         self.enabled = enabled
+        # 预留：未来多路检索（tfidf/vector/bm25）的分项得分
+        # 示例: {"tfidf": 0.8, "vector": 0.9}，当前 TF-IDF 不填充
+        self.score_breakdown = score_breakdown
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -130,6 +135,7 @@ class SkillMatch:
             "tags": self.tags,
             "version": self.version,
             "enabled": self.enabled,
+            "score_breakdown": self.score_breakdown,
         }
 
 
@@ -137,11 +143,24 @@ class MatchResult:
     """匹配结果集合"""
 
     def __init__(self, matches: List[SkillMatch], total_scanned: int,
-                 elapsed_ms: float, estimated_total_tokens: int):
+                 elapsed_ms: float, estimated_total_tokens: int,
+                 # 以下为预留扩展字段，均为关键字参数且有默认值，向后兼容
+                 *, retrieval_method: str = "tfidf",
+                 score_breakdown: Optional[Dict[str, List[float]]] = None,
+                 reranked: bool = False,
+                 fallback_used: bool = False):
         self.matches = matches
         self.total_scanned = total_scanned
         self.elapsed_ms = round(elapsed_ms, 2)
         self.estimated_total_tokens = estimated_total_tokens
+        # 预留扩展：检索方法标识 tfidf | vector | bm25 | fused
+        self.retrieval_method = retrieval_method
+        # 预留扩展：分路得分汇总 {"tfidf": [...], "vector": [...]}
+        self.score_breakdown = score_breakdown
+        # 预留扩展：是否经过 Reranker 二次排序
+        self.reranked = reranked
+        # 预留扩展：是否降级（向量检索失败回退 TF-IDF 时为 True）
+        self.fallback_used = fallback_used
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -151,6 +170,10 @@ class MatchResult:
             "elapsed_ms": self.elapsed_ms,
             "estimated_total_tokens": self.estimated_total_tokens,
             "layer": 1,
+            "retrieval_method": self.retrieval_method,
+            "score_breakdown": self.score_breakdown,
+            "reranked": self.reranked,
+            "fallback_used": self.fallback_used,
         }
 
 
@@ -183,8 +206,14 @@ class SkillLoader:
 
     def match(self, intent: str, *, top_k: int = 5,
               enabled_only: bool = True,
-              min_score: float = 0.01) -> MatchResult:
-        """第一层匹配 — 基于元数据索引匹配用户意图
+              min_score: float = 0.01,
+              # 以下为预留扩展点，当前不实现，仅占位（默认 False 保证向后兼容）
+              use_vector: bool = False,
+              use_bm25: bool = False,
+              use_reranker: bool = False,
+              retrieval_weights: Optional[Dict[str, float]] = None,
+              ) -> MatchResult:
+        """第一层匹配 — 当前仅 TF-IDF，接口已预留向量/BM25/Reranker 扩展点
 
         只读取 skill.md 的 front matter（约 100 token/技能），
         不加载 body 或脚本，大幅节省上下文成本。
@@ -194,11 +223,31 @@ class SkillLoader:
             top_k: 返回前 K 个匹配
             enabled_only: 是否只匹配启用状态的技能
             min_score: 最低匹配分阈值
+            use_vector: 预留扩展：未来启用向量检索（当前忽略，记录 warning）
+            use_bm25: 预留扩展：未来启用 BM25（当前忽略，记录 warning）
+            use_reranker: 预留扩展：未来启用 Reranker（当前忽略，记录 warning）
+            retrieval_weights: 预留扩展：未来多路融合（RRF）权重（当前忽略）
 
         Returns: MatchResult
         """
         t0 = time.time()
         tid = _trace_id()
+
+        # 扩展点防御：请求未实现的检索方式时记录 warning 并降级 TF-IDF
+        fallback_used = False
+        if use_vector or use_bm25 or use_reranker:
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "match.extension_not_implemented",
+                "intent": intent[:100],
+                "use_vector": use_vector,
+                "use_bm25": use_bm25,
+                "use_reranker": use_reranker,
+                "retrieval_weights": retrieval_weights,
+                "fallback": "tfidf",
+            }, ensure_ascii=False))
+            fallback_used = True
 
         # 加载元数据索引（第一层，只读 front matter）
         index = self.fs.load_metadata_index()
@@ -250,6 +299,8 @@ class SkillLoader:
             "total_scanned": len(index),
             "match_count": len(top),
             "estimated_tokens": total_tokens,
+            "retrieval_method": "tfidf",
+            "fallback_used": fallback_used,
         }, ensure_ascii=False))
 
         emit_metric("yunshu_skill_match_latency_ms",
@@ -264,6 +315,8 @@ class SkillLoader:
             total_scanned=len(index),
             elapsed_ms=elapsed,
             estimated_total_tokens=total_tokens,
+            retrieval_method="tfidf",
+            fallback_used=fallback_used,
         )
 
     def list_all_metadata(self, *, enabled_only: bool = False) -> List[Dict[str, Any]]:

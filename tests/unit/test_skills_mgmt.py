@@ -12,6 +12,7 @@
 """
 import os
 import json
+import logging
 import tempfile
 import pytest
 
@@ -22,6 +23,8 @@ from agent.skills_mgmt import (
     SkillValidationError,
     SkillSecurityError,
 )
+from agent.skills_mgmt.context_injector import ContextInjector
+from agent.skills_mgmt.loader import MatchResult, SkillMatch, SkillLoader, estimate_tokens
 from agent.skills_mgmt.models import SkillSearchParams
 
 
@@ -368,3 +371,217 @@ class TestSkillPersistence:
         svc.delete("del-skill")
         with pytest.raises(SkillNotFoundError):
             svc.get("del-skill")
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  7. 检索扩展点测试（接口预留，当前仅 TF-IDF 实现）
+# ═══════════════════════════════════════════════════════════════════
+
+class TestRetrievalExtension:
+    """检索扩展点测试：验证 MatchResult/SkillMatch/health 预留字段向后兼容"""
+
+    def test_match_result_has_extension_fields(self):
+        """MatchResult.to_dict() 含 retrieval_method/reranked/fallback_used 等新字段"""
+        match = SkillMatch(
+            skill_id="t", name="t", description="d",
+            score=0.5, estimated_tokens=10,
+        )
+        result = MatchResult(
+            matches=[match], total_scanned=1, elapsed_ms=1.0,
+            estimated_total_tokens=10,
+        )
+        d = result.to_dict()
+        assert d["retrieval_method"] == "tfidf"
+        assert d["reranked"] is False
+        assert d["fallback_used"] is False
+        assert "score_breakdown" in d
+        # SkillMatch 也应含 score_breakdown 字段（默认 None）
+        assert d["matches"][0]["score_breakdown"] is None
+
+    def test_match_accepts_extension_params(self, svc, caplog):
+        """传入 use_vector=True 等扩展参数不报错，并记录 warning 日志"""
+        svc.create_manual(_make_skill_data(name="ext-skill", description="邮件处理"))
+        loader = svc.loader
+
+        with caplog.at_level(logging.WARNING, logger="agent.skills_mgmt"):
+            result = loader.match("邮件", use_vector=True, use_bm25=True,
+                                   use_reranker=True,
+                                   retrieval_weights={"tfidf": 0.2, "vector": 0.8})
+
+        # 应在 WARNING 日志中找到扩展点未实现的记录
+        found_warning = False
+        for record in caplog.records:
+            if "match.extension_not_implemented" in record.getMessage():
+                found_warning = True
+                break
+        assert found_warning, "未记录扩展点未实现的 warning"
+        # 仍应返回有效 MatchResult（降级 TF-IDF）
+        assert isinstance(result, MatchResult)
+
+    def test_match_fallback_flag_when_vector_requested(self, svc):
+        """use_vector=True 时 fallback_used 应为 True（请求了但未实现）"""
+        svc.create_manual(_make_skill_data(name="fb-skill", description="邮件处理"))
+        loader = svc.loader
+
+        result_normal = loader.match("邮件")
+        assert result_normal.fallback_used is False, "未请求扩展点时 fallback_used 应为 False"
+
+        result_vector = loader.match("邮件", use_vector=True)
+        assert result_vector.fallback_used is True, "请求 use_vector=True 时应标记降级"
+        assert result_vector.retrieval_method == "tfidf", "降级后方法仍为 tfidf"
+
+    def test_health_includes_scale_monitoring(self, svc):
+        """health() 返回值应含 scale_monitoring 字段及子字段"""
+        svc.create_manual(_make_skill_data(name="h2-skill", content="x\n"))
+        health = svc.health()
+        assert "scale_monitoring" in health, "health() 应包含 scale_monitoring"
+        sm = health["scale_monitoring"]
+        assert sm["total_skills"] >= 1
+        assert sm["upgrade_threshold"] == 30
+        assert sm["current_method"] == "tfidf"
+        assert sm["available_methods"] == ["tfidf"]
+        assert sm["upgrade_recommended"] is False, "1 个技能不应触发升级建议"
+
+    def test_health_upgrade_recommended_at_threshold(self, svc):
+        """技能数达到阈值 30 时 upgrade_recommended 应为 True"""
+        # 创建 30 个技能达到升级阈值
+        for i in range(30):
+            svc.create_manual(_make_skill_data(
+                name=f"thresh-skill-{i}", content=f"print({i})\n"))
+        health = svc.health()
+        sm = health["scale_monitoring"]
+        assert sm["total_skills"] == 30
+        assert sm["upgrade_recommended"] is True, "技能数达 30 应触发升级建议"
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  8. ContextInjector 章节级智能截断测试
+# ═══════════════════════════════════════════════════════════════════
+
+def _make_injector_with_instruction(instruction: str, *, budget: int = 4000) -> ContextInjector:
+    """构造一个用 mock loader 注入指定 instruction 的 ContextInjector"""
+    from unittest.mock import MagicMock
+    loader = MagicMock()
+    loader.load_instruction.return_value = {
+        "skill_id": "test-skill",
+        "instruction": instruction,
+        "estimated_tokens": estimate_tokens(instruction),
+        "instruction_chars": len(instruction),
+        "layer": 2,
+    }
+    return ContextInjector(loader=loader, instr_budget=budget)
+
+
+class TestContextInjectorInstruction:
+    """ContextInjector.inject_instruction 章节级智能截断测试"""
+
+    _SECTION_INSTRUCTION = (
+        "## 概述\n这是一个测试技能的简介说明。\n\n"
+        "## 步骤\n1. 准备数据\n2. 执行处理\n3. 输出结果\n\n"
+        "## 示例\n输入 hello 输出 HELLO。\n\n"
+        "## 参考资料\n相关链接列表。\n"
+    )
+
+    def test_inject_instruction_no_truncation_under_budget(self):
+        """预算充足时完整保留所有章节"""
+        instruction = self._SECTION_INSTRUCTION
+        injector = _make_injector_with_instruction(instruction, budget=10000)
+        result = injector.inject_instruction("test-skill")
+        assert result["truncated"] is False
+        assert "## 概述" in result["prompt"]
+        assert "## 步骤" in result["prompt"]
+        assert "## 示例" in result["prompt"]
+        assert "## 参考资料" in result["prompt"]
+        assert "更多章节未加载" not in result["prompt"]
+
+    def test_inject_instruction_truncation_by_section(self):
+        """超预算时按章节取舍：保留首章节 + 步骤章节，丢弃参考资料"""
+        overview = "## 概述\n技能简介。\n"
+        steps = "## 步骤\n1. 第一步\n2. 第二步\n3. 第三步\n"
+        examples = "## 示例\n示例内容。\n"
+        # 参考资料占大量 token，但优先级最低
+        refs = "## 参考资料\n" + ("参考链接内容。" * 200) + "\n"
+        instruction = overview + steps + examples + refs
+        injector = _make_injector_with_instruction(instruction, budget=200)
+        result = injector.inject_instruction("test-skill")
+        assert result["truncated"] is True
+        # 必保留：首章节（概述）+ 步骤章节
+        assert "## 概述" in result["prompt"]
+        assert "## 步骤" in result["prompt"]
+        # 可裁剪：参考资料应被丢弃
+        assert "## 参考资料" not in result["prompt"]
+        # 末尾追加省略提示
+        assert "更多章节未加载" in result["prompt"]
+
+    def test_inject_instruction_no_half_sentence(self):
+        """保留的任何章节末尾不应是半句话（用句号/问号/感叹号/换行判断）"""
+        overview = "## 概述\n这是一个完整的句子。\n\n"
+        steps = "## 步骤\n1. 完整步骤一。\n2. 完整步骤二。\n\n"
+        examples = "## 示例\n完整示例。\n\n"
+        refs = "## 参考资料\n" + ("参考内容。" * 150) + "\n"
+        instruction = overview + steps + examples + refs
+        injector = _make_injector_with_instruction(instruction, budget=150)
+        result = injector.inject_instruction("test-skill")
+        # 截取 prompt 中省略提示之前的章节内容
+        body = result["prompt"]
+        if "更多章节未加载" in body:
+            body = body.split("...(更多章节未加载")[0]
+        # 切分回章节块（双换行分隔）
+        blocks = [b for b in body.split("\n\n") if b.strip()]
+        for block in blocks:
+            # 跳过外层包装行
+            if block.startswith("## 技能使用说明"):
+                continue
+            tail = block.rstrip()[-1] if block.rstrip() else ""
+            assert tail in "。！？\n)", (
+                f"章节末尾疑似半句话: ...{block[-40:]!r}"
+            )
+
+    def test_inject_instruction_no_markdown_fallback(self):
+        """无 H2/H3 标记时降级为整段保留或整段不保留（不截断半句话）"""
+        plain_text = "这是一个没有章节标记的纯文本使用说明。" * 100
+
+        # 预算充足：整段保留
+        injector_full = _make_injector_with_instruction(plain_text, budget=100000)
+        result_full = injector_full.inject_instruction("test-skill")
+        assert result_full["truncated"] is False
+        assert plain_text in result_full["prompt"]
+        assert "更多章节未加载" not in result_full["prompt"]
+
+        # 预算极小：整段不保留，只显示省略提示（无半句话截断）
+        injector_small = _make_injector_with_instruction(plain_text, budget=10)
+        result_small = injector_small.inject_instruction("test-skill")
+        assert result_small["truncated"] is True
+        assert "更多章节未加载" in result_small["prompt"]
+        # 不应出现原始长文本片段（说明整段被丢弃而非字符截断）
+        # 取省略提示前的内容判断
+        before_hint = result_small["prompt"].split("...(更多章节未加载")[0]
+        assert plain_text[:50] not in before_hint
+
+    def test_inject_instruction_dropped_sections_logged(self, caplog):
+        """截断时 WARNING 日志应包含非空的 dropped_sections / kept_sections"""
+        overview = "## 概述\n简介。\n"
+        steps = "## 步骤\n1. 步骤一。\n"
+        refs = "## 参考资料\n" + ("参考" * 200) + "\n"
+        instruction = overview + steps + refs
+        injector = _make_injector_with_instruction(instruction, budget=100)
+
+        with caplog.at_level(logging.WARNING, logger="agent.skills_mgmt"):
+            result = injector.inject_instruction("test-skill")
+
+        assert result["truncated"] is True
+
+        # 在 WARNING 日志中找包含 dropped_sections 的 JSON 记录
+        found = False
+        for record in caplog.records:
+            msg = record.getMessage()
+            if "dropped_sections" not in msg or "inject_instruction.truncated" not in msg:
+                continue
+            payload = json.loads(msg)
+            assert payload["truncated"] is True
+            assert len(payload["dropped_sections"]) > 0, "dropped_sections 应非空"
+            assert len(payload["kept_sections"]) > 0, "kept_sections 应非空"
+            found = True
+            break
+
+        assert found, "未找到含 dropped_sections 的截断日志"
