@@ -418,3 +418,41 @@ python scripts/rebuild_p0_workflow.py --yes
 - [P0 安全修复归档](docs/security/p0_security_fix_archive_20260703.md)
 - [Release Notes](docs/security/RELEASE_NOTES_P0_SECURITY_20260703.md)
 
+## 版本历史
+
+### v1.2.0 (2026-07-14)
+
+**Tag**: `v1.2.0` | **PR**: #9 (已合并) | **质量评级**: B+
+
+config_manager 测试强化与 TLM Step 2 记忆系统发布。从零测试到 96% 覆盖率，包含 235 个单元测试、13 个性能基准、4 个 Bug 修复、3 项性能优化、2 处安全隐患修复。
+
+#### 核心变更
+
+| 类别 | 内容 |
+|------|------|
+| 测试强化 | config_manager.py (143 测试, 94%) + snapshot.py (92 测试, 98%) |
+| 新功能 | TLM Step 2: ShortTermMemory + MemoryReviewer + `/api/memory/review` 路由 |
+| 性能优化 | P2 字典索引 2.6x 加速、P3 日志 O(1) 优化、P3 MCP 自动 id |
+| Bug 修复 | 死代码分支、引用覆盖查重、无 id MCP 跳过、created_at 处理 |
+| 安全修复 | hasattr 保护（try-except）、异常收窄（OSError/ValueError/TypeError/RuntimeError） |
+| 重构 | 提取 `_upsert_collection_batch` 消除 55 行重复逻辑 |
+
+#### 性能数据
+
+| 实例数 | 线性查找 | 字典索引 | 加速比 |
+|--------|----------|----------|--------|
+| 100 | 2.03ms | 0.77ms | 2.6x |
+| 200 | 2.51ms | 1.43ms | 1.8x |
+
+#### 已知问题
+
+- `_upsert_collection_item` 0% 覆盖率（23 行死代码，P1 建议删除）
+- `update` 方法转发调用未测试（P3）
+- 防御性代码路径未覆盖（P4，可选）
+
+#### 升级指南
+
+无需用户操作：API 接口不变、配置文件格式不变、行为变化仅影响边缘场景。
+
+详细变更见 [CHANGELOG.md](CHANGELOG.md) 和 [发布归档](docs/releases/v1.2.0.md)。
+
