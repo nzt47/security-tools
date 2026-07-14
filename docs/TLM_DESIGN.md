@@ -456,6 +456,127 @@ def _init_vector_backend(self):
     self._rebuild_inverted_index()
 ```
 
+> **注**: §5.4 为初始设计建议。实际实施代码见 §5.6。
+
+### 5.5 生产数据迁移验证结果（Step 3 完成后）
+
+#### 5.5.1 迁移概述
+
+| 项目 | 值 |
+|------|-----|
+| 迁移时间 | 2026-07-13T12:29:22 UTC |
+| 数据量 | 1659 条对话记忆 |
+| 向量维度 | 384 (paraphrase-multilingual-MiniLM-L12-v2) |
+| encoder | sentence_transformers 5.6.0 (torch 2.13.0+cpu) |
+| 迁移耗时 | 52,525ms (30 条/s) |
+| 模型加载 | 55,659ms (首次, 含 HuggingFace HEAD 请求) / 30,125ms (离线模式) |
+| 失败数 | 0 (全量成功) |
+| 目标文件 | `./data/memory/memory_vec.db` (4.35 MB) |
+
+#### 5.5.2 KNN 查询性能（20 次随机抽样，真实 encoder）
+
+| top_k | avg (ms) | p50 (ms) | p99 (ms) |
+|-------|----------|----------|----------|
+| 5     | 12.64    | 6.86     | 119.52   |
+| 10    | 6.84     | 6.48     | 10.89    |
+| 20    | 6.88     | 6.04     | 11.29    |
+
+**冷启动效应**: 首次 KNN 查询 119.52ms（sqlite-vec 加载向量索引到内存），第 2 次起稳定在 6-8ms。
+
+**Encode 延迟**: avg=89.40ms, p50=40.27ms, p99=795.77ms（首次 encode 含 torch JIT 编译）。
+
+**端到端搜索延迟估算**: encode(40ms p50) + KNN(6ms p50) = **~46ms p50**。
+
+#### 5.5.3 recall@1 验证
+
+| 测试场景 | 样本数 | recall@1 | 方法 |
+|----------|--------|----------|------|
+| 探针（100 条 512 维） | 1 | 1.0 | 精确向量匹配 |
+| 迁移后验证（1659 条 384 维） | 5 | 1.0 | 随机抽样 + encoder 重新 encode |
+| KNN 性能测试（1659 条 384 维） | 20 | 1.0 (20/20) | 随机抽样 + 真实 encoder |
+
+#### 5.5.4 存储效率对比
+
+| 后端 | 文件大小 | 每条 | 是否含向量 | 依赖体积 |
+|------|----------|------|-----------|----------|
+| JSON fallback | 1.01 MB | 641 bytes | 否（仅 BM25） | 无 |
+| **sqlite-vec** | **4.35 MB** | **2,750 bytes** | **是（384 维）** | ~1 MB |
+| ChromaDB | N/A | N/A | 是 | ~500 MB (chromadb+onnxruntime) |
+
+**分析**: sqlite-vec 每条 2,750 bytes = 1,536 bytes 向量 (384×4) + 1,214 bytes 元数据/索引。依赖体积比 ChromaDB 减少 500x。
+
+#### 5.5.5 线程安全修复验证
+
+原风险 §6.#2（`_use_chroma` 并发问题）已在 Step 3 修复：
+
+| 修复项 | 方案 | 验证 |
+|--------|------|------|
+| `_use_chroma` 运行期赋值 | 改为只读 property（基于 `_backend` 派生） | `test_use_chroma_cannot_be_assigned_at_runtime` 抛 `AttributeError` |
+| `_backend` 不可变字段 | 构造期确定，运行期不再修改 | `test_backend_field_not_modified_by_add_failure` 验证 add 失败不修改 `_backend` |
+| add/search 失败降级 | 不切换后端，仅本次降级到 JSON 路径 | `test_backend_is_sqlite_vec_when_available` 验证后端选择 |
+
+### 5.6 已实施代码摘要（Step 3）
+
+> §5.4 的设计建议已落地实施，实际代码如下：
+
+#### VectorStore.__init__ 后端优先级
+
+```python
+# 实际实施代码 (memory/vector_store/vector_store.py)
+self._backend = "json"  # 构造期不可变
+
+# 优先级 1: sqlite-vec
+if HAS_SENTENCE_TRANSFORMERS and self._init_sqlite_vec():
+    self._backend = "sqlite_vec"
+# 优先级 2: ChromaDB
+elif HAS_CHROMA and HAS_SENTENCE_TRANSFORMERS:
+    self._backend = "chromadb"
+    self._init_chroma()
+# 优先级 3: JSON Fallback + BM25
+else:
+    self._backend = "json"
+    self._load_from_file()
+```
+
+#### _use_chroma 只读 property
+
+```python
+@property
+def _use_chroma(self) -> bool:
+    return self._backend == "chromadb"
+```
+
+#### get_stats() 新增 backend 字段
+
+```python
+stats = {
+    "backend": self._backend,  # "sqlite_vec" | "chromadb" | "json"
+    "type": "sqlite_vec" if self._backend == "sqlite_vec"
+            else ("chroma" if self._use_chroma else "fallback"),
+    # ... 其他字段不变
+}
+```
+
+#### 与设计的差异
+
+| 设计建议 (§5.4) | 实际实施 | 差异原因 |
+|-----------------|----------|----------|
+| `_use_sqlite_vec` 标志 | `_backend` 不可变字段 + `_use_chroma` 只读 property | 统一后端管理，避免多个布尔标志 |
+| `_init_vector_backend()` 方法名 | `_init_sqlite_vec()` 方法名 | 保留原 `_init_chroma()` 不变，新增独立方法 |
+| `_backend_lock` 保护后端切换 | 无需锁（`_backend` 构造期不可变） | 不可变字段天然线程安全 |
+| 搜索失败时返回空结果 | 搜索失败时本次降级到 JSON 路径 | 保持向后兼容（原有行为） |
+
+### 5.7 探针与迁移数据对比
+
+| 指标 | 探针 (§5.1) | 迁移验证 (§5.5) | 说明 |
+|------|------------|----------------|------|
+| 数据量 | 100 条 | 1659 条 | 探针使用合成数据，迁移使用生产数据 |
+| 维度 | 512 | 384 | 迁移使用 paraphrase-multilingual-MiniLM-L12-v2 (384 维) |
+| 插入耗时 | 39.5ms (0.4ms/条) | 52,525ms (30 条/s ≈ 33ms/条) | 迁移含 encode 耗时，探针仅 INSERT |
+| KNN 延迟 | 2.0ms | 6.0ms (p50) | 迁移数据量 16x，延迟仅 3x，符合线性增长预期 |
+| recall@1 | 1.0 | 1.0 (20/20) | 精确匹配场景下 recall 不随数据量变化 |
+| DB 大小 | ~0.8 MB (临时) | 4.35 MB | 1659 条 × 2,750 bytes/条 |
+
 ---
 
 ## 6. 风险清单
