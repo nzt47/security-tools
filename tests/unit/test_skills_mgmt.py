@@ -675,3 +675,175 @@ class TestContextInjectorInstruction:
         # 包装行 "## 技能使用说明：test-skill\n\n" 也占少量 token，故输出 token 略大于 hint
         assert result["estimated_tokens"] <= 30 + estimate_tokens(hint) + 20, \
             "全部章节丢弃后 token 数应接近省略提示"
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ContextInjector.inject_metadata 技能边界声明测试
+# ═══════════════════════════════════════════════════════════════════
+
+def _make_injector_with_skills(all_skills, *, meta_budget=4000):
+    """构造一个用 mock loader 注入指定技能列表的 ContextInjector"""
+    from unittest.mock import MagicMock
+    loader = MagicMock()
+    loader.list_all_metadata.return_value = all_skills
+    return ContextInjector(loader=loader, meta_budget=meta_budget)
+
+
+def _make_skill_match(skill_id, name=None, tokens=50):
+    """构造单个 SkillMatch 对象"""
+    return SkillMatch(
+        skill_id=skill_id,
+        name=name or skill_id,
+        description=f"{skill_id} 的描述",
+        score=0.85,
+        estimated_tokens=tokens,
+        tags=["test"],
+        version="0.1.0",
+    )
+
+
+class TestContextInjectorBoundaryDeclaration:
+    """ContextInjector.inject_metadata 技能边界声明（防幻觉）测试"""
+
+    def test_boundary_declaration_appended(self):
+        """边界声明应追加到 prompt 末尾"""
+        all_skills = [
+            {"skill_id": "skill-a", "name": "A", "enabled": True},
+            {"skill_id": "skill-b", "name": "B", "enabled": True},
+            {"skill_id": "skill-c", "name": "C", "enabled": True},
+        ]
+        injector = _make_injector_with_skills(all_skills)
+        matches = [_make_skill_match("skill-a")]
+
+        result = injector.inject_metadata(matches)
+
+        assert "## 技能边界声明" in result["prompt"]
+        assert "已加载技能" in result["prompt"]
+        assert "未加载技能" in result["prompt"]
+
+    def test_boundary_declaration_loaded_unloaded_correct(self):
+        """已加载/未加载列表应正确区分"""
+        all_skills = [
+            {"skill_id": "skill-a", "enabled": True},
+            {"skill_id": "skill-b", "enabled": True},
+            {"skill_id": "skill-c", "enabled": True},
+        ]
+        injector = _make_injector_with_skills(all_skills)
+        matches = [
+            _make_skill_match("skill-a"),
+            _make_skill_match("skill-b"),
+        ]
+
+        result = injector.inject_metadata(matches)
+
+        bd = result["boundary_declaration"]
+        assert "skill-a" in bd["loaded"]
+        assert "skill-b" in bd["loaded"]
+        assert "skill-c" in bd["unloaded"]
+        assert "skill-a" not in bd["unloaded"]
+
+    def test_boundary_declaration_empty_matches(self):
+        """无匹配技能时，所有技能都应在未加载列表"""
+        all_skills = [
+            {"skill_id": "skill-a", "enabled": True},
+            {"skill_id": "skill-b", "enabled": True},
+        ]
+        injector = _make_injector_with_skills(all_skills)
+
+        result = injector.inject_metadata([])
+
+        bd = result["boundary_declaration"]
+        assert len(bd["loaded"]) == 0
+        assert len(bd["unloaded"]) == 2
+        assert "## 技能边界声明" in result["prompt"]
+
+    def test_boundary_declaration_no_skills(self):
+        """无任何技能时，不输出边界声明"""
+        injector = _make_injector_with_skills([])
+        matches = [_make_skill_match("skill-a")]
+
+        result = injector.inject_metadata(matches)
+
+        bd = result["boundary_declaration"]
+        assert bd["text"] == ""
+        assert bd["tokens"] == 0
+        assert "## 技能边界声明" not in result["prompt"]
+
+    def test_boundary_declaration_load_failure_graceful(self):
+        """loader.list_all_metadata 抛异常时优雅降级"""
+        from unittest.mock import MagicMock
+        loader = MagicMock()
+        loader.list_all_metadata.side_effect = RuntimeError("disk error")
+        injector = ContextInjector(loader=loader)
+
+        result = injector.inject_metadata([_make_skill_match("skill-a")])
+
+        bd = result["boundary_declaration"]
+        assert bd["text"] == ""
+        assert "## 技能边界声明" not in result["prompt"]
+
+    def test_boundary_declaration_tokens_counted(self):
+        """边界声明 token 应计入总 token"""
+        all_skills = [
+            {"skill_id": "skill-a", "enabled": True},
+            {"skill_id": "skill-b", "enabled": True},
+        ]
+        injector = _make_injector_with_skills(all_skills)
+        matches = [_make_skill_match("skill-a", tokens=50)]
+
+        result = injector.inject_metadata(matches)
+
+        bd = result["boundary_declaration"]
+        assert result["estimated_tokens"] >= 50 + bd["tokens"]
+
+    def test_boundary_declaration_return_field_exists(self):
+        """返回值应包含 boundary_declaration 字段（向后兼容新增）"""
+        all_skills = [{"skill_id": "skill-a", "enabled": True}]
+        injector = _make_injector_with_skills(all_skills)
+
+        result = injector.inject_metadata([_make_skill_match("skill-a")])
+
+        assert "boundary_declaration" in result
+        bd = result["boundary_declaration"]
+        assert "text" in bd
+        assert "tokens" in bd
+        assert "loaded" in bd
+        assert "unloaded" in bd
+
+    def test_boundary_declaration_anti_hallucination_text(self):
+        """边界声明应包含防幻觉关键提示语"""
+        all_skills = [
+            {"skill_id": "skill-a", "enabled": True},
+            {"skill_id": "skill-b", "enabled": True},
+        ]
+        injector = _make_injector_with_skills(all_skills)
+        matches = [_make_skill_match("skill-a")]
+
+        result = injector.inject_metadata(matches)
+
+        assert "严禁编造" in result["prompt"]
+        assert "已加载" in result["prompt"]
+        assert "未加载" in result["prompt"]
+
+    def test_boundary_declaration_only_injected_skills_loaded(self):
+        """超预算截断时，仅实际注入的技能出现在已加载列表"""
+        all_skills = [
+            {"skill_id": "skill-a", "enabled": True},
+            {"skill_id": "skill-b", "enabled": True},
+            {"skill_id": "skill-c", "enabled": True},
+        ]
+        # 预算只够放一个技能（50 tokens）
+        injector = _make_injector_with_skills(all_skills, meta_budget=60)
+        matches = [
+            _make_skill_match("skill-a", tokens=50),
+            _make_skill_match("skill-b", tokens=50),
+            _make_skill_match("skill-c", tokens=50),
+        ]
+
+        result = injector.inject_metadata(matches)
+
+        bd = result["boundary_declaration"]
+        assert "skill-a" in bd["loaded"]
+        # skill-b 因超预算未注入，应在未加载列表
+        assert "skill-b" in bd["unloaded"]
+        assert "skill-c" in bd["unloaded"]
