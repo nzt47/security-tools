@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+venv/
 
 # 环境变量配置（含 Token，禁止提交）
 scripts/setup_env_vars.ps1
@@ -80,6 +81,13 @@ data/task_history.jsonl
 data/auto_tuning/
 data/resource_monitor_history.jsonl
 data/schedules.json
+data/memory/
+data/backups/
+data/sessions/
+data/assets/
+data/permission_policies.json
+data/test_workflows.json
+agent/data/tool_trace.db
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage
@@ -87,6 +95,9 @@ data/schedules.json
 .coverage_*.json
 test_cost_log.jsonl
 test_reports/
+coverage.json
+yunshu-ui/coverage/
+yunshu-ui/coverage_output.txt
 
 # CI 调试产物
 _ci_logs.zip
@@ -99,3 +110,11 @@ cache/
 
 # 自动生成的文档报告
 docs/observability/boundary_coverage_report.md
+
+# 前端构建产物（npm run build 生成，不入库）
+static/assets/
+yunshu-ui/dist/
+
+# 部署包（临时打包产物，不入库）
+deploy_package/
+linux_deploy_package.zip
