@@ -4,6 +4,7 @@ import ChatInput from './ChatInput';
 import ThinkingBlock from './ThinkingBlock';
 import ToolStepsDisplay from './ToolStepsDisplay';
 import type { ToolStep } from './ToolStepsDisplay';
+import { useChatStore } from '../../store/useChatStore';
 import './ChatWindow.css';
 
 export interface Message {
@@ -33,6 +34,8 @@ export interface ChatWindowProps {
   placeholder?: string;
   /** 自定义类名 */
   className?: string;
+  /** 底部插槽（注入到消息列表和输入框之间，如 ContextMonitor） */
+  bottomSlot?: React.ReactNode;
 }
 
 /**
@@ -46,8 +49,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   disabled = false,
   placeholder = '输入消息...',
   className = '',
+  bottomSlot,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const thinkingOn = useChatStore((s) => s.thinkingOn);
+  const toolcallsOn = useChatStore((s) => s.toolcallsOn);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,11 +70,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className="chat-messages">
         {messages.map((message) => (
           <div key={message.id} className={`message-group ${message.type}`}>
-            {/* Assistant 消息：显示思考过程和工具步骤 */}
-            {message.type === 'assistant' && message.reasoning && (
+            {/* Assistant 消息：显示思考过程和工具步骤（受 toggle 控制） */}
+            {message.type === 'assistant' && message.reasoning && thinkingOn && (
               <ThinkingBlock content={message.reasoning} />
             )}
-            {message.type === 'assistant' && message.toolSteps && message.toolSteps.length > 0 && (
+            {message.type === 'assistant' && message.toolSteps && message.toolSteps.length > 0 && toolcallsOn && (
               <ToolStepsDisplay steps={message.toolSteps} />
             )}
             <ChatBubble
@@ -81,6 +87,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {bottomSlot}
 
       <ChatInput
         value={inputValue}
