@@ -228,3 +228,123 @@ class TestCrossModuleIntegration:
         assert len(errors) == 0
         result = skills_svc.search(SkillSearchParams(query="测试"))
         assert len(result.items) >= 5
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  技能边界声明（防幻觉）集成测试
+# ═══════════════════════════════════════════════════════════════════
+
+def _make_skill_md(skill_id, name, description, instruction_body="# 说明"):
+    """生成 skill.md 内容（用于文件仓库安装）"""
+    return f"""---
+id: {skill_id}
+name: {name}
+description: {description}
+category: custom
+tags: [test]
+version: 1.0.0
+enabled: true
+status: approved
+author: tester
+---
+
+{instruction_body}
+"""
+
+
+@pytest.fixture
+def skill_mgr(tmp_path):
+    """使用文件仓库的 SkillManager 实例
+
+    说明：build_context 依赖 SkillLoader 扫描文件仓库，
+    故使用 SkillManager（文件仓库）而非 SkillsMgmtService（JSON 存储）。
+    """
+    from agent.skills_mgmt.skill_manager import SkillManager
+    return SkillManager(repo_path=str(tmp_path / "skills_repo"))
+
+
+class TestBoundaryDeclarationIntegration:
+    """技能边界声明在 build_context 主流程中的端到端验证"""
+
+    def test_boundary_declaration_in_build_context(self, skill_mgr, tmp_path):
+        """build_context 应自动注入边界声明，已加载/未加载列表正确"""
+        for sid, name, desc in [
+            ("pdf-parser", "PDF解析", "解析PDF文件并提取文本内容"),
+            ("translator", "翻译", "翻译文本到不同语言"),
+            ("summarizer", "摘要", "对长文本生成摘要"),
+        ]:
+            sd = tmp_path / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            skill_mgr.install_from_dir(str(sd))
+
+        result = skill_mgr.build_context("解析PDF文件", top_k=1)
+
+        prompt = result.get("prompt", "")
+        assert "## 技能边界声明" in prompt, "应包含边界声明章节"
+        assert "已加载技能" in prompt, "应包含已加载列表"
+        assert "未加载技能" in prompt, "应包含未加载列表"
+        assert "严禁编造" in prompt, "应包含防幻觉提示"
+
+        # 匹配到的技能应在已加载列表
+        assert "pdf-parser" in prompt
+        # 未匹配的技能应在未加载列表
+        assert "translator" in prompt
+        assert "summarizer" in prompt
+
+    def test_boundary_declaration_empty_repo(self, skill_mgr):
+        """空仓库时 build_context 不应输出边界声明"""
+        result = skill_mgr.build_context("任意意图")
+
+        prompt = result.get("prompt", "")
+        assert "## 技能边界声明" not in prompt, "空仓库不应输出边界声明"
+
+    def test_boundary_declaration_all_loaded(self, skill_mgr, tmp_path):
+        """所有技能都被匹配时，未加载列表应为空"""
+        for sid, name, desc in [
+            ("skill-a", "功能A", "功能A描述"),
+            ("skill-b", "功能B", "功能B描述"),
+        ]:
+            sd = tmp_path / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            skill_mgr.install_from_dir(str(sd))
+
+        result = skill_mgr.build_context("功能", top_k=10)
+
+        prompt = result.get("prompt", "")
+        assert "## 技能边界声明" in prompt
+        assert "skill-a" in prompt
+        assert "skill-b" in prompt
+        assert "（无）" in prompt
+
+    def test_boundary_declaration_with_auto_load_instruction(self, skill_mgr, tmp_path):
+        """auto_load_instruction=True 时边界声明仍正确注入"""
+        sd = tmp_path / "src" / "doc-skill"
+        sd.mkdir(parents=True)
+        (sd / "skill.md").write_text(
+            _make_skill_md(
+                "doc-skill", "文档处理", "文档处理技能",
+                instruction_body="# 使用说明\n\n## 步骤\n\n1. 接收输入\n2. 处理文档\n3. 返回结果\n",
+            ),
+            encoding="utf-8",
+        )
+        skill_mgr.install_from_dir(str(sd))
+
+        sd2 = tmp_path / "src" / "other-skill"
+        sd2.mkdir(parents=True)
+        (sd2 / "skill.md").write_text(
+            _make_skill_md("other-skill", "其他技能", "其他无关技能"),
+            encoding="utf-8",
+        )
+        skill_mgr.install_from_dir(str(sd2))
+
+        result = skill_mgr.build_context(
+            "文档处理", auto_load_instruction=True)
+
+        prompt = result.get("prompt", "")
+        assert "## 技能边界声明" in prompt
+        assert "使用说明" in prompt
+        assert result.get("layers", {}).get("layer2_instruction") is True

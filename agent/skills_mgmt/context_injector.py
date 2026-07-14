@@ -8,9 +8,11 @@
 
 本模块实现:
     - inject_metadata(matches): 第一层 — 将匹配技能的元数据注入系统提示词
+      末尾追加技能边界声明（防幻觉：告知 LLM 已加载/未加载的技能范围）
     - inject_instruction(skill_id): 第二层 — 按需注入完整使用说明
     - inject_result(execution_result): 第三层 — 注入脚本执行结果
     - build_context(intent, max_tokens): 一站式构建上下文（三层联动）
+      返回值包含 boundary_declaration 字段，透传自 inject_metadata
 
 token 预算管理:
     - 第一层: 每技能约 100 token，可一次注入多个
@@ -373,7 +375,10 @@ class ContextInjector:
         只注入元数据（约 100 token/技能），不注入使用说明或代码。
         用于让 LLM 知道有哪些技能可用。
 
-        Returns: {prompt, matches, estimated_tokens, layer}
+        末尾追加技能边界声明，告知 LLM 已加载/未加载的技能范围，
+        防止幻觉调用不存在的技能 ID。
+
+        Returns: {prompt, matches, estimated_tokens, layer, boundary_declaration}
         """
         t0 = time.time()
         tid = _trace_id()
@@ -407,7 +412,15 @@ class ContextInjector:
             total_tokens += m.estimated_tokens
             injected.append(m.to_dict())
 
-        prompt = "\n".join(lines)
+        # 追加技能边界声明（防幻觉：告知 LLM 已加载/未加载的技能范围）
+        injected_ids = [d["skill_id"] for d in injected]
+        boundary_info = self._build_boundary_declaration(injected_ids, trace_id=tid)
+        if boundary_info["text"]:
+            prompt = "\n".join(lines) + "\n\n" + boundary_info["text"]
+            total_tokens += boundary_info["tokens"]
+        else:
+            prompt = "\n".join(lines)
+
         elapsed = (time.time() - t0) * 1000
 
         logger.info(json.dumps({
@@ -419,6 +432,9 @@ class ContextInjector:
             "injected_count": len(injected),
             "estimated_tokens": total_tokens,
             "budget": self.meta_budget,
+            "boundary_tokens": boundary_info["tokens"],
+            "loaded_count": len(boundary_info["loaded"]),
+            "unloaded_count": len(boundary_info["unloaded"]),
         }, ensure_ascii=False))
 
         emit_metric("yunshu_skill_inject_tokens",
@@ -430,6 +446,84 @@ class ContextInjector:
             "matches": injected,
             "estimated_tokens": total_tokens,
             "layer": 1,
+            "boundary_declaration": boundary_info,
+        }
+
+    def _build_boundary_declaration(
+        self, injected_skill_ids: List[str], *, trace_id: str = ""
+    ) -> Dict[str, Any]:
+        """构建技能边界声明文本（防幻觉）
+
+        告知 LLM 当前已加载哪些技能、还有哪些技能未加载，
+        防止 LLM 幻觉调用不存在的技能 ID。
+
+        Args:
+            injected_skill_ids: 实际已注入元数据的技能 ID 列表
+            trace_id: 追踪 ID
+
+        Returns: {text, tokens, loaded, unloaded}
+            - text: 边界声明文本（空字符串表示无需声明）
+            - tokens: 声明文本估算 token 数
+            - loaded: 已加载技能 ID 列表
+            - unloaded: 未加载技能 ID 列表
+        """
+        empty = {"text": "", "tokens": 0, "loaded": [], "unloaded": []}
+
+        try:
+            all_meta = self.loader.list_all_metadata(enabled_only=True)
+        except Exception as e:
+            if trace_id:
+                logger.warning(json.dumps({
+                    "trace_id": trace_id,
+                    "module_name": "context_injector",
+                    "action": "boundary_decl.load_all_failed",
+                    "error": str(e),
+                }, ensure_ascii=False))
+            return empty
+
+        all_ids = {m.get("skill_id", "") for m in all_meta if m.get("skill_id")}
+        if not all_ids:
+            return empty
+
+        loaded = sorted(set(injected_skill_ids))
+        unloaded = sorted(all_ids - set(loaded))
+
+        lines = ["## 技能边界声明"]
+        lines.append(f"- 已加载技能（{len(loaded)} 个）：")
+        if loaded:
+            lines.append(f"  {', '.join(f'`{sid}`' for sid in loaded)}")
+        else:
+            lines.append("  （无）")
+
+        lines.append(f"- 未加载技能（{len(unloaded)} 个）：")
+        if unloaded:
+            lines.append(f"  {', '.join(f'`{sid}`' for sid in unloaded)}")
+        else:
+            lines.append("  （无）")
+
+        lines.append("")
+        lines.append("**重要**：你只能调用上述「已加载」列表中的技能。")
+        lines.append("如需使用「未加载」列表中的技能，请先告知用户需要加载该技能。")
+        lines.append("严禁编造或调用不在上述列表中的技能 ID。")
+
+        text = "\n".join(lines)
+        tokens = estimate_tokens(text)
+
+        if trace_id:
+            logger.info(json.dumps({
+                "trace_id": trace_id,
+                "module_name": "context_injector",
+                "action": "boundary_decl.built",
+                "loaded_count": len(loaded),
+                "unloaded_count": len(unloaded),
+                "estimated_tokens": tokens,
+            }, ensure_ascii=False))
+
+        return {
+            "text": text,
+            "tokens": tokens,
+            "loaded": loaded,
+            "unloaded": unloaded,
         }
 
     # ──────────────────────────────────────────────
@@ -652,8 +746,23 @@ class ContextInjector:
         t0 = time.time()
         tid = _trace_id()
 
+        # 关键分支日志：入参与预算
+        logger.info(json.dumps({
+            "trace_id": tid,
+            "module_name": "context_injector",
+            "action": "build_context.start",
+            "intent": intent[:100],
+            "max_tokens": max_tokens,
+            "top_k": top_k,
+            "auto_load_instruction": auto_load_instruction,
+            "skill_id": skill_id,
+        }, ensure_ascii=False))
+
         prompts = []
         total_tokens = 0
+        boundary_declaration: Dict[str, Any] = {
+            "text": "", "tokens": 0, "loaded": [], "unloaded": []
+        }
 
         # 第一层：元数据匹配
         match_result = self.loader.match(intent, top_k=top_k)
@@ -661,6 +770,24 @@ class ContextInjector:
             meta_ctx = self.inject_metadata(match_result.matches)
             prompts.append(meta_ctx["prompt"])
             total_tokens += meta_ctx["estimated_tokens"]
+            # 透传边界声明（防幻觉）
+            boundary_declaration = meta_ctx.get(
+                "boundary_declaration", boundary_declaration)
+
+            # 关键分支日志：Layer 1 完成，透传 boundary_declaration
+            logger.info(json.dumps({
+                "trace_id": tid,
+                "module_name": "context_injector",
+                "action": "build_context.layer1_done",
+                "match_count": len(match_result.matches),
+                "layer1_tokens": meta_ctx["estimated_tokens"],
+                "boundary_passthrough": {
+                    "text_len": len(boundary_declaration.get("text", "")),
+                    "tokens": boundary_declaration.get("tokens", 0),
+                    "loaded": boundary_declaration.get("loaded", []),
+                    "unloaded": boundary_declaration.get("unloaded", []),
+                },
+            }, ensure_ascii=False))
 
             # 第二层：按需加载使用说明
             target_id = skill_id or (
@@ -690,6 +817,15 @@ class ContextInjector:
                         "skill_id": target_id,
                         "error": str(e),
                     }, ensure_ascii=False))
+        else:
+            # 关键分支日志：无匹配技能
+            logger.info(json.dumps({
+                "trace_id": tid,
+                "module_name": "context_injector",
+                "action": "build_context.no_match",
+                "intent": intent[:100],
+                "top_k": top_k,
+            }, ensure_ascii=False))
 
         elapsed = (time.time() - t0) * 1000
         full_prompt = "\n\n".join(prompts)
@@ -704,6 +840,9 @@ class ContextInjector:
             "budget": max_tokens,
             "match_count": len(match_result.matches),
             "has_instruction": len(prompts) > 1,
+            "boundary_tokens": boundary_declaration.get("tokens", 0),
+            "loaded_count": len(boundary_declaration.get("loaded", [])),
+            "unloaded_count": len(boundary_declaration.get("unloaded", [])),
         }, ensure_ascii=False))
 
         return {
@@ -717,6 +856,7 @@ class ContextInjector:
                 "layer2_instruction": len(prompts) > 1,
                 "layer3_execution": False,  # 需显式调用
             },
+            "boundary_declaration": boundary_declaration,
             "elapsed_ms": round(elapsed, 2),
         }
 

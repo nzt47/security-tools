@@ -440,6 +440,95 @@ class TestBuildContext(unittest.TestCase):
         self.assertNotIn("import os", prompt)
         self.assertNotIn("dangerous_code", prompt)
 
+    def test_build_context_boundary_declaration_passthrough(self):
+        """构建上下文 — boundary_declaration 应从 inject_metadata 透传到返回值"""
+        # 安装 3 个技能
+        for sid, name, desc in [
+            ("alpha-skill", "Alpha", "阿尔法功能测试"),
+            ("beta-skill", "Beta", "贝塔功能测试"),
+            ("gamma-skill", "Gamma", "伽马功能测试"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        result = self.mgr.build_context("阿尔法", top_k=1)
+
+        # 返回值应包含 boundary_declaration 字段
+        self.assertIn("boundary_declaration", result)
+        bd = result["boundary_declaration"]
+
+        # 字段结构完整
+        self.assertIn("text", bd)
+        self.assertIn("tokens", bd)
+        self.assertIn("loaded", bd)
+        self.assertIn("unloaded", bd)
+
+        # 已加载列表应只包含匹配到的技能
+        self.assertIn("alpha-skill", bd["loaded"])
+        # 未加载列表应包含其余技能
+        self.assertIn("beta-skill", bd["unloaded"])
+        self.assertIn("gamma-skill", bd["unloaded"])
+
+        # prompt 中应包含边界声明文本
+        self.assertIn("## 技能边界声明", result["prompt"])
+        self.assertIn("alpha-skill", result["prompt"])
+        self.assertIn("beta-skill", result["prompt"])
+
+    def test_build_context_boundary_declaration_empty_repo(self):
+        """构建上下文 — 空仓库时 boundary_declaration 应为空结构"""
+        result = self.mgr.build_context("任意意图")
+
+        bd = result.get("boundary_declaration", {})
+        self.assertEqual(bd.get("text", ""), "")
+        self.assertEqual(bd.get("tokens", 0), 0)
+        self.assertEqual(bd.get("loaded", []), [])
+        self.assertEqual(bd.get("unloaded", []), [])
+        # prompt 中不应有边界声明
+        self.assertNotIn("## 技能边界声明", result.get("prompt", ""))
+
+    def test_build_context_boundary_declaration_all_loaded(self):
+        """构建上下文 — 所有技能匹配时，unloaded 应为空"""
+        for sid, name, desc in [
+            ("skill-x", "X技能", "功能X描述"),
+            ("skill-y", "Y技能", "功能Y描述"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        result = self.mgr.build_context("功能", top_k=10)
+
+        bd = result["boundary_declaration"]
+        # 两个技能都应在已加载列表
+        self.assertIn("skill-x", bd["loaded"])
+        self.assertIn("skill-y", bd["loaded"])
+        # 未加载列表应为空
+        self.assertEqual(bd["unloaded"], [])
+        # prompt 中未加载部分应显示「（无）」
+        self.assertIn("（无）", result["prompt"])
+
+    def test_build_context_boundary_tokens_in_total(self):
+        """构建上下文 — boundary_tokens 应计入 total_tokens"""
+        sd = Path(self.tmpdir) / "src" / "lone-skill"
+        sd.mkdir(parents=True)
+        (sd / "skill.md").write_text(
+            _make_skill_md("lone-skill", "独立技能", "独立功能描述"),
+            encoding="utf-8")
+        self.mgr.install_from_dir(str(sd))
+
+        result = self.mgr.build_context("独立", top_k=1)
+
+        bd = result["boundary_declaration"]
+        self.assertGreater(bd["tokens"], 0, "边界声明应有 token 开销")
+        self.assertGreaterEqual(
+            result["total_tokens"], bd["tokens"],
+            "total_tokens 应包含 boundary_tokens")
+
 
 class TestHealthAndQuery(unittest.TestCase):
     """健康检查与查询测试"""
