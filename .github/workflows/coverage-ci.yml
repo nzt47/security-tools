@@ -54,8 +54,9 @@ jobs:
 
       # 方案 B：每个测试在独立 fork 子进程中运行，子进程退出后 OS 回收内存，
       # 从根本上切断测试间内存累积链路，解决 pytest-randomly 随机顺序导致的 OOM。
-      # 兼容性：pytest.ini 已有 parallel=True，fork 子进程会写 .coverage.<pid>.<rand>，
-      # 需 coverage combine 合并；pytest-cov 4.x 内置子进程支持。
+      # 兼容性：pytest.ini 有 parallel=True，fork 子进程会写 .coverage.<pid>.<rand>；
+      # pytest-cov 7.x 在 pytest 退出时已自动 combine 这些文件到 .coverage。
+      # --cov-fail-under=0 禁用 pytest-cov 即时阈值检查，改由下方 coverage-check job 统一断言。
       - name: 运行单元测试
         run: |
           pytest tests/unit/ \
@@ -64,12 +65,12 @@ jobs:
             --cov-fail-under=0 \
             -v --tb=short -m "not slow and not skip_ci and not forked_incompatible" --timeout=300
 
-      # --forked 模式下，每个测试在 fork 子进程中运行，coverage 生成 .coverage.<pid>.<rand> 文件。
-      # pytest-cov 在 pytest 结束时只读主进程的 .coverage，需 coverage combine 合并子进程数据。
-      - name: 合并覆盖率数据并生成报告
+      # pytest-cov 7.x 已在 pytest 退出时自动 combine parallel 数据到 .coverage。
+      # 手动 coverage combine 仅作容错（残留 .coverage.* 文件时合并），无文件时 "No data to combine" 是正常的。
+      - name: 生成覆盖率报告
         run: |
           ls -la .coverage* || true
-          coverage combine
+          coverage combine || true
           coverage report -m
           coverage xml
           coverage html
