@@ -69,14 +69,15 @@ jobs:
       # 手动 coverage combine 仅作容错（残留 .coverage.* 文件时合并），无文件时 "No data to combine" 是正常的。
       # 注意: --forked 模式下 fork 子进程的 coverage trace 无法被正确收集, .coverage 仅含主进程数据,
       # 覆盖率会显著偏低(实测 14% vs 非 forked 51%)。此 workflow 专注于 OOM 验证, 覆盖率以 ci.yml 为准。
-      # coverage report -m || true: 容错 pyproject.toml 的 fail_under=40, 避免退出码 2 中断流程。
+      # 所有 coverage 命令均加 || true: pyproject.toml 的 fail_under=40 会让 report/xml/html
+      # 在覆盖率低于 40% 时均返回退出码 2, --forked 模式下覆盖率仅 14% 属预期。
       - name: 生成覆盖率报告
         run: |
           ls -la .coverage* || true
           coverage combine || true
           coverage report -m || true
-          coverage xml
-          coverage html
+          coverage xml || true
+          coverage html || true
           cp .coverage coverage_raw.data
           ls -la coverage_raw.data coverage.xml
 
@@ -148,8 +149,8 @@ jobs:
 
       - name: 生成覆盖率报告
         run: |
-          coverage html -d test_reports/htmlcov
-          coverage xml -o test_reports/coverage.xml
+          coverage html -d test_reports/htmlcov || true
+          coverage xml -o test_reports/coverage.xml || true
 
       - name: 上传完整覆盖率报告
         uses: actions/upload-artifact@v4
