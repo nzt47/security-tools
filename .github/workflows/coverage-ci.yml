@@ -67,11 +67,14 @@ jobs:
 
       # pytest-cov 7.x 已在 pytest 退出时自动 combine parallel 数据到 .coverage。
       # 手动 coverage combine 仅作容错（残留 .coverage.* 文件时合并），无文件时 "No data to combine" 是正常的。
+      # 注意: --forked 模式下 fork 子进程的 coverage trace 无法被正确收集, .coverage 仅含主进程数据,
+      # 覆盖率会显著偏低(实测 14% vs 非 forked 51%)。此 workflow 专注于 OOM 验证, 覆盖率以 ci.yml 为准。
+      # coverage report -m || true: 容错 pyproject.toml 的 fail_under=40, 避免退出码 2 中断流程。
       - name: 生成覆盖率报告
         run: |
           ls -la .coverage* || true
           coverage combine || true
-          coverage report -m
+          coverage report -m || true
           coverage xml
           coverage html
           cp .coverage coverage_raw.data
@@ -128,7 +131,7 @@ jobs:
 
       - name: 检查覆盖率
         run: |
-          echo "=== 检查覆盖率 ==="
+          echo "=== 检查覆盖率（informational, --forked 模式覆盖率偏低属正常）==="
           ls -la coverage_raw.data coverage.xml || true
 
           # 关键修复 4：把非隐藏名还原成 .coverage，coverage 命令才能识别
@@ -138,11 +141,10 @@ jobs:
           # Why: 单版本时 "No data to combine" 是正常的，|| true 容错
           coverage combine || true
 
-          # 生成覆盖率报告（输出表格供人看）
-          coverage report
-
-          # 检查是否达标（阈值断言，低于 N% 则退出码非 0）
-          coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+          # 生成覆盖率报告（输出表格供人看, || true 容错 fail_under 避免中断）
+          # 注意: --forked 模式下覆盖率仅含主进程数据(约14%), 非 forked 模式为 51%。
+          # 覆盖率阈值断言由 ci.yml (方案A, -p no:randomly) 负责, 此 workflow 专注 OOM 验证。
+          coverage report || true
 
       - name: 生成覆盖率报告
         run: |
