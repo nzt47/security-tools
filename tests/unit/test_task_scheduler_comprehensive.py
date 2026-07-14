@@ -690,7 +690,7 @@ class TestStartDaemon:
 
     def test_start_daemon(self):
         scheduler = TaskScheduler()
-        scheduler.start_daemon(check_interval=1)
+        scheduler.start_daemon(check_interval=0.05)
         assert scheduler.running is True
         assert scheduler._thread is not None
         scheduler.stop()
@@ -698,9 +698,9 @@ class TestStartDaemon:
 
     def test_start_daemon_idempotent(self):
         scheduler = TaskScheduler()
-        scheduler.start_daemon(check_interval=1)
+        scheduler.start_daemon(check_interval=0.05)
         first_thread = scheduler._thread
-        scheduler.start_daemon(check_interval=1)
+        scheduler.start_daemon(check_interval=0.05)
         # 应该是同一个线程（不重复启动）
         assert scheduler._thread is first_thread
         scheduler.stop()
@@ -708,7 +708,7 @@ class TestStartDaemon:
 
     def test_stop(self):
         scheduler = TaskScheduler()
-        scheduler.start_daemon(check_interval=1)
+        scheduler.start_daemon(check_interval=0.05)
         scheduler.stop()
         assert scheduler.running is False
         scheduler._thread.join(timeout=2)
@@ -787,8 +787,26 @@ class TestPredefinedFunctions:
     """generate_weekly_report / cleanup_old_logs / perform_heartbeat_check 测试"""
 
     def test_generate_weekly_report_no_exception(self):
-        # 应该捕获所有异常不抛出
+        """生成周报不应抛出异常 — cProfile 定位模型加载瓶颈的精确调用链"""
+        import time as _time
+        import cProfile
+        import pstats
+        import io as _io
+
+        # cProfile 单次调用，精确定位所有函数累计耗时（无 mock 基线）
+        _profiler = cProfile.Profile()
+        t0 = _time.perf_counter()
+        _profiler.enable()
         generate_weekly_report()
+        _profiler.disable()
+        t_total = (_time.perf_counter() - t0) * 1000
+
+        # 输出 cProfile top 30（按累计耗时排序）— 定位瓶颈所在函数
+        _buf = _io.StringIO()
+        _ps = pstats.Stats(_profiler, stream=_buf).sort_stats('cumulative')
+        _ps.print_stats(30)
+        print(f"\n  [cProfile] generate_weekly_report 总耗时: {t_total:.0f}ms")
+        print(_buf.getvalue())
 
     def test_cleanup_old_logs_no_exception(self, tmp_path):
         # 创建假日志目录
@@ -806,7 +824,9 @@ class TestPredefinedFunctions:
 
     def test_perform_heartbeat_check_basic(self):
         # 没有 yunshu_instance 时应使用 psutil
-        result = perform_heartbeat_check(None)
+        # Why: mock cpu_percent 避免 interval=1 的 1 秒阻塞，测试验证返回结构而非真实 CPU 值
+        with mock.patch('psutil.cpu_percent', return_value=42.0):
+            result = perform_heartbeat_check(None)
         assert "timestamp" in result
         assert "checks" in result
         # 应该有 system 检查
