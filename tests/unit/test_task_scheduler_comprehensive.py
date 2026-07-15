@@ -31,6 +31,20 @@ from agent.task_scheduler import (
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _preload_sentence_transformers():
+    """预加载 sentence_transformers 避免 18.5s 首次导入瓶颈
+
+    Why: sentence_transformers 触发 torch + transformers 完整导入链，
+    首次导入 18.5s。session 级 fixture 确保只在测试开始时导入一次，
+    后续 test_generate_weekly_report_no_exception 直接受益于缓存。
+    """
+    try:
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        pass  # 测试环境未安装，后续 VectorStore 走 JSON fallback
+
+
 # ═══════════════════════════════════════════════════════════════
 # 常量测试
 # ═══════════════════════════════════════════════════════════════
