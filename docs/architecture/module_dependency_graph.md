@@ -194,6 +194,7 @@ flowchart LR
         agent_observability_arch_rules["agent.observability.arch_rules"]
         agent_observability_dependency_graph["agent.observability.dependency_graph"]
         agent_observability_subscriber["agent.observability.subscriber"]:::crosslayer
+        agent_observability_tool_trace["agent.observability.tool_trace"]:::crosslayer
         agent_observability_tracer["agent.observability.tracer"]:::crosslayer
     end
     subgraph orchestrator [orchestrator]
@@ -336,6 +337,7 @@ flowchart LR
     agent_tool_calling --> agent_rate_limiter
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling -.-> agent_response_workflows
     agent_p6_config_loader --> agent_p6_snapshot
     agent_logging_utils -.-> agent_utils
@@ -365,6 +367,7 @@ flowchart LR
     agent_state_manager -.-> agent_workflow_learning
     agent_weekly_report_generator --> agent_logging_utils
     agent_weekly_report_generator --> agent_data_analytics
+    agent_tool_router -.-> agent_observability_tool_trace
     agent_multi_tenant -.-> agent_monitoring_tracing
     agent_llm_monitor -.-> agent_monitoring_observability_config
     agent_digital_life_persona --> agent_logging_utils
@@ -890,9 +893,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 325
-- 模块节点数: 257
-- 依赖边数: 554
-- 跨层调用数: 351
+- 模块节点数: 258
+- 依赖边数: 556
+- 跨层调用数: 353
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 812.20 ms
+- 构建耗时: 1176.62 ms
