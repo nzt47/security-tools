@@ -13,6 +13,12 @@ import re
 import logging
 from typing import Optional
 
+# 安全导入 ToolTraceRecorder（不可用时降级，不影响工具路由）
+try:
+    from agent.observability.tool_trace import ToolTraceRecorder
+except ImportError:
+    ToolTraceRecorder = None
+
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -312,7 +318,16 @@ def get_tools_for_input(user_input: str, enabled_whitelist: list[str] | None = N
         whitelist_set = set(enabled_whitelist)
         selected &= whitelist_set
 
-    return list(selected)
+    result = list(selected)
+
+    # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
+    if ToolTraceRecorder is not None:
+        try:
+            ToolTraceRecorder.instance().record_tool_selection(user_input, categories, result)
+        except Exception:
+            pass
+
+    return result
 
 
 def get_categorized_tools() -> list[dict]:

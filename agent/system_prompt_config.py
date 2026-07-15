@@ -7,6 +7,7 @@
 
 import os
 import json
+import copy
 import logging
 from dataclasses import dataclass, field, asdict
 from typing import Optional
@@ -377,7 +378,7 @@ class SystemPromptConfigManager:
     def load(self) -> dict:
         """加载配置（带缓存）"""
         if self._cache is not None:
-            return self._cache
+            return copy.deepcopy(self._cache)
 
         if os.path.exists(CONFIG_FILE):
             try:
@@ -385,14 +386,14 @@ class SystemPromptConfigManager:
                     data = json.load(f)
                 if data.get("version") == 2:
                     self._cache = data
-                    return self._cache
+                    return copy.deepcopy(self._cache)
             except Exception as e:
                 logger.warning("读取提示词配置失败: %s，使用默认配置", e)
 
         # 首次使用：写入默认配置
         self._cache = asdict(SystemPromptConfigData())
         self.save(self._cache)
-        return self._cache
+        return copy.deepcopy(self._cache)
 
     def save(self, config: dict) -> bool:
         """保存配置"""
@@ -401,7 +402,7 @@ class SystemPromptConfigManager:
             os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
-            self._cache = config
+            self._cache = copy.deepcopy(config)
             logger.info("提示词配置已保存")
             return True
         except Exception as e:

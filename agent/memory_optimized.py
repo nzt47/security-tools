@@ -47,6 +47,13 @@ from pathlib import Path
 from collections import OrderedDict
 from agent.logging_utils import log_dict
 
+import warnings
+warnings.warn(
+    "memory_optimized 模块已废弃，请使用 memory.vector_store.VectorStore (sqlite-vec/chromadb 后端)",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 logger = logging.getLogger(__name__)
 
 def _trace_id():
