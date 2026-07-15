@@ -799,6 +799,17 @@ class ContextInjector:
                     if total_tokens + instr_ctx["estimated_tokens"] <= max_tokens:
                         prompts.append(instr_ctx["prompt"])
                         total_tokens += instr_ctx["estimated_tokens"]
+                        # 关键分支日志：Layer 2 instruction 加载成功
+                        logger.info(json.dumps({
+                            "trace_id": tid,
+                            "module_name": "context_injector",
+                            "action": "build_context.layer2_done",
+                            "skill_id": target_id,
+                            "instruction_tokens": instr_ctx["estimated_tokens"],
+                            "cumulative_tokens": total_tokens,
+                            "budget": max_tokens,
+                            "remaining_budget": max_tokens - total_tokens,
+                        }, ensure_ascii=False))
                     else:
                         logger.warning(json.dumps({
                             "trace_id": tid,
@@ -818,13 +829,15 @@ class ContextInjector:
                         "error": str(e),
                     }, ensure_ascii=False))
         else:
-            # 关键分支日志：无匹配技能
+            # 关键分支日志：无匹配技能，boundary_declaration 保持空结构
             logger.info(json.dumps({
                 "trace_id": tid,
                 "module_name": "context_injector",
                 "action": "build_context.no_match",
                 "intent": intent[:100],
                 "top_k": top_k,
+                "boundary_state": "empty_default",
+                "reason": "no_match_skipped_inject_metadata",
             }, ensure_ascii=False))
 
         elapsed = (time.time() - t0) * 1000
