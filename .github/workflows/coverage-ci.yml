@@ -53,7 +53,10 @@ jobs:
           pip install -e .
 
       # 方案 B：每个测试在独立 fork 子进程中运行，子进程退出后 OS 回收内存，
-      # 从根本上切断测试间内存累积链路，解决 pytest-randomly 随机顺序导致的 OOM。
+      # 从根本上切断测试间内存累积链路，解决长时间运行导致的 OOM。
+      # -p no:randomly: 禁用 pytest-randomly 随机顺序。fork 子进程会继承父进程内存状态
+      # （含模块级单例/缓存），随机顺序会导致缓存状态污染——期望干净初始状态的测试在前置
+      # 测试修改共享缓存后失败（实测 test_system_prompt_config_cache.py 15 个用例失败）。
       # 兼容性：pytest.ini 有 parallel=True，fork 子进程会写 .coverage.<pid>.<rand>；
       # pytest-cov 7.x 在 pytest 退出时已自动 combine 这些文件到 .coverage。
       # --cov-fail-under=0 禁用 pytest-cov 即时阈值检查，改由下方 coverage-check job 统一断言。
@@ -63,6 +66,7 @@ jobs:
             --cov=agent \
             --forked \
             --cov-fail-under=0 \
+            -p no:randomly \
             -v --tb=short -m "not slow and not skip_ci and not forked_incompatible" --timeout=300
 
       # pytest-cov 7.x 已在 pytest 退出时自动 combine parallel 数据到 .coverage。
