@@ -216,6 +216,41 @@ class WorkflowLearningConfig(BaseModel):
     learner: WorkflowLearnerConfig = Field(default_factory=WorkflowLearnerConfig)
 
 
+# ─── 三级熔断器配置（circuit_breaker）────────────────────────────
+class CircuitBreakerScopeConfig(BaseModel):
+    """单级熔断器配置（SESSION/USER/GLOBAL 通用）"""
+    failure_threshold: float = Field(default=1.0, ge=0.0, le=1.0, description="失败率阈值 (0,1]")
+    min_requests: int = Field(default=5, ge=1, le=10000, description="触发熔断的最小请求数")
+    recovery_timeout: float = Field(default=60.0, ge=0.0, le=86400, description="冷却恢复时间（秒）")
+    half_open_max_calls: int = Field(default=1, ge=1, le=100, description="半开状态最大探测请求数")
+
+
+class CircuitBreakerConfigSection(BaseModel):
+    """三级熔断器配置（SESSION/USER/GLOBAL 独立阈值与冷却策略）
+
+    对应 agent/circuit_breaker.py 的 ThreeLevelBreakerConfig 默认值。
+    默认冷却：SESSION=60s / USER=300s / GLOBAL=600s。
+    """
+    session: CircuitBreakerScopeConfig = Field(default_factory=CircuitBreakerScopeConfig)
+    user: CircuitBreakerScopeConfig = Field(
+        default_factory=lambda: CircuitBreakerScopeConfig(
+            failure_threshold=1.0, min_requests=20,
+            recovery_timeout=300.0, half_open_max_calls=2,
+        )
+    )
+    # global 是 Python 关键字，用 global_ 字段名（Pydantic alias 兼容 config dict 的 "global" 键）
+    global_: CircuitBreakerScopeConfig = Field(
+        default_factory=lambda: CircuitBreakerScopeConfig(
+            failure_threshold=1.0, min_requests=100,
+            recovery_timeout=600.0, half_open_max_calls=3,
+        ),
+        alias="global",
+    )
+
+    class Config:
+        allow_population_by_field_name = True
+
+
 class ConfigModel(BaseModel):
     """完整配置模型"""
     sensor: SensorConfig = Field(default_factory=SensorConfig)
@@ -230,6 +265,7 @@ class ConfigModel(BaseModel):
     log_system: LogSystemConfig = Field(default_factory=LogSystemConfig)
     skills_mgmt: SkillsMgmtConfig = Field(default_factory=SkillsMgmtConfig)
     workflow_learning: WorkflowLearningConfig = Field(default_factory=WorkflowLearningConfig)
+    circuit_breaker: CircuitBreakerConfigSection = Field(default_factory=CircuitBreakerConfigSection)
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -322,7 +358,9 @@ def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
         'memory': '记忆系统配置（数据目录、Token限制、LLM配置等）',
         'behavior': '行为控制系统配置（健康检查间隔等）',
         'permission': '权限系统配置（备份目录等）',
-        'security': '安全配置（加密开关、密钥文件路径等）'
+        'security': '安全配置（加密开关、密钥文件路径等）',
+        # 三级熔断器配置（SESSION/USER/GLOBAL 独立阈值与冷却策略，对应 ConfigModel.circuit_breaker）
+        'circuit_breaker': '三级熔断器配置（SESSION/USER/GLOBAL 独立阈值与冷却策略）',
     }
     logger.debug("[配置校验] 📋 检查 %d 个必需配置节", len(required_sections))
     
@@ -420,7 +458,7 @@ def validate_and_fix_config(config: Dict[str, Any]) -> tuple[Dict[str, Any], Lis
     errors = []
     fixed_config = deepcopy(config)
 
-    # 检查并添加缺失的必需节
+    # 检查并添加缺失的必需节（circuit_breaker 传空 dict，由 Pydantic CircuitBreakerConfigSection 填充默认值）
     required_sections = {
         'sensor': {},
         'cognitive': {},
@@ -428,6 +466,7 @@ def validate_and_fix_config(config: Dict[str, Any]) -> tuple[Dict[str, Any], Lis
         'behavior': {},
         'permission': {},
         'security': {},
+        'circuit_breaker': {},
     }
 
     for section, default in required_sections.items():
