@@ -1,5 +1,5 @@
 {
-  "trace_id": "ca8f87109d1c4679",
+  "trace_id": "b34c693dbf874b3f",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -40,7 +40,7 @@
       "layer": "core",
       "file_path": "agent/tool_calling.py",
       "in_degree": 4,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent",
@@ -64,6 +64,14 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 4,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.observability.tool_trace",
+      "name": "tool_trace",
+      "layer": "observability",
+      "file_path": "",
+      "in_degree": 2,
       "out_degree": 0
     },
     {
@@ -296,6 +304,14 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.tool_router",
+      "name": "tool_router",
+      "layer": "core",
+      "file_path": "agent/tool_router.py",
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -1723,14 +1739,6 @@
       "out_degree": 4
     },
     {
-      "path": "agent.tool_router",
-      "name": "tool_router",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
-    },
-    {
       "path": "agent.orchestrator.observability",
       "name": "observability",
       "layer": "orchestrator",
@@ -2179,11 +2187,24 @@
     },
     {
       "source": "agent.tool_calling",
+      "target": "agent.observability.tool_trace",
+      "source_layer": "core",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 739,
+      "source_file": "agent/tool_calling.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_calling",
       "target": "agent.response_workflows",
       "source_layer": "core",
       "target_layer": "response_workflows",
       "import_type": "from_import",
-      "line": 724,
+      "line": 747,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2550,6 +2571,19 @@
       "line": 63,
       "source_file": "agent/weekly_report_generator.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_router",
+      "target": "agent.observability.tool_trace",
+      "source_layer": "core",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 18,
+      "source_file": "agent/tool_router.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -9265,14 +9299,15 @@
   ],
   "stats": {
     "total_files": 325,
-    "total_nodes": 257,
-    "total_edges": 554,
-    "cross_layer_edges": 351,
+    "total_nodes": 258,
+    "total_edges": 556,
+    "cross_layer_edges": 353,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 53,
       "unknown": 1,
+      "observability": 5,
       "response_workflows": 1,
       "utils": 5,
       "monitoring": 27,
@@ -9295,7 +9330,6 @@
       "server_routes": 26,
       "health": 4,
       "handoff": 1,
-      "observability": 4,
       "workflow_engine": 3,
       "task_planner": 4,
       "dao": 1,
@@ -9305,6 +9339,6 @@
       "audit": 3,
       "human_in_the_loop": 1
     },
-    "build_duration_ms": 812.200898999997
+    "build_duration_ms": 1176.617254
   }
 }
