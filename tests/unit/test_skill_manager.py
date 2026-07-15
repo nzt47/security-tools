@@ -529,6 +529,121 @@ class TestBuildContext(unittest.TestCase):
             result["total_tokens"], bd["tokens"],
             "total_tokens 应包含 boundary_tokens")
 
+    def test_build_context_boundary_when_loader_match_raises(self):
+        """构建上下文 — loader.match 抛异常时 build_context 应向上传播
+
+        场景：SkillLoader.match 内部异常（如索引损坏），
+        build_context 不应吞掉异常，应向上传播让调用方处理。
+        边界声明在此场景下无法生成（因为 match 失败）。
+        """
+        from unittest.mock import patch
+        sd = Path(self.tmpdir) / "src" / "fail-skill"
+        sd.mkdir(parents=True)
+        (sd / "skill.md").write_text(
+            _make_skill_md("fail-skill", "失败技能", "测试异常"), encoding="utf-8")
+        self.mgr.install_from_dir(str(sd))
+
+        # 模拟 loader.match 抛异常 — build_context 应向上传播
+        with patch.object(self.mgr.injector.loader, "match",
+                          side_effect=RuntimeError("index corrupted")):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.mgr.build_context("测试", top_k=1)
+            self.assertIn("index corrupted", str(ctx.exception))
+
+    def test_build_context_boundary_when_list_all_metadata_fails(self):
+        """构建上下文 — list_all_metadata 抛异常时边界声明优雅降级
+
+        场景：SkillLoader.list_all_metadata 内部异常（如文件权限），
+        inject_metadata 内的 _build_boundary_declaration 应捕获异常返回空声明。
+        """
+        from unittest.mock import patch
+        for sid, name, desc in [
+            ("skill-a", "A技能", "功能A描述"),
+            ("skill-b", "B技能", "功能B描述"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        # 模拟 list_all_metadata 抛异常
+        with patch.object(self.mgr.injector.loader, "list_all_metadata",
+                          side_effect=PermissionError("access denied")):
+            result = self.mgr.build_context("功能A", top_k=1)
+
+        # 技能元数据仍应正常注入（match 不受影响）
+        self.assertIn("skill-a", result.get("prompt", ""))
+        # 边界声明应为空（list_all_metadata 失败）
+        bd = result.get("boundary_declaration", {})
+        self.assertEqual(bd.get("text", ""), "")
+        self.assertEqual(bd.get("tokens", 0), 0)
+        # prompt 中不应有边界声明章节
+        self.assertNotIn("## 技能边界声明", result.get("prompt", ""))
+
+    def test_build_context_boundary_with_disabled_skills(self):
+        """构建上下文 — 禁用技能不应出现在已加载/未加载列表
+
+        场景：list_all_metadata(enabled_only=True) 应过滤掉禁用技能，
+        边界声明只包含启用的技能。
+        """
+        # 安装一个启用、一个禁用的技能
+        for sid, name, desc, enabled in [
+            ("enabled-skill", "启用技能", "功能A", True),
+            ("disabled-skill", "禁用技能", "功能B", False),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            md_content = _make_skill_md(sid, name, desc)
+            if not enabled:
+                # 修改 frontmatter 的 enabled 字段为 false
+                md_content = md_content.replace("enabled: true", "enabled: false")
+            (sd / "skill.md").write_text(md_content, encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        result = self.mgr.build_context("功能A", top_k=10)
+
+        bd = result["boundary_declaration"]
+        # 禁用技能不应出现在任何列表
+        self.assertNotIn("disabled-skill", bd.get("loaded", []))
+        self.assertNotIn("disabled-skill", bd.get("unloaded", []))
+        # 启用技能应在已加载列表
+        self.assertIn("enabled-skill", bd.get("loaded", []))
+
+    def test_build_context_boundary_passthrough_missing_field(self):
+        """构建上下文 — inject_metadata 返回值缺少 boundary_declaration 时优雅降级
+
+        场景：如果 inject_metadata 因某种原因没有返回 boundary_declaration 字段，
+        build_context 应使用默认空结构，而非 KeyError 崩溃。
+        """
+        from unittest.mock import patch
+        sd = Path(self.tmpdir) / "src" / "mock-skill"
+        sd.mkdir(parents=True)
+        (sd / "skill.md").write_text(
+            _make_skill_md("mock-skill", "Mock技能", "测试降级"), encoding="utf-8")
+        self.mgr.install_from_dir(str(sd))
+
+        # 模拟 inject_metadata 返回值缺少 boundary_declaration
+        original_inject = self.mgr.injector.inject_metadata
+
+        def mock_inject(matches):
+            result = original_inject(matches)
+            # 删除 boundary_declaration 字段模拟异常
+            result.pop("boundary_declaration", None)
+            return result
+
+        with patch.object(self.mgr.injector, "inject_metadata",
+                          side_effect=mock_inject):
+            result = self.mgr.build_context("测试", top_k=1)
+
+        # 应使用默认空结构，而非 KeyError
+        bd = result.get("boundary_declaration", {})
+        self.assertIn("text", bd)
+        self.assertIn("tokens", bd)
+        self.assertIn("loaded", bd)
+        self.assertIn("unloaded", bd)
+        self.assertEqual(bd.get("tokens", 0), 0)
+
 
 class TestHealthAndQuery(unittest.TestCase):
     """健康检查与查询测试"""
