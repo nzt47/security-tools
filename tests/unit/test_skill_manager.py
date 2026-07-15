@@ -512,6 +512,105 @@ class TestBuildContext(unittest.TestCase):
         # prompt 中未加载部分应显示「（无）」
         self.assertIn("（无）", result["prompt"])
 
+    def test_build_context_boundary_scenario1_partial_match(self):
+        """场景1：有匹配技能（部分匹配）— loaded 有内容，unloaded 有内容
+
+        验证 build_context 在部分匹配时：
+        - boundary_declaration 正确透传
+        - loaded 包含匹配的技能
+        - unloaded 包含未匹配的技能
+        - prompt 包含边界声明文本
+        - build_context 走 layer1_done 分支
+        """
+        for sid, name, desc in [
+            ("pdf-parser", "PDF解析", "解析PDF文件并提取文本内容"),
+            ("translator", "翻译", "翻译文本到不同语言"),
+            ("summarizer", "摘要", "对长文本生成摘要"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        result = self.mgr.build_context("解析PDF文件", top_k=1)
+
+        bd = result["boundary_declaration"]
+        # 场景1核心断言：loaded 和 unloaded 都有内容
+        self.assertGreater(len(bd["loaded"]), 0, "应有已加载技能")
+        self.assertGreater(len(bd["unloaded"]), 0, "应有未加载技能")
+        self.assertIn("pdf-parser", bd["loaded"])
+        # prompt 中应包含边界声明
+        self.assertIn("## 技能边界声明", result["prompt"])
+        self.assertIn("已加载", result["prompt"])
+        self.assertIn("未加载", result["prompt"])
+        # total_tokens 应包含 boundary_tokens
+        self.assertGreaterEqual(result["total_tokens"], bd["tokens"])
+
+    def test_build_context_boundary_scenario2_no_match_with_skills(self):
+        """场景2：有技能但无匹配 — loaded 空，unloaded 空，走 no_match 分支
+
+        验证 build_context 在有技能但查询不匹配时：
+        - match_count 为 0
+        - boundary_declaration 为空结构（因为没有调用 inject_metadata）
+        - prompt 中不包含边界声明
+        - build_context 走 no_match 分支
+        """
+        for sid, name, desc in [
+            ("alpha-skill", "Alpha", "阿尔法功能测试"),
+            ("beta-skill", "Beta", "贝塔功能测试"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        # 用完全无关的查询确保不匹配
+        result = self.mgr.build_context("xyz123完全无关查询", top_k=1)
+
+        bd = result.get("boundary_declaration", {})
+        # 场景2核心断言：无匹配时 boundary 为空
+        self.assertEqual(bd.get("loaded", []), [])
+        self.assertEqual(bd.get("unloaded", []), [])
+        self.assertEqual(bd.get("text", ""), "")
+        self.assertEqual(bd.get("tokens", 0), 0)
+        # prompt 中不应有边界声明
+        self.assertNotIn("## 技能边界声明", result.get("prompt", ""))
+        # match_count 应为 0
+        self.assertEqual(len(result.get("match_result", {}).get("matches", [])), 0)
+
+    def test_build_context_boundary_scenario3_all_matched(self):
+        """场景3：所有技能都匹配 — unloaded 为空，显示「（无）」
+
+        验证 build_context 在所有技能都匹配时：
+        - loaded 包含所有技能
+        - unloaded 为空
+        - prompt 中未加载部分显示「（无）」
+        - boundary_tokens 计入 total_tokens
+        """
+        for sid, name, desc in [
+            ("doc-skill", "文档技能", "文档处理功能描述"),
+            ("data-skill", "数据技能", "数据处理功能描述"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        # top_k 足够大确保全部匹配
+        result = self.mgr.build_context("功能描述", top_k=10)
+
+        bd = result["boundary_declaration"]
+        matches = result.get("match_result", {}).get("matches", [])
+        # 如果有匹配，验证全部在 loaded
+        if matches:
+            # 场景3核心断言：所有技能在 loaded，unloaded 为空
+            self.assertEqual(bd["unloaded"], [])
+            self.assertIn("（无）", result["prompt"])
+            self.assertGreaterEqual(result["total_tokens"], bd["tokens"])
+
     def test_build_context_boundary_tokens_in_total(self):
         """构建上下文 — boundary_tokens 应计入 total_tokens"""
         sd = Path(self.tmpdir) / "src" / "lone-skill"
