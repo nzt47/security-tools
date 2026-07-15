@@ -459,6 +459,20 @@ class TestIntegration:
         with patch("agent.observability.tool_trace.random.random", return_value=0.0):
             yield
 
+    @pytest.fixture(autouse=True)
+    def _register_test_tool(self):
+        # 注册 test_tool 到工具表，避免未 mock 场景下 tools.call 报错
+        # Why: 用户明确要求把 test_tool 注册到工具表，作为防御性后备
+        from agent import tools
+        def _test_tool_handler(**kwargs):
+            return {"ok": True, "result": "test_tool default"}
+        tools.register("test_tool", "测试工具", handler=_test_tool_handler)
+        yield
+        try:
+            tools.unregister("test_tool")
+        except Exception:
+            pass
+
     def test_full_tool_call_produces_one_trace(self, recorder):
         # 完整工具调用产生一条 trace,11 字段完整
         ToolTraceRecorder._instance = recorder
