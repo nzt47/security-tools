@@ -717,8 +717,31 @@ class ToolCallingService:
             return response.get("content", "") or response.get("text", "")
         return str(response)
 
+    def _execute_safe_core(self, func_name: str, args: dict) -> dict:
+        """执行工具核心逻辑（可被 mock 替换以便测试）
+
+        Why: 分离核心执行与 trace/retry 包装，便于单元测试 mock 此方法
+            验证 _execute_safe 的 trace 记录行为。
+        """
+        result = tools.call(func_name, **args)
+        if not isinstance(result, dict):
+            result = {"ok": True, "result": str(result)}
+        if "ok" not in result:
+            result["ok"] = True
+        return result
+
     def _execute_safe(self, func_name: str, args: dict) -> dict:
-        """安全执行工具（集成错误恢复 + 结果后处理）"""
+        """安全执行工具（集成 trace 记录 + 错误恢复 + 结果后处理）"""
+        # trace 记录（安全降级：recorder 不可用时不影响工具执行）
+        recorder = None
+        ctx = None
+        try:
+            from agent.observability.tool_trace import ToolTraceRecorder
+            recorder = ToolTraceRecorder.instance()
+            ctx = recorder.start_trace(func_name, args)
+        except Exception:
+            pass
+
         # 尝试使用 ErrorRecovery 工作流
         try:
             from agent.response_workflows import ErrorRecovery, ToolResultProcessor
@@ -728,11 +751,7 @@ class ToolCallingService:
 
         for attempt in range(3):
             try:
-                result = tools.call(func_name, **args)
-                if not isinstance(result, dict):
-                    result = {"ok": True, "result": str(result)}
-                if "ok" not in result:
-                    result["ok"] = True
+                result = self._execute_safe_core(func_name, args)
 
                 # 后处理：格式化 + 压缩
                 if has_workflow and result.get("ok"):
@@ -741,6 +760,8 @@ class ToolCallingService:
                     except Exception:
                         pass
 
+                if recorder is not None and ctx is not None:
+                    recorder.finish_trace(ctx, result, None)
                 return result
             except tools.ToolError as e:
                 error_msg = str(e)
@@ -749,21 +770,28 @@ class ToolCallingService:
                     plan = ErrorRecovery.get_recovery_plan(error_msg, attempt)
                     if plan["should_retry"]:
                         logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[恢复] %s (尝试 %d/3, %.1fs 后重试)' % (plan['message'], attempt + 1, plan['delay'])}))
-                        import time
                         time.sleep(plan["delay"])
                         continue
-                return {"ok": False, "error": error_msg}
+                result = {"ok": False, "error": error_msg}
+                if recorder is not None and ctx is not None:
+                    recorder.finish_trace(ctx, result, e)
+                return result
             except Exception as e:
                 logger.error(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '工具 %s 执行异常: %s' % (func_name, e)}))
                 if has_workflow:
                     plan = ErrorRecovery.get_recovery_plan(str(e), attempt)
                     if plan["should_retry"]:
-                        import time
                         time.sleep(plan["delay"])
                         continue
-                return {"ok": False, "error": f"工具执行异常: {e}"}
+                result = {"ok": False, "error": f"工具执行异常: {e}"}
+                if recorder is not None and ctx is not None:
+                    recorder.finish_trace(ctx, result, e)
+                return result
 
-        return {"ok": False, "error": f"工具 {func_name} 执行失败（已重试 3 次）"}
+        result = {"ok": False, "error": f"工具 {func_name} 执行失败（已重试 3 次）"}
+        if recorder is not None and ctx is not None:
+            recorder.finish_trace(ctx, result, None)
+        return result
 
     def _get_last_assistant_text(self, messages: list) -> str:
         """从消息列表中获取最后一条助手文本"""
