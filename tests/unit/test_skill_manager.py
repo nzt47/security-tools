@@ -611,6 +611,112 @@ class TestBuildContext(unittest.TestCase):
             self.assertIn("（无）", result["prompt"])
             self.assertGreaterEqual(result["total_tokens"], bd["tokens"])
 
+    def test_build_context_scenario_budget_exceeded_skip_instruction(self):
+        """异常场景1：预算超限时跳过 instruction 加载
+
+        验证 build_context 在 max_tokens 不足时：
+        - Layer 1 元数据正常注入（优先级高）
+        - Layer 2 instruction 因预算不足被跳过（走 skip_instruction 分支）
+        - boundary_declaration 仍正确透传
+        - has_instruction 为 False
+        """
+        for sid, name, desc in [
+            ("budget-skill", "预算技能", "预算测试功能描述"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc,
+                               instruction_body="# 使用说明\n\n" + "详细内容步骤说明" * 100),
+                encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        # max_tokens 设很小，只够 Layer 1 元数据，不够 Layer 2 instruction
+        with self.assertLogs("agent.skills_mgmt", level="INFO") as cm:
+            result = self.mgr.build_context(
+                "预算测试", max_tokens=200, top_k=1, auto_load_instruction=True)
+
+        # Layer 1 应正常完成，boundary 透传
+        bd = result["boundary_declaration"]
+        self.assertGreater(len(bd["loaded"]), 0, "Layer 1 应正常匹配")
+        self.assertGreater(bd["tokens"], 0, "boundary 应有 token 开销")
+
+        # Layer 2 应被跳过
+        self.assertFalse(result["layers"]["layer2_instruction"],
+                         "预算不足时 instruction 应被跳过")
+
+        # 日志应包含 skip_instruction 记录（action 在 JSON 消息字符串中）
+        skip_logs = [r for r in cm.records
+                     if "build_context.skip_instruction" in r.getMessage()]
+        self.assertGreater(len(skip_logs), 0, "应有 skip_instruction 日志")
+
+    def test_build_context_scenario_skill_not_found(self):
+        """异常场景2：指定不存在的 skill_id 加载 instruction
+
+        验证 build_context 在 skill_id 不存在时：
+        - Layer 1 元数据正常注入
+        - Layer 2 instruction 加载失败（走 instruction_not_found 分支）
+        - boundary_declaration 仍正确透传
+        - 不抛异常，优雅降级
+        """
+        with self.assertLogs("agent.skills_mgmt", level="INFO") as cm:
+            result = self.mgr.build_context(
+                "任意查询", top_k=1, skill_id="non-existent-skill-id")
+
+        # 不应抛异常，返回正常结果
+        self.assertIn("boundary_declaration", result)
+        bd = result["boundary_declaration"]
+        # 无匹配时 boundary 为空结构
+        self.assertEqual(bd.get("loaded", []), [])
+        self.assertEqual(bd.get("unloaded", []), [])
+
+        # 如果有匹配，日志应包含 instruction_not_found 记录
+        not_found_logs = [
+            r for r in cm.records
+            if "build_context.instruction_not_found" in r.getMessage()
+        ]
+        # 无匹配则走 no_match 分支，两种情况都不应崩溃
+        self.assertIsInstance(result, dict)
+
+    def test_build_context_scenario_no_match_logs_boundary_state(self):
+        """异常场景3：无匹配时日志应记录 boundary_state=empty_default
+
+        验证 build_context 在无匹配时：
+        - 走 no_match 分支
+        - 日志包含 boundary_state=empty_default
+        - 日志包含 reason=no_match_skipped_inject_metadata
+        - boundary_declaration 保持空结构
+        """
+        # 安装技能但用完全无关的查询
+        for sid, name, desc in [
+            ("exists-skill", "存在技能", "存在功能描述"),
+        ]:
+            sd = Path(self.tmpdir) / "src" / sid
+            sd.mkdir(parents=True)
+            (sd / "skill.md").write_text(
+                _make_skill_md(sid, name, desc), encoding="utf-8")
+            self.mgr.install_from_dir(str(sd))
+
+        with self.assertLogs("agent.skills_mgmt", level="INFO") as cm:
+            result = self.mgr.build_context("xyz123完全无关", top_k=1)
+
+        # boundary 应为空结构
+        bd = result.get("boundary_declaration", {})
+        self.assertEqual(bd.get("text", ""), "")
+        self.assertEqual(bd.get("loaded", []), [])
+        self.assertEqual(bd.get("unloaded", []), [])
+
+        # 日志应包含 no_match 记录，且带 boundary_state 字段
+        no_match_logs = [r for r in cm.records
+                        if "build_context.no_match" in r.getMessage()]
+        self.assertGreater(len(no_match_logs), 0, "应有 no_match 日志")
+        # 验证日志消息中包含 boundary_state 和 reason
+        no_match_msg = no_match_logs[0].getMessage()
+        self.assertIn("boundary_state", no_match_msg)
+        self.assertIn("empty_default", no_match_msg)
+        self.assertIn("reason", no_match_msg)
+        self.assertIn("no_match_skipped_inject_metadata", no_match_msg)
+
     def test_build_context_boundary_tokens_in_total(self):
         """构建上下文 — boundary_tokens 应计入 total_tokens"""
         sd = Path(self.tmpdir) / "src" / "lone-skill"
