@@ -48,6 +48,50 @@ def _get_sensitive_filter():
     return SensitiveDataFilter()
 
 
+# ── 三层路由（L1/L2/L3）常量 ──
+# L1=短时记忆（STM.get）、L2=全息检索（search）、L3=长期语义（search）
+_TIER_MAP: dict[str, str] = {
+    "L1": "short_term",
+    "L2": "holographic",
+    "L3": "long_term",
+}
+
+# L2 判定关键词
+_TIME_WORDS_CN = ["最近", "上次", "今天", "昨天", "刚刚", "刚才", "之前"]
+_TIME_WORDS_EN = ["recent", "last", "today", "yesterday", "previous"]
+_OP_WORDS_CN = ["做了", "操作", "执行", "调用", "运行"]
+_OP_WORDS_EN = ["operation", "did", "execute", "run", "call"]
+
+# L3 判定关键词
+_SEMANTIC_WORDS_CN = ["偏好", "知识", "设置", "配置", "习惯", "用户", "画像", "主题"]
+_SEMANTIC_WORDS_EN = ["prefer", "knowledge", "user", "profile", "setting", "config", "theme"]
+
+
+def _contains_cjk(text: str) -> bool:
+    """检测字符串是否包含 CJK 字符（中日韩统一表意文字、假名、韩文）
+
+    Args:
+        text: 待检测字符串
+
+    Returns:
+        True 表示包含至少一个 CJK 字符
+    """
+    if not text:
+        return False
+    for ch in text:
+        cp = ord(ch)
+        # CJK Unified Ideographs & Extension A
+        if 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF:
+            return True
+        # Hiragana / Katakana
+        if 0x3040 <= cp <= 0x30FF:
+            return True
+        # Hangul Syllables
+        if 0xAC00 <= cp <= 0xD7AF:
+            return True
+    return False
+
+
 class MemoryRouter:
     """基于任务特征的智能记忆路由
 
@@ -79,6 +123,9 @@ class MemoryRouter:
         self._adapters: dict[str, MemoryInterface] = {}
         self._default: MemoryInterface = default_adapter or HolographicAdapter()
         self._cache_layer = None
+
+        # 三层路由适配器（L1=短时/L2=全息/L3=长期）
+        self._tier_adapters: dict[str, Any] = {}
 
         # 敏感信息过滤配置（默认禁用，需显式开启）
         # _sensitive_filter_enabled: 启用敏感信息检测
@@ -174,6 +221,170 @@ class MemoryRouter:
             raise TypeError("默认适配器必须实现 MemoryInterface")
         self._default = adapter
         logger.info("[MemoryRouter] 更新默认适配器: %s", adapter.__class__.__name__)
+
+    # ── 三层路由（L1/L2/L3）──
+
+    def register_tier(self, tier: str, adapter) -> None:
+        """注册分层适配器（L1=短时/L2=全息/L3=长期）
+
+        Args:
+            tier: 层级名称（L1/L2/L3，大小写不敏感）
+            adapter: 适配器实例（L1 需支持 get，L2/L3 需支持 search）
+
+        Raises:
+            ValueError: tier 不在 L1/L2/L3 中
+        """
+        tier_upper = tier.upper()
+        if tier_upper not in _TIER_MAP:
+            raise ValueError(f"tier 必须是 L1/L2/L3 之一: {tier}")
+        self._tier_adapters[tier_upper] = adapter
+        logger.info(
+            "[MemoryRouter] 注册分层适配器: %s = %s",
+            tier_upper, adapter.__class__.__name__,
+        )
+
+    def _classify_tier(self, key: str) -> Tuple[str, str]:
+        """自动判定 key 所属层级
+
+        规则：
+        - L1: stm:/session: 前缀，或纯 ASCII 短 key（<8 字符，无空格、无 CJK）
+        - L2: 含时间词（最近/上次/recent/last...）或操作词（做了/operation...）
+        - L3: 含语义词（偏好/prefer...）、长查询（>=12 字符）、兜底
+
+        Returns:
+            (tier, reason)
+        """
+        if not key:
+            return ("L3", "空 key 兜底")
+
+        # L1: 前缀判定
+        if key.startswith("stm:"):
+            return ("L1", "stm: 前缀")
+        if key.startswith("session:"):
+            return ("L1", "session: 前缀")
+
+        # L1: 纯 ASCII 短 key（无 CJK、无空格、长度 < 8）
+        if not _contains_cjk(key) and " " not in key and len(key) < 8:
+            return ("L1", f"ASCII key (len={len(key)})")
+
+        key_lower = key.lower()
+
+        # L2: 时间词
+        for w in _TIME_WORDS_CN:
+            if w in key:
+                return ("L2", f"时间词 '{w}'")
+        for w in _TIME_WORDS_EN:
+            if w in key_lower:
+                return ("L2", f"时间词 '{w}'")
+
+        # L2: 操作词
+        for w in _OP_WORDS_CN:
+            if w in key:
+                return ("L2", f"操作词 '{w}'")
+        for w in _OP_WORDS_EN:
+            if w in key_lower:
+                return ("L2", f"操作词 '{w}'")
+
+        # L3: 语义词
+        for w in _SEMANTIC_WORDS_CN:
+            if w in key:
+                return ("L3", f"语义词 '{w}'")
+        for w in _SEMANTIC_WORDS_EN:
+            if w in key_lower:
+                return ("L3", f"语义词 '{w}'")
+
+        # L3: 长查询
+        if len(key) >= 12:
+            return ("L3", f"长查询 (len={len(key)})")
+
+        # L3: 兜底
+        return ("L3", "兜底")
+
+    async def route_tier(
+        self,
+        key: str,
+        tier: Optional[str] = None,
+        top_k: int = 5,
+    ) -> list[MemoryResult]:
+        """按层级路由查询
+
+        Args:
+            key: 查询 key
+            tier: 显式指定层级（L1/L2/L3）；None 或无效值时自动判定
+            top_k: L2/L3 搜索返回的最大结果数
+
+        Returns:
+            MemoryResult 列表（每个 result 的 metadata 包含 "tier" 字段）
+        """
+        if not key:
+            return []
+
+        # 确定层级
+        if tier is not None and tier.upper() in _TIER_MAP:
+            tier_upper = tier.upper()
+            logger.info(
+                "[MemoryRouter] route_tier 显式指定 tier=%s, key=%s",
+                tier_upper, key[:50],
+            )
+        else:
+            tier_upper, reason = self._classify_tier(key)
+            logger.info(
+                "[MemoryRouter] route_tier 自动判定 tier=%s, reason=%s, key=%s",
+                tier_upper, reason, key[:50],
+            )
+
+        # L1: STM.get
+        if tier_upper == "L1":
+            adapter = self._tier_adapters.get("L1")
+            if adapter is None:
+                # L1 未注册 → 降级到默认适配器的 search
+                logger.debug("[MemoryRouter] L1 适配器未注册，降级到默认适配器")
+                try:
+                    results = await self._default.search(key, top_k)
+                except Exception as e:
+                    logger.warning("[MemoryRouter] 默认适配器 search 失败: %s", e)
+                    return []
+                for r in results:
+                    r.metadata["tier"] = "L1"
+                return results
+            try:
+                value = await adapter.get(key)
+            except Exception as e:
+                logger.warning("[MemoryRouter] L1 STM.get 失败: %s", e)
+                return []
+            if value is None:
+                return []
+            return [MemoryResult(
+                content=value,
+                confidence=1.0,
+                source="short_term",
+                metadata={"tier": "L1"},
+            )]
+
+        # L2/L3: search
+        adapter = self._tier_adapters.get(tier_upper)
+        if adapter is None:
+            # 降级到默认适配器
+            logger.debug(
+                "[MemoryRouter] %s 适配器未注册，降级到默认适配器", tier_upper,
+            )
+            try:
+                results = await self._default.search(key, top_k)
+            except Exception as e:
+                logger.warning("[MemoryRouter] 默认适配器 search 失败: %s", e)
+                return []
+            for r in results:
+                r.metadata["tier"] = tier_upper
+            return results
+
+        try:
+            results = await adapter.search(key, top_k)
+        except Exception as e:
+            logger.warning("[MemoryRouter] %s search 失败: %s", tier_upper, e)
+            return []
+        for r in results:
+            r.metadata["tier"] = tier_upper
+        return results
 
     # ── 缓存层集成 ──
 
@@ -364,4 +575,10 @@ class MemoryRouter:
             "cache_layer": self._cache_layer is not None,
             "boundary_enabled": self._memory_boundary_enabled,
             "sensitive_filter_enabled": self._sensitive_filter_enabled,
+            # 三层路由信息
+            "tier_map": dict(_TIER_MAP),
+            "tier_adapters": {
+                k: v.__class__.__name__
+                for k, v in self._tier_adapters.items()
+            },
         }
