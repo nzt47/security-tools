@@ -185,9 +185,9 @@ class TestVectorWriteRetry:
         with patch("agent.memory.adapters.holographic_adapter.time.sleep") as mock_sleep:
             with patch.object(adapter, "_write_vec_row", side_effect=flaky_write):
                 with patch.object(adapter, "_write_vec_failed") as mock_fallback:
-                    result = adapter._retry_vec_write("retry_key", [0.1] * adapter._VEC_DIM, max_retries=3)
+                    # _retry_vec_write 是 void 方法（后台线程 target），通过调用次数和兜底表未调用来验证成功
+                    adapter._retry_vec_write("retry_key", [0.1] * adapter._VEC_DIM, max_retries=3)
 
-        assert result is True, "第 3 次成功后应返回 True"
         assert call_count["n"] == 3, "应尝试 3 次（2 次失败 + 1 次成功）"
         # 成功后不应写入兜底表
         mock_fallback.assert_not_called()
@@ -207,9 +207,10 @@ class TestVectorWriteRetry:
         with patch("agent.memory.adapters.holographic_adapter.time.sleep"):
             with patch.object(adapter, "_write_vec_row", side_effect=RuntimeError("持续失败")):
                 with patch.object(adapter, "_write_vec_failed") as mock_fallback:
-                    result = adapter._retry_vec_write("fail_key", [0.2] * adapter._VEC_DIM, max_retries=3)
+                    # _retry_vec_write 是 void 方法，通过兜底表被调用来验证重试耗尽
+                    adapter._retry_vec_write("fail_key", [0.2] * adapter._VEC_DIM, max_retries=3)
 
-        assert result is False, "全部失败应返回 False"
+        # 重试耗尽后应写入兜底表
         mock_fallback.assert_called_once()
         args = mock_fallback.call_args.args
         assert args[0] == "fail_key"
@@ -467,3 +468,90 @@ class TestInterfaceContract:
         assert hasattr(HolographicAdapter, "_init_vec_table")
         assert hasattr(HolographicAdapter, "_migrate_schema_if_needed")
         assert hasattr(HolographicAdapter, "_retry_vec_write")
+
+
+# ──────────────────────────────────────────────────────────────
+# 验收 6: 熔断机制 — 连续失败达阈值后自动降级（缺口 D）
+# ──────────────────────────────────────────────────────────────
+
+class TestCircuitBreaker:
+    """[变易] 熔断机制：连续失败达阈值后自动降级 _vec_available=False"""
+
+    @pytest.mark.unit
+    def test_circuit_breaker_triggers_after_threshold_failures(self, vec_enabled):
+        """连续失败达阈值（默认 5 次）后自动熔断 _vec_available=False"""
+        adapter = vec_enabled
+        assert adapter._vec_available is True
+        assert adapter._vec_fail_count == 0
+
+        # 模拟连续 5 次失败
+        for _ in range(adapter._vec_fail_threshold):
+            adapter._record_vec_failure()
+
+        assert adapter._vec_fail_count == adapter._vec_fail_threshold
+        assert adapter._vec_available is False, "达阈值后应熔断"
+
+    @pytest.mark.unit
+    def test_circuit_breaker_does_not_trigger_below_threshold(self, vec_enabled):
+        """失败次数未达阈值时不熔断"""
+        adapter = vec_enabled
+        threshold = adapter._vec_fail_threshold
+
+        # 模拟 threshold - 1 次失败
+        for _ in range(threshold - 1):
+            adapter._record_vec_failure()
+
+        assert adapter._vec_fail_count == threshold - 1
+        assert adapter._vec_available is True, "未达阈值不应熔断"
+
+    @pytest.mark.unit
+    def test_circuit_breaker_reset_restores_availability(self, vec_enabled):
+        """熔断后 _reset_vec_circuit 恢复可用状态"""
+        adapter = vec_enabled
+
+        # 先触发熔断
+        for _ in range(adapter._vec_fail_threshold):
+            adapter._record_vec_failure()
+        assert adapter._vec_available is False
+
+        # 重置
+        adapter._reset_vec_circuit()
+        assert adapter._vec_available is True
+        assert adapter._vec_fail_count == 0
+
+        # 重置后 search_vector 恢复正常（不立即降级）
+        results = asyncio.run(adapter.search_vector([0.0] * adapter._VEC_DIM, top_k=1))
+        assert isinstance(results, list), "重置后 search_vector 应正常返回列表"
+
+    @pytest.mark.unit
+    def test_circuit_breaker_triggered_by_search_vector_failure(self, vec_enabled):
+        """search_vector 连续失败触发熔断"""
+        adapter = vec_enabled
+        assert adapter._vec_available is True
+
+        # mock _get_conn 抛异常模拟向量查询失败
+        with patch.object(adapter, "_get_conn", side_effect=RuntimeError("模拟向量表损坏")):
+            for i in range(adapter._vec_fail_threshold):
+                results = asyncio.run(adapter.search_vector([0.1] * adapter._VEC_DIM, top_k=5))
+                assert results == [], f"第 {i+1} 次失败应返回空列表"
+
+        assert adapter._vec_fail_count == adapter._vec_fail_threshold
+        assert adapter._vec_available is False, "search_vector 连续失败应触发熔断"
+
+        # 熔断后不再调用 _get_conn（直接返回 []），失败计数不再递增
+        count_before = adapter._vec_fail_count
+        results = asyncio.run(adapter.search_vector([0.1] * adapter._VEC_DIM, top_k=5))
+        assert results == []
+        assert adapter._vec_fail_count == count_before, "熔断后不应再递增失败计数"
+
+    @pytest.mark.unit
+    def test_circuit_breaker_threshold_configurable(self, vec_enabled):
+        """阈值可配置：修改阈值=3，3 次失败即熔断"""
+        adapter = vec_enabled
+        adapter._vec_fail_threshold = 3
+
+        for _ in range(3):
+            adapter._record_vec_failure()
+
+        assert adapter._vec_fail_count == 3
+        assert adapter._vec_available is False, "阈值=3 时 3 次失败应熔断"

@@ -94,6 +94,11 @@ class HolographicAdapter(MemoryInterface):
         self._vec_available = False
         # [TLM-L3] embedding 生成回调（T2 任务注入真实模型，当前 None 占位）
         self._embedding_func = None
+        # [TLM-L2] thread-local 连接缓存：避免每次操作重复 connect + load_extension
+        self._conn_local = threading.local()
+        # [TLM-L2] 熔断机制：连续失败达阈值后自动降级 _vec_available=False（缺口 D）
+        self._vec_fail_count = 0
+        self._vec_fail_threshold = 5
 
         self._init_db()
         self._init_vec_table()            # [TLM-L2] 向量表初始化（失败降级，不抛异常）
@@ -110,9 +115,29 @@ class HolographicAdapter(MemoryInterface):
     # ── 数据库初始化 ──
 
     def _get_conn(self) -> sqlite3.Connection:
-        """获取数据库连接（线程本地）"""
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
+        """获取数据库连接（thread-local 缓存复用）
+
+        Why: sqlite-vec 扩展加载开销大，缓存连接避免每次操作重复 load_extension。
+        SQLite Connection 的 with 语句仅 commit/rollback 不 close，缓存复用安全。
+        扩展加载状态用 thread-local 标志，每个线程的连接只加载一次。
+        """
+        conn = getattr(self._conn_local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            # [TLM-L2] 设置 busy_timeout=5000ms，避免 SQLITE_BUSY 直接抛异常（缺口 C）
+            conn.execute("PRAGMA busy_timeout=5000")
+            self._conn_local.conn = conn
+        # 按需加载 sqlite-vec 扩展（_vec_available=True 且当前线程连接未加载时）
+        if self._vec_available and not getattr(self._conn_local, "vec_loaded", False):
+            try:
+                import sqlite_vec
+                conn.enable_load_extension(True)
+                sqlite_vec.load(conn)
+                self._conn_local.vec_loaded = True
+            except Exception as e:
+                # 加载失败不阻断，调用方 try-except 兜底降级
+                logger.debug("[HolographicAdapter][conn] sqlite-vec 扩展按需加载失败: %s", e)
         return conn
 
     def _init_db(self):
@@ -140,6 +165,28 @@ class HolographicAdapter(MemoryInterface):
             conn.commit()
         logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'log', 'msg': '[HolographicAdapter] 数据库表结构已就绪'}))
 
+    # [TLM-L2] 熔断机制 — 连续失败达阈值后自动降级（缺口 D）
+    def _record_vec_failure(self):
+        """记录向量层失败，达阈值后熔断降级
+
+        Why: 避免 sqlite-vec 运行时持续不可用时，每次操作都触发无意义的重试 + 兜底表写入。
+        连续失败达 _vec_fail_threshold 次后，自动设 _vec_available=False。
+        """
+        self._vec_fail_count += 1
+        if self._vec_fail_count >= self._vec_fail_threshold and self._vec_available:
+            self._vec_available = False
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.circuit_break', 'msg': f'[HolographicAdapter][vec] 熔断触发：连续失败 {self._vec_fail_count} 次 ≥ 阈值 {self._vec_fail_threshold}，自动降级 _vec_available=False'}))
+            logger.info("[HolographicAdapter][vec] 熔断路径: 失败计数 %d → _vec_available=False", self._vec_fail_count)
+
+    def _reset_vec_circuit(self):
+        """重置熔断器，恢复向量层可用状态（供后台探活调用）
+
+        探活成功后调用此方法重置失败计数和 _vec_available 标志。
+        """
+        self._vec_fail_count = 0
+        self._vec_available = True
+        logger.info("[HolographicAdapter][vec] 熔断器重置: _vec_available=True, fail_count=0")
+
     # [TLM-L2] 向量表初始化 — sqlite-vec 不可用时降级，禁抛异常
     def _init_vec_table(self):
         """创建 memories_vec 虚拟表（sqlite-vec 扩展）
@@ -166,6 +213,7 @@ class HolographicAdapter(MemoryInterface):
                     conn.enable_load_extension(True)
                     sqlite_vec.load(conn)
                     loaded = True
+                    self._conn_local.vec_loaded = True  # 标记当前线程连接已加载扩展
                     logger.info("[HolographicAdapter][vec] sqlite_vec.load(conn) 加载成功（Python 适配器路径）")
                 except Exception as e_py:
                     logger.info("[HolographicAdapter][vec] Python 适配器加载失败: %s → 尝试原生 load_extension", e_py)
@@ -363,8 +411,7 @@ class HolographicAdapter(MemoryInterface):
             import sqlite_vec
             with self._lock:
                 with self._get_conn() as conn:
-                    conn.enable_load_extension(True)
-                    sqlite_vec.load(conn)
+                    # sqlite-vec 扩展已由 _get_conn 按需加载（thread-local 缓存）
                     query_blob = sqlite_vec.serialize_float32(query_embedding)
                     rows = conn.execute(f"""
                         SELECT id, distance
@@ -409,8 +456,9 @@ class HolographicAdapter(MemoryInterface):
             logger.info("[HolographicAdapter][vec] search_vector 命中 %d 条 (top_k=%d)", len(results), top_k)
             return results
         except Exception as e:
+            self._record_vec_failure()  # [TLM-L2] 熔断计数
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'search_vector.failed', 'msg': f'[HolographicAdapter] 向量检索失败: {e}'}))
-            logger.info("[HolographicAdapter][vec] search_vector 异常 %s → 返回空列表", e)
+            logger.info("[HolographicAdapter][vec] search_vector 异常 %s → 返回空列表（fail_count=%d）", e, self._vec_fail_count)
             return []
 
     async def search(
@@ -707,14 +755,14 @@ class HolographicAdapter(MemoryInterface):
         # 重试耗尽，写兜底表
         logger.error("[HolographicAdapter][vec] 向量写入重试耗尽 key=%s → 写兜底表 %s", key, self._VEC_FAILED_TABLE)
         self._write_vec_failed(key, embedding, str(last_error))
+        self._record_vec_failure()  # [TLM-L2] 熔断计数
 
     def _write_vec_row(self, key: str, embedding: list):
         """写入向量行（DELETE+INSERT 模拟 upsert，vec0 不支持 UPDATE）"""
         import sqlite_vec
         with self._lock:
             with self._get_conn() as conn:
-                conn.enable_load_extension(True)
-                sqlite_vec.load(conn)
+                # sqlite-vec 扩展已由 _get_conn 按需加载（thread-local 缓存）
                 blob = sqlite_vec.serialize_float32(embedding)
                 conn.execute(f"DELETE FROM {self._VEC_TABLE} WHERE id = ?", (key,))
                 conn.execute(
