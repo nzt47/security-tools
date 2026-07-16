@@ -1,0 +1,160 @@
+# 三级熔断器 Prometheus 告警规则
+#
+# 指标来源（agent/monitoring/business_metrics.py）：
+#   - yunshu_circuit_breaker_trigger_total (counter)
+#       labels: breaker_name, from_state, to_state, reason
+#   - yunshu_circuit_breaker_state (gauge)
+#       labels: breaker_name, state
+#   - yunshu_degrade_trigger_total (counter)
+#       labels: module, level, reason
+#   - yunshu_rate_limit_trigger_total (counter)
+#       labels: level, endpoint, user_id, reason
+#
+# 对应部署检查清单第六章「上线后监控」
+# 技术文档：docs/circuit_breaker_and_log_redaction.md
+# 发布说明：docs/RELEASE_NOTES_circuit_breaker.md
+
+groups:
+  # ── 1. 熔断器状态告警 ──────────────────────────────────────
+  - name: circuit_breaker_state
+    interval: 30s
+    rules:
+      # 1.1 GLOBAL 级熔断触发（影响全局，需立即处理）
+      - alert: CircuitBreakerGlobalTriggered
+        expr: |
+          increase(yunshu_circuit_breaker_trigger_total{to_state="open"}[5m]) > 0
+          and on()
+          yunshu_circuit_breaker_state{state="open"} > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: stability
+          scope: global
+          service: circuit_breaker
+        annotations:
+          summary: "GLOBAL 级熔断器已触发"
+          description: "熔断器 {{ $labels.breaker_name }} 进入 OPEN 状态，影响全局工具调用"
+          runbook_url: "docs/circuit_breaker_and_log_redaction.md#熔断器状态转换"
+          impact: "全局工具调用被拒绝，影响所有用户"
+          action: "1. 检查下游依赖健康状态 2. 查看 tool_trace 日志定位故障工具 3. 必要时执行 git revert c19f0cf7 回滚"
+
+      # 1.2 熔断器频繁触发（5 分钟内 > 3 次）
+      - alert: CircuitBreakerFrequentTrigger
+        expr: increase(yunshu_circuit_breaker_trigger_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          category: stability
+          service: circuit_breaker
+        annotations:
+          summary: "熔断器频繁触发"
+          description: "熔断器 {{ $labels.breaker_name }} 在 5 分钟内触发 {{ $value | printf \"%.0f\" }} 次"
+          runbook_url: "docs/circuit_breaker_and_log_redaction.md#级联短路触发"
+          impact: "工具调用稳定性下降，可能影响用户体验"
+          action: "检查 {{ $labels.breaker_name }} 对应的下游服务，分析 from_state/to_state 转换路径"
+
+      # 1.3 熔断器长时间处于 OPEN 状态（> 10 分钟未恢复）
+      - alert: CircuitBreakerStuckOpen
+        expr: |
+          yunshu_circuit_breaker_state{state="open"} == 1
+          and on(breaker_name)
+          (time() - yunshu_circuit_breaker_state{state="open"}) > 600
+        for: 0m
+        labels:
+          severity: warning
+          category: stability
+          service: circuit_breaker
+        annotations:
+          summary: "熔断器长时间未恢复"
+          description: "熔断器 {{ $labels.breaker_name }} 处于 OPEN 状态超过 10 分钟"
+          runbook_url: "docs/circuit_breaker_and_log_redaction.md#三状态转换"
+          impact: "工具持续不可用，冷却恢复机制可能失效"
+          action: "1. 检查 recovery_timeout 配置 2. 验证半开探测是否正常执行 3. 手动触发探测请求"
+
+      # 1.4 熔断器恢复失败循环（HALF_OPEN → OPEN 反复切换）
+      - alert: CircuitBreakerRecoveryLoop
+        expr: |
+          increase(yunshu_circuit_breaker_trigger_total{from_state="half_open", to_state="open"}[10m]) > 3
+        for: 2m
+        labels:
+          severity: warning
+          category: stability
+          service: circuit_breaker
+        annotations:
+          summary: "熔断器恢复失败循环"
+          description: "熔断器 {{ $labels.breaker_name }} 在 HALF_OPEN → OPEN 之间循环 {{ $value | printf \"%.0f\" }} 次"
+          runbook_url: "docs/circuit_breaker_and_log_redaction.md#半开探测"
+          impact: "熔断器无法恢复正常状态，工具持续不可用"
+          action: "1. 检查半开探测请求是否正确执行 2. 验证下游服务是否真正恢复 3. 考虑手动重置熔断器"
+
+  # ── 2. USER 级熔断告警 ────────────────────────────────────
+  - name: circuit_breaker_user_level
+    interval: 30s
+    rules:
+      # 2.1 USER 级熔断触发（单用户高危工具冷却）
+      - alert: CircuitBreakerUserLevelTriggered
+        expr: |
+          increase(yunshu_circuit_breaker_trigger_total{breaker_name=~".*user.*"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: stability
+          scope: user
+          service: circuit_breaker
+        annotations:
+          summary: "USER 级熔断器触发"
+          description: "用户级熔断器 {{ $labels.breaker_name }} 触发，原因: {{ $labels.reason }}"
+          runbook_url: "docs/circuit_breaker_and_log_redaction.md#级联短路触发"
+          impact: "单用户高危工具调用被拒绝，冷却 300s"
+          action: "检查用户操作历史，确认是否为异常行为"
+
+  # ── 3. 降级与限流告警 ─────────────────────────────────────
+  - name: circuit_breaker_degrade_ratelimit
+    interval: 30s
+    rules:
+      # 3.1 降级频繁触发（5 分钟内 > 5 次）
+      - alert: DegradeFrequentTrigger
+        expr: increase(yunshu_degrade_trigger_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          category: stability
+          service: degrade
+        annotations:
+          summary: "降级频繁触发"
+          description: "模块 {{ $labels.module }} 在 5 分钟内触发降级 {{ $value | printf \"%.0f\" }} 次"
+          impact: "系统容错能力下降，部分功能不可用"
+          action: "检查模块 {{ $labels.module }} 的依赖健康状态"
+
+      # 3.2 限流频繁触发（5 分钟内 > 10 次）
+      - alert: RateLimitFrequentTrigger
+        expr: increase(yunshu_rate_limit_trigger_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          category: stability
+          service: rate_limit
+        annotations:
+          summary: "限流频繁触发"
+          description: "端点 {{ $labels.endpoint }} 在 5 分钟内触发限流 {{ $value | printf \"%.0f\" }} 次"
+          impact: "用户请求被拒绝，影响用户体验"
+          action: "1. 检查流量是否异常 2. 评估是否需要调整限流阈值 3. 考虑扩容"
+
+  # ── 4. 配置漂移检测（基于指标缺失）────────────────────────
+  - name: circuit_breaker_config_drift
+    interval: 60s
+    rules:
+      # 4.1 熔断器指标缺失（配置可能被移除）
+      - alert: CircuitBreakerMetricsMissing
+        expr: absent(yunshu_circuit_breaker_state) or absent(yunshu_circuit_breaker_trigger_total)
+        for: 5m
+        labels:
+          severity: warning
+          category: config
+          service: circuit_breaker
+        annotations:
+          summary: "熔断器指标缺失"
+          description: "过去 5 分钟未采集到熔断器指标，配置可能被移除或模块未加载"
+          runbook_url: "docs/DEPLOYMENT_CHECKLIST_circuit_breaker.md#一配置项检查"
+          impact: "无法监控熔断器状态"
+          action: "1. 检查 config.py 中 circuit_breaker 字段是否存在 2. 验证 BusinessMetricsCollector 是否正常初始化 3. 查看 /metrics 端点输出"
