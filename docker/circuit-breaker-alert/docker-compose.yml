@@ -1,0 +1,72 @@
+# 熔断器告警通知脚本 - Docker Compose 配置
+#
+# 使用方式:
+#   docker-compose up -d              # 持续监控模式
+#   docker-compose run --rm alert-once  # 单次检查模式
+#
+# 环境变量（可通过 .env 文件配置）:
+#   ALERT_WEBHOOK_URL       webhook URL（可选）
+#   ALERT_LOG_FILE          日志文件路径（默认 /var/log/circuit_breaker_alerts.jsonl）
+#   ALERT_INTERVAL          监控间隔秒数（默认 30）
+#   ALERT_STUCK_THRESHOLD   OPEN 卡死阈值秒数（默认 600）
+#   ALERT_FREQUENT_THRESHOLD 频繁触发阈值次数（默认 3）
+
+version: "3.8"
+
+services:
+  # 持续监控模式（后台运行）
+  alert-watch:
+    build:
+      context: ../..
+      dockerfile: docker/circuit-breaker-alert/Dockerfile
+    image: circuit-breaker-alert:latest
+    container_name: circuit-breaker-alert-watch
+    restart: unless-stopped
+    environment:
+      - ALERT_WATCH_MODE=true
+      - ALERT_INTERVAL=${ALERT_INTERVAL:-30}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - ALERT_LOG_FILE=/var/log/circuit_breaker_alerts.jsonl
+      - ALERT_STUCK_THRESHOLD=${ALERT_STUCK_THRESHOLD:-600}
+      - ALERT_FREQUENT_THRESHOLD=${ALERT_FREQUENT_THRESHOLD:-3}
+    volumes:
+      - alert-logs:/var/log
+      - ../../monitoring:/app/monitoring:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "python", "scripts/circuit_breaker_alert.py", "--json"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # 单次检查模式（运行后退出）
+  alert-once:
+    build:
+      context: ../..
+      dockerfile: docker/circuit-breaker-alert/Dockerfile
+    image: circuit-breaker-alert:latest
+    container_name: circuit-breaker-alert-once
+    environment:
+      - ALERT_WATCH_MODE=false
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - ALERT_LOG_FILE=/var/log/circuit_breaker_alerts.jsonl
+      - ALERT_STUCK_THRESHOLD=${ALERT_STUCK_THRESHOLD:-600}
+      - ALERT_FREQUENT_THRESHOLD=${ALERT_FREQUENT_THRESHOLD:-3}
+    volumes:
+      - alert-logs:/var/log
+    profiles:
+      - on-demand  # 只在 docker-compose --profile on-demand 时运行
+
+volumes:
+  alert-logs:
+    driver: local
