@@ -1,0 +1,432 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "icon": "doc",
+      "tags": [],
+      "targetBlank": true,
+      "title": "部署检查清单",
+      "tooltip": "打开部署检查清单文档",
+      "type": "link",
+      "url": "file:///docs/DEPLOYMENT_CHECKLIST_circuit_breaker.md"
+    },
+    {
+      "icon": "doc",
+      "tags": [],
+      "targetBlank": true,
+      "title": "技术文档",
+      "tooltip": "打开三级熔断器技术文档",
+      "type": "link",
+      "url": "file:///docs/circuit_breaker_and_log_redaction.md"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "熔断器总体状态",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(yunshu_circuit_breaker_state{state=\"open\"})",
+          "legendFormat": "OPEN 数量",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": { "text": "全部正常", "color": "green" }
+              },
+              "type": "value"
+            }
+          ],
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "title": "当前 OPEN 熔断器",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu_circuit_breaker_state{state=\"open\"}",
+          "legendFormat": "{{breaker_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "orientation": "vertical",
+        "textMode": "name",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 3,
+      "title": "最近 1h 触发次数",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "increase(yunshu_circuit_breaker_trigger_total[1h])",
+          "legendFormat": "{{breaker_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "title": "降级触发（1h）",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "increase(yunshu_degrade_trigger_total[1h])",
+          "legendFormat": "{{module}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 10,
+      "title": "熔断器触发趋势（按级别）",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(yunshu_circuit_breaker_trigger_total[5m])",
+          "legendFormat": "{{breaker_name}} ({{from_state}}→{{to_state}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "stacking": { "mode": "none", "group": "A" },
+            "spanNulls": false,
+            "showPoints": "never"
+          },
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 20,
+      "title": "三级熔断器状态分布",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 13 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (state) (yunshu_circuit_breaker_state)",
+          "legendFormat": "{{state}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": [
+            { "options": { "closed": { "text": "CLOSED", "color": "green" }, "open": { "text": "OPEN", "color": "red" }, "half_open": { "text": "HALF_OPEN", "color": "yellow" } }, "type": "value" }
+          ],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 21,
+      "title": "SESSION 级熔断器",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 13 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu_circuit_breaker_state{breaker_name=~\".*session.*\"}",
+          "legendFormat": "{{breaker_name}}: {{state}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "orientation": "vertical",
+        "textMode": "name",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 22,
+      "title": "USER/GLOBAL 级熔断器",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 13 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "yunshu_circuit_breaker_state{breaker_name=~\".*(user|global).*\"}",
+          "legendFormat": "{{breaker_name}}: {{state}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "orientation": "vertical",
+        "textMode": "name",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 30,
+      "title": "状态转换累计（按 from→to）",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "increase(yunshu_circuit_breaker_trigger_total[1h])",
+          "legendFormat": "{{from_state}}→{{to_state}} ({{breaker_name}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "fillOpacity": 80,
+            "stacking": { "mode": "normal", "group": "A" },
+            "spanNulls": false,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 31,
+      "title": "限流触发趋势",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(yunshu_rate_limit_trigger_total[5m])",
+          "legendFormat": "{{endpoint}} ({{level}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 30,
+            "stacking": { "mode": "none", "group": "A" },
+            "spanNulls": false,
+            "showPoints": "never"
+          },
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 2 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 40,
+      "title": "告警规则引用",
+      "type": "text",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 27 },
+      "options": {
+        "content": "## 告警规则\n\n本仪表盘配合 `monitoring/circuit_breaker_alerts.yml` 使用，包含 8 条告警规则：\n\n| 告警 | 严重级别 | 触发条件 |\n|------|----------|----------|\n| CircuitBreakerGlobalTriggered | critical | GLOBAL 级熔断触发 |\n| CircuitBreakerFrequentTrigger | warning | 5min 内触发 > 3 次 |\n| CircuitBreakerStuckOpen | warning | OPEN 状态 > 10min |\n| CircuitBreakerRecoveryLoop | warning | HALF_OPEN→OPEN 循环 > 3 次 |\n| CircuitBreakerUserLevelTriggered | warning | USER 级熔断触发 |\n| DegradeFrequentTrigger | warning | 5min 内降级 > 5 次 |\n| RateLimitFrequentTrigger | warning | 5min 内限流 > 10 次 |\n| CircuitBreakerMetricsMissing | warning | 指标缺失 5min |\n\n**文档**: [部署检查清单](file:///docs/DEPLOYMENT_CHECKLIST_circuit_breaker.md) | [技术文档](file:///docs/circuit_breaker_and_log_redaction.md) | [发布说明](file:///docs/RELEASE_NOTES_circuit_breaker.md)",
+        "mode": "markdown"
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["circuit-breaker", "stability", "yunshu"],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0,
+        "label": "数据源"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "7d", "30d"]
+  },
+  "timezone": "browser",
+  "title": "三级熔断器监控仪表盘",
+  "uid": "circuit-breaker-dashboard",
+  "version": 1,
+  "weekStart": ""
+}
