@@ -5,7 +5,7 @@
 > **涉及分支**: `master`（cherry-pick 自 `feature/tlm-step3-vectorstore-sqlite-vec`）
 > **相关 Commit**:
 > - `dac5f89e` feat(circuit_breaker): 熔断器增强 + 配置校验扩展（feature 分支）
-> - `06b40e60` feat(circuit_breaker): ConfigModel 纳入 circuit_breaker + tool_trace 测试修复 + 技术文档（master，cherry-pick 自 `282d4db4`）
+> - `c19f0cf7` feat(circuit_breaker): ConfigModel 纳入 circuit_breaker + tool_trace 测试修复 + 技术文档（master，cherry-pick 自 feature 分支 `282d4db4`）
 
 ---
 
@@ -161,12 +161,12 @@
 
 1. **回退 commit**（master 分支）：
    ```bash
-   git revert 06b40e60
+   git revert c19f0cf7
    ```
 
 2. **手动回退**（如需彻底删除）：
    ```bash
-   git reset --hard 06b40e60^
+   git reset --hard c19f0cf7^
    ```
 
 3. **配置降级**：移除 `config.py` 中 `circuit_breaker` 字段，系统将退回单级熔断器模式
