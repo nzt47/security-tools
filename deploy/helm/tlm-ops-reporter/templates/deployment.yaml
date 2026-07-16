@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tlm-ops-reporter.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tlm-ops-reporter.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # PVC ReadWriteOnce 不支持 RollingUpdate 双副本
+  selector:
+    matchLabels:
+      {{- include "tlm-ops-reporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tlm-ops-reporter.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: ops-reporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # [变易] 通过 ENV 注入 cron 时刻，覆盖 entrypoint.sh 默认值
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: CRON_HOUR
+              value: "{{ .Values.reporter.schedule.hour }}"
+            - name: CRON_MINUTE
+              value: "{{ .Values.reporter.schedule.minute }}"
+          # [简易] mode=cron 用 --cron 入参；mode=once 用一次性参数
+          args:
+            {{- if eq .Values.reporter.mode "cron" }}
+            - "--cron"
+            {{- else }}
+            - "--log-dir"
+            - {{ .Values.reporter.logDir | quote }}
+            - "--output"
+            - "{{ .Values.reporter.outputDir }}/manual-report.md"
+            {{- end }}
+          resources:
+            {{- toYaml .Values.reporter.resources | nindent 12 }}
+          volumeMounts:
+            # 日志目录（只读）
+            - name: logs
+              mountPath: {{ .Values.reporter.logDir }}
+              readOnly: true
+            # 日报输出（读写）
+            - name: output
+              mountPath: {{ .Values.reporter.outputDir }}
+          # [不易] 存活探针：cron 模式下 entrypoint 进程退出即视为故障
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pgrep -f entrypoint.sh || pgrep -f generate_ops_daily_report"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+      volumes:
+        - name: logs
+          {{- if .Values.logsVolume.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.logsVolume.existingClaim }}
+            readOnly: true
+          {{- else if .Values.logsVolume.create }}
+          persistentVolumeClaim:
+            claimName: {{ include "tlm-ops-reporter.fullname" . }}-logs
+            readOnly: true
+          {{- else }}
+          # 兜底：emptyDir（仅测试，无持久化日志）
+          emptyDir: {}
+          {{- end }}
+        - name: output
+          {{- if .Values.outputVolume.create }}
+          persistentVolumeClaim:
+            claimName: {{ include "tlm-ops-reporter.fullname" . }}-output
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,202 @@
+# Prometheus 告警规则 — TLM 熔断器与向量层监控
+#
+# 依赖前提:
+#   1. 应用日志通过 Loki / mtail / Fluentd 等采集器转为 Prometheus metric
+#   2. 假设 metric 命名: holographic_adapter_vec_events_total{action="..."}
+#      类型: counter（每次日志事件递增 1）
+#   3. 另有 holographic_adapter_vec_state gauge（_vec_available 状态: 0/1）
+#
+# 部署方式:
+#   kubectl apply -f deploy/prometheus/circuit_breaker_alerts.yml
+#   或在 prometheus.yml 中 rule_files 引入本文件
+#
+# action 字段对照（与代码 log_dict 一致）:
+#   vec.circuit_break     WARNING  熔断触发
+#   vec.circuit_reset     INFO     熔断恢复
+#   vec.fail_count        DEBUG    失败计数累积
+#   vec.degraded_skip     DEBUG    降级路径触发
+#   vec.write_exhausted   ERROR    向量写入重试耗尽
+#   search_vector.failed  WARNING  search_vector 单次失败
+#   vec.import_failed     WARNING  sqlite-vec 模块不可导入
+#   vec.load_failed       WARNING  sqlite-vec 扩展加载失败
+#   vec.init_failed       WARNING  向量表初始化异常
+
+groups:
+  # ──────────────────────────────────────────────────────────────
+  # 组 1: P0 告警 — 熔断触发/恢复（立即通知）
+  # ──────────────────────────────────────────────────────────────
+  - name: tlm_circuit_breaker_p0
+    interval: 30s
+    rules:
+      # P0: 熔断触发 — 向量层已降级，需立即排查
+      - alert: VecCircuitBreakerTripped
+        expr: increase(holographic_adapter_vec_events_total{action="vec.circuit_break"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          team: memory
+          category: circuit_breaker
+        annotations:
+          summary: "TLM 向量层熔断触发"
+          description: "HolographicAdapter 连续失败达阈值（5 次），已自动降级 _vec_available=False。search_vector 将返回空列表，save_with_embedding 跳过向量层。"
+          runbook_url: "https://wiki.internal/tlm/circuit-breaker-runbook"
+          impact: "向量检索不可用，FTS5 全文检索仍正常（降级模式）"
+
+      # P0: 熔断恢复 — 服务已恢复（信息通知）
+      - alert: VecCircuitBreakerReset
+        expr: increase(holographic_adapter_vec_events_total{action="vec.circuit_reset"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: info
+          team: memory
+          category: circuit_breaker
+        annotations:
+          summary: "TLM 向量层熔断器已重置"
+          description: "_reset_vec_circuit 被调用，_vec_available=True，fail_count=0。向量检索已恢复可用。"
+          impact: "向量检索恢复正常"
+
+      # P0: sqlite-vec 模块不可导入
+      - alert: VecImportFailed
+        expr: increase(holographic_adapter_vec_events_total{action="vec.import_failed"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          team: memory
+          category: vec_init
+        annotations:
+          summary: "sqlite-vec 模块不可导入"
+          description: "sqlite-vec 未安装或损坏，已降级为纯 FTS5 + BM25。需检查 Python 环境依赖。"
+          runbook_url: "https://wiki.internal/tlm/sqlite-vec-install"
+
+      # P0: sqlite-vec 扩展加载失败
+      - alert: VecLoadFailed
+        expr: increase(holographic_adapter_vec_events_total{action="vec.load_failed"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          team: memory
+          category: vec_init
+        annotations:
+          summary: "sqlite-vec 扩展加载全部失败"
+          description: "Python 适配器 + 原生 load_extension 两种方式均失败。检查 SQLite 编译选项 ENABLE_LOAD_EXTENSION。"
+
+  # ──────────────────────────────────────────────────────────────
+  # 组 2: P1 告警 — 向量写入失败（需人工介入兜底表）
+  # ──────────────────────────────────────────────────────────────
+  - name: tlm_vec_write_failures
+    interval: 30s
+    rules:
+      # P1: 向量写入重试耗尽 — 5 分钟内 >=1 次即告警
+      - alert: VecWriteExhausted
+        expr: increase(holographic_adapter_vec_events_total{action="vec.write_exhausted"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: memory
+          category: vec_write
+        annotations:
+          summary: "向量写入重试耗尽，已写入兜底表"
+          description: "向量写入重试 3 次均失败，数据已写入 memories_vec_failed 表。需后台 replay_vec_failed() 补偿重放。"
+          runbook_url: "https://wiki.internal/tlm/vec-write-recovery"
+          impact: "向量数据暂时缺失，主表+FTS 数据完整"
+
+      # P1: 向量写入失败速率高 — 10 分钟内 >3 次
+      - alert: VecWriteExhaustedRateHigh
+        expr: increase(holographic_adapter_vec_events_total{action="vec.write_exhausted"}[10m]) > 3
+        for: 2m
+        labels:
+          severity: warning
+          team: memory
+          category: vec_write
+        annotations:
+          summary: "向量写入失败速率过高"
+          description: "10 分钟内向量写入重试耗尽 >3 次，可能 sqlite-vec 运行时持续故障。检查磁盘空间/IO/锁竞争。"
+
+  # ──────────────────────────────────────────────────────────────
+  # 组 3: 预警 — 失败趋势与降级频率（聚合 DEBUG 日志）
+  # ──────────────────────────────────────────────────────────────
+  - name: tlm_vec_failure_trends
+    interval: 60s
+    rules:
+      # 预警: 失败速率接近阈值 — 10 分钟内失败累积 >20 次
+      - alert: VecFailureRateHigh
+        expr: increase(holographic_adapter_vec_events_total{action="vec.fail_count"}[10m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+          team: memory
+          category: failure_trend
+        annotations:
+          summary: "向量层失败速率过高，即将熔断"
+          description: "10 分钟内失败累积 >20 次，接近熔断阈值（5 次连续失败即熔断）。建议提前排查 sqlite-vec 健康状态。"
+          impact: "若达阈值将自动熔断降级"
+
+      # 预警: 降级请求占比高 — 5 分钟内降级触发 >50 次
+      - alert: VecDegradedSkipHigh
+        expr: increase(holographic_adapter_vec_events_total{action="vec.degraded_skip"}[5m]) > 50
+        for: 3m
+        labels:
+          severity: warning
+          team: memory
+          category: degraded_ratio
+        annotations:
+          summary: "向量层降级请求占比过高"
+          description: "5 分钟内 search_vector 降级触发 >50 次，向量层持续不可用。检查是否已触发熔断或 sqlite-vec 加载失败。"
+
+      # 预警: search_vector 单次失败速率
+      - alert: VecSearchFailedRate
+        expr: increase(holographic_adapter_vec_events_total{action="search_vector.failed"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          team: memory
+          category: search_failure
+        annotations:
+          summary: "search_vector 失败速率过高"
+          description: "5 分钟内 search_vector 单次失败 >10 次。检查数据库连接、锁竞争、磁盘 IO。"
+
+  # ──────────────────────────────────────────────────────────────
+  # 组 4: 状态监控 — _vec_available gauge（持续状态）
+  # ──────────────────────────────────────────────────────────────
+  - name: tlm_vec_state_gauge
+    interval: 30s
+    rules:
+      # 持续熔断状态 — _vec_available=0 持续 5 分钟
+      - alert: VecUnavailableSustained
+        expr: holographic_adapter_vec_state == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: memory
+          category: vec_state
+        annotations:
+          summary: "向量层持续不可用超过 5 分钟"
+          description: "_vec_available=False 持续 5 分钟以上，向量检索完全降级。需人工介入恢复（调用 _reset_vec_circuit 或重启服务）。"
+          impact: "向量检索完全不可用，FTS5 兜底仍可用"
+          runbook_url: "https://wiki.internal/tlm/vec-recovery"
+
+  # ──────────────────────────────────────────────────────────────
+  # 组 5: 记录规则 — 预计算常用指标（供 Grafana 面板使用）
+  # ──────────────────────────────────────────────────────────────
+  - name: tlm_vec_recording_rules
+    interval: 60s
+    rules:
+      # 记录: 每小时熔断触发次数
+      - record: holographic_adapter:vec_circuit_break:hourly
+        expr: increase(holographic_adapter_vec_events_total{action="vec.circuit_break"}[1h])
+
+      # 记录: 每小时写入耗尽次数
+      - record: holographic_adapter:vec_write_exhausted:hourly
+        expr: increase(holographic_adapter_vec_events_total{action="vec.write_exhausted"}[1h])
+
+      # 记录: 每小时降级请求次数
+      - record: holographic_adapter:vec_degraded_skip:hourly
+        expr: increase(holographic_adapter_vec_events_total{action="vec.degraded_skip"}[1h])
+
+      # 记录: 5 分钟失败速率
+      - record: holographic_adapter:vec_fail_count:rate5m
+        expr: rate(holographic_adapter_vec_events_total{action="vec.fail_count"}[5m])
+
+      # 记录: 向量层可用率（1 - 降级时间占比）
+      - record: holographic_adapter:vec_availability:ratio
+        expr: 1 - (rate(holographic_adapter_vec_events_total{action="vec.degraded_skip"}[5m]) / (rate(holographic_adapter_vec_events_total{action="vec.degraded_skip"}[5m]) + 1))
