@@ -1,5 +1,5 @@
 {
-  "trace_id": "83e3bd4e0922451a",
+  "trace_id": "28e8eff75ed846d2",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -343,7 +343,7 @@
       "name": "error_handler",
       "layer": "core",
       "file_path": "agent/error_handler.py",
-      "in_degree": 13,
+      "in_degree": 14,
       "out_degree": 6
     },
     {
@@ -1712,7 +1712,7 @@
       "layer": "memory",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.memory.adapters.mem0_adapter",
@@ -7894,11 +7894,24 @@
     },
     {
       "source": "agent.memory.adapters.holographic_adapter",
+      "target": "agent.error_handler",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 684,
+      "source_file": "agent/memory/adapters/holographic_adapter.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.adapters.holographic_adapter",
       "target": "agent.caching.multi_level_cache",
       "source_layer": "memory",
       "target_layer": "caching",
       "import_type": "from_import",
-      "line": 77,
+      "line": 81,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9300,8 +9313,8 @@
   "stats": {
     "total_files": 325,
     "total_nodes": 258,
-    "total_edges": 556,
-    "cross_layer_edges": 353,
+    "total_edges": 557,
+    "cross_layer_edges": 354,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9339,6 +9352,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1219.4880840000053
+    "build_duration_ms": 1164.323201000002
   }
 }
