@@ -1,0 +1,18 @@
+{{- if .Values.outputVolume.create }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tlm-ops-reporter.fullname" . }}-output
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tlm-ops-reporter.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.outputVolume.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.outputVolume.size }}
+  {{- if .Values.outputVolume.storageClassName }}
+  storageClassName: {{ .Values.outputVolume.storageClassName }}
+  {{- end }}
+{{- end }}

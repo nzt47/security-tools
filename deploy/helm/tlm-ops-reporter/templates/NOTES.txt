@@ -1,0 +1,34 @@
+TLM Ops Reporter 已部署！
+
+## 验证部署
+
+  kubectl -n {{ .Values.namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+## 查看 cron 模式启动日志
+
+  kubectl -n {{ .Values.namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} --tail=20
+
+## 手动触发一次日报生成（一次性模式）
+
+  kubectl -n {{ .Values.namespace }} exec deploy/{{ include "tlm-ops-reporter.fullname" . }} -- \
+    python /app/generate_ops_daily_report.py --log-dir {{ .Values.reporter.logDir }} --output {{ .Values.reporter.outputDir }}/manual-$(date +%Y-%m-%d).md
+
+## Prometheus 告警规则接入
+
+在 Prometheus 配置中引入 ConfigMap（如使用 Prometheus Operator）：
+
+  ruleSelector:
+    matchLabels:
+      prometheus: k8s
+      role: alert-rules
+
+或直接挂载 ConfigMap 到 Prometheus Pod：
+  {{ .Values.alerts.configMapName }} (key: {{ .Values.alerts.fileName }})
+
+## 日报输出
+
+日报文件生成在 PVC 中，路径：{{ .Values.reporter.outputDir }}/<YYYY-MM-DD>.md
+
+获取日报：
+
+  kubectl -n {{ .Values.namespace }} cp {{ include "tlm-ops-reporter.fullname" . }}-0:{{ .Values.reporter.outputDir }}/$(date -d yesterday +%Y-%m-%d).md ./yesterday-report.md
