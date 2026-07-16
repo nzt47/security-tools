@@ -52,6 +52,10 @@ class HolographicAdapter(MemoryInterface):
     # FTS5 全文搜索表名
     _FTS_TABLE = "memory_fts"
     _CONTENT_TABLE = "memory_items"
+    # [TLM-L2] 向量表与兜底表（新增，与主表/FTS 同库部署）
+    _VEC_TABLE = "memories_vec"
+    _VEC_FAILED_TABLE = "memories_vec_failed"
+    _VEC_DIM = 512  # 向量维度（与 DDL 中 FLOAT[512] 对齐）
 
     def __init__(
         self,
@@ -85,9 +89,17 @@ class HolographicAdapter(MemoryInterface):
 
         # 确保目录存在并初始化数据库
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
 
-        logger.info("[HolographicAdapter] 初始化完成: db=%s", db_path)
+        # [TLM-L2] 向量层状态：sqlite-vec 不可用时降级为纯 FTS5 + BM25，禁抛异常
+        self._vec_available = False
+        # [TLM-L3] embedding 生成回调（T2 任务注入真实模型，当前 None 占位）
+        self._embedding_func = None
+
+        self._init_db()
+        self._init_vec_table()            # [TLM-L2] 向量表初始化（失败降级，不抛异常）
+        self._migrate_schema_if_needed()  # [TLM] Schema 迁移（幂等）
+
+        logger.info("[HolographicAdapter] 初始化完成: db=%s, vec_available=%s", db_path, self._vec_available)
 
     # ── 能力声明 ──
 
@@ -127,6 +139,106 @@ class HolographicAdapter(MemoryInterface):
             """)
             conn.commit()
         logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'log', 'msg': '[HolographicAdapter] 数据库表结构已就绪'}))
+
+    # [TLM-L2] 向量表初始化 — sqlite-vec 不可用时降级，禁抛异常
+    def _init_vec_table(self):
+        """创建 memories_vec 虚拟表（sqlite-vec 扩展）
+
+        加载策略（按 TLM_DESIGN §5.2 结论）：
+        1. 优先 sqlite_vec.load(conn) Python 适配器（不依赖 ENABLE_LOAD_EXTENSION 编译选项）
+        2. 失败时 fallback 到 conn.load_extension('sqlite_vec') 原生扩展加载
+        3. 全部失败：设置 _vec_available=False，记日志，不抛异常（降级为纯 FTS5）
+        """
+        self._vec_available = False
+        try:
+            import sqlite_vec  # noqa: F401  延迟导入，可选依赖
+        except ImportError:
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.import_failed', 'msg': '[HolographicAdapter] sqlite-vec 未安装，降级为纯 FTS5 + BM25'}))
+            logger.info("[HolographicAdapter][vec] 降级路径: sqlite_vec 模块不可导入 → _vec_available=False")
+            return
+
+        try:
+            with self._get_conn() as conn:
+                loaded = False
+                # 优先 Python 适配器（TLM_DESIGN §5.2 确认可用）
+                # 注意：sqlite_vec.load 内部仍调 conn.load_extension，需先开启扩展加载权限
+                try:
+                    conn.enable_load_extension(True)
+                    sqlite_vec.load(conn)
+                    loaded = True
+                    logger.info("[HolographicAdapter][vec] sqlite_vec.load(conn) 加载成功（Python 适配器路径）")
+                except Exception as e_py:
+                    logger.info("[HolographicAdapter][vec] Python 适配器加载失败: %s → 尝试原生 load_extension", e_py)
+                # Fallback 原生扩展加载（按文件名加载）
+                if not loaded:
+                    try:
+                        conn.enable_load_extension(True)
+                        conn.load_extension('sqlite_vec')
+                        loaded = True
+                        logger.info("[HolographicAdapter][vec] load_extension('sqlite_vec') 加载成功（原生路径）")
+                    except Exception as e_native:
+                        logger.info("[HolographicAdapter][vec] 原生 load_extension 失败: %s", e_native)
+
+                if not loaded:
+                    logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.load_failed', 'msg': '[HolographicAdapter] sqlite-vec 扩展加载全部失败，降级为纯 FTS5 + BM25'}))
+                    logger.info("[HolographicAdapter][vec] 降级路径: 两种加载方式均失败 → _vec_available=False")
+                    return
+
+                conn.execute(
+                    f"CREATE VIRTUAL TABLE IF NOT EXISTS {self._VEC_TABLE} "
+                    f"USING vec0(id TEXT PRIMARY KEY, embedding FLOAT[{self._VEC_DIM}])"
+                )
+                conn.commit()
+            self._vec_available = True
+            logger.info("[HolographicAdapter][vec] 向量表就绪: table=%s, dim=%d → _vec_available=True", self._VEC_TABLE, self._VEC_DIM)
+        except Exception as e:
+            # 兜底：任何意外异常都降级，绝不抛出（守不易约束）
+            self._vec_available = False
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.init_failed', 'msg': f'[HolographicAdapter] memories_vec 初始化失败，降级运行: {e}'}))
+            logger.info("[HolographicAdapter][vec] 降级路径: 初始化异常 %s → _vec_available=False", e)
+
+    # [TLM] Schema 迁移 — 幂等，可安全重复调用
+    def _migrate_schema_if_needed(self):
+        """补齐 memory_items 表的 TLM 扩展字段，并创建向量写入兜底表
+
+        - access_count / last_accessed / type / category：缺失则 ALTER TABLE ADD COLUMN
+        - memories_vec_failed：向量写入重试耗尽后的兜底存储表，供后台补偿
+        """
+        required_columns = {
+            "access_count": "INTEGER DEFAULT 0",
+            "last_accessed": "REAL",
+            "type": "TEXT",
+            "category": "TEXT",
+        }
+        try:
+            with self._get_conn() as conn:
+                # PRAGMA table_info 只读，锁内仅做 schema 查询与 DDL，无外部 I/O 回调
+                existing_cols = {
+                    row["name"]
+                    for row in conn.execute(f"PRAGMA table_info({self._CONTENT_TABLE})").fetchall()
+                }
+                added = []
+                for col, decl in required_columns.items():
+                    if col not in existing_cols:
+                        conn.execute(f"ALTER TABLE {self._CONTENT_TABLE} ADD COLUMN {col} {decl}")
+                        logger.info("[HolographicAdapter][migrate] 新增字段: %s %s", col, decl)
+                        added.append(col)
+                # 兜底表（向量写入失败补偿）
+                conn.execute(
+                    f"CREATE TABLE IF NOT EXISTS {self._VEC_FAILED_TABLE} ("
+                    "key TEXT PRIMARY KEY, "
+                    "embedding BLOB, "
+                    "error TEXT, "
+                    "created_at REAL NOT NULL, "
+                    "retries INTEGER DEFAULT 0)"
+                )
+                conn.commit()
+                logger.info("[HolographicAdapter][migrate] 迁移完成: 新增字段=%s, 兜底表=%s 已就绪",
+                            added if added else "无", self._VEC_FAILED_TABLE)
+        except Exception as e:
+            # schema 迁移失败不阻断启动（守不易：旧 schema 仍可用，仅缺少新字段）
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'migrate.failed', 'msg': f'[HolographicAdapter] Schema 迁移失败（继续以旧 schema 运行）: {e}'}))
+            logger.info("[HolographicAdapter][migrate] 迁移失败但继续运行: %s", e)
 
     # ── MemoryInterface 实现 ──
 
@@ -177,6 +289,129 @@ class HolographicAdapter(MemoryInterface):
             except Exception as e:
                 logger.error("[HolographicAdapter] 保存失败: key=%s, error=%s", key, e)
                 return False
+
+    # [TLM-L2] 带向量的保存 — 主表+FTS 同事务，向量层异步写入
+    async def save_with_embedding(
+        self,
+        key: str,
+        data: Any,
+        metadata: Optional[dict] = None,
+        embedding: Optional[list] = None,
+    ) -> bool:
+        """保存记忆 + 向量（向量层失败不影响主表写入）
+
+        - 主表 + FTS 同事务写入（与 save 一致）
+        - 向量层可用时异步写入 memories_vec（含重试）
+        - 向量层不可用时跳过，仅写主表+FTS
+        - embedding 缺失时通过 _embedding_func 回调生成
+        """
+        # 先写主表+FTS
+        ok = await self.save(key, data, metadata)
+        if not ok:
+            return False
+
+        if not self._vec_available:
+            logger.info("[HolographicAdapter][vec] save_with_embedding: 向量层不可用，跳过向量写入 key=%s", key)
+            return True
+
+        # embedding 缺失：尝试回调生成
+        if embedding is None:
+            if self._embedding_func is None:
+                logger.info("[HolographicAdapter][vec] embedding 缺失且无回调，跳过向量写入 key=%s", key)
+                return True
+            # 异步生成 embedding 后写入（不阻塞主流程）
+            t = threading.Thread(
+                target=self._async_embed_and_write,
+                args=(key, data),
+                daemon=True,
+            )
+            t.start()
+            return True
+
+        # 维度校验
+        if len(embedding) != self._VEC_DIM:
+            logger.warning("[HolographicAdapter][vec] 维度不匹配: 期望 %d, 实际 %d, 跳过向量写入 key=%s",
+                           self._VEC_DIM, len(embedding), key)
+            return True
+
+        # 异步写入向量层（重试 + 兜底）
+        t = threading.Thread(
+            target=self._retry_vec_write,
+            args=(key, embedding),
+            daemon=True,
+        )
+        t.start()
+        return True
+
+    # [TLM-L2] 向量检索 — KNN 查询
+    async def search_vector(
+        self,
+        query_embedding: list,
+        top_k: int = 5,
+    ) -> list[MemoryResult]:
+        """向量 KNN 检索（sqlite-vec 不可用时返回空列表）"""
+        if not self._vec_available:
+            logger.info("[HolographicAdapter][vec] search_vector: 向量层不可用，返回空列表")
+            return []
+
+        if len(query_embedding) != self._VEC_DIM:
+            logger.warning("[HolographicAdapter][vec] 查询维度不匹配: 期望 %d, 实际 %d",
+                           self._VEC_DIM, len(query_embedding))
+            return []
+
+        try:
+            import sqlite_vec
+            with self._lock:
+                with self._get_conn() as conn:
+                    conn.enable_load_extension(True)
+                    sqlite_vec.load(conn)
+                    query_blob = sqlite_vec.serialize_float32(query_embedding)
+                    rows = conn.execute(f"""
+                        SELECT id, distance
+                        FROM {self._VEC_TABLE}
+                        WHERE embedding MATCH ?
+                        ORDER BY distance
+                        LIMIT ?
+                    """, (query_blob, top_k)).fetchall()
+
+            results = []
+            for row in rows:
+                row = dict(row)
+                # distance 越小越相似，转换为 confidence
+                distance = float(row.get("distance", 1.0))
+                confidence = max(0.0, 1.0 - distance / 2.0)
+                # 从主表取 content
+                key = row.get("id")
+                content = ""
+                meta = {}
+                try:
+                    with self._get_conn() as conn2:
+                        main_row = conn2.execute(
+                            f"SELECT data, metadata FROM {self._CONTENT_TABLE} WHERE key = ?",
+                            (key,),
+                        ).fetchone()
+                    if main_row:
+                        main_row = dict(main_row)
+                        content = main_row["data"]
+                        try:
+                            meta = json.loads(main_row.get("metadata", "{}"))
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                except Exception:
+                    pass
+
+                results.append(MemoryResult(
+                    content=content,
+                    confidence=confidence,
+                    source="holographic_vec",
+                    metadata={"key": key, "distance": distance, **meta},
+                ))
+            logger.info("[HolographicAdapter][vec] search_vector 命中 %d 条 (top_k=%d)", len(results), top_k)
+            return results
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'search_vector.failed', 'msg': f'[HolographicAdapter] 向量检索失败: {e}'}))
+            logger.info("[HolographicAdapter][vec] search_vector 异常 %s → 返回空列表", e)
+            return []
 
     async def search(
         self,
@@ -418,6 +653,17 @@ class HolographicAdapter(MemoryInterface):
                 with self._get_conn() as conn:
                     conn.execute(f"DELETE FROM {self._CONTENT_TABLE}")
                     conn.execute(f"DELETE FROM {self._FTS_TABLE}")
+                    # [TLM-L2] 清理向量表（存在时）
+                    if self._vec_available:
+                        try:
+                            conn.execute(f"DELETE FROM {self._VEC_TABLE}")
+                        except Exception as e_vec:
+                            logger.warning("[HolographicAdapter] 清空向量表失败（忽略）: %s", e_vec)
+                    # 清理兜底表
+                    try:
+                        conn.execute(f"DELETE FROM {self._VEC_FAILED_TABLE}")
+                    except Exception:
+                        pass
                     conn.commit()
 
                 if self._cache:
@@ -427,3 +673,122 @@ class HolographicAdapter(MemoryInterface):
             except Exception as e:
                 logger.error("[HolographicAdapter] 清空失败: %s", e)
                 return False
+
+    # ── [TLM-L2] 向量层写入辅助方法 ──
+
+    def _retry_vec_write(self, key: str, embedding: list, max_retries: int = 3):
+        """向量写入重试（指数退避 1s/2s/4s），耗尽后写兜底表
+
+        使用项目统一 RetryPolicy 类（exponential + jitter）
+        """
+        from agent.error_handler import RetryPolicy
+        policy = RetryPolicy(
+            max_retries=max_retries,
+            initial_delay=1.0,
+            backoff_factor=2.0,
+            strategy="exponential",
+        )
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                self._write_vec_row(key, embedding)
+                logger.info("[HolographicAdapter][vec] 向量写入成功 key=%s (attempt=%d)", key, attempt + 1)
+                return
+            except Exception as e:
+                last_error = e
+                logger.warning("[HolographicAdapter][vec] 向量写入失败 key=%s attempt=%d/%d error=%s",
+                               key, attempt + 1, max_retries, e)
+                if attempt < max_retries - 1:
+                    delay = policy.calculate_delay(attempt)
+                    logger.info("[HolographicAdapter][vec] 重试等待 %.2fs (attempt=%d)", delay, attempt + 1)
+                    import time as _time
+                    _time.sleep(delay)
+
+        # 重试耗尽，写兜底表
+        logger.error("[HolographicAdapter][vec] 向量写入重试耗尽 key=%s → 写兜底表 %s", key, self._VEC_FAILED_TABLE)
+        self._write_vec_failed(key, embedding, str(last_error))
+
+    def _write_vec_row(self, key: str, embedding: list):
+        """写入向量行（DELETE+INSERT 模拟 upsert，vec0 不支持 UPDATE）"""
+        import sqlite_vec
+        with self._lock:
+            with self._get_conn() as conn:
+                conn.enable_load_extension(True)
+                sqlite_vec.load(conn)
+                blob = sqlite_vec.serialize_float32(embedding)
+                conn.execute(f"DELETE FROM {self._VEC_TABLE} WHERE id = ?", (key,))
+                conn.execute(
+                    f"INSERT INTO {self._VEC_TABLE} (id, embedding) VALUES (?, ?)",
+                    (key, blob),
+                )
+                conn.commit()
+
+    def _write_vec_failed(self, key: str, embedding: list, error: str):
+        """写入兜底表（embedding 用 JSON bytes 存 BLOB）"""
+        now = time.time()
+        blob = json.dumps(embedding).encode("utf-8")
+        try:
+            with self._lock:
+                with self._get_conn() as conn:
+                    conn.execute(
+                        f"INSERT OR REPLACE INTO {self._VEC_FAILED_TABLE} "
+                        f"(key, embedding, error, created_at, retries) VALUES (?, ?, ?, ?, ?)",
+                        (key, blob, error, now, 3),
+                    )
+                    conn.commit()
+        except Exception as e:
+            logger.error("[HolographicAdapter][vec] 兜底表写入失败 key=%s error=%s", key, e)
+
+    def _async_embed_and_write(self, key: str, data: Any):
+        """通过 _embedding_func 回调生成 embedding 后写入向量层"""
+        try:
+            embedding = self._embedding_func(data)
+            if embedding is None:
+                logger.info("[HolographicAdapter][vec] embedding 回调返回 None，跳过 key=%s", key)
+                return
+            if len(embedding) != self._VEC_DIM:
+                logger.warning("[HolographicAdapter][vec] 回调 embedding 维度不匹配: 期望 %d, 实际 %d",
+                               self._VEC_DIM, len(embedding))
+                return
+            self._retry_vec_write(key, embedding)
+        except Exception as e:
+            logger.error("[HolographicAdapter][vec] embedding 回调异常 key=%s error=%s", key, e)
+
+    def replay_vec_failed(self, max_items: int = 100) -> int:
+        """重放兜底表中的失败向量写入（后台补偿）
+
+        Returns:
+            成功重放的条数
+        """
+        if not self._vec_available:
+            logger.info("[HolographicAdapter][vec] replay_vec_failed: 向量层不可用，跳过")
+            return 0
+
+        try:
+            with self._get_conn() as conn:
+                rows = conn.execute(
+                    f"SELECT key, embedding FROM {self._VEC_FAILED_TABLE} LIMIT ?",
+                    (max_items,),
+                ).fetchall()
+        except Exception as e:
+            logger.error("[HolographicAdapter][vec] 读取兜底表失败: %s", e)
+            return 0
+
+        replayed = 0
+        for row in rows:
+            row = dict(row)
+            key = row["key"]
+            try:
+                embedding = json.loads(row["embedding"].decode("utf-8"))
+                self._write_vec_row(key, embedding)
+                # 重放成功，从兜底表删除
+                with self._get_conn() as conn:
+                    conn.execute(f"DELETE FROM {self._VEC_FAILED_TABLE} WHERE key = ?", (key,))
+                    conn.commit()
+                replayed += 1
+                logger.info("[HolographicAdapter][vec] 兜底表重放成功 key=%s", key)
+            except Exception as e:
+                logger.warning("[HolographicAdapter][vec] 兜底表重放失败 key=%s error=%s", key, e)
+
+        logger.info("[HolographicAdapter][vec] replay_vec_failed 完成: 重放 %d 条", replayed)
+        return replayed
