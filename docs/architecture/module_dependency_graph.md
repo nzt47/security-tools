@@ -776,6 +776,7 @@ flowchart LR
     agent_memory --> agent_memory_adapters
     agent_memory_adapters_holographic_adapter --> agent_memory_base
     agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
+    agent_memory_adapters_holographic_adapter -.-> agent_error_handler
     agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
     agent_memory_adapters_mem0_adapter --> agent_memory_base
     agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
@@ -894,8 +895,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 325
 - 模块节点数: 258
-- 依赖边数: 556
-- 跨层调用数: 353
+- 依赖边数: 557
+- 跨层调用数: 354
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1219.49 ms
+- 构建耗时: 1164.32 ms
