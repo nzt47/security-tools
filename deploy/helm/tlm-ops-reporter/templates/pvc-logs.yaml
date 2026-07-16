@@ -1,0 +1,19 @@
+{{- if and .Values.logsVolume.create (not .Values.logsVolume.existingClaim) }}
+# [变易] 开发测试用空 PVC；生产环境应通过 logsVolume.existingClaim 挂载应用日志 PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tlm-ops-reporter.fullname" . }}-logs
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tlm-ops-reporter.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.logsVolume.size }}
+  {{- if .Values.logsVolume.storageClassName }}
+  storageClassName: {{ .Values.logsVolume.storageClassName }}
+  {{- end }}
+{{- end }}

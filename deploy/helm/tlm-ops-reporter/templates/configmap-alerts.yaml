@@ -1,0 +1,15 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.alerts.configMapName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tlm-ops-reporter.labels" . | nindent 4 }}
+    # Prometheus Operator ruleSelector 标签（生产环境可通过 values 覆盖）
+    prometheus: k8s
+    role: alert-rules
+data:
+  {{ .Values.alerts.fileName }}: |
+{{ .Files.Get "files/circuit_breaker_alerts.yml" | indent 4 }}
+{{- end }}

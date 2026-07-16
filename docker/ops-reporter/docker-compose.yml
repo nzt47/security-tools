@@ -1,0 +1,51 @@
+# TLM Ops Reporter — 运维日报容器
+#
+# 用途: 定期拉取应用日志，生成 TLM 熔断器运维日报
+#
+# 使用方式:
+#   一次性生成:
+#     docker compose -f docker/ops-reporter/docker-compose.yml run --rm ops-reporter \
+#       --log-dir /app/logs --output /app/output/$(date +%Y-%m-%d).md
+#
+#   cron 模式（后台持续运行）:
+#     docker compose -f docker/ops-reporter/docker-compose.yml up -d
+#
+#   查看日报:
+#     ls docs/ops_daily/
+#
+# 前提: 应用日志需先输出到 ./logs/ 目录（通过主应用容器或日志收集器）
+
+services:
+  ops-reporter:
+    build:
+      context: ../..
+      dockerfile: docker/ops-reporter/Dockerfile
+    image: tlm-ops-reporter:latest
+    container_name: tlm-ops-reporter
+    volumes:
+      # 只读挂载应用日志目录
+      - ../../logs:/app/logs:ro
+      # 读写挂载日报输出目录
+      - ../../docs/ops_daily:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+    # 默认 cron 模式（每天 01:00 生成昨天的日报）
+    # 如需一次性运行，覆盖 command: ["--log-dir", "/app/logs", "--output", "/app/output/report.md"]
+    command: ["--cron"]
+    restart: unless-stopped
+    networks:
+      - ops-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ops-net:
+    driver: bridge
