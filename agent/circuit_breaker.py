@@ -69,6 +69,7 @@ class CircuitBreakerError(Exception):
         name: Optional[str] = None,
     ):
         super().__init__(message)
+        self.message = message
         self.error_code = error_code
         self.state = state
         self.name = name
@@ -199,9 +200,9 @@ class CircuitBreaker:
                 name=name,
             )
 
-        # 参数校验
-        if not 0 < failure_threshold < 1:
-            raise ValueError(f"failure_threshold 必须在 (0,1)，实际 {failure_threshold}")
+        # 参数校验（failure_threshold ∈ (0, 1]，1.0 合法：全失败才熔断策略）
+        if not 0 < failure_threshold <= 1:
+            raise ValueError(f"failure_threshold 必须在 (0,1]，实际 {failure_threshold}")
         if min_calls < 1:
             raise ValueError(f"min_calls 必须 ≥1，实际 {min_calls}")
 
@@ -715,3 +716,355 @@ class CircuitBreakerManager:
 # ── 别名（与测试契约对齐） ─────────────────────────────────────
 CircuitBreakerState = CircuitState
 CircuitBreakerMetrics = CircuitStats
+
+
+# ════════════════════════════════════════════════════════════════
+#  三级熔断器（SESSION / USER / GLOBAL）
+# ════════════════════════════════════════════════════════════════
+
+
+class CircuitScope(str, Enum):
+    """三级熔断器作用域
+
+    [不易] SESSION 优先级最高（单会话死循环隔离），
+           GLOBAL 优先级最低（全局过载保护）。
+    """
+    SESSION = "session"
+    USER = "user"
+    GLOBAL = "global"
+
+
+@dataclass
+class ThreeLevelBreakerConfig:
+    """三级熔断器配置（组合 3 个独立 CircuitBreakerConfig）
+
+    [变易] 每级独立阈值与冷却策略，按 scope 隔离。
+    默认阈值：SESSION=5 / USER=20 / GLOBAL=100（连续失败数）。
+    默认冷却：SESSION=60s / USER=300s / GLOBAL=600s。
+    """
+    session: CircuitBreakerConfig = field(default_factory=lambda: CircuitBreakerConfig(
+        failure_threshold=1.0, min_requests=5, reset_timeout=60.0,
+        window_seconds=60.0, max_attempts=1, name="session",
+    ))
+    user: CircuitBreakerConfig = field(default_factory=lambda: CircuitBreakerConfig(
+        failure_threshold=1.0, min_requests=20, reset_timeout=300.0,
+        window_seconds=60.0, max_attempts=2, name="user",
+    ))
+    global_: CircuitBreakerConfig = field(default_factory=lambda: CircuitBreakerConfig(
+        failure_threshold=1.0, min_requests=100, reset_timeout=600.0,
+        window_seconds=60.0, max_attempts=3, name="global",
+    ))
+
+
+class ThreeLevelCircuitBreaker:
+    """三级熔断器（SESSION / USER / GLOBAL 级联）
+
+    [不易] 组合优于继承：内部管理 3 个独立的 CircuitBreaker 注册表，
+           现有 CircuitBreaker 公开 API 完全不变。
+    [变易] 触发顺序：SESSION → USER(仅高危工具) → GLOBAL，
+           任一触发即熔断，记录是哪级触发。
+    [简易] 三级检查 = 3 次 dict 查询 + 3 次 CircuitBreaker.allow_request()，
+           满足 < 0.1ms 性能要求（纯内存操作）。
+
+    Args:
+        config: ThreeLevelBreakerConfig 配置对象，None 时使用默认配置
+        trace_recorder: 可选的 trace 记录器（需实现 record_circuit_event 方法）
+    """
+
+    def __init__(
+        self,
+        config: Optional[ThreeLevelBreakerConfig] = None,
+        trace_recorder: Any = None,
+    ):
+        self._config = config or ThreeLevelBreakerConfig()
+        self._trace_recorder = trace_recorder
+        # 三级独立注册表（双检锁模式：读路径无锁，创建路径加锁）
+        self._session_breakers: dict = {}  # (session_id, tool_name) -> CircuitBreaker
+        self._user_breakers: dict = {}     # (user_id, tool_name) -> CircuitBreaker
+        self._global_breakers: dict = {}   # tool_name -> CircuitBreaker
+        self._lock = threading.Lock()
+
+    # ── 内部：获取/创建各级 breaker（双检锁）────────────────
+
+    def _get_session_breaker(self, session_id: str, tool_name: str) -> CircuitBreaker:
+        """按 (session_id, tool_name) 获取 SESSION 级 breaker"""
+        key = (session_id, tool_name)
+        breaker = self._session_breakers.get(key)
+        if breaker is None:
+            with self._lock:
+                breaker = self._session_breakers.get(key)
+                if breaker is None:
+                    breaker = CircuitBreaker(self._config.session)
+                    self._session_breakers[key] = breaker
+        return breaker
+
+    def _get_user_breaker(self, user_id: str, tool_name: str) -> CircuitBreaker:
+        """按 (user_id, tool_name) 获取 USER 级 breaker"""
+        key = (user_id, tool_name)
+        breaker = self._user_breakers.get(key)
+        if breaker is None:
+            with self._lock:
+                breaker = self._user_breakers.get(key)
+                if breaker is None:
+                    breaker = CircuitBreaker(self._config.user)
+                    self._user_breakers[key] = breaker
+        return breaker
+
+    def _get_global_breaker(self, tool_name: str) -> CircuitBreaker:
+        """按 tool_name 获取 GLOBAL 级 breaker"""
+        breaker = self._global_breakers.get(tool_name)
+        if breaker is None:
+            with self._lock:
+                breaker = self._global_breakers.get(tool_name)
+                if breaker is None:
+                    breaker = CircuitBreaker(self._config.global_)
+                    self._global_breakers[tool_name] = breaker
+        return breaker
+
+    # ── 公开 API ─────────────────────────────────────────────
+
+    def allow_request(
+        self,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+        is_high_risk: bool = False,
+    ) -> tuple:
+        """检查是否允许请求通过（三级级联短路）
+
+        [不易] 触发顺序：SESSION → USER(仅高危) → GLOBAL，
+               任一触发即返回 (False, scope)，短路不检查后续级别。
+
+        Args:
+            session_id: 会话 ID
+            user_id: 用户 ID
+            tool_name: 工具名称
+            is_high_risk: 是否高危工具（高危才检查 USER 级）
+
+        Returns:
+            (allowed, scope): allowed=True 时 scope=None；
+                              allowed=False 时 scope=触发的 CircuitScope
+        """
+        # 1. SESSION 级检查（最高优先级：单会话死循环隔离）
+        session_breaker = self._get_session_breaker(session_id, tool_name)
+        if not session_breaker.allow_request():
+            logger.info(
+                "[ThreeLevelCB] SESSION 级熔断阻断: session=%s user=%s tool=%s state=%s",
+                session_id, user_id, tool_name, session_breaker.state.value,
+            )
+            self._emit_trace_event(
+                CircuitScope.SESSION, session_id, user_id, tool_name, blocked=True,
+            )
+            return False, CircuitScope.SESSION
+
+        # 2. USER 级检查（仅高危工具：单用户跨会话累积）
+        if is_high_risk:
+            user_breaker = self._get_user_breaker(user_id, tool_name)
+            if not user_breaker.allow_request():
+                logger.info(
+                    "[ThreeLevelCB] USER 级熔断阻断: session=%s user=%s tool=%s state=%s",
+                    session_id, user_id, tool_name, user_breaker.state.value,
+                )
+                self._emit_trace_event(
+                    CircuitScope.USER, session_id, user_id, tool_name, blocked=True,
+                )
+                return False, CircuitScope.USER
+
+        # 3. GLOBAL 级检查（最低优先级：全局过载保护）
+        global_breaker = self._get_global_breaker(tool_name)
+        if not global_breaker.allow_request():
+            logger.info(
+                "[ThreeLevelCB] GLOBAL 级熔断阻断: session=%s user=%s tool=%s state=%s",
+                session_id, user_id, tool_name, global_breaker.state.value,
+            )
+            self._emit_trace_event(
+                CircuitScope.GLOBAL, session_id, user_id, tool_name, blocked=True,
+            )
+            return False, CircuitScope.GLOBAL
+
+        logger.debug(
+            "[ThreeLevelCB] 请求放行: session=%s user=%s tool=%s high_risk=%s",
+            session_id, user_id, tool_name, is_high_risk,
+        )
+        return True, None
+
+    def record_result(
+        self,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+        is_success: bool,
+    ) -> None:
+        """记录调用结果到三级熔断器（三级均记录，独立计数）
+
+        [不易] 三级独立计数，互不污染。
+        [变易] 检测状态转换并输出结构化日志，便于排查触发逻辑。
+
+        Args:
+            session_id: 会话 ID
+            user_id: 用户 ID
+            tool_name: 工具名称
+            is_success: 调用是否成功
+        """
+        # 获取三级 breaker（不存在则创建）
+        session_breaker = self._get_session_breaker(session_id, tool_name)
+        user_breaker = self._get_user_breaker(user_id, tool_name)
+        global_breaker = self._get_global_breaker(tool_name)
+
+        # 记录前快照各 breaker 状态（用于检测状态转换）
+        old_session_state = session_breaker.state
+        old_user_state = user_breaker.state
+        old_global_state = global_breaker.state
+
+        # 记录到三级（各自独立维护滑动窗口与错误率）
+        session_breaker.record_result(is_success)
+        user_breaker.record_result(is_success)
+        global_breaker.record_result(is_success)
+
+        # 检测状态转换并输出日志（仅在转换时 logger.info，减少噪音）
+        new_session_state = session_breaker.state
+        if new_session_state != old_session_state:
+            logger.info(
+                "[ThreeLevelCB] SESSION 级状态转换: session=%s user=%s tool=%s "
+                "%s → %s",
+                session_id, user_id, tool_name,
+                old_session_state.value, new_session_state.value,
+            )
+
+        new_user_state = user_breaker.state
+        if new_user_state != old_user_state:
+            logger.info(
+                "[ThreeLevelCB] USER 级状态转换: session=%s user=%s tool=%s "
+                "%s → %s",
+                session_id, user_id, tool_name,
+                old_user_state.value, new_user_state.value,
+            )
+
+        new_global_state = global_breaker.state
+        if new_global_state != old_global_state:
+            logger.info(
+                "[ThreeLevelCB] GLOBAL 级状态转换: session=%s user=%s tool=%s "
+                "%s → %s",
+                session_id, user_id, tool_name,
+                old_global_state.value, new_global_state.value,
+            )
+
+    def get_triggered_level(
+        self,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+    ) -> Optional[CircuitScope]:
+        """返回第一个 OPEN 的级别（无则 None）
+
+        检查顺序：SESSION → USER → GLOBAL。
+        """
+        if self._get_session_breaker(session_id, tool_name).state == CircuitState.OPEN:
+            return CircuitScope.SESSION
+        if self._get_user_breaker(user_id, tool_name).state == CircuitState.OPEN:
+            return CircuitScope.USER
+        if self._get_global_breaker(tool_name).state == CircuitState.OPEN:
+            return CircuitScope.GLOBAL
+        return None
+
+    def get_status(
+        self,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+    ) -> dict:
+        """返回三级状态快照
+
+        Returns:
+            {"session": breaker.get_status(), "user": ..., "global": ...}
+        """
+        return {
+            "session": self._get_session_breaker(session_id, tool_name).get_status(),
+            "user": self._get_user_breaker(user_id, tool_name).get_status(),
+            "global": self._get_global_breaker(tool_name).get_status(),
+        }
+
+    def reset(self) -> None:
+        """重置所有三级熔断器（清空注册表）"""
+        with self._lock:
+            for breaker in self._session_breakers.values():
+                breaker.reset()
+            for breaker in self._user_breakers.values():
+                breaker.reset()
+            for breaker in self._global_breakers.values():
+                breaker.reset()
+            self._session_breakers.clear()
+            self._user_breakers.clear()
+            self._global_breakers.clear()
+        logger.info("[ThreeLevelCB] 已重置所有三级熔断器")
+
+    def call_with_breaker(
+        self,
+        func: Callable,
+        *args,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+        **kwargs,
+    ) -> Any:
+        """通过三级熔断器执行函数
+
+        Args:
+            func: 可调用对象
+            *args, **kwargs: 传给 func 的参数
+            session_id, user_id, tool_name: 三级熔断器键
+
+        Returns:
+            func 的返回值
+
+        Raises:
+            CircuitBreakerError: 熔断器打开时（含触发级别信息）
+            Exception: func 抛出的原异常（同时记录失败）
+        """
+        allowed, scope = self.allow_request(
+            session_id, user_id, tool_name,
+            is_high_risk=kwargs.pop("is_high_risk", False),
+        )
+        if not allowed:
+            raise CircuitBreakerError(
+                f"三级熔断器 [{scope.value}] 级已打开，拒绝请求: "
+                f"session={session_id} user={user_id} tool={tool_name}",
+                state=CircuitState.OPEN,
+                name=scope.value,
+            )
+
+        is_success = False
+        try:
+            result = func(*args, **kwargs)
+            is_success = True
+            return result
+        finally:
+            self.record_result(session_id, user_id, tool_name, is_success)
+
+    # ── 内部：trace 事件 ─────────────────────────────────────
+
+    def _emit_trace_event(
+        self,
+        scope: CircuitScope,
+        session_id: str,
+        user_id: str,
+        tool_name: str,
+        blocked: bool,
+    ) -> None:
+        """调用 trace_recorder 记录熔断事件（吞掉异常不影响主流程）
+
+        [不易] 熔断事件写入 tool_trace（任务 2 的接口）。
+        [简易] trace_recorder 为 None 时静默跳过，不影响主路径。
+        """
+        if self._trace_recorder is None:
+            return
+        try:
+            self._trace_recorder.record_circuit_event(
+                scope=scope,
+                session_id=session_id,
+                user_id=user_id,
+                tool_name=tool_name,
+                blocked=blocked,
+            )
+        except Exception as exc:
+            logger.debug("[ThreeLevelCB] trace 事件记录失败: %s", exc)
