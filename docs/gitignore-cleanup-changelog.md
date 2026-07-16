@@ -83,3 +83,40 @@
 - **不影响**：开发流程（venv/ 仍在本地使用，只是不提交到仓库）
 - **改善**：`git status` 输出从 160+ 行降至 6 行，大幅提升可读性
 - **改善**：防止构建产物和数据库文件被误提交
+
+---
+
+## 关联提交记录
+
+> 本节记录本次清理工作及相关源代码提交的 commit hash，便于后续追溯。
+
+### .gitignore 清理提交
+
+| 分支 | Commit | 说明 | 推送状态 |
+|------|--------|------|----------|
+| master | `6975cf16` | chore(gitignore): 补全 venv/构建产物/运行时数据忽略规则 | 已推送至 origin/master |
+| feature/tlm-step3-vectorstore-sqlite-vec | `c4c9a0bc` | cherry-pick 自 master `e324c7aa`（含 7 文件） | 已被外部 rebase 重写，不在 origin/feature HEAD 历史中 |
+
+### 源代码与测试文件提交（7 文件 / 2774 行）
+
+| Commit | 分支 | 说明 | 当前状态 |
+|--------|------|------|----------|
+| `e324c7aa` | master | feat(observability): 新增 tool_trace.py 工具追踪 + 配套单元测试 | 在 master 历史中（被后续 rebase 保留） |
+| `c4c9a0bc` | feature/tlm-step3-vectorstore-sqlite-vec | 上面的 cherry-pick 副本 | 不在当前 feature HEAD 历史中（被外部 rebase 重写） |
+| `ea9335ee` | master | rebased 后 master HEAD（含 HolographicAdapter 扩展） | 已推送至 origin/master |
+
+### 文件清单（7 个）
+
+1. `agent/observability/tool_trace.py`（690 行）— ToolTraceSubscriber 实现
+2. `tests/unit/test_tool_trace.py`（711 行）— ToolTraceSubscriber 单元测试
+3. `tests/unit/test_circuit_breaker_three_level.py`（610 行）— 三级熔断器边界测试
+4. `tests/unit/test_memory_router_tier.py`（441 行）— memory router tier 选择策略测试
+5. `tests/unit/test_system_prompt_config_cache.py`（186 行）— system prompt config 缓存命中测试
+6. `tests/unit/test_memory_optimized_deprecation.py`（51 行）— memory_optimized DeprecationWarning 验证
+7. `docs/gitignore-cleanup-changelog.md`（85 行）— 本变更日志
+
+### 备注
+
+- **e324c7aa 原始 commit 仍在 master 历史中**：通过 `git log master -- agent/observability/tool_trace.py` 可查
+- **c4c9a0bc 在 feature 分支被重写**：外部 rebase 操作把 feature 分支 HEAD 从 `c4c9a0bc` 重置为 `282d4db4`（含 2 个新 commit），但 `c4c9a0bc` 通过 `git reflog feature/tlm-step3-vectorstore-sqlite-vec` 仍可追溯
+- **文件内容一致性已验证**：当前 master HEAD 中 7 个文件的内容与 `e324c7aa` commit 中的内容完全一致（`git diff e324c7aa HEAD -- <files>` 无差异）
