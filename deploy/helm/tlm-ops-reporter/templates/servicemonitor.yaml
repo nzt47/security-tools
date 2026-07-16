@@ -1,0 +1,25 @@
+{{- if .Values.serviceMonitor.enabled }}
+# [变易] 可选 ServiceMonitor（Prometheus Operator）
+# 注意：日报容器本身不暴露 /metrics，此 ServiceMonitor 用于主应用的 vec_events_total 采集
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "tlm-ops-reporter.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tlm-ops-reporter.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  interval: {{ .Values.serviceMonitor.interval }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: digital-life  # 主应用服务名
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+{{- end }}

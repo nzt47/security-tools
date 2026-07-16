@@ -1,0 +1,61 @@
+# TLM 向量层运维日报 — 2026-07-17
+
+> 生成时间: 2026-07-17 01:18:18
+> 日志日期: 全部
+> 事件总数: 6
+
+## 1. 健康状态
+
+**🟡 已恢复** — 熔断触发 1 次但已全部恢复（reset 1 次）
+
+## 2. 重点告警
+
+| action | 严重级别 | 次数 | 说明 |
+|--------|---------|------|------|
+| `vec.circuit_break` | P0 | 1 | 🔴 连续失败达阈值（5 次），向量层自动降级 |
+| `vec.write_exhausted` | P1 | 1 | 🟡 向量写入重试 3 次失败，已写入兜底表 |
+
+### 2.1 重点事件按小时分布
+
+| 小时 | 熔断触发 | 写入重试耗尽 |
+|------|------|------|
+| 08 | 1 | 0 |
+| 09 | 0 | 1 |
+
+### 2.2 重点事件详情（最近 10 条）
+
+| 时间 | action | 消息 |
+|------|--------|------|
+| 2026-07-17 08:15:23 | `vec.circuit_break` | Docker 测试熔断触发 |
+| 2026-07-17 09:30:12 | `vec.write_exhausted` | Docker 测试写入耗尽 key=docker_001 |
+
+## 3. 全部事件统计
+
+| action | 级别 | 次数 | 标签 |
+|--------|------|------|------|
+| `vec.circuit_break` | P0 | 1 | 熔断触发 |
+| `vec.write_exhausted` | P1 | 1 | 写入重试耗尽 |
+| `vec.circuit_reset` | INFO | 1 | 熔断恢复 |
+| `vec.fail_count` | DEBUG | 1 | 失败计数累积 |
+| `vec.degraded_skip` | DEBUG | 1 | 降级路径触发 |
+| `search_vector.failed` | WARN | 1 | search_vector 单次失败 |
+| `vec.import_failed` | P0 | 0 | sqlite-vec 不可导入 |
+| `vec.load_failed` | P0 | 0 | 扩展加载失败 |
+| `vec.init_failed` | P0 | 0 | 向量表初始化失败 |
+
+## 4. 熔断/恢复配对分析
+
+- 熔断触发: **1** 次
+- 恢复事件: **1** 次
+- ✅ 所有熔断均已恢复
+
+## 5. 运维建议
+
+- 🟡 **检查兜底表**: 写入耗尽 1 次，需执行 `replay_vec_failed()` 补偿重放兜底表数据
+
+## 6. 相关文档
+
+- [熔断器架构说明](../docs/TLM_CIRCUIT_BREAKER_ARCH.md)
+- [埋点审查报告](../docs/CIRCUIT_BREAKER_METRICS_AUDIT.md)
+- [Prometheus 告警规则](../deploy/prometheus/circuit_breaker_alerts.yml)
+- [性能对比报告](../docs/PERF_COMPARE_CIRCUIT_BREAKER.md)

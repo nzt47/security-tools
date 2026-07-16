@@ -1,0 +1,73 @@
+# Default values for tlm-ops-reporter
+# 按三义原则设计：不易（核心契约可配置但默认可用）+ 变易（参数化扩展）+ 简易（最小必要参数）
+
+# ─── 全局 ───
+namespace: monitoring
+nameOverride: ""
+fullnameOverride: ""
+
+# ─── 镜像配置（日报容器） ───
+image:
+  repository: tlm-ops-reporter
+  tag: "v1.1"
+  pullPolicy: IfNotPresent
+
+# ─── 日报生成器配置 ───
+reporter:
+  # cron 模式：每天 01:00 生成昨天的日报
+  # 一次性模式：用 helm run 触发
+  mode: cron  # cron | once
+  schedule:
+    hour: 1
+    minute: 0
+  # 日志目录（来自应用容器或日志收集器）
+  logDir: /app/logs
+  # 日报输出目录（PVC 挂载）
+  outputDir: /app/output
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# ─── 日志来源（PVC 挂载，只读） ───
+# 通常应用容器写入 logs PVC，此 Pod 以 readonly 挂载读取
+logsVolume:
+  # 方式 1: 挂载已有 PVC（推荐生产环境）
+  existingClaim: ""
+  # 方式 2: 创建空 PVC（开发测试，需应用容器共享同一 PVC）
+  create: false
+  size: 1Gi
+  storageClassName: ""
+
+# ─── 日报输出 PVC ───
+outputVolume:
+  create: true
+  size: 500Mi
+  storageClassName: ""
+  accessMode: ReadWriteOnce
+
+# ─── Prometheus 告警规则 ConfigMap ───
+alerts:
+  # 是否创建告警规则 ConfigMap
+  enabled: true
+  # ConfigMap 名称（供 Prometheus ruleFiles 引用）
+  configMapName: tlm-circuit-breaker-alerts
+  # 告警规则文件名（在 ConfigMap 中的 key）
+  fileName: circuit_breaker_alerts.yml
+
+# ─── Prometheus Operator ServiceMonitor（可选） ───
+serviceMonitor:
+  enabled: false
+  # 需要服务暴露 /metrics 端点（日报容器本身不暴露 metrics）
+  # 通常由主应用的 ServiceMonitor 采集 vec_events_total
+  interval: 30s
+  labels: {}
+
+# ─── Pod 安全上下文（不易：非 root 运行） ───
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
