@@ -226,12 +226,13 @@ class TestChangeLog:
         assert len(manager._cache["change_log"]) == 100
 
     def test_add_change_log_inserts_at_front(self, manager):
-        """新日志插入到列表头部"""
+        """新日志追加到列表末尾（读取时反转，最新在前）"""
         manager._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
         manager._add_change_log("first", "llm")
         manager._add_change_log("second", "llm")
-        assert manager._cache["change_log"][0]["action"] == "second"
-        assert manager._cache["change_log"][1]["action"] == "first"
+        # 内部存储为追加顺序（最新在末尾），get_change_log 读取时反转为最新在前
+        assert manager._cache["change_log"][-1]["action"] == "second"
+        assert manager._cache["change_log"][0]["action"] == "first"
 
     def test_get_change_log(self, manager):
         manager._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
