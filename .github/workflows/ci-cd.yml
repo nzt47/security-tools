@@ -260,3 +260,72 @@ jobs:
         with:
           name: deployment-summary
           path: deployment_summary.md
+
+  post-deploy-alert-check:
+    name: Post-Deploy Alert Check (发布后全量告警检查)
+    runs-on: ubuntu-latest
+    needs: deployment-ready
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # 发布后自动运行一次全量告警检查 + 异常模拟测试
+    # 验证告警脚本能正确检测熔断器状态异常
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
+          pip install pydantic
+
+      - name: Run circuit breaker alert check
+        run: |
+          echo "=== 发布后熔断器告警全量检查 ==="
+          python scripts/circuit_breaker_alert.py --verbose
+          ALERT_EXIT=$?
+          if [ $ALERT_EXIT -ne 0 ]; then
+            echo "::warning::发布后告警检查发现异常（退出码 $ALERT_EXIT）"
+            echo "::warning::详情参见 scripts/circuit_breaker_alert.py --json 输出"
+          fi
+          echo "=== 告警检查完成 ==="
+
+      - name: Run failure simulation tests
+        run: |
+          echo "=== 熔断器异常模拟测试 ==="
+          python scripts/simulate_circuit_breaker_failures.py --verbose
+          SIM_EXIT=$?
+          if [ $SIM_EXIT -ne 0 ]; then
+            echo "::error::异常模拟测试失败（退出码 $SIM_EXIT），告警脚本可能存在检测盲区"
+            exit 1
+          fi
+          echo "=== 异常模拟测试通过 ==="
+
+      - name: Generate alert check report
+        if: always()
+        run: |
+          echo "# Post-Deploy Alert Check Report" > alert_report.md
+          echo "" >> alert_report.md
+          echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> alert_report.md
+          echo "**Commit:** ${{ github.sha }}" >> alert_report.md
+          echo "" >> alert_report.md
+          echo "## Alert Check" >> alert_report.md
+          echo '```' >> alert_report.md
+          python scripts/circuit_breaker_alert.py --json >> alert_report.md 2>&1 || true
+          echo '```' >> alert_report.md
+          echo "" >> alert_report.md
+          echo "## Failure Simulation" >> alert_report.md
+          echo '```' >> alert_report.md
+          python scripts/simulate_circuit_breaker_failures.py --json >> alert_report.md 2>&1 || true
+          echo '```' >> alert_report.md
+
+      - name: Upload alert check report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: post-deploy-alert-report
+          path: alert_report.md
+          retention-days: 90
