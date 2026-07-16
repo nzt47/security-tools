@@ -39,6 +39,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+# Windows 控制台 UTF-8 输出（避免 GBK 编码错误）
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # 添加项目根目录到 sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))

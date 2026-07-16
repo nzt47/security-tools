@@ -19,7 +19,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/circuit-breaker-alert/Dockerfile
-    image: circuit-breaker-alert:latest
+    image: registry.example.com/circuit-breaker-alert:1.0
     container_name: circuit-breaker-alert-watch
     restart: unless-stopped
     environment:
@@ -54,7 +54,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/circuit-breaker-alert/Dockerfile
-    image: circuit-breaker-alert:latest
+    image: registry.example.com/circuit-breaker-alert:1.0
     container_name: circuit-breaker-alert-once
     environment:
       - ALERT_WATCH_MODE=false
