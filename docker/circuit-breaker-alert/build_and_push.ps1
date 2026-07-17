@@ -175,30 +175,43 @@ function Invoke-WithRetry {
         [string]$ExitCodeOnFailure = 1
     )
 
+    # [TLM-L1] 重试执行器 - 网络不稳定场景的统一重试入口
+    # 详细日志：每次尝试耗时、累计退避、预计下次重试时间，便于排查网络超时
+    $startTime = Get-Date
+    $totalBackoff = 0
     $attempt = 0
+    Write-Log "重试任务启动: $Description (最大=${MaxRetries}, 退避=${BackoffBase}s*${BackoffMax}max)"
+
     while ($attempt -lt $MaxRetries) {
         $attempt++
         $backoff = [Math]::Min($attempt * $BackoffBase, $BackoffMax)
+        $attemptStart = Get-Date
 
         Write-Log "尝试 $attempt/${MaxRetries}: $Description"
 
         try {
             & $ScriptBlock
             $exitCode = $LASTEXITCODE
+            $attemptSecs = [Math]::Round(((Get-Date) - $attemptStart).TotalSeconds, 2)
             if ($exitCode -eq 0) {
-                Write-Log "成功: $Description (第 $attempt 次尝试)" "SUCCESS"
+                $totalSecs = [Math]::Round(((Get-Date) - $startTime).TotalSeconds, 2)
+                Write-Log "成功: $Description (第 $attempt 次, 本次 ${attemptSecs}s, 总耗时 ${totalSecs}s, 累计退避 ${totalBackoff}s)" "SUCCESS"
                 return $true
             } else {
                 throw "退出码 $exitCode"
             }
         } catch {
             $errorMsg = $_.Exception.Message
+            $attemptSecs = [Math]::Round(((Get-Date) - $attemptStart).TotalSeconds, 2)
             if ($attempt -lt $MaxRetries) {
-                Write-Log "失败: $Description - $errorMsg" "WARN"
-                Write-Log "等待 ${backoff}s 后重试..." "WARN"
+                $nextRetryAt = (Get-Date).AddSeconds($backoff).ToString("HH:mm:ss")
+                Write-Log "失败: $Description - $errorMsg (本次 ${attemptSecs}s)" "WARN"
+                Write-Log "  退避 ${backoff}s 后重试 (累计将达 $($totalBackoff + $backoff)s, 预计 $nextRetryAt)" "WARN"
                 Start-Sleep -Seconds $backoff
+                $totalBackoff += $backoff
             } else {
-                Write-Log "最终失败: $Description - $errorMsg (已重试 $MaxRetries 次)" "ERROR"
+                $totalSecs = [Math]::Round(((Get-Date) - $startTime).TotalSeconds, 2)
+                Write-Log "最终失败: $Description - $errorMsg (已重试 $MaxRetries 次, 总耗时 ${totalSecs}s, 累计退避 ${totalBackoff}s)" "ERROR"
                 return $false
             }
         }
@@ -248,20 +261,42 @@ if ($BackoffBase -lt 0)  { $BackoffBase = 5 }
 if ($BackoffMax -lt 0)   { $BackoffMax = 60 }
 if ($NetworkMode -eq "") { $NetworkMode = "auto" }
 
-# ── Windows Docker Desktop 网络兼容性 ─────────────────────────
-# --network=host 在 Docker Desktop for Windows (WSL2) 上使用的是
-# WSL2 VM 的网络栈，而非 Windows 宿主机网络。若 Windows 配置了
-# VPN/代理，apt-get 下载会失败或连接被拒绝。
-# auto 模式下: Windows → default (bridge), Linux → host
-$isWindows = ($env:OS -eq "Windows_NT")
+# ── Docker Desktop 网络兼容性（跨平台：Windows/macOS/Linux）───
+# --network=host 在 Docker Desktop 上使用的是 VM 网络栈
+#   - Windows: WSL2 VM
+#   - macOS:   Hypervisor.framework VM
+# 而非宿主机网络。若宿主机配置 VPN/代理，apt-get 下载会失败或连接被拒绝。
+# auto 模式: Windows/macOS → default (bridge), Linux → host
+#
+# 平台检测兼容 PS 5.x（仅 Windows，无 $Is* 自动变量）和 PS 7+（跨平台）
+$onWindows = if ($null -ne $IsWindows) { [bool]$IsWindows } else { $env:OS -eq "Windows_NT" }
+$onMacOS   = if ($null -ne $IsMacOS)   { [bool]$IsMacOS }   else { $false }
+$onLinux   = if ($null -ne $IsLinux)   { [bool]$IsLinux }   else { -not $onWindows -and -not $onMacOS }
+
+# platform_override（调试用）：从 config.network.platform_override 读取强制平台覆盖
+if ($config -and $config.network.platform_override) {
+    $override = $config.network.platform_override
+    switch ($override) {
+        "windows" { $onWindows = $true;  $onMacOS = $false; $onLinux = $false }
+        "macos"   { $onWindows = $false; $onMacOS = $true;  $onLinux = $false }
+        "linux"   { $onWindows = $false; $onMacOS = $false; $onLinux = $true }
+        default   { Write-Log "未知 platform_override 值: $override，忽略" "WARN" }
+    }
+    Write-Log "使用 platform_override: $override" "WARN"
+}
+$platformLabel = if ($onWindows) { "Windows" } elseif ($onMacOS) { "macOS" } else { "Linux" }
+
 $resolvedNetworkMode = $NetworkMode
 if ($NetworkMode -eq "auto") {
-    if ($isWindows) {
+    if ($onWindows) {
         $resolvedNetworkMode = "default"
-        Write-Log "检测到 Windows 平台，网络模式: default (Docker Desktop WSL2 兼容)" "WARN"
+        Write-Log "检测到 $platformLabel 平台，网络模式: default (Docker Desktop WSL2 兼容)" "WARN"
+    } elseif ($onMacOS) {
+        $resolvedNetworkMode = "default"
+        Write-Log "检测到 $platformLabel 平台，网络模式: default (Docker Desktop Hypervisor 兼容)" "WARN"
     } else {
         $resolvedNetworkMode = "host"
-        Write-Log "检测到 Linux 平台，网络模式: host (加速 apt-get 下载)"
+        Write-Log "检测到 $platformLabel 平台，网络模式: host (加速 apt-get 下载)"
     }
 }
 
