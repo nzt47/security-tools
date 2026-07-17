@@ -67,6 +67,51 @@ kubectl -n monitoring exec deploy/tlm-ops-reporter -- \
 - **PVC ReadWriteOnce + Recreate 策略**：避免多副本写入冲突
 - **告警规则文件保持原样**：从 `files/circuit_breaker_alerts.yml` 透传，不重写
 
+## 镜像构建（多架构）
+
+ops-reporter 镜像支持 `linux/amd64` + `linux/arm64` 双架构，适用于 x86 服务器与 ARM 环境（AWS Graviton、Apple Silicon）。
+
+### 前提条件
+
+```bash
+# 启用 docker buildx 多架构支持
+docker buildx create --use --name multiarch-builder
+docker buildx inspect --bootstrap
+```
+
+### 构建并推送（多架构）
+
+```bash
+# 构建双架构镜像并推送到 registry
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t <registry>/tlm-ops-reporter:v1.2 \
+  -f docker/ops-reporter/Dockerfile \
+  --push .
+```
+
+### 本地加载（单架构测试）
+
+```bash
+# 仅构建当前架构，加载到本地镜像库
+docker buildx build \
+  --platform linux/amd64 \
+  -t tlm-ops-reporter:v1.2 \
+  -f docker/ops-reporter/Dockerfile \
+  --load .
+```
+
+### 在 Helm 中使用
+
+```bash
+helm install tlm-ops ./deploy/helm/tlm-ops-reporter \
+  --set image.repository=<registry>/tlm-ops-reporter \
+  --set image.tag=v1.2 \
+  --set image.pullPolicy=Always
+```
+
+> **注**：多架构镜像通过 manifest list 自动选择匹配节点架构的镜像层，K8s 无需额外配置。
+
 ## 卸载
 
 ```bash

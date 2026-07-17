@@ -57,3 +57,9 @@ deploy.ps1
 # OS
 .DS_Store
 Thumbs.db
+
+# 文档与部署资源（不被 Dockerfile COPY 引用，排除以减小构建上下文）
+docs/
+deploy/
+tests/
+*.md

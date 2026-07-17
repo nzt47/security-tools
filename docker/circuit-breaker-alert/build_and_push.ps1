@@ -220,31 +220,47 @@ function Invoke-WithRetry {
 }
 
 # ── 加载配置文件 ──────────────────────────────────────────────
-# 优先级: CLI 参数 > config.yaml > 内置默认值
-# CLI 参数为空/-1 表示未设置，回退到 config.yaml
+# 优先级: CLI > 环境变量 > config.yaml > 内置默认值
+# - CLI 参数:    用户显式传递（最高优先级）
+# - 环境变量:    CI/CD 注入，命名约定 DOCKER_<FIELD>（与 Docker CLI 惯例一致）
+# - config.yaml: 仓库默认配置
+# - 内置默认值:  兜底
+# CLI 参数为空/-1 表示未设置
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if ($ConfigFile -eq "") {
     $ConfigFile = Join-Path $scriptDir "config.yaml"
 }
 $config = Read-YamlConfig -Path $ConfigFile
-
 if ($config) {
     Write-Log "已加载配置: $ConfigFile"
-    # 镜像配置（CLI 为空时回退）
+}
+
+# 1. 环境变量回退（CI/CD 注入，CLI 未设置时）
+if ($Registry -eq "")    { $Registry = $env:DOCKER_REGISTRY }
+if ($ImageName -eq "")   { $ImageName = $env:DOCKER_IMAGE_NAME }
+if ($Tag -eq "")         { $Tag = $env:DOCKER_TAG }
+if ($Dockerfile -eq "")  { $Dockerfile = $env:DOCKERFILE_PATH }
+if ($Context -eq "")     { $Context = $env:DOCKER_CONTEXT }
+if ($BuildRetry -lt 0 -and $env:DOCKER_BUILD_RETRY)    { $BuildRetry = [int]$env:DOCKER_BUILD_RETRY }
+if ($LoginRetry -lt 0 -and $env:DOCKER_LOGIN_RETRY)    { $LoginRetry = [int]$env:DOCKER_LOGIN_RETRY }
+if ($PushRetry -lt 0 -and $env:DOCKER_PUSH_RETRY)      { $PushRetry = [int]$env:DOCKER_PUSH_RETRY }
+if ($BackoffBase -lt 0 -and $env:DOCKER_BACKOFF_BASE)  { $BackoffBase = [int]$env:DOCKER_BACKOFF_BASE }
+if ($BackoffMax -lt 0 -and $env:DOCKER_BACKOFF_MAX)    { $BackoffMax = [int]$env:DOCKER_BACKOFF_MAX }
+if ($NetworkMode -eq "") { $NetworkMode = $env:DOCKER_NETWORK_MODE }
+
+# 2. config.yaml 回退（CLI 和环境变量都未设置时）
+if ($config) {
     if ($Registry -eq "")    { $Registry = $config.registry }
     if ($ImageName -eq "")   { $ImageName = $config.image_name }
     if ($Tag -eq "")         { $Tag = $config.tag }
     if ($Dockerfile -eq "")  { $Dockerfile = $config.dockerfile }
     if ($Context -eq "")     { $Context = $config.context }
-    # 重试配置（CLI 为 -1 时回退）
     if ($BuildRetry -lt 0)   { $BuildRetry = [int]$config.retry.build }
     if ($LoginRetry -lt 0)   { $LoginRetry = [int]$config.retry.login }
     if ($PushRetry -lt 0)    { $PushRetry = [int]$config.retry.push }
-    # 退避配置（CLI 为 -1 时回退）
     if ($BackoffBase -lt 0)  { $BackoffBase = [int]$config.backoff.base_seconds }
     if ($BackoffMax -lt 0)   { $BackoffMax = [int]$config.backoff.max_seconds }
-    # 网络配置（CLI 为空时回退）
     if ($NetworkMode -eq "") { $NetworkMode = $config.network.mode }
 }
 
