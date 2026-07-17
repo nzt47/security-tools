@@ -1,0 +1,15 @@
+# Prometheus 配置 — 本地测试环境
+# 加载 TLM 熔断器告警规则
+#
+# 验证: 访问 http://localhost:19090/api/v1/rules 应返回 15 条规则
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# 告警规则文件（来自 deploy/prometheus/circuit_breaker_alerts.yml）
+rule_files:
+  - /etc/prometheus/circuit_breaker_alerts.yml
+
+# 无 scrape 目标（测试环境只验证规则加载，不采集真实指标）
+scrape_configs: []
