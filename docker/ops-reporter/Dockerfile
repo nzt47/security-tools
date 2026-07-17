@@ -11,7 +11,9 @@
 # 运行（cron 模式，每天 1:00 自动生成）:
 #   docker run -d --name ops-reporter -v $(pwd)/logs:/app/logs:ro -v $(pwd)/docs/ops_daily:/app/output tlm-ops-reporter --cron
 
-FROM python:3.11-slim
+# [不易] 固定基础镜像到具体补丁版本 + 发行版代号，保证构建可重现
+# 升级时需人工 review changelog 并更新此版本号
+FROM python:3.11.9-slim-bookworm
 
 LABEL maintainer="TLM Team"
 LABEL description="TLM 熔断器运维日报生成器"
@@ -39,9 +41,10 @@ RUN mkdir -p /app/logs /app/output
 RUN useradd -m -u 1000 reporter && chown -R reporter:reporter /app
 USER reporter
 
-# [不易] 健康检查：cron 模式下检测 entrypoint 进程存活
-# once 模式（docker run --rm）执行完即退出，HEALTHCHECK 状态不产生影响
+# [不易] 健康检查：检测 PID 1 进程是 entrypoint.sh 或 generate_ops_daily_report
+# [变易] 不依赖 pgrep/ps（python:3.11-slim 未安装 procps），改用 grep /proc/1/cmdline
+# cron 模式: PID 1 = /bin/sh /app/entrypoint.sh; once 模式: PID 1 = python generate_ops_daily_report.py
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-    CMD pgrep -f entrypoint.sh > /dev/null || pgrep -f generate_ops_daily_report > /dev/null || exit 1
+    CMD grep -qaE 'entrypoint.sh|generate_ops_daily_report' /proc/1/cmdline 2>/dev/null || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
