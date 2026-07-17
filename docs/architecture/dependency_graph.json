@@ -1,5 +1,5 @@
 {
-  "trace_id": "28e8eff75ed846d2",
+  "trace_id": "5210883d77ca442c",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -7898,7 +7898,7 @@
       "source_layer": "memory",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 684,
+      "line": 732,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9352,6 +9352,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1164.323201000002
+    "build_duration_ms": 938.8103260000023
   }
 }
