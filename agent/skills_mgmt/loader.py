@@ -148,7 +148,11 @@ class MatchResult:
                  *, retrieval_method: str = "tfidf",
                  score_breakdown: Optional[Dict[str, List[float]]] = None,
                  reranked: bool = False,
-                 fallback_used: bool = False):
+                 fallback_used: bool = False,
+                 # [变易] 全链路可观测性扩展：检索召回分块详情
+                 # 每项结构: {skill_id, score, layer, tokens}
+                 # 缺省 None 保证旧调用方不受影响（守不易）
+                 retrieved_chunks: Optional[List[Dict[str, Any]]] = None):
         self.matches = matches
         self.total_scanned = total_scanned
         self.elapsed_ms = round(elapsed_ms, 2)
@@ -161,6 +165,19 @@ class MatchResult:
         self.reranked = reranked
         # 预留扩展：是否降级（向量检索失败回退 TF-IDF 时为 True）
         self.fallback_used = fallback_used
+        # 可观测性：检索召回分块详情，供 Precision@K 监控与幻觉率分析
+        # 未提供时按 matches 自动生成（保持向后兼容）
+        if retrieved_chunks is None:
+            retrieved_chunks = [
+                {
+                    "skill_id": m.skill_id,
+                    "score": m.score,
+                    "layer": 1,
+                    "tokens": m.estimated_tokens,
+                }
+                for m in matches
+            ]
+        self.retrieved_chunks = retrieved_chunks
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -174,6 +191,8 @@ class MatchResult:
             "score_breakdown": self.score_breakdown,
             "reranked": self.reranked,
             "fallback_used": self.fallback_used,
+            # [变易] 可观测性扩展字段：retrieved_chunks（默认按 matches 自动生成）
+            "retrieved_chunks": self.retrieved_chunks,
         }
 
 
@@ -197,8 +216,12 @@ class SkillLoader:
             scripts = loader.list_scripts(m.skill_id)  # 第三层
     """
 
-    def __init__(self, file_store: Optional[SkillFileStore] = None):
+    def __init__(self, file_store: Optional[SkillFileStore] = None,
+                 vector_adapter: Optional[Any] = None):
         self.fs = file_store or SkillFileStore()
+        # 向量检索适配器（延迟创建，避免初始化时拉起 chromadb/torch）
+        # 传入 None 时按需创建；显式传入便于测试 mock
+        self._vector_adapter = vector_adapter
 
     # ──────────────────────────────────────────────
     #  第一层：元数据匹配
@@ -233,15 +256,67 @@ class SkillLoader:
         t0 = time.time()
         tid = _trace_id()
 
-        # 扩展点防御：请求未实现的检索方式时记录 warning 并降级 TF-IDF
+        # 扩展点防御：use_vector=True 时走向量检索分支，失败降级 TF-IDF
+        # use_bm25 / use_reranker 仍保留 warning（未实现）
         fallback_used = False
-        if use_vector or use_bm25 or use_reranker:
+        if use_vector:
+            # 尝试向量检索，失败则降级 TF-IDF
+            vector_results = self._try_vector_match(
+                intent=intent,
+                top_k=top_k,
+                enabled_only=enabled_only,
+                min_score=min_score,
+                tid=tid,
+            )
+            if vector_results is not None:
+                # 向量检索成功，记录可观测性并返回
+                elapsed = (time.time() - t0) * 1000
+                total_tokens = sum(m.estimated_tokens for m in vector_results.matches)
+
+                logger.info(json.dumps({
+                    "trace_id": tid,
+                    "module_name": "loader",
+                    "action": "match.layer1.vector.ok",
+                    "duration_ms": round(elapsed, 2),
+                    "layer": 1,
+                    "intent": intent[:100],
+                    "total_scanned": vector_results.total_scanned,
+                    "match_count": len(vector_results.matches),
+                    "estimated_tokens": total_tokens,
+                    "retrieval_method": "vector",
+                    "fallback_used": False,
+                    "retrieved_chunks_count": len(vector_results.matches),
+                }, ensure_ascii=False))
+
+                emit_metric("yunshu_skill_match_latency_ms",
+                            value=elapsed, kind="histogram",
+                            labels={"layer": "1", "method": "vector", "success": "true"})
+                emit_metric("yunshu_skill_match_count",
+                            value=len(vector_results.matches), kind="gauge",
+                            labels={"layer": "1", "method": "vector"})
+
+                from .observability import report_retrieval_observability
+                report_retrieval_observability(
+                    vector_results.retrieved_chunks, trace_id=tid,
+                )
+                return vector_results
+            # 向量检索失败，降级 TF-IDF
+            fallback_used = True
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "match.vector_fallback_to_tfidf",
+                "intent": intent[:100],
+                "fallback": "tfidf",
+            }, ensure_ascii=False))
+
+        # use_bm25 / use_reranker 仍未实现，记录 warning
+        if use_bm25 or use_reranker:
             logger.warning(json.dumps({
                 "trace_id": tid,
                 "module_name": "loader",
                 "action": "match.extension_not_implemented",
                 "intent": intent[:100],
-                "use_vector": use_vector,
                 "use_bm25": use_bm25,
                 "use_reranker": use_reranker,
                 "retrieval_weights": retrieval_weights,
@@ -301,6 +376,8 @@ class SkillLoader:
             "estimated_tokens": total_tokens,
             "retrieval_method": "tfidf",
             "fallback_used": fallback_used,
+            # [变易] 可观测性：仅记录召回数，完整 chunks 通过 span 持久化
+            "retrieved_chunks_count": len(top),
         }, ensure_ascii=False))
 
         emit_metric("yunshu_skill_match_latency_ms",
@@ -310,13 +387,117 @@ class SkillLoader:
                     value=len(top), kind="gauge",
                     labels={"layer": "1"})
 
-        return MatchResult(
+        result = MatchResult(
             matches=top,
             total_scanned=len(index),
             elapsed_ms=elapsed,
             estimated_total_tokens=total_tokens,
             retrieval_method="tfidf",
             fallback_used=fallback_used,
+        )
+
+        # [变易] 可观测性：将 retrieved_chunks 持久化到 trace span
+        # 失败不影响主流程（report_retrieval_observability 内部已 try/except）
+        from .observability import report_retrieval_observability
+        report_retrieval_observability(
+            result.retrieved_chunks, trace_id=tid,
+        )
+
+        return result
+
+    # ──────────────────────────────────────────────
+    #  向量检索扩展（use_vector=True 时调用）
+    # ──────────────────────────────────────────────
+
+    def _get_vector_adapter(self):
+        """延迟创建向量适配器（首次 use_vector=True 时实例化）
+
+        【变易】避免 SkillLoader.__init__ 拉起 chromadb/torch；
+                测试可通过构造函数注入 mock 适配器
+        """
+        if self._vector_adapter is None:
+            try:
+                from .vector_adapter import SkillVectorAdapter
+                self._vector_adapter = SkillVectorAdapter(file_store=self.fs)
+            except Exception as e:  # noqa: BLE001
+                logger.warning(json.dumps({
+                    "module_name": "loader",
+                    "action": "vector_adapter_init_failed",
+                    "error": str(e),
+                }, ensure_ascii=False))
+                self._vector_adapter = None
+        return self._vector_adapter
+
+    def _try_vector_match(
+        self,
+        *,
+        intent: str,
+        top_k: int,
+        enabled_only: bool,
+        min_score: float,
+        tid: str,
+    ) -> Optional[MatchResult]:
+        """尝试向量检索，失败返回 None（由调用方降级 TF-IDF）
+
+        【不易】返回 None 而非抛异常，保证 match() 主流程不被向量失败拖垮
+        【简易】只做查询 → SkillMatch 转换，索引构建由适配器内部延迟完成
+        """
+        adapter = self._get_vector_adapter()
+        if adapter is None:
+            return None
+
+        try:
+            results = adapter.search(
+                intent, top_k=top_k, enabled_only=enabled_only,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "vector_search.exception",
+                "intent": intent[:100],
+                "error": str(e),
+            }, ensure_ascii=False))
+            return None
+
+        if not results:
+            return None
+
+        # 加载元数据索引（用于补全 SkillMatch 字段，避免向量结果中 metadata 不全）
+        index = self.fs.load_metadata_index()
+
+        matches: List[SkillMatch] = []
+        for r in results:
+            skill_id = r["skill_id"]
+            score = r["score"]
+            if score < min_score:
+                continue
+            meta = index.get(skill_id, {})
+            meta_str = json.dumps(meta, ensure_ascii=False)
+            est_tokens = estimate_tokens(meta_str)
+            matches.append(SkillMatch(
+                skill_id=skill_id,
+                name=meta.get("name", skill_id),
+                description=meta.get("description", ""),
+                score=score,
+                estimated_tokens=est_tokens,
+                category=meta.get("category", ""),
+                tags=meta.get("tags", []),
+                version=meta.get("version", ""),
+                enabled=meta.get("enabled", True),
+            ))
+
+        if not matches:
+            return None
+
+        total_tokens = sum(m.estimated_tokens for m in matches)
+        return MatchResult(
+            matches=matches,
+            total_scanned=len(index),
+            elapsed_ms=0.0,  # 外层会重新计算并覆盖
+            estimated_total_tokens=total_tokens,
+            retrieval_method="vector",
+            fallback_used=False,
         )
 
     def list_all_metadata(self, *, enabled_only: bool = False) -> List[Dict[str, Any]]:
