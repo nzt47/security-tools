@@ -1,0 +1,20 @@
+name: web_xpath
+category: web
+description: 使用 XPath 表达式从网页中提取信息
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 网页 URL
+    expression:
+      type: string
+      description: XPath 表达式
+    html:
+      type: string
+      description: 直接提供 HTML 源码（替代 url）
+  required:
+  - expression
+examples: []

@@ -1,0 +1,28 @@
+name: generate_tool
+category: uncategorized
+description: 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 工具名称（字母数字下划线）
+    description:
+      type: string
+      description: 工具描述
+    code:
+      type: string
+      description: Python 函数实现代码。函数签名应与工具名称一致，接收 **kwargs 参数
+    schema:
+      type: object
+      description: 参数的 JSON Schema（可选，不提供时使用空 schema）
+    persist:
+      type: boolean
+      description: 是否持久化保存到文件（默认 False，仅注册到内存）
+  required:
+  - name
+  - description
+  - code
+examples: []

@@ -1,0 +1,19 @@
+name: get_weather
+category: system
+description: 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    city:
+      type: string
+      description: 城市名称，如 Beijing、Shanghai、Tokyo，留空自动查询当前IP所在地天气
+    format:
+      type: string
+      enum:
+      - text
+      - json
+      - full
+      description: 返回格式：text=简洁文本, json=完整JSON数据, full=完整文本预报
+examples: []

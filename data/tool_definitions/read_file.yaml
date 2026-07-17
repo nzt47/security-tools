@@ -1,0 +1,23 @@
+name: read_file
+category: file
+description: 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 文件路径
+    encoding:
+      type: string
+      description: 文件编码，默认 utf-8
+    max_size_mb:
+      type: integer
+      description: 最大读取大小（MB），默认 5
+    range:
+      type: string
+      description: 可选，行范围，如 "1-50" 读取第1到50行
+  required:
+  - path
+examples: []

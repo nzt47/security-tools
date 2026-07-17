@@ -1,0 +1,23 @@
+name: compress
+category: file
+description: 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    source_path:
+      type: string
+      description: 要压缩的源文件或目录路径（必填）
+    output_path:
+      type: string
+      description: 压缩输出路径（可选）。不指定则生成到源文件所在目录：源名.zip 或 源名.tar.gz
+    format:
+      type: string
+      enum:
+      - zip
+      - tar.gz
+      description: 压缩格式：zip（通用兼容性好）或 tar.gz（Linux 常用，压缩率稍高）。默认 zip
+  required:
+  - source_path
+examples: []

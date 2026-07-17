@@ -1,0 +1,26 @@
+name: submit_task
+category: async
+description: 提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status
+  查状态，用 get_task_result 获取结果
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 任务名称，便于后续识别（如 '搜索Python教程'）
+    tool_name:
+      type: string
+      description: 要异步调用的工具名称，如 web_search、compress、execute_shell 等
+    params:
+      type: object
+      description: '传给工具的参数字典，如 {"query": "Python 教程", "num_results": 5}'
+    timeout:
+      type: integer
+      description: 任务超时秒数（可选）。不设置则不限时
+  required:
+  - name
+  - tool_name
+  - params
+examples: []

@@ -1,0 +1,22 @@
+name: run_program
+category: system
+description: 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    program:
+      type: string
+      description: 程序名称，如 notepad.exe
+    args:
+      type: array
+      items:
+        type: string
+      description: 参数列表
+    cwd:
+      type: string
+      description: 工作目录
+  required:
+  - program
+examples: []

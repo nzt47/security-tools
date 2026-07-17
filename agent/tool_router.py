@@ -19,16 +19,24 @@ try:
 except ImportError:
     ToolTraceRecorder = None
 
+# 安全导入 PyYAML（不可用时降级到代码内默认分类，保证模块可加载）
+try:
+    import yaml as _yaml
+except ImportError:  # pragma: no cover - PyYAML 为项目依赖，缺失时降级
+    _yaml = None
+
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KEYWORDS_FILE = os.path.join(_PROJECT_ROOT, "data", "tool_router_keywords.json")
+# 工具定义 YAML 目录（source of truth）；缺失时回退到下方代码内默认值
+TOOL_DEFINITIONS_DIR = os.path.join(_PROJECT_ROOT, "data", "tool_definitions")
 
 # ════════════════════════════════════════════════════════════
-#  工具分类表
+#  工具分类表（兜底默认值；YAML 存在时由 YAML 派生覆盖）
 # ════════════════════════════════════════════════════════════
 
-TOOL_CATEGORIES = {
+_DEFAULT_TOOL_CATEGORIES = {
     "core": {
         "label": "核心工具",
         "icon": "⚙",
@@ -138,6 +146,75 @@ TOOL_CATEGORIES = {
         ],
     },
 }
+
+
+def _load_tool_categories_from_yaml() -> Optional[dict]:
+    """从 data/tool_definitions/*.yaml 派生 TOOL_CATEGORIES。
+
+    【不易】
+      - 仅 11 个已知分类键进入 TOOL_CATEGORIES；category=uncategorized 的工具
+        仅纳入检索索引，不进入路由分类（保持分类表与原代码一致）。
+      - 分类元数据(label/icon/description/always)取自 _DEFAULT_TOOL_CATEGORIES，
+        YAML 仅承载工具列表与 schema —— 元数据契约不变。
+      - 保留默认工具顺序：默认列表中的工具按默认顺序排列，YAML 新增工具字母序追加。
+    【变易】YAML 为 source of truth：可增删工具，CI 由 sync_tool_index.py 守门。
+    【简易】任何加载异常或目录缺失 → 返回 None，由调用方回退到默认值。
+
+    Returns:
+        派生后的分类表 dict；YAML 不可用或加载失败时返回 None（触发兜底）。
+    """
+    if _yaml is None or not os.path.isdir(TOOL_DEFINITIONS_DIR):
+        return None
+
+    # tool_name -> category（仅取已知分类，uncategorized 不进入 TOOL_CATEGORIES）
+    yaml_tools: dict[str, str] = {}
+    default_cat_keys = set(_DEFAULT_TOOL_CATEGORIES.keys())
+    try:
+        for fname in sorted(os.listdir(TOOL_DEFINITIONS_DIR)):
+            if not fname.endswith(".yaml"):
+                continue
+            path = os.path.join(TOOL_DEFINITIONS_DIR, fname)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    doc = _yaml.safe_load(f)
+            except (OSError, _yaml.YAMLError) as e:
+                logger.warning("工具定义 YAML 读取失败 %s: %s（跳过）", fname, e)
+                continue
+            if not isinstance(doc, dict):
+                continue
+            name = doc.get("name")
+            category = doc.get("category")
+            if isinstance(name, str) and isinstance(category, str):
+                # 仅记录已知分类的工具；uncategorized 不进入路由分类表
+                if category in default_cat_keys:
+                    yaml_tools[name] = category
+    except OSError as e:
+        logger.warning("扫描工具定义目录失败: %s（回退到默认分类）", e)
+        return None
+
+    if not yaml_tools:
+        # 目录存在但无有效 YAML —— 视为缺失，回退默认
+        return None
+
+    # 派生分类表：元数据来自默认，工具列表来自 YAML（保留默认顺序 + 新增工具字母序）
+    result: dict[str, dict] = {}
+    for cat_key, meta in _DEFAULT_TOOL_CATEGORIES.items():
+        default_tools = meta.get("tools", [])
+        # 默认列表中的工具，若 YAML 仍归此分类，则按默认顺序保留
+        kept = [t for t in default_tools if yaml_tools.get(t) == cat_key]
+        # YAML 中归此分类但不在默认列表中的工具（新增），字母序追加
+        new_tools = sorted(
+            n for n, c in yaml_tools.items()
+            if c == cat_key and n not in default_tools
+        )
+        entry = dict(meta)  # 浅拷贝元数据
+        entry["tools"] = kept + new_tools
+        result[cat_key] = entry
+    return result
+
+
+# 工具分类表：YAML 存在时由 YAML 派生，否则回退到代码内默认值
+TOOL_CATEGORIES = _load_tool_categories_from_yaml() or _DEFAULT_TOOL_CATEGORIES
 
 # 平铺所有工具（用于校验完整性）
 ALL_TOOLS_SET = {tool for cat in TOOL_CATEGORIES.values() for tool in cat["tools"]}

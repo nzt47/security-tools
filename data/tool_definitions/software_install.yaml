@@ -1,0 +1,29 @@
+name: software_install
+category: software
+description: 安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 软件名称
+    backend:
+      type: string
+      enum:
+      - chocolatey
+      - pip
+      - npm
+      - web_download
+      - github
+      description: 指定安装来源（可选）
+    version:
+      type: string
+      description: 指定版本号（可选）
+    confirm:
+      type: boolean
+      description: 当软件不在白名单中时，设为 true 可确认风险并继续安装（默认 false）
+  required:
+  - name
+examples: []

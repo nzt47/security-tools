@@ -1,0 +1,27 @@
+name: code_review
+category: code
+description: 执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review
+  检查清单
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 要审查的文件路径（绝对路径），可选
+    diff:
+      type: string
+      description: git diff 文本内容，可选。如果未提供 path 则使用此内容
+    dimensions:
+      type: array
+      items:
+        type: string
+        enum:
+        - 安全
+        - 性能
+        - 可维护性
+        - API兼容性
+        - 测试
+      description: 审查维度列表，默认全部。安全(SQL注入/XSS/密钥泄露)、性能(N+1查询/算法复杂度)、可维护性(死代码/魔法数字)、API兼容性(破坏性变更)、测试(边界值/负路径)
+examples: []

@@ -1,0 +1,19 @@
+name: ext_list
+category: extension
+description: 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+      - skill
+      - claude_skill
+      - mcp
+      - channel
+      - plugin
+      - ''
+      description: 按类型筛选（留空列出全部）
+examples: []
