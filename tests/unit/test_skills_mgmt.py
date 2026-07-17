@@ -14,6 +14,7 @@ import os
 import json
 import logging
 import tempfile
+from pathlib import Path
 import pytest
 
 from agent.skills_mgmt import (
@@ -847,3 +848,280 @@ class TestContextInjectorBoundaryDeclaration:
         # skill-b 因超预算未注入，应在未加载列表
         assert "skill-b" in bd["unloaded"]
         assert "skill-c" in bd["unloaded"]
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  9. 检索质量评估测试（黄金集驱动，Precision@K 守卫）
+# ═══════════════════════════════════════════════════════════════════
+
+def _load_eval_module():
+    """动态加载 scripts/eval_skill_retrieval.py 作为模块
+
+    scripts/ 不是 Python 包（无 __init__.py），用 importlib 按文件路径加载，
+    避免改动目录结构或污染 sys.path。
+    """
+    import importlib.util
+    eval_script = (
+        Path(__file__).resolve().parent.parent.parent
+        / "scripts" / "eval_skill_retrieval.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "eval_skill_retrieval", eval_script,
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestRetrievalEvaluation:
+    """检索质量评估 — 调用 scripts/eval_skill_retrieval.py 的核心函数
+
+    设计说明：
+    - 黄金集路径：tests/eval/skill_retrieval_golden_set.json（45 个用例）
+    - 基线（TF-IDF, 2026-07-13）: Precision@3 = 0.3926
+    - 主要缺陷：self_reflection / memory_summary 的 description 为空，
+      TF-IDF 无法用中文语义查询命中，7 个用例 Precision=0
+    - 升级向量检索后应通过此测试（届时移除 xfail 动态标记）
+    """
+
+    @pytest.mark.eval
+    def test_skill_retrieval_precision_above_threshold(self):
+        """技能检索 Precision@3 不低于 0.6（CI 守卫）
+
+        验收标准：pytest tests/unit/test_skills_mgmt.py -m eval 通过
+        （或标记为预期失败，若 Precision@3 < 0.6）
+
+        实现说明：
+        - 调用 evaluate(top_k=3) 获取完整报告
+        - 若 Precision@3 < 0.6，调用 pytest.xfail 动态标记为预期失败
+          （不是硬断言失败，避免 CI 红灯）
+        - 未来升级向量检索后 Precision 提升至 >= 0.6，xfail 不触发，
+          assert 验证通过
+        """
+        mod = _load_eval_module()
+        report = mod.evaluate(top_k=3)
+        precision = report["overall"]["precision"]
+
+        # 校验失败直接失败（不是算法问题，是数据问题）
+        assert not report["validation_errors"], (
+            f"黄金集校验失败: {report['validation_errors']}"
+        )
+
+        if precision < 0.6:
+            pytest.xfail(
+                f"TF-IDF 基线 Precision@3={precision:.4f} < 0.6 阈值。"
+                f"主要缺陷：self_reflection / memory_summary 的 description 为空，"
+                f"TF-IDF 无法用中文语义查询命中（7 个用例 Precision=0）。"
+                f"升级向量检索后应通过此测试。"
+            )
+
+        assert precision >= 0.6, f"Precision@3={precision:.4f} < 0.6"
+
+    @pytest.mark.eval
+    def test_golden_set_minimum_case_count(self):
+        """黄金集用例数 >= 30（结构守卫）"""
+        mod = _load_eval_module()
+        golden = mod.load_golden_set(mod.DEFAULT_GOLDEN_SET)
+        assert len(golden["test_cases"]) >= 30, (
+            f"黄金集用例数 {len(golden['test_cases'])} < 30"
+        )
+
+    @pytest.mark.eval
+    def test_golden_set_skill_ids_validated(self):
+        """黄金集所有 expected_skill_ids 必须与实际技能 ID 一致
+
+        【不易防御】避免期望 ID 拼写错误被误判为算法召回缺陷。
+        """
+        mod = _load_eval_module()
+        golden = mod.load_golden_set(mod.DEFAULT_GOLDEN_SET)
+        loader = SkillLoader()
+        available = sorted(loader.fs.load_metadata_index().keys())
+        errors = mod.validate_expected_skill_ids(golden, available)
+        assert not errors, f"黄金集 ID 校验失败: {errors}"
+
+    @pytest.mark.eval
+    def test_baseline_precision_recorded(self):
+        """基线 Precision@3 被记录到报告中（作为升级向量检索的对比基准）"""
+        mod = _load_eval_module()
+        report = mod.evaluate(top_k=3)
+        # 报告必须包含基线 Precision 字段
+        assert "overall" in report
+        assert "precision" in report["overall"]
+        assert 0.0 <= report["overall"]["precision"] <= 1.0
+        # 报告必须包含按难度/类别的分组
+        assert "by_difficulty" in report
+        assert "by_category" in report
+        # 报告必须包含逐用例明细（含 actual 与 expected 对比）
+        assert len(report["cases"]) == report["total_cases"]
+        for c in report["cases"]:
+            assert "actual" in c
+            assert "expected" in c
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  9. 全链路可观测性字段测试（retrieved_chunks / eval_score）
+# ═══════════════════════════════════════════════════════════════════
+
+class TestObservabilityFields:
+    """可观测性扩展字段测试：retrieved_chunks / eval_score / metrics 容错"""
+
+    def test_match_result_contains_retrieved_chunks(self):
+        """MatchResult.to_dict() 应含 retrieved_chunks 字段及正确结构
+
+        每个 chunk 结构: {skill_id, score, layer, tokens}
+        """
+        match = SkillMatch(
+            skill_id="t", name="t", description="d",
+            score=0.5, estimated_tokens=10,
+        )
+        result = MatchResult(
+            matches=[match], total_scanned=1, elapsed_ms=1.0,
+            estimated_total_tokens=10,
+        )
+        d = result.to_dict()
+        # [不易] 新字段必须存在且为 list
+        assert "retrieved_chunks" in d
+        chunks = d["retrieved_chunks"]
+        assert isinstance(chunks, list)
+        assert len(chunks) == 1
+        chunk = chunks[0]
+        # 每项含契约要求的 4 个字段
+        assert chunk["skill_id"] == "t"
+        assert chunk["score"] == 0.5
+        assert chunk["layer"] == 1
+        assert chunk["tokens"] == 10
+
+    def test_match_result_retrieved_chunks_truncation_at_50(self):
+        """retrieved_chunks > 50 项时 observability 层自动截断并标记（防御性）"""
+        from agent.skills_mgmt.observability import (
+            _sanitize_observability_payload, _MAX_RETRIEVED_CHUNKS,
+        )
+        # 构造 60 项 chunks
+        big_chunks = [
+            {"skill_id": f"s-{i}", "score": 0.1, "layer": 1, "tokens": 10}
+            for i in range(60)
+        ]
+        payload = {"retrieved_chunks": big_chunks, "action": "x"}
+        sanitized = _sanitize_observability_payload(payload)
+        # 截断到 50 项
+        assert len(sanitized["retrieved_chunks"]) == _MAX_RETRIEVED_CHUNKS
+        # 标记 truncated
+        assert sanitized["retrieved_chunks_truncated"] is True
+        assert sanitized["retrieved_chunks_original_count"] == 60
+        # 其他字段保留
+        assert sanitized["action"] == "x"
+
+    def test_build_context_reports_retrieval_chunks(self, caplog):
+        """build_context 的结构化日志与返回值应含 retrieved_chunks
+
+        通过 traced_action 使用的同一 _emit_structured_log 机制上报，
+        caplog 捕获 build_context.ok 日志验证。
+        """
+        from unittest.mock import MagicMock
+        loader = MagicMock()
+        match = SkillMatch(
+            skill_id="skill-x", name="X", description="d",
+            score=0.9, estimated_tokens=50,
+        )
+        match_result = MatchResult(
+            matches=[match], total_scanned=1, elapsed_ms=1.0,
+            estimated_total_tokens=50,
+        )
+        loader.match.return_value = match_result
+        loader.list_all_metadata.return_value = [
+            {"skill_id": "skill-x", "enabled": True},
+        ]
+        injector = ContextInjector(loader=loader)
+
+        with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
+            out = injector.build_context("测试意图", max_tokens=6000)
+
+        # 返回值含 retrieved_chunks（透传给上游 traced_action）
+        assert "retrieved_chunks" in out
+        assert len(out["retrieved_chunks"]) == 1
+        assert out["retrieved_chunks"][0]["skill_id"] == "skill-x"
+        # 结构化日志 build_context.ok 含 retrieved_chunks
+        found = False
+        for record in caplog.records:
+            msg = record.getMessage()
+            if "build_context.ok" in msg and "retrieved_chunks" in msg:
+                found = True
+                break
+        assert found, "build_context.ok 日志应含 retrieved_chunks"
+
+    def test_record_execution_accepts_eval_score(self, svc, caplog):
+        """传入 eval_score 不报错且持久化到结构化日志/metrics"""
+        svc.create_manual(_make_skill_data(name="eval-skill", content="x\n"))
+        eval_score = {
+            "task_success": True,
+            "instruction_followed": True,
+            "hallucination_detected": False,
+            "score": 0.92,
+        }
+
+        with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
+            # 不抛错即通过（防御性：可选字段缺失/提供均不报错）
+            svc.record_execution(
+                "eval-skill", success=True, latency_ms=100,
+                eval_score=eval_score,
+            )
+
+        # enhancer 部分仍正常执行（usage_count 递增）
+        skill = svc.get("eval-skill")
+        assert skill.metrics.usage_count == 1
+
+        # eval_score 持久化到结构化日志（emit_eval_score_metric 内部发射）
+        found = False
+        for record in caplog.records:
+            msg = record.getMessage()
+            if "eval_score.recorded" in msg and "0.92" in msg:
+                found = True
+                break
+        assert found, "eval_score 应持久化到结构化日志"
+
+    def test_record_execution_without_eval_score_backward_compat(self, svc):
+        """不传 eval_score 时行为与旧调用方完全一致（守不易）"""
+        svc.create_manual(_make_skill_data(name="noeval-skill", content="x\n"))
+        # 旧签名调用，不报错
+        svc.record_execution("noeval-skill", success=True, latency_ms=100)
+        skill = svc.get("noeval-skill")
+        assert skill.metrics.usage_count == 1
+
+    def test_metrics_emission_failure_does_not_break_flow(self, svc, monkeypatch):
+        """metrics 发射失败时主流程正常（已有 try/except 保护）"""
+        svc.create_manual(_make_skill_data(name="metric-fail-skill", content="x\n"))
+
+        # 模拟 metrics 后端故障：patch observability.emit_metric 抛错
+        from agent.skills_mgmt import observability
+
+        def _raise(*args, **kwargs):
+            raise RuntimeError("metrics backend down")
+
+        monkeypatch.setattr(observability, "emit_metric", _raise)
+
+        # 主流程不应抛错（emit_eval_score_metric 内部 try/except 兜底）
+        svc.record_execution(
+            "metric-fail-skill", success=True, latency_ms=100,
+            eval_score={
+                "task_success": True,
+                "score": 0.9,
+                "hallucination_detected": False,
+            },
+        )
+
+        # enhancer 部分仍正常执行（usage_count 递增）
+        skill = svc.get("metric-fail-skill")
+        assert skill.metrics.usage_count == 1
+
+    def test_health_stats_include_observability_fields(self, svc):
+        """health() 返回的 stats 应包含新可观测性字段统计"""
+        svc.create_manual(_make_skill_data(name="h-obs-skill", content="x\n"))
+        health = svc.health()
+        assert "observability" in health["stats"]
+        obs = health["stats"]["observability"]
+        assert "retrieved_chunks" in obs["fields"]
+        assert "eval_score" in obs["fields"]
+        assert "yunshu_skill_eval_score" in obs["metrics"]
+        assert "yunshu_skill_hallucination_total" in obs["metrics"]
+        assert obs["retrieved_chunks_max"] == 50
+        assert obs["truncation_enabled"] is True

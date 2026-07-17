@@ -13,7 +13,7 @@ import uuid
 import logging
 import json
 import time
-from typing import Optional
+from typing import Any, Optional
 from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)
@@ -400,12 +400,12 @@ def trace(service: str, operation: str):
 # 辅助函数
 def format_trace_log(trace_id: str, message: str, **kwargs) -> str:
     """格式化追踪日志消息
-    
+
     Args:
         trace_id: Trace ID
         message: 日志消息
         **kwargs: 额外的键值对
-    
+
     Returns:
         格式化后的日志消息
     """
@@ -413,6 +413,38 @@ def format_trace_log(trace_id: str, message: str, **kwargs) -> str:
     for key, value in kwargs.items():
         parts.append(f"{key}={value}")
     return " ".join(parts)
+
+
+def record_span_attributes(*, trace_id: Optional[str] = None,
+                           span_id: Optional[str] = None,
+                           **attributes: Any) -> None:
+    """[变易] 将 span 属性持久化到 trace 存储。
+
+    项目当前未集成 OpenTelemetry，采用结构化 JSON 日志作为降级实现：
+    将 span attributes 写入 logger.info 的 JSON payload，供后续日志聚合
+    （Loki/ELK）做 Precision@K 与幻觉率分析。
+
+    防御性：任何异常都不抛出，确保不影响主流程（守"metrics 发射失败
+    不影响主流程"硬约束）。
+
+    Args:
+        trace_id: 关联追踪ID；缺省取当前线程上下文
+        span_id: 关联 SpanID；缺省取当前线程上下文
+        **attributes: 任意 span 属性（如 retrieved_chunks / eval_score）
+    """
+    try:
+        tid = trace_id if trace_id is not None else get_trace_id()
+        sid = span_id if span_id is not None else get_span_id()
+        payload = {
+            "trace_id": tid,
+            "span_id": sid,
+            "module_name": "tracing",
+            "action": "span_attributes",
+            "attributes": attributes,
+        }
+        logger.info(json.dumps(payload, ensure_ascii=False, default=str))
+    except Exception:  # noqa: BLE001  span 持久化失败不得影响主流程
+        logger.debug("record_span_attributes 失败", exc_info=True)
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):
