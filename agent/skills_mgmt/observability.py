@@ -259,9 +259,20 @@ def report_retrieval_observability(
         precision_at_k: 可选 {k, hits, precision}
     """
     try:
+        # [变易] 防御性清洗：截断过大的 retrieved_chunks，避免 span 日志膨胀
+        # 与 traced_action 上下文走同一 _sanitize_observability_payload 路径（守不易：统一截断契约）
+        sanitized = _sanitize_observability_payload({
+            "retrieved_chunks": retrieved_chunks,
+        })
         persist_observability_span(
             trace_id=trace_id,
-            retrieved_chunks=retrieved_chunks,
+            retrieved_chunks=sanitized["retrieved_chunks"],
+            retrieved_chunks_truncated=sanitized.get(
+                "retrieved_chunks_truncated", False
+            ),
+            retrieved_chunks_original_count=sanitized.get(
+                "retrieved_chunks_original_count", len(retrieved_chunks)
+            ),
             retrieval_precision_at_k=precision_at_k,
         )
         if isinstance(precision_at_k, dict):
