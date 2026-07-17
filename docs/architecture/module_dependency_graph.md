@@ -751,6 +751,7 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
+    agent_skills_mgmt_observability -.-> agent_monitoring_tracing
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
     agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
@@ -895,8 +896,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 325
 - 模块节点数: 258
-- 依赖边数: 557
-- 跨层调用数: 354
+- 依赖边数: 558
+- 跨层调用数: 355
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 938.81 ms
+- 构建耗时: 1166.45 ms
