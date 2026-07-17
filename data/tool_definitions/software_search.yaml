@@ -1,0 +1,24 @@
+name: software_search
+category: software
+description: 搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub
+  Releases 等多种来源。不指定 backend 则搜索所有来源
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词
+    backend:
+      type: string
+      enum:
+      - chocolatey
+      - pip
+      - npm
+      - web_download
+      - github
+      description: 指定搜索来源（可选）
+  required:
+  - query
+examples: []

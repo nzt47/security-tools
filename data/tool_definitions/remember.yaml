@@ -1,0 +1,24 @@
+name: remember
+category: core
+description: 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    key:
+      type: string
+      description: 记忆的标识名称，用于搜索定位
+    content:
+      type: string
+      description: 要记住的具体内容
+    importance:
+      type: string
+      enum:
+      - normal
+      - important
+      description: 重要程度，important 会额外备份到桌面永久记忆文件
+  required:
+  - key
+  - content
+examples: []

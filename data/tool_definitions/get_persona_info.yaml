@@ -1,0 +1,9 @@
+name: get_persona_info
+category: v2
+description: 查看当前人格配置
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

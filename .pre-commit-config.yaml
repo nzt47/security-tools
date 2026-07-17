@@ -1,4 +1,4 @@
-# Pre-commit hooks 配置 — 关键字参数冲突扫描
+# Pre-commit hooks 配置 — 关键字参数冲突扫描 + 工具定义索引同步
 #
 # 安装:
 #   pip install pre-commit
@@ -6,6 +6,7 @@
 #
 # 手动运行:
 #   pre-commit run kwarg-conflict-scan --all-files
+#   pre-commit run tool-index-sync --all-files
 
 repos:
   - repo: local
@@ -32,3 +33,16 @@ repos:
         description: >
           扫描 MEDIUM 级别风险，仅提醒不拦截（push 阶段运行）。
           MEDIUM 风险为外部函数签名已知的 **kwargs 转发，建议人工审查。
+
+      - id: tool-index-sync
+        name: 工具定义索引同步校验 (YAML → tool_index.json)
+        entry: python scripts/sync_tool_index.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          校验 data/tool_definitions/*.yaml 的 schema 完整性
+          （必填字段、semver、JSON-Schema 子集、文件名与 name 一致、
+          无重复工具名）。校验失败时阻断提交，确保 YAML 变更与
+          data/tool_index.json 保持同步。--check 模式不写索引文件。

@@ -1,0 +1,38 @@
+name: arch_diagram
+category: code
+description: 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供
+  title（标题）、components（组件列表）和 output_path（输出路径）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    title:
+      type: string
+      description: 架构图标题（必填）
+    components:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: 组件名称
+          type:
+            type: string
+            description: '组件类型: frontend/backend/database/cloud/security/external'
+          description:
+            type: string
+            description: 组件描述（可选）
+        required:
+        - name
+        - type
+      description: 组件列表（必填）
+    output_path:
+      type: string
+      description: 输出 HTML 文件路径（必填）
+  required:
+  - title
+  - components
+  - output_path
+examples: []

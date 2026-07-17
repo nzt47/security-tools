@@ -1,0 +1,14 @@
+name: get_pdf_info
+category: pdf
+description: 获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: PDF 文件路径
+  required:
+  - path
+examples: []

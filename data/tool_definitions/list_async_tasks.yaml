@@ -1,0 +1,9 @@
+name: list_async_tasks
+category: async
+description: 列出所有异步任务（含已完成、运行中、等待中）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

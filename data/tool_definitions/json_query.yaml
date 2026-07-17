@@ -1,0 +1,19 @@
+name: json_query
+category: code
+description: 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key
+  递归搜索。data 参数接受 JSON 字符串或 Python 对象
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    data:
+      type: string
+      description: JSON 字符串或 Python 对象（dict/list）
+    path:
+      type: string
+      description: JSONPath 表达式，如 $.store.book[0].title 或 $..author
+  required:
+  - data
+  - path
+examples: []

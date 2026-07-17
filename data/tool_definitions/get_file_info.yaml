@@ -1,0 +1,14 @@
+name: get_file_info
+category: file
+description: 获取文件或目录的详细信息（大小、修改时间、权限等）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 文件或目录路径
+  required:
+  - path
+examples: []

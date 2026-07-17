@@ -1,0 +1,23 @@
+name: web_css
+category: web
+description: 使用 CSS 选择器从网页中提取信息
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 网页 URL
+    selector:
+      type: string
+      description: CSS 选择器
+    attr:
+      type: string
+      description: 提取的属性名，如 href、src
+    html:
+      type: string
+      description: 直接提供 HTML 源码（替代 url）
+  required:
+  - selector
+examples: []

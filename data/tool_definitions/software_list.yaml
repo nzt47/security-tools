@@ -1,0 +1,18 @@
+name: software_list
+category: software
+description: 列出已安装的软件包列表
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    backend:
+      type: string
+      enum:
+      - chocolatey
+      - pip
+      - npm
+      - web_download
+      - github
+      description: 指定来源（可选）
+examples: []

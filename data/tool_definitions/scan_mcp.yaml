@@ -1,0 +1,9 @@
+name: scan_mcp
+category: uncategorized
+description: 扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

@@ -1,0 +1,23 @@
+name: software_uninstall
+category: software
+description: 卸载已安装的软件包。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 软件名称
+    backend:
+      type: string
+      enum:
+      - chocolatey
+      - pip
+      - npm
+      - web_download
+      - github
+      description: 指定来源（可选）
+  required:
+  - name
+examples: []

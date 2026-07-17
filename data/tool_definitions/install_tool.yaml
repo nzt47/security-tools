@@ -1,0 +1,17 @@
+name: install_tool
+category: uncategorized
+description: 从扩展市场安装工具。安装后工具立即可用，无需重启。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    tool_id:
+      type: string
+      description: 工具/扩展ID，如 'yunshu-email-plugin'
+    source:
+      type: string
+      description: 安装来源（可选），如 'github:user/repo'
+  required:
+  - tool_id
+examples: []

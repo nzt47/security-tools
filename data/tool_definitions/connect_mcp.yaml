@@ -1,0 +1,35 @@
+name: connect_mcp
+category: uncategorized
+description: 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    service_id:
+      type: string
+      description: 服务标识（唯一）
+    transport:
+      type: string
+      enum:
+      - stdio
+      - http
+      description: 传输模式：stdio=本地进程, http=远程HTTP服务
+    command:
+      type: string
+      description: STDIO 模式：启动命令（如 python、node）
+    args:
+      type: array
+      items:
+        type: string
+      description: STDIO 模式：命令参数列表
+    address:
+      type: string
+      description: HTTP 模式：服务地址
+    port:
+      type: integer
+      description: HTTP 模式：服务端口
+  required:
+  - service_id
+  - transport
+examples: []

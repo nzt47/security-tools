@@ -1,0 +1,20 @@
+name: web_get
+category: web
+description: 发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 请求的 URL
+    timeout:
+      type: integer
+      description: 超时秒数，默认 30
+    headers:
+      type: object
+      description: 自定义请求头
+  required:
+  - url
+examples: []

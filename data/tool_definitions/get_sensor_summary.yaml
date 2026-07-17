@@ -1,0 +1,9 @@
+name: get_sensor_summary
+category: core
+description: 查看所有传感器状态
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

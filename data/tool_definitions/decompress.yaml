@@ -1,0 +1,17 @@
+name: decompress
+category: file
+description: 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: 压缩文件路径（必填）
+    output_dir:
+      type: string
+      description: 解压输出目录（可选，默认解压到压缩文件所在目录下的同名文件夹）
+  required:
+  - file_path
+examples: []

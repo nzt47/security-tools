@@ -1,0 +1,14 @@
+name: resume_scheduled_task
+category: schedule
+description: 恢复已暂停的定时任务
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    task_id:
+      type: string
+      description: 任务 ID
+  required:
+  - task_id
+examples: []
