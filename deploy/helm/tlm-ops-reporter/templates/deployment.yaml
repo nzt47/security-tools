@@ -23,6 +23,9 @@ spec:
         - name: ops-reporter
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # [不易] Container 级安全上下文：只读根文件系统 + 禁止提权 + 丢弃所有 capabilities
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           # [变易] 通过 ENV 注入 cron 时刻，覆盖 entrypoint.sh 默认值
           env:
             - name: TZ
@@ -57,6 +60,16 @@ spec:
               command: ["sh", "-c", "pgrep -f entrypoint.sh || pgrep -f generate_ops_daily_report"]
             initialDelaySeconds: 30
             periodSeconds: 60
+          # [变易] 就绪探针：检测挂载目录就绪 + 脚本可访问，失败则从 Service endpoints 摘除
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "test -d {{ .Values.reporter.logDir }} && test -d {{ .Values.reporter.outputDir }} && test -f /app/generate_ops_daily_report.py"
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 5
       volumes:
         - name: logs
           {{- if .Values.logsVolume.existingClaim }}
