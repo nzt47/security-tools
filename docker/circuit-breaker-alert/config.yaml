@@ -31,8 +31,13 @@ backoff:
 
 # ── 网络配置 ──
 network:
-  # auto:    自动检测平台（Windows 用 default，Linux 用 host）
+  # auto:    自动检测平台（Windows/macOS 用 default，Linux 用 host）
   # host:    强制使用 host 网络（仅 Linux 推荐，加速 apt-get 下载）
-  # default: 使用 Docker 默认 bridge 网络（Windows 推荐，兼容 VPN/代理）
+  # default: 使用 Docker 默认 bridge 网络（Windows/macOS 推荐，兼容 VPN/代理）
   # none:    无网络（仅用于离线构建）
   mode: auto
+  # platform_override: 调试用，强制按指定平台处理网络模式选择
+  #   可选值: windows / macos / linux
+  #   留空或不设置 → 走自动检测
+  #   示例: 在 Linux 上模拟 macOS 行为 → platform_override: macos
+  # platform_override: macos
