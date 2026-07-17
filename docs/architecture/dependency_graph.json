@@ -1,5 +1,5 @@
 {
-  "trace_id": "5210883d77ca442c",
+  "trace_id": "0f333191373c4282",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -71,7 +71,7 @@
       "name": "tracing",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 37,
+      "in_degree": 38,
       "out_degree": 2
     },
     {
@@ -1648,7 +1648,7 @@
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/observability.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt.creator",
@@ -7534,7 +7534,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 225,
+      "line": 242,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7547,7 +7547,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 326,
+      "line": 343,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7561,6 +7561,19 @@
       "target_layer": "monitoring",
       "import_type": "from_import",
       "line": 22,
+      "source_file": "agent/skills_mgmt/observability.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.observability",
+      "target": "agent.monitoring.tracing",
+      "source_layer": "skills_mgmt",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 165,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8860,7 +8873,7 @@
       "source_layer": "monitoring",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 696,
+      "line": 728,
       "source_file": "agent/monitoring/tracing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8873,7 +8886,7 @@
       "source_layer": "monitoring",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 678,
+      "line": 710,
       "source_file": "agent/monitoring/tracing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9313,8 +9326,8 @@
   "stats": {
     "total_files": 325,
     "total_nodes": 258,
-    "total_edges": 557,
-    "cross_layer_edges": 354,
+    "total_edges": 558,
+    "cross_layer_edges": 355,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9352,6 +9365,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 938.8103260000023
+    "build_duration_ms": 1166.4538309999984
   }
 }
