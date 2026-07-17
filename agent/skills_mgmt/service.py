@@ -185,12 +185,29 @@ class SkillsMgmtService:
                          feedback_rating: int = 0,
                          feedback_id: str = "",
                          trace_id: str = "",
-                         params_used: Optional[Dict[str, Any]] = None) -> None:
+                         params_used: Optional[Dict[str, Any]] = None,
+                         # [变易] 全链路可观测性扩展：端到端评估得分（可选）
+                         # 缺省 None 保证旧调用方不受影响（守不易）
+                         eval_score: Optional[Dict[str, Any]] = None) -> None:
+        """记录一次技能执行并可选持久化端到端评估得分
+
+        Args:
+            eval_score: 可选评估得分 {task_success, instruction_followed,
+                hallucination_detected, score}；提供时发射
+                yunshu_skill_eval_score / yunshu_skill_hallucination_total
+                指标并持久化到 trace span（失败不影响主流程）。
+        """
         self.enhancer.record_execution(
             skill_id, success=success, latency_ms=latency_ms,
             feedback_rating=feedback_rating,
             feedback_id=feedback_id, trace_id=trace_id,
             params_used=params_used)
+
+        # [变易] 可观测性扩展：发射 eval_score 指标并持久化 span
+        # 内部全部 try/except，失败不影响主流程
+        if eval_score is not None:
+            from .observability import emit_eval_score_metric
+            emit_eval_score_metric(skill_id, eval_score, trace_id=trace_id)
 
     # ─── 反馈绑定 ───
 
@@ -435,6 +452,9 @@ class SkillsMgmtService:
                 ctx["matched"] = len(result.matches)
                 ctx["elapsed_ms"] = result.elapsed_ms
                 ctx["estimated_tokens"] = result.estimated_total_tokens
+                # [变易] 可观测性扩展：透传 retrieved_chunks 到 traced_action
+                # observability 层会自动对 >50 项截断
+                ctx["retrieved_chunks"] = result.retrieved_chunks
                 logger.info("[Service] Layer1 match intent='%s' → %d 命中, %.2fms",
                             intent[:40], len(result.matches), result.elapsed_ms)
                 return result
@@ -543,12 +563,15 @@ class SkillsMgmtService:
             dict — {prompt, matches, instruction?, estimated_tokens, layers_used}
         """
         with traced_action("svc_build_context", intent=intent[:80],
-                           max_tokens=max_tokens, layer="1+2"):
-            return self.injector.build_context(
+                           max_tokens=max_tokens, layer="1+2") as ctx:
+            result = self.injector.build_context(
                 intent, max_tokens=max_tokens, top_k=top_k,
                 auto_load_instruction=auto_load_instruction,
                 skill_id=skill_id,
             )
+            # [变易] 可观测性扩展：透传 retrieved_chunks 到 traced_action
+            ctx["retrieved_chunks"] = result.get("retrieved_chunks", [])
+            return result
 
     def get_layer_summary(self) -> Dict[str, Any]:
         """三层架构统计摘要 — 供前端可视化与 /health 使用"""
@@ -603,6 +626,25 @@ class SkillsMgmtService:
                 "rejected": sum(
                     1 for s in all_skills
                     if s.status == SkillStatus.REJECTED.value),
+                # [变易] 全链路可观测性字段统计：声明已沉淀的可观测性字段
+                # 实际指标值通过 metrics 系统（Prometheus/BusinessMetricsCollector）
+                # 与结构化日志聚合（Loki/ELK）查询，此处仅暴露字段元信息
+                "observability": {
+                    "fields": [
+                        "retrieved_chunks",
+                        "retrieval_precision_at_k",
+                        "eval_score",
+                        "user_feedback",
+                    ],
+                    "metrics": [
+                        "yunshu_skill_retrieval_precision_at_k",
+                        "yunshu_skill_eval_score",
+                        "yunshu_skill_hallucination_total",
+                    ],
+                    "retrieved_chunks_max": 50,
+                    "truncation_enabled": True,
+                    "span_persistence": "structured_log",
+                },
             },
             # 规模监控：当技能数增长到阈值时建议升级检索方式
             # 当前仅 TF-IDF，未来扩展点已在 match() 接口预留（use_vector/use_bm25/use_reranker）
