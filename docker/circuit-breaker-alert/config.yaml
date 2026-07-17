@@ -1,0 +1,38 @@
+# Docker 构建推送配置
+# 路径: docker/circuit-breaker-alert/config.yaml
+#
+# 用法: build_and_push.ps1 自动读取同目录下的 config.yaml 作为默认值
+#       命令行参数优先级高于配置文件（CLI > config.yaml > 内置默认值）
+#
+# 环境覆盖: 复制此文件为 config.dev.yaml / config.prod.yaml 等，
+#           通过 -ConfigFile 参数指定
+
+# ── 镜像配置 ──
+registry: registry.example.com
+image_name: circuit-breaker-alert
+tag: "1.0"
+
+# ── 路径配置 ──
+dockerfile: docker/circuit-breaker-alert/Dockerfile
+context: "."
+
+# ── 重试配置 ──
+retry:
+  build: 3        # docker build 重试次数（利用 layer cache，后续重试更快）
+  login: 3        # docker login 重试次数
+  push: 5         # docker push 重试次数（push 对网络更敏感，多给几次）
+
+# ── 退避配置（指数退避）──
+# 退避时间 = min(attempt * base_seconds, max_seconds)
+# 示例: base=5, max=60 → 5s, 10s, 15s, 20s, ..., 60s, 60s
+backoff:
+  base_seconds: 5   # 退避基数（秒），每次重试等待 base * attempt 秒
+  max_seconds: 60    # 退避上限（秒），避免单次等待过久
+
+# ── 网络配置 ──
+network:
+  # auto:    自动检测平台（Windows 用 default，Linux 用 host）
+  # host:    强制使用 host 网络（仅 Linux 推荐，加速 apt-get 下载）
+  # default: 使用 Docker 默认 bridge 网络（Windows 推荐，兼容 VPN/代理）
+  # none:    无网络（仅用于离线构建）
+  mode: auto
