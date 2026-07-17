@@ -13,7 +13,7 @@ import time
 import uuid
 import logging
 from contextlib import contextmanager
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 logger = logging.getLogger("agent.skills_mgmt")
 
@@ -25,6 +25,32 @@ try:
 except Exception:  # noqa: BLE001
     _metrics = None
     _METRICS_AVAILABLE = False
+
+# [不易] 可观测性字段防御性约束：单条 trace 的 retrieved_chunks 最多记录 50 项，
+# 超出自动截断并标记，防止单条日志过大拖垮日志管道。
+_MAX_RETRIEVED_CHUNKS = 50
+
+
+def _sanitize_observability_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """[变易] 防御性清洗可观测性 payload：截断过大的 retrieved_chunks 字段。
+
+    超过 _MAX_RETRIEVED_CHUNKS 项的 retrieved_chunks 自动截断，
+    并追加 retrieved_chunks_truncated=True 标记（任务要求 truncated 标记，
+    此处用更具体的字段名避免与业务返回值中的 truncated 字段冲突，守不易）。
+
+    缺失或非 list 类型时原样返回，不报错（防御性）。
+    """
+    if not isinstance(payload, dict):
+        return payload
+    chunks = payload.get("retrieved_chunks")
+    if isinstance(chunks, list) and len(chunks) > _MAX_RETRIEVED_CHUNKS:
+        return {
+            **payload,
+            "retrieved_chunks": chunks[:_MAX_RETRIEVED_CHUNKS],
+            "retrieved_chunks_truncated": True,
+            "retrieved_chunks_original_count": len(chunks),
+        }
+    return payload
 
 
 def _emit_structured_log(action: str, *, trace_id: Optional[str] = None,
@@ -59,6 +85,8 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
     _RESERVED = {"action", "trace_id", "duration_ms", "level", "module_name",
                  "status", "error", "error_type"}
     safe = {k: v for k, v in payload.items() if k not in _RESERVED}
+    # [变易] 入口即清洗：防止 retrieved_chunks 过大拖垮 start 日志
+    safe = _sanitize_observability_payload(safe)
     try:
         _emit_structured_log(f"{action}.start", trace_id=tid, duration_ms=0.0,
                              **safe)
@@ -70,6 +98,8 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
             if k in _RESERVED or k in ("payload",):
                 continue
             safe_merged[k] = v
+        # [变易] end 日志同样清洗：ctx 中可能新设置 retrieved_chunks
+        safe_merged = _sanitize_observability_payload(safe_merged)
         _emit_structured_log(f"{action}.end", trace_id=tid, duration_ms=elapsed,
                              status="ok", **safe_merged)
     except Exception as e:
@@ -117,3 +147,129 @@ def emit_metric(name: str, *, value: float = 1.0, labels: Optional[Dict[str, str
             _metrics.set_gauge(name, value=value, labels=labels)
     except Exception:  # noqa: BLE001  埋点失败不影响主流程
         logger.debug("emit_metric 失败: %s", name, exc_info=True)
+
+
+# ════════════════════════════════════════════════════════════
+#  全链路可观测性扩展字段（retrieved_chunks / eval_score 等）
+#  [不易] 接口签名保持可选，缺失不报错；metrics 发射失败不影响主流程
+# ════════════════════════════════════════════════════════════
+
+def persist_observability_span(*, trace_id: Optional[str] = None,
+                               **fields: Any) -> None:
+    """[变易] 将可观测性扩展字段持久化到 trace 存储（span attributes）。
+
+    优先调用 agent.monitoring.tracing.record_span_attributes 写入结构化日志；
+    失败时降级为本地结构化日志，绝不抛错（守"metrics 发射失败不影响主流程"）。
+    """
+    try:
+        from agent.monitoring.tracing import record_span_attributes
+        record_span_attributes(trace_id=trace_id, **fields)
+    except Exception:  # noqa: BLE001
+        try:
+            _emit_structured_log(
+                "observability_span.fallback",
+                trace_id=trace_id,
+                span_fields=_sanitize_observability_payload(dict(fields)),
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("persist_observability_span 失败", exc_info=True)
+
+
+def emit_retrieval_precision_metric(*, k: int, hits: int,
+                                    precision: float,
+                                    trace_id: Optional[str] = None) -> None:
+    """[变易] 发射 Precision@K 指标（histogram，labels={k}）。
+
+    Args:
+        k: Top-K 阈值
+        hits: 命中数
+        precision: 精确率（hits/k）
+        trace_id: 关联追踪ID
+    """
+    try:
+        emit_metric("yunshu_skill_retrieval_precision_at_k",
+                    value=precision, kind="histogram",
+                    labels={"k": str(k)})
+        _emit_structured_log(
+            "retrieval_precision_at_k",
+            trace_id=trace_id,
+            retrieval_precision_at_k={"k": k, "hits": hits, "precision": precision},
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("emit_retrieval_precision_metric 失败", exc_info=True)
+
+
+def emit_eval_score_metric(skill_id: str, eval_score: Dict[str, Any],
+                           *, trace_id: Optional[str] = None) -> None:
+    """[变易] 发射端到端评估得分指标并持久化到 span。
+
+    eval_score 期望结构: {task_success, instruction_followed,
+                          hallucination_detected, score}
+    所有字段缺失不报错（防御性）。
+
+    发射的指标:
+        - yunshu_skill_eval_score (histogram, labels={skill_id, task_success})
+        - yunshu_skill_hallucination_total (counter, labels={skill_id})
+    """
+    if not isinstance(eval_score, dict):
+        return
+    try:
+        task_success = bool(eval_score.get("task_success", False))
+        hallucination_detected = bool(eval_score.get("hallucination_detected", False))
+        score = float(eval_score.get("score", 0.0))
+
+        emit_metric("yunshu_skill_eval_score",
+                    value=score, kind="histogram",
+                    labels={"skill_id": skill_id,
+                            "task_success": str(task_success).lower()})
+        if hallucination_detected:
+            emit_metric("yunshu_skill_hallucination_total",
+                        value=1, kind="counter",
+                        labels={"skill_id": skill_id})
+
+        # 同步持久化到 trace span，供后续 Precision@K/幻觉率分析
+        persist_observability_span(
+            trace_id=trace_id,
+            skill_id=skill_id,
+            eval_score=eval_score,
+            task_success=task_success,
+            hallucination_detected=hallucination_detected,
+        )
+        _emit_structured_log(
+            "eval_score.recorded",
+            trace_id=trace_id,
+            skill_id=skill_id,
+            eval_score=eval_score,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("emit_eval_score_metric 失败: skill_id=%s", skill_id, exc_info=True)
+
+
+def report_retrieval_observability(
+    retrieved_chunks: List[Dict[str, Any]],
+    *,
+    trace_id: Optional[str] = None,
+    precision_at_k: Optional[Dict[str, Any]] = None,
+) -> None:
+    """[简易] 一站式上报检索召回可观测性：持久化 span + 可选 Precision@K 指标。
+
+    Args:
+        retrieved_chunks: 检索召回分块列表，每项含 {skill_id, score, layer, tokens}
+        trace_id: 关联追踪ID
+        precision_at_k: 可选 {k, hits, precision}
+    """
+    try:
+        persist_observability_span(
+            trace_id=trace_id,
+            retrieved_chunks=retrieved_chunks,
+            retrieval_precision_at_k=precision_at_k,
+        )
+        if isinstance(precision_at_k, dict):
+            emit_retrieval_precision_metric(
+                k=int(precision_at_k.get("k", 0)),
+                hits=int(precision_at_k.get("hits", 0)),
+                precision=float(precision_at_k.get("precision", 0.0)),
+                trace_id=trace_id,
+            )
+    except Exception:  # noqa: BLE001
+        logger.debug("report_retrieval_observability 失败", exc_info=True)

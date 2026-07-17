@@ -843,6 +843,14 @@ class ContextInjector:
         elapsed = (time.time() - t0) * 1000
         full_prompt = "\n\n".join(prompts)
 
+        # [变易] 可观测性扩展：汇总 retrieved_chunks（来自 MatchResult）
+        # 供 build_context 调用方与 trace 系统做 Precision@K 监控
+        retrieved_chunks = getattr(match_result, "retrieved_chunks", None) or []
+        # 截断标记透传：若 MatchResult 已截断，保留原标记
+        retrieved_chunks_truncated = getattr(
+            match_result, "retrieved_chunks_truncated", False
+        )
+
         logger.info(json.dumps({
             "trace_id": tid,
             "module_name": "context_injector",
@@ -856,7 +864,20 @@ class ContextInjector:
             "boundary_tokens": boundary_declaration.get("tokens", 0),
             "loaded_count": len(boundary_declaration.get("loaded", [])),
             "unloaded_count": len(boundary_declaration.get("unloaded", [])),
+            # [变易] 可观测性：retrieved_chunks 汇总（截断由 observability 层兜底）
+            "retrieved_chunks": retrieved_chunks,
+            "retrieved_chunks_count": len(retrieved_chunks),
+            "retrieved_chunks_truncated": retrieved_chunks_truncated,
         }, ensure_ascii=False))
+
+        # [变易] 持久化到 trace span（失败不影响主流程）
+        try:
+            from .observability import report_retrieval_observability
+            report_retrieval_observability(
+                retrieved_chunks, trace_id=tid,
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("build_context 上报 retrieved_chunks 失败", exc_info=True)
 
         return {
             "intent": intent,
@@ -871,6 +892,8 @@ class ContextInjector:
             },
             "boundary_declaration": boundary_declaration,
             "elapsed_ms": round(elapsed, 2),
+            # [变易] 可观测性扩展字段：透传 retrieved_chunks 供上游 traced_action 上报
+            "retrieved_chunks": retrieved_chunks,
         }
 
     # ──────────────────────────────────────────────
