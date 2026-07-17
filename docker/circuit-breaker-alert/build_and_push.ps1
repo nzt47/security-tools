@@ -63,16 +63,20 @@
 #>
 
 param(
-    [string]$Registry = "registry.example.com",
-    [string]$ImageName = "circuit-breaker-alert",
-    [string]$Tag = "1.0",
-    [string]$Dockerfile = "docker/circuit-breaker-alert/Dockerfile",
-    [string]$Context = ".",
-    [int]$BuildRetry = 3,
-    [int]$PushRetry = 5,
+    [string]$ConfigFile = "",
+    [string]$Registry = "",
+    [string]$ImageName = "",
+    [string]$Tag = "",
+    [string]$Dockerfile = "",
+    [string]$Context = "",
+    [int]$BuildRetry = -1,
+    [int]$PushRetry = -1,
+    [int]$LoginRetry = -1,
+    [int]$BackoffBase = -1,
+    [int]$BackoffMax = -1,
+    [string]$NetworkMode = "",
     [switch]$SkipLogin,
-    [switch]$SkipPush,
-    [int]$LoginRetry = 3
+    [switch]$SkipPush
 )
 
 # ── 工具函数 ──────────────────────────────────────────────────
@@ -106,6 +110,49 @@ function Test-Command {
     return [bool](Get-Command $Command -ErrorAction SilentlyContinue)
 }
 
+function Read-YamlConfig {
+    <#
+    .SYNOPSIS
+        轻量 YAML 解析（仅支持两级嵌套 + 标量值，不引入外部依赖）
+
+    .DESCRIPTION
+        解析 config.yaml 中的简单键值对和两级嵌套结构。
+        不支持列表、多行字符串、锚点等复杂 YAML 特性。
+        设计目标：零依赖 + 满足 config.yaml 的解析需求（简易原则）。
+    #>
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) { return $null }
+
+    $config = @{}
+    $currentSection = $null
+    foreach ($line in Get-Content $Path -Encoding UTF8) {
+        # 去除注释和尾部空白（保留前导缩进以区分父子级键 — 不易: YAML 缩进语义）
+        $line = ($line -replace '#.*$', '').TrimEnd()
+        if ($line.Trim() -eq '') { continue }
+
+        # 顶级键: "key: value" 或 "key:"（开始子节）
+        if ($line -match '^(\w+):\s*(.*)$') {
+            $key = $matches[1]
+            $value = $matches[2].Trim().Trim('"').Trim("'")
+            if ($value -eq '') {
+                $currentSection = $key
+                $config[$currentSection] = @{}
+            } else {
+                $config[$key] = $value
+                $currentSection = $null
+            }
+        }
+        # 子级键: "  key: value"（缩进 2+ 空格）
+        elseif ($line -match '^\s{2,}(\w+):\s*(.+)$' -and $currentSection) {
+            $key = $matches[1]
+            $value = $matches[2].Trim().Trim('"').Trim("'")
+            $config[$currentSection][$key] = $value
+        }
+    }
+    return $config
+}
+
 function Invoke-WithRetry {
     <#
     .SYNOPSIS
@@ -115,23 +162,23 @@ function Invoke-WithRetry {
         执行命令，失败时自动重试。每次重试前等待 backoff 秒数。
         适用于网络不稳定场景（docker build / docker push）。
 
-        重试策略：
-        - 第 1 次重试：等待 5s
-        - 第 2 次重试：等待 10s
-        - 第 3 次重试：等待 20s
-        - 第 N 次重试：等待 min(N*5, 60)s
+        退避策略（可配置，默认值与 config.yaml 一致）：
+        - 第 N 次重试：等待 min(N * BackoffBase, BackoffMax) 秒
+        - 默认: BackoffBase=5, BackoffMax=60 → 5s, 10s, 15s, ..., 60s, 60s
     #>
     param(
         [scriptblock]$ScriptBlock,
         [string]$Description,
         [int]$MaxRetries = 3,
+        [int]$BackoffBase = 5,
+        [int]$BackoffMax = 60,
         [string]$ExitCodeOnFailure = 1
     )
 
     $attempt = 0
     while ($attempt -lt $MaxRetries) {
         $attempt++
-        $backoff = [Math]::Min($attempt * 5, 60)
+        $backoff = [Math]::Min($attempt * $BackoffBase, $BackoffMax)
 
         Write-Log "尝试 $attempt/${MaxRetries}: $Description"
 
@@ -157,6 +204,73 @@ function Invoke-WithRetry {
         }
     }
     return $false
+}
+
+# ── 加载配置文件 ──────────────────────────────────────────────
+# 优先级: CLI 参数 > config.yaml > 内置默认值
+# CLI 参数为空/-1 表示未设置，回退到 config.yaml
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ($ConfigFile -eq "") {
+    $ConfigFile = Join-Path $scriptDir "config.yaml"
+}
+$config = Read-YamlConfig -Path $ConfigFile
+
+if ($config) {
+    Write-Log "已加载配置: $ConfigFile"
+    # 镜像配置（CLI 为空时回退）
+    if ($Registry -eq "")    { $Registry = $config.registry }
+    if ($ImageName -eq "")   { $ImageName = $config.image_name }
+    if ($Tag -eq "")         { $Tag = $config.tag }
+    if ($Dockerfile -eq "")  { $Dockerfile = $config.dockerfile }
+    if ($Context -eq "")     { $Context = $config.context }
+    # 重试配置（CLI 为 -1 时回退）
+    if ($BuildRetry -lt 0)   { $BuildRetry = [int]$config.retry.build }
+    if ($LoginRetry -lt 0)   { $LoginRetry = [int]$config.retry.login }
+    if ($PushRetry -lt 0)    { $PushRetry = [int]$config.retry.push }
+    # 退避配置（CLI 为 -1 时回退）
+    if ($BackoffBase -lt 0)  { $BackoffBase = [int]$config.backoff.base_seconds }
+    if ($BackoffMax -lt 0)   { $BackoffMax = [int]$config.backoff.max_seconds }
+    # 网络配置（CLI 为空时回退）
+    if ($NetworkMode -eq "") { $NetworkMode = $config.network.mode }
+}
+
+# 兜底默认值（config.yaml 不存在或字段缺失时）
+if ($Registry -eq "")    { $Registry = "registry.example.com" }
+if ($ImageName -eq "")   { $ImageName = "circuit-breaker-alert" }
+if ($Tag -eq "")         { $Tag = "1.0" }
+if ($Dockerfile -eq "")  { $Dockerfile = "docker/circuit-breaker-alert/Dockerfile" }
+if ($Context -eq "")     { $Context = "." }
+if ($BuildRetry -lt 0)   { $BuildRetry = 3 }
+if ($LoginRetry -lt 0)   { $LoginRetry = 3 }
+if ($PushRetry -lt 0)    { $PushRetry = 5 }
+if ($BackoffBase -lt 0)  { $BackoffBase = 5 }
+if ($BackoffMax -lt 0)   { $BackoffMax = 60 }
+if ($NetworkMode -eq "") { $NetworkMode = "auto" }
+
+# ── Windows Docker Desktop 网络兼容性 ─────────────────────────
+# --network=host 在 Docker Desktop for Windows (WSL2) 上使用的是
+# WSL2 VM 的网络栈，而非 Windows 宿主机网络。若 Windows 配置了
+# VPN/代理，apt-get 下载会失败或连接被拒绝。
+# auto 模式下: Windows → default (bridge), Linux → host
+$isWindows = ($env:OS -eq "Windows_NT")
+$resolvedNetworkMode = $NetworkMode
+if ($NetworkMode -eq "auto") {
+    if ($isWindows) {
+        $resolvedNetworkMode = "default"
+        Write-Log "检测到 Windows 平台，网络模式: default (Docker Desktop WSL2 兼容)" "WARN"
+    } else {
+        $resolvedNetworkMode = "host"
+        Write-Log "检测到 Linux 平台，网络模式: host (加速 apt-get 下载)"
+    }
+}
+
+# 构造 docker build 网络参数
+$networkArg = switch ($resolvedNetworkMode) {
+    "host"    { "--network=host" }
+    "none"    { "--network=none" }
+    "default" { "" }  # default 不传 --network，使用 Docker 默认 bridge
+    default   { "" }
 }
 
 # ── 前置检查 ──────────────────────────────────────────────────
@@ -216,26 +330,24 @@ Write-Log "Dockerfile: $Dockerfile"
 $fullImageName = "${Registry}/${ImageName}:${Tag}"
 Write-Log "目标镜像: $fullImageName"
 Write-Log "构建上下文: $Context"
-Write-Log "重试配置: build=$BuildRetry, push=$PushRetry, login=$LoginRetry"
+Write-Log "重试配置: build=$BuildRetry, push=$PushRetry, login=$LoginRetry, 退避=${BackoffBase}s*${BackoffMax}max"
 
 # ── 步骤 1: Docker Build ─────────────────────────────────────
 
 Write-Step "步骤 1/3: Docker Build（带网络重试）"
 
 $buildSuccess = Invoke-WithRetry -ScriptBlock {
-    # --network=host: 使用宿主机网络（加速 apt-get 下载）
+    # 网络模式由 $networkArg 控制（auto/host/default/none）
     # --progress=plain: 输出完整日志（便于排查）
-    docker build `
-        --network=host `
-        --progress=plain `
-        -t $fullImageName `
-        -f $Dockerfile `
-        $Context 2>&1 | ForEach-Object {
-            # 实时输出构建日志
-            Write-Host $_
-        }
+    $buildArgs = @("build", "--progress=plain", "-t", $fullImageName, "-f", $Dockerfile)
+    if ($networkArg) { $buildArgs += $networkArg }
+    $buildArgs += $Context
+    & docker @buildArgs 2>&1 | ForEach-Object {
+        # 实时输出构建日志
+        Write-Host $_
+    }
     if ($LASTEXITCODE -ne 0) { throw "docker build 失败" }
-} -Description "docker build $fullImageName" -MaxRetries $BuildRetry
+} -Description "docker build $fullImageName" -MaxRetries $BuildRetry -BackoffBase $BackoffBase -BackoffMax $BackoffMax
 
 if (-not $buildSuccess) {
     Write-Log "Docker build 最终失败（已重试 $BuildRetry 次）" "ERROR"
@@ -270,7 +382,7 @@ if (-not $SkipLogin -and -not $SkipPush) {
         Write-Log "请输入 $Registry 的凭据:"
         docker login $Registry
         if ($LASTEXITCODE -ne 0) { throw "docker login 失败" }
-    } -Description "docker login $Registry" -MaxRetries $LoginRetry
+    } -Description "docker login $Registry" -MaxRetries $LoginRetry -BackoffBase $BackoffBase -BackoffMax $BackoffMax
 
     if (-not $loginSuccess) {
         Write-Log "Docker login 失败（已重试 $LoginRetry 次）" "ERROR"
@@ -295,7 +407,7 @@ if (-not $SkipPush) {
             Write-Host $_
         }
         if ($LASTEXITCODE -ne 0) { throw "docker push 失败" }
-    } -Description "docker push $fullImageName" -MaxRetries $PushRetry
+    } -Description "docker push $fullImageName" -MaxRetries $PushRetry -BackoffBase $BackoffBase -BackoffMax $BackoffMax
 
     if (-not $pushSuccess) {
         Write-Log "Docker push 最终失败（已重试 $PushRetry 次）" "ERROR"
