@@ -1,0 +1,14 @@
+name: json_to_yaml
+category: code
+description: 将 JSON 字符串转换为 YAML 格式字符串
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    json_data:
+      type: string
+      description: JSON 格式字符串
+  required:
+  - json_data
+examples: []

@@ -1,0 +1,22 @@
+name: diff_files
+category: file
+description: 比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制
+  10MB
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path1:
+      type: string
+      description: 第一个文件路径（必填，作为对比基准）
+    path2:
+      type: string
+      description: 第二个文件路径（必填，作为对比目标）
+    context_lines:
+      type: integer
+      description: 差异上下文显示行数，默认 3。设为 0 只显示变更行，设为较大值显示更多上下文
+  required:
+  - path1
+  - path2
+examples: []

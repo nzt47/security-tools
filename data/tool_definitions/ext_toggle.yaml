@@ -1,0 +1,26 @@
+name: ext_toggle
+category: extension
+description: 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+      - skill
+      - mcp
+      - channel
+      - plugin
+      description: 扩展类型
+    id:
+      type: string
+      description: 扩展ID
+    enabled:
+      type: boolean
+      description: 是否启用（留空则切换当前状态）
+  required:
+  - type
+  - id
+examples: []

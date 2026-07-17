@@ -1,0 +1,23 @@
+name: web_post
+category: web
+description: 发送 HTTP POST 请求，支持表单数据和 JSON 数据
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 请求的 URL
+    data:
+      type: object
+      description: 表单数据
+    json_data:
+      type: object
+      description: JSON 数据
+    timeout:
+      type: integer
+      description: 超时秒数，默认 30
+  required:
+  - url
+examples: []

@@ -1,0 +1,14 @@
+name: get_task_status
+category: async
+description: 查询异步任务的执行状态（pending/running/completed/failed/cancelled）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    task_id:
+      type: string
+      description: 任务 ID（由 submit_task 返回）
+  required:
+  - task_id
+examples: []

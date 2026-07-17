@@ -1,0 +1,15 @@
+name: get_task_result
+category: async
+description: 获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询）
+  → get_task_result
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    task_id:
+      type: string
+      description: 任务 ID（由 submit_task 返回）
+  required:
+  - task_id
+examples: []

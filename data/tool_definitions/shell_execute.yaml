@@ -1,0 +1,24 @@
+name: shell_execute
+category: code
+description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回
+  stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    command:
+      type: string
+      description: 要执行的 shell 命令
+    shell:
+      type: string
+      description: 'shell 类型: auto（自动检测）/ bash / cmd / powershell，默认 auto'
+    cwd:
+      type: string
+      description: 工作目录，默认当前目录
+    timeout:
+      type: integer
+      description: 超时秒数，默认 30，最大 120
+  required:
+  - command
+examples: []

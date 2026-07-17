@@ -1,0 +1,14 @@
+name: stop_process
+category: system
+description: 终止指定 PID 的白名单程序
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    pid:
+      type: integer
+      description: 进程 PID
+  required:
+  - pid
+examples: []

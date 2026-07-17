@@ -1,0 +1,34 @@
+name: ext_install
+category: extension
+description: 安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+      - skill
+      - claude_skill
+      - mcp
+      - channel
+      - plugin
+      description: 扩展类型：skill=应用层技能, claude_skill=Claude Code技能, mcp=MCP服务, channel=通信通道,
+        plugin=插件
+    source:
+      type: string
+      description: 扩展来源。格式：内置ID(如 self_reflection / filesystem)，github:user/repo，url:https://...，local:/path，npm:package，pip:package
+    name:
+      type: string
+      description: 扩展名称（可选，自定义安装时使用）
+    description:
+      type: string
+      description: 扩展描述（可选）
+    params:
+      type: object
+      description: 额外参数（可选，如技能参数、通道配置等）
+  required:
+  - type
+  - source
+examples: []

@@ -1,0 +1,14 @@
+name: disconnect_mcp
+category: uncategorized
+description: 断开一个 MCP 服务连接，注销其注册的工具。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    service_id:
+      type: string
+      description: 要断开的服务标识
+  required:
+  - service_id
+examples: []

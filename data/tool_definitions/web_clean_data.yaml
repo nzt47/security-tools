@@ -1,0 +1,15 @@
+name: web_clean_data
+category: web
+description: 清洗和结构化网页文本数据，去重、评分、去除跟踪参数
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: 待清洗的文本
+    items:
+      type: array
+      description: 待处理的数据项列表
+examples: []
