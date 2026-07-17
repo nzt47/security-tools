@@ -1,0 +1,21 @@
+name: write_file
+category: file
+description: 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 文件路径（必填），如 /path/to/file.txt
+    content:
+      type: string
+      description: 写入的内容（必填）
+    encoding:
+      type: string
+      description: 文件编码，默认 utf-8
+  required:
+  - path
+  - content
+examples: []

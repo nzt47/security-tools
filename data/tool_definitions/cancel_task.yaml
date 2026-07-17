@@ -1,0 +1,14 @@
+name: cancel_task
+category: async
+description: 取消正在等待或运行中的异步任务。已完成的无法取消
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    task_id:
+      type: string
+      description: 任务 ID（由 submit_task 返回）
+  required:
+  - task_id
+examples: []

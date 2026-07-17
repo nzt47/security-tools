@@ -1,0 +1,9 @@
+name: get_preferences
+category: v2
+description: 查看学习到的用户偏好
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

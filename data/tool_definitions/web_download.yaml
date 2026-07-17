@@ -1,0 +1,18 @@
+name: web_download
+category: web
+description: 从 URL 下载文件到本地
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 文件的 URL
+    filepath:
+      type: string
+      description: 本地保存路径
+  required:
+  - url
+  - filepath
+examples: []

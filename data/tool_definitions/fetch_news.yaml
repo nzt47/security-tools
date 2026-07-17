@@ -1,0 +1,18 @@
+name: fetch_news
+category: web
+description: 获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    topic:
+      type: string
+      description: 新闻主题关键词（可选），如'中美关系'、'俄乌'，留空则获取综合新闻
+    max_results:
+      type: integer
+      description: 最大返回条数，默认8，最大15
+    engine:
+      type: string
+      description: '搜索引擎: tavily(默认) 或 firecrawl'
+examples: []

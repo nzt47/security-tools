@@ -1,0 +1,14 @@
+name: json_validate
+category: code
+description: 验证字符串是否为合法 JSON，返回验证结果和解析类型
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    data:
+      type: string
+      description: 待验证的 JSON 字符串
+  required:
+  - data
+examples: []

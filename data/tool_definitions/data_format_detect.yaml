@@ -1,0 +1,14 @@
+name: data_format_detect
+category: code
+description: 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    data:
+      type: string
+      description: 待检测格式的字符串数据
+  required:
+  - data
+examples: []

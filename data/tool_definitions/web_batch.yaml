@@ -1,0 +1,19 @@
+name: web_batch
+category: web
+description: 批量请求多个 URL
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    urls:
+      type: array
+      items:
+        type: string
+      description: URL 列表
+    max_concurrency:
+      type: integer
+      description: 最大并发数，默认 5
+  required:
+  - urls
+examples: []

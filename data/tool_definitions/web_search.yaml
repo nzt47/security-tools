@@ -1,0 +1,26 @@
+name: web_search
+category: web
+description: 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词（必填）
+    engine:
+      type: string
+      description: 指定搜索引擎名称（可选）。不指定按优先级自动选择。注意：aggregate=true 时此参数被忽略
+    num_results:
+      type: integer
+      description: 期望返回的结果数量，默认 10，最大 50
+    page:
+      type: integer
+      description: 页码（仅单引擎模式有效），默认 1
+    aggregate:
+      type: boolean
+      description: 启用多引擎聚合搜索模式。true=并发多引擎去重评分排序（质量更高），false=单引擎快速搜索（默认）
+  required:
+  - query
+examples: []

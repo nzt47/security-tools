@@ -1,0 +1,9 @@
+name: trigger_distillation
+category: v2
+description: 触发一次人格蒸馏学习
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties: {}
+examples: []

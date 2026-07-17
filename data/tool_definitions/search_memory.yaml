@@ -1,0 +1,14 @@
+name: search_memory
+category: core
+description: 搜索我的记忆
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词
+  required:
+  - query
+examples: []

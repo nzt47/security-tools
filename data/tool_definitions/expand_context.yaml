@@ -1,0 +1,17 @@
+name: expand_context
+category: core
+description: 从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词或问题描述
+    max_items:
+      type: integer
+      description: 最多返回条目数，默认 5
+  required:
+  - query
+examples: []

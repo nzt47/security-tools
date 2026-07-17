@@ -1,0 +1,18 @@
+name: humanize_zh
+category: code
+description: 检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True
+  启用更严格的检测模式
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: 待检测的中文文本
+    aggressive:
+      type: boolean
+      description: 是否启用严格检测模式（检测更多边缘情况，如同长度连续句子等），默认 false
+  required:
+  - text
+examples: []

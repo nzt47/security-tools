@@ -1,0 +1,24 @@
+name: ext_send_channel
+category: extension
+description: 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    channel_id:
+      type: string
+      description: 通道ID
+    message:
+      type: string
+      description: 消息内容
+    subject:
+      type: string
+      description: 邮件主题（邮件通道专用）
+    to:
+      type: string
+      description: 收件人（邮件通道专用）
+  required:
+  - channel_id
+  - message
+examples: []

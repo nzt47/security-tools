@@ -1,0 +1,27 @@
+name: ext_configure
+category: extension
+description: 配置扩展参数。调整技能、MCP服务或通道的设置项。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+      - skill
+      - mcp
+      - channel
+      - plugin
+      description: 扩展类型
+    id:
+      type: string
+      description: 扩展ID
+    config:
+      type: object
+      description: 配置键值对
+  required:
+  - type
+  - id
+  - config
+examples: []

@@ -1,0 +1,22 @@
+name: ext_discover
+category: extension
+description: 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词（可选）
+    type:
+      type: string
+      enum:
+      - skill
+      - claude_skill
+      - mcp
+      - channel
+      - plugin
+      - ''
+      description: 按类型筛选（可选）
+examples: []

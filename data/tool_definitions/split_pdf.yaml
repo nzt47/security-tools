@@ -1,0 +1,27 @@
+name: split_pdf
+category: pdf
+description: 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 源 PDF 文件路径
+    output_dir:
+      type: string
+      description: 输出目录
+    ranges:
+      type: array
+      items:
+        type: array
+        items:
+          type: integer
+        minItems: 2
+        maxItems: 2
+      description: 页范围列表（1-based），如 [[1,3], [5,7]] 表示拆分为第1-3页和第5-7页两个文件，不传则每页拆为一个文件
+  required:
+  - path
+  - output_dir
+examples: []

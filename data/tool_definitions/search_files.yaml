@@ -1,0 +1,17 @@
+name: search_files
+category: file
+description: 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    pattern:
+      type: string
+      description: 搜索模式，如 *.txt
+    root_path:
+      type: string
+      description: 搜索根路径，默认当前目录
+  required:
+  - pattern
+examples: []
