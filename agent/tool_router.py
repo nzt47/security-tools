@@ -42,6 +42,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "⚙",
         "description": "始终发送的高频基础工具",
         "always": True,
+        "priority": 0,
         "tools": [
             "get_status", "search_memory", "remember", "expand_context",
             "get_sensor_summary",
@@ -52,6 +53,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "🌐",
         "description": "网页抓取、搜索引擎、新闻获取",
         "always": False,
+        "priority": 1,
         "tools": [
             "web_search", "web_get", "web_post", "web_xpath", "web_css",
             "web_clean_data", "web_download", "web_batch", "fetch_news",
@@ -62,6 +64,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "📁",
         "description": "文件读写、目录操作、搜索、压缩解压",
         "always": False,
+        "priority": 2,
         "tools": [
             "read_file", "write_file", "list_directory", "get_file_info",
             "search_files", "compress", "decompress", "diff_files",
@@ -72,6 +75,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "💻",
         "description": "Shell 执行、代码审查、JSON/YAML 处理、格式检测",
         "always": False,
+        "priority": 3,
         "tools": [
             "shell_execute", "code_review", "arch_diagram", "humanize_zh",
             "json_query", "json_to_yaml", "yaml_to_json", "json_validate",
@@ -83,6 +87,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "🖥",
         "description": "进程管理、天气查询、程序启动",
         "always": False,
+        "priority": 4,
         "tools": [
             "run_program", "list_processes", "stop_process", "get_weather",
         ],
@@ -92,6 +97,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "🧩",
         "description": "技能/MCP/通道/插件的安装卸载管理",
         "always": False,
+        "priority": 5,
         "tools": [
             "ext_install", "ext_uninstall", "ext_list", "ext_toggle",
             "ext_discover", "ext_configure", "ext_send_channel",
@@ -102,6 +108,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "📄",
         "description": "PDF 读取、合并、拆分、信息提取",
         "always": False,
+        "priority": 6,
         "tools": [
             "read_pdf", "merge_pdf", "split_pdf", "get_pdf_info",
         ],
@@ -111,6 +118,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "📦",
         "description": "软件搜索、安装、卸载、列表",
         "always": False,
+        "priority": 7,
         "tools": [
             "software_search", "software_install", "software_list", "software_uninstall",
         ],
@@ -120,6 +128,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "⏳",
         "description": "后台任务提交、状态查询、结果获取",
         "always": False,
+        "priority": 8,
         "tools": [
             "submit_task", "get_task_status", "get_task_result", "cancel_task",
             "list_async_tasks",
@@ -130,6 +139,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "⏰",
         "description": "定时任务创建、暂停、恢复、取消",
         "always": False,
+        "priority": 9,
         "tools": [
             "schedule_task", "list_scheduled_tasks", "cancel_scheduled_task",
             "pause_scheduled_task", "resume_scheduled_task",
@@ -140,6 +150,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "icon": "⚡",
         "description": "LifeTrace 记忆检索、人格查询与蒸馏（需安装对应模块）",
         "always": False,
+        "priority": 99,
         "tools": [
             "search_lifetrace", "get_persona_info", "get_preferences",
             "trigger_distillation",
@@ -220,9 +231,15 @@ TOOL_CATEGORIES = _load_tool_categories_from_yaml() or _DEFAULT_TOOL_CATEGORIES
 ALL_TOOLS_SET = {tool for cat in TOOL_CATEGORIES.values() for tool in cat["tools"]}
 
 # 工具别名映射(main_name → [alias_names])
-# 【不易】别名是工具名的等价替代,解析后必须映射到已注册工具
-# 【变易】运行时可扩展,初始为空 dict 供未来按需填充
-TOOL_ALIASES: dict[str, list[str]] = {}
+# 【不易】别名是工具名的等价替代,解析后必须映射到已注册工具;
+#        主工具被选中时,其别名工具必须从结果中移除(避免重复语义工具)
+# 【变易】运行时可扩展,按需追加新别名对
+# 【简易】主工具/别名都必须存在于 ALL_TOOLS_SET(test_tool_count_consistency 守门)
+TOOL_ALIASES: dict[str, list[str]] = {
+    "shell_execute": ["run_program"],      # 两者都是命令执行,保留 code 分类的高优先级工具
+    "read_file": ["read_pdf"],             # 读取 PDF 时优先通用 read_file
+    "list_directory": ["list_processes"],  # "列出"语义歧义,目录列出优先于进程列出
+}
 
 
 # ════════════════════════════════════════════════════════════
@@ -385,8 +402,28 @@ def classify_user_input(user_input: str) -> set[str]:
     return matched
 
 
-def get_tools_for_input(user_input: str, enabled_whitelist: list[str] | None = None) -> list[str]:
-    """根据用户输入，返回应发送的工具名称列表"""
+def get_tools_for_input(
+    user_input: str,
+    enabled_whitelist: list[str] | None = None,
+    max_tools: int = 25,
+) -> list[str]:
+    """根据用户输入，返回应发送的工具名称列表。
+
+    处理流程（三义约束）:
+      1. 分类匹配（不易）— 关键词命中类别 → 收集该类别全部工具
+      2. 白名单交集（不易）— 仅保留启用工具
+      3. 别名合并（功能2）— 主工具在结果中时,移除其别名工具(避免语义重复)
+      4. 优先级排序（功能1）— 按 category.priority 升序;跨类别工具取最小 priority
+      5. 数量截断（功能3）— 按 max_tools 截断,保留高优先级工具
+
+    Args:
+        user_input: 用户原始输入文本
+        enabled_whitelist: 启用工具白名单,None 表示不限制
+        max_tools: 返回工具数上限,默认 25;None 或 <=0 表示不限制
+
+    Returns:
+        排序+截断后的工具名列表
+    """
     categories = classify_user_input(user_input)
     selected = set()
 
@@ -400,7 +437,33 @@ def get_tools_for_input(user_input: str, enabled_whitelist: list[str] | None = N
         whitelist_set = set(enabled_whitelist)
         selected &= whitelist_set
 
-    result = list(selected)
+    # 【功能 2】别名合并:主工具被选中时,移除其别名工具
+    # 【不易】别名规则不变 — 主工具存在 → 别名移除
+    if TOOL_ALIASES:
+        aliases_to_remove: set[str] = set()
+        for main_tool, alias_list in TOOL_ALIASES.items():
+            if main_tool in selected:
+                aliases_to_remove.update(alias_list)
+        selected -= aliases_to_remove
+
+    # 【功能 1】优先级排序:工具 → 其所属类别中最小的 priority
+    # 【简易】跨类别工具取最小 priority,确保高优先级类别工具排前
+    tool_to_priority: dict[str, int] = {}
+    for cat in categories:
+        cat_info = TOOL_CATEGORIES.get(cat)
+        if not cat_info:
+            continue
+        pri = cat_info.get("priority", 99)
+        for tool in cat_info["tools"]:
+            if tool in selected:
+                if tool not in tool_to_priority or pri < tool_to_priority[tool]:
+                    tool_to_priority[tool] = pri
+    result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
+
+    # 【功能 3】数量限制:按 priority 排序后截断,保留高优先级工具
+    # 【变易】max_tools 可配置;None 或 <=0 表示不限制(向后兼容)
+    if max_tools is not None and max_tools > 0 and len(result) > max_tools:
+        result = result[:max_tools]
 
     # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
     if ToolTraceRecorder is not None:
