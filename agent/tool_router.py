@@ -219,6 +219,11 @@ TOOL_CATEGORIES = _load_tool_categories_from_yaml() or _DEFAULT_TOOL_CATEGORIES
 # 平铺所有工具（用于校验完整性）
 ALL_TOOLS_SET = {tool for cat in TOOL_CATEGORIES.values() for tool in cat["tools"]}
 
+# 工具别名映射(main_name → [alias_names])
+# 【不易】别名是工具名的等价替代,解析后必须映射到已注册工具
+# 【变易】运行时可扩展,初始为空 dict 供未来按需填充
+TOOL_ALIASES: dict[str, list[str]] = {}
+
 
 # ════════════════════════════════════════════════════════════
 #  默认关键词（当配置文件不存在时使用）
