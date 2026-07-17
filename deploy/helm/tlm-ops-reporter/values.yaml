@@ -82,3 +82,11 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
+
+# ─── NetworkPolicy（不易：网络层最小权限） ───
+# 启用后限制 Pod 网络访问：
+# - Ingress: 拒绝所有入站（容器不暴露服务端口，仅读 PVC 日志）
+# - Egress: 只允许 DNS 解析（kube-dns UDP/TCP 53）
+# 注：如使用 CoreDNS，需修改 templates/networkpolicy.yaml 中的 k8s-app 标签
+networkPolicy:
+  enabled: false
