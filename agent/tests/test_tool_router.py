@@ -974,22 +974,16 @@ class TestToolRouter(unittest.TestCase):
     def test_keywords_config(self):
         self.assertTrue(self.tester.test_keywords_config())
     
-    @unittest.expectedFailure
     def test_priority_order(self):
-        # 预先存在的失败:优先级逻辑测试返回 False,非 YAML 迁移引入
         self.assertTrue(self.tester.test_priority_order())
 
     def test_tool_classification(self):
         self.assertTrue(self.tester.test_tool_classification())
 
-    @unittest.expectedFailure
     def test_alias_merge(self):
-        # 预先存在的失败:别名合并逻辑测试返回 False(TOOL_ALIASES 为空),非 YAML 迁移引入
         self.assertTrue(self.tester.test_alias_merge())
 
-    @unittest.expectedFailure
     def test_extreme_priority_conflict(self):
-        # 预先存在的失败:极端优先级冲突测试返回 False,非 YAML 迁移引入
         self.assertTrue(self.tester.test_extreme_priority_conflict())
     
     def test_decision_logger(self):
@@ -1020,9 +1014,7 @@ class TestToolRouter(unittest.TestCase):
     def test_stress_concurrent(self):
         self.assertTrue(self.tester.test_stress_concurrent())
     
-    @unittest.expectedFailure
     def test_performance_metrics(self):
-        # 预先存在的失败:性能指标测试返回 False,非 YAML 迁移引入
         self.assertTrue(self.tester.test_performance_metrics())
 
 
