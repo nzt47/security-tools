@@ -54,10 +54,14 @@ spec:
             # 日报输出（读写）
             - name: output
               mountPath: {{ .Values.reporter.outputDir }}
-          # [不易] 存活探针：cron 模式下 entrypoint 进程退出即视为故障
+          # [不易] 存活探针：检测 PID 1 是 entrypoint.sh 或 python 进程
+          # [变易] 不依赖 pgrep（slim 镜像无 procps），改用 grep /proc/1/cmdline
           livenessProbe:
             exec:
-              command: ["sh", "-c", "pgrep -f entrypoint.sh || pgrep -f generate_ops_daily_report"]
+              command:
+                - sh
+                - -c
+                - "grep -qaE 'entrypoint.sh|generate_ops_daily_report' /proc/1/cmdline 2>/dev/null"
             initialDelaySeconds: 30
             periodSeconds: 60
           # [变易] 就绪探针：检测挂载目录就绪 + 脚本可访问，失败则从 Service endpoints 摘除
