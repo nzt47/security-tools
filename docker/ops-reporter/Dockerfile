@@ -39,4 +39,9 @@ RUN mkdir -p /app/logs /app/output
 RUN useradd -m -u 1000 reporter && chown -R reporter:reporter /app
 USER reporter
 
+# [不易] 健康检查：cron 模式下检测 entrypoint 进程存活
+# once 模式（docker run --rm）执行完即退出，HEALTHCHECK 状态不产生影响
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep -f entrypoint.sh > /dev/null || pgrep -f generate_ops_daily_report > /dev/null || exit 1
+
 ENTRYPOINT ["/app/entrypoint.sh"]

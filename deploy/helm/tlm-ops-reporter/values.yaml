@@ -71,3 +71,14 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   fsGroup: 1000
+
+# ─── Container 安全上下文（不易：最小权限 + 只读根文件系统） ───
+# readOnlyRootFilesystem: 容器根文件系统只读，写入仅限挂载的 volume（logs/output PVC）
+# allowPrivilegeEscalation: 禁止子进程获取比父进程更多权限
+# capabilities.drop ALL: 丢弃所有 Linux capabilities，仅保留必需
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
