@@ -1,0 +1,98 @@
+# TLM Ops Reporter — 本地测试环境
+#
+# 用途: 快速启动 Helm Chart 本地等价环境，验证日报生成 + 告警规则加载
+#
+# 启动:
+#   docker compose -f docker/ops-reporter/docker-compose.test.yml up -d
+#
+# 验证:
+#   python scripts/verify_compose_test.py
+#
+# 清理:
+#   docker compose -f docker/ops-reporter/docker-compose.test.yml down -v
+
+services:
+  # ─── Prometheus: 加载告警规则并暴露 /api/v1/rules ───
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: tlm-test-prometheus
+    volumes:
+      # Prometheus 配置（指定 rule_files）
+      - ./test/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # 告警规则文件（来自项目 deploy/prometheus/）
+      - ../../deploy/prometheus/circuit_breaker_alerts.yml:/etc/prometheus/circuit_breaker_alerts.yml:ro
+    ports:
+      - "19090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=2h'
+      - '--web.enable-lifecycle'
+    networks:
+      - tlm-test-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ─── Ops Reporter: 一次性模式生成日报 ───
+  ops-reporter:
+    image: tlm-ops-reporter:v1.1
+    container_name: tlm-test-ops-reporter
+    volumes:
+      # 只读挂载测试日志
+      - ../../logs:/app/logs:ro
+      # 读写挂载日报输出
+      - ../../docs/ops_daily:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+    # 一次性模式：生成测试日报
+    command:
+      - "--log-dir"
+      - "/app/logs"
+      - "--output"
+      - "/app/output/compose_test_report.md"
+    networks:
+      - tlm-test-net
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+  # ─── 日志生成器: 模拟应用产生 vec 告警日志（可选，用于完整链路验证） ───
+  log-generator:
+    image: python:3.11-slim
+    container_name: tlm-test-log-generator
+    volumes:
+      - ../../logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+    # 生成 6 种 action 的测试日志（与 docker_test.log 等价）
+    entrypoint: ["python", "-c"]
+    command:
+      - |
+        import time, os
+        from datetime import datetime
+        log_path = "/app/logs/generated_test.log"
+        events = [
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'WARNING', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"vec.circuit_break","message":"熔断触发"}'),
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '   INFO', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"vec.circuit_reset","message":"熔断恢复"}'),
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '  ERROR', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"vec.write_exhausted","message":"写入耗尽"}'),
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '  DEBUG', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"vec.fail_count","message":"失败计数"}'),
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '  DEBUG', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"vec.degraded_skip","message":"降级跳过"}'),
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'WARNING', 'holographic_adapter', '{"module_name":"holographic_adapter","action":"search_vector.failed","message":"检索失败"}'),
+        ]
+        with open(log_path, 'w', encoding='utf-8') as f:
+            for ts, lvl, mod, msg in events:
+                f.write(f"{ts} [{lvl}] {mod}: {msg}\n")
+        print(f"[log-generator] 已生成 {len(events)} 条测试日志到 {log_path}")
+        # 保持容器存活供验证
+        while True:
+            time.sleep(60)
+    networks:
+      - tlm-test-net
+
+networks:
+  tlm-test-net:
+    driver: bridge
