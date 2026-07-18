@@ -400,27 +400,39 @@ class TestRetrievalExtension:
         assert d["matches"][0]["score_breakdown"] is None
 
     def test_match_accepts_extension_params(self, svc, caplog):
-        """传入 use_vector=True 等扩展参数不报错，并记录 warning 日志"""
+        """传入扩展参数不报错；use_vector 已实现，use_bm25/use_reranker 仍记录 warning
+
+        更新说明：向量检索已通过 JSON fallback 实现，use_vector=True 不再触发
+        extension_not_implemented warning。use_bm25 / use_reranker 仍未实现，
+        单独传参时应记录 warning。
+        """
         svc.create_manual(_make_skill_data(name="ext-skill", description="邮件处理"))
         loader = svc.loader
 
+        # 1. use_vector=True 现已实现，不报错且不记录 extension_not_implemented warning
         with caplog.at_level(logging.WARNING, logger="agent.skills_mgmt"):
-            result = loader.match("邮件", use_vector=True, use_bm25=True,
-                                   use_reranker=True,
-                                   retrieval_weights={"tfidf": 0.2, "vector": 0.8})
+            result = loader.match("邮件", use_vector=True)
+        assert isinstance(result, MatchResult), "use_vector=True 应返回有效 MatchResult"
 
-        # 应在 WARNING 日志中找到扩展点未实现的记录
+        # 2. use_bm25 / use_reranker 仍未实现，应记录 warning
+        with caplog.at_level(logging.WARNING, logger="agent.skills_mgmt"):
+            result = loader.match("邮件", use_bm25=True, use_reranker=True,
+                                   retrieval_weights={"tfidf": 0.2, "vector": 0.8})
         found_warning = False
         for record in caplog.records:
             if "match.extension_not_implemented" in record.getMessage():
                 found_warning = True
                 break
-        assert found_warning, "未记录扩展点未实现的 warning"
-        # 仍应返回有效 MatchResult（降级 TF-IDF）
+        assert found_warning, "use_bm25/use_reranker 未实现时应记录 warning"
         assert isinstance(result, MatchResult)
 
     def test_match_fallback_flag_when_vector_requested(self, svc):
-        """use_vector=True 时 fallback_used 应为 True（请求了但未实现）"""
+        """use_vector=True 时向量检索已实现，fallback_used 应为 False
+
+        更新说明：向量检索已通过 JSON fallback 实现，use_vector=True 不再降级到 TF-IDF。
+        原测试假设向量检索未实现（fallback_used=True, retrieval_method=tfidf），
+        现更新为验证向量检索实际工作（fallback_used=False, retrieval_method=vector）。
+        """
         svc.create_manual(_make_skill_data(name="fb-skill", description="邮件处理"))
         loader = svc.loader
 
@@ -428,8 +440,9 @@ class TestRetrievalExtension:
         assert result_normal.fallback_used is False, "未请求扩展点时 fallback_used 应为 False"
 
         result_vector = loader.match("邮件", use_vector=True)
-        assert result_vector.fallback_used is True, "请求 use_vector=True 时应标记降级"
-        assert result_vector.retrieval_method == "tfidf", "降级后方法仍为 tfidf"
+        # 向量检索已实现，不再降级到 TF-IDF
+        assert result_vector.fallback_used is False, "use_vector=True 已实现，不应标记降级"
+        assert result_vector.retrieval_method == "vector", "应使用向量检索方法"
 
     def test_health_includes_scale_monitoring(self, svc):
         """health() 返回值应含 scale_monitoring 字段及子字段"""
