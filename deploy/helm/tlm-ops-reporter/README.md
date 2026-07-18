@@ -20,7 +20,7 @@ helm install tlm-ops ./deploy/helm/tlm-ops-reporter -n monitoring --create-names
 # 自定义参数部署
 helm install tlm-ops ./deploy/helm/tlm-ops-reporter \
   -n monitoring --create-namespace \
-  --set image.tag=v1.1 \
+  --set image.tag=v1.2 \
   --set reporter.schedule.hour=2 \
   --set logsVolume.existingClaim=app-logs-pvc \
   --set outputVolume.size=1Gi
@@ -48,7 +48,7 @@ kubectl -n monitoring exec deploy/tlm-ops-reporter -- \
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `image.repository` | `tlm-ops-reporter` | 日报容器镜像 |
-| `image.tag` | `v1.1` | 镜像标签 |
+| `image.tag` | `v1.2` | 镜像标签 |
 | `reporter.mode` | `cron` | 运行模式（cron/once） |
 | `reporter.schedule.hour` | `1` | cron 触发小时 |
 | `reporter.schedule.minute` | `0` | cron 触发分钟 |
