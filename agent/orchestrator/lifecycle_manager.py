@@ -927,11 +927,32 @@ class LifecycleManager:
 
         同时从路由器加载"深度模型"（如 pro）用于复杂任务。
 
+        加载优先级（分层配置）:
+        1. 显式传入的参数（UI 提交）
+        2. 环境变量（.env 文件: LLM_PROVIDER/LLM_API_KEY/LLM_MODEL/LLM_BASE_URL）
+        3. 默认值
+
+        同步策略:
+        - .env 有值时，环境变量优先（部署级配置权威）
+        - .env 为空时，使用传入参数（UI 修改生效）
+        - 都为空时，报错
+
         Args:
             model_router: 模型路由器（可选），提供多模型调度能力
         """
+        # 【分层配置】参数为空时从环境变量加载（.env 文件）
+        if not provider:
+            provider = os.getenv("LLM_PROVIDER", "")
         if not api_key:
-            return {"ok": False, "error": "缺少 API Key"}
+            # 优先 LLM_API_KEY，回退 OPENAI_API_KEY（兼容 config.yaml ${OPENAI_API_KEY} 引用）
+            api_key = os.getenv("LLM_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
+        if not model:
+            model = os.getenv("LLM_MODEL", "")
+        if not base_url:
+            base_url = os.getenv("LLM_BASE_URL", "")
+
+        if not api_key:
+            return {"ok": False, "error": "缺少 API Key（请在 .env 文件中配置 LLM_API_KEY，或通过 UI 提交）"}
 
         try:
             # 依赖注入：优先使用注入的工厂创建 LLMService

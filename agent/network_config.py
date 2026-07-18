@@ -284,14 +284,34 @@ class NetworkConfigManager:
         else:
             logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.securemanager', 'message': '[网络配置] SecureManager 未初始化，敏感信息将明文存储'}))
 
-    def _load_secure(self, key: str, default: str = None) -> str:
-        """从加密文件加载敏感配置"""
+    def _load_secure(self, key: str, default: str = None, env_var: str = None) -> str:
+        """从加密文件加载敏感配置
+
+        加载优先级（分层配置）:
+        1. 环境变量（.env 文件，部署级配置权威）
+        2. 加密存储（SecureConfigManager，UI 修改的值）
+        3. default（配置文件中的回退值）
+
+        Args:
+            key: 加密存储的键名
+            default: 默认值（加密存储和环境变量都为空时返回）
+            env_var: 对应的环境变量名（如 'LLM_API_KEY'），为空则不检查环境变量
+        """
+        # 1. 优先从环境变量加载（.env 文件，部署级配置权威）
+        if env_var:
+            env_value = os.getenv(env_var, "")
+            if env_value:
+                return env_value
+
+        # 2. 从加密存储加载（SecureConfigManager，UI 修改的值）
         if self._secure_manager:
             try:
                 return self._secure_manager.get_secure_value(key, default)
             except Exception as e:
                 logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._load_secure.key', 'message': f'[网络配置] 加密加载失败 {key}: {e}'}))
                 return default
+
+        # 3. 回退到 default
         return default
 
     def _add_change_log(self, action: str, section: str, details: dict = None):
@@ -316,19 +336,27 @@ class NetworkConfigManager:
         """
         config = deepcopy(self._load())
 
-        # 加载加密的敏感信息（修改的是副本，不影响缓存）
-        config["llm"]["api_key"] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
+        # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
+        config["llm"]["api_key"] = self._load_secure(
+            'llm_api_key',
+            config.get('llm', {}).get('api_key', ''),
+            env_var='LLM_API_KEY'  # .env 文件中的 LLM_API_KEY
+        )
         config["external_services"]["error_reporting"]["webhook_url"] = self._load_secure(
             'error_reporting_webhook',
-            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
+            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', ''),
+            env_var='ERROR_REPORTING_WEBHOOK_URL'  # .env 文件中的 webhook URL
         )
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
             instance_id = instance.get('id', instance.get('name', 'default'))
+            # 环境变量名规则: default 实例用 LLM_API_KEY，其他用 LLM_{INSTANCE_ID}_API_KEY
+            env_name = 'LLM_API_KEY' if instance_id == 'default' else f'LLM_{instance_id.upper()}_API_KEY'
             instance["api_key"] = self._load_secure(
                 f'llm_{instance_id}_api_key',
-                instance.get('api_key', '')
+                instance.get('api_key', ''),
+                env_var=env_name
             )
 
         # 加载搜索实例的敏感信息
@@ -337,7 +365,8 @@ class NetworkConfigManager:
             if inst_id:
                 inst["api_key"] = self._load_secure(
                     f'search_{inst_id}_api_key',
-                    inst.get('api_key', '')
+                    inst.get('api_key', ''),
+                    env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
                 )
 
         # 脱敏处理
@@ -374,19 +403,27 @@ class NetworkConfigManager:
         """
         config = deepcopy(self._load())
 
-        # 加载加密的敏感信息（修改的是副本，不影响缓存）
-        config["llm"]["api_key"] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
+        # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
+        config["llm"]["api_key"] = self._load_secure(
+            'llm_api_key',
+            config.get('llm', {}).get('api_key', ''),
+            env_var='LLM_API_KEY'  # .env 文件中的 LLM_API_KEY
+        )
         config["external_services"]["error_reporting"]["webhook_url"] = self._load_secure(
             'error_reporting_webhook',
-            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
+            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', ''),
+            env_var='ERROR_REPORTING_WEBHOOK_URL'  # .env 文件中的 webhook URL
         )
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
             instance_id = instance.get('id', instance.get('name', 'default'))
+            # 环境变量名规则: default 实例用 LLM_API_KEY，其他用 LLM_{INSTANCE_ID}_API_KEY
+            env_name = 'LLM_API_KEY' if instance_id == 'default' else f'LLM_{instance_id.upper()}_API_KEY'
             instance["api_key"] = self._load_secure(
                 f'llm_{instance_id}_api_key',
-                instance.get('api_key', '')
+                instance.get('api_key', ''),
+                env_var=env_name
             )
 
         # 加载搜索实例的敏感信息
@@ -395,7 +432,8 @@ class NetworkConfigManager:
             if inst_id:
                 inst["api_key"] = self._load_secure(
                     f'search_{inst_id}_api_key',
-                    inst.get('api_key', '')
+                    inst.get('api_key', ''),
+                    env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
                 )
 
         return config
