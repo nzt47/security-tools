@@ -4,38 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Trae Project</title>
-    <style>
-      html, body, #root { height: 100%; margin: 0; }
-      :root {
-        --bg-primary: #0d1117;
-        --bg-secondary: #161b22;
-        --bg-elevated: #21262d;
-        --bg-hover: #30363d;
-        --border-color: #30363d;
-        --border-hover: #8b949e;
-        --border-subtle: #21262d;
-        --text-primary: #e6edf3;
-        --text-secondary: #8b949e;
-        --text-muted: #6e7681;
-        --mascot-primary: #4fd1c5;
-        --mascot-secondary: #38b2ac;
-        --mascot-error: #fc8181;
-        --mascot-calm: #63b3ed;
-        --radius-md: 6px;
-        --radius-lg: 8px;
-        --radius-full: 9999px;
-        --space-xs: 4px;
-        --space-sm: 6px;
-        --space-md: 10px;
-        --space-lg: 16px;
-        --space-xl: 32px;
-        --duration-fast: 120ms;
-        --ease-breathe: cubic-bezier(0.4, 0, 0.2, 1);
-      }
-    </style>
-    <script type="module" crossorigin src="/static/assets/index-BDz7cFvM.js"></script>
-    <link rel="stylesheet" crossorigin href="/static/assets/index-b-z3azp6.css">
+    <title>My Trae Project</title>
+    <script type="module" crossorigin src="/static/assets/index-Dhrn2cG4.js"></script>
+    <link rel="stylesheet" crossorigin href="/static/assets/index-BThdZyrQ.css">
   </head>
   <body>
     <div id="root"></div>
@@ -378,111 +349,6 @@
               };
             })();
           </script>
-
-          <script>
-            // 旧版入口注入：在新版导航栏末尾添加"旧版界面"链接
-            (function() {
-              'use strict';
-              if (window.__legacyNavInjected) return;
-              window.__legacyNavInjected = true;
-
-              function injectLegacyLink() {
-                // 查找导航栏容器
-                const nav = document.querySelector('nav, [role="navigation"]');
-                if (!nav) return false;
-
-                // 检查是否已注入
-                if (nav.querySelector('[data-legacy-link]')) return true;
-
-                // 查找现有导航项作为模板
-                const existingLinks = nav.querySelectorAll('a');
-                if (existingLinks.length === 0) return false;
-
-                const lastLink = existingLinks[existingLinks.length - 1];
-                const template = lastLink.cloneNode(true);
-
-                // 清空模板内容
-                template.innerHTML = '';
-                template.removeAttribute('href');
-                template.setAttribute('data-legacy-link', 'true');
-                template.setAttribute('title', '旧版界面（云枢·数字生命体）');
-
-                // 创建内容
-                const icon = document.createElement('span');
-                icon.textContent = '⏮';
-                icon.style.marginRight = '6px';
-                const text = document.createTextNode('旧版界面');
-                template.appendChild(icon);
-                template.appendChild(text);
-
-                // 点击跳转（绕过 React Router 拦截）
-                template.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = '/legacy';
-                });
-
-                // 插入到导航栏末尾
-                if (lastLink.parentElement) {
-                  // 如果链接在 ul/ol 内，插入到末尾
-                  lastLink.parentElement.appendChild(template);
-                } else {
-                  nav.appendChild(template);
-                }
-
-                console.log('[LegacyNav] 旧版入口已注入');
-                return true;
-              }
-
-              // 首次尝试
-              if (!injectLegacyLink()) {
-                // 使用 MutationObserver 监听 DOM 变化
-                const observer = new MutationObserver(function() {
-                  if (injectLegacyLink()) {
-                    observer.disconnect();
-                  }
-                });
-                observer.observe(document.body, { childList: true, subtree: true });
-                // 30 秒后停止监听
-                setTimeout(function() { observer.disconnect(); }, 30000);
-              }
-            })();
-          </script>
-
-          <style>
-            .legacy-fab {
-              position: fixed !important;
-              bottom: 20px !important;
-              left: 20px !important;
-              z-index: 100000 !important;
-              display: inline-flex !important;
-              align-items: center;
-              gap: 6px;
-              padding: 8px 16px;
-              background: rgba(79, 209, 197, 0.95) !important;
-              color: #fff !important;
-              border: 2px solid #38b2ac !important;
-              border-radius: 20px;
-              font-size: 13px;
-              font-weight: 600;
-              cursor: pointer;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-              transition: all 0.2s ease;
-              text-decoration: none !important;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              pointer-events: auto !important;
-            }
-            .legacy-fab:hover {
-              background: rgba(56, 178, 172, 1) !important;
-              transform: translateY(-2px);
-              box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-            }
-          </style>
-
-          <a href="/legacy" class="legacy-fab" title="切换到旧版界面（云枢·数字生命体）">
-            <span>⏮</span>
-            <span>旧版界面</span>
-          </a>
-
+        
 </body>
 </html>
