@@ -1,5 +1,5 @@
 {
-  "trace_id": "e1ecdb208db24943",
+  "trace_id": "6ffa3be42fac4089",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -3127,7 +3127,7 @@
       "source_layer": "core",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 696,
+      "line": 734,
       "source_file": "agent/network_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3764,7 +3764,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 993,
+      "line": 1014,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9365,6 +9365,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1229.641536999999
+    "build_duration_ms": 1178.094915999999
   }
 }
