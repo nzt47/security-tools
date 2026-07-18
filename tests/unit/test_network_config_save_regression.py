@@ -98,6 +98,27 @@ def tmp_config_dir(tmp_path):
     return tmp_path
 
 
+@pytest.fixture(autouse=True)
+def clean_env_vars():
+    """自动清理测试期间设置的环境变量（纯 .env 架构隔离）"""
+    saved = {}
+    test_prefixes = ('LLM_', 'SEARCH_', 'ERROR_REPORTING_')
+    for k in list(os.environ.keys()):
+        if k.startswith(test_prefixes):
+            saved[k] = os.environ.get(k)
+            os.environ.pop(k, None)
+    yield
+    # 恢复
+    for k in list(os.environ.keys()):
+        if k.startswith(test_prefixes) and k not in saved:
+            os.environ.pop(k, None)
+    for k, v in saved.items():
+        if v is not None:
+            os.environ[k] = v
+        else:
+            os.environ.pop(k, None)
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # 1. _save() 自动剥离 search_instances.api_key
 # ════════════════════════════════════════════════════════════════════════════
@@ -125,7 +146,7 @@ class TestSaveStripsSearchInstanceApiKey:
             )
 
     def test_save_keeps_api_key_when_no_secure_manager(self, tmp_config_dir):
-        """secure_manager 不可用时，保留 api_key 明文（兼容旧版行为）"""
+        """【纯 .env 架构】_save 无条件移除 api_key，不再依赖 secure_manager"""
         config_file = tmp_config_dir / "network_config.json"
         manager = NetworkConfigManager(config_file=str(config_file), secure_manager=None)
         config = {
@@ -138,7 +159,10 @@ class TestSaveStripsSearchInstanceApiKey:
 
         with open(manager._config_file, "r", encoding="utf-8") as f:
             saved = json.load(f)
-        assert saved["search_instances"][0]["api_key"] == "sk-real-key"
+        # 新架构下，无论 secure_manager 是否为 None，_save 都移除 api_key
+        assert "api_key" not in saved["search_instances"][0], (
+            "纯 .env 架构下 _save 应无条件移除 api_key"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -187,7 +211,8 @@ class TestDeepcopyPreventsCachePollution:
     def test_get_raw_config_does_not_pollute_cache(self, tmp_config_dir):
         """修改 get_raw_config() 返回值不应影响缓存"""
         manager, mock_secure, secure_store = _make_manager_with_secure(tmp_config_dir)
-        secure_store["search_inst-1_api_key"] = "sk-real-key-12345"
+        # 【纯 .env 架构】通过 os.environ 设置敏感值（替代 secure_store）
+        os.environ['SEARCH_INST-1_API_KEY'] = 'sk-real-key-12345'
 
         manager._save({
             "search_instances": [{"id": "inst-1", "name": "Tavily"}],
@@ -214,7 +239,8 @@ class TestDeepcopyPreventsCachePollution:
     def test_get_all_does_not_pollute_cache(self, tmp_config_dir):
         """修改 get_all() 返回值不应影响缓存"""
         manager, mock_secure, secure_store = _make_manager_with_secure(tmp_config_dir)
-        secure_store["llm_api_key"] = "sk-real-llm-key"
+        # 【纯 .env 架构】通过 os.environ 设置敏感值
+        os.environ['LLM_API_KEY'] = 'sk-real-llm-key'
 
         manager._save({
             "search_instances": [],
@@ -235,7 +261,8 @@ class TestDeepcopyPreventsCachePollution:
     def test_get_raw_config_returns_independent_copy(self, tmp_config_dir):
         """连续两次 get_raw_config() 应返回独立对象"""
         manager, mock_secure, secure_store = _make_manager_with_secure(tmp_config_dir)
-        secure_store["search_inst-1_api_key"] = "sk-real-key"
+        # 【纯 .env 架构】通过 os.environ 设置敏感值
+        os.environ['SEARCH_INST-1_API_KEY'] = 'sk-real-key'
 
         manager._save({
             "search_instances": [{"id": "inst-1", "name": "Tavily"}],
@@ -298,7 +325,7 @@ class TestUpdateSearchInstancesIgnoresMaskedKey:
         )
 
     def test_real_api_key_saved_to_secure_store(self, tmp_config_dir):
-        """真实 api_key 应通过 _save_secure 加密存储（新增场景）"""
+        """【纯 .env 架构】真实 api_key 应写入 os.environ（新增场景）"""
         manager, mock_secure, secure_store = _make_manager_with_secure(tmp_config_dir)
 
         manager._update_search_instances([
@@ -306,10 +333,11 @@ class TestUpdateSearchInstancesIgnoresMaskedKey:
         ])
 
         inst_id = manager._cache["search_instances"][0]["id"]
-        mock_secure.set_secure_value.assert_called_with(
-            f"search_{inst_id}_api_key", "sk-real-key-12345"
+        # 新架构下，api_key 写入 os.environ（而非 secure_store）
+        env_var = f'SEARCH_{inst_id.upper()}_API_KEY'
+        assert os.getenv(env_var) == 'sk-real-key-12345', (
+            f"真实 api_key 未写入环境变量 {env_var}"
         )
-        assert secure_store[f"search_{inst_id}_api_key"] == "sk-real-key-12345"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -441,13 +469,17 @@ class TestUpdateEndToEndNoPlaintextApiKey:
             assert "api_key" not in inst, (
                 f"保存后文件中残留明文 api_key: {inst}"
             )
+        # 【纯 .env 架构】验证 os.environ 中有真实值
         inst_id = saved["search_instances"][0]["id"]
-        assert secure_store.get(f"search_{inst_id}_api_key") == "sk-real-key-12345"
+        env_var = f'SEARCH_{inst_id.upper()}_API_KEY'
+        assert os.getenv(env_var) == "sk-real-key-12345", (
+            f"真实 api_key 未写入环境变量 {env_var}"
+        )
 
     def test_update_with_masked_api_key_does_not_overwrite(self, tmp_config_dir):
-        """传入脱敏值不应覆盖已加密存储的真实 key"""
+        """传入脱敏值不应覆盖已存储的真实 key"""
         manager, _, secure_store = _make_manager_with_secure(tmp_config_dir)
-        # 先新增实例并加密存储真实 key
+        # 先新增实例并存储真实 key
         manager._update_search_instances([
             {"name": "Tavily", "engine_type": "custom",
              "api_key": "sk-real-key-original", "enabled": True,
@@ -457,7 +489,8 @@ class TestUpdateEndToEndNoPlaintextApiKey:
         ])
         manager._save(manager._load())
         inst_id = manager._cache["search_instances"][0]["id"]
-        assert secure_store[f"search_{inst_id}_api_key"] == "sk-real-key-original"
+        env_var = f'SEARCH_{inst_id.upper()}_API_KEY'
+        assert os.getenv(env_var) == "sk-real-key-original"
 
         # 再次传入脱敏值更新
         manager._update_search_instances([
@@ -465,8 +498,10 @@ class TestUpdateEndToEndNoPlaintextApiKey:
         ])
         manager._save(manager._load())
 
-        # 加密存储应保持原值
-        assert secure_store[f"search_{inst_id}_api_key"] == "sk-real-key-original"
+        # 环境变量应保持原值（脱敏值不覆盖）
+        assert os.getenv(env_var) == "sk-real-key-original", (
+            "脱敏值覆盖了真实 key"
+        )
 
     def test_get_all_returns_masked_after_update(self, tmp_config_dir):
         """保存后 get_all() 返回的 api_key 应为脱敏值"""
