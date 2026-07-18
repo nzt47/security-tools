@@ -54,11 +54,15 @@
 
 **结论**: Dockerfile 无其他依赖版本需同步更新。
 
-### 3.2 Helm Chart 依赖（dependencies）
+### 3.2 Helm Chart 依赖（dependencies + Chart.lock）
 
-Chart.yaml 中无 `dependencies` 字段，本 Chart 不依赖其他 Chart。
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| Chart.yaml `dependencies` 字段 | ❌ 不存在 | 本 Chart 不依赖其他子 Chart（subchart） |
+| `Chart.lock` 文件 | ❌ 不存在 | 无 dependencies 故无需 Chart.lock（lock 文件仅在有依赖时由 `helm dependency build` 生成） |
+| `requirements.yaml` | ❌ 不存在 | Helm v2 概念，本 Chart 使用 `apiVersion: v2`（Helm 3 原生），不适用 |
 
-**结论**: 无 Chart 依赖需更新。
+**结论**: 无 Chart 依赖需更新，无需维护 Chart.lock。升级版本时无需执行 `helm dependency update`。
 
 ### 3.3 应用层依赖（requirements.txt）
 
@@ -77,6 +81,41 @@ ops-reporter 容器仅依赖 Python 标准库（urllib/socket/json/subprocess）
 | ServiceMonitor | `monitoring.coreos.com/v1` | 需 Prometheus Operator |
 
 **结论**: 所有 API 版本均为稳定版，无弃用风险。
+
+### 3.5 Helm 工具版本兼容性（本次补充）
+
+| 检查项 | 当前值 | 要求 | 风险 |
+|--------|--------|------|------|
+| Chart.yaml `apiVersion` | `v2` | 需 Helm ≥ 3.0 | Helm 2.x 不支持 apiVersion v2 |
+| Helm CLI 版本 | v3.14.0（本地预装） | ≥ 3.0 | ✅ 满足 |
+
+**结论**: Chart 使用 `apiVersion: v2`，消费者须使用 Helm 3.x。已在 [local_verification_guide.md](local_verification_guide.md) 步骤 1 中包含 `helm version` 检查。
+
+### 3.6 kubeVersion 约束（本次补充 — 建议增强）
+
+| 检查项 | 当前状态 | 建议 |
+|--------|----------|------|
+| Chart.yaml `kubeVersion` 字段 | ❌ 未声明 | 建议添加以约束最小 K8s 版本 |
+
+**现状风险**: Chart.yaml 未声明 `kubeVersion`，消费者无法在 `helm install` 时自动检测集群版本兼容性。
+
+**建议补充**（下一版本）:
+```yaml
+# Chart.yaml 建议添加
+kubeVersion: ">= 1.21.0-0"  # NetworkPolicy v1 + apps/v1 稳定支持
+```
+
+> 选 1.21 的依据: 1.21 是目前主流 LTS 基线，且 kind v0.23.0 默认节点镜像为 K8s 1.27+，满足约束。
+
+### 3.7 values.schema.json（本次补充 — 建议增强）
+
+| 检查项 | 当前状态 | 建议 |
+|--------|----------|------|
+| `values.schema.json` 文件 | ❌ 不存在 | 建议添加以启用 values 结构化校验 |
+
+**现状风险**: 无 schema 文件，`helm install --set` 传入非法参数（如 `networkPolicy.enabled=invalid`）时不会报错，可能导致模板渲染异常。
+
+**建议补充**（下一版本）: 创建 `values.schema.json` 定义关键字段类型约束（networkPolicy.enabled 为 boolean、image.tag 为 string 等）。
 
 ---
 
@@ -155,9 +194,18 @@ Select-String -Path "deploy\helm\tlm-ops-reporter\**" -Pattern "v1\.2|1\.2\.0|ap
 | Chart.yaml 版本是否已更新 | ✅ 1.2.0 |
 | 其他依赖版本是否需更新 | ❌ 无（Dockerfile 已固定，无 Chart 依赖，无应用层依赖） |
 | 版本引用是否全部一致 | ✅ 已修复 3 处不一致，现 6 处引用全部为 v1.2 |
+| Chart 依赖版本更新说明是否遗漏 | ✅ 已补充（§3.2 Chart.lock 逻辑链 + §3.5 Helm 工具版本 + §3.6 kubeVersion + §3.7 values.schema.json） |
 | 是否可发布 | ⏳ 待网络恢复后完成镜像构建 + 集群测试 |
+
+### 7.1 本次补充发现的增强项（非阻塞，建议下一版本）
+
+| 增强项 | 优先级 | 说明 |
+|--------|--------|------|
+| Chart.yaml 添加 `kubeVersion` 约束 | P3 | 防止低版本 K8s 部署失败 |
+| 创建 `values.schema.json` | P3 | 启用 values 参数结构化校验 |
+| NOTES.txt 输出验证 | P3 | 安装后提示信息正确性 |
 
 > **三义原则校验**:
 > - [不易] Chart/version/appVersion/image.tag 四维版本契约现已一致
-> - [变易] 无新增依赖，升级路径清晰（helm upgrade --set image.tag=v1.2）
-> - [简易] 3 处机械修复，零业务逻辑变更
+> - [变易] 无新增依赖，升级路径清晰（helm upgrade --set image.tag=v1.2）；已识别 3 项可演进增强点
+> - [简易] 3 处机械修复，零业务逻辑变更；补充说明均为现状澄清，不引入新依赖
