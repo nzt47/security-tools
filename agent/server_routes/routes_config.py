@@ -97,9 +97,15 @@ def register_routes(app, state):
             except ImportError:
                 return jsonify({"ok": False, "error": "缺少依赖库: openai。请执行: pip install openai"})
 
+        # 【纯 .env 架构】UI 提交的 api_key 先持久化到 .env（脱敏值跳过），
+        # 再调用 configure_llm 立即生效。configure_llm 内部也会从环境变量回退加载。
+        api_key = data.get("api_key", "")
+        if api_key and api_key != "***" and not api_key.startswith("***"):
+            ncm._save_secure('llm_api_key', api_key)
+
         result = Yunshu.configure_llm(
             provider=data.get("provider", ""),
-            api_key=data.get("api_key", ""),
+            api_key=api_key,
             model=data.get("model", ""),
             base_url=data.get("base_url", data.get("api_endpoint", "")),
         )
