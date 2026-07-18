@@ -66,6 +66,7 @@ data/audit/
 # 运行时数据产物（日志/数据库/多租户状态，不入库）
 agent/data/api_access.log
 agent/data/api_keys.json
+agent/data/network_config.json
 agent/data/extensions.json
 agent/data/role_assignments.json
 agent/data/tenants.json
@@ -99,3 +100,32 @@ cache/
 
 # 自动生成的文档报告
 docs/observability/boundary_coverage_report.md
+
+# ────────────────────────────────────────────────────────────
+# v2.0.0 清理（2026-07-19）：运行时数据库 + 临时调试文件
+# ────────────────────────────────────────────────────────────
+
+# 运行时数据库（SQLite/向量索引，不入库）
+*.db
+agent/data/tool_trace.db
+data/memory/long_term.db
+data/skill_vectors/
+
+# 运行时日志/状态产物（不入库）
+data/blackbox/
+data/heartbeat_history.json
+data/permission_policies.json
+data/skills_mgmt.json
+
+# 临时调试日志/压缩包（不入库）
+ci_full_logs.zip
+ci_logs.zip
+ci_logs/
+job_log_full.txt
+mock_coverage.xml
+mock_git_states.json
+pytest_local_output.txt
+pytest_trace_cfg.xml
+pytest_xfail_output.xml
+router_fix.patch
+router_fix_v2.patch
