@@ -1,0 +1,4 @@
+﻿hour,calls,success_rate_pct,avg_latency_ms
+01,51,80.39,1.12
+09,24,83.33,0.34
+11,24,83.33,0.3
