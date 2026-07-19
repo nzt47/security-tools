@@ -1,0 +1,7015 @@
+{
+  "tfidf": {
+    "method": "tfidf",
+    "top_k": 3,
+    "total_cases": 45,
+    "overall": {
+      "precision": 0.4222,
+      "recall": 1.0,
+      "mrr": 0.9556
+    },
+    "zero_case_count": 1,
+    "fallback_count": 0,
+    "by_difficulty": {
+      "easy": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 14
+      },
+      "hard": {
+        "precision": 0.4615,
+        "recall": 1.0,
+        "mrr": 0.9615,
+        "count": 13
+      },
+      "medium": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.9615,
+        "count": 13
+      },
+      "tricky": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      }
+    },
+    "by_category": {
+      "self_reflection": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "memory_summary": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "emotion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.875,
+        "count": 4
+      },
+      "suggestion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "context": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "safety": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "voice": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.875,
+        "count": 4
+      },
+      "scripted": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "multi_skill": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 5
+      },
+      "negative": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      },
+      "discrimination": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 3
+      }
+    },
+    "cases": [
+      {
+        "case_id": "case_001",
+        "query": "self_reflection",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_002",
+        "query": "请帮我反思刚才的回答",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.6,
+          0.2,
+          0.1
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_003",
+        "query": "帮我复查刚才的回答有没有逻辑漏洞",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.625,
+          0.1875,
+          0.125
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_004",
+        "query": "self_reflection 技能",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          1.0,
+          0.6667,
+          0.6667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_005",
+        "query": "memory_summary",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_006",
+        "query": "请总结一下之前的对话历史",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.75,
+          0.3333,
+          0.3333
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_007",
+        "query": "帮我梳理历史记忆并压缩",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.7273,
+          0.2727,
+          0.1818
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_008",
+        "query": "memory_summary 技能",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "scripted-selftest",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.6667,
+          0.6667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_009",
+        "query": "情感",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          1.0,
+          0.5,
+          0.5
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_010",
+        "query": "我想让你说话带点感情色彩",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.5,
+          0.1667,
+          0.1667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_011",
+        "query": "让回答更有感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.7143,
+          0.4286,
+          0.2857
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_012",
+        "query": "请调整回应语气加点感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "context_aware",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.4545,
+          0.3636,
+          0.3636
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.5,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_013",
+        "query": "建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_014",
+        "query": "你能主动给我点建议吗",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.4,
+          0.2,
+          0.2
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_015",
+        "query": "请主动提建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.8333,
+          0.3333,
+          0.1667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_016",
+        "query": "主动识别我的潜在需求",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.9,
+          0.4,
+          0.4
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_017",
+        "query": "上下文",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          1.0,
+          1.0,
+          0.3333
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_018",
+        "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.4783,
+          0.3478,
+          0.2609
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_019",
+        "query": "检测话题切换",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.8333,
+          0.5,
+          0.1667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_020",
+        "query": "根据之前的话题调整策略",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "memory_summary",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6364,
+          0.4545,
+          0.2727
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_021",
+        "query": "安全",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_022",
+        "query": "这个操作安全吗，帮我过滤一下危险内容",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.4118,
+          0.1765,
+          0.1176
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_023",
+        "query": "帮我拦截危险操作",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          0.625,
+          0.25,
+          0.125
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_024",
+        "query": "检测敏感信息泄露",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.5,
+          0.25,
+          0.125
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_025",
+        "query": "语音",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_026",
+        "query": "我想用语音跟你说话",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "voice_interaction",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.3333,
+          0.3333,
+          0.2222
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.5,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_027",
+        "query": "请识别语音指令",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.8571,
+          0.2857,
+          0.2857
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_028",
+        "query": "请进行 TTS 合成",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          0.6667,
+          0.3333,
+          0.1667
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_029",
+        "query": "脚本示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_030",
+        "query": "调用带脚本的技能示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.8,
+          0.4,
+          0.4
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_031",
+        "query": "三层架构示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.1667
+        ],
+        "actual_breakdowns": [
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_032",
+        "query": "请运行带脚本的技能",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.7778,
+          0.3333,
+          0.3333
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_033",
+        "query": "上下文感知与安全守护",
+        "expected": [
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6,
+          0.6,
+          0.4
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_034",
+        "query": "情感表达与主动建议",
+        "expected": [
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.5556,
+          0.5556,
+          0.4444
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_035",
+        "query": "请识别语音指令并保障安全",
+        "expected": [
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.5833,
+          0.3333,
+          0.25
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_036",
+        "query": "请运行三层架构示例并保障安全",
+        "expected": [
+          "scripted-selftest",
+          "safety_guard"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.5,
+          0.3571,
+          0.1429
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_037",
+        "query": "请检测话题切换并主动提建议",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.5385,
+          0.4615,
+          0.2308
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_038",
+        "query": "今天天气真好",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_039",
+        "query": "def print_hello_world function",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_040",
+        "query": "java python c++ programming",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_041",
+        "query": "12345",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_042",
+        "query": "帮我订一张机票",
+        "expected": [],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.1429
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 0.0,
+        "recall": 1.0,
+        "mrr": 0.0,
+        "hit": false,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_043",
+        "query": "请帮我反思",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_044",
+        "query": "请总结一下之前的记忆",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.7,
+          0.4,
+          0.2
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_045",
+        "query": "刚才回答有没有问题，请帮我检查",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.3571,
+          0.2143,
+          0.2143
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "tfidf"
+      }
+    ],
+    "available_skills": [
+      "context_aware",
+      "emotion_expression",
+      "memory_summary",
+      "proactive_suggestion",
+      "safety_guard",
+      "scripted-selftest",
+      "self_reflection",
+      "voice_interaction"
+    ]
+  },
+  "vector": {
+    "method": "vector",
+    "top_k": 3,
+    "total_cases": 45,
+    "overall": {
+      "precision": 0.4,
+      "recall": 1.0,
+      "mrr": 0.9444
+    },
+    "zero_case_count": 2,
+    "fallback_count": 5,
+    "by_difficulty": {
+      "easy": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 14
+      },
+      "hard": {
+        "precision": 0.4615,
+        "recall": 1.0,
+        "mrr": 0.9615,
+        "count": 13
+      },
+      "medium": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 13
+      },
+      "tricky": {
+        "precision": 0.6,
+        "recall": 1.0,
+        "mrr": 0.6,
+        "count": 5
+      }
+    },
+    "by_category": {
+      "self_reflection": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "memory_summary": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "emotion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "suggestion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "context": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "safety": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "voice": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "scripted": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "multi_skill": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 5
+      },
+      "negative": {
+        "precision": 0.6,
+        "recall": 1.0,
+        "mrr": 0.6,
+        "count": 5
+      },
+      "discrimination": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.8333,
+        "count": 3
+      }
+    },
+    "cases": [
+      {
+        "case_id": "case_001",
+        "query": "self_reflection",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_002",
+        "query": "请帮我反思刚才的回答",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "safety_guard",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.603,
+          0.4732,
+          0.4629
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_003",
+        "query": "帮我复查刚才的回答有没有逻辑漏洞",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.5442,
+          0.4729,
+          0.4516
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_004",
+        "query": "self_reflection 技能",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.7806,
+          0.5371,
+          0.5364
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_005",
+        "query": "memory_summary",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0
+        ],
+        "actual_breakdowns": [
+          null
+        ],
+        "difficulty": "easy",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_006",
+        "query": "请总结一下之前的对话历史",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.5102,
+          0.4946,
+          0.4758
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_007",
+        "query": "帮我梳理历史记忆并压缩",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6346,
+          0.469,
+          0.457
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_008",
+        "query": "memory_summary 技能",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          0.7145,
+          0.5788,
+          0.5158
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_009",
+        "query": "情感",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.5737,
+          0.4697,
+          0.4171
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_010",
+        "query": "我想让你说话带点感情色彩",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6739,
+          0.498,
+          0.4937
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_011",
+        "query": "让回答更有感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.6246,
+          0.506,
+          0.4855
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_012",
+        "query": "请调整回应语气加点感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6317,
+          0.5154,
+          0.5088
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_013",
+        "query": "建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.5581,
+          0.4499,
+          0.4489
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_014",
+        "query": "你能主动给我点建议吗",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.6685,
+          0.5335,
+          0.5069
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_015",
+        "query": "请主动提建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.6774,
+          0.4998,
+          0.4767
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_016",
+        "query": "主动识别我的潜在需求",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.7291,
+          0.5911,
+          0.5885
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_017",
+        "query": "上下文",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.5802,
+          0.4571,
+          0.4411
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_018",
+        "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "memory_summary",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6125,
+          0.5072,
+          0.4965
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_019",
+        "query": "检测话题切换",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6261,
+          0.5309,
+          0.5137
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_020",
+        "query": "根据之前的话题调整策略",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.5707,
+          0.5118,
+          0.4886
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_021",
+        "query": "安全",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.6002,
+          0.4641,
+          0.4396
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_022",
+        "query": "这个操作安全吗，帮我过滤一下危险内容",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6045,
+          0.4786,
+          0.4368
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_023",
+        "query": "帮我拦截危险操作",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6546,
+          0.4662,
+          0.4381
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_024",
+        "query": "检测敏感信息泄露",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6307,
+          0.5051,
+          0.4927
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_025",
+        "query": "语音",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6634,
+          0.5336,
+          0.5168
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_026",
+        "query": "我想用语音跟你说话",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6581,
+          0.5477,
+          0.5466
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_027",
+        "query": "请识别语音指令",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.624,
+          0.5259,
+          0.5257
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_028",
+        "query": "请进行 TTS 合成",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "memory_summary",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.4977,
+          0.4063,
+          0.4007
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_029",
+        "query": "脚本示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6643,
+          0.4583,
+          0.4502
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_030",
+        "query": "调用带脚本的技能示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.7361,
+          0.5234,
+          0.4818
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_031",
+        "query": "三层架构示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6265,
+          0.4083,
+          0.3935
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_032",
+        "query": "请运行带脚本的技能",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "self_reflection",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.7063,
+          0.5277,
+          0.514
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_033",
+        "query": "上下文感知与安全守护",
+        "expected": [
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6423,
+          0.6398,
+          0.4817
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_034",
+        "query": "情感表达与主动建议",
+        "expected": [
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.71,
+          0.5991,
+          0.5232
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_035",
+        "query": "请识别语音指令并保障安全",
+        "expected": [
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6159,
+          0.6139,
+          0.5262
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_036",
+        "query": "请运行三层架构示例并保障安全",
+        "expected": [
+          "scripted-selftest",
+          "safety_guard"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.6508,
+          0.5209,
+          0.4192
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_037",
+        "query": "请检测话题切换并主动提建议",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.6361,
+          0.6117,
+          0.5212
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_038",
+        "query": "今天天气真好",
+        "expected": [],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.3612,
+          0.3328,
+          0.3302
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 0.0,
+        "recall": 1.0,
+        "mrr": 0.0,
+        "hit": false,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_039",
+        "query": "def print_hello_world function",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_040",
+        "query": "java python c++ programming",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_041",
+        "query": "12345",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_042",
+        "query": "帮我订一张机票",
+        "expected": [],
+        "actual": [
+          "proactive_suggestion",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.4414,
+          0.4242,
+          0.4131
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 0.0,
+        "recall": 1.0,
+        "mrr": 0.0,
+        "hit": false,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_043",
+        "query": "请帮我反思",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6373,
+          0.4879,
+          0.4865
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_044",
+        "query": "请总结一下之前的记忆",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.5319,
+          0.4603,
+          0.4449
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      },
+      {
+        "case_id": "case_045",
+        "query": "刚才回答有没有问题，请帮我检查",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "safety_guard",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.5084,
+          0.4999,
+          0.4615
+        ],
+        "actual_breakdowns": [
+          null,
+          null,
+          null
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.5,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "vector"
+      }
+    ],
+    "available_skills": [
+      "context_aware",
+      "emotion_expression",
+      "memory_summary",
+      "proactive_suggestion",
+      "safety_guard",
+      "scripted-selftest",
+      "self_reflection",
+      "voice_interaction"
+    ]
+  },
+  "rrf": {
+    "method": "rrf",
+    "top_k": 3,
+    "total_cases": 45,
+    "overall": {
+      "precision": 0.4222,
+      "recall": 1.0,
+      "mrr": 0.9667
+    },
+    "zero_case_count": 1,
+    "fallback_count": 4,
+    "by_difficulty": {
+      "easy": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 14
+      },
+      "hard": {
+        "precision": 0.4615,
+        "recall": 1.0,
+        "mrr": 0.9615,
+        "count": 13
+      },
+      "medium": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 13
+      },
+      "tricky": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      }
+    },
+    "by_category": {
+      "self_reflection": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "memory_summary": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "emotion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.875,
+        "count": 4
+      },
+      "suggestion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "context": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "safety": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "voice": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "scripted": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "multi_skill": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 5
+      },
+      "negative": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      },
+      "discrimination": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 3
+      }
+    },
+    "cases": [
+      {
+        "case_id": "case_001",
+        "query": "self_reflection",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.5
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": null,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5
+          }
+        ],
+        "difficulty": "easy",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_002",
+        "query": "请帮我反思刚才的回答",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "context_aware",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9685,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 3,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_003",
+        "query": "帮我复查刚才的回答有没有逻辑漏洞",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9685,
+          0.9612
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 2,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612
+          }
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_004",
+        "query": "self_reflection 技能",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "medium",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_005",
+        "query": "memory_summary",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.5
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": null,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5
+          }
+        ],
+        "difficulty": "easy",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_006",
+        "query": "请总结一下之前的对话历史",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_007",
+        "query": "帮我梳理历史记忆并压缩",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9761
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          }
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_008",
+        "query": "memory_summary 技能",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "scripted-selftest",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9761
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          }
+        ],
+        "difficulty": "medium",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_009",
+        "query": "情感",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9462
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 6,
+            "rrf_score": 0.031025,
+            "rrf_normalized": 0.9462
+          }
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_010",
+        "query": "我想让你说话带点感情色彩",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9685
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          }
+        ],
+        "difficulty": "medium",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_011",
+        "query": "让回答更有感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9683,
+          0.9612
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 3,
+            "rrf_score": 0.031746,
+            "rrf_normalized": 0.9683
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 5,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612
+          }
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_012",
+        "query": "请调整回应语气加点感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "context_aware",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9919,
+          0.9534
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 5,
+            "rrf_score": 0.031258,
+            "rrf_normalized": 0.9534
+          }
+        ],
+        "difficulty": "hard",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.5,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_013",
+        "query": "建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware"
+        ],
+        "actual_scores": [
+          1.0,
+          0.4919,
+          0.4841
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841
+          }
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_014",
+        "query": "你能主动给我点建议吗",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9761
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          }
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_015",
+        "query": "请主动提建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_016",
+        "query": "主动识别我的潜在需求",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9683
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 3,
+            "rrf_score": 0.031746,
+            "rrf_normalized": 0.9683
+          }
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_017",
+        "query": "上下文",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9534
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 5,
+            "rrf_score": 0.031258,
+            "rrf_normalized": 0.9534
+          }
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_018",
+        "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9761
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          }
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_019",
+        "query": "检测话题切换",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9458
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 4,
+            "rrf_score": 0.03101,
+            "rrf_normalized": 0.9458
+          }
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_020",
+        "query": "根据之前的话题调整策略",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9612
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 5,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612
+          }
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_021",
+        "query": "安全",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "context_aware"
+        ],
+        "actual_scores": [
+          1.0,
+          0.4919,
+          0.4841
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841
+          }
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_022",
+        "query": "这个操作安全吗，帮我过滤一下危险内容",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9541
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 6,
+            "vector_rank": 2,
+            "rrf_score": 0.031281,
+            "rrf_normalized": 0.9541
+          }
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_023",
+        "query": "帮我拦截危险操作",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9685,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 3,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_024",
+        "query": "检测敏感信息泄露",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9685,
+          0.9685
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 2,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685
+          }
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_025",
+        "query": "语音",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.4919,
+          0.4841
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841
+          }
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_026",
+        "query": "我想用语音跟你说话",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9841,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 3,
+            "rrf_score": 0.032266,
+            "rrf_normalized": 0.9841
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_027",
+        "query": "请识别语音指令",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9534
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 5,
+            "rrf_score": 0.031258,
+            "rrf_normalized": 0.9534
+          }
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_028",
+        "query": "请进行 TTS 合成",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "scripted-selftest"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9472,
+          0.9462
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 7,
+            "rrf_score": 0.031054,
+            "rrf_normalized": 0.9472
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 6,
+            "rrf_score": 0.031025,
+            "rrf_normalized": 0.9462
+          }
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_029",
+        "query": "脚本示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.4919,
+          0.4841
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841
+          }
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_030",
+        "query": "调用带脚本的技能示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9612
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 5,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612
+          }
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_031",
+        "query": "三层架构示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary",
+          "context_aware"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9405,
+          0.4919
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 8,
+            "rrf_score": 0.030835,
+            "rrf_normalized": 0.9405
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          }
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_032",
+        "query": "请运行带脚本的技能",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9472
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 7,
+            "rrf_score": 0.031054,
+            "rrf_normalized": 0.9472
+          }
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_033",
+        "query": "上下文感知与安全守护",
+        "expected": [
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual": [
+          "context_aware",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_034",
+        "query": "情感表达与主动建议",
+        "expected": [
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9919,
+          0.9683
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 3,
+            "rrf_score": 0.031746,
+            "rrf_normalized": 0.9683
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_035",
+        "query": "请识别语音指令并保障安全",
+        "expected": [
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9919,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 3,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_036",
+        "query": "请运行三层架构示例并保障安全",
+        "expected": [
+          "scripted-selftest",
+          "safety_guard"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9839,
+          0.9458
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 4,
+            "rrf_score": 0.03101,
+            "rrf_normalized": 0.9458
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_037",
+        "query": "请检测话题切换并主动提建议",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9919,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_038",
+        "query": "今天天气真好",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_039",
+        "query": "def print_hello_world function",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_040",
+        "query": "java python c++ programming",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_041",
+        "query": "12345",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_042",
+        "query": "帮我订一张机票",
+        "expected": [],
+        "actual": [
+          "self_reflection",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.9552,
+          0.5,
+          0.4919
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 7,
+            "rrf_score": 0.031319,
+            "rrf_normalized": 0.9552
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 1,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          }
+        ],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 0.0,
+        "recall": 1.0,
+        "mrr": 0.0,
+        "hit": false,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_043",
+        "query": "请帮我反思",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.4919,
+          0.4841
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_044",
+        "query": "请总结一下之前的记忆",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          1.0,
+          0.9761,
+          0.9607
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      },
+      {
+        "case_id": "case_045",
+        "query": "刚才回答有没有问题，请帮我检查",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "safety_guard",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.9919,
+          0.9766,
+          0.9761
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 1,
+            "rrf_score": 0.032018,
+            "rrf_normalized": 0.9766
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf"
+      }
+    ],
+    "available_skills": [
+      "context_aware",
+      "emotion_expression",
+      "memory_summary",
+      "proactive_suggestion",
+      "safety_guard",
+      "scripted-selftest",
+      "self_reflection",
+      "voice_interaction"
+    ]
+  },
+  "rrf_rerank": {
+    "method": "rrf_rerank",
+    "top_k": 3,
+    "total_cases": 45,
+    "overall": {
+      "precision": 0.4222,
+      "recall": 1.0,
+      "mrr": 0.9667
+    },
+    "zero_case_count": 1,
+    "fallback_count": 4,
+    "by_difficulty": {
+      "easy": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.9643,
+        "count": 14
+      },
+      "hard": {
+        "precision": 0.4615,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 13
+      },
+      "medium": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 13
+      },
+      "tricky": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      }
+    },
+    "by_category": {
+      "self_reflection": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "memory_summary": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "emotion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "suggestion": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "context": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.875,
+        "count": 4
+      },
+      "safety": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "voice": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "scripted": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 4
+      },
+      "multi_skill": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 5
+      },
+      "negative": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "mrr": 0.8,
+        "count": 5
+      },
+      "discrimination": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "count": 3
+      }
+    },
+    "cases": [
+      {
+        "case_id": "case_001",
+        "query": "self_reflection",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.5865
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": null,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5,
+            "rerank_score": 0.586503803730011,
+            "original_rrf_rank": 1
+          }
+        ],
+        "difficulty": "easy",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_002",
+        "query": "请帮我反思刚才的回答",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "emotion_expression",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.236,
+          0.0185,
+          0.001
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.2360224574804306,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 6,
+            "rrf_score": 0.031025,
+            "rrf_normalized": 0.9462,
+            "rerank_score": 0.018536515533924103,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 3,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607,
+            "rerank_score": 0.0009769616881385446,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_003",
+        "query": "帮我复查刚才的回答有没有逻辑漏洞",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "safety_guard",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.4603,
+          0.003,
+          0.003
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.46034958958625793,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 6,
+            "vector_rank": 3,
+            "rrf_score": 0.031025,
+            "rrf_normalized": 0.9462,
+            "rerank_score": 0.002969366265460849,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 8,
+            "rrf_score": 0.030331,
+            "rrf_normalized": 0.9251,
+            "rerank_score": 0.0029651580844074488,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "hard",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_004",
+        "query": "self_reflection 技能",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.9902,
+          0.0074,
+          0.0056
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.990212619304657,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.007424861658364534,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.00557246059179306,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "medium",
+        "category": "self_reflection",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_005",
+        "query": "memory_summary",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.9886
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": null,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5,
+            "rerank_score": 0.9885960221290588,
+            "original_rrf_rank": 1
+          }
+        ],
+        "difficulty": "easy",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_006",
+        "query": "请总结一下之前的对话历史",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.2889,
+          0.0151,
+          0.0077
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.28890594840049744,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607,
+            "rerank_score": 0.015076352283358574,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 5,
+            "rrf_score": 0.030769,
+            "rrf_normalized": 0.9385,
+            "rerank_score": 0.007726484909653664,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_007",
+        "query": "帮我梳理历史记忆并压缩",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.754,
+          0.0009,
+          0.0006
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.7539566159248352,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0008613486425019801,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 7,
+            "rrf_score": 0.014925,
+            "rrf_normalized": 0.4552,
+            "rerank_score": 0.0005842360551469028,
+            "original_rrf_rank": 7
+          }
+        ],
+        "difficulty": "hard",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_008",
+        "query": "memory_summary 技能",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.9978,
+          0.0098,
+          0.009
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9977566599845886,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 4,
+            "rrf_score": 0.015625,
+            "rrf_normalized": 0.4766,
+            "rerank_score": 0.009844960644841194,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.008976142853498459,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "medium",
+        "category": "memory_summary",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_009",
+        "query": "情感",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.1391,
+          0.0007,
+          0.0006
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.13907380402088165,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 4,
+            "rrf_score": 0.015625,
+            "rrf_normalized": 0.4766,
+            "rerank_score": 0.00071871024556458,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.0006310422322712839,
+            "original_rrf_rank": 4
+          }
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_010",
+        "query": "我想让你说话带点感情色彩",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.9373,
+          0.0016,
+          0.0012
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9372556805610657,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.0015948450891301036,
+            "original_rrf_rank": 8
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0012014209059998393,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_011",
+        "query": "让回答更有感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.9197,
+          0.0018,
+          0.0017
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9197304844856262,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 2,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612,
+            "rerank_score": 0.001756028039380908,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 5,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612,
+            "rerank_score": 0.0017414229223504663,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "easy",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_012",
+        "query": "请调整回应语气加点感情",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.5769,
+          0.0073,
+          0.0005
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.5769319534301758,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.00725613534450531,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 5,
+            "rrf_score": 0.031258,
+            "rrf_normalized": 0.9534,
+            "rerank_score": 0.0004896768950857222,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "hard",
+        "category": "emotion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_013",
+        "query": "建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "safety_guard",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.1948,
+          0.0081,
+          0.0042
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.1948339343070984,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.008077247999608517,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 6,
+            "rrf_score": 0.015152,
+            "rrf_normalized": 0.4621,
+            "rerank_score": 0.00419899495318532,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_014",
+        "query": "你能主动给我点建议吗",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.5764,
+          0.0062,
+          0.0004
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.5764370560646057,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 7,
+            "rrf_score": 0.03055,
+            "rrf_normalized": 0.9318,
+            "rerank_score": 0.00617035711184144,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.00037854514084756374,
+            "original_rrf_rank": 8
+          }
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_015",
+        "query": "请主动提建议",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.8046,
+          0.0106,
+          0.0009
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.8046267628669739,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607,
+            "rerank_score": 0.01062075700610876,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 6,
+            "rrf_score": 0.015152,
+            "rrf_normalized": 0.4621,
+            "rerank_score": 0.0008793816086836159,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "easy",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_016",
+        "query": "主动识别我的潜在需求",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "safety_guard",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.9795,
+          0.0241,
+          0.0037
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9795376658439636,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 5,
+            "rrf_score": 0.03101,
+            "rrf_normalized": 0.9458,
+            "rerank_score": 0.024104485288262367,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.0037102201022207737,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "suggestion",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_017",
+        "query": "上下文",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.684,
+          0.0409,
+          0.0172
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.6840305924415588,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.040892284363508224,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.01720406673848629,
+            "original_rrf_rank": 4
+          }
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 0.5,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_018",
+        "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.3248,
+          0.052,
+          0.0047
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.3247707188129425,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0519510954618454,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0046874829567968845,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_019",
+        "query": "检测话题切换",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.792,
+          0.0059,
+          0.0054
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.7920222878456116,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 4,
+            "rrf_score": 0.03101,
+            "rrf_normalized": 0.9458,
+            "rerank_score": 0.005928213242441416,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.005396571010351181,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "easy",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_020",
+        "query": "根据之前的话题调整策略",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "context_aware",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.1639,
+          0.0077,
+          0.0058
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.16386476159095764,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 6,
+            "vector_rank": 6,
+            "rrf_score": 0.030303,
+            "rrf_normalized": 0.9242,
+            "rerank_score": 0.007668113335967064,
+            "original_rrf_rank": 6
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.005838833749294281,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "context",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_021",
+        "query": "安全",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.0573,
+          0.0094,
+          0.0016
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.05727871507406235,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 2,
+            "rrf_score": 0.016129,
+            "rrf_normalized": 0.4919,
+            "rerank_score": 0.009410642087459564,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.0015597674064338207,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_022",
+        "query": "这个操作安全吗，帮我过滤一下危险内容",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.1773,
+          0.0004,
+          0.0003
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.17728668451309204,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 4,
+            "rrf_score": 0.03101,
+            "rrf_normalized": 0.9458,
+            "rerank_score": 0.00041861465433612466,
+            "original_rrf_rank": 6
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 3,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0002847651776392013,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_023",
+        "query": "帮我拦截危险操作",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "voice_interaction",
+          "context_aware"
+        ],
+        "actual_scores": [
+          0.43,
+          0.0092,
+          0.0003
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.43003445863723755,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685,
+            "rerank_score": 0.009223486296832561,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.00026712424005381763,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "easy",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_024",
+        "query": "检测敏感信息泄露",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "context_aware",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.484,
+          0.0025,
+          0.0016
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.4840361475944519,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 4,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685,
+            "rerank_score": 0.002459737006574869,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 2,
+            "rrf_score": 0.031754,
+            "rrf_normalized": 0.9685,
+            "rerank_score": 0.0016347621567547321,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "medium",
+        "category": "safety",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_025",
+        "query": "语音",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.6907,
+          0.0205,
+          0.0182
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.6906891465187073,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.02050269953906536,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.018216459080576897,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_026",
+        "query": "我想用语音跟你说话",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.1277,
+          0.1003,
+          0.0114
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.12772294878959656,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 7,
+            "vector_rank": 2,
+            "rrf_score": 0.031054,
+            "rrf_normalized": 0.9472,
+            "rerank_score": 0.10031946003437042,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 6,
+            "rrf_score": 0.030536,
+            "rrf_normalized": 0.9314,
+            "rerank_score": 0.011428398080170155,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_027",
+        "query": "请识别语音指令",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.2378,
+          0.0025,
+          0.002
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.23777146637439728,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.002505423966795206,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 4,
+            "rrf_score": 0.015625,
+            "rrf_normalized": 0.4766,
+            "rerank_score": 0.0020420376677066088,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "easy",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_028",
+        "query": "请进行 TTS 合成",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.0024,
+          0.0007,
+          0.0001
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.0024382479023188353,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 7,
+            "rrf_score": 0.031054,
+            "rrf_normalized": 0.9472,
+            "rerank_score": 0.0006844514282420278,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.00014792462752666324,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "medium",
+        "category": "voice",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_029",
+        "query": "脚本示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.6886,
+          0.0319,
+          0.0151
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.6885722875595093,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.03185238689184189,
+            "original_rrf_rank": 5
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 6,
+            "rrf_score": 0.015152,
+            "rrf_normalized": 0.4621,
+            "rerank_score": 0.015121649950742722,
+            "original_rrf_rank": 6
+          }
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_030",
+        "query": "调用带脚本的技能示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.9661,
+          0.0538,
+          0.0288
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9661387801170349,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 5,
+            "rrf_score": 0.031514,
+            "rrf_normalized": 0.9612,
+            "rerank_score": 0.05376114696264267,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.0287749245762825,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_031",
+        "query": "三层架构示例",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.9896,
+          0.0064,
+          0.0055
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.9896153211593628,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.0063721719197928905,
+            "original_rrf_rank": 6
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 8,
+            "rrf_score": 0.030835,
+            "rrf_normalized": 0.9405,
+            "rerank_score": 0.005537393502891064,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "easy",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_032",
+        "query": "请运行带脚本的技能",
+        "expected": [
+          "scripted-selftest"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "memory_summary",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.7044,
+          0.0207,
+          0.0182
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.7044248580932617,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 7,
+            "rrf_score": 0.031054,
+            "rrf_normalized": 0.9472,
+            "rerank_score": 0.020654089748859406,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 2,
+            "rrf_score": 0.032002,
+            "rrf_normalized": 0.9761,
+            "rerank_score": 0.018248436972498894,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "medium",
+        "category": "scripted",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_033",
+        "query": "上下文感知与安全守护",
+        "expected": [
+          "context_aware",
+          "safety_guard"
+        ],
+        "actual": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.0975,
+          0.0289,
+          0.0079
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.0975039079785347,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 3,
+            "vector_rank": 4,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607,
+            "rerank_score": 0.02886887639760971,
+            "original_rrf_rank": 3
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.007855688221752644,
+            "original_rrf_rank": 2
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_034",
+        "query": "情感表达与主动建议",
+        "expected": [
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual_scores": [
+          0.2141,
+          0.024,
+          0.0023
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.2140716016292572,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.02400481142103672,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 6,
+            "rrf_score": 0.030777,
+            "rrf_normalized": 0.9387,
+            "rerank_score": 0.0023010734003037214,
+            "original_rrf_rank": 4
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_035",
+        "query": "请识别语音指令并保障安全",
+        "expected": [
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "actual": [
+          "voice_interaction",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "actual_scores": [
+          0.0279,
+          0.0081,
+          0.0003
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.027943141758441925,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.008123145438730717,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 3,
+            "rrf_score": 0.031498,
+            "rrf_normalized": 0.9607,
+            "rerank_score": 0.0002813014725688845,
+            "original_rrf_rank": 3
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_036",
+        "query": "请运行三层架构示例并保障安全",
+        "expected": [
+          "scripted-selftest",
+          "safety_guard"
+        ],
+        "actual": [
+          "scripted-selftest",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "actual_scores": [
+          0.4066,
+          0.0015,
+          0.0002
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.40659967064857483,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 2,
+            "rrf_score": 0.032258,
+            "rrf_normalized": 0.9839,
+            "rerank_score": 0.001548674190416932,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 6,
+            "rrf_score": 0.030777,
+            "rrf_normalized": 0.9387,
+            "rerank_score": 0.00018054094107355922,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_037",
+        "query": "请检测话题切换并主动提建议",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.2865,
+          0.1132,
+          0.0054
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 2,
+            "vector_rank": 1,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.28645971417427063,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.11322582513093948,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 6,
+            "rrf_score": 0.030777,
+            "rrf_normalized": 0.9387,
+            "rerank_score": 0.005408395081758499,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "hard",
+        "category": "multi_skill",
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_038",
+        "query": "今天天气真好",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_039",
+        "query": "def print_hello_world function",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_040",
+        "query": "java python c++ programming",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_041",
+        "query": "12345",
+        "expected": [],
+        "actual": [],
+        "actual_scores": [],
+        "actual_breakdowns": [],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": true,
+        "retrieval_method": "tfidf"
+      },
+      {
+        "case_id": "case_042",
+        "query": "帮我订一张机票",
+        "expected": [],
+        "actual": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.0005,
+          0.0001,
+          0.0
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": null,
+            "vector_rank": 3,
+            "rrf_score": 0.015873,
+            "rrf_normalized": 0.4841,
+            "rerank_score": 0.0005188037175685167,
+            "original_rrf_rank": 4
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 1,
+            "rrf_score": 0.016393,
+            "rrf_normalized": 0.5,
+            "rerank_score": 5.1809729484375566e-05,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 4,
+            "rrf_score": 0.015625,
+            "rrf_normalized": 0.4766,
+            "rerank_score": 2.5988836569013074e-05,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "tricky",
+        "category": "negative",
+        "precision": 0.0,
+        "recall": 1.0,
+        "mrr": 0.0,
+        "hit": false,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_043",
+        "query": "请帮我反思",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "emotion_expression",
+          "memory_summary"
+        ],
+        "actual_scores": [
+          0.1388,
+          0.0057,
+          0.001
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.13875524699687958,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 6,
+            "rrf_score": 0.015152,
+            "rrf_normalized": 0.4621,
+            "rerank_score": 0.005733494181185961,
+            "original_rrf_rank": 6
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 5,
+            "rrf_score": 0.015385,
+            "rrf_normalized": 0.4692,
+            "rerank_score": 0.0010194712085649371,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_044",
+        "query": "请总结一下之前的记忆",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "emotion_expression",
+          "self_reflection"
+        ],
+        "actual_scores": [
+          0.1546,
+          0.0021,
+          0.0015
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 1,
+            "rrf_score": 0.032787,
+            "rrf_normalized": 1.0,
+            "rerank_score": 0.15458889305591583,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": null,
+            "vector_rank": 8,
+            "rrf_score": 0.014706,
+            "rrf_normalized": 0.4485,
+            "rerank_score": 0.0020916147623211145,
+            "original_rrf_rank": 8
+          },
+          {
+            "tfidf_rank": 6,
+            "vector_rank": 2,
+            "rrf_score": 0.031281,
+            "rrf_normalized": 0.9541,
+            "rerank_score": 0.0015393266221508384,
+            "original_rrf_rank": 4
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      },
+      {
+        "case_id": "case_045",
+        "query": "刚才回答有没有问题，请帮我检查",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "safety_guard",
+          "emotion_expression"
+        ],
+        "actual_scores": [
+          0.0614,
+          0.007,
+          0.0029
+        ],
+        "actual_breakdowns": [
+          {
+            "tfidf_rank": 1,
+            "vector_rank": 2,
+            "rrf_score": 0.032522,
+            "rrf_normalized": 0.9919,
+            "rerank_score": 0.061429332941770554,
+            "original_rrf_rank": 1
+          },
+          {
+            "tfidf_rank": 4,
+            "vector_rank": 1,
+            "rrf_score": 0.032018,
+            "rrf_normalized": 0.9766,
+            "rerank_score": 0.007004378829151392,
+            "original_rrf_rank": 2
+          },
+          {
+            "tfidf_rank": 5,
+            "vector_rank": 7,
+            "rrf_score": 0.03031,
+            "rrf_normalized": 0.9245,
+            "rerank_score": 0.002917594276368618,
+            "original_rrf_rank": 5
+          }
+        ],
+        "difficulty": "hard",
+        "category": "discrimination",
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "hit": true,
+        "fallback_used": false,
+        "retrieval_method": "rrf_rerank"
+      }
+    ],
+    "available_skills": [
+      "context_aware",
+      "emotion_expression",
+      "memory_summary",
+      "proactive_suggestion",
+      "safety_guard",
+      "scripted-selftest",
+      "self_reflection",
+      "voice_interaction"
+    ]
+  }
+}

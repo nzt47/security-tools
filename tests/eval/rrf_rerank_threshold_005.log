@@ -1,0 +1,168 @@
+============================================================================================
+RRF 融合检索 四方评估  (K=3)
+============================================================================================
+
+>>> 评估 RRF+Reranker 检索（首次加载 BGE-reranker 可能需要数分钟）...
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights:  82%|████████▏ | 322/393 [00:00<00:00, 3190.70it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 3263.14it/s]
+  ✓ case_001   P=0.33 R=1.00 MRR=1.00  self_reflection
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.587)]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 17118.71it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "651a0aecdb684ce4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "请进行 TTS 合成", "fallback": "tfidf"}
+{"trace_id": "651a0aecdb684ce4", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "请进行 TTS 合成", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "47524daf0ce744d6", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "请识别语音指令并保障安全", "fallback": "tfidf"}
+{"trace_id": "47524daf0ce744d6", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "请识别语音指令并保障安全", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "28db142bbfbc4d70", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "28db142bbfbc4d70", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气真好", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "636e9a27635b458a", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "636e9a27635b458a", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "9bf1b4530e924e25", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "9bf1b4530e924e25", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "00a97055fc4349e0", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "00a97055fc4349e0", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "aeea572b043b4a5e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "帮我订一张机票", "fallback": "tfidf"}
+{"trace_id": "aeea572b043b4a5e", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "帮我订一张机票", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  ✓ case_002   P=0.33 R=1.00 MRR=1.00  请帮我反思刚才的回答
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.236)]
+  ✓ case_003   P=0.33 R=1.00 MRR=1.00  帮我复查刚才的回答有没有逻辑漏洞
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.46)]
+  ✓ case_004   P=0.33 R=1.00 MRR=1.00  self_reflection 技能
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.99)]
+  ✓ case_005   P=0.33 R=1.00 MRR=1.00  memory_summary
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.989)]
+  ✓ case_006   P=0.33 R=1.00 MRR=1.00  请总结一下之前的对话历史
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.289)]
+  ✓ case_007   P=0.33 R=1.00 MRR=1.00  帮我梳理历史记忆并压缩
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.754)]
+  ✓ case_008   P=0.33 R=1.00 MRR=1.00  memory_summary 技能
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.998)]
+  ✓ case_009   P=0.33 R=1.00 MRR=1.00  情感
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.139)]
+  ✓ case_010   P=0.33 R=1.00 MRR=1.00  我想让你说话带点感情色彩
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.937)]
+  ✓ case_011   P=0.33 R=1.00 MRR=1.00  让回答更有感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.92)]
+  ✓ case_012   P=0.33 R=1.00 MRR=1.00  请调整回应语气加点感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.577)]
+  ✓ case_013   P=0.33 R=1.00 MRR=1.00  建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.195)]
+  ✓ case_014   P=0.33 R=1.00 MRR=1.00  你能主动给我点建议吗
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.576)]
+  ✓ case_015   P=0.33 R=1.00 MRR=1.00  请主动提建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.805)]
+  ✓ case_016   P=0.33 R=1.00 MRR=1.00  主动识别我的潜在需求
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.98)]
+  ✗ case_017   P=0.00 R=0.00 MRR=0.00  上下文
+    expected: ['context_aware']
+    actual  : [('proactive_suggestion', 0.684)]
+  ✓ case_018   P=0.33 R=1.00 MRR=1.00  刚才说的上下文你记住了吗，根据之前的话题调整一下
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.325), ('proactive_suggestion', 0.052)]
+  ✓ case_019   P=0.33 R=1.00 MRR=1.00  检测话题切换
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.792)]
+  ✓ case_020   P=0.33 R=1.00 MRR=1.00  根据之前的话题调整策略
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.164)]
+  ✓ case_021   P=0.33 R=1.00 MRR=1.00  安全
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.057)]
+  ✓ case_022   P=0.33 R=1.00 MRR=1.00  这个操作安全吗，帮我过滤一下危险内容
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.177)]
+  ✓ case_023   P=0.33 R=1.00 MRR=1.00  帮我拦截危险操作
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.43)]
+  ✓ case_024   P=0.33 R=1.00 MRR=1.00  检测敏感信息泄露
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.484)]
+  ✓ case_025   P=0.33 R=1.00 MRR=1.00  语音
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.691)]
+  ✓ case_026   P=0.33 R=1.00 MRR=1.00  我想用语音跟你说话
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.128), ('emotion_expression', 0.1)]
+  ✓ case_027   P=0.33 R=1.00 MRR=1.00  请识别语音指令
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.238)]
+  ✓ case_028   P=0.33 R=1.00 MRR=1.00 [fallback]  请进行 TTS 合成
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.667), ('safety_guard', 0.333), ('scripted-selftest', 0.167)]
+  ✓ case_029   P=0.33 R=1.00 MRR=1.00  脚本示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.689)]
+  ✓ case_030   P=0.33 R=1.00 MRR=1.00  调用带脚本的技能示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.966), ('memory_summary', 0.054)]
+  ✓ case_031   P=0.33 R=1.00 MRR=1.00  三层架构示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.99)]
+  ✓ case_032   P=0.33 R=1.00 MRR=1.00  请运行带脚本的技能
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.704)]
+  ✓ case_033   P=0.33 R=0.50 MRR=1.00  上下文感知与安全守护
+    expected: ['context_aware', 'safety_guard']
+    actual  : [('context_aware', 0.098)]
+  ✓ case_034   P=0.33 R=0.50 MRR=1.00  情感表达与主动建议
+    expected: ['emotion_expression', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.214)]
+  ✓ case_035   P=0.67 R=1.00 MRR=1.00 [fallback]  请识别语音指令并保障安全
+    expected: ['voice_interaction', 'safety_guard']
+    actual  : [('voice_interaction', 0.583), ('safety_guard', 0.333), ('self_reflection', 0.25)]
+  ✓ case_036   P=0.33 R=0.50 MRR=1.00  请运行三层架构示例并保障安全
+    expected: ['scripted-selftest', 'safety_guard']
+    actual  : [('scripted-selftest', 0.407)]
+  ✓ case_037   P=0.67 R=1.00 MRR=1.00  请检测话题切换并主动提建议
+    expected: ['context_aware', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.286), ('context_aware', 0.113)]
+  ✓ case_038   P=1.00 R=1.00 MRR=1.00 [fallback]  今天天气真好
+    expected: []
+    actual  : []
+  ✓ case_039   P=1.00 R=1.00 MRR=1.00 [fallback]  def print_hello_world function
+    expected: []
+    actual  : []
+  ✓ case_040   P=1.00 R=1.00 MRR=1.00 [fallback]  java python c++ programming
+    expected: []
+    actual  : []
+  ✓ case_041   P=1.00 R=1.00 MRR=1.00 [fallback]  12345
+    expected: []
+    actual  : []
+  ✗ case_042   P=0.00 R=1.00 MRR=0.00 [fallback]  帮我订一张机票
+    expected: []
+    actual  : [('self_reflection', 0.143)]
+  ✓ case_043   P=0.33 R=1.00 MRR=1.00  请帮我反思
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.139)]
+  ✓ case_044   P=0.33 R=1.00 MRR=1.00  请总结一下之前的记忆
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.155)]
+  ✓ case_045   P=0.33 R=1.00 MRR=1.00  刚才回答有没有问题，请帮我检查
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.061)]
+  Precision@3 = 0.3926
+  Recall@3    = 0.9444
+  MRR                = 0.9556
+  0 分用例数         = 2
+  fallback 次数      = 7
