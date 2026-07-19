@@ -250,7 +250,7 @@ class TestNetworkObservability:
 
 # ── config_manager 测试 ──
 
-from agent.network.config_manager import NetworkConfigManager
+from agent.network_config import NetworkConfigManager
 
 
 @pytest.fixture

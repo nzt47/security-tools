@@ -13,11 +13,10 @@
 import time
 import uuid
 import datetime
-from unittest.mock import MagicMock
 
 import pytest
 
-from agent.network.config_manager import NetworkConfigManager
+from agent.network_config import NetworkConfigManager
 
 
 # ── 模拟旧方法：next() 线性查找 ──
@@ -51,14 +50,13 @@ def _upsert_linear(manager, collection, items, section, secure_key_prefix=None):
 
 @pytest.fixture
 def perf_manager(tmp_path):
-    """创建临时配置的性能测试管理器"""
-    secure_mgr = MagicMock()
-    secure_mgr._store = {}
-    secure_mgr.set_secure_value.side_effect = lambda k, v: secure_mgr._store.__setitem__(k, v)
-    secure_mgr.get_secure_value.side_effect = lambda k, d=None: secure_mgr._store.get(k, d)
+    """创建临时配置的性能测试管理器
+
+    【P3 已清理】secure_manager 参数已从新版 NetworkConfigManager 移除
+    api_key 通过 _save_secure 写入 .env（测试环境用 os.environ 隔离）
+    """
     return NetworkConfigManager(
         config_file=str(tmp_path / "perf_config.json"),
-        secure_manager=secure_mgr,
     )
 
 

@@ -21,15 +21,24 @@ P1 安全加固:
 - Unix: os.chmod(path, 0o600)
 - Windows: icacls /inheritance:r 移除继承 + 仅授权当前用户与 SYSTEM
 - 失败降级为 warning，不阻塞主流程
+
+P3 配置审计:
+- 所有 set/delete 操作自动写入 logs/config_audit.jsonl
+- 敏感 key（API_KEY/TOKEN/WEBHOOK/SECRET 等）的值自动脱敏
+- 审计日志独立于业务日志，便于合规审计与事后溯源
 """
 
+import getpass
+import json
 import logging
 import os
+import re
 import stat
 import subprocess
 import sys
 import tempfile
 import threading
+from datetime import datetime
 from pathlib import Path
 
 from agent.logging_utils import log_dict
@@ -96,9 +105,13 @@ class EnvConfigManager:
             value: 配置值
         """
         with self._file_lock:
+            # 【P3 配置审计】记录修改前的值（用于审计追踪）
+            old_value = os.environ.get(key)
             self._update_env_file(key, value)
             # 同步更新 os.environ（热重载，立即生效）
             os.environ[key] = value
+            # 【P3 配置审计】写入审计日志（脱敏后）
+            self._audit_log('set', key, old_value, value)
             logger.info(log_dict({
                 'module_name': 'env_config',
                 'action': 'env_config.set',
@@ -112,12 +125,102 @@ class EnvConfigManager:
             key: 环境变量名
         """
         with self._file_lock:
+            # 【P3 配置审计】记录删除前的值（用于审计追踪）
+            old_value = os.environ.get(key)
             self._remove_from_env_file(key)
             os.environ.pop(key, None)
+            # 【P3 配置审计】写入审计日志（脱敏后）
+            self._audit_log('delete', key, old_value, None)
             logger.info(log_dict({
                 'module_name': 'env_config',
                 'action': 'env_config.delete',
                 'message': f'[Env配置] 已删除 {key}'
+            }))
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 【P3 配置审计日志】配置变更追踪
+    #
+    # 设计原则（三义）:
+    # - 【不易】审计日志独立于业务日志，写入 logs/config_audit.jsonl
+    #   每行一条 JSON，便于工具化分析与合规审计
+    # - 【变易】敏感 key（API_KEY/TOKEN/WEBHOOK/SECRET 等）的值自动脱敏
+    #   保留前 4 + 后 4 字符，中间用 *** 替代，防止明文泄露
+    # - 【简易】失败降级为 warning，不阻塞主流程（写入已成功，不应回滚）
+    # ──────────────────────────────────────────────────────────────────────────
+
+    # 敏感 key 匹配模式（大小写不敏感）
+    _SENSITIVE_KEY_PATTERN = re.compile(
+        r'API_KEY|TOKEN|WEBHOOK|SECRET|PASSWORD|CREDENTIAL',
+        re.IGNORECASE
+    )
+
+    def _mask_sensitive_value(self, key: str, value: str) -> str:
+        """脱敏敏感配置值
+
+        规则:
+        - 非敏感 key：原值返回
+        - 敏感 key 且值长度 > 8：保留前 4 + *** + 后 4
+        - 敏感 key 且值长度 <= 8：全替换为 ***
+        - None 值：返回 None（用于 delete 操作的 new_value）
+
+        Args:
+            key: 配置 key（用于判断是否敏感）
+            value: 配置值
+
+        Returns:
+            脱敏后的值
+        """
+        if value is None:
+            return None
+        if not self._SENSITIVE_KEY_PATTERN.search(key):
+            return value
+        # 敏感 key 脱敏
+        if len(value) <= 8:
+            return '***'
+        return f'{value[:4]}***{value[-4:]}'
+
+    def _get_audit_log_path(self) -> Path:
+        """获取审计日志文件路径
+
+        路径: <项目根>/logs/config_audit.jsonl
+        目录不存在时自动创建
+        """
+        project_root = Path(__file__).resolve().parent.parent
+        logs_dir = project_root / 'logs'
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        return logs_dir / 'config_audit.jsonl'
+
+    def _audit_log(self, action: str, key: str, old_value: str, new_value: str):
+        """写入配置变更审计日志
+
+        Args:
+            action: 操作类型（'set' / 'delete'）
+            key: 配置 key
+            old_value: 修改前的值（将脱敏）
+            new_value: 修改后的值（将脱敏）
+        """
+        try:
+            entry = {
+                'timestamp': datetime.now().isoformat(),
+                'action': action,
+                'key': key,
+                'old_value': self._mask_sensitive_value(key, old_value),
+                'new_value': self._mask_sensitive_value(key, new_value),
+                'user': getpass.getuser(),
+                'pid': os.getpid(),
+                'trace_id': os.environ.get('TRACE_ID'),
+            }
+            log_path = self._get_audit_log_path()
+            # JSONL 格式：每行一个 JSON 对象，追加写入
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+        except Exception as e:
+            # 失败降级：仅 warning，不阻塞主流程
+            # 原因：审计日志是合规增强，不应破坏配置写入（写入已成功）
+            logger.warning(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.audit_log_failed',
+                'message': f'[Env配置] 审计日志写入失败（不阻塞主流程）: {e}'
             }))
 
     def reload(self):
@@ -302,4 +405,3 @@ def get_env_config_manager() -> EnvConfigManager:
     global _instance
     if _instance is None:
         _instance = EnvConfigManager()
-    return _instance
