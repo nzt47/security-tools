@@ -1,0 +1,233 @@
+{
+  "version": "2.0-extended",
+  "created_at": "2026-07-20",
+  "description": "扩展负样本集 — 用于验证 Cross-Encoder Reranker 的拒绝能力（守【不易】不改原黄金集）。25 个跨领域负样本涵盖天气、订票、编程、烹饪、运动、医疗、金融、娱乐等无关领域，以及近似但非技能的查询。expected_skill_ids 为空 [] 表示应被全部拒绝。",
+  "notes": "设计原则：1) 完全无关领域（天气、订票、烹饪等）验证基础拒绝能力；2) 近似但非技能（如'帮我删除文件'与文件操作技能无关）验证边界判别；3) 含技能关键词但语义无关（如'safety 是什么意思'）验证语义理解。case_id 从 case_101 开始，与原黄金集不冲突。",
+  "test_cases": [
+    {
+      "case_id": "case_101",
+      "query": "今天天气怎么样",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_weather",
+      "notes": "天气查询，与所有技能无关"
+    },
+    {
+      "case_id": "case_102",
+      "query": "明天会下雨吗",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_weather",
+      "notes": "天气预测，与所有技能无关"
+    },
+    {
+      "case_id": "case_103",
+      "query": "帮我订一张机票",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_booking",
+      "notes": "订票场景，原 case_042 复现"
+    },
+    {
+      "case_id": "case_104",
+      "query": "我想订酒店",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_booking",
+      "notes": "订酒店场景"
+    },
+    {
+      "case_id": "case_105",
+      "query": "帮我点外卖",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_booking",
+      "notes": "外卖点餐场景"
+    },
+    {
+      "case_id": "case_106",
+      "query": "def print_hello_world function",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_programming",
+      "notes": "编程代码片段，原 case_039 复现"
+    },
+    {
+      "case_id": "case_107",
+      "query": "java python c++ programming",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_programming",
+      "notes": "编程语言列表，原 case_040 复现"
+    },
+    {
+      "case_id": "case_108",
+      "query": "how to implement quick sort",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_programming",
+      "notes": "算法实现问题，与技能无关"
+    },
+    {
+      "case_id": "case_109",
+      "query": "12345",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_noise",
+      "notes": "纯数字噪声，原 case_041 复现"
+    },
+    {
+      "case_id": "case_110",
+      "query": "asdfghjkl",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_noise",
+      "notes": "随机字符噪声"
+    },
+    {
+      "case_id": "case_111",
+      "query": "帮我写一首诗",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_creative",
+      "notes": "创意写作，与所有技能无关"
+    },
+    {
+      "case_id": "case_112",
+      "query": "推荐一首好听的歌",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_entertainment",
+      "notes": "音乐推荐，与所有技能无关"
+    },
+    {
+      "case_id": "case_113",
+      "query": "今天股票涨了吗",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_finance",
+      "notes": "金融查询，与所有技能无关"
+    },
+    {
+      "case_id": "case_114",
+      "query": "比特币现在多少钱",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_finance",
+      "notes": "加密货币行情"
+    },
+    {
+      "case_id": "case_115",
+      "query": "教我怎么做红烧肉",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_cooking",
+      "notes": "烹饪菜谱，与所有技能无关"
+    },
+    {
+      "case_id": "case_116",
+      "query": "跑步前要做什么热身",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_sports",
+      "notes": "运动健身，与所有技能无关"
+    },
+    {
+      "case_id": "case_117",
+      "query": "感冒了吃什么药",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_medical",
+      "notes": "医疗咨询，与所有技能无关"
+    },
+    {
+      "case_id": "case_118",
+      "query": "帮我删除文件",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "hard",
+      "category": "negative_similar",
+      "notes": "文件操作看似相关，但本系统无文件管理技能"
+    },
+    {
+      "case_id": "case_119",
+      "query": "重启服务器",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "hard",
+      "category": "negative_similar",
+      "notes": "运维操作，本系统无此技能"
+    },
+    {
+      "case_id": "case_120",
+      "query": "safety 是什么意思",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "hard",
+      "category": "negative_keyword_trap",
+      "notes": "含 safety 关键词但是词义查询，不应召回 safety_guard"
+    },
+    {
+      "case_id": "case_121",
+      "query": "memory 概念解释",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "hard",
+      "category": "negative_keyword_trap",
+      "notes": "含 memory 关键词但是概念解释，不应召回 memory_summary"
+    },
+    {
+      "case_id": "case_122",
+      "query": "请帮我翻译这段话",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "medium",
+      "category": "negative_translation",
+      "notes": "翻译请求，本系统无翻译技能"
+    },
+    {
+      "case_id": "case_123",
+      "query": "现在几点了",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_daily",
+      "notes": "日常时间查询"
+    },
+    {
+      "case_id": "case_124",
+      "query": "帮我算一下 1+1 等于几",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_math",
+      "notes": "基础算术"
+    },
+    {
+      "case_id": "case_125",
+      "query": "你好，你是谁",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "easy",
+      "category": "negative_greeting",
+      "notes": "问候语，不应触发任何技能"
+    }
+  ]
+}

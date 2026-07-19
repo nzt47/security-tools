@@ -1,0 +1,822 @@
+{
+  "version": "1.0",
+  "golden_set_path": "C:\\Users\\Administrator\\agent\\tests\\eval\\skill_retrieval_golden_set.json",
+  "top_k": 1,
+  "enabled_only": true,
+  "total_cases": 45,
+  "available_skills": [
+    "context_aware",
+    "emotion_expression",
+    "memory_summary",
+    "proactive_suggestion",
+    "safety_guard",
+    "scripted-selftest",
+    "self_reflection",
+    "voice_interaction"
+  ],
+  "overall": {
+    "precision": 0.7556,
+    "recall": 0.7,
+    "mrr": 0.7556
+  },
+  "by_difficulty": {
+    "easy": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 14
+    },
+    "hard": {
+      "precision": 0.3846,
+      "recall": 0.1923,
+      "mrr": 0.3846,
+      "count": 13
+    },
+    "medium": {
+      "precision": 0.7692,
+      "recall": 0.7692,
+      "mrr": 0.7692,
+      "count": 13
+    },
+    "tricky": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 5
+    }
+  },
+  "by_category": {
+    "self_reflection": {
+      "precision": 0.25,
+      "recall": 0.25,
+      "mrr": 0.25,
+      "count": 4
+    },
+    "memory_summary": {
+      "precision": 0.25,
+      "recall": 0.25,
+      "mrr": 0.25,
+      "count": 4
+    },
+    "emotion": {
+      "precision": 0.75,
+      "recall": 0.75,
+      "mrr": 0.75,
+      "count": 4
+    },
+    "suggestion": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 4
+    },
+    "context": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 4
+    },
+    "safety": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 4
+    },
+    "voice": {
+      "precision": 0.75,
+      "recall": 0.75,
+      "mrr": 0.75,
+      "count": 4
+    },
+    "scripted": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 4
+    },
+    "multi_skill": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "count": 5
+    },
+    "negative": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "count": 5
+    },
+    "discrimination": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "count": 3
+    }
+  },
+  "cases": [
+    {
+      "case_id": "case_001",
+      "query": "self_reflection",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [
+        "self_reflection"
+      ],
+      "difficulty": "easy",
+      "category": "self_reflection",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_002",
+      "query": "请帮我反思刚才的回答",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "self_reflection",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_003",
+      "query": "帮我复查刚才的回答有没有逻辑漏洞",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "hard",
+      "category": "self_reflection",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_004",
+      "query": "self_reflection 技能",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "medium",
+      "category": "self_reflection",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_005",
+      "query": "memory_summary",
+      "expected": [
+        "memory_summary"
+      ],
+      "actual": [
+        "memory_summary"
+      ],
+      "difficulty": "easy",
+      "category": "memory_summary",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_006",
+      "query": "请总结一下之前的对话历史",
+      "expected": [
+        "memory_summary"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "memory_summary",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_007",
+      "query": "帮我梳理历史记忆并压缩",
+      "expected": [
+        "memory_summary"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "memory_summary",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_008",
+      "query": "memory_summary 技能",
+      "expected": [
+        "memory_summary"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "medium",
+      "category": "memory_summary",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_009",
+      "query": "情感",
+      "expected": [
+        "emotion_expression"
+      ],
+      "actual": [
+        "emotion_expression"
+      ],
+      "difficulty": "easy",
+      "category": "emotion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_010",
+      "query": "我想让你说话带点感情色彩",
+      "expected": [
+        "emotion_expression"
+      ],
+      "actual": [
+        "emotion_expression"
+      ],
+      "difficulty": "medium",
+      "category": "emotion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_011",
+      "query": "让回答更有感情",
+      "expected": [
+        "emotion_expression"
+      ],
+      "actual": [
+        "emotion_expression"
+      ],
+      "difficulty": "easy",
+      "category": "emotion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_012",
+      "query": "请调整回应语气加点感情",
+      "expected": [
+        "emotion_expression"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "emotion",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_013",
+      "query": "建议",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "easy",
+      "category": "suggestion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_014",
+      "query": "你能主动给我点建议吗",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "medium",
+      "category": "suggestion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_015",
+      "query": "请主动提建议",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "easy",
+      "category": "suggestion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_016",
+      "query": "主动识别我的潜在需求",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "medium",
+      "category": "suggestion",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_017",
+      "query": "上下文",
+      "expected": [
+        "context_aware"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "easy",
+      "category": "context",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_018",
+      "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+      "expected": [
+        "context_aware"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "medium",
+      "category": "context",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_019",
+      "query": "检测话题切换",
+      "expected": [
+        "context_aware"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "easy",
+      "category": "context",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_020",
+      "query": "根据之前的话题调整策略",
+      "expected": [
+        "context_aware"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "medium",
+      "category": "context",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_021",
+      "query": "安全",
+      "expected": [
+        "safety_guard"
+      ],
+      "actual": [
+        "safety_guard"
+      ],
+      "difficulty": "easy",
+      "category": "safety",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_022",
+      "query": "这个操作安全吗，帮我过滤一下危险内容",
+      "expected": [
+        "safety_guard"
+      ],
+      "actual": [
+        "safety_guard"
+      ],
+      "difficulty": "medium",
+      "category": "safety",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_023",
+      "query": "帮我拦截危险操作",
+      "expected": [
+        "safety_guard"
+      ],
+      "actual": [
+        "safety_guard"
+      ],
+      "difficulty": "easy",
+      "category": "safety",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_024",
+      "query": "检测敏感信息泄露",
+      "expected": [
+        "safety_guard"
+      ],
+      "actual": [
+        "safety_guard"
+      ],
+      "difficulty": "medium",
+      "category": "safety",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_025",
+      "query": "语音",
+      "expected": [
+        "voice_interaction"
+      ],
+      "actual": [
+        "voice_interaction"
+      ],
+      "difficulty": "easy",
+      "category": "voice",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_026",
+      "query": "我想用语音跟你说话",
+      "expected": [
+        "voice_interaction"
+      ],
+      "actual": [
+        "proactive_suggestion"
+      ],
+      "difficulty": "medium",
+      "category": "voice",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_027",
+      "query": "请识别语音指令",
+      "expected": [
+        "voice_interaction"
+      ],
+      "actual": [
+        "voice_interaction"
+      ],
+      "difficulty": "easy",
+      "category": "voice",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_028",
+      "query": "请进行 TTS 合成",
+      "expected": [
+        "voice_interaction"
+      ],
+      "actual": [
+        "voice_interaction"
+      ],
+      "difficulty": "medium",
+      "category": "voice",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_029",
+      "query": "脚本示例",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "easy",
+      "category": "scripted",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_030",
+      "query": "调用带脚本的技能示例",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "medium",
+      "category": "scripted",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_031",
+      "query": "三层架构示例",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "easy",
+      "category": "scripted",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_032",
+      "query": "请运行带脚本的技能",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "medium",
+      "category": "scripted",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_033",
+      "query": "上下文感知与安全守护",
+      "expected": [
+        "context_aware",
+        "safety_guard"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_034",
+      "query": "情感表达与主动建议",
+      "expected": [
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "emotion_expression"
+      ],
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_035",
+      "query": "请识别语音指令并保障安全",
+      "expected": [
+        "voice_interaction",
+        "safety_guard"
+      ],
+      "actual": [
+        "voice_interaction"
+      ],
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_036",
+      "query": "请运行三层架构示例并保障安全",
+      "expected": [
+        "scripted-selftest",
+        "safety_guard"
+      ],
+      "actual": [
+        "scripted-selftest"
+      ],
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_037",
+      "query": "请检测话题切换并主动提建议",
+      "expected": [
+        "context_aware",
+        "proactive_suggestion"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "precision": 1.0,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_038",
+      "query": "今天天气真好",
+      "expected": [],
+      "actual": [],
+      "difficulty": "tricky",
+      "category": "negative",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_039",
+      "query": "def print_hello_world function",
+      "expected": [],
+      "actual": [],
+      "difficulty": "tricky",
+      "category": "negative",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_040",
+      "query": "java python c++ programming",
+      "expected": [],
+      "actual": [],
+      "difficulty": "tricky",
+      "category": "negative",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_041",
+      "query": "12345",
+      "expected": [],
+      "actual": [],
+      "difficulty": "tricky",
+      "category": "negative",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_042",
+      "query": "帮我订一张机票",
+      "expected": [],
+      "actual": [],
+      "difficulty": "tricky",
+      "category": "negative",
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "hit": true
+    },
+    {
+      "case_id": "case_043",
+      "query": "请帮我反思",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [],
+      "difficulty": "hard",
+      "category": "discrimination",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_044",
+      "query": "请总结一下之前的记忆",
+      "expected": [
+        "memory_summary"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "discrimination",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    },
+    {
+      "case_id": "case_045",
+      "query": "刚才回答有没有问题，请帮我检查",
+      "expected": [
+        "self_reflection"
+      ],
+      "actual": [
+        "context_aware"
+      ],
+      "difficulty": "hard",
+      "category": "discrimination",
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "hit": false
+    }
+  ],
+  "validation_errors": []
+}

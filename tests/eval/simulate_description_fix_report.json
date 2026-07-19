@@ -1,0 +1,26 @@
+{
+  "experiment": "simulate_description_fix",
+  "method": "monkey-patch SkillFileStore.load_metadata_index in memory",
+  "simulated_descriptions": {
+    "self_reflection": "自我反思技能 — 让模型回顾自身推理与回答过程，识别可能的疏漏并改进。在多步推理完成后复查关键步骤、长回答输出前自检事实准确性与逻辑一致性、用户质疑时复盘定位偏差",
+    "memory_summary": "记忆摘要技能 — 对长对话或历史记忆做结构化压缩，保留关键事实与决策。在上下文超阈值时压缩前文、跨会话恢复时加载历史摘要、长期记忆检索前按主题归并相似条目"
+  },
+  "baseline": {
+    "precision": 0.3926,
+    "recall": 0.8444,
+    "mrr": 0.8,
+    "zero_cases": 7
+  },
+  "patched": {
+    "precision": 0.4222,
+    "recall": 1.0,
+    "mrr": 0.9556,
+    "zero_cases": 1
+  },
+  "delta": {
+    "precision": 0.029600000000000015,
+    "recall": 0.15559999999999996,
+    "mrr": 0.15559999999999996
+  },
+  "changed_cases": 27
+}
