@@ -199,7 +199,9 @@ function Invoke-GroupP3 {
     Write-Host "`n=== P3. 部署执行验证 (3 项) ===" -ForegroundColor Cyan
 
     # P3-1: helm lint 通过
+    Write-Host "  [DEBUG] P3-1 执行: helm lint $ChartPath" -ForegroundColor DarkGray
     $lintOut = & helm lint $ChartPath 2>&1 | Out-String
+    Write-Host "  [DEBUG] P3-1 退出码: $LASTEXITCODE" -ForegroundColor DarkGray
     if ($LASTEXITCODE -eq 0 -and $lintOut -match "0 chart\(s\) failed") {
         Write-Result "P3" "P3-1" "helm lint 通过 (含 schema 校验)" "PASS"
     } else {
@@ -211,7 +213,10 @@ function Invoke-GroupP3 {
     if ($ValuesFile) { $tmplArgs += @("-f", $ValuesFile) }
     $tmplArgs += @("--set", "image.tag=$ImageTag")
     if ($Registry) { $tmplArgs += @("--set", "image.repository=$Registry/tlm-ops-reporter") }
+    Write-Host "  [DEBUG] P3-2 执行: helm $($tmplArgs -join ' ')" -ForegroundColor DarkGray
     $tmplOut = & helm @tmplArgs 2>&1 | Out-String
+    $tmplLineCount = ($tmplOut -split "`n").Count
+    Write-Host "  [DEBUG] P3-2 退出码: $LASTEXITCODE | 渲染行数: $tmplLineCount" -ForegroundColor DarkGray
     if ($LASTEXITCODE -eq 0 -and $tmplOut -match "image:.*$ImageTag") {
         Write-Result "P3" "P3-2" "helm template 渲染成功 + image.tag 正确" "PASS"
     } elseif ($LASTEXITCODE -eq 0) {
@@ -221,12 +226,15 @@ function Invoke-GroupP3 {
     }
 
     # P3-3: helm install + Pod 90s Ready
+    Write-Host "  [DEBUG] P3-3 清理旧 release: helm uninstall $ReleaseName -n $Namespace" -ForegroundColor DarkGray
     helm uninstall $ReleaseName -n $Namespace 2>$null | Out-Null
     $installArgs = @("install", $ReleaseName, $ChartPath, "-n", $Namespace)
     if ($ValuesFile) { $installArgs += @("-f", $ValuesFile) }
     $installArgs += @("--set", "image.tag=$ImageTag", "--set", "networkPolicy.enabled=true")
     if ($Registry) { $installArgs += @("--set", "image.repository=$Registry/tlm-ops-reporter", "--set", "image.pullPolicy=Always") }
+    Write-Host "  [DEBUG] P3-3a 执行: helm $($installArgs -join ' ')" -ForegroundColor DarkGray
     $installOut = & helm @installArgs 2>&1 | Out-String
+    Write-Host "  [DEBUG] P3-3a 退出码: $LASTEXITCODE" -ForegroundColor DarkGray
     if ($LASTEXITCODE -eq 0) {
         Write-Result "P3" "P3-3a" "helm install 成功 (NP enabled)" "PASS"
     } else {
@@ -237,10 +245,17 @@ function Invoke-GroupP3 {
 
     Write-Host "  [INFO] 等待 Pod Ready (最多 90s)..." -ForegroundColor Gray
     $ready = Wait-PodReady -Ns $Namespace -Release $ReleaseName -TimeoutSec 90
+    $podName = Get-PodName -Ns $Namespace -Release $ReleaseName
+    Write-Host "  [DEBUG] P3-3b Pod: $podName | Ready: $ready" -ForegroundColor DarkGray
     if ($ready) {
         Write-Result "P3" "P3-3b" "Pod 90s 内 Ready" "PASS"
     } else {
-        Write-Result "P3" "P3-3b" "Pod 90s 内 Ready" "FAIL"
+        # 获取 Pod 状态和事件辅助排查
+        $podStatus = kubectl get pod $podName -n $Namespace -o jsonpath="{.status.phase}" 2>$null
+        $podEvents = kubectl describe pod $podName -n $Namespace 2>&1 | Select-String "Events:" -Context 0,10 | Out-String
+        Write-Host "  [DEBUG] P3-3b Pod 状态: $podStatus" -ForegroundColor DarkGray
+        Write-Host "  [DEBUG] P3-3b 事件摘要: $($podEvents.Trim())" -ForegroundColor DarkGray
+        Write-Result "P3" "P3-3b" "Pod 90s 内 Ready" "FAIL" "Pod 状态: $podStatus"
     }
 }
 
@@ -318,7 +333,9 @@ function Invoke-GroupP5 {
     Write-Host "  [INFO] Pod: $pod" -ForegroundColor Gray
 
     # P5-1: 非 root 运行 (uid=1000)
+    Write-Host "  [DEBUG] P5-1 执行: kubectl exec $pod -n $Namespace -- id" -ForegroundColor DarkGray
     $idOut = (kubectl exec $pod -n $Namespace -- id 2>&1 | Out-String)
+    Write-Host "  [DEBUG] P5-1 输出: $($idOut.Trim())" -ForegroundColor DarkGray
     if ($idOut -match "uid=1000") {
         Write-Result "P5" "P5-1" "非 root 运行 (uid=1000)" "PASS"
     } else {
@@ -326,15 +343,19 @@ function Invoke-GroupP5 {
     }
 
     # P5-2: 根文件系统只读
+    Write-Host "  [DEBUG] P5-2 执行: kubectl exec $pod -- sh -c 'touch /test'" -ForegroundColor DarkGray
     $writeOut = (kubectl exec $pod -n $Namespace -- sh -c "touch /test 2>&1" 2>&1 | Out-String)
+    Write-Host "  [DEBUG] P5-2 输出: $($writeOut.Trim())" -ForegroundColor DarkGray
     if ($writeOut -match "Read-only file system") {
         Write-Result "P5" "P5-2" "readOnlyRootFilesystem 生效" "PASS"
     } else {
-        Write-Result "P5" "P5-2" "readOnlyRootFilesystem 生效" "FAIL" "写入未拒绝"
+        Write-Result "P5" "P5-2" "readOnlyRootFilesystem 生效" "FAIL" "写入未拒绝（输出: $($writeOut.Trim())）"
     }
 
     # P5-3: capabilities drop ALL (CapEff 全 0)
+    Write-Host "  [DEBUG] P5-3 执行: kubectl exec $pod -- cat /proc/1/status | grep CapEff" -ForegroundColor DarkGray
     $capOut = (kubectl exec $pod -n $Namespace -- cat /proc/1/status 2>&1 | Select-String "CapEff" | Out-String)
+    Write-Host "  [DEBUG] P5-3 输出: $($capOut.Trim())" -ForegroundColor DarkGray
     if ($capOut -match "CapEff:\s*0000000000000000") {
         Write-Result "P5" "P5-3" "capabilities 已 drop ALL" "PASS"
     } else {
@@ -342,7 +363,9 @@ function Invoke-GroupP5 {
     }
 
     # P5-4: PVC 挂载可写 (output 目录)
+    Write-Host "  [DEBUG] P5-4 执行: kubectl exec $pod -- sh -c 'touch /app/output/test && echo PVC_OK'" -ForegroundColor DarkGray
     $pvcOut = (kubectl exec $pod -n $Namespace -- sh -c "touch /app/output/test && echo PVC_OK && rm /app/output/test" 2>&1 | Out-String)
+    Write-Host "  [DEBUG] P5-4 输出: $($pvcOut.Trim())" -ForegroundColor DarkGray
     if ($pvcOut -match "PVC_OK") {
         Write-Result "P5" "P5-4" "PVC 挂载目录可写" "PASS"
     } else {
@@ -350,7 +373,9 @@ function Invoke-GroupP5 {
     }
 
     # P5-5: 日志目录只读
+    Write-Host "  [DEBUG] P5-5 执行: kubectl exec $pod -- sh -c 'touch /app/logs/test'" -ForegroundColor DarkGray
     $logsOut = (kubectl exec $pod -n $Namespace -- sh -c "touch /app/logs/test 2>&1" 2>&1 | Out-String)
+    Write-Host "  [DEBUG] P5-5 输出: $($logsOut.Trim())" -ForegroundColor DarkGray
     if ($logsOut -match "Read-only file system") {
         Write-Result "P5" "P5-5" "日志目录只读挂载" "PASS"
     } else {
