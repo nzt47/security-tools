@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """导入全链路监控仪表盘到 Grafana"""
 import json
+import os
+import sys
+
 import requests
 
-GRAFANA_URL = "http://localhost:3000"
-GRAFANA_USER = "admin"
-GRAFANA_PASSWORD = "admin123"
+# 【P1 修复 2026-07-20】所有配置从环境变量读取，避免硬编码
+# URL/User 非敏感，保留默认值兜底；Password 无默认值，强约束
+GRAFANA_URL = os.environ.get("GRAFANA_URL", "http://localhost:3000")
+GRAFANA_USER = os.environ.get("GRAFANA_ADMIN_USER", "admin")
+GRAFANA_PASSWORD = os.environ.get("GRAFANA_ADMIN_PASSWORD")
+if not GRAFANA_PASSWORD:
+    print("ERROR: GRAFANA_ADMIN_PASSWORD 环境变量未设置，无法导入仪表盘")
+    print("  请在 .env 中配置 GRAFANA_ADMIN_PASSWORD，或通过 export 设置环境变量")
+    sys.exit(1)
 
 def main():
     # 1. 获取 Prometheus 数据源

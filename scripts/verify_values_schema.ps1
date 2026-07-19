@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿<#
 .SYNOPSIS
   values.schema.json 缺失校验与自动生成辅助脚本
 

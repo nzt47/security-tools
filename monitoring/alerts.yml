@@ -244,3 +244,58 @@ groups:
           runbook_url: "docs/handover/TROUBLESHOOTING.md#Grafana不可用"
           impact: "可视化仪表盘不可用"
           action: "检查 Grafana 状态，查看日志"
+
+  # ════════════════════════════════════════════════════════════
+  # 技能质量与幻觉告警组
+  # 指标来源: agent.skills_mgmt.observability.emit_eval_score_metric
+  #   - yunshu_skill_hallucination_total (counter, labels={skill_id})
+  #   - yunshu_skill_eval_score (histogram, labels={skill_id, task_success})
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_skill_quality
+    interval: 30s
+    rules:
+      - alert: YunshuSkillHallucinationSpike
+        # 5 分钟内幻觉次数 ≥ 3 触发 warning（emit_eval_score_metric 在 hallucination_detected=true 时 +1）
+        expr: sum(increase(yunshu_skill_hallucination_total[5m])) >= 3
+        for: 1m
+        labels:
+          severity: warning
+          category: quality
+          service: yunshu
+        annotations:
+          summary: "技能幻觉率突增"
+          description: "过去 5 分钟检测到 {{ $value | printf \"%.0f\" }} 次技能幻觉，超过阈值 3 次"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#技能幻觉"
+          impact: "技能输出可能不可靠，影响用户信任"
+          action: "检查 eval_score 异常的 skill_id，复核 instruction 是否清晰，必要时禁用技能"
+
+      - alert: YunshuSkillHallucinationCritical
+        # 5 分钟内幻觉次数 ≥ 10 触发 critical（立即触发，for: 0m）
+        expr: sum(increase(yunshu_skill_hallucination_total[5m])) >= 10
+        for: 0m
+        labels:
+          severity: critical
+          category: quality
+          service: yunshu
+        annotations:
+          summary: "技能幻觉率严重超标"
+          description: "过去 5 分钟检测到 {{ $value | printf \"%.0f\" }} 次技能幻觉，超过阈值 10 次"
+          runbook_url: "docs/handover/EMERGENCY_PLAN.md#技能幻觉严重超标"
+          impact: "技能系统输出严重不可靠，可能导致用户决策错误"
+          action: "立即检查 hallucination_detected=true 的技能，考虑临时禁用相关技能"
+
+      - alert: YunshuSkillEvalScoreLow
+        # 1 小时内 P50 eval_score < 0.5 持续 10 分钟触发 warning
+        # 基于 yunshu_skill_eval_score histogram 的 _bucket 后缀指标计算分位数
+        expr: histogram_quantile(0.5, sum(rate(yunshu_skill_eval_score_bucket[1h])) by (le)) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: quality
+          service: yunshu
+        annotations:
+          summary: "技能评估分数 P50 过低"
+          description: "过去 1 小时技能评估分数 P50 为 {{ $value | printf \"%.2f\" }}，低于阈值 0.5"
+          runbook_url: "docs/handover/TROUBLESHOOTING.md#技能评估分数低"
+          impact: "技能整体质量下降"
+          action: "分析低分技能的 instruction 与检索召回，优化技能定义"
