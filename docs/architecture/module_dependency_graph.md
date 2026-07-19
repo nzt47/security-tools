@@ -79,6 +79,7 @@ flowchart LR
         agent_text_tools["agent.text_tools"]:::crosslayer
         agent_tool_calling["agent.tool_calling"]:::crosslayer
         agent_tool_router["agent.tool_router"]:::crosslayer
+        agent_tool_router_hybrid["agent.tool_router_hybrid"]
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]
     end
@@ -333,6 +334,8 @@ flowchart LR
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_skills_mgmt
     agent_state_manager -.-> agent_workflow_learning
+    agent_tool_router_hybrid -.-> agent_observability_tool_trace
+    agent_tool_router_hybrid --> agent_tool_router
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_software_backends --> agent_logging_utils
@@ -897,10 +900,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 326
-- 模块节点数: 259
-- 依赖边数: 560
-- 跨层调用数: 355
+- 扫描文件数: 327
+- 模块节点数: 260
+- 依赖边数: 562
+- 跨层调用数: 356
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1204.76 ms
+- 构建耗时: 1200.11 ms

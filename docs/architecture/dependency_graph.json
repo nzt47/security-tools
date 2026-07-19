@@ -1,5 +1,5 @@
 {
-  "trace_id": "55d0edc3d6384c3f",
+  "trace_id": "355a3de8bcb64e87",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -49,6 +49,30 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
+    },
+    {
+      "path": "agent.tool_router_hybrid",
+      "name": "tool_router_hybrid",
+      "layer": "core",
+      "file_path": "agent/tool_router_hybrid.py",
+      "in_degree": 0,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.observability.tool_trace",
+      "name": "tool_trace",
+      "layer": "observability",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.tool_router",
+      "name": "tool_router",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 1
     },
     {
       "path": "agent.api_gateway",
@@ -387,14 +411,6 @@
       "out_degree": 0
     },
     {
-      "path": "agent.observability.tool_trace",
-      "name": "tool_trace",
-      "layer": "observability",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
-    },
-    {
       "path": "agent.response_workflows",
       "name": "response_workflows",
       "layer": "response_workflows",
@@ -425,14 +441,6 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 2
-    },
-    {
-      "path": "agent.tool_router",
-      "name": "tool_router",
-      "layer": "core",
-      "file_path": "agent/tool_router.py",
-      "in_degree": 2,
-      "out_degree": 1
     },
     {
       "path": "agent.behavior_controller",
@@ -2124,6 +2132,32 @@
       "line": 721,
       "source_file": "agent/state_manager.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_router_hybrid",
+      "target": "agent.observability.tool_trace",
+      "source_layer": "core",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 62,
+      "source_file": "agent/tool_router_hybrid.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_router_hybrid",
+      "target": "agent.tool_router",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 68,
+      "source_file": "agent/tool_router_hybrid.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -9358,23 +9392,23 @@
     }
   ],
   "stats": {
-    "total_files": 326,
-    "total_nodes": 259,
-    "total_edges": 560,
-    "cross_layer_edges": 355,
+    "total_files": 327,
+    "total_nodes": 260,
+    "total_edges": 562,
+    "cross_layer_edges": 356,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 54,
+      "core": 55,
       "monitoring": 27,
       "skills_mgmt": 9,
       "workflow_learning": 3,
+      "observability": 5,
       "orchestrator": 10,
       "tools": 19,
       "caching": 2,
       "lazy_loader": 3,
       "unknown": 1,
-      "observability": 5,
       "response_workflows": 1,
       "extensions": 15,
       "cognitive": 11,
@@ -9399,6 +9433,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1204.7638420000055
+    "build_duration_ms": 1200.1100840000022
   }
 }
