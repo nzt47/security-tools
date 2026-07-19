@@ -1,9 +1,9 @@
-"""轻量级 metrics server，用于端到端验证 Prometheus 抓取链路
+"""轻量级 metrics server，用于端到端验证 Prometheus 抓取链路（修复实例隔离后版本）
 
 【背景】app_server.py 启动需加载 SentenceTransformer 模型（耗时/网络依赖），
-本脚本作为降级方案，验证两条链路：
-    1. observability 层: emit_eval_score_metric → [Observability:fill] 日志（验证逻辑层）
-    2. prometheus 层: prometheus_client 注册 → /metrics 端点 → Prometheus scrape（验证物理层）
+本脚本作为降级方案，验证修复后的完整链路：
+    emit_eval_score_metric → emit_metric → get_business_metrics_collector() 全局单例
+    → export_prometheus() → /metrics 端点 → Prometheus scrape → /api/v1/query
 
 监听 0.0.0.0:5678 供 Docker 内 Prometheus 通过 host.docker.internal 抓取。
 """
@@ -19,35 +19,18 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-# 导入 observability，触发 BusinessMetricsCollector 初始化
+# 导入 observability（已修复为用全局单例）+ business_metrics 的 export_prometheus
 from agent.skills_mgmt.observability import emit_eval_score_metric
-
-# 【不易】直接用 prometheus_client 注册 yunshu_skill_* 指标到默认注册表
-# 原因: BusinessMetricsCollector 用内部存储 + BUSINESS_METRICS_DEFINITIONS 白名单，
-# emit_metric 触发的 yunshu_skill_eval_score / yunshu_skill_hallucination_total
-# 不在定义表中，export_prometheus() 不会输出。
-# 这里直接注册到 prometheus_client 默认注册表，让 generate_latest() 能输出，
-# 验证 Prometheus scrape → query 端到端链路。
-_SKILL_EVAL_SCORE = Histogram(
-    "yunshu_skill_eval_score",
-    "Skill evaluation score (0-1)",
-    ["skill_id", "task_success"],
-)
-_SKILL_HALLUCINATION = Counter(
-    "yunshu_skill_hallucination_total",
-    "Total skill hallucination detections",
-    ["skill_id"],
-)
+from agent.monitoring.business_metrics import get_business_metrics_collector
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 
 
 def trigger_metrics() -> None:
-    """触发指标发射（两条链路并行验证）"""
-    # 链路1: observability 层 — emit_eval_score_metric → [Observability:fill] 日志
-    # 这条链路的指标不会出现在 /metrics（因不在定义表），但日志会打印
+    """触发指标发射（通过 observability 层，验证全局单例修复）"""
+    # 场景1: 正常 eval_score → yunshu_skill_eval_score histogram
     emit_eval_score_metric(
         skill_id="prom-verify-normal",
         eval_score={
@@ -58,6 +41,8 @@ def trigger_metrics() -> None:
         },
         trace_id="prom-verify-001",
     )
+
+    # 场景2: 幻觉 eval_score → yunshu_skill_eval_score histogram + yunshu_skill_hallucination_total counter
     emit_eval_score_metric(
         skill_id="prom-verify-hallucination",
         eval_score={
@@ -69,24 +54,38 @@ def trigger_metrics() -> None:
         trace_id="prom-verify-002",
     )
 
-    # 链路2: prometheus_client 直接注册 — 出现在 /metrics 端点供 Prometheus 抓取
-    # 模拟 emit_eval_score_metric 的指标发射逻辑（相同 name/value/labels）
-    _SKILL_EVAL_SCORE.labels(
-        skill_id="prom-verify-normal", task_success="true"
-    ).observe(0.92)
-    _SKILL_EVAL_SCORE.labels(
-        skill_id="prom-verify-hallucination", task_success="false"
-    ).observe(0.3)
-    # 4 次幻觉（触发 YunshuSkillHallucinationSpike 告警 ≥3）
-    _SKILL_HALLUCINATION.labels(skill_id="prom-verify-hallucination").inc(4)
+    # 场景3: 多次幻觉，让 counter 累积到 4（触发 YunshuSkillHallucinationSpike 告警 ≥3）
+    for i in range(3):
+        emit_eval_score_metric(
+            skill_id="prom-verify-hallucination",
+            eval_score={
+                "task_success": False,
+                "instruction_followed": False,
+                "hallucination_detected": True,
+                "score": 0.2,
+            },
+            trace_id=f"prom-verify-hallu-{i}",
+        )
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
-    """HTTP handler: 暴露 /metrics + /health"""
+    """HTTP handler: 暴露 /metrics + /health
+
+    【不易】/metrics 端点合并两部分输出：
+      1. prometheus_client 默认注册表（python_gc_* 等）— generate_latest()
+      2. BusinessMetricsCollector 内部存储（yunshu_skill_* 等）— export_prometheus()
+    与 app_server.py 的 /metrics 端点行为一致（routes_logging.py:926-954）。
+    """
 
     def do_GET(self):  # noqa: N802
         if self.path == "/metrics":
-            body = generate_latest()
+            # 合并 prometheus_client 默认注册表 + BusinessMetricsCollector 内部存储
+            body_parts = [generate_latest().decode("utf-8")]
+            try:
+                body_parts.append(get_business_metrics_collector().export_prometheus())
+            except Exception as e:  # noqa: BLE001
+                print(f"[mock-metrics] export_prometheus 失败: {e}", file=sys.stderr)
+            body = "\n".join(body_parts).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
             self.send_header("Content-Length", str(len(body)))
@@ -106,10 +105,10 @@ class MetricsHandler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    print("[mock-metrics] 触发指标发射...", file=sys.stderr)
+    print("[mock-metrics] 触发指标发射（通过 observability.emit_eval_score_metric）...", file=sys.stderr)
     trigger_metrics()
     print("[mock-metrics] 启动 HTTP server on 0.0.0.0:5678", file=sys.stderr)
-    print("[mock-metrics] /metrics 端点就绪，等待 Prometheus 抓取", file=sys.stderr)
+    print("[mock-metrics] /metrics 端点合并 generate_latest() + export_prometheus()", file=sys.stderr)
     print("[mock-metrics] Prometheus scrape url: http://host.docker.internal:5678/metrics", file=sys.stderr)
 
     server = HTTPServer(("0.0.0.0", 5678), MetricsHandler)
