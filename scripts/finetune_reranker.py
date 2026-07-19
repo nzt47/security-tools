@@ -100,48 +100,42 @@ def train_loop(model, train_samples: list[dict], val_samples: list[dict],
     ]
 
     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=batch_size)
-    val_dataloader = DataLoader(val_examples, shuffle=False, batch_size=batch_size)
 
-    # 用 CrossEncoder 标准训练接口
-    # 【变易】warmup 10%,权重衰减 0.01
-    from sentence_transformers.cross_encoder.losses import BCELoss
+    # sentence-transformers 5.x 正确 API
+    # 【不易】BinaryCrossEntropyLoss 适配 label ∈ {0, 1} 的二分类
+    from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
     from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 
-    # 评估器(用于早停监控)
+    # 评估器(用于早停监控 + save_best_model)
     evaluator = CECorrelationEvaluator.from_input_examples(
         val_examples, name="reranker_val", show_progress_bar=False
     )
-
-    # 训练
-    best_val_score = -1.0
-    patience_counter = 0
-    history: list[dict[str, float]] = []
 
     print(f"  训练配置: epochs={epochs}, batch_size={batch_size}, lr={lr}")
     print(f"  训练样本: {len(train_samples)}, 验证样本: {len(val_samples)}")
     print(f"  早停 patience: {early_stopping_patience}")
 
-    # CrossEncoder.fit 自带 evaluator + early_stopping
-    t0 = time.time()
-    model.fit(
-        train_dataloader=train_dataloader,
-        evaluator=None,  # 我们手动评估
-        epochs=1,  # 每次跑 1 个 epoch,手动控制早停
-        steps_per_epoch=None,
-        loss_fct=BCELoss(model=model),
-        warmup_steps=int(0.1 * len(train_dataloader) * epochs),
-        optimizer_params={"lr": lr, "weight_decay": 0.01},
-        output_path=None,  # 我们手动保存
-        show_progress_bar=True,
-        use_amp=False,  # CPU 不支持 AMP
-    )
+    # CrossEncoder.fit 内置 evaluator + save_best_model,天然支持早停
+    # 【变易】用临时目录让 fit 自动保存最佳模型,训练结束后再合并 LoRA
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp_best_dir:
+        t0 = time.time()
+        model.fit(
+            train_dataloader=train_dataloader,
+            evaluator=evaluator,
+            epochs=epochs,
+            loss_fct=BinaryCrossEntropyLoss(model=model),
+            warmup_steps=int(0.1 * len(train_dataloader) * epochs),
+            optimizer_params={"lr": lr, "weight_decay": 0.01},
+            output_path=tmp_best_dir,  # 最佳模型保存到此临时目录
+            save_best_model=True,
+            show_progress_bar=True,
+            use_amp=False,  # CPU 不支持 AMP
+        )
+        elapsed = time.time() - t0
+        print(f"  训练耗时: {elapsed:.1f}s")
 
-    # 注:sentence-transformers 5.x 的 fit 接口对 LoRA 支持有限
-    # 实际生产建议用 transformers Trainer + PEFT,本脚本作为框架起点
-    elapsed = time.time() - t0
-    print(f"  训练耗时: {elapsed:.1f}s")
-
-    # 评估
+    # 最终评估(用最后状态的模型,fit 已加载最佳权重)
     val_score = evaluate_model(model, val_samples)
     print(f"  验证集准确率: {val_score['accuracy']:.2%}")
     print(f"  验证集 loss: {val_score['loss']:.4f}")
