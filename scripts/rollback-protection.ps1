@@ -37,7 +37,7 @@
       1. gh CLI 已安装且已登录 (gh auth login)
       2. 对仓库有 Admin 权限
       3. PowerShell 7+ (兼容 Windows PowerShell 5.1)
-    备份位置: .github/branch_protection_backup.json
+    备份位置: 系统临时目录 (由 Get-BackupPath 动态生成, 含 owner/repo/branch)
 #>
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
@@ -209,7 +209,7 @@ function Disable-Protection {
     }
 
     # 2. 备份到本地
-    Write-Host "[2/3] 备份当前配置到 .github/branch_protection_backup.json..." -ForegroundColor Cyan
+    Write-Host "[2/3] 备份当前配置到系统临时目录..." -ForegroundColor Cyan
     $backupPath = Get-BackupPath
     Write-Verbose "[verbose] 备份文件完整路径: $backupPath"
     $backupDir = Split-Path $backupPath -Parent
@@ -302,7 +302,13 @@ function Enable-Protection {
 
 # ─── 辅助函数 ─────────────────────────────────────────────────
 function Get-BackupPath {
-    return (Join-Path $PWD.Path '.github' 'branch_protection_backup.json')
+    # 【不易】备份文件放在系统临时目录，避免泄露 branch protection 配置到仓库
+    # 文件名包含 owner/repo/branch，避免多仓库冲突
+    $tempDir = [System.IO.Path]::GetTempPath()
+    $owner = if ($script:Owner) { $script:Owner } else { 'unknown' }
+    $repo = if ($script:Repo) { $script:Repo } else { 'unknown' }
+    $fileName = "branch_protection_backup_${owner}_${repo}_$Branch.json"
+    return (Join-Path $tempDir $fileName)
 }
 
 # ─── 主入口 ───────────────────────────────────────────────────
