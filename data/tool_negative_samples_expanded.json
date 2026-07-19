@@ -1,0 +1,1697 @@
+{
+  "version": "1.1-expanded",
+  "description": "工具检索负样本库:相似工具的区分性 query,用于评估检索质量与未来 reranker 训练 | 增强版(P2.1)",
+  "usage": "每组的 query 应只召回 expected_positive 中的工具,不召回 group 内其他工具(negative)。当前 BM25 单路可能在某些组上失败,这正是未来引入 Cross-Encoder Reranker 的目标场景。",
+  "notes": [
+    "本负样本库与 tests/fixtures/tool_retrieval_eval.json 区别:",
+    "  - eval.json: 验证召回率(ground_truth 只含正样本,不区分相似工具)",
+    "  - negative_samples.json: 验证区分能力(同组工具应被不同 query 区分)",
+    "v1.1(2026-07-19)扩充:6 组 16 query → 10 组 25 query,新增 G7/G8/G9/G10",
+    "  - G7 compress/decompress:报告 q07 风险点(BM25 无法区分压缩/解压方向)",
+    "  - G8 json_to_yaml/yaml_to_json:报告 q08 风险点(BM25 无法区分转换方向)",
+    "  - G9 web_search/search_memory/search_lifetrace:报告 q01 风险点(search 词根混淆)",
+    "  - G10 read_file/write_file:读写方向性区分",
+    "工具名均经 tool_index.json 验证存在(2026-07-19 校验)"
+  ],
+  "groups": [
+    {
+      "group_id": "G1_web_search_family",
+      "category": "web",
+      "description": "网页搜索类工具区分:web_search=搜索引擎检索,web_get=抓取指定 URL,fetch_news=新闻聚合",
+      "tools": [
+        "web_search",
+        "web_get",
+        "fetch_news"
+      ],
+      "queries": [
+        {
+          "query": "在百度上搜索 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "在百度上查找 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "在百度上搜 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "在百度上查 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "在百度上检索 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "用百度查 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "百度一下 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "用百度搜索 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "抓取 https://example.com 的 HTML 内容",
+          "expected_positive": [
+            "web_get"
+          ],
+          "negative": [
+            "web_search",
+            "fetch_news"
+          ],
+          "rationale": "用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
+        },
+        {
+          "query": "获取 https://example.com 的 HTML 内容",
+          "expected_positive": [
+            "web_get"
+          ],
+          "negative": [
+            "web_search",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
+        },
+        {
+          "query": "下载 https://example.com 的 HTML 内容",
+          "expected_positive": [
+            "web_get"
+          ],
+          "negative": [
+            "web_search",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
+        },
+        {
+          "query": "拉取 https://example.com 的 HTML 内容",
+          "expected_positive": [
+            "web_get"
+          ],
+          "negative": [
+            "web_search",
+            "fetch_news"
+          ],
+          "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
+        },
+        {
+          "query": "查看今日科技头条新闻",
+          "expected_positive": [
+            "fetch_news"
+          ],
+          "negative": [
+            "web_search",
+            "web_get"
+          ],
+          "rationale": "用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+        },
+        {
+          "query": "列出今日科技头条新闻",
+          "expected_positive": [
+            "fetch_news"
+          ],
+          "negative": [
+            "web_search",
+            "web_get"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+        },
+        {
+          "query": "看今日科技头条新闻",
+          "expected_positive": [
+            "fetch_news"
+          ],
+          "negative": [
+            "web_search",
+            "web_get"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+        },
+        {
+          "query": "查询今日科技头条新闻",
+          "expected_positive": [
+            "fetch_news"
+          ],
+          "negative": [
+            "web_search",
+            "web_get"
+          ],
+          "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+        }
+      ]
+    },
+    {
+      "group_id": "G2_pdf_family",
+      "category": "pdf",
+      "description": "PDF 工具区分:read_file=读 PDF 内容,read_pdf=别名(merge 后移除),merge_pdf=合并多个 PDF",
+      "tools": [
+        "read_file",
+        "read_pdf",
+        "merge_pdf"
+      ],
+      "queries": [
+        {
+          "query": "读取 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "读入 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-同义改写] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "加载 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-同义改写] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "查看 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-同义改写] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "解析 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-句式变换] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "读入 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-句式变换] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "加载 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "[增强-句式变换] 读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "把 a.pdf 和 b.pdf 合并成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "合并多个 PDF,不是读取单个 PDF 内容"
+        },
+        {
+          "query": "把 a.pdf 和 b.pdf 拼接成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-同义改写] 合并多个 PDF,不是读取单个 PDF 内容"
+        },
+        {
+          "query": "把 a.pdf 和 b.pdf 整合成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-同义改写] 合并多个 PDF,不是读取单个 PDF 内容"
+        },
+        {
+          "query": "请把 a.pdf 和 b.pdf 合并成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 合并多个 PDF,不是读取单个 PDF 内容"
+        },
+        {
+          "query": "将 a.pdf 和 b.pdf 合并成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 合并多个 PDF,不是读取单个 PDF 内容"
+        },
+        {
+          "query": "我要把 a.pdf 和 b.pdf 合并成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 合并多个 PDF,不是读取单个 PDF 内容"
+        }
+      ]
+    },
+    {
+      "group_id": "G3_execute_family",
+      "category": "code",
+      "description": "命令执行类:shell_execute=主工具,run_program=别名(merge 后应移除)",
+      "tools": [
+        "shell_execute",
+        "run_program"
+      ],
+      "queries": [
+        {
+          "query": "执行 ls -la 命令",
+          "expected_positive": [
+            "shell_execute"
+          ],
+          "negative": [],
+          "rationale": "shell 命令执行,run_program 是别名会被 alias merge 移除"
+        },
+        {
+          "query": "运行 ls -la 命令",
+          "expected_positive": [
+            "shell_execute"
+          ],
+          "negative": [],
+          "rationale": "[增强-同义改写] shell 命令执行,run_program 是别名会被 alias merge 移除"
+        },
+        {
+          "query": "跑 ls -la 命令",
+          "expected_positive": [
+            "shell_execute"
+          ],
+          "negative": [],
+          "rationale": "[增强-同义改写] shell 命令执行,run_program 是别名会被 alias merge 移除"
+        },
+        {
+          "query": "启动 notepad 程序",
+          "expected_positive": [
+            "run_program"
+          ],
+          "negative": [],
+          "rationale": "启动 GUI 程序,run_program 描述含 notepad 和 程序"
+        },
+        {
+          "query": "运行 notepad 程序",
+          "expected_positive": [
+            "run_program"
+          ],
+          "negative": [],
+          "rationale": "[增强-同义改写] 启动 GUI 程序,run_program 描述含 notepad 和 程序"
+        },
+        {
+          "query": "打开 notepad 程序",
+          "expected_positive": [
+            "run_program"
+          ],
+          "negative": [],
+          "rationale": "[增强-同义改写] 启动 GUI 程序,run_program 描述含 notepad 和 程序"
+        }
+      ]
+    },
+    {
+      "group_id": "G4_list_family",
+      "category": "system",
+      "description": "列表类工具区分:list_directory=目录文件,list_processes=运行进程,list_async_tasks=异步任务",
+      "tools": [
+        "list_directory",
+        "list_processes",
+        "list_async_tasks"
+      ],
+      "queries": [
+        {
+          "query": "列出 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "显示 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "罗列 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "展示 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "查看 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "显示 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-句式变换] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "查看 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-句式变换] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "展示 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-句式变换] 列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "查看系统中运行的进程",
+          "expected_positive": [
+            "list_processes"
+          ],
+          "negative": [
+            "list_directory",
+            "list_async_tasks"
+          ],
+          "rationale": "列运行进程,不是目录文件或异步任务"
+        },
+        {
+          "query": "看系统中运行的进程",
+          "expected_positive": [
+            "list_processes"
+          ],
+          "negative": [
+            "list_directory",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列运行进程,不是目录文件或异步任务"
+        },
+        {
+          "query": "列出系统中运行的进程",
+          "expected_positive": [
+            "list_processes"
+          ],
+          "negative": [
+            "list_directory",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列运行进程,不是目录文件或异步任务"
+        },
+        {
+          "query": "查询系统中运行的进程",
+          "expected_positive": [
+            "list_processes"
+          ],
+          "negative": [
+            "list_directory",
+            "list_async_tasks"
+          ],
+          "rationale": "[增强-同义改写] 列运行进程,不是目录文件或异步任务"
+        },
+        {
+          "query": "查看提交的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "列异步任务,不是目录文件或运行进程"
+        },
+        {
+          "query": "查看新建的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "[增强-同义改写] 列异步任务,不是目录文件或运行进程"
+        },
+        {
+          "query": "查询提交的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "[增强-同义改写] 列异步任务,不是目录文件或运行进程"
+        },
+        {
+          "query": "查看发起的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "[增强-同义改写] 列异步任务,不是目录文件或运行进程"
+        },
+        {
+          "query": "查看启动的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "[增强-同义改写] 列异步任务,不是目录文件或运行进程"
+        }
+      ]
+    },
+    {
+      "group_id": "G5_install_family",
+      "category": "extension",
+      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展,software_install=装软件包",
+      "tools": [
+        "ext_install",
+        "ext_list",
+        "software_install"
+      ],
+      "queries": [
+        {
+          "query": "安装 markdown 编辑器扩展",
+          "expected_positive": [
+            "ext_install"
+          ],
+          "negative": [
+            "ext_list",
+            "software_install"
+          ],
+          "rationale": "装扩展,不是列扩展或装系统软件包"
+        },
+        {
+          "query": "装 markdown 编辑器扩展",
+          "expected_positive": [
+            "ext_install"
+          ],
+          "negative": [
+            "ext_list",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 装扩展,不是列扩展或装系统软件包"
+        },
+        {
+          "query": "部署 markdown 编辑器扩展",
+          "expected_positive": [
+            "ext_install"
+          ],
+          "negative": [
+            "ext_list",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 装扩展,不是列扩展或装系统软件包"
+        },
+        {
+          "query": "查看已安装的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "查看已装的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "查看已部署的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "查询已安装的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "看已安装的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "用 apt 安装 nginx 软件包",
+          "expected_positive": [
+            "software_install"
+          ],
+          "negative": [
+            "ext_install",
+            "ext_list"
+          ],
+          "rationale": "装系统软件包(apt),不是扩展"
+        },
+        {
+          "query": "用 apt 部署 nginx 软件包",
+          "expected_positive": [
+            "software_install"
+          ],
+          "negative": [
+            "ext_install",
+            "ext_list"
+          ],
+          "rationale": "[增强-同义改写] 装系统软件包(apt),不是扩展"
+        },
+        {
+          "query": "用 apt 装 nginx 软件包",
+          "expected_positive": [
+            "software_install"
+          ],
+          "negative": [
+            "ext_install",
+            "ext_list"
+          ],
+          "rationale": "[增强-同义改写] 装系统软件包(apt),不是扩展"
+        }
+      ]
+    },
+    {
+      "group_id": "G6_task_family",
+      "category": "async",
+      "description": "异步任务族:submit_task=提交后台任务,schedule_task=定时任务,cancel_task=取消任务",
+      "tools": [
+        "submit_task",
+        "schedule_task",
+        "cancel_task"
+      ],
+      "queries": [
+        {
+          "query": "提交一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "创建一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "启动一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "新建一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "发起一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "创建每天凌晨 3 点执行的定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "创建每天凌晨 3 点跑的定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "创建每天凌晨 3 点运行的定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-同义改写] 定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "创建定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-长度变化] 定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "请帮我创建一个每天凌晨 3 点自动执行的数据备份定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "[增强-长度变化] 定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "取消任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "取消已提交任务,不是提交新任务或定时调度"
+        },
+        {
+          "query": "终止任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "[增强-同义改写] 取消已提交任务,不是提交新任务或定时调度"
+        },
+        {
+          "query": "停止任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "[增强-同义改写] 取消已提交任务,不是提交新任务或定时调度"
+        },
+        {
+          "query": "中止任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "[增强-同义改写] 取消已提交任务,不是提交新任务或定时调度"
+        },
+        {
+          "query": "撤销任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "[增强-同义改写] 取消已提交任务,不是提交新任务或定时调度"
+        }
+      ]
+    },
+    {
+      "group_id": "G7_compress_family",
+      "category": "file",
+      "description": "压缩/解压方向性区分:compress=压缩,decompress=解压。报告 q07 风险点:BM25 对「压缩」匹配 decompress 描述得分高,无法区分方向",
+      "tools": [
+        "compress",
+        "decompress"
+      ],
+      "queries": [
+        {
+          "query": "把 logs 文件夹压缩成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 logs 文件夹归档成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-同义改写] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 logs 文件夹压紧成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-同义改写] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 logs 文件夹打包成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-同义改写] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "我要把 logs 文件夹压缩成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-句式变换] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "请把 logs 文件夹压缩成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-句式变换] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "帮我把 logs 文件夹压缩成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-句式变换] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "压缩 logs 文件夹",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-长度变化] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "请帮我把 logs 这个文件夹压缩成 zip 压缩包",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-长度变化] 压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "解压 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "释放 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-同义改写] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "解开 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-同义改写] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "提取 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-同义改写] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "还原 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-同义改写] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "解开 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-句式变换] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "释放 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-句式变换] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "提取 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-句式变换] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "解压 archive.tar.gz",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-长度变化] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "请把 archive.tar.gz 这个压缩包解压到当前目录下",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-长度变化] 解压方向,动词「解压」应精确匹配 decompress 描述"
+        },
+        {
+          "query": "把 data 目录打包成 tar.gz",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-方向反转] 压缩方向变体,用「打包」替换「压缩成 zip」"
+        },
+        {
+          "query": "归档 logs 目录到 backup.zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "[增强-方向反转] 压缩方向变体,「归档」同义于「压缩」"
+        },
+        {
+          "query": "从 backup.tar.gz 提取所有文件",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-方向反转] 解压方向变体,用「提取」替换「解压」"
+        },
+        {
+          "query": "解开 archive.zip 到 /tmp",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "[增强-方向反转] 解压方向变体,「解开」同义于「解压」"
+        }
+      ]
+    },
+    {
+      "group_id": "G8_format_convert_direction",
+      "category": "code",
+      "description": "格式转换方向性:json_to_yaml=JSON→YAML,yaml_to_json=YAML→JSON。报告 q08 风险点:BM25 无法区分转换方向,两者词频完全相同",
+      "tools": [
+        "json_to_yaml",
+        "yaml_to_json"
+      ],
+      "queries": [
+        {
+          "query": "把 config.json 转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 config.json 转为成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 config.json 转成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 config.json 改成成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "把 config.json 变成成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "我要把 config.json 转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "请把 config.json 转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "帮我把 config.json 转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "config.json 转 yaml",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-长度变化] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-长度变化] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "读取 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "读入 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "加载 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "查看 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "读入 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "加载 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "解析 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "data.yaml 转 JSON",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-长度变化] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "请读取 data.yaml 文件并把它转换成 JSON 对象格式",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-长度变化] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        },
+        {
+          "query": "把 settings.json 改写成 yaml",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-方向反转] JSON→YAML 方向变体"
+        },
+        {
+          "query": "将 package.json 转为 yaml 配置",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "[增强-方向反转] JSON→YAML 方向变体"
+        },
+        {
+          "query": "把 docker-compose.yaml 转成 JSON",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-方向反转] YAML→JSON 方向变体"
+        },
+        {
+          "query": "将 config.yaml 解析为 JSON",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "[增强-方向反转] YAML→JSON 方向变体"
+        }
+      ]
+    },
+    {
+      "group_id": "G9_search_semantic_family",
+      "category": "web+memory",
+      "description": "搜索语义区分:web_search=网页搜索,search_memory=记忆检索,search_lifetrace=LifeTrace 检索。报告 q01 风险点:search_* 词根混淆,search_memory/search_lifetrace 误入 top-5",
+      "tools": [
+        "web_search",
+        "search_memory",
+        "search_lifetrace"
+      ],
+      "queries": [
+        {
+          "query": "在 Google 上搜索 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "在 Google 上查 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-同义改写] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "在 Google 上检索 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-同义改写] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "在 Google 上查找 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-同义改写] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "在 Google 上搜 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-同义改写] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "用谷歌搜 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-句式变换] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "用 Google 搜索 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-句式变换] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "Google 搜索 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "[增强-句式变换] 网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "回忆之前讨论过的项目架构",
+          "expected_positive": [
+            "search_memory"
+          ],
+          "negative": [
+            "web_search",
+            "search_lifetrace"
+          ],
+          "rationale": "记忆检索,动词「回忆」应匹配 search_memory 而非网页搜索"
+        },
+        {
+          "query": "检索 lifetrace 中的历史对话",
+          "expected_positive": [
+            "search_lifetrace"
+          ],
+          "negative": [
+            "web_search",
+            "search_memory"
+          ],
+          "rationale": "LifeTrace 专用检索,关键词「lifetrace」精确匹配"
+        }
+      ]
+    },
+    {
+      "group_id": "G10_read_write_direction",
+      "category": "file",
+      "description": "读写方向性区分:read_file=读,write_file=写。报告 q02:write_file 误入 top-5(BM25 对「文件」匹配)",
+      "tools": [
+        "read_file",
+        "write_file"
+      ],
+      "queries": [
+        {
+          "query": "读取 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "查看 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-同义改写] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "读入 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-同义改写] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "加载 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-同义改写] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "解析 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-句式变换] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "读入 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-句式变换] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "加载 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-句式变换] 读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "把处理结果写入 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "把处理结果存储 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-同义改写] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "把处理结果写到 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-同义改写] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "把处理结果保存 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-同义改写] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "帮我把处理结果写入 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "请把处理结果写入 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "将处理结果写入 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-句式变换] 写方向,动词「写入」应匹配 write_file"
+        },
+        {
+          "query": "读取 settings.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "[增强-方向反转] 读方向变体"
+        },
+        {
+          "query": "把 hello world 写入 output.txt",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "[增强-方向反转] 写方向变体"
+        }
+      ]
+    }
+  ],
+  "augmentation_strategies": [
+    "策略1:同义词改写(每 query 3-5 变体)",
+    "策略2:句式变换(每 query 2-3 变体)",
+    "策略3:方向反转(G7/G8/G10 额外方向性变体)",
+    "策略4:长度变化(short/medium/long 三版本)"
+  ]
+}

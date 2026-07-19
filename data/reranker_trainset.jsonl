@@ -1,0 +1,477 @@
+{"query": "百度一下 Python 教程", "doc": "手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。 参数: service_id, transport, command, args, address, port", "label": 0, "tool": "connect_mcp", "group": "G1_web_search_family"}
+{"query": "在百度上搜索 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "在百度上查 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "在百度上搜索 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "下载 https://example.com 的 HTML 内容", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G1_web_search_family"}
+{"query": "用百度查 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "获取 https://example.com 的 HTML 内容", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 1, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "在百度上检索 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "在百度上查找 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "查看今日科技头条新闻", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "下载 https://example.com 的 HTML 内容", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 1, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "在百度上检索 Python 教程", "doc": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。 参数: query, type", "label": 0, "tool": "ext_discover", "group": "G1_web_search_family"}
+{"query": "在百度上搜索 Python 教程", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G1_web_search_family"}
+{"query": "在百度上查找 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "看今日科技头条新闻", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "获取 https://example.com 的 HTML 内容", "doc": "终止指定 PID 的白名单程序 参数: pid", "label": 0, "tool": "stop_process", "group": "G1_web_search_family"}
+{"query": "在百度上搜 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "查询今日科技头条新闻", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G1_web_search_family"}
+{"query": "用百度查 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "列出今日科技头条新闻", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G1_web_search_family"}
+{"query": "查询今日科技头条新闻", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "下载 https://example.com 的 HTML 内容", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "拉取 https://example.com 的 HTML 内容", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 1, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "获取 https://example.com 的 HTML 内容", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "百度一下 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "查看今日科技头条新闻", "doc": "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报） 参数: city, format", "label": 0, "tool": "get_weather", "group": "G1_web_search_family"}
+{"query": "用百度搜索 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "用百度查 Python 教程", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G1_web_search_family"}
+{"query": "看今日科技头条新闻", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 1, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "在百度上搜索 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "抓取 https://example.com 的 HTML 内容", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "抓取 https://example.com 的 HTML 内容", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "用百度查 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "拉取 https://example.com 的 HTML 内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G1_web_search_family"}
+{"query": "查看今日科技头条新闻", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 1, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "在百度上查找 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "在百度上搜 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "查看今日科技头条新闻", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "获取 https://example.com 的 HTML 内容", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "在百度上查 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "百度一下 Python 教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G1_web_search_family"}
+{"query": "列出今日科技头条新闻", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "抓取 https://example.com 的 HTML 内容", "doc": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。 参数: key, content, importance", "label": 0, "tool": "remember", "group": "G1_web_search_family"}
+{"query": "查询今日科技头条新闻", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 1, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "在百度上查 Python 教程", "doc": "配置扩展参数。调整技能、MCP服务或通道的设置项。 参数: type, id, config", "label": 0, "tool": "ext_configure", "group": "G1_web_search_family"}
+{"query": "拉取 https://example.com 的 HTML 内容", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "用百度搜索 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "百度一下 Python 教程", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "在百度上检索 Python 教程", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "列出今日科技头条新闻", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 1, "tool": "fetch_news", "group": "G1_web_search_family"}
+{"query": "抓取 https://example.com 的 HTML 内容", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 1, "tool": "web_get", "group": "G1_web_search_family"}
+{"query": "查看 report.pdf 的文本内容", "doc": "获取我的完整状态", "label": 0, "tool": "get_status", "group": "G2_pdf_family"}
+{"query": "读入 report.pdf 的文本内容", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 合并成一个文件", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 1, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "读取 report.pdf 的文本内容", "doc": "在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录 参数: program, args, cwd", "label": 0, "tool": "run_program", "group": "G2_pdf_family"}
+{"query": "读入 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "请把 a.pdf 和 b.pdf 合并成一个文件", "doc": "使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象 参数: data, path", "label": 0, "tool": "json_query", "group": "G2_pdf_family"}
+{"query": "解析 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "读取 report.pdf 的文本内容", "doc": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。 参数: key, content, importance", "label": 0, "tool": "remember", "group": "G2_pdf_family"}
+{"query": "将 a.pdf 和 b.pdf 合并成一个文件", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "将 a.pdf 和 b.pdf 合并成一个文件", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G2_pdf_family"}
+{"query": "加载 report.pdf 的文本内容", "doc": "查询异步任务的执行状态（pending/running/completed/failed/cancelled） 参数: task_id", "label": 0, "tool": "get_task_status", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 拼接成一个文件", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G2_pdf_family"}
+{"query": "读取 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "查看 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "加载 report.pdf 的文本内容", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G2_pdf_family"}
+{"query": "加载 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "我要把 a.pdf 和 b.pdf 合并成一个文件", "doc": "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式 参数: data", "label": 0, "tool": "data_format_detect", "group": "G2_pdf_family"}
+{"query": "将 a.pdf 和 b.pdf 合并成一个文件", "doc": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源 参数: query, backend", "label": 0, "tool": "software_search", "group": "G2_pdf_family"}
+{"query": "读取 report.pdf 的文本内容", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 合并成一个文件", "doc": "查看学习到的用户偏好", "label": 0, "tool": "get_preferences", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 整合成一个文件", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 整合成一个文件", "doc": "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。 参数: query, category", "label": 0, "tool": "market_search", "group": "G2_pdf_family"}
+{"query": "加载 report.pdf 的文本内容", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 拼接成一个文件", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 1, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "查看 report.pdf 的文本内容", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "读入 report.pdf 的文本内容", "doc": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。 参数: key, content, importance", "label": 0, "tool": "remember", "group": "G2_pdf_family"}
+{"query": "解析 report.pdf 的文本内容", "doc": "从扩展市场安装工具。安装后工具立即可用，无需重启。 参数: tool_id, source", "label": 0, "tool": "install_tool", "group": "G2_pdf_family"}
+{"query": "查看 report.pdf 的文本内容", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 合并成一个文件", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "加载 report.pdf 的文本内容", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "我要把 a.pdf 和 b.pdf 合并成一个文件", "doc": "恢复已暂停的定时任务 参数: task_id", "label": 0, "tool": "resume_scheduled_task", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 整合成一个文件", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 1, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "请把 a.pdf 和 b.pdf 合并成一个文件", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 1, "tool": "merge_pdf", "group": "G2_pdf_family"}
+{"query": "读入 report.pdf 的文本内容", "doc": "获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等） 参数: path", "label": 0, "tool": "get_pdf_info", "group": "G2_pdf_family"}
+{"query": "读入 report.pdf 的文本内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "解析 report.pdf 的文本内容", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 拼接成一个文件", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G2_pdf_family"}
+{"query": "我要把 a.pdf 和 b.pdf 合并成一个文件", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "把 a.pdf 和 b.pdf 整合成一个文件", "doc": "使用 CSS 选择器从网页中提取信息 参数: url, selector, attr, html", "label": 0, "tool": "web_css", "group": "G2_pdf_family"}
+{"query": "请把 a.pdf 和 b.pdf 合并成一个文件", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G2_pdf_family"}
+{"query": "请把 a.pdf 和 b.pdf 合并成一个文件", "doc": "查看学习到的用户偏好", "label": 0, "tool": "get_preferences", "group": "G2_pdf_family"}
+{"query": "打开 notepad 程序", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G3_execute_family"}
+{"query": "执行 ls -la 命令", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G3_execute_family"}
+{"query": "启动 notepad 程序", "doc": "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报） 参数: city, format", "label": 0, "tool": "get_weather", "group": "G3_execute_family"}
+{"query": "运行 ls -la 命令", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G3_execute_family"}
+{"query": "打开 notepad 程序", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G3_execute_family"}
+{"query": "跑 ls -la 命令", "doc": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止 参数: command, shell, cwd, timeout", "label": 1, "tool": "shell_execute", "group": "G3_execute_family"}
+{"query": "跑 ls -la 命令", "doc": "卸载扩展。移除不再需要的技能、MCP服务、通道或插件。 参数: type, id", "label": 0, "tool": "ext_uninstall", "group": "G3_execute_family"}
+{"query": "启动 notepad 程序", "doc": "在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录 参数: program, args, cwd", "label": 1, "tool": "run_program", "group": "G3_execute_family"}
+{"query": "执行 ls -la 命令", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G3_execute_family"}
+{"query": "运行 notepad 程序", "doc": "在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录 参数: program, args, cwd", "label": 1, "tool": "run_program", "group": "G3_execute_family"}
+{"query": "打开 notepad 程序", "doc": "在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录 参数: program, args, cwd", "label": 1, "tool": "run_program", "group": "G3_execute_family"}
+{"query": "执行 ls -la 命令", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G3_execute_family"}
+{"query": "打开 notepad 程序", "doc": "按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md） 参数: pattern, root_path", "label": 0, "tool": "search_files", "group": "G3_execute_family"}
+{"query": "运行 notepad 程序", "doc": "验证字符串是否为合法 JSON，返回验证结果和解析类型 参数: data", "label": 0, "tool": "json_validate", "group": "G3_execute_family"}
+{"query": "运行 ls -la 命令", "doc": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止 参数: command, shell, cwd, timeout", "label": 1, "tool": "shell_execute", "group": "G3_execute_family"}
+{"query": "跑 ls -la 命令", "doc": "从 URL 下载文件到本地 参数: url, filepath", "label": 0, "tool": "web_download", "group": "G3_execute_family"}
+{"query": "跑 ls -la 命令", "doc": "按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md） 参数: pattern, root_path", "label": 0, "tool": "search_files", "group": "G3_execute_family"}
+{"query": "运行 ls -la 命令", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G3_execute_family"}
+{"query": "运行 notepad 程序", "doc": "获取文件或目录的详细信息（大小、修改时间、权限等） 参数: path", "label": 0, "tool": "get_file_info", "group": "G3_execute_family"}
+{"query": "展示 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看系统中运行的进程", "doc": "列出当前正在运行的白名单程序列表", "label": 1, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "列出系统中运行的进程", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看系统中运行的进程", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G4_list_family"}
+{"query": "查询系统中运行的进程", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查询提交的后台任务列表", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "展示 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看发起的后台任务列表", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 1, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "罗列 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查询提交的后台任务列表", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "展示 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看新建的后台任务列表", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查询提交的后台任务列表", "doc": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止 参数: command, shell, cwd, timeout", "label": 0, "tool": "shell_execute", "group": "G4_list_family"}
+{"query": "查看系统中运行的进程", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看新建的后台任务列表", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 1, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看启动的后台任务列表", "doc": "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。 参数: query, category", "label": 0, "tool": "market_search", "group": "G4_list_family"}
+{"query": "展示 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "展示 /home/user 下的所有文件", "doc": "通过已安装的通信通道发送消息。比如发Webhook、邮件等。 参数: channel_id, message, subject, to", "label": 0, "tool": "ext_send_channel", "group": "G4_list_family"}
+{"query": "查看发起的后台任务列表", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "列出系统中运行的进程", "doc": "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB 参数: path1, path2, context_lines", "label": 0, "tool": "diff_files", "group": "G4_list_family"}
+{"query": "看系统中运行的进程", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "列出 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "列出系统中运行的进程", "doc": "列出当前正在运行的白名单程序列表", "label": 1, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "看系统中运行的进程", "doc": "列出当前正在运行的白名单程序列表", "label": 1, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报） 参数: city, format", "label": 0, "tool": "get_weather", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "列出 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看提交的后台任务列表", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看提交的后台任务列表", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 1, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB 参数: path1, path2, context_lines", "label": 0, "tool": "diff_files", "group": "G4_list_family"}
+{"query": "查看提交的后台任务列表", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看新建的后台任务列表", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看系统中运行的进程", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "显示 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看启动的后台任务列表", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "罗列 /home/user 下的所有文件", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 0, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看提交的后台任务列表", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查询系统中运行的进程", "doc": "列出当前正在运行的白名单程序列表", "label": 1, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "罗列 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查询系统中运行的进程", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 0, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "列出 /home/user 下的所有文件", "doc": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件 参数: path, show_hidden", "label": 1, "tool": "list_directory", "group": "G4_list_family"}
+{"query": "查看发起的后台任务列表", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G4_list_family"}
+{"query": "查看启动的后台任务列表", "doc": "列出所有异步任务（含已完成、运行中、等待中）", "label": 1, "tool": "list_async_tasks", "group": "G4_list_family"}
+{"query": "查看发起的后台任务列表", "doc": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。 参数: key, content, importance", "label": 0, "tool": "remember", "group": "G4_list_family"}
+{"query": "安装 markdown 编辑器扩展", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 1, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "用 apt 安装 nginx 软件包", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "用 apt 安装 nginx 软件包", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 1, "tool": "software_install", "group": "G5_install_family"}
+{"query": "部署 markdown 编辑器扩展", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "装 markdown 编辑器扩展", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "看已安装的扩展列表", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "查看已安装的扩展列表", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "用 apt 装 nginx 软件包", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 1, "tool": "software_install", "group": "G5_install_family"}
+{"query": "用 apt 部署 nginx 软件包", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "查看已安装的扩展列表", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "用 apt 装 nginx 软件包", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "装 markdown 编辑器扩展", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 1, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "看已安装的扩展列表", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "用 apt 安装 nginx 软件包", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "看已安装的扩展列表", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 1, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "安装 markdown 编辑器扩展", "doc": "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result 参数: task_id", "label": 0, "tool": "get_task_result", "group": "G5_install_family"}
+{"query": "用 apt 安装 nginx 软件包", "doc": "暂停指定的定时任务 参数: task_id", "label": 0, "tool": "pause_scheduled_task", "group": "G5_install_family"}
+{"query": "查看已装的扩展列表", "doc": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源 参数: query, backend", "label": 0, "tool": "software_search", "group": "G5_install_family"}
+{"query": "用 apt 部署 nginx 软件包", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 1, "tool": "software_install", "group": "G5_install_family"}
+{"query": "装 markdown 编辑器扩展", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "部署 markdown 编辑器扩展", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "用 apt 部署 nginx 软件包", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "部署 markdown 编辑器扩展", "doc": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源 参数: query, backend", "label": 0, "tool": "software_search", "group": "G5_install_family"}
+{"query": "查询已安装的扩展列表", "doc": "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。 参数: query, max_items", "label": 0, "tool": "expand_context", "group": "G5_install_family"}
+{"query": "查看已安装的扩展列表", "doc": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数 参数: text, items", "label": 0, "tool": "web_clean_data", "group": "G5_install_family"}
+{"query": "用 apt 装 nginx 软件包", "doc": "查询异步任务的执行状态（pending/running/completed/failed/cancelled） 参数: task_id", "label": 0, "tool": "get_task_status", "group": "G5_install_family"}
+{"query": "查看已装的扩展列表", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "用 apt 部署 nginx 软件包", "doc": "通过已安装的通信通道发送消息。比如发Webhook、邮件等。 参数: channel_id, message, subject, to", "label": 0, "tool": "ext_send_channel", "group": "G5_install_family"}
+{"query": "装 markdown 编辑器扩展", "doc": "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。 参数: name, description, code, schema, persist", "label": 0, "tool": "generate_tool", "group": "G5_install_family"}
+{"query": "查看已部署的扩展列表", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "查看已部署的扩展列表", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G5_install_family"}
+{"query": "查看已部署的扩展列表", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G5_install_family"}
+{"query": "查看已安装的扩展列表", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 1, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "安装 markdown 编辑器扩展", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G5_install_family"}
+{"query": "查询已安装的扩展列表", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 1, "tool": "ext_list", "group": "G5_install_family"}
+{"query": "创建每天凌晨 3 点运行的定时任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "提交一个后台数据处理任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "新建一个后台数据处理任务", "doc": "使用 XPath 表达式从网页中提取信息 参数: url, expression, html", "label": 0, "tool": "web_xpath", "group": "G6_task_family"}
+{"query": "提交一个后台数据处理任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "取消任务 ID 为 abc123 的后台任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点运行的定时任务", "doc": "使用 XPath 表达式从网页中提取信息 参数: url, expression, html", "label": 0, "tool": "web_xpath", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点跑的定时任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点运行的定时任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 1, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点执行的定时任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "撤销任务 ID 为 abc123 的后台任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 1, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "中止任务 ID 为 abc123 的后台任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "终止任务 ID 为 abc123 的后台任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "取消任务 ID 为 abc123 的后台任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "取消任务 ID 为 abc123 的后台任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 1, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "启动一个后台数据处理任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "发起一个后台数据处理任务", "doc": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数 参数: text, items", "label": 0, "tool": "web_clean_data", "group": "G6_task_family"}
+{"query": "发起一个后台数据处理任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "中止任务 ID 为 abc123 的后台任务", "doc": "使用 CSS 选择器从网页中提取信息 参数: url, selector, attr, html", "label": 0, "tool": "web_css", "group": "G6_task_family"}
+{"query": "请帮我创建一个每天凌晨 3 点自动执行的数据备份定时任务", "doc": "查看学习到的用户偏好", "label": 0, "tool": "get_preferences", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点执行的定时任务", "doc": "发送 HTTP POST 请求，支持表单数据和 JSON 数据 参数: url, data, json_data, timeout", "label": 0, "tool": "web_post", "group": "G6_task_family"}
+{"query": "创建一个后台数据处理任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 1, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "提交一个后台数据处理任务", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G6_task_family"}
+{"query": "启动一个后台数据处理任务", "doc": "查看学习到的用户偏好", "label": 0, "tool": "get_preferences", "group": "G6_task_family"}
+{"query": "新建一个后台数据处理任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "启动一个后台数据处理任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "中止任务 ID 为 abc123 的后台任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "终止任务 ID 为 abc123 的后台任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点执行的定时任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 1, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "中止任务 ID 为 abc123 的后台任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 1, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "创建定时任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 1, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "创建定时任务", "doc": "读取 PDF 文件中的文本内容（支持指定页码范围） 参数: path, pages", "label": 0, "tool": "read_pdf", "group": "G6_task_family"}
+{"query": "创建一个后台数据处理任务", "doc": "使用 XPath 表达式从网页中提取信息 参数: url, expression, html", "label": 0, "tool": "web_xpath", "group": "G6_task_family"}
+{"query": "创建定时任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "提交一个后台数据处理任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 1, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "新建一个后台数据处理任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 1, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "取消任务 ID 为 abc123 的后台任务", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点跑的定时任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "创建定时任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "请帮我创建一个每天凌晨 3 点自动执行的数据备份定时任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "发起一个后台数据处理任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "创建一个后台数据处理任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "撤销任务 ID 为 abc123 的后台任务", "doc": "启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。 参数: type, id, enabled", "label": 0, "tool": "ext_toggle", "group": "G6_task_family"}
+{"query": "撤销任务 ID 为 abc123 的后台任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "发起一个后台数据处理任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 1, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "启动一个后台数据处理任务", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 1, "tool": "submit_task", "group": "G6_task_family"}
+{"query": "创建每天凌晨 3 点跑的定时任务", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G6_task_family"}
+{"query": "创建一个后台数据处理任务", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G6_task_family"}
+{"query": "请帮我创建一个每天凌晨 3 点自动执行的数据备份定时任务", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 1, "tool": "schedule_task", "group": "G6_task_family"}
+{"query": "解开 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "还原 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "解开 archive.zip 到 /tmp", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "从 backup.tar.gz 提取所有文件", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "解开 archive.zip 到 /tmp", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "把 data 目录打包成 tar.gz", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "我要把 logs 文件夹压缩成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz", "doc": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果 参数: name, tool_name, params, timeout", "label": 0, "tool": "submit_task", "group": "G7_compress_family"}
+{"query": "把 data 目录打包成 tar.gz", "doc": "触发一次人格蒸馏学习", "label": 0, "tool": "trigger_distillation", "group": "G7_compress_family"}
+{"query": "还原 archive.tar.gz 到当前目录", "doc": "批量请求多个 URL 参数: urls, max_concurrency", "label": 0, "tool": "web_batch", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径） 参数: title, components, output_path", "label": 0, "tool": "arch_diagram", "group": "G7_compress_family"}
+{"query": "解开 archive.zip 到 /tmp", "doc": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源 参数: query, backend", "label": 0, "tool": "software_search", "group": "G7_compress_family"}
+{"query": "请把 logs 文件夹压缩成 zip", "doc": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。 参数: name, backend, version, confirm", "label": 0, "tool": "software_install", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压缩成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "释放 archive.tar.gz 到当前目录", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G7_compress_family"}
+{"query": "请帮我把 logs 这个文件夹压缩成 zip 压缩包", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "解开 archive.tar.gz 到当前目录", "doc": "获取我的完整状态", "label": 0, "tool": "get_status", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压缩成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "释放 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "还原 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "从 backup.tar.gz 提取所有文件", "doc": "扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。", "label": 0, "tool": "scan_mcp", "group": "G7_compress_family"}
+{"query": "归档 logs 目录到 backup.zip", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G7_compress_family"}
+{"query": "从 backup.tar.gz 提取所有文件", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "归档 logs 目录到 backup.zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "我要把 logs 文件夹压缩成 zip", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压缩成 zip", "doc": "从 URL 下载文件到本地 参数: url, filepath", "label": 0, "tool": "web_download", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹打包成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹归档成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "解开 archive.zip 到 /tmp", "doc": "获取我的完整状态", "label": 0, "tool": "get_status", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹归档成 zip", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G7_compress_family"}
+{"query": "请把 logs 文件夹压缩成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "请把 archive.tar.gz 这个压缩包解压到当前目录下", "doc": "执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单 参数: path, diff, dimensions", "label": 0, "tool": "code_review", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹归档成 zip", "doc": "从扩展市场安装工具。安装后工具立即可用，无需重启。 参数: tool_id, source", "label": 0, "tool": "install_tool", "group": "G7_compress_family"}
+{"query": "压缩 logs 文件夹", "doc": "获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等） 参数: path", "label": 0, "tool": "get_pdf_info", "group": "G7_compress_family"}
+{"query": "释放 archive.tar.gz 到当前目录", "doc": "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result 参数: task_id", "label": 0, "tool": "get_task_result", "group": "G7_compress_family"}
+{"query": "从 backup.tar.gz 提取所有文件", "doc": "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB 参数: path1, path2, context_lines", "label": 0, "tool": "diff_files", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压紧成 zip", "doc": "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB 参数: path1, path2, context_lines", "label": 0, "tool": "diff_files", "group": "G7_compress_family"}
+{"query": "还原 archive.tar.gz 到当前目录", "doc": "列出所有已创建的定时任务", "label": 0, "tool": "list_scheduled_tasks", "group": "G7_compress_family"}
+{"query": "归档 logs 目录到 backup.zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "请把 archive.tar.gz 这个压缩包解压到当前目录下", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "解开 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "帮我把 logs 文件夹压缩成 zip", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G7_compress_family"}
+{"query": "请把 archive.tar.gz 这个压缩包解压到当前目录下", "doc": "从扩展市场安装工具。安装后工具立即可用，无需重启。 参数: tool_id, source", "label": 0, "tool": "install_tool", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz", "doc": "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。 参数: name, description, code, schema, persist", "label": 0, "tool": "generate_tool", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G7_compress_family"}
+{"query": "请把 archive.tar.gz 这个压缩包解压到当前目录下", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹归档成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "帮我把 logs 文件夹压缩成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "压缩 logs 文件夹", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压紧成 zip", "doc": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数 参数: text, items", "label": 0, "tool": "web_clean_data", "group": "G7_compress_family"}
+{"query": "请帮我把 logs 这个文件夹压缩成 zip 压缩包", "doc": "配置扩展参数。调整技能、MCP服务或通道的设置项。 参数: type, id, config", "label": 0, "tool": "ext_configure", "group": "G7_compress_family"}
+{"query": "解开 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz 到当前目录", "doc": "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。 参数: query, category", "label": 0, "tool": "market_search", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹打包成 zip", "doc": "配置扩展参数。调整技能、MCP服务或通道的设置项。 参数: type, id, config", "label": 0, "tool": "ext_configure", "group": "G7_compress_family"}
+{"query": "帮我把 logs 文件夹压缩成 zip", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "帮我把 logs 文件夹压缩成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "压缩 logs 文件夹", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "请帮我把 logs 这个文件夹压缩成 zip 压缩包", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz 到当前目录", "doc": "取消指定的定时任务 参数: task_id", "label": 0, "tool": "cancel_scheduled_task", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹压紧成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "归档 logs 目录到 backup.zip", "doc": "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。 参数: query, max_items", "label": 0, "tool": "expand_context", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。 参数: type", "label": 0, "tool": "ext_list", "group": "G7_compress_family"}
+{"query": "把 logs 文件夹打包成 zip", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "提取 archive.tar.gz 到当前目录", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G7_compress_family"}
+{"query": "我要把 logs 文件夹压缩成 zip", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "把 data 目录打包成 tar.gz", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 1, "tool": "compress", "group": "G7_compress_family"}
+{"query": "解压 archive.tar.gz 到当前目录", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 1, "tool": "decompress", "group": "G7_compress_family"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 1, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "解析 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "解析 data.yaml 转成 JSON 对象", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转换成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "将 config.yaml 解析为 JSON", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "查看 data.yaml 转成 JSON 对象", "doc": "触发一次人格蒸馏学习", "label": 0, "tool": "trigger_distillation", "group": "G8_format_convert_direction"}
+{"query": "将 package.json 转为 yaml 配置", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 settings.json 改写成 yaml", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "查看 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。 参数: query, max_items", "label": 0, "tool": "expand_context", "group": "G8_format_convert_direction"}
+{"query": "请读取 data.yaml 文件并把它转换成 JSON 对象格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 1, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单 参数: path, diff, dimensions", "label": 0, "tool": "code_review", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 改成成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 settings.json 改写成 yaml", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G8_format_convert_direction"}
+{"query": "读取 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "帮我把 config.json 转换成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转成 yaml 格式", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G8_format_convert_direction"}
+{"query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 settings.json 改写成 yaml", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "config.json 转 yaml", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "将 package.json 转为 yaml 配置", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转换成 yaml 格式", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G8_format_convert_direction"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G8_format_convert_direction"}
+{"query": "读取 data.yaml 转成 JSON 对象", "doc": "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。 参数: query, max_items", "label": 0, "tool": "expand_context", "group": "G8_format_convert_direction"}
+{"query": "将 config.yaml 解析为 JSON", "doc": "启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。 参数: type, id, enabled", "label": 0, "tool": "ext_toggle", "group": "G8_format_convert_direction"}
+{"query": "我要把 config.json 转换成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G8_format_convert_direction"}
+{"query": "解析 data.yaml 转成 JSON 对象", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 1, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "请读取 data.yaml 文件并把它转换成 JSON 对象格式", "doc": "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。 参数: query, category", "label": 0, "tool": "market_search", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 变成成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "解析 data.yaml 转成 JSON 对象", "doc": "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。 参数: name, description, code, schema, persist", "label": 0, "tool": "generate_tool", "group": "G8_format_convert_direction"}
+{"query": "请把 config.json 转换成 yaml 格式", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G8_format_convert_direction"}
+{"query": "我要把 config.json 转换成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 docker-compose.yaml 转成 JSON", "doc": "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式 参数: data", "label": 0, "tool": "data_format_detect", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转成 yaml 格式", "doc": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源 参数: query, backend", "label": 0, "tool": "software_search", "group": "G8_format_convert_direction"}
+{"query": "将 config.yaml 解析为 JSON", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G8_format_convert_direction"}
+{"query": "data.yaml 转 JSON", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G8_format_convert_direction"}
+{"query": "把 docker-compose.yaml 转成 JSON", "doc": "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径） 参数: title, components, output_path", "label": 0, "tool": "arch_diagram", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转为成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "data.yaml 转 JSON", "doc": "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径） 参数: title, components, output_path", "label": 0, "tool": "arch_diagram", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 变成成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "请把 config.json 转换成 yaml 格式", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转换成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "帮我把 config.json 转换成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 改成成 yaml 格式", "doc": "卸载已安装的软件包。 参数: name, backend", "label": 0, "tool": "software_uninstall", "group": "G8_format_convert_direction"}
+{"query": "config.json 转 yaml", "doc": "使用 CSS 选择器从网页中提取信息 参数: url, selector, attr, html", "label": 0, "tool": "web_css", "group": "G8_format_convert_direction"}
+{"query": "将 package.json 转为 yaml 配置", "doc": "暂停指定的定时任务 参数: task_id", "label": 0, "tool": "pause_scheduled_task", "group": "G8_format_convert_direction"}
+{"query": "读取 data.yaml 转成 JSON 对象", "doc": "批量请求多个 URL 参数: urls, max_concurrency", "label": 0, "tool": "web_batch", "group": "G8_format_convert_direction"}
+{"query": "加载 data.yaml 转成 JSON 对象", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G8_format_convert_direction"}
+{"query": "我要把 config.json 转换成 yaml 格式", "doc": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。 参数: query, type", "label": 0, "tool": "ext_discover", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 1, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "把 settings.json 改写成 yaml", "doc": "列出所有已创建的定时任务", "label": 0, "tool": "list_scheduled_tasks", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 变成成 yaml 格式", "doc": "启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。 参数: type, id, enabled", "label": 0, "tool": "ext_toggle", "group": "G8_format_convert_direction"}
+{"query": "请把 config.json 转换成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "请读取 data.yaml 文件并把它转换成 JSON 对象格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 docker-compose.yaml 转成 JSON", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 0, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "帮我把 config.json 转换成 yaml 格式", "doc": "读取 PDF 文件中的文本内容（支持指定页码范围） 参数: path, pages", "label": 0, "tool": "read_pdf", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转为成 yaml 格式", "doc": "使用 XPath 表达式从网页中提取信息 参数: url, expression, html", "label": 0, "tool": "web_xpath", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转为成 yaml 格式", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 转换成 yaml 格式", "doc": "列出当前正在运行的白名单程序列表", "label": 0, "tool": "list_processes", "group": "G8_format_convert_direction"}
+{"query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G8_format_convert_direction"}
+{"query": "将 package.json 转为 yaml 配置", "doc": "将 JSON 字符串转换为 YAML 格式字符串 参数: json_data", "label": 1, "tool": "json_to_yaml", "group": "G8_format_convert_direction"}
+{"query": "把 docker-compose.yaml 转成 JSON", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 1, "tool": "yaml_to_json", "group": "G8_format_convert_direction"}
+{"query": "读入 data.yaml 转成 JSON 对象", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G8_format_convert_direction"}
+{"query": "把 config.json 变成成 yaml 格式", "doc": "列出所有已创建的定时任务", "label": 0, "tool": "list_scheduled_tasks", "group": "G8_format_convert_direction"}
+{"query": "在 Google 上搜索 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查找 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上检索 Python 异步教程", "doc": "取消正在等待或运行中的异步任务。已完成的无法取消 参数: task_id", "label": 0, "tool": "cancel_task", "group": "G9_search_semantic_family"}
+{"query": "用谷歌搜 Python 异步教程", "doc": "列出已安装的软件包列表 参数: backend", "label": 0, "tool": "software_list", "group": "G9_search_semantic_family"}
+{"query": "用 Google 搜索 Python 异步教程", "doc": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。 参数: type, source, name, description, params", "label": 0, "tool": "ext_install", "group": "G9_search_semantic_family"}
+{"query": "Google 搜索 Python 异步教程", "doc": "使用 CSS 选择器从网页中提取信息 参数: url, selector, attr, html", "label": 0, "tool": "web_css", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "Google 搜索 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查找 Python 异步教程", "doc": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数 参数: text, items", "label": 0, "tool": "web_clean_data", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查找 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "用谷歌搜 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "Google 搜索 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "用 Google 搜索 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "用谷歌搜 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜索 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜索 Python 异步教程", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G9_search_semantic_family"}
+{"query": "Google 搜索 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "检索 lifetrace 中的历史对话", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 1, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上检索 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上查 Python 异步教程", "doc": "断开一个 MCP 服务连接，注销其注册的工具。 参数: service_id", "label": 0, "tool": "disconnect_mcp", "group": "G9_search_semantic_family"}
+{"query": "检索 lifetrace 中的历史对话", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "回忆之前讨论过的项目架构", "doc": "从 URL 下载文件到本地 参数: url, filepath", "label": 0, "tool": "web_download", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "用 Google 搜索 Python 异步教程", "doc": "搜索我的记忆，回忆之前讨论过的内容 参数: query", "label": 0, "tool": "search_memory", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜索 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "检索 lifetrace 中的历史对话", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 0, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "用谷歌搜 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "检索 lifetrace 中的历史对话", "doc": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径 参数: paths, output_path", "label": 0, "tool": "merge_pdf", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上检索 Python 异步教程", "doc": "搜索我的记忆（使用 LifeTrace） 参数: query", "label": 0, "tool": "search_lifetrace", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜 Python 异步教程", "doc": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢） 参数: query, engine, num_results, page, aggregate", "label": 1, "tool": "web_search", "group": "G9_search_semantic_family"}
+{"query": "在 Google 上搜 Python 异步教程", "doc": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。 参数: query, type", "label": 0, "tool": "ext_discover", "group": "G9_search_semantic_family"}
+{"query": "解析 config.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "把 hello world 写入 output.txt", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果写到 output.json", "doc": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。 参数: topic, max_results, engine", "label": 0, "tool": "fetch_news", "group": "G10_read_write_direction"}
+{"query": "读取 settings.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果写入 output.json", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "加载 config.yaml 的内容", "doc": "恢复已暂停的定时任务 参数: task_id", "label": 0, "tool": "resume_scheduled_task", "group": "G10_read_write_direction"}
+{"query": "解析 config.yaml 的内容", "doc": "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result 参数: task_id", "label": 0, "tool": "get_task_result", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "将 YAML 字符串转换为 JSON 格式字符串 参数: yaml_data", "label": 0, "tool": "yaml_to_json", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "解析 config.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "帮我把处理结果写入 output.json", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "解析 config.yaml 的内容", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G10_read_write_direction"}
+{"query": "请把处理结果写入 output.json", "doc": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理 参数: name, interval_minutes, cron_expr, action, params", "label": 0, "tool": "schedule_task", "group": "G10_read_write_direction"}
+{"query": "把处理结果写入 output.json", "doc": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。 参数: key, content, importance", "label": 0, "tool": "remember", "group": "G10_read_write_direction"}
+{"query": "帮我把处理结果写入 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果写到 output.json", "doc": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip 参数: source_path, output_path, format", "label": 0, "tool": "compress", "group": "G10_read_write_direction"}
+{"query": "把处理结果存储 output.json", "doc": "从扩展市场安装工具。安装后工具立即可用，无需重启。 参数: tool_id, source", "label": 0, "tool": "install_tool", "group": "G10_read_write_direction"}
+{"query": "把 hello world 写入 output.txt", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "读取 settings.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果存储 output.json", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "请把处理结果写入 output.json", "doc": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息 参数: url, timeout, headers", "label": 0, "tool": "web_get", "group": "G10_read_write_direction"}
+{"query": "将处理结果写入 output.json", "doc": "检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式 参数: text, aggressive", "label": 0, "tool": "humanize_zh", "group": "G10_read_write_direction"}
+{"query": "把处理结果保存 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。 参数: query, type", "label": 0, "tool": "ext_discover", "group": "G10_read_write_direction"}
+{"query": "把处理结果写入 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果写到 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "查看 config.yaml 的内容", "doc": "卸载扩展。移除不再需要的技能、MCP服务、通道或插件。 参数: type, id", "label": 0, "tool": "ext_uninstall", "group": "G10_read_write_direction"}
+{"query": "读取 config.yaml 的内容", "doc": "拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件 参数: path, output_dir, ranges", "label": 0, "tool": "split_pdf", "group": "G10_read_write_direction"}
+{"query": "把处理结果写到 output.json", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果写入 output.json", "doc": "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result 参数: task_id", "label": 0, "tool": "get_task_result", "group": "G10_read_write_direction"}
+{"query": "加载 config.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "加载 config.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "请把处理结果写入 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果存储 output.json", "doc": "获取文件或目录的详细信息（大小、修改时间、权限等） 参数: path", "label": 0, "tool": "get_file_info", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "帮我把处理结果写入 output.json", "doc": "卸载扩展。移除不再需要的技能、MCP服务、通道或插件。 参数: type, id", "label": 0, "tool": "ext_uninstall", "group": "G10_read_write_direction"}
+{"query": "把处理结果存储 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "将处理结果写入 output.json", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 1, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "读取 config.yaml 的内容", "doc": "查看当前人格配置", "label": 0, "tool": "get_persona_info", "group": "G10_read_write_direction"}
+{"query": "把处理结果保存 output.json", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 0, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "验证字符串是否为合法 JSON，返回验证结果和解析类型 参数: data", "label": 0, "tool": "json_validate", "group": "G10_read_write_direction"}
+{"query": "帮我把处理结果写入 output.json", "doc": "查看所有传感器状态", "label": 0, "tool": "get_sensor_summary", "group": "G10_read_write_direction"}
+{"query": "把 hello world 写入 output.txt", "doc": "断开一个 MCP 服务连接，注销其注册的工具。 参数: service_id", "label": 0, "tool": "disconnect_mcp", "group": "G10_read_write_direction"}
+{"query": "加载 config.yaml 的内容", "doc": "断开一个 MCP 服务连接，注销其注册的工具。 参数: service_id", "label": 0, "tool": "disconnect_mcp", "group": "G10_read_write_direction"}
+{"query": "查看 config.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
+{"query": "把处理结果保存 output.json", "doc": "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。 参数: name, description, code, schema, persist", "label": 0, "tool": "generate_tool", "group": "G10_read_write_direction"}
+{"query": "把处理结果保存 output.json", "doc": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数 参数: text, items", "label": 0, "tool": "web_clean_data", "group": "G10_read_write_direction"}
+{"query": "将处理结果写入 output.json", "doc": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠 参数: file_path, output_dir", "label": 0, "tool": "decompress", "group": "G10_read_write_direction"}
+{"query": "读入 config.yaml 的内容", "doc": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数 参数: path, content, encoding", "label": 0, "tool": "write_file", "group": "G10_read_write_direction"}
+{"query": "读取 config.yaml 的内容", "doc": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径 参数: path, encoding, max_size_mb, range", "label": 1, "tool": "read_file", "group": "G10_read_write_direction"}
