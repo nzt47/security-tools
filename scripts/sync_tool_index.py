@@ -200,8 +200,35 @@ def _cross_check_categories(docs: list[dict]) -> list[str]:
     return errors + warnings
 
 
+def _extract_parameter_names(doc: dict) -> list[str]:
+    """从 schema.properties 提取顶层参数名列表。
+
+    【不易】仅提取顶层 properties 的 key,不递归嵌套对象/数组的内部参数,
+           避免污染 BM25 索引(如 arch_diagram.components.items 的 name/type 不应进入索引)。
+    【简易】schema 缺失或 properties 非 dict 时返回空列表(兜底)。
+
+    Args:
+        doc: 已校验的 YAML 文档(含 schema 字段)
+
+    Returns:
+        顶层参数名列表(保持 YAML 声明顺序)
+    """
+    schema = doc.get("schema")
+    if not isinstance(schema, dict):
+        return []
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return []
+    return [str(k) for k in props.keys()]
+
+
 def _build_index(docs: list[dict]) -> dict:
-    """生成索引结构。"""
+    """生成索引结构。
+
+    【变易】新增 parameter_names 字段(从 schema.properties 派生),
+           供 tool_router_hybrid.BM25Index 索引工具参数名。
+           旧 reader 忽略未知字段,向后兼容。
+    """
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "tool_count": len(docs),
@@ -213,6 +240,7 @@ def _build_index(docs: list[dict]) -> dict:
                 "description": d["description"],
                 "version": d["version"],
                 "deprecated": d["deprecated"],
+                "parameter_names": _extract_parameter_names(d),
             }
             for d in sorted(docs, key=lambda x: (x["category"], x["name"]))
         ],

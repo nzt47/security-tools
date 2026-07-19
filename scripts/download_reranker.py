@@ -1,25 +1,29 @@
 """后台下载 BGE-reranker-v2-m3 模型 — 支持断点续传
 
 策略:
-    1. 优先用 hf_transfer 加速（已安装）
-    2. 通过 hf-mirror.com 镜像下载
+    1. 通过 hf-mirror.com 镜像下载(国内稳定)
+    2. 禁用 Xet 协议(HF_XET_HIGH_PERFORMANCE=0),避免 CAS Server 401 鉴权失败
     3. 失败时输出明确错误码
 
-【简易】单一职责：仅下载，不做其他事
+【简易】单一职责:仅下载,不做其他事
 """
 import os
 import sys
 import time
 
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
+# 【不易】HF 新版(>=1.20)默认启用 Xet 协议传输大文件,CAS Server 需鉴权会 401 失败
+# 必须显式禁用 Xet,强制走传统 HTTP 下载
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+os.environ.setdefault("HF_XET_HIGH_PERFORMANCE", "0")
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 
 def main():
     print(f"[start] downloading BAAI/bge-reranker-v2-m3 ...", flush=True)
     print(f"[env] HF_ENDPOINT={os.environ.get('HF_ENDPOINT')}", flush=True)
-    print(f"[env] HF_HUB_ENABLE_HF_TRANSFER={os.environ.get('HF_HUB_ENABLE_HF_TRANSFER')}", flush=True)
+    print(f"[env] HF_HUB_DISABLE_XET={os.environ.get('HF_HUB_DISABLE_XET')}", flush=True)
+    print(f"[env] HF_XET_HIGH_PERFORMANCE={os.environ.get('HF_XET_HIGH_PERFORMANCE')}", flush=True)
 
     try:
         from huggingface_hub import snapshot_download
