@@ -828,11 +828,8 @@ class LifecycleManager:
         try:
             from agent.extensions.manager import ExtensionManager
             from agent.network_config import NetworkConfigManager
-            try:
-                from config import _get_secure_manager
-                ncm = NetworkConfigManager(secure_manager=_get_secure_manager())
-            except Exception:
-                ncm = NetworkConfigManager()
+            # 【P2 已清理】SecureConfigManager 已移除，敏感数据统一由 .env 单一数据源管理
+            ncm = NetworkConfigManager()
             ext_manager = ExtensionManager(network_config_mgr=ncm)
         except Exception:
             from agent.extensions.manager import ExtensionManager

@@ -416,14 +416,10 @@ print("[启动] 开始加载网络配置...")
 try:
     from agent.network_config import NetworkConfigManager as _NCM
     print("[启动] 成功导入 NetworkConfigManager")
-    try:
-        from config import _get_secure_manager as _gsm
-        _ncm = _NCM(secure_manager=_gsm())
-        print("[启动] 使用安全管理器创建配置管理器")
-    except Exception as _ex:
-        print(f"[启动] 安全管理器不可用: {_ex}，使用默认配置管理器")
-        _ncm = _NCM()
-    
+    # 【P2 已清理】SecureConfigManager 已移除，敏感数据统一由 .env 单一数据源管理
+    _ncm = _NCM()
+    print("[启动] 已创建配置管理器（纯 .env 架构）")
+
     print("[启动] 调用 apply_to_app...")
     _ncm.apply_to_app(_Yunshu)
     print("[启动] 网络配置应用完成")
@@ -2001,12 +1997,8 @@ def api_skills_delete():
 # ── 网络配置管理器 ──
 from agent.network_config import NetworkConfigManager, _DEFAULT_SEARCH_INSTANCE
 
-# 传入 secure_manager 以确保 API Key 加密存储和正确恢复
-try:
-    from config import _get_secure_manager
-    _network_config_mgr = NetworkConfigManager(secure_manager=_get_secure_manager())
-except Exception:
-    _network_config_mgr = NetworkConfigManager()
+# 【P2 已清理】SecureConfigManager 已移除，敏感数据统一由 .env 单一数据源管理
+_network_config_mgr = NetworkConfigManager()
 
 # ── 启动时自动将搜索实例注册到全局搜索引擎 ──
 try:

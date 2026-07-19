@@ -30,19 +30,8 @@ except ImportError:
     _PYDANTIC_AVAILABLE = False
     logger.warning("[warn] Pydantic 未安装，配置校验功能已禁用")
 
-# 安全配置管理器（延迟导入避免循环依赖）
-_secure_manager = None
-
-def _get_secure_manager():
-    """获取安全配置管理器（单例）"""
-    global _secure_manager
-    if _secure_manager is None:
-        try:
-            from .config_secure import SecureConfigManager
-        except ImportError:
-            from config_secure import SecureConfigManager
-        _secure_manager = SecureConfigManager()
-    return _secure_manager
+# 【P2 已清理】SecureConfigManager 加密层已移除，敏感数据统一由 .env 单一数据源管理
+# 详见 agent/env_config_manager.py:EnvConfigManager
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -606,7 +595,8 @@ class Config:
             validate: 是否启用配置校验
         """
         self._data = deepcopy(self.DEFAULT)
-        self._load_from_secure_config()
+        # 【P2 已清理】_load_from_secure_config() 已移除，敏感数据改由 .env 单一数据源提供
+        # 详见 agent/env_config_manager.py + agent/network_config.py 的 _load_secure 实现
         self._load_from_env()
         if overrides:
             self._merge(overrides)
@@ -633,55 +623,10 @@ class Config:
                     logger.info("   • %s: %s", error['loc'], error['msg'])
         else:
             logger.info("[配置校验] 配置校验通过")
-    
-    def _load_from_secure_config(self):
-        """从加密配置文件加载敏感信息
-        
-        安全配置文件使用 AES-GCM 加密，包含 API Key 等敏感信息。
-        """
-        if not self.get("security", "enable_encryption", True):
-            return
-        
-        try:
-            secure_manager = _get_secure_manager()
-            secure_config = secure_manager.load_secure_config()
-            
-            if secure_config:
-                # 加载 LLM API Key
-                llm_api_key = secure_config.get('llm_api_key')
-                if llm_api_key and not self.get('memory', 'llm', 'api_key'):
-                    self.set(llm_api_key, 'memory', 'llm', 'api_key')
-                    logger.info("[安全配置] 已从加密文件加载 LLM API Key")
-                
-                # 加载其他敏感配置
-                for key, value in secure_config.items():
-                    if key.endswith('_api_key') or key.endswith('_secret') or key.endswith('_password'):
-                        # 处理如 external_api_key 这样的配置
-                        parts = key.split('_')
-                        if len(parts) >= 2:
-                            # 尝试设置到对应的配置路径
-                            if parts[0] in self._data:
-                                self.set(value, parts[0], '_'.join(parts[1:]))
-                                
-        except Exception as e:
-            logger.warning("加载加密配置失败: %s", e)
-    
-    def save_secure_config(self, **kwargs):
-        """保存敏感配置到加密文件
-        
-        Args:
-            kwargs: 键值对，如 llm_api_key="xxx"
-        
-        Example:
-            config = Config()
-            config.save_secure_config(llm_api_key="sk-xxx")
-        """
-        try:
-            secure_manager = _get_secure_manager()
-            secure_manager.save_secure_config(kwargs)
-            logger.info(f"[安全配置] 已保存 {len(kwargs)} 个敏感配置项")
-        except Exception as e:
-            logger.error(f"保存加密配置失败: {e}")
+
+    # 【P2 已清理】_load_from_secure_config / save_secure_config 方法已移除
+    # 敏感数据（API Key 等）改由 .env 单一数据源管理，详见 agent/env_config_manager.py
+    # 配置加载流程改为：DEFAULT → _load_from_env() → overrides → validate
 
     @property
     def merged(self) -> dict:
