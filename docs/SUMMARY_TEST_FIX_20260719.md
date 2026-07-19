@@ -148,8 +148,8 @@
 | 2 | API Key（同上） | `agent/data/network_config.json` line 5,45 | `sk-ddf2****45a3` | 已 gitignore（历史有） | 高 |
 | 3 | 加密密钥文件 | `.encryption_key`（二进制） | 二进制内容 | 跟踪 | 高 |
 | 4 | API Key 引用 | `docs/security/SECURITY_NOTICE_20260719_api_key_leak.md` line 29,106,138,204 | `sk-ddf2****45a3` | 跟踪 | 中 |
-| 5 | GlitchTip 管理员密码 | `docker/glitchtip/orm_setup_inline.py` line 52 | `***REMOVED_GLITCHTIP_PWD***` | 跟踪 | 中 |
-| 6 | Grafana 密码 | `scripts/_import_dashboards.py` line 8 | `admin123` | 跟踪 | 中 |
+| 5 | GlitchTip 管理员密码 | `docker/glitchtip/orm_setup_inline.py` line 52 | `Admin@****!` | 跟踪 | 中 |
+| 6 | Grafana 密码 | `scripts/_import_dashboards.py` line 8 | `admin***` | 跟踪 | 中 |
 
 ### 4.2 关键发现
 
@@ -305,8 +305,8 @@ emit_metric(name, kind="histogram")
 |---|---|---|
 | **P0** | OpenAI 控制台 revoke 泄露的 API key（`sk-ddf2****45a3`） | 待用户操作 |
 | **P0** | DeepSeek 控制台 revoke 泄露的 API key（`_DS_KEY` 同一 key） | 待用户操作 |
-| **P0** | 修改 GlitchTip 管理员密码（`***REMOVED_GLITCHTIP_PWD***`） | 待用户操作 |
-| **P0** | 修改 Grafana 默认密码（`admin123`） | 待用户操作 |
+| **P0** | 修改 GlitchTip 管理员密码（`Admin@****!`） | 待用户操作 |
+| **P0** | 修改 Grafana 默认密码（`admin***`） | 待用户操作 |
 | **P1** | 用 BFG 清除 git 历史中的所有敏感信息（6 类） | 待用户决策（见 BFG 指南） |
 | **P1** | 修复 `app_server.py` line 961 硬编码 API key → 环境变量 | 待执行 |
 | **P1** | `.encryption_key` 从 git 跟踪移除 + 加入 .gitignore | 待执行 |

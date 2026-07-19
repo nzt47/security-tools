@@ -71,8 +71,9 @@ if ($GenerateTemplate) {
         '# 2. GlitchTip 管理员密码（见 docker/glitchtip/orm_setup_inline.py line 52）'
         'GLITCHTIP_PWD_HERE==>***REMOVED_GLITCHTIP_PWD***'
         ''
-        '# 3. Grafana 默认密码（见 scripts/_import_dashboards.py line 8）'
-        'GRAFANA_PWD_HERE==>***REMOVED_GRAFANA_PWD***'
+        '# 3. Grafana 默认密码（已移除：admin123 是常见字符串，BFG 清理会误伤 29 个部署文档）'
+        '# 如需清理，请使用 regex: 精确匹配，如 regex:GRAFANA_PASSWORD="admin123"'
+        '# GRAFANA_PWD_HERE==>***REMOVED_GRAFANA_PWD***'
     )
     $template | Set-Content -Path $templatePath -Encoding UTF8
     Write-OK "模板已生成：$templatePath"
