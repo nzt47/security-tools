@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-17T01:31:47",
+  "generated_at": "2026-07-19T01:31:23",
   "tool_count": 70,
   "categories": [
     "async",
@@ -21,490 +21,768 @@
       "category": "async",
       "description": "取消正在等待或运行中的异步任务。已完成的无法取消",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "get_task_result",
       "category": "async",
       "description": "获取异步任务的执行结果。已完成的结果保留 1 小时后自动清理，未完成返回当前状态提示。通常流程：submit_task → get_task_status（轮询） → get_task_result",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "get_task_status",
       "category": "async",
       "description": "查询异步任务的执行状态（pending/running/completed/failed/cancelled）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "list_async_tasks",
       "category": "async",
       "description": "列出所有异步任务（含已完成、运行中、等待中）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "submit_task",
       "category": "async",
       "description": "提交异步任务在后台执行，立即返回任务ID不阻塞对话。适用于耗时工具（如 web_search、大文件处理等）。用 get_task_status 查状态，用 get_task_result 获取结果",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "name",
+        "tool_name",
+        "params",
+        "timeout"
+      ]
     },
     {
       "name": "arch_diagram",
       "category": "code",
       "description": "生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 架构图文件，支持多种组件类型（frontend/backend/database/cloud/security/external）。必须同时提供 title（标题）、components（组件列表）和 output_path（输出路径）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "title",
+        "components",
+        "output_path"
+      ]
     },
     {
       "name": "code_review",
       "category": "code",
       "description": "执行结构化代码审查，检查代码在安全、性能、可维护性、API兼容性和测试方面的质量。支持审查文件或 git diff。基于 gstack review 检查清单",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "diff",
+        "dimensions"
+      ]
     },
     {
       "name": "data_format_detect",
       "category": "code",
       "description": "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "data"
+      ]
     },
     {
       "name": "humanize_zh",
       "category": "code",
       "description": "检测中文文本中的 AI 写作痕迹并给出优化建议。基于 24 种 AI 写作模式检测规则（词汇/句式/结构/风格等），返回检测到的模式列表、问题数量和优化建议。aggressive=True 启用更严格的检测模式",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "text",
+        "aggressive"
+      ]
     },
     {
       "name": "json_query",
       "category": "code",
       "description": "使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "data",
+        "path"
+      ]
     },
     {
       "name": "json_to_yaml",
       "category": "code",
       "description": "将 JSON 字符串转换为 YAML 格式字符串",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "json_data"
+      ]
     },
     {
       "name": "json_validate",
       "category": "code",
       "description": "验证字符串是否为合法 JSON，返回验证结果和解析类型",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "data"
+      ]
     },
     {
       "name": "shell_execute",
       "category": "code",
       "description": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "command",
+        "shell",
+        "cwd",
+        "timeout"
+      ]
     },
     {
       "name": "yaml_to_json",
       "category": "code",
       "description": "将 YAML 字符串转换为 JSON 格式字符串",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "yaml_data"
+      ]
     },
     {
       "name": "expand_context",
       "category": "core",
       "description": "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "max_items"
+      ]
     },
     {
       "name": "get_sensor_summary",
       "category": "core",
       "description": "查看所有传感器状态",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "get_status",
       "category": "core",
       "description": "获取我的完整状态",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "remember",
       "category": "core",
       "description": "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "key",
+        "content",
+        "importance"
+      ]
     },
     {
       "name": "search_memory",
       "category": "core",
-      "description": "搜索我的记忆",
+      "description": "搜索我的记忆，回忆之前讨论过的内容",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query"
+      ]
     },
     {
       "name": "ext_configure",
       "category": "extension",
       "description": "配置扩展参数。调整技能、MCP服务或通道的设置项。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "type",
+        "id",
+        "config"
+      ]
     },
     {
       "name": "ext_discover",
       "category": "extension",
       "description": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "type"
+      ]
     },
     {
       "name": "ext_install",
       "category": "extension",
-      "description": "安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。",
+      "description": "安装扩展（技能/MCP服务/通道/插件），安装编辑器扩展。让我能自主获取新能力。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "type",
+        "source",
+        "name",
+        "description",
+        "params"
+      ]
     },
     {
       "name": "ext_list",
       "category": "extension",
       "description": "列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "type"
+      ]
     },
     {
       "name": "ext_send_channel",
       "category": "extension",
       "description": "通过已安装的通信通道发送消息。比如发Webhook、邮件等。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "channel_id",
+        "message",
+        "subject",
+        "to"
+      ]
     },
     {
       "name": "ext_toggle",
       "category": "extension",
       "description": "启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "type",
+        "id",
+        "enabled"
+      ]
     },
     {
       "name": "ext_uninstall",
       "category": "extension",
       "description": "卸载扩展。移除不再需要的技能、MCP服务、通道或插件。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "type",
+        "id"
+      ]
     },
     {
       "name": "compress",
       "category": "file",
       "description": "将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "source_path",
+        "output_path",
+        "format"
+      ]
     },
     {
       "name": "decompress",
       "category": "file",
       "description": "解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "file_path",
+        "output_dir"
+      ]
     },
     {
       "name": "diff_files",
       "category": "file",
       "description": "比较两个文本文件的差异，返回 unified diff 格式（类似 git diff 输出）。自动统计新增行数、删除行数和总变更数。文件大小限制 10MB",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path1",
+        "path2",
+        "context_lines"
+      ]
     },
     {
       "name": "get_file_info",
       "category": "file",
       "description": "获取文件或目录的详细信息（大小、修改时间、权限等）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path"
+      ]
     },
     {
       "name": "list_directory",
       "category": "file",
-      "description": "列出目录中的文件和子目录，支持指定路径和显示隐藏文件",
+      "description": "列出目录（文件夹）中的文件和子目录，支持指定路径和显示隐藏文件",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "show_hidden"
+      ]
     },
     {
       "name": "read_file",
       "category": "file",
       "description": "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "encoding",
+        "max_size_mb",
+        "range"
+      ]
     },
     {
       "name": "search_files",
       "category": "file",
       "description": "按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "pattern",
+        "root_path"
+      ]
     },
     {
       "name": "write_file",
       "category": "file",
       "description": "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "content",
+        "encoding"
+      ]
     },
     {
       "name": "get_pdf_info",
       "category": "pdf",
       "description": "获取 PDF 文件的元信息（页数、标题、作者、创建时间、文件大小等）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path"
+      ]
     },
     {
       "name": "merge_pdf",
       "category": "pdf",
       "description": "合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "paths",
+        "output_path"
+      ]
     },
     {
       "name": "read_pdf",
       "category": "pdf",
       "description": "读取 PDF 文件中的文本内容（支持指定页码范围）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "pages"
+      ]
     },
     {
       "name": "split_pdf",
       "category": "pdf",
       "description": "拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "output_dir",
+        "ranges"
+      ]
     },
     {
       "name": "cancel_scheduled_task",
       "category": "schedule",
       "description": "取消指定的定时任务",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "list_scheduled_tasks",
       "category": "schedule",
       "description": "列出所有已创建的定时任务",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "pause_scheduled_task",
       "category": "schedule",
       "description": "暂停指定的定时任务",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "resume_scheduled_task",
       "category": "schedule",
       "description": "恢复已暂停的定时任务",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "task_id"
+      ]
     },
     {
       "name": "schedule_task",
       "category": "schedule",
       "description": "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "name",
+        "interval_minutes",
+        "cron_expr",
+        "action",
+        "params"
+      ]
     },
     {
       "name": "software_install",
       "category": "software",
       "description": "安装软件包。支持自动选择最佳安装方式。不在白名单的软件需设置 confirm=true 以确认安装风险。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "name",
+        "backend",
+        "version",
+        "confirm"
+      ]
     },
     {
       "name": "software_list",
       "category": "software",
       "description": "列出已安装的软件包列表",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "backend"
+      ]
     },
     {
       "name": "software_search",
       "category": "software",
       "description": "搜索可安装的软件包。支持 Chocolatey(Windows应用)/pip(Python包)/npm(Node.js包)/GitHub Releases 等多种来源。不指定 backend 则搜索所有来源",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "backend"
+      ]
     },
     {
       "name": "software_uninstall",
       "category": "software",
       "description": "卸载已安装的软件包。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "name",
+        "backend"
+      ]
     },
     {
       "name": "get_weather",
       "category": "system",
       "description": "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "city",
+        "format"
+      ]
     },
     {
       "name": "list_processes",
       "category": "system",
       "description": "列出当前正在运行的白名单程序列表",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "run_program",
       "category": "system",
       "description": "在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "program",
+        "args",
+        "cwd"
+      ]
     },
     {
       "name": "stop_process",
       "category": "system",
       "description": "终止指定 PID 的白名单程序",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "pid"
+      ]
     },
     {
       "name": "connect_mcp",
       "category": "uncategorized",
       "description": "手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "service_id",
+        "transport",
+        "command",
+        "args",
+        "address",
+        "port"
+      ]
     },
     {
       "name": "disconnect_mcp",
       "category": "uncategorized",
       "description": "断开一个 MCP 服务连接，注销其注册的工具。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "service_id"
+      ]
     },
     {
       "name": "generate_tool",
       "category": "uncategorized",
       "description": "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "name",
+        "description",
+        "code",
+        "schema",
+        "persist"
+      ]
     },
     {
       "name": "install_tool",
       "category": "uncategorized",
       "description": "从扩展市场安装工具。安装后工具立即可用，无需重启。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "tool_id",
+        "source"
+      ]
     },
     {
       "name": "market_search",
       "category": "uncategorized",
       "description": "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "category"
+      ]
     },
     {
       "name": "scan_mcp",
       "category": "uncategorized",
       "description": "扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "get_persona_info",
       "category": "v2",
       "description": "查看当前人格配置",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "get_preferences",
       "category": "v2",
       "description": "查看学习到的用户偏好",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "search_lifetrace",
       "category": "v2",
       "description": "搜索我的记忆（使用 LifeTrace）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query"
+      ]
     },
     {
       "name": "trigger_distillation",
       "category": "v2",
       "description": "触发一次人格蒸馏学习",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": []
     },
     {
       "name": "fetch_news",
       "category": "web",
       "description": "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "topic",
+        "max_results",
+        "engine"
+      ]
     },
     {
       "name": "web_batch",
       "category": "web",
       "description": "批量请求多个 URL",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "urls",
+        "max_concurrency"
+      ]
     },
     {
       "name": "web_clean_data",
       "category": "web",
       "description": "清洗和结构化网页文本数据，去重、评分、去除跟踪参数",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "text",
+        "items"
+      ]
     },
     {
       "name": "web_css",
       "category": "web",
       "description": "使用 CSS 选择器从网页中提取信息",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "url",
+        "selector",
+        "attr",
+        "html"
+      ]
     },
     {
       "name": "web_download",
       "category": "web",
       "description": "从 URL 下载文件到本地",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "url",
+        "filepath"
+      ]
     },
     {
       "name": "web_get",
       "category": "web",
-      "description": "发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息",
+      "description": "发送 HTTP GET 请求抓取网页内容，获取 HTML。返回页面标题、文本、链接等结构化信息",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "url",
+        "timeout",
+        "headers"
+      ]
     },
     {
       "name": "web_post",
       "category": "web",
       "description": "发送 HTTP POST 请求，支持表单数据和 JSON 数据",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "url",
+        "data",
+        "json_data",
+        "timeout"
+      ]
     },
     {
       "name": "web_search",
       "category": "web",
-      "description": "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）",
+      "description": "网页搜索，搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "engine",
+        "num_results",
+        "page",
+        "aggregate"
+      ]
     },
     {
       "name": "web_xpath",
       "category": "web",
       "description": "使用 XPath 表达式从网页中提取信息",
       "version": "1.0.0",
-      "deprecated": false
+      "deprecated": false,
+      "parameter_names": [
+        "url",
+        "expression",
+        "html"
+      ]
     }
   ]
 }
