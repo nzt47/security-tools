@@ -116,6 +116,8 @@ data/blackbox/
 data/heartbeat_history.json
 data/permission_policies.json
 data/skills_mgmt.json
+# Embedding 子进程探测缓存(机器特定,不入库)
+data/.embedding_probe
 
 # 临时调试日志/压缩包（不入库）
 ci_full_logs.zip
@@ -129,3 +131,11 @@ pytest_trace_cfg.xml
 pytest_xfail_output.xml
 router_fix.patch
 router_fix_v2.patch
+
+# === 本次安全清理（2026-07-19）===
+# BFG 替换规则文件（含敏感信息，禁止提交）
+bfg-replacements.txt
+# BFG 备份路径记录文件
+.bfg_last_backup
+# 加密密钥文件（从 git 跟踪移除，仅本地保留）
+.encryption_key
