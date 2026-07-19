@@ -1,0 +1,153 @@
+{
+  "version": "1.0",
+  "description": "工具检索质量评估集:20 个中文 query + ground truth,用于验证 BM25+Embedding 混合检索的 recall@5",
+  "notes": [
+    "评估方式: hybrid_select_tools(query, top_k=5, max_tools=5),取前 5 个工具",
+    "recall@5 = |selected ∩ ground_truth| / |ground_truth|",
+    "ground_truth 仅含「用户期望的正样本工具」,别名工具(被 alias merge 移除)不算正样本",
+    "别名场景: read_file 主→read_pdf 别名;shell_execute 主→run_program 别名;list_directory 主→list_processes 别名",
+    "别名场景中 ground_truth 仅含主工具,因 alias merge 会移除别名工具"
+  ],
+  "queries": [
+    {
+      "id": "q01",
+      "query": "帮我搜索今天的天气",
+      "ground_truth": ["web_search", "get_weather"],
+      "category": "web+system",
+      "note": "天气类查询,需触发 web 搜索 + system 天气双类别"
+    },
+    {
+      "id": "q02",
+      "query": "读取这个 PDF 文件的内容",
+      "ground_truth": ["read_file"],
+      "category": "file+pdf",
+      "note": "别名合并:read_file 为主工具,read_pdf 应被 alias 移除"
+    },
+    {
+      "id": "q03",
+      "query": "执行 shell 命令",
+      "ground_truth": ["shell_execute"],
+      "category": "code",
+      "note": "别名合并:shell_execute 为主,run_program 应被 alias 移除"
+    },
+    {
+      "id": "q04",
+      "query": "列出目录中的所有文件",
+      "ground_truth": ["list_directory"],
+      "category": "file",
+      "note": "别名合并:list_directory 为主,list_processes 应被 alias 移除"
+    },
+    {
+      "id": "q05",
+      "query": "查询今日科技新闻",
+      "ground_truth": ["fetch_news"],
+      "category": "web",
+      "note": "新闻类查询,fetch_news 描述含「新闻」"
+    },
+    {
+      "id": "q06",
+      "query": "抓取网页内容并提取 XPath",
+      "ground_truth": ["web_get", "web_xpath"],
+      "category": "web",
+      "note": "网页抓取 + XPath 提取,两个工具应同时召回"
+    },
+    {
+      "id": "q07",
+      "query": "压缩文件夹到 zip",
+      "ground_truth": ["compress"],
+      "category": "file",
+      "note": "压缩操作,compress 描述含「压缩」「zip」"
+    },
+    {
+      "id": "q08",
+      "query": "把 JSON 转换为 YAML 格式",
+      "ground_truth": ["json_to_yaml"],
+      "category": "code",
+      "note": "格式转换,json_to_yaml 名称即含关键词"
+    },
+    {
+      "id": "q09",
+      "query": "对这段代码进行代码审查",
+      "ground_truth": ["code_review"],
+      "category": "code",
+      "note": "代码审查,code_review 名称即含关键词"
+    },
+    {
+      "id": "q10",
+      "query": "启动 notepad 程序",
+      "ground_truth": ["run_program"],
+      "category": "system",
+      "note": "启动程序,run_program 描述含「notepad」「程序」"
+    },
+    {
+      "id": "q11",
+      "query": "查看运行中的白名单程序",
+      "ground_truth": ["list_processes"],
+      "category": "system",
+      "note": "进程查看,list_processes 描述含「白名单程序」「运行」"
+    },
+    {
+      "id": "q12",
+      "query": "安装新的扩展插件",
+      "ground_truth": ["ext_install"],
+      "category": "extension",
+      "note": "扩展安装,ext_install 描述含「安装扩展」"
+    },
+    {
+      "id": "q13",
+      "query": "列出已安装的技能扩展",
+      "ground_truth": ["ext_list"],
+      "category": "extension",
+      "note": "扩展列表,ext_list 描述含「列出已安装」"
+    },
+    {
+      "id": "q14",
+      "query": "合并多个 PDF 文件",
+      "ground_truth": ["merge_pdf"],
+      "category": "pdf",
+      "note": "PDF 合并,merge_pdf 名称即含关键词"
+    },
+    {
+      "id": "q15",
+      "query": "安装新的软件包",
+      "ground_truth": ["software_install"],
+      "category": "software",
+      "note": "软件安装,software_install 名称即含关键词"
+    },
+    {
+      "id": "q16",
+      "query": "提交后台异步任务",
+      "ground_truth": ["submit_task"],
+      "category": "async",
+      "note": "异步任务,submit_task 描述含「提交异步任务」「后台」"
+    },
+    {
+      "id": "q17",
+      "query": "创建一个定时任务",
+      "ground_truth": ["schedule_task"],
+      "category": "schedule",
+      "note": "定时任务,schedule_task 描述含「创建定时任务」"
+    },
+    {
+      "id": "q18",
+      "query": "检索 lifetrace 记忆",
+      "ground_truth": ["search_lifetrace"],
+      "category": "v2",
+      "note": "LifeTrace 记忆检索,search_lifetrace 名称即含关键词"
+    },
+    {
+      "id": "q19",
+      "query": "搜索网页内容并读取本地文件",
+      "ground_truth": ["web_search", "read_file"],
+      "category": "web+file",
+      "note": "跨类别:web 搜索 + file 读取,两个工具应同时召回"
+    },
+    {
+      "id": "q20",
+      "query": "执行命令并记住结果",
+      "ground_truth": ["shell_execute", "remember"],
+      "category": "code+core",
+      "note": "跨类别:code 执行 + core 记忆,两个工具应同时召回"
+    }
+  ]
+}

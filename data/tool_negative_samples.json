@@ -1,0 +1,253 @@
+{
+  "version": "1.0",
+  "description": "工具检索负样本库:相似工具的区分性 query,用于评估检索质量与未来 reranker 训练",
+  "usage": "每组的 query 应只召回 expected_positive 中的工具,不召回 group 内其他工具(negative)。当前 BM25 单路可能在某些组上失败,这正是未来引入 Cross-Encoder Reranker 的目标场景。",
+  "notes": [
+    "本负样本库与 tests/fixtures/tool_retrieval_eval.json 区别:",
+    "  - eval.json: 验证召回率(ground_truth 只含正样本,不区分相似工具)",
+    "  - negative_samples.json: 验证区分能力(同组工具应被不同 query 区分)",
+    "本文件不写自动化测试,仅作数据资产入库,供未来 reranker 评估使用",
+    "工具名均经 tool_index.json 验证存在(2026-07-19 校验)"
+  ],
+  "groups": [
+    {
+      "group_id": "G1_web_search_family",
+      "category": "web",
+      "description": "网页搜索类工具区分:web_search=搜索引擎检索,web_get=抓取指定 URL,fetch_news=新闻聚合",
+      "tools": [
+        "web_search",
+        "web_get",
+        "fetch_news"
+      ],
+      "queries": [
+        {
+          "query": "在百度上搜索 Python 教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "web_get",
+            "fetch_news"
+          ],
+          "rationale": "用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+        },
+        {
+          "query": "抓取 https://example.com 的 HTML 内容",
+          "expected_positive": [
+            "web_get"
+          ],
+          "negative": [
+            "web_search",
+            "fetch_news"
+          ],
+          "rationale": "用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
+        },
+        {
+          "query": "查看今日科技头条新闻",
+          "expected_positive": [
+            "fetch_news"
+          ],
+          "negative": [
+            "web_search",
+            "web_get"
+          ],
+          "rationale": "用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+        }
+      ]
+    },
+    {
+      "group_id": "G2_pdf_family",
+      "category": "pdf",
+      "description": "PDF 工具区分:read_file=读 PDF 内容,read_pdf=别名(merge 后移除),merge_pdf=合并多个 PDF",
+      "tools": [
+        "read_file",
+        "read_pdf",
+        "merge_pdf"
+      ],
+      "queries": [
+        {
+          "query": "读取 report.pdf 的文本内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "merge_pdf"
+          ],
+          "rationale": "读取单个 PDF 内容,不是合并多个 PDF"
+        },
+        {
+          "query": "把 a.pdf 和 b.pdf 合并成一个文件",
+          "expected_positive": [
+            "merge_pdf"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "合并多个 PDF,不是读取单个 PDF 内容"
+        }
+      ]
+    },
+    {
+      "group_id": "G3_execute_family",
+      "category": "code",
+      "description": "命令执行类:shell_execute=主工具,run_program=别名(merge 后应移除)",
+      "tools": [
+        "shell_execute",
+        "run_program"
+      ],
+      "queries": [
+        {
+          "query": "执行 ls -la 命令",
+          "expected_positive": [
+            "shell_execute"
+          ],
+          "negative": [],
+          "rationale": "shell 命令执行,run_program 是别名会被 alias merge 移除"
+        },
+        {
+          "query": "启动 notepad 程序",
+          "expected_positive": [
+            "run_program"
+          ],
+          "negative": [],
+          "rationale": "启动 GUI 程序,run_program 描述含 notepad 和 程序"
+        }
+      ]
+    },
+    {
+      "group_id": "G4_list_family",
+      "category": "system",
+      "description": "列表类工具区分:list_directory=目录文件,list_processes=运行进程,list_async_tasks=异步任务",
+      "tools": [
+        "list_directory",
+        "list_processes",
+        "list_async_tasks"
+      ],
+      "queries": [
+        {
+          "query": "列出 /home/user 下的所有文件",
+          "expected_positive": [
+            "list_directory"
+          ],
+          "negative": [
+            "list_processes",
+            "list_async_tasks"
+          ],
+          "rationale": "列目录文件,不是进程或异步任务"
+        },
+        {
+          "query": "查看系统中运行的进程",
+          "expected_positive": [
+            "list_processes"
+          ],
+          "negative": [
+            "list_directory",
+            "list_async_tasks"
+          ],
+          "rationale": "列运行进程,不是目录文件或异步任务"
+        },
+        {
+          "query": "查看提交的后台任务列表",
+          "expected_positive": [
+            "list_async_tasks"
+          ],
+          "negative": [
+            "list_directory",
+            "list_processes"
+          ],
+          "rationale": "列异步任务,不是目录文件或运行进程"
+        }
+      ]
+    },
+    {
+      "group_id": "G5_install_family",
+      "category": "extension",
+      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展,software_install=装软件包",
+      "tools": [
+        "ext_install",
+        "ext_list",
+        "software_install"
+      ],
+      "queries": [
+        {
+          "query": "安装 markdown 编辑器扩展",
+          "expected_positive": [
+            "ext_install"
+          ],
+          "negative": [
+            "ext_list",
+            "software_install"
+          ],
+          "rationale": "装扩展,不是列扩展或装系统软件包"
+        },
+        {
+          "query": "查看已安装的扩展列表",
+          "expected_positive": [
+            "ext_list"
+          ],
+          "negative": [
+            "ext_install",
+            "software_install"
+          ],
+          "rationale": "列扩展,不是装扩展或装软件包"
+        },
+        {
+          "query": "用 apt 安装 nginx 软件包",
+          "expected_positive": [
+            "software_install"
+          ],
+          "negative": [
+            "ext_install",
+            "ext_list"
+          ],
+          "rationale": "装系统软件包(apt),不是扩展"
+        }
+      ]
+    },
+    {
+      "group_id": "G6_task_family",
+      "category": "async",
+      "description": "异步任务族:submit_task=提交后台任务,schedule_task=定时任务,cancel_task=取消任务",
+      "tools": [
+        "submit_task",
+        "schedule_task",
+        "cancel_task"
+      ],
+      "queries": [
+        {
+          "query": "提交一个后台数据处理任务",
+          "expected_positive": [
+            "submit_task"
+          ],
+          "negative": [
+            "schedule_task",
+            "cancel_task"
+          ],
+          "rationale": "提交一次性后台任务,不是定时调度或取消"
+        },
+        {
+          "query": "创建每天凌晨 3 点执行的定时任务",
+          "expected_positive": [
+            "schedule_task"
+          ],
+          "negative": [
+            "submit_task",
+            "cancel_task"
+          ],
+          "rationale": "定时调度任务,不是一次性提交或取消"
+        },
+        {
+          "query": "取消任务 ID 为 abc123 的后台任务",
+          "expected_positive": [
+            "cancel_task"
+          ],
+          "negative": [
+            "submit_task",
+            "schedule_task"
+          ],
+          "rationale": "取消已提交任务,不是提交新任务或定时调度"
+        }
+      ]
+    }
+  ]
+}
