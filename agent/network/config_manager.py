@@ -2,7 +2,7 @@
 
 负责管理以下配置项：
 - API 端点 URL
-- 访问令牌（敏感信息使用 AES-GCM 加密存储）
+- 访问令牌（敏感信息由 .env 单一数据源管理）
 - 网络超时设置
 - 外部服务开关状态
 - 数据同步频率
@@ -12,9 +12,11 @@
 - MCP（Management Control Plane）配置
 
 安全特性：
-- 敏感信息（API Key、Token）通过 SecureConfigManager 加密存储
+- 【P2 已清理】敏感信息（API Key、Token）统一由 .env 单一数据源管理（agent/env_config_manager.py）
 - 配置导入/导出时自动脱敏
 - 配置变更即时生效机制
+
+注意：本文件为旧版 NetworkConfigManager，新代码请使用 agent/network_config.py 中的实现。
 """
 
 import os
@@ -172,9 +174,13 @@ class NetworkConfigManager:
         """
         Args:
             config_file: 配置文件路径
-            secure_manager: SecureConfigManager 实例，用于加密存储敏感信息
+            secure_manager: （已废弃）保留参数仅为向后兼容，不再使用加密存储。
+                            纯 .env 架构下，敏感数据统一由 EnvConfigManager 管理。
+
+        【P2 已清理】SecureConfigManager 加密层已移除，本类保留作为兼容层。
         """
         self._config_file = Path(config_file) if config_file else _NETWORK_CONFIG_FILE
+        # 【P2 已清理】_secure_manager 字段保留仅为兼容旧测试，不再使用
         self._secure_manager = secure_manager
         self._cache = None
 

@@ -86,8 +86,7 @@ def _make_manager_with_secure(tmp_path, secure_store=None):
     )
     config_file = tmp_path / "network_config.json"
     manager = NetworkConfigManager(
-        config_file=str(config_file),
-        secure_manager=mock_secure
+        config_file=str(config_file)
     )
     return manager, mock_secure, secure_store
 
@@ -148,7 +147,8 @@ class TestSaveStripsSearchInstanceApiKey:
     def test_save_keeps_api_key_when_no_secure_manager(self, tmp_config_dir):
         """【纯 .env 架构】_save 无条件移除 api_key，不再依赖 secure_manager"""
         config_file = tmp_config_dir / "network_config.json"
-        manager = NetworkConfigManager(config_file=str(config_file), secure_manager=None)
+        # 【P2 已清理】secure_manager 参数已移除
+        manager = NetworkConfigManager(config_file=str(config_file))
         config = {
             "search_instances": [
                 {"id": "inst-1", "name": "Tavily", "api_key": "sk-real-key"},

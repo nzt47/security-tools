@@ -173,15 +173,15 @@ def _trace_id():
 class NetworkConfigManager:
     """网络配置管理器"""
 
-    def __init__(self, config_file: str = None, secure_manager=None):
+    def __init__(self, config_file: str = None):
         """
         Args:
             config_file: 配置文件路径
-            secure_manager: （已废弃）保留参数仅为向后兼容，不再使用加密存储。
-                            纯 .env 架构下，敏感数据统一由 EnvConfigManager 管理。
+
+        【P2 已清理】secure_manager 参数已移除，敏感数据统一由 .env 单一数据源管理。
+        详见 agent/env_config_manager.py:EnvConfigManager。
         """
         self._config_file = Path(config_file) if config_file else _NETWORK_CONFIG_FILE
-        self._secure_manager = secure_manager  # 已废弃，保留向后兼容
         self._env_config = get_env_config_manager()  # .env 单一数据源
         self._cache = None
 
