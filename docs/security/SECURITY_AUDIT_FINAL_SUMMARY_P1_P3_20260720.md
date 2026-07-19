@@ -61,7 +61,7 @@
 **影响范围**: origin (GitHub) + gitee (Gitee) 双远程仓库 + 4 个本地分支
 
 **已验证清洁**（本次报告生成时复扫）:
-- `git log --all -S "sk-ddf2d09a74fc4c9fafb89a906f0f45a3"` → 0 结果
+- `git log --all -S "sk-ddf2****45a3"` → 0 结果
 - `git log --all -- .encryption_key` → 0 结果
 - `git log --all -- docs/security/SECURITY_NOTICE_20260719_api_key_leak.md` → 0 结果
 
