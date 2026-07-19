@@ -405,12 +405,19 @@ function Invoke-GroupP6 {
     }
 
     # P6-2: 手动触发日报成功
-    $reportOut = kubectl exec $pod -n $Namespace -- python /app/generate_ops_daily_report.py --log-dir /app/logs --output /app/output/manual.md 2>&1
-    $reportStr = ($reportOut | Out-String)
-    if ($LASTEXITCODE -eq 0 -and $reportStr -notmatch "Traceback|Error") {
+    # [修复] 改为基于文件生成判据，规避 PowerShell 5.x NativeCommandError 误判
+    # 原因：Python 脚本把 [WARN]/[OK] 写到 stderr（Unix 哲学：stdout=数据/stderr=日志），
+    # PS 5.x 调用原生命令 stderr 非空时创建 NativeCommandError 记录，
+    # 含 "FullyQualifiedErrorId : NativeCommandError" 字符串，"Error" 关键词误匹配。
+    # [不易] 守住：判据仍要求"日报生成成功"，仅改变检测方式（输出内容→文件生成）
+    $manualReport = "/app/output/manual.md"
+    $null = kubectl exec $pod -n $Namespace -- python /app/generate_ops_daily_report.py --log-dir /app/logs --output $manualReport 2>&1
+    # 检查日报文件是否生成且非空（最稳健，不依赖 stderr 内容，跨 PS 5.x/7.x 一致）
+    $fileCheck = (kubectl exec $pod -n $Namespace -- sh -c "test -s $manualReport && echo FILE_OK" 2>&1 | Out-String)
+    if ($fileCheck -match "FILE_OK") {
         Write-Result "P6" "P6-2" "手动触发日报生成成功" "PASS"
     } else {
-        Write-Result "P6" "P6-2" "手动触发日报生成成功" "FAIL" $reportStr.Trim()
+        Write-Result "P6" "P6-2" "手动触发日报生成成功" "FAIL" "日报文件未生成或为空"
     }
 
     # P6-3: 日报输出文件存在

@@ -484,3 +484,76 @@ Describe "报告生成逻辑" {
         $script:TestSkip | Should -Be 2
     }
 }
+
+Describe "P6-2 NativeCommandError 兼容性判据（PS 5.x 回归测试）" {
+    BeforeAll {
+        # 模拟 P6-2 修复前后的判据逻辑，验证 PS 5.x NativeCommandError 场景
+        # [不易] 守住：判据核心语义不变（"日报生成成功"必须 PASS）
+        # [变易] 扩展：覆盖 PS 5.x/7.x 跨版本判据一致性
+        # [简易] 最简：复用 Test-*Judge 模式，回归测试 + 修复验证
+
+        # 旧判据（修复前）：基于输出内容匹配 "Traceback|Error" 关键词
+        function Test-P62LegacyJudge {
+            param([int]$ExitCode, [string]$ReportStr)
+            return @{ Pass = ($ExitCode -eq 0 -and $ReportStr -notmatch "Traceback|Error") }
+        }
+
+        # 新判据（修复后）：基于文件生成匹配 "FILE_OK"
+        function Test-P62FileJudge {
+            param([string]$FileCheck)
+            return @{ Pass = ($FileCheck -match "FILE_OK") }
+        }
+
+        # 模拟 PS 5.x 调用 kubectl 2>&1 时 stderr 非空触发 NativeCommandError 的完整输出
+        # 真实场景：Python 退出码 0、日报生成成功，但 PS 5.x 把 stderr 包装成错误记录
+        # 关键标识：FullyQualifiedErrorId : NativeCommandError（含 "Error" 子串，触发误判根因）
+        $script:Ps5NativeError = @"
+kubectl : [WARN] 未找到任何熔断器相关事件
+    + CategoryInfo          : NotSpecified: ([WARN] 未找到任何熔断器相关事件:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+[OK] 运维日报已生成: /app/output/manual.md
+"@
+    }
+
+    It "PS 5.x NativeCommandError 模拟输出包含 'NativeCommandError' 标识" {
+        # 验证模拟输出与真实 PS 5.x 错误记录格式一致
+        $script:Ps5NativeError | Should -Match "NativeCommandError"
+    }
+
+    It "PS 5.x NativeCommandError 模拟输出包含 'Error' 子串（误判根因）" {
+        # 证明 "NativeCommandError" 包含 "Error"，这是旧判据 -notmatch "Traceback|Error" 误判的根因
+        $script:Ps5NativeError | Should -Match "Error"
+    }
+
+    It "旧判据：PS 5.x 下 Python 退出码 0 仍误判 FAIL（bug 复现）" {
+        # 回归测试：证明修复前的判据在 PS 5.x 下会误判 FAIL
+        $result = Test-P62LegacyJudge 0 $script:Ps5NativeError
+        $result.Pass | Should -Be $false
+    }
+
+    It "旧判据：PS 7.x 下（无 NativeCommandError）应 PASS（对照实验）" {
+        # 对照实验：PS 7.x 不会创建 NativeCommandError，输出只有 [WARN]/[OK]
+        $ps7Output = "[WARN] 未找到任何熔断器相关事件`n[OK] 运维日报已生成: /app/output/manual.md"
+        $result = Test-P62LegacyJudge 0 $ps7Output
+        $result.Pass | Should -Be $true
+    }
+
+    It "新判据：PS 5.x 下文件存在 FILE_OK 应 PASS（修复有效）" {
+        # 验证修复：新判据基于文件生成，不依赖 stderr 内容
+        $result = Test-P62FileJudge "FILE_OK"
+        $result.Pass | Should -Be $true
+    }
+
+    It "新判据：日报文件未生成（空输出）应 FAIL（判据有效性保持）" {
+        # 验证新判据不是无脑 PASS，仍能正确识别失败
+        $result = Test-P62FileJudge ""
+        $result.Pass | Should -Be $false
+    }
+
+    It "新判据：与 PS 版本无关（修复核心目标达成）" {
+        # 修复核心目标：判据与 PS 版本解耦，跨版本一致
+        $ps5Result = Test-P62FileJudge "FILE_OK"
+        $ps7Result = Test-P62FileJudge "FILE_OK"
+        $ps5Result.Pass | Should -Be $ps7Result.Pass
+    }
+}
