@@ -1,5 +1,5 @@
 {
-  "trace_id": "355a3de8bcb64e87",
+  "trace_id": "cbccfa4d91354c3f",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -31,7 +31,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 69,
+      "in_degree": 68,
       "out_degree": 1
     },
     {
@@ -471,7 +471,7 @@
       "name": "tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 10,
       "out_degree": 1
     },
     {
@@ -543,7 +543,7 @@
       "name": "network_config",
       "layer": "core",
       "file_path": "agent/network_config.py",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 3
     },
     {
@@ -891,22 +891,6 @@
       "out_degree": 3
     },
     {
-      "path": "agent.network.config_manager",
-      "name": "config_manager",
-      "layer": "network",
-      "file_path": "agent/network/config_manager.py",
-      "in_degree": 1,
-      "out_degree": 3
-    },
-    {
-      "path": "agent.network.config_validator",
-      "name": "config_validator",
-      "layer": "network",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
-    },
-    {
       "path": "agent.network.observability",
       "name": "observability",
       "layer": "network",
@@ -921,6 +905,14 @@
       "file_path": "agent/network/__init__.py",
       "in_degree": 0,
       "out_degree": 2
+    },
+    {
+      "path": "agent.network.config_validator",
+      "name": "config_validator",
+      "layer": "network",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.software_manager",
@@ -2493,7 +2485,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 35,
+      "line": 44,
       "source_file": "agent/env_config_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3195,7 +3187,7 @@
       "source_layer": "core",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 779,
+      "line": 899,
       "source_file": "agent/network_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4048,45 +4040,6 @@
       "is_dynamic": false
     },
     {
-      "source": "agent.network.config_manager",
-      "target": "agent.network.config_validator",
-      "source_layer": "network",
-      "target_layer": "network",
-      "import_type": "from_import",
-      "line": 32,
-      "source_file": "agent/network/config_manager.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.network.config_manager",
-      "target": "agent.logging_utils",
-      "source_layer": "network",
-      "target_layer": "core",
-      "import_type": "from_import",
-      "line": 33,
-      "source_file": "agent/network/config_manager.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.network.config_manager",
-      "target": "agent.tools",
-      "source_layer": "network",
-      "target_layer": "tools",
-      "import_type": "from_import",
-      "line": 735,
-      "source_file": "agent/network/config_manager.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
       "source": "agent.network.observability",
       "target": "agent.monitoring.business_metrics",
       "source_layer": "network",
@@ -4101,13 +4054,13 @@
     },
     {
       "source": "agent.network",
-      "target": "agent.network.config_manager",
+      "target": "agent.network_config",
       "source_layer": "network",
-      "target_layer": "network",
+      "target_layer": "core",
       "import_type": "from_import",
-      "line": 2,
+      "line": 4,
       "source_file": "agent/network/__init__.py",
-      "is_cross_layer": false,
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -4118,7 +4071,7 @@
       "source_layer": "network",
       "target_layer": "network",
       "import_type": "from_import",
-      "line": 10,
+      "line": 12,
       "source_file": "agent/network/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9392,10 +9345,10 @@
     }
   ],
   "stats": {
-    "total_files": 327,
-    "total_nodes": 260,
-    "total_edges": 562,
-    "cross_layer_edges": 356,
+    "total_files": 326,
+    "total_nodes": 259,
+    "total_edges": 559,
+    "cross_layer_edges": 355,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9419,7 +9372,7 @@
       "memory": 11,
       "subagent": 5,
       "web": 5,
-      "network": 4,
+      "network": 3,
       "health": 4,
       "model_router": 2,
       "server_routes": 26,
@@ -9433,6 +9386,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1200.1100840000022
+    "build_duration_ms": 1228.4145449999926
   }
 }
