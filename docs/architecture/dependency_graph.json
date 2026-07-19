@@ -1,5 +1,5 @@
 {
-  "trace_id": "1ce199831ad04c08",
+  "trace_id": "04a8216bd2a2483d",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -55,7 +55,7 @@
       "name": "tool_router_hybrid",
       "layer": "core",
       "file_path": "agent/tool_router_hybrid.py",
-      "in_degree": 0,
+      "in_degree": 2,
       "out_degree": 2
     },
     {
@@ -608,7 +608,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
       "in_degree": 0,
-      "out_degree": 11
+      "out_degree": 12
     },
     {
       "path": "agent.guardrails.input_guard",
@@ -824,7 +824,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/task_dispatcher.py",
       "in_degree": 0,
-      "out_degree": 4
+      "out_degree": 5
     },
     {
       "path": "agent.orchestrator.status_reporter",
@@ -3404,11 +3404,24 @@
     },
     {
       "source": "agent.orchestrator.orchestrator",
+      "target": "agent.tool_router_hybrid",
+      "source_layer": "orchestrator",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 48,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
       "target": "agent.response_workflows",
       "source_layer": "orchestrator",
       "target_layer": "response_workflows",
       "import_type": "from_import",
-      "line": 250,
+      "line": 251,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3421,7 +3434,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 724,
+      "line": 725,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3863,7 +3876,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 158,
+      "line": 159,
       "source_file": "agent/orchestrator/task_dispatcher.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3876,7 +3889,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 174,
+      "line": 175,
       "source_file": "agent/orchestrator/task_dispatcher.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3890,6 +3903,19 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 48,
+      "source_file": "agent/orchestrator/task_dispatcher.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.task_dispatcher",
+      "target": "agent.tool_router_hybrid",
+      "source_layer": "orchestrator",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 49,
       "source_file": "agent/orchestrator/task_dispatcher.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7555,7 +7581,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 242,
+      "line": 251,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7568,7 +7594,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 343,
+      "line": 352,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7594,7 +7620,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 165,
+      "line": 191,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9347,8 +9373,8 @@
   "stats": {
     "total_files": 328,
     "total_nodes": 259,
-    "total_edges": 559,
-    "cross_layer_edges": 355,
+    "total_edges": 561,
+    "cross_layer_edges": 357,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9386,6 +9412,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1168.8546210000084
+    "build_duration_ms": 1215.7323710000014
   }
 }
