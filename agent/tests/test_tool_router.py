@@ -161,20 +161,114 @@ class ToolRouterTester:
             ("读取PDF", "read_file", ["read_pdf"]),
             ("列出目录", "list_directory", ["list_processes"]),
         ]
-        
+
         for input_text, main_tool, aliases in test_cases:
             tools = get_tools_for_input(input_text)
-            
+
             # 主工具应被选中
             if main_tool not in tools:
                 return False
-            
+
             # 别名工具不应被选中
             for alias in aliases:
                 if alias in tools:
                     return False
-        
+
         return True
+
+    # ── 守护测试(步骤 0):锁定别名/优先级/截断行为,守护 helper 重构 ──
+
+    def test_alias_merge_no_duplicate(self) -> bool:
+        """守护测试:别名合并后结果无重复工具"""
+        try:
+            for input_text, main_tool, aliases in [
+                ("执行命令", "shell_execute", ["run_program"]),
+                ("读取PDF", "read_file", ["read_pdf"]),
+                ("列出目录", "list_directory", ["list_processes"]),
+            ]:
+                tools = get_tools_for_input(input_text)
+                # 无重复(集合语义)
+                if len(tools) != len(set(tools)):
+                    return False
+                # 主工具存在
+                if main_tool not in tools:
+                    return False
+                # 别名全部移除
+                for alias in aliases:
+                    if alias in tools:
+                        return False
+            return True
+        except Exception as e:
+            print(f"\n[ERROR] test_alias_merge_no_duplicate - {type(e).__name__}: {e}")
+            return False
+
+    def test_priority_sort_stable(self) -> bool:
+        """守护测试:结果按 priority 升序分组(core < web < file < ...)"""
+        try:
+            # 触发多个类别,确保跨类别排序生效
+            tools = get_tools_for_input("搜索网页 读取文件 执行命令")
+            if not tools:
+                return False
+
+            # 构造 tool -> 最小 priority 映射(与 get_tools_for_input 内部逻辑一致)
+            tool_to_pri: Dict[str, int] = {}
+            for cat_info in TOOL_CATEGORIES.values():
+                pri = cat_info.get("priority", 99)
+                for t in cat_info.get("tools", []):
+                    if t in tools:
+                        if t not in tool_to_pri or pri < tool_to_pri[t]:
+                            tool_to_pri[t] = pri
+
+            # 结果的 priority 序列应非递减
+            pri_seq = [tool_to_pri.get(t, 99) for t in tools]
+            for i in range(1, len(pri_seq)):
+                if pri_seq[i] < pri_seq[i - 1]:
+                    return False
+            return True
+        except Exception as e:
+            print(f"\n[ERROR] test_priority_sort_stable - {type(e).__name__}: {e}")
+            return False
+
+    def test_max_tools_zero_unlimited(self) -> bool:
+        """守护测试:max_tools=0 表示不限制(向后兼容)"""
+        try:
+            # 触发尽可能多的类别
+            input_text = "搜索网页 读取文件 执行命令 进程管理 安装扩展 处理PDF 安装软件 后台任务 定时任务"
+            limited = get_tools_for_input(input_text, max_tools=25)
+            unlimited = get_tools_for_input(input_text, max_tools=0)
+
+            # 25 上限场景:不超过 25
+            if len(limited) > 25:
+                return False
+            # 0 不限制场景:应返回更多工具(至少不少于 limited)
+            if len(unlimited) < len(limited):
+                return False
+            # unlimited 应严格大于 limited(因为输入触发 9 个类别,工具数 > 25)
+            if len(unlimited) <= 25:
+                return False
+            return True
+        except Exception as e:
+            print(f"\n[ERROR] test_max_tools_zero_unlimited - {type(e).__name__}: {e}")
+            return False
+
+    def test_alias_when_main_not_selected(self) -> bool:
+        """守护测试:主工具未选中时,别名工具应保留(不被强制移除)"""
+        try:
+            # "启动程序" 触发 system 类别(run_program 所在),但不触发 code 类别
+            # (DEFAULT_KEYWORDS["code"] 不含 "启动程序"/"运行程序")
+            # 因此 shell_execute(主) 未选中,run_program(别名) 应保留
+            tools = get_tools_for_input("启动程序")
+
+            # run_program 应在结果中(system 类别工具)
+            if "run_program" not in tools:
+                return False
+            # shell_execute 不应在结果中(code 类别未触发)
+            if "shell_execute" in tools:
+                return False
+            return True
+        except Exception as e:
+            print(f"\n[ERROR] test_alias_when_main_not_selected - {type(e).__name__}: {e}")
+            return False
     
     def test_extreme_priority_conflict(self) -> bool:
         """测试极端优先级冲突"""
@@ -905,6 +999,11 @@ class ToolRouterTester:
             ("优先级顺序测试", self.test_priority_order),
             ("工具分类测试", self.test_tool_classification),
             ("别名合并测试", self.test_alias_merge),
+            # 守护测试(步骤 0)
+            ("守护-别名合并无重复", self.test_alias_merge_no_duplicate),
+            ("守护-优先级排序", self.test_priority_sort_stable),
+            ("守护-max_tools零值不限制", self.test_max_tools_zero_unlimited),
+            ("守护-主工具未选中时别名保留", self.test_alias_when_main_not_selected),
             ("极端优先级冲突测试", self.test_extreme_priority_conflict),
             ("决策日志器测试", self.test_decision_logger),
             ("工具数量一致性测试", self.test_tool_count_consistency),
@@ -982,6 +1081,19 @@ class TestToolRouter(unittest.TestCase):
 
     def test_alias_merge(self):
         self.assertTrue(self.tester.test_alias_merge())
+
+    # 守护测试(步骤 0):锁定别名/优先级/截断行为
+    def test_alias_merge_no_duplicate(self):
+        self.assertTrue(self.tester.test_alias_merge_no_duplicate())
+
+    def test_priority_sort_stable(self):
+        self.assertTrue(self.tester.test_priority_sort_stable())
+
+    def test_max_tools_zero_unlimited(self):
+        self.assertTrue(self.tester.test_max_tools_zero_unlimited())
+
+    def test_alias_when_main_not_selected(self):
+        self.assertTrue(self.tester.test_alias_when_main_not_selected())
 
     def test_extreme_priority_conflict(self):
         self.assertTrue(self.tester.test_extreme_priority_conflict())

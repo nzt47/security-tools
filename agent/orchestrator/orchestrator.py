@@ -45,6 +45,7 @@ from agent.tool_calling import (
     _clean_for_json,
 )
 from agent.tool_router import get_tools_for_input
+from agent.tool_router_hybrid import hybrid_select_tools
 
 logger = logging.getLogger(__name__)
 
@@ -725,7 +726,7 @@ class Orchestrator:
                 _whitelist = self._get_enabled_tools_whitelist()
                 if self._is_smart_tool_selection_enabled():
                     try:
-                        _smart_tools = get_tools_for_input(user_input, _whitelist)
+                        _smart_tools = hybrid_select_tools(user_input, _whitelist) or get_tools_for_input(user_input, _whitelist)
                         if _smart_tools:
                             _whitelist = _smart_tools
                             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '[工具路由] 智能选择: %d/%d 个工具' % (len(_smart_tools), len(_tools.list_tools()))}))
@@ -938,7 +939,7 @@ class Orchestrator:
                     tools_whitelist = self._get_enabled_tools_whitelist()
                     if self._is_smart_tool_selection_enabled():
                         try:
-                            _smart = get_tools_for_input(user_input, tools_whitelist)
+                            _smart = hybrid_select_tools(user_input, tools_whitelist) or get_tools_for_input(user_input, tools_whitelist)
                             if _smart:
                                 tools_whitelist = _smart
                                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[工具路由V2] 智能选择: %d 个工具' % (len(_smart),)}))

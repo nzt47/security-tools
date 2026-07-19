@@ -437,6 +437,39 @@ def get_tools_for_input(
         whitelist_set = set(enabled_whitelist)
         selected &= whitelist_set
 
+    # 【功能 2/1/3】别名合并 + 优先级排序 + 数量截断(抽为 helper,供 hybrid 复用)
+    result = _apply_alias_merge_and_priority_sort(selected, categories, max_tools)
+
+    # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
+    if ToolTraceRecorder is not None:
+        try:
+            ToolTraceRecorder.instance().record_tool_selection(user_input, categories, result)
+        except Exception:
+            pass
+
+    return result
+
+
+def _apply_alias_merge_and_priority_sort(
+    selected: set,
+    categories: set,
+    max_tools: int,
+) -> list[str]:
+    """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
+
+    【不易】TOOL_ALIASES 合并 + 优先级去重 + 25 上限逻辑保留
+           — 主工具存在 → 别名移除;跨类别工具取最小 priority;max_tools None/<=0 不限制
+    【变易】抽为独立函数,供 tool_router_hybrid.HybridRetriever 复用,确保单一来源
+    【简易】纯函数无副作用,输入 selected 集合 + categories 集合,返回排序+截断后的列表
+
+    Args:
+        selected: 已经过白名单交集的工具集合(会被原地修改:移除别名)
+        categories: 命中的工具类别集合(用于查询 priority)
+        max_tools: 返回工具数上限;None 或 <=0 表示不限制
+
+    Returns:
+        排序+截断后的工具名列表
+    """
     # 【功能 2】别名合并:主工具被选中时,移除其别名工具
     # 【不易】别名规则不变 — 主工具存在 → 别名移除
     if TOOL_ALIASES:
@@ -464,13 +497,6 @@ def get_tools_for_input(
     # 【变易】max_tools 可配置;None 或 <=0 表示不限制(向后兼容)
     if max_tools is not None and max_tools > 0 and len(result) > max_tools:
         result = result[:max_tools]
-
-    # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
-    if ToolTraceRecorder is not None:
-        try:
-            ToolTraceRecorder.instance().record_tool_selection(user_input, categories, result)
-        except Exception:
-            pass
 
     return result
 
