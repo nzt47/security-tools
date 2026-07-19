@@ -100,9 +100,15 @@ WHITELIST_PATHS = {
     'docker/',
     # 清理指南脚本本身（含旧 key 引用用于指导清理）
     'scripts/_fix_deepseek_guide.py',
+    'scripts/_write_p1_plan.py',
     # 备份文件
     '.backups/',
     '_backup',
+    # 测试输出报告（含 mock key）
+    'coverage_report/',
+    'htmlcov/',
+    '.coverage',
+    'pytest_xfail_output.txt',
 }
 
 # 白名单：文件名前缀（只匹配文件名以这些前缀开头的情况）
