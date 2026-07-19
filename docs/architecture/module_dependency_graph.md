@@ -42,6 +42,7 @@ flowchart LR
         agent_digital_life_persona["agent.digital_life_persona"]
         agent_digital_life_state["agent.digital_life_state"]
         agent_disaster_recovery["agent.disaster_recovery"]:::crosslayer
+        agent_env_config_manager["agent.env_config_manager"]
         agent_error_handler["agent.error_handler"]:::crosslayer
         agent_error_reporting_config["agent.error_reporting_config"]:::crosslayer
         agent_feedback["agent.feedback"]:::crosslayer
@@ -357,6 +358,7 @@ flowchart LR
     agent_lazy_loader_async -.-> agent_lazy_loader
     agent_lazy_loader_async -.-> agent_lazy_loader__core
     agent_lazy_loader_async --> agent_logging_utils
+    agent_env_config_manager --> agent_logging_utils
     agent_compression_tools --> agent_logging_utils
     agent_compression_tools --> agent_system_tools
     agent_compression_tools --> agent_system_tools
@@ -409,6 +411,7 @@ flowchart LR
     agent_feedback -.-> agent_cognitive_failure_analysis
     agent_logging_utils -.-> agent_utils
     agent_network_config --> agent_logging_utils
+    agent_network_config --> agent_env_config_manager
     agent_network_config -.-> agent_tools
     agent_security_utils --> agent_logging_utils
     agent_llm_monitor -.-> agent_monitoring_observability_config
@@ -894,10 +897,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 325
-- 模块节点数: 258
-- 依赖边数: 558
+- 扫描文件数: 326
+- 模块节点数: 259
+- 依赖边数: 560
 - 跨层调用数: 355
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1178.09 ms
+- 构建耗时: 1222.31 ms
