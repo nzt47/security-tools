@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件系统监控 — 云枢</title>
+    <style>
+        /* ===== 全局重置与基础样式（GitHub 暗色主题）===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                         'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        /* ===== 颜色变量（不易：色值锁定）===== */
+        :root {
+            --bg:          #0d1117;
+            --bg-soft:     #161b22;
+            --bg-hover:    #1c2128;
+            --border:      #30363d;
+            --text:        #c9d1d9;
+            --text-muted:  #8b949e;
+            --accent:      #58a6ff;
+            --green:       #3fb950;
+            --yellow:      #d29922;
+            --red:         #f85149;
+            --purple:      #bc8cff;
+        }
+
+        /* ===== 顶部状态栏 ===== */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .topbar h1 {
+            font-size: 22px;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .topbar h1 .brand { color: var(--accent); }
+        .topbar .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .topbar .meta .item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .topbar .meta .item .label { color: var(--text-muted); }
+        .topbar .meta .item .val { color: var(--text); font-weight: 600; }
+        .topbar .meta .item .val.accent { color: var(--accent); }
+        .topbar .meta .item .val.green { color: var(--green); }
+        .topbar .meta .item .val.yellow { color: var(--yellow); }
+        .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+        }
+        .dot.paused { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+        /* ===== 筛选栏 ===== */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .filter-bar input[type="text"] {
+            flex: 1 1 240px;
+            min-width: 200px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .filter-bar input[type="text"]:focus { border-color: var(--accent); }
+        .filter-bar select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .filter-bar select:hover { border-color: var(--accent); }
+        .filter-bar .spacer { flex: 1 1 auto; }
+        .log-level-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .log-level-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ===== 表格区 ===== */
+        .table-wrap {
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1400px;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            color: var(--text-muted);
+            font-weight: 600;
+            text-align: left;
+            padding: 11px 12px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            user-select: none;
+            z-index: 1;
+        }
+        thead th[data-sort] { cursor: pointer; }
+        thead th[data-sort]:hover { color: var(--accent); }
+        thead th .sort-ind {
+            display: inline-block;
+            width: 14px;
+            margin-left: 4px;
+            color: var(--accent);
+            font-size: 11px;
+        }
+        tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            vertical-align: middle;
+        }
+        tbody tr:hover td { background: var(--bg-hover); }
+        tbody tr:last-child td { border-bottom: none; }
+        td.mono, .mono {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12.5px;
+        }
+        td.path-cell {
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-muted);
+        }
+        td.func-cell {
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ===== 标签 / 徽章 ===== */
+        .tag {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .tag.clean     { background: rgba(63,185,80,0.15);  color: var(--green);  border-color: rgba(63,185,80,0.3); }
+        .tag.modified  { background: rgba(210,153,34,0.15); color: var(--yellow); border-color: rgba(210,153,34,0.3); }
+        .tag.added     { background: rgba(88,166,255,0.15); color: var(--accent); border-color: rgba(88,166,255,0.3); }
+        .tag.untracked { background: rgba(139,148,158,0.15);color: var(--text-muted); border-color: rgba(139,148,158,0.3); }
+        .tag.deleted   { background: rgba(248,81,73,0.15); color: var(--red);    border-color: rgba(248,81,73,0.3); }
+        .tag.renamed   { background: rgba(188,140,255,0.15);color: var(--purple); border-color: rgba(188,140,255,0.3); }
+        .tag.stage-untracked  { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+        .tag.stage-staged_new { background: rgba(88,166,255,0.15);  color: var(--accent); }
+        .tag.stage-modified   { background: rgba(210,153,34,0.15);  color: var(--yellow); }
+        .tag.stage-committed  { background: rgba(63,185,80,0.15);   color: var(--green); }
+        .tag.stage-dev_branch { background: rgba(188,140,255,0.15); color: var(--purple); }
+        .tag.stage-release    { background: rgba(210,153,34,0.15);  color: var(--yellow); }
+        .tag.stage-merged_main{ background: rgba(63,185,80,0.15);   color: var(--green); }
+
+        /* ===== 覆盖率进度条 ===== */
+        .cov-bar {
+            position: relative;
+            display: inline-block;
+            min-width: 64px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-align: center;
+            color: #fff;
+            background: var(--border);
+        }
+        .cov-bar.high { background: rgba(63,185,80,0.25);  color: var(--green);  border: 1px solid rgba(63,185,80,0.4); }
+        .cov-bar.mid  { background: rgba(210,153,34,0.25); color: var(--yellow); border: 1px solid rgba(210,153,34,0.4); }
+        .cov-bar.low  { background: rgba(248,81,73,0.25);  color: var(--red);    border: 1px solid rgba(248,81,73,0.4); }
+        .cov-bar.none { background: transparent; color: var(--text-muted); border: 1px dashed var(--border); }
+
+        /* ===== 空状态 / 加载态 ===== */
+        .empty-row td {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 12px;
+            font-size: 13px;
+        }
+        .skel {
+            display: inline-block;
+            height: 12px;
+            background: linear-gradient(90deg, var(--bg-soft) 0%, var(--bg-hover) 50%, var(--bg-soft) 100%);
+            background-size: 200% 100%;
+            animation: skel 1.4s ease-in-out infinite;
+            border-radius: 4px;
+            width: 60%;
+        }
+        @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* ===== 底部 ===== */
+        .footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .footer .left { display: flex; gap: 16px; flex-wrap: wrap; }
+        .footer .right { color: var(--text-muted); }
+
+        /* ===== 滚动条美化 ===== */
+        ::-webkit-scrollbar { height: 10px; width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        @media (max-width: 720px) {
+            body { padding: 12px; }
+            .topbar h1 { font-size: 18px; }
+            .topbar .meta { gap: 10px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 顶部状态栏 ===== -->
+    <div class="topbar">
+        <h1>文件系统监控 <span class="brand">— 云枢</span></h1>
+        <div class="meta">
+            <span class="item"><span class="dot" id="pollDot"></span><span id="pollState">轮询中</span></span>
+            <span class="item"><span class="label">刷新次数:</span><span class="val accent" id="sRefresh">-</span></span>
+            <span class="item"><span class="label">缓存龄:</span><span class="val yellow" id="sCacheAge">-</span></span>
+            <span class="item"><span class="label">当前分支:</span><span class="val green" id="sBranch">-</span></span>
+            <span class="item"><span class="label">文件数:</span><span class="val" id="sCount">-</span></span>
+        </div>
+    </div>
+
+    <!-- ===== 筛选栏 ===== -->
+    <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="搜索 文件名 / 路径 / 模块 / 功能说明..." autocomplete="off">
+        <select id="moduleFilter" title="模块筛选">
+            <option value="">全部模块</option>
+        </select>
+        <select id="typeFilter" title="类型筛选">
+            <option value="">全部类型</option>
+        </select>
+        <select id="gitFilter" title="Git 状态筛选">
+            <option value="">全部 Git 状态</option>
+            <option value="clean">clean</option>
+            <option value="modified">modified</option>
+            <option value="added">added</option>
+            <option value="untracked">untracked</option>
+            <option value="deleted">deleted</option>
+            <option value="renamed">renamed</option>
+        </select>
+        <select id="stageFilter" title="Git 流程阶段筛选">
+            <option value="">全部流程阶段</option>
+            <option value="untracked">untracked</option>
+            <option value="staged_new">staged_new</option>
+            <option value="modified">modified</option>
+            <option value="committed">committed</option>
+            <option value="dev_branch">dev_branch</option>
+            <option value="release">release</option>
+            <option value="merged_main">merged_main</option>
+        </select>
+        <select id="covFilter" title="覆盖率筛选">
+            <option value="">全部覆盖率</option>
+            <option value="has">有覆盖率</option>
+            <option value="none">无覆盖率</option>
+            <option value="high">≥80%</option>
+            <option value="mid">50-80%</option>
+            <option value="low">&lt;50%</option>
+        </select>
+        <span class="spacer"></span>
+        <button class="log-level-btn" id="logLevelBtn" title="切换控制台日志级别">日志: INFO</button>
+    </div>
+
+    <!-- ===== 表格区 ===== -->
+    <div class="table-wrap">
+        <table id="fileTable">
+            <thead>
+                <tr>
+                    <th data-sort="name">文件名<span class="sort-ind"></span></th>
+                    <th data-sort="path">文件路径<span class="sort-ind"></span></th>
+                    <th data-sort="type">类型<span class="sort-ind"></span></th>
+                    <th data-sort="size">大小<span class="sort-ind"></span></th>
+                    <th data-sort="module">模块<span class="sort-ind"></span></th>
+                    <th data-sort="function">功能说明<span class="sort-ind"></span></th>
+                    <th data-sort="coverage">覆盖率<span class="sort-ind"></span></th>
+                    <th data-sort="git_state">Git 状态<span class="sort-ind"></span></th>
+                    <th data-sort="git_stage">Git 流程阶段<span class="sort-ind"></span></th>
+                    <th data-sort="mtime">最后修改<span class="sort-ind"></span></th>
+                    <th>最后提交<span class="sort-ind"></span></th>
+                    <th data-sort="atime">最后读取<span class="sort-ind"></span></th>
+                </tr>
+            </thead>
+            <tbody id="fileBody">
+                <tr class="empty-row"><td colspan="12">等待数据加载...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== 底部 ===== -->
+    <div class="footer">
+        <div class="left">
+            <span>轮询间隔: 5s</span>
+            <span>接口: <code class="mono">/api/dashboard</code></span>
+            <span id="pollStatus">就绪</span>
+        </div>
+        <div class="right" id="lastUpdate">最后更新: -</div>
+    </div>
+
+<script>
+/* ============================================================
+ * 文件系统监控看板 — 前端逻辑
+ * 设计原则: 不易(契约/异常处理) + 变易(动态筛选) + 简易(单文件零依赖)
+ * ============================================================ */
+(function () {
+    'use strict';
+
+    /* ---------- 工具函数 ---------- */
+    // 简写 getElementById
+    function $(id) { return document.getElementById(id); }
+
+    // XSS 防护: 转义 HTML 特殊字符（不易: 安全边界）
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /* ---------- 分级日志（前端控制台）---------- */
+    let LOG_LEVEL = 'info';
+    const LOG_ORDER = { debug: 0, info: 1, warn: 2, error: 3 };
+    const LOG_LEVELS = ['debug', 'info', 'warn', 'error'];
+
+    function log(level, tag, msg, data) {
+        try {
+            if (LOG_ORDER[level] < LOG_ORDER[LOG_LEVEL]) return;
+            const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false }) +
+                       '.' + String(Date.now() % 1000).padStart(3, '0');
+            const prefix = '%c[' + ts + '] [' + level.toUpperCase() + '] [' + tag + ']';
+            const style = level === 'debug' ? 'color:#8b949e'
+                        : level === 'warn'  ? 'color:#d29922'
+                        : level === 'error' ? 'color:#f85149'
+                        : 'color:#58a6ff';
+            if (data !== undefined) console.log(prefix, style, msg, data);
+            else console.log(prefix, style, msg);
+        } catch (e) { /* 日志本身不能抛出 */ }
+    }
+    window.setLogLevel = function (lvl) {
+        if (LOG_ORDER[lvl] == null) { log('warn', 'LOG', '未知日志级别: ' + lvl); return; }
+        LOG_LEVEL = lvl;
+        $('logLevelBtn').textContent = '日志: ' + lvl.toUpperCase();
+        log('info', 'LOG', '日志级别切换为 ' + lvl);
+    };
+
+    // 日志级别按钮: debug -> info -> warn -> error -> debug 循环
+    $('logLevelBtn').addEventListener('click', function () {
+        const idx = LOG_LEVELS.indexOf(LOG_LEVEL);
+        const next = LOG_LEVELS[(idx + 1) % LOG_LEVELS.length];
+        window.setLogLevel(next);
+    });
+
+    /* ---------- 全局状态 ---------- */
+    let ALL_FILES = [];      // 最近一次拉取的原始文件列表
+    let sortKey = 'name';    // 当前排序字段
+    let sortDir = 1;         // 1=升序, -1=降序
+
+    /* ---------- 排序逻辑（含异常处理）---------- */
+    function sortFiles(files) {
+        try {
+            return files.slice().sort(function (a, b) {
+                let va = a[sortKey], vb = b[sortKey];
+                // 异常处理: 字段缺失/null/类型不一致时降级处理
+                if (va == null && vb == null) return 0;
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                // 数值型排序
+                if (typeof va === 'number' && typeof vb === 'number') {
+                    return (va - vb) * sortDir;
+                }
+                // 字符串排序（防御非字符串）
+                const sa = String(va), sb = String(vb);
+                return sa.localeCompare(sb) * sortDir;
+            });
+        } catch (e) {
+            console.error('[SORT] 排序异常, 返回未排序数据:', e);
+            return files;
+        }
+    }
+
+    /* ---------- 筛选逻辑（含异常处理）---------- */
+    function applyFilters(files) {
+        try {
+            const q = ($('searchInput').value || '').trim().toLowerCase();
+            const mod = $('moduleFilter').value;
+            const type = $('typeFilter').value;
+            const git = $('gitFilter').value;
+            const stage = $('stageFilter').value;
+            const cov = $('covFilter').value;
+            return files.filter(function (f) {
+                // 防御: 字段缺失时用空字符串
+                const name = String(f.name || '');
+                const path = String(f.path || '');
+                const module = String(f.module || '');
+                const func = String(f.function || '');
+                if (q && !(name.toLowerCase().includes(q) || path.toLowerCase().includes(q) ||
+                           module.toLowerCase().includes(q) || func.toLowerCase().includes(q))) return false;
+                if (mod && module !== mod) return false;
+                if (type && String(f.type || '') !== type) return false;
+                if (git && String(f.git_state || '') !== git) return false;
+                if (stage && String(f.git_stage || '') !== stage) return false;
+                // 覆盖率筛选
+                const c = f.coverage;
+                if (cov === 'has'  && c == null) return false;
+                if (cov === 'none' && c != null) return false;
+                if (cov === 'high' && !(c != null && c >= 0.8)) return false;
+                if (cov === 'mid'  && !(c != null && c >= 0.5 && c < 0.8)) return false;
+                if (cov === 'low'  && !(c != null && c < 0.5)) return false;
+                return true;
+            });
+        } catch (e) {
+            console.error('[FILTER] 筛选异常, 返回未筛选数据:', e);
+            return files;
+        }
+    }
+
+    /* ---------- 下拉选项动态提取 ---------- */
+    function syncFilterOptions(files) {
+        try {
+            const mods = new Set();
+            const types = new Set();
+            for (const f of files) {
+                if (f.module) mods.add(String(f.module));
+                if (f.type)   types.add(String(f.type));
+            }
+            fillSelect($('moduleFilter'), Array.from(mods).sort());
+            fillSelect($('typeFilter'),   Array.from(types).sort());
+        } catch (e) {
+            log('warn', 'FILTER', '下拉选项同步失败', e.message);
+        }
+    }
+    // 保留当前选中值，仅追加新选项
+    function fillSelect(sel, values) {
+        const cur = sel.value;
+        // 保留首项（"全部"占位）
+        const placeholder = sel.options[0];
+        sel.innerHTML = '';
+        sel.appendChild(placeholder);
+        for (const v of values) {
+            const o = document.createElement('option');
+            o.value = v; o.textContent = v;
+            sel.appendChild(o);
+        }
+        // 恢复选中（若仍存在）
+        if (cur) sel.value = cur;
+    }
+
+    /* ---------- 格式化辅助 ---------- */
+    function fmtSize(bytes) {
+        if (bytes == null || isNaN(Number(bytes))) return '-';
+        const n = Number(bytes);
+        if (n < 0) return '-';
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+        if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(2) + ' MB';
+        return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+    function fmtTime(ts) {
+        if (ts == null || ts === '') return '-';
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return String(ts); // 无法解析则原样返回
+        const p = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+               ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+    function fmtCoverage(c) {
+        if (c == null) {
+            return '<span class="cov-bar none">-</span>';
+        }
+        const n = Number(c);
+        if (isNaN(n) || n < 0) {
+            // 异常数据降级显示
+            return '<span class="cov-bar none">-</span>';
+        }
+        const pct = (n * 100).toFixed(1);
+        let cls = 'low';
+        if (n >= 0.8) cls = 'high';
+        else if (n >= 0.5) cls = 'mid';
+        return '<span class="cov-bar ' + cls + '">' + pct + '%</span>';
+    }
+    function gitStateTag(s) {
+        const v = String(s || '');
+        const map = ['clean', 'modified', 'added', 'untracked', 'deleted', 'renamed'];
+        const cls = map.indexOf(v) >= 0 ? v : 'untracked';
+        const label = v || '-';
+        return '<span class="tag ' + cls + '">' + escapeHtml(label) + '</span>';
+    }
+    function gitStageTag(s) {
+        const v = String(s || '');
+        const map = ['untracked', 'staged_new', 'modified', 'committed', 'dev_branch', 'release', 'merged_main'];
+        const cls = map.indexOf(v) >= 0 ? 'stage-' + v : 'stage-untracked';
+        const label = v || '-';
+        return '<span class="tag ' + cls + '">' + escapeHtml(label) + '</span>';
+    }
+
+    /* ---------- 渲染: 表格（每行 try/catch 包裹）---------- */
+    function renderTable(files) {
+        const tbody = $('fileBody');
+        try {
+            // 先同步下拉选项
+            syncFilterOptions(files);
+            // 筛选 + 排序
+            const filtered = applyFilters(files);
+            const sorted = sortFiles(filtered);
+            log('info', 'RENDER', '渲染表格', { total: files.length, shown: sorted.length, sortKey: sortKey, sortDir: sortDir });
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="12">无匹配数据</td></tr>';
+                updateSortIndicators();
+                return;
+            }
+
+            const rows = [];
+            for (let i = 0; i < sorted.length; i++) {
+                const f = sorted[i];
+                try {
+                    rows.push(
+                        '<tr>' +
+                            '<td class="mono" title="' + escapeHtml(f.path || '') + '">' + escapeHtml(f.name) + '</td>' +
+                            '<td class="path-cell mono" title="' + escapeHtml(f.path || '') + '">' + escapeHtml(f.path) + '</td>' +
+                            '<td>' + escapeHtml(f.type) + '</td>' +
+                            '<td class="mono">' + fmtSize(f.size) + '</td>' +
+                            '<td>' + escapeHtml(f.module) + '</td>' +
+                            '<td class="func-cell" title="' + escapeHtml(f.function || '') + '">' + escapeHtml(f.function) + '</td>' +
+                            '<td>' + fmtCoverage(f.coverage) + '</td>' +
+                            '<td>' + gitStateTag(f.git_state) + '</td>' +
+                            '<td>' + gitStageTag(f.git_stage) + '</td>' +
+                            '<td class="mono">' + escapeHtml(fmtTime(f.mtime)) + '</td>' +
+                            '<td class="mono">' + escapeHtml(fmtTime(f.last_commit)) + '</td>' +
+                            '<td class="mono">' + escapeHtml(fmtTime(f.atime)) + '</td>' +
+                        '</tr>'
+                    );
+                } catch (e) {
+                    // 单行异常不影响其他行
+                    log('error', 'RENDER', '单行渲染失败, 已跳过', { index: i, name: f && f.name, err: e.message });
+                    rows.push('<tr class="empty-row"><td colspan="12" style="color:#f85149">该行渲染失败: ' +
+                              escapeHtml(e.message) + '</td></tr>');
+                }
+            }
+            tbody.innerHTML = rows.join('');
+            updateSortIndicators();
+        } catch (e) {
+            // 整体异常兜底
+            log('error', 'RENDER', '表格渲染整体异常', e.message);
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="12" style="color:#f85149">表格渲染失败: ' +
+                              escapeHtml(e.message) + '</td></tr>';
+        }
+    }
+
+    /* ---------- 渲染: 顶部汇总 ---------- */
+    function renderSummary(summary) {
+        try {
+            if (!summary) { log('warn', 'RENDER', 'summary 为空'); return; }
+            $('sRefresh').textContent = (summary.refresh_count != null) ? summary.refresh_count : '-';
+            $('sCacheAge').textContent = (summary.cache_age != null) ? summary.cache_age : '-';
+            $('sBranch').textContent = summary.branch ? summary.branch : '-';
+            $('sCount').textContent = (summary.file_count != null) ? summary.file_count :
+                                     (ALL_FILES.length || 0);
+            log('debug', 'RENDER', '汇总已更新', {
+                refresh: summary.refresh_count, branch: summary.branch, count: summary.file_count
+            });
+        } catch (e) {
+            log('error', 'RENDER', '汇总渲染异常', e.message);
+        }
+    }
+
+    /* ---------- 排序指示器 ---------- */
+    function updateSortIndicators() {
+        const ths = document.querySelectorAll('#fileTable thead th[data-sort]');
+        ths.forEach(function (th) {
+            const ind = th.querySelector('.sort-ind');
+            if (th.getAttribute('data-sort') === sortKey) {
+                ind.textContent = sortDir > 0 ? '▲' : '▼';
+            } else {
+                ind.textContent = '';
+            }
+        });
+    }
+
+    /* ---------- 表头点击排序 ---------- */
+    (function bindSort() {
+        const ths = document.querySelectorAll('#fileTable thead th[data-sort]');
+        ths.forEach(function (th) {
+            th.addEventListener('click', function () {
+                const key = th.getAttribute('data-sort');
+                if (key === sortKey) {
+                    sortDir = -sortDir; // 同列切换升降序
+                } else {
+                    sortKey = key;
+                    sortDir = 1;
+                }
+                log('debug', 'SORT', '排序变更', { key: sortKey, dir: sortDir });
+                renderTable(ALL_FILES);
+            });
+        });
+    })();
+
+    /* ---------- 筛选器事件绑定 ---------- */
+    ['searchInput', 'moduleFilter', 'typeFilter', 'gitFilter', 'stageFilter', 'covFilter'].forEach(function (id) {
+        const el = $(id);
+        if (!el) return;
+        const evt = (id === 'searchInput') ? 'input' : 'change';
+        el.addEventListener(evt, function () {
+            renderTable(ALL_FILES);
+        });
+    });
+
+    /* ---------- 轮询逻辑 ---------- */
+    async function poll() {
+        const dot = $('pollDot');
+        const state = $('pollState');
+        try {
+            if (dot) dot.classList.remove('paused');
+            if (state) state.textContent = '轮询中';
+            log('debug', 'POLL', '开始轮询...');
+            const r = await fetch('/api/dashboard?_=' + Date.now());
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const data = await r.json();
+            log('debug', 'POLL', '收到数据', {
+                files: (data.files || []).length,
+                refresh: data.summary && data.summary.refresh_count
+            });
+            ALL_FILES = Array.isArray(data.files) ? data.files : [];
+            renderSummary(data.summary);
+            renderTable(data.files || []);
+            const now = new Date();
+            $('lastUpdate').textContent = '最后更新: ' + fmtTime(now);
+            $('pollStatus').textContent = '运行中';
+        } catch (e) {
+            log('error', 'POLL', '轮询失败', e.message);
+            if (dot) dot.classList.add('paused');
+            if (state) state.textContent = '轮询失败';
+            $('pollStatus').textContent = '失败: ' + e.message;
+        }
+    }
+
+    // 5 秒轮询，页面隐藏时暂停
+    setInterval(function () { if (!document.hidden) poll(); }, 5000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            log('info', 'POLL', '页面恢复可见, 立即轮询');
+            poll();
+        } else {
+            log('info', 'POLL', '页面隐藏, 暂停轮询');
+        }
+    });
+
+    /* ---------- 启动 ---------- */
+    log('info', 'BOOT', '文件系统监控看板启动');
+    poll();
+})();
+</script>
+</body>
+</html>
