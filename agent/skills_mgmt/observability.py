@@ -18,9 +18,11 @@ from typing import Any, Dict, Iterator, List, Optional
 logger = logging.getLogger("agent.skills_mgmt")
 
 # 尝试引入业务指标收集器（按硬约束要求）；失败则降级为 no-op
+# 【不易】改用全局单例 get_business_metrics_collector()，与 app_server.py /metrics 端点
+# 共享同一实例，避免实例隔离导致 emit_metric 触发的指标不出现在 /metrics 端点。
 try:
-    from agent.monitoring.business_metrics import BusinessMetricsCollector
-    _metrics = BusinessMetricsCollector()
+    from agent.monitoring.business_metrics import get_business_metrics_collector
+    _metrics = get_business_metrics_collector()
     _METRICS_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _metrics = None
