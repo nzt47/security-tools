@@ -632,6 +632,126 @@ class NetworkConfigManager:
                         service["updated_at"] = service["created_at"]
                         self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # 通用集合 upsert 方法（迁移自 agent/network/config_manager.py 兼容层）
+    #
+    # 用途：
+    # - 提供 O(1) 字典索引的批量 upsert 能力，供性能基准测试验证优化效果
+    # - 业务逻辑（_update_llm_instances / _update_search_instances）保持专用实现
+    #   不强制重构，避免破坏现有 upsert 语义
+    #
+    # 迁移原因：P3 任务删除 60KB 兼容层，但性能测试 tests/perf/test_config_manager_perf.py
+    # 依赖这两个方法验证字典索引 vs 线性查找的性能差异
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _upsert_collection_item(
+        self,
+        collection: list,
+        item: dict,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> Optional[str]:
+        """通用集合项新增/更新（单个，O(n) 线性查找）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            item: 要新增或更新的项（有 id → 更新，无 id → 新增）
+            section: 变更日志的 section 名
+            secure_key_prefix: .env 存储 key 前缀（None 表示不存储 api_key）
+
+        Returns:
+            项的 id（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        item_id = item.get('id')
+
+        if not item_id:
+            item["id"] = str(uuid.uuid4())
+            item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+            item["updated_at"] = item["created_at"]
+
+            if secure_key_prefix:
+                api_key = item.get('api_key', '')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+            collection.append(item)
+            self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+            return item["id"]
+        else:
+            existing = next((i for i in collection if i.get("id") == item_id), None)
+            if existing:
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                existing.update(item)
+                existing["updated_at"] = datetime.datetime.now().isoformat()
+                self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                return item_id
+        return None
+
+    def _upsert_collection_batch(
+        self,
+        collection: list,
+        items: list,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> list:
+        """批量集合项新增/更新（字典索引优化，O(1) 查重替代 O(n) 线性查找）
+
+        性能优势：构建一次 id_index（O(n)），后续每次查找 O(1)
+        适用场景：批量更新大量实例（如 100+ LLM/Search 实例）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            items: 要新增或更新的项列表
+            section: 变更日志的 section 名
+            secure_key_prefix: .env 存储 key 前缀（None 表示不存储 api_key）
+
+        Returns:
+            每个项的 id 列表（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        # 构建索引：O(n) 一次，后续每次查找 O(1)
+        id_index = {item.get("id"): item for item in collection if item.get("id")}
+
+        result_ids = []
+        for item in items:
+            item_id = item.get('id')
+
+            if not item_id:
+                # 新增
+                item["id"] = str(uuid.uuid4())
+                item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+                item["updated_at"] = item["created_at"]
+
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+                collection.append(item)
+                id_index[item["id"]] = item  # 新增项也加入索引，防止后续重复
+                self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+                result_ids.append(item["id"])
+            else:
+                # 更新：O(1) 字典查找
+                existing = id_index.get(item_id)
+                if existing:
+                    if secure_key_prefix:
+                        api_key = item.get('api_key', '')
+                        if api_key and api_key != '***' and not api_key.startswith('***'):
+                            self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                    existing.update(item)
+                    existing["updated_at"] = datetime.datetime.now().isoformat()
+                    self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                    result_ids.append(item_id)
+                else:
+                    result_ids.append(None)
+
+        return result_ids
+
     def _register_search_instance(self, instance: dict, search_engine):
         """注册单个搜索实例到 SearchEngine
 
