@@ -188,7 +188,6 @@ flowchart LR
     end
     subgraph network [network]
         agent_network["agent.network"]
-        agent_network_config_manager["agent.network.config_manager"]
         agent_network_config_validator["agent.network.config_validator"]
         agent_network_observability["agent.network.observability"]
     end
@@ -481,11 +480,8 @@ flowchart LR
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_network_config_manager --> agent_network_config_validator
-    agent_network_config_manager -.-> agent_logging_utils
-    agent_network_config_manager -.-> agent_tools
     agent_network_observability -.-> agent_monitoring_business_metrics
-    agent_network --> agent_network_config_manager
+    agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
     agent_tools_software_tools --> agent
     agent_tools_software_tools -.-> agent_software_manager
@@ -900,10 +896,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 327
-- 模块节点数: 260
-- 依赖边数: 562
-- 跨层调用数: 356
+- 扫描文件数: 326
+- 模块节点数: 259
+- 依赖边数: 559
+- 跨层调用数: 355
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1200.11 ms
+- 构建耗时: 1228.41 ms
