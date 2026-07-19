@@ -79,7 +79,7 @@ flowchart LR
         agent_text_tools["agent.text_tools"]:::crosslayer
         agent_tool_calling["agent.tool_calling"]:::crosslayer
         agent_tool_router["agent.tool_router"]:::crosslayer
-        agent_tool_router_hybrid["agent.tool_router_hybrid"]
+        agent_tool_router_hybrid["agent.tool_router_hybrid"]:::crosslayer
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]
     end
@@ -431,6 +431,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_logging_utils
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
+    agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
     agent_orchestrator_orchestrator -.-> agent_response_workflows
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_observability -.-> agent_monitoring_business_metrics
@@ -469,6 +470,7 @@ flowchart LR
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_tool_router
+    agent_orchestrator_task_dispatcher -.-> agent_tool_router_hybrid
     agent_orchestrator_status_reporter --> agent
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
@@ -898,8 +900,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 328
 - 模块节点数: 259
-- 依赖边数: 559
-- 跨层调用数: 355
+- 依赖边数: 561
+- 跨层调用数: 357
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1168.85 ms
+- 构建耗时: 1215.73 ms
