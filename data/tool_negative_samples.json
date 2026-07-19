@@ -1,12 +1,16 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "description": "工具检索负样本库:相似工具的区分性 query,用于评估检索质量与未来 reranker 训练",
   "usage": "每组的 query 应只召回 expected_positive 中的工具,不召回 group 内其他工具(negative)。当前 BM25 单路可能在某些组上失败,这正是未来引入 Cross-Encoder Reranker 的目标场景。",
   "notes": [
     "本负样本库与 tests/fixtures/tool_retrieval_eval.json 区别:",
     "  - eval.json: 验证召回率(ground_truth 只含正样本,不区分相似工具)",
     "  - negative_samples.json: 验证区分能力(同组工具应被不同 query 区分)",
-    "本文件不写自动化测试,仅作数据资产入库,供未来 reranker 评估使用",
+    "v1.1(2026-07-19)扩充:6 组 16 query → 10 组 25 query,新增 G7/G8/G9/G10",
+    "  - G7 compress/decompress:报告 q07 风险点(BM25 无法区分压缩/解压方向)",
+    "  - G8 json_to_yaml/yaml_to_json:报告 q08 风险点(BM25 无法区分转换方向)",
+    "  - G9 web_search/search_memory/search_lifetrace:报告 q01 风险点(search 词根混淆)",
+    "  - G10 read_file/write_file:读写方向性区分",
     "工具名均经 tool_index.json 验证存在(2026-07-19 校验)"
   ],
   "groups": [
@@ -246,6 +250,144 @@
             "schedule_task"
           ],
           "rationale": "取消已提交任务,不是提交新任务或定时调度"
+        }
+      ]
+    },
+    {
+      "group_id": "G7_compress_family",
+      "category": "file",
+      "description": "压缩/解压方向性区分:compress=压缩,decompress=解压。报告 q07 风险点:BM25 对「压缩」匹配 decompress 描述得分高,无法区分方向",
+      "tools": [
+        "compress",
+        "decompress"
+      ],
+      "queries": [
+        {
+          "query": "把 logs 文件夹压缩成 zip",
+          "expected_positive": [
+            "compress"
+          ],
+          "negative": [
+            "decompress"
+          ],
+          "rationale": "压缩方向。报告 q07:decompress 排第 1 是 BM25 退化,compress 排第 2。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "解压 archive.tar.gz 到当前目录",
+          "expected_positive": [
+            "decompress"
+          ],
+          "negative": [
+            "compress"
+          ],
+          "rationale": "解压方向,动词「解压」应精确匹配 decompress 描述"
+        }
+      ]
+    },
+    {
+      "group_id": "G8_format_convert_direction",
+      "category": "code",
+      "description": "格式转换方向性:json_to_yaml=JSON→YAML,yaml_to_json=YAML→JSON。报告 q08 风险点:BM25 无法区分转换方向,两者词频完全相同",
+      "tools": [
+        "json_to_yaml",
+        "yaml_to_json"
+      ],
+      "queries": [
+        {
+          "query": "把 config.json 转换成 yaml 格式",
+          "expected_positive": [
+            "json_to_yaml"
+          ],
+          "negative": [
+            "yaml_to_json"
+          ],
+          "rationale": "JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+        },
+        {
+          "query": "读取 data.yaml 转成 JSON 对象",
+          "expected_positive": [
+            "yaml_to_json"
+          ],
+          "negative": [
+            "json_to_yaml"
+          ],
+          "rationale": "YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+        }
+      ]
+    },
+    {
+      "group_id": "G9_search_semantic_family",
+      "category": "web+memory",
+      "description": "搜索语义区分:web_search=网页搜索,search_memory=记忆检索,search_lifetrace=LifeTrace 检索。报告 q01 风险点:search_* 词根混淆,search_memory/search_lifetrace 误入 top-5",
+      "tools": [
+        "web_search",
+        "search_memory",
+        "search_lifetrace"
+      ],
+      "queries": [
+        {
+          "query": "在 Google 上搜索 Python 异步教程",
+          "expected_positive": [
+            "web_search"
+          ],
+          "negative": [
+            "search_memory",
+            "search_lifetrace"
+          ],
+          "rationale": "网页搜索,不是记忆或 LifeTrace 检索"
+        },
+        {
+          "query": "回忆之前讨论过的项目架构",
+          "expected_positive": [
+            "search_memory"
+          ],
+          "negative": [
+            "web_search",
+            "search_lifetrace"
+          ],
+          "rationale": "记忆检索,动词「回忆」应匹配 search_memory 而非网页搜索"
+        },
+        {
+          "query": "检索 lifetrace 中的历史对话",
+          "expected_positive": [
+            "search_lifetrace"
+          ],
+          "negative": [
+            "web_search",
+            "search_memory"
+          ],
+          "rationale": "LifeTrace 专用检索,关键词「lifetrace」精确匹配"
+        }
+      ]
+    },
+    {
+      "group_id": "G10_read_write_direction",
+      "category": "file",
+      "description": "读写方向性区分:read_file=读,write_file=写。报告 q02:write_file 误入 top-5(BM25 对「文件」匹配)",
+      "tools": [
+        "read_file",
+        "write_file"
+      ],
+      "queries": [
+        {
+          "query": "读取 config.yaml 的内容",
+          "expected_positive": [
+            "read_file"
+          ],
+          "negative": [
+            "write_file"
+          ],
+          "rationale": "读方向,动词「读取」应精确匹配 read_file,write_file 不应召回"
+        },
+        {
+          "query": "把处理结果写入 output.json",
+          "expected_positive": [
+            "write_file"
+          ],
+          "negative": [
+            "read_file"
+          ],
+          "rationale": "写方向,动词「写入」应匹配 write_file"
         }
       ]
     }
