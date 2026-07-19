@@ -15,10 +15,19 @@
 - 取消加密存储中间层
 - .env 文件作为唯一敏感数据来源
 - UI 修改直接写入 .env，热重载到 os.environ
+
+P1 安全加固:
+- .env 文件创建/写入后自动设置权限为 600（仅 owner 可读写）
+- Unix: os.chmod(path, 0o600)
+- Windows: icacls /inheritance:r 移除继承 + 仅授权当前用户与 SYSTEM
+- 失败降级为 warning，不阻塞主流程
 """
 
 import logging
 import os
+import stat
+import subprocess
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -55,7 +64,7 @@ class EnvConfigManager:
         self._ensure_file_exists()
 
     def _ensure_file_exists(self):
-        """确保 .env 文件存在，不存在则创建空文件"""
+        """确保 .env 文件存在，不存在则创建空文件并设置权限"""
         if not self._env_file.exists():
             self._env_file.touch()
             logger.info(log_dict({
@@ -63,6 +72,9 @@ class EnvConfigManager:
                 'action': 'env_config.init',
                 'message': f'[Env配置] 已创建 .env 文件: {self._env_file}'
             }))
+        # 【P1 安全加固】无论新建还是已存在，确保权限为 600
+        # 已存在文件可能由其他工具创建（如 vim touch），权限未必符合要求
+        self._secure_file_permissions()
 
     def get(self, key: str, default: str = None) -> str:
         """从环境变量读取配置值
@@ -205,11 +217,80 @@ class EnvConfigManager:
 
             # rename 临时文件到目标（原子操作）
             os.rename(tmp_path, str(self._env_file))
+
+            # 【P1 安全加固】rename 后权限继承自临时文件（mkstemp 默认 0o600 + umask），
+            # 不一定符合 600 要求（特别是 Windows），需显式重设
+            self._secure_file_permissions()
         except Exception:
             # 清理临时文件
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
             raise
+
+    def _secure_file_permissions(self):
+        """【P1 安全】设置 .env 文件权限为 600（仅 owner 可读写）
+
+        跨平台策略:
+        - Unix/Linux: os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+        - Windows: icacls /inheritance:r 移除继承 + /grant:r 仅授权当前用户与 SYSTEM
+
+        设计原则（三义）:
+        - 【不易】.env 是唯一敏感数据存储，权限保护是核心安全边界
+        - 【变易】跨平台差异通过运行时分支处理
+        - 【简易】失败降级为 warning，不阻塞主流程（避免权限设置失败导致写入回滚）
+        """
+        if not self._env_file.exists():
+            return
+
+        try:
+            if sys.platform == 'win32':
+                # Windows: icacls 限制 ACL
+                # /inheritance:r 移除所有继承权限
+                # /grant:r 替换式授权（仅保留指定的）
+                username = os.environ.get('USERNAME') or os.environ.get('USER', '')
+                cmd = ['icacls', str(self._env_file), '/inheritance:r']
+                if username:
+                    cmd.extend(['/grant:r', f'{username}:F'])
+                cmd.extend(['/grant:r', 'SYSTEM:F'])
+
+                # CREATE_NO_WINDOW 避免弹出控制台窗口
+                creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                # 中文 Windows 下 icacls 输出 GBK 编码，默认 utf-8 解码会失败
+                # 使用 errors='replace' 容错（我们只关心 returncode，不依赖输出内容）
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace',
+                    timeout=5,
+                    creationflags=creationflags,
+                    check=False,
+                )
+                if result.returncode != 0:
+                    logger.warning(log_dict({
+                        'module_name': 'env_config',
+                        'action': 'env_config.secure_permissions_failed',
+                        'message': f'[Env配置] Windows icacls 设置权限失败: {result.stderr.strip()}'
+                    }))
+                    return
+            else:
+                # Unix/Linux: chmod 600（仅 owner 可读写）
+                os.chmod(self._env_file, stat.S_IRUSR | stat.S_IWUSR)
+
+            logger.info(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.secure_permissions',
+                'message': f'[Env配置] 已设置 .env 文件权限为 600（仅 owner 可读写）'
+            }))
+        except Exception as e:
+            # 失败降级：仅 warning，不抛异常
+            # 原因：权限设置是安全增强，不应破坏主流程（写入已成功）
+            logger.warning(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.secure_permissions_failed',
+                'message': f'[Env配置] 设置文件权限失败（不阻塞主流程）: {e}'
+            }))
 
 
 # 模块级单例（懒加载）
