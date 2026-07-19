@@ -139,3 +139,22 @@ bfg-replacements.txt
 .bfg_last_backup
 # 加密密钥文件（从 git 跟踪移除，仅本地保留）
 .encryption_key
+
+# === 临时测试产物（2026-07-20）===
+
+# 测试输出文件（不入库）
+boundary_stdout.txt
+boundary_junit.xml
+pytest_xfail_output.txt
+verify_production_report.md
+
+# 测试数据目录（不入库）
+data/test_chroma_db/
+data/test_chroma_db3/
+data/test_chroma_native/
+data/test_kb/
+data/test_pytest/
+data/test_vectors/
+
+# 测试结果目录（不入库）
+test_results/
