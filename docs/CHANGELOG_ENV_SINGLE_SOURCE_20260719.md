@@ -192,12 +192,35 @@ configure_llm(provider, api_key, model, base_url)
 
 ## 六、后续规划
 
-| 优先级 | 任务 | 说明 |
-|--------|------|------|
-| P1 | `.env` 文件权限自动化 | 部署脚本自动设置 `chmod 600 .env` |
-| P2 | `SecureConfigManager` 完全删除 | 当前仅废弃参数，后续可移除类定义 |
-| P2 | `agent/network/config_manager.py` 同步改造 | 旧版未使用，可同步或删除 |
-| P3 | 配置变更审计日志 | 记录每次 `.env` 修改的 trace_id / user / key |
+| 优先级 | 任务 | 说明 | 状态 |
+|--------|------|------|------|
+| P1 | `.env` 文件权限自动化 | `EnvConfigManager._secure_file_permissions` 自动设置 600 | ✅ 已完成（2026-07-19） |
+| P2 | `SecureConfigManager` 完全删除 | 当前仅废弃参数，后续可移除类定义 | 待启动 |
+| P2 | `agent/network/config_manager.py` 同步改造 | 旧版未使用，可同步或删除 | 待启动 |
+| P3 | 配置变更审计日志 | 记录每次 `.env` 修改的 trace_id / user / key | 待启动 |
+
+### P1 实施详情（2026-07-19）
+
+**变更内容**：
+- `agent/env_config_manager.py` 新增 `_secure_file_permissions()` 方法
+- 在 `_ensure_file_exists()` 和 `_atomic_write()` 末尾调用权限保护
+- 新增测试 `tests/unit/test_env_file_permissions.py`（16 用例，13 passed / 3 skipped）
+
+**跨平台策略**：
+| 平台 | 实现 | 命令 |
+|------|------|------|
+| Unix/Linux | `os.chmod(path, stat.S_IRUSR \| stat.S_IWUSR)` | `chmod 600 .env` |
+| Windows | `icacls` ACL 限制 | `icacls .env /inheritance:r /grant:r "<user>:F" /grant:r "SYSTEM:F"` |
+
+**关键设计**：
+- 失败降级：权限设置失败仅 `warning`，不抛异常（不破坏主流程）
+- 中文 Windows 兼容：`subprocess.run(encoding='utf-8', errors='replace')` 处理 GBK 输出
+- Windows 无窗口：`CREATE_NO_WINDOW` 标志避免弹出控制台
+- 超时保护：`timeout=5` 防止 icacls 卡死
+
+**真实环境验证**：
+- 修复前：`.env` ACL 包含 `BUILTIN\Administrators:(I)(F)` 继承权限
+- 修复后：`.env` ACL 仅剩 `SYSTEM:(F)` 和当前用户 `AdminWT:(F)`，继承已移除
 
 ---
 
