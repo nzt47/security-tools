@@ -1,5 +1,5 @@
 {
-  "trace_id": "6ffa3be42fac4089",
+  "trace_id": "96f9c1b1cfba4ea1",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -31,7 +31,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 68,
+      "in_degree": 69,
       "out_degree": 1
     },
     {
@@ -283,6 +283,14 @@
       "out_degree": 0
     },
     {
+      "path": "agent.env_config_manager",
+      "name": "env_config_manager",
+      "layer": "core",
+      "file_path": "agent/env_config_manager.py",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.compression_tools",
       "name": "compression_tools",
       "layer": "core",
@@ -528,7 +536,7 @@
       "layer": "core",
       "file_path": "agent/network_config.py",
       "in_degree": 3,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.security_utils",
@@ -2446,6 +2454,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.env_config_manager",
+      "target": "agent.logging_utils",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 35,
+      "source_file": "agent/env_config_manager.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.compression_tools",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -3114,7 +3135,20 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 28,
+      "line": 29,
+      "source_file": "agent/network_config.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.network_config",
+      "target": "agent.env_config_manager",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 30,
       "source_file": "agent/network_config.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3127,7 +3161,7 @@
       "source_layer": "core",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 734,
+      "line": 779,
       "source_file": "agent/network_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6702,7 +6736,7 @@
       "source_layer": "server_routes",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 575,
+      "line": 581,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9324,14 +9358,14 @@
     }
   ],
   "stats": {
-    "total_files": 325,
-    "total_nodes": 258,
-    "total_edges": 558,
+    "total_files": 326,
+    "total_nodes": 259,
+    "total_edges": 560,
     "cross_layer_edges": 355,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 53,
+      "core": 54,
       "monitoring": 27,
       "skills_mgmt": 9,
       "workflow_learning": 3,
@@ -9365,6 +9399,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1178.094915999999
+    "build_duration_ms": 1222.3058510000014
   }
 }
