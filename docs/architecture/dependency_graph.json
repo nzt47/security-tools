@@ -1,5 +1,5 @@
 {
-  "trace_id": "04a8216bd2a2483d",
+  "trace_id": "9d4798a6329046ae",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -7607,7 +7607,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 22,
+      "line": 24,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7620,7 +7620,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 191,
+      "line": 193,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9371,7 +9371,7 @@
     }
   ],
   "stats": {
-    "total_files": 328,
+    "total_files": 329,
     "total_nodes": 259,
     "total_edges": 561,
     "cross_layer_edges": 357,
@@ -9412,6 +9412,6 @@
       "human_in_the_loop": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1215.7323710000014
+    "build_duration_ms": 1196.9246390000023
   }
 }
