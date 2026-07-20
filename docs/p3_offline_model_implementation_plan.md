@@ -56,33 +56,37 @@ sentence-transformers
 | 冲突 | 原因 | 影响 |
 |------|------|------|
 | **hnswlib 路径问题** | chromadb 0.4.x 的 hnswlib 在 Windows 临时目录创建 `data_level0.bin` 时路径处理有 bug | `NotADirectoryError [WinError 267]` |
+| **chromadb 1.x Rust 绑定问题**（新发现） | chromadb 1.5.9 的 Rust 后端在 Windows 上不兼容 | `AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'` + `InternalError: os error 123` |
 | **NTFS 性能问题** | Windows NTFS 对 43943 次 `nt.stat` 调用性能差 | transformers 导入慢 4.7s |
 | **路径长度限制** | Windows 默认 MAX_PATH=260，长路径触发错误 | 模型缓存路径可能超限 |
 
+> **重要发现（2026-07-21）**: chromadb 1.5.9 在 Windows 上有 Rust 绑定问题，即使使用项目内持久化目录（非临时目录）仍然失败。错误包括：
+> - `AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'`
+> - `chromadb.errors.InternalError: 文件名、目录名或卷标语法不正确 (os error 123)`
+>
+> 这说明问题不是临时目录路径问题，而是 chromadb 1.x 的 Rust 后端在 Windows 上的根本性不兼容。解决方案：
+> 1. **降级到 chromadb 0.4.x**（纯 Python 实现，无 Rust 绑定）
+> 2. **Linux 生产环境部署**（Rust 绑定在 Linux 上正常）
+> 3. **禁用 chromadb，走 JSON fallback 路径**（已实施）
+
 ## 3. Windows 兼容性问题修复方案
 
-### 3.1 方案 A：升级 chromadb（推荐）
+### 3.1 方案 A：降级到 chromadb 0.4.x（推荐 — 基于 Rust 绑定问题发现）
+
+**发现**: chromadb 1.5.9 的 Rust 后端在 Windows 上根本性不兼容（`AttributeError: 'RustBindingsAPI'`），即使使用持久化目录仍然失败。降级到 0.4.x（纯 Python 实现）是当前可行的方案。
 
 ```bash
-# 升级到 chromadb 0.5.x，修复 hnswlib Windows 路径问题
-pip install "chromadb>=0.5.0,<0.6.0"
+# 降级到 chromadb 0.4.24（最后一个纯 Python 版本）
+pip install "chromadb==0.4.24"
 ```
 
-**API 适配**：
-```python
-# chromadb 0.4.x
-client = chromadb.PersistentClient(path=..., settings=Settings(...))
+**API 兼容性**: 0.4.x 的 API 与 1.x 基本兼容（PersistentClient/get_or_create_collection/add/query 接口不变）
 
-# chromadb 0.5.x（API 兼容，但 Settings 参数有变化）
-client = chromadb.PersistentClient(path=..., settings=Settings(...))
-# 验证：get_or_create_collection 接口不变
-```
+**风险**:
+- `chromadb 0.4.x` 的 hnswlib 在 Windows 临时目录仍有 `NotADirectoryError`（需配合方案 B 使用持久化目录）
+- `onnxruntime` 依赖可能与 Python 3.12 冲突（CI Linux SIGILL）
 
-**风险**：
-- `chromadb 0.5.x` 的 `chromadb.telemetry` 默认开启，需显式关闭
-- `hnswlib` 版本升级可能改变索引格式（需重建集合）
-
-### 3.2 方案 B：使用持久化目录替代临时目录
+### 3.2 方案 B：使用持久化目录替代临时目录（配合方案 A）
 
 ```python
 # 问题代码：Windows 临时目录触发 NotADirectoryError
@@ -98,9 +102,15 @@ store = VectorStore(persist_dir=PERSIST_DIR, ...)
 
 **适用场景**：测试代码（生产环境本来就用持久化目录）
 
-### 3.3 方案 C：禁用 chromadb 走 JSON fallback（已实施）
+### 3.3 方案 C：Linux 生产环境部署（推荐 — 彻底解决 Windows 兼容性）
 
-当前 P2 压测已采用此方案（`mock.patch.object(vs_module, 'HAS_CHROMA', False)`），但无法验证 chromadb 路径的真实性能。
+chromadb 1.x 的 Rust 绑定在 Linux 上正常工作，无需降级。生产环境直接使用 Linux 部署。
+
+**验证脚本**: [scripts/verify_chromadb_p2_linux.sh](../scripts/verify_chromadb_p2_linux.sh)
+
+### 3.4 方案 D：禁用 chromadb 走 JSON fallback（已实施 — 开发环境）
+
+当前 P2 压测已采用此方案（`mock.patch.object(vs_module, 'HAS_CHROMA', False)`），但无法验证 chromadb 路径的真实性能。仅适用于开发环境。
 
 ## 4. P3 实施计划
 
