@@ -18,6 +18,7 @@
 import os
 import json
 import re
+import heapq
 import asyncio
 import threading
 import logging
@@ -178,7 +179,10 @@ class InvertedIndex:
                     if doc_length > 0:
                         scores[doc_id] += self._compute_bm25(token, freq, doc_length)
 
-        return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+        # [TLM-L1] BM25 排序 — heapq.nlargest 替代 sorted[:top_k]
+        # Why: top_k 通常远小于候选文档数（n >> k），heapq 维护大小为 k 的堆
+        # 时间复杂度 O(n log k) vs sorted O(n log n)，n=500/k=5 时约 4 倍提速
+        return heapq.nlargest(top_k, scores.items(), key=lambda x: x[1])
 
     def get_stats(self) -> Dict[str, Any]:
         """获取索引统计信息"""
