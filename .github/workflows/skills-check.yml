@@ -1,0 +1,273 @@
+# Skills 数据一致性 CI/CD 流水线
+#
+# 触发时机:
+#   - PR 合并到 master: 运行 detect_dynamic_loads.py 阻断 HIGH 风险提交
+#   - PR 创建/更新:    运行 compare + verify 确保数据一致
+#   - 定期 (每天凌晨): 全量扫描并上传报告
+#
+# 门禁规则:
+#   - compare 失败 (新旧格式元数据不一致) → 阻断
+#   - verify 失败 (三层架构加载/执行失败) → 阻断
+#   - detect HIGH 风险存在 → 阻断
+#   - detect MEDIUM/LOW 风险 → 仅警告, 不阻断
+#
+name: Skills Check
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'data/skills.json'
+      - 'data/skills_repo/**'
+      - 'scripts/compare_skills_legacy_vs_repo.py'
+      - 'scripts/verify_migrated_skills.py'
+      - 'scripts/detect_dynamic_loads.py'
+      - 'scripts/AdminDependencyChecker.psm1'
+      - 'scripts/AdminDependencyChecker.psd1'
+      - 'scripts/simulate-ci-admin-check.ps1'
+      - 'scripts/Copy-AdminModule.ps1'
+      # 被扫描的目标脚本 (修改可能引入 admin 依赖, 必须触发 CI)
+      - 'scripts/rollback-protection.ps1'
+      - 'scripts/test-rollback-params.ps1'
+      - 'scripts/simulate-ci-rollback-test.ps1'
+      - 'tests/conftest.py'
+      - 'tests/unit/test_verify_migrated_skills.py'
+      - 'tests/unit/AdminDependencyChecker.Tests.ps1'
+      - '.github/workflows/skills-check.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'data/skills.json'
+      - 'data/skills_repo/**'
+      - 'scripts/AdminDependencyChecker.psm1'
+      - 'scripts/AdminDependencyChecker.psd1'
+      - 'scripts/simulate-ci-admin-check.ps1'
+      - 'tests/unit/AdminDependencyChecker.Tests.ps1'
+      # 被扫描的目标脚本 (push 后仍要验证, 防止 admin 依赖逃逸)
+      - 'scripts/rollback-protection.ps1'
+      - 'scripts/test-rollback-params.ps1'
+      - 'scripts/simulate-ci-rollback-test.ps1'
+      # yml 自身修改 push 后也要触发 (避免漏跑新规则)
+      - '.github/workflows/skills-check.yml'
+  schedule:
+    # 每天 UTC 00:00 (北京时间 08:00) 跑一次全量扫描
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: 数据一致性验证 (PR + push)
+  # ──────────────────────────────────────────────────────────────
+  skills-consistency:
+    name: 新旧格式元数据一致性
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install watchdog  # verify_migrated_skills.py --watch 需要 (CI 不用 --watch 但保持依赖一致)
+
+      - name: 新旧格式元数据对比
+        run: |
+          echo "::group::compare_skills_legacy_vs_repo"
+          python scripts/compare_skills_legacy_vs_repo.py
+          echo "::endgroup::"
+
+      - name: 三层架构加载+执行验证
+        run: |
+          echo "::group::verify_migrated_skills"
+          python scripts/verify_migrated_skills.py
+          echo "::endgroup::"
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: 动态加载风险阻断 (PR 合并到 master 时)
+  # ──────────────────────────────────────────────────────────────
+  dynamic-load-gate:
+    name: 动态加载风险阻断 (HIGH)
+    runs-on: ubuntu-latest
+    # 只在 PR 合并到 master 时阻断 (push 到 master 表示已合并)
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 扫描动态加载风险
+        run: |
+          echo "::group::detect_dynamic_loads"
+          # 退出码: 0=无 HIGH, 1=有 HIGH
+          python scripts/detect_dynamic_loads.py
+          echo "::endgroup::"
+        continue-on-error: false  # HIGH 风险时阻断流水线
+
+      - name: 风险摘要
+        if: always()
+        run: |
+          echo "## 动态加载风险扫描结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python scripts/detect_dynamic_loads.py --json > /tmp/dynamic_loads.json
+          HIGH_COUNT=$(python -c "import json; d=json.load(open('/tmp/dynamic_loads.json')); print(d['high_risk_count'])")
+          MED_COUNT=$(python -c "import json; d=json.load(open('/tmp/dynamic_loads.json')); print(d['medium_risk_count'])")
+          LOW_COUNT=$(python -c "import json; d=json.load(open('/tmp/dynamic_loads.json')); print(d['low_risk_count'])")
+          SCANNED=$(python -c "import json; d=json.load(open('/tmp/dynamic_loads.json')); print(d['scanned_files'])")
+          echo "| 扫描文件 | HIGH | MEDIUM | LOW |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| $SCANNED | $HIGH_COUNT | $MED_COUNT | $LOW_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$HIGH_COUNT" -gt "0" ]; then
+            echo "⚠️ 检测到 $HIGH_COUNT 处 HIGH 风险, 已阻断合并" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 无 HIGH 风险, 合并通过" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 3: 定期全量扫描 (每天凌晨, 上传报告)
+  # ──────────────────────────────────────────────────────────────
+  nightly-full-scan:
+    name: 定期全量扫描
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install watchdog
+
+      - name: 一致性验证
+        run: |
+          python scripts/compare_skills_legacy_vs_repo.py
+          python scripts/verify_migrated_skills.py
+
+      - name: 动态加载风险扫描 (JSON 报告)
+        run: python scripts/detect_dynamic_loads.py --json > dynamic_loads_report.json
+
+      - name: 上传扫描报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-load-scan-${{ github.run_id }}
+          path: dynamic_loads_report.json
+          retention-days: 30
+
+      - name: 单元测试
+        run: |
+          python -m pytest tests/unit/test_verify_migrated_skills.py -v --timeout=60 --no-header -p no:cacheprovider
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 4: PR 门禁汇总 (便于 branch protection 设置单个 required check)
+  # ──────────────────────────────────────────────────────────────
+  skills-gate:
+    name: Skills Gate (汇总门禁)
+    runs-on: ubuntu-latest
+    needs: [skills-consistency, dynamic-load-gate]
+    if: always()
+    steps:
+      - name: 检查依赖任务结果
+        run: |
+          echo "skills-consistency: ${{ needs.skills-consistency.result }}"
+          echo "dynamic-load-gate: ${{ needs.dynamic-load-gate.result }}"
+          if [ "${{ needs.skills-consistency.result }}" != "success" ] && [ "${{ needs.skills-consistency.result }}" != "skipped" ]; then
+            echo "❌ skills-consistency 失败"
+            exit 1
+          fi
+          if [ "${{ needs.dynamic-load-gate.result }}" != "success" ] && [ "${{ needs.dynamic-load-gate.result }}" != "skipped" ]; then
+            echo "❌ dynamic-load-gate 失败"
+            exit 1
+          fi
+          echo "✅ 所有门禁通过"
+
+      # PR 合并前自动运行 status 检查, 确认 Protection 配置健康
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 非管理员兼容性检查: 扫描脚本代码, 防止未来引入 admin-only 依赖
+      # 复用 scripts/AdminDependencyChecker.psm1 模块 (本地与 CI 共用同一份逻辑)
+      - name: 非管理员兼容性检查
+        shell: pwsh
+        run: |
+          $targets = @(
+              'scripts/rollback-protection.ps1',
+              'scripts/test-rollback-params.ps1',
+              'scripts/simulate-ci-rollback-test.ps1'
+          )
+          .\scripts\simulate-ci-admin-check.ps1 -TargetScripts $targets -CI
+
+      # AdminDependencyChecker 模块单元测试: 41 例 Pester 测试覆盖 11 种检测模式
+      # 防止未来重构破坏检测规则 (4 种核心 + 7 种扩展模式)
+      - name: AdminDependencyChecker 单元测试
+        shell: pwsh
+        run: |
+          Write-Host "::group::Pester 单元测试 (41 例)"
+          # Pester 兼容性: 5.x 默认装, 3.4 (Windows 内置) 兜底. -Quiet 在两版本都支持.
+          if (-not (Get-Module -ListAvailable Pester)) {
+            Write-Host "Pester 未安装, 安装到 CurrentUser..."
+            Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
+          }
+          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru -Quiet
+          Write-Host "::endgroup::"
+          Write-Host "测试结果: $($r.PassedCount) 通过 / $($r.FailedCount) 失败 / $($r.TotalCount) 总计"
+          if ($r.FailedCount -gt 0) {
+            Write-Host "::error file=tests/unit/AdminDependencyChecker.Tests.ps1::$($r.FailedCount) 个单元测试失败, AdminDependencyChecker 检测规则退化"
+            exit 1
+          }
+          Write-Host "::notice::$($r.PassedCount) 个单元测试全过, 检测规则稳定"
+
+      # AdminDependencyChecker 自测回归: 注入 4 种已知违规做端到端断言
+      # 漏检 (Passed=true) → 失败; 检出 (Passed=false) → 通过
+      # 与单元测试互补: 单元测试覆盖单模式匹配, 自测覆盖完整流程
+      - name: AdminDependencyChecker 自测回归
+        shell: pwsh
+        run: |
+          Write-Host "::group::自测回归 (注入 4 种违规做端到端断言)"
+          .\scripts\simulate-ci-admin-check.ps1 -SelfTest -AsTest -CI
+          Write-Host "::endgroup::"
+
+      # 参数组合行为测试: 验证 -Confirm / -WhatIf / -Force 优先级规则不被破坏
+      - name: 参数组合行为测试
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Write-Host "=== rollback-protection.ps1 参数组合行为测试 ==="
+          Write-Host "验证优先级规则: -WhatIf > -Confirm > -Force"
+          Write-Host ""
+          .\scripts\test-rollback-params.ps1
+
+      - name: 检查 Branch Protection 状态
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Write-Host "=== Branch Protection 状态检查 (PR 合并前) ==="
+          # 仅查询不修改, -Confirm:$false 防止非交互式 CI 卡住
+          $params = @{
+            Action = 'status'
+            Branch = '${{ github.base_ref || github.ref_name }}'
+          }
+          # 主分支推送时 github.base_ref 为空, fallback 用 github.ref_name
+          .\scripts\rollback-protection.ps1 @params
+
+          Write-Host ""
+          Write-Host "=== 状态检查完成 ==="
+          Write-Host "注: status 为只读操作, 不修改任何配置"
+          Write-Host "注: 若 Protection 未配置, 会在 Step Summary 中提示 (不阻断合并)"
