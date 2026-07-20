@@ -192,6 +192,23 @@ Get-Content orm_setup_inline.py -Raw | docker compose exec -T web python manage.
 - **worker**: Celery 周期任务正常调度（`uptime-dispatch-checks` / `send-alert-notifications`）
 - **postgres / redis**: healthy
 
+**登录凭证管理（安全记录，无明文密码）**
+
+| 凭证项 | 值 / 管理方式 | 是否入库 | 说明 |
+|--------|--------------|---------|------|
+| 登录地址 | `http://localhost:8000` | — | 非敏感，本地测试地址 |
+| 登录邮箱 | `admin@local.test` | ✅ 入库（`.env.example` 默认值） | 非敏感，可在 `.env` 中覆盖 |
+| 登录密码 | 通过 `GLITCHTIP_ADMIN_PASSWORD` 环境变量管理 | ❌ 不入库 | 真实密码仅存于本地 `docker/glitchtip/.env`（被 `.gitignore` 第 13 行 `.env` 规则忽略） |
+| 密码模板 | `GLITCHTIP_ADMIN_PASSWORD=`（空值占位符） | ✅ 入库（`.env.example`） | 模板文件，无真实密码 |
+| 容器传递 | `docker-compose.yml` environment 配置 | ✅ 入库 | `${GLITCHTIP_ADMIN_PASSWORD:-}` 从 .env 读取后注入容器 |
+| 强约束 | 缺失即 `sys.exit(1)` | ✅ 入库（`orm_setup_inline.py`） | 不静默降级，启动即失败 |
+
+**安全保证**:
+- ✅ 报告中**不包含**明文密码（grep `Test@Glitchtip` 在所有已跟踪文件中 0 匹配）
+- ✅ `docker/glitchtip/.env` 被 `.gitignore` 忽略，`git ls-files` 确认未跟踪
+- ✅ 密码管理遵循 P7 设计原则：`.env.example`（模板）↔ `docker-compose.yml`（传递）↔ `orm_setup_inline.py`（读取）三方对齐
+- ✅ 真实密码仅存在于本地 `.env` 文件，不随 commit 推送到远程仓库
+
 **结论**: P7 三方对齐（`.env.example` ↔ `docker-compose.yml` ↔ `orm_setup_inline.py`）+ 实测验证通过，GlitchTip 错误追踪平台可投入测试环境使用。
 
 ---
