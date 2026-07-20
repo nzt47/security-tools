@@ -55,7 +55,7 @@
 
 ### 3.1 环境变量
 
-配置文件位于 [`yunshu-ui/.env.development`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.development) 与 [`yunshu-ui/.env.production`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.production)：
+配置文件位于 [`yunshu-ui/.env.development`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.development) 与 [`yunshu-ui/.env.production.example`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.production.example)（生产环境模板，复制为 `.env.production` 使用）：
 
 | 环境变量 | 说明 | 开发环境 | 生产环境 |
 |----------|------|---------|---------|

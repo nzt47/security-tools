@@ -214,7 +214,7 @@ yunshu-ui/src/
 │       └── index.tsx                 # 统一浮层入口
 ├── vite-env.d.ts                     # 环境变量类型声明
 ├── .env.development                  # 开发环境变量
-├── .env.production                   # 生产环境变量
+├── .env.production.example           # 生产环境变量模板（复制为 .env.production 使用）
 ├── vitest.config.ts                  # 测试配置
 └── src/test/setup.ts                 # 测试 setup
 ```
