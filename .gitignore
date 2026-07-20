@@ -10,6 +10,7 @@ scripts/setup_env_vars.ps1
 scripts/setup_env_vars.sh
 scripts/_token.txt
 .env
+.secure_config.json
 
 # 本地调试/验证脚本（临时工具，不入库）
 scripts/verify_delete_priority_cleanup.py
