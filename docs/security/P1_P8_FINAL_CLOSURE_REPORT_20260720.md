@@ -3,14 +3,14 @@
 **文档类型**: 最终闭环报告（Final Closure Report）
 **生成日期**: 2026-07-20
 **审计负责人**: nzt47
-**覆盖范围**: P1（BFG 历史清除）→ P2（加密层清理）→ P3（兼容层删除）→ P4（boundary 修复）→ P5（备份删除-待执行）→ P6（pre-commit hook）→ P7（GlitchTip 占位符）→ P8（残留问题清理）
+**覆盖范围**: P1（BFG 历史清除）→ P2（加密层清理）→ P3（兼容层删除）→ P4（boundary 修复）→ P5（备份删除-已完成）→ P6（pre-commit hook）→ P7（GlitchTip 占位符）→ P8（残留问题清理）
 **关联事件**: SEC-2026-07-19-001（Git 历史明文 key 泄露）、SEC-2026-07-19-002（纯 .env 单一数据源架构重构）、SEC-2026-07-20-003（.secure_config.json 加密秘钥清单泄漏）
 
 ---
 
 ## 1. 执行摘要
 
-本次安全审计从 2026-07-19 启动，至 2026-07-20 完成 P8 残留问题清理。共执行 8 个阶段任务，完成 7/8（87.5%），仅剩 P5 备份删除待 7 天观察期满后执行。
+本次安全审计从 2026-07-19 启动，至 2026-07-20 完成 P5 备份删除，所有安全审计任务全部闭环。共执行 10 个子任务，完成 9/10（90%），仅剩 P8-3 文档 hash 引用更新（低优先级，不影响安全）。
 
 **核心成果**:
 - Git 历史中 5 类敏感信息全部清除（API key / GlitchTip 密码 / .encryption_key / SECURITY_NOTICE 文档 / .secure_config.json）
@@ -31,14 +31,14 @@
 | **P2** | SecureConfigManager 加密层清理 | ✅ 已完成 | 2026-07-20 | `daceffc7` / `dd7cc17a` / `4c4fda7d` |
 | **P3** | 60KB 兼容层删除 + 配置审计日志 | ✅ 已完成 | 2026-07-20 | `6ff30eac` |
 | **P4** | circuit_breaker 测试夹具修复 | ✅ 已完成 | 2026-07-20 | `6ff30eac`（顺手修复） |
-| **P5** | 删除 BFG 备份仓库 | ⏳ 待执行 | 2026-07-26 后 | — |
+| **P5** | 删除 BFG 备份仓库 | ✅ 已完成 | 2026-07-20 | 释放 3.81 GB 磁盘空间 |
 | **P6** | pre-commit hook 防敏感信息 | ✅ 已完成 | 2026-07-20 | `0dc64901` |
 | **P7** | GlitchTip 占位符改为环境变量 | ✅ 已完成 | 2026-07-20 | `13c09e03` |
 | **P8-1** | BFG 第二轮清理 .secure_config.json | ✅ 已完成 | 2026-07-20 | `bec74908`（master）/ `2f33bb90`（feature） |
 | **P8-2** | .env.production 改名消除误报 | ✅ 已完成 | 2026-07-20 | `69d4fb4f` |
 | **P8-3** | 文档 hash 引用更新 | ⏳ 低优先级 | — | BFG 副作用，不影响安全 |
 
-**完成率**: 7/8（87.5%）— P5 待 7 天观察期，P8-3 低优先级
+**完成率**: 9/10（90%）— 仅剩 P8-3 低优先级文档 hash 引用更新
 
 ---
 
@@ -248,13 +248,15 @@
 
 ## 8. 后续待办事项
 
-### 8.1 P5: 删除 BFG 备份仓库（待执行）
+### 8.1 P5: 删除 BFG 备份仓库（✅ 已完成 2026-07-20）
 
-```powershell
-# 7 天观察期满后执行（建议 2026-07-27）
-Remove-Item -Recurse -Force "c:\Users\Administrator\agent_bfg_backup_20260719094737"
-Remove-Item -Recurse -Force "c:\Users\Administrator\agent_bfg_backup_p8_20260720"
-```
+**执行结果**:
+- P1 备份 `agent_bfg_backup_20260719094737`（3858.26 MB）→ 已删除
+- P8 备份 `agent_bfg_backup_p8_20260720`（42.83 MB）→ 已删除
+- 总释放磁盘空间: 3901.09 MB（≈ 3.81 GB）
+- 本地文件备份 `C:\Users\Administrator\.secure_config.json.backup` 保留（确认无需后可删除）
+
+**观察期说明**: 用户决定在观察期未满 7 天时执行删除（P1 备份 1 天 / P8 备份 0 天）。风险可控：scanner 已验证 Git 历史 0 残留 + 所有分支已推送到 origin + gitee 远端。
 
 ### 8.2 P8-3: 文档 hash 引用更新（低优先级）
 
