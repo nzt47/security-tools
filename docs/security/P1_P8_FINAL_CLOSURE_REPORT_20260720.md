@@ -204,7 +204,7 @@ Get-Content orm_setup_inline.py -Raw | docker compose exec -T web python manage.
 | 强约束 | 缺失即 `sys.exit(1)` | ✅ 入库（`orm_setup_inline.py`） | 不静默降级，启动即失败 |
 
 **安全保证**:
-- ✅ 报告中**不包含**明文密码（grep `Test@Glitchtip` 在所有已跟踪文件中 0 匹配）
+- ✅ 报告中**不包含**明文密码（测试密码字符串仅存于本地 `.env`，grep 全仓 0 匹配）
 - ✅ `docker/glitchtip/.env` 被 `.gitignore` 忽略，`git ls-files` 确认未跟踪
 - ✅ 密码管理遵循 P7 设计原则：`.env.example`（模板）↔ `docker-compose.yml`（传递）↔ `orm_setup_inline.py`（读取）三方对齐
 - ✅ 真实密码仅存在于本地 `.env` 文件，不随 commit 推送到远程仓库
