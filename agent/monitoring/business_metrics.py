@@ -1066,6 +1066,31 @@ class BusinessMetricsCollector:
         }
         self._increment_counter("yunshu_backup_total", labels)
     
+    # ── 通用对外 API（供 observability.emit_metric 等通用埋点入口调用）──
+
+    def inc_counter(self, metric_name: str,
+                    labels: Optional[Dict[str, str]] = None,
+                    value: float = 1.0) -> None:
+        """[TLM-L1] 通用计数器埋点 — 内部循环 _increment_counter 以支持 value>1"""
+        if value <= 0:
+            return
+        labels = labels or {}
+        n = int(value)
+        for _ in range(n):
+            self._increment_counter(metric_name, labels)
+
+    def observe_histogram(self, metric_name: str,
+                          value: float,
+                          labels: Optional[Dict[str, str]] = None) -> None:
+        """[TLM-L1] 通用直方图埋点 — 委托 _observe_histogram"""
+        self._observe_histogram(metric_name, labels or {}, float(value))
+
+    def set_gauge(self, metric_name: str,
+                  value: float,
+                  labels: Optional[Dict[str, str]] = None) -> None:
+        """[TLM-L1] 通用仪表盘埋点 — 委托 _set_gauge"""
+        self._set_gauge(metric_name, labels or {}, float(value))
+
     # ── 内部方法 ──
     
     def _increment_counter(self, metric_name: str, labels: Dict[str, str]) -> None:
