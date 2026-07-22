@@ -55,6 +55,19 @@ python -c "import chromadb; print(f'当前版本: {chromadb.__version__}')"
 # 检查 pip 可用性
 pip --version
 # 预期: pip 23.x+ 
+
+# 检查虚拟环境（确保在正确的 venv 中操作）
+python -c "import sys; print(f'Python 路径: {sys.executable}')"
+# 确认路径指向项目 venv，而非系统 Python
+
+# 检查磁盘空间（降级需下载新依赖，至少 1GB 可用）
+Get-PSDrive C | Select-Object @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}}
+# 预期: FreeGB >= 1.0
+
+# 检查网络连通性（pip install 需要 PyPI 访问）
+curl -sI https://pypi.org | Select-Object -First 1
+# 预期: HTTP/2 200 或 HTTP/1.1 200
+# 国内用户可使用: curl -sI https://pypi.tuna.tsinghua.edu.cn
 ```
 
 ### 2.2 依赖备份
@@ -140,6 +153,9 @@ chromadb 1.x 可能安装了 0.5.x 不需要的依赖，需要清理：
 # 卸载 1.x 特有的 Rust 相关包（如果有）
 pip uninstall -y chromadb-rust 2>$null
 
+# 卸载 1.x 的客户端包（0.5.x 不需要单独的 client 包）
+pip uninstall -y chromadb-client 2>$null
+
 # 卸载可能冲突的 onnxruntime（0.5.x 不强制依赖）
 pip uninstall -y onnxruntime 2>$null
 
@@ -147,6 +163,8 @@ pip uninstall -y onnxruntime 2>$null
 pip list | Select-String "chroma|onnx|rust"
 # 预期: 无输出（全部清理完毕）
 ```
+
+> ⚠️ **文件锁问题**: 如果卸载时遇到 `PermissionError: [WinError 5]`，说明 chromadb 的 `chroma.sqlite3` 文件被占用。关闭所有使用 chromadb 的进程（如 Python 解释器、IDE）后重试。
 
 ### 3.3 步骤 3: 安装 chromadb 0.5.x
 
@@ -442,6 +460,27 @@ test_api_compat_risk_report PASSED
 
 > ⚠️ 如果仍有 skipped，说明 `_skip_windows` 标记未正确移除。需编辑测试文件移除 `@_skip_windows` 装饰器。
 
+**移除 `_skip_windows` 标记的具体步骤**:
+
+```powershell
+# 1. 查看标记位置
+Select-String -Path "tests\performance\test_chromadb_v05_api_compat.py" -Pattern "_skip_windows"
+
+# 2. 移除类装饰器（第 121 行 @_skip_windows）
+#    将第 121 行的 @_skip_windows 删除
+#    用编辑器打开 tests/performance/test_chromadb_v05_api_compat.py
+#    找到 class TestChromaDBAPICompat 上方的 @_skip_windows 行
+#    删除该行（保留 class 定义）
+
+# 3. 验证标记已移除
+Select-String -Path "tests\performance\test_chromadb_v05_api_compat.py" -Pattern "@_skip_windows"
+# 预期: 无输出（装饰器已移除）
+
+# 4. 重新运行测试
+python -m pytest tests/performance/test_chromadb_v05_api_compat.py -v --timeout=120
+# 预期: 全部 passed，0 skipped
+```
+
 ### 4.8 验证 8: 完整回归测试
 
 ```powershell
@@ -452,6 +491,49 @@ python -m pytest tests/performance/ -v --timeout=300
 ```
 
 **预期结果**: 全部 passed，无 failed，无 skipped（0.5.x 在 Windows 上兼容）
+
+### 4.9 验证 9: 数据持久化
+
+> 降级后验证 chromadb 数据重启后是否保留
+
+```powershell
+python -c "
+import chromadb
+from chromadb.config import Settings
+import tempfile, os
+
+persist_path = tempfile.mkdtemp()
+
+# 第一次: 写入数据
+client1 = chromadb.PersistentClient(path=persist_path, settings=Settings(anonymized_telemetry=False))
+col = client1.get_or_create_collection(name='persist_test')
+col.add(documents=['持久化测试文档'], ids=['1'])
+print(f'写入: count={col.count()}')
+
+# 第二次: 重新打开同一目录，验证数据保留
+client2 = chromadb.PersistentClient(path=persist_path, settings=Settings(anonymized_telemetry=False))
+col2 = client2.get_or_create_collection(name='persist_test')
+print(f'重读: count={col2.count()}')
+assert col2.count() == 1, f'持久化失败: 期望 1，实际 {col2.count()}'
+print('数据持久化验证通过')
+
+import shutil
+shutil.rmtree(persist_path, ignore_errors=True)
+"
+```
+
+### 4.10 验证 10: requirements.txt 更新
+
+```powershell
+# 检查 requirements.txt 中的 chromadb 版本约束
+Select-String -Path "requirements.txt" -Pattern "chromadb"
+# 如果有 chromadb>=1.0 或无约束，更新为:
+# chromadb>=0.5.0,<0.6.0
+
+# 更新后验证
+pip install -r requirements.txt --dry-run 2>&1 | Select-String "chromadb"
+# 预期: Already satisfied: chromadb>=0.5.0,<0.6.0
+```
 
 ---
 
