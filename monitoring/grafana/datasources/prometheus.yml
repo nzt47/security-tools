@@ -1,7 +1,16 @@
 apiVersion: 1
 
+# [不易] 先删除旧 Prometheus 数据源（UID=PBFA97CFB590B2093 随机生成），
+# 再用固定 uid=prometheus 重建，避免 name 冲突导致 provisioning 失败
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
 datasources:
   - name: Prometheus
+    # [不易] 显式固定 uid=prometheus，与告警规则 datasourceUid 和 dashboard JSON 的
+    # datasource.uid 保持一致，避免 Grafana 自动生成随机 UID 导致引用断裂
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
