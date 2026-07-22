@@ -619,6 +619,38 @@ def main():
     else:
         print(report)
 
+    # [CI 日志增强] 多通道输出 (与 scan_sensitive_regex.py 保持一致):
+    #   1. stdout: ::error file=,line= workflow command (GitHub UI 红色高亮 + 文件跳转)
+    #   2. $GITHUB_STEP_SUMMARY: Markdown 表格 (PR 检查页面底部汇总)
+    import os
+    is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if is_ci and filtered:
+        # 通道 1: ::error workflow command (按风险等级输出, HIGH=error, MEDIUM=warning, LOW=notice)
+        for f in filtered:
+            cmd = "error" if f.risk_level == "HIGH" else "warning" if f.risk_level == "MEDIUM" else "notice"
+            # workflow command 中 | 需转义为 %7C
+            reason = f.reason.replace("|", "%7C")
+            print(f"::{cmd} file={f.file},line={f.lineno}::关键字参数冲突 [{f.risk_level}] {f.func_name}: {reason}")
+        # 通道 2: step summary Markdown 表格
+        if summary_path:
+            try:
+                with open(summary_path, "a", encoding="utf-8") as fh:
+                    fh.write("## ⚠️ 关键字参数冲突扫描结果\n\n")
+                    fh.write("| 文件 | 行号 | 风险 | 函数 | 显式 kwargs | 冲突参数 |\n")
+                    fh.write("|---|---|---|---|---|---|\n")
+                    for f in filtered:
+                        kwargs = ",".join(f.explicit_kwargs) if f.explicit_kwargs else "-"
+                        conflicts = ",".join(f.conflicting_params) if f.conflicting_params else "-"
+                        # Markdown 转义: | → \|
+                        kwargs_md = kwargs.replace("|", "\\|")
+                        conflicts_md = conflicts.replace("|", "\\|")
+                        fh.write(f"| `{f.file}` | {f.lineno} | {f.risk_level} | `{f.func_name}` | {kwargs_md} | {conflicts_md} |\n")
+                    fh.write(f"\n**总计**: {len(filtered)} 处风险\n")
+                print(f"  [summary] 已写入 {summary_path}")
+            except Exception as e:
+                print(f"  [warning] 写入 step summary 失败: {e}")
+
     # 退出码: 有 HIGH 风险则返回 1
     high_count = sum(1 for f in filtered if f.risk_level == "HIGH")
     if high_count > 0:

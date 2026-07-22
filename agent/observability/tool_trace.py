@@ -470,6 +470,37 @@ class ToolTraceRecorder:
             "blocked": bool(blocked),
         }, ensure_ascii=False))
 
+    def record_tool_retrieval(
+        self,
+        query: str,
+        top_k: int,
+        latency_ms: float,
+        bm25_candidates: int,
+        embed_candidates: int,
+        fused_candidates: int,
+        alpha: float,
+        degraded: bool,
+        tools_preview: list,
+    ) -> None:
+        """记录工具检索决策(结构化日志,不持久化到 SQLite)
+
+        Why: 检索决策是轻量事件,沿用 record_tool_selection/record_circuit_event 风格,
+             SQLite 只持久化 ToolTraceRecord(执行 trace)。
+        """
+        logger.info(json.dumps({
+            "module_name": "tool_trace",
+            "action": "tool_retrieval",
+            "query_hash": self.hash_content(query),
+            "top_k": top_k,
+            "latency_ms": round(latency_ms, 2),
+            "bm25_candidates": bm25_candidates,
+            "embed_candidates": embed_candidates,
+            "fused_candidates": fused_candidates,
+            "alpha": alpha,
+            "degraded": degraded,
+            "tools_preview": tools_preview[:10],
+        }, ensure_ascii=False))
+
     # ── 脱敏与危险检测 ────────────────────────────────────────
 
     def hash_content(self, data: Any) -> str:

@@ -218,12 +218,15 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "::group::Pester 单元测试 (41 例)"
-          # Pester 兼容性: 5.x 默认装, 3.4 (Windows 内置) 兜底. -Quiet 在两版本都支持.
-          if (-not (Get-Module -ListAvailable Pester)) {
-            Write-Host "Pester 未安装, 安装到 CurrentUser..."
-            Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
+          # [Fix] 测试文件用 Pester 3/4 语法 (Should Not Throw). Pester 5.x/6.x 有破坏性变更.
+          # 强制装/导入 4.10.1 (兼容 Pester 3.4 内置语法 + 仍支持 -Quiet 参数).
+          $pester4 = Get-Module -ListAvailable Pester | Where-Object { $_.Version -ge [Version]'4.0.0' -and $_.Version -lt [Version]'5.0.0' } | Sort-Object Version -Descending | Select-Object -First 1
+          if (-not $pester4) {
+            Write-Host "Pester 4.x 未安装, 安装 Pester 4.10.1 到 CurrentUser..."
+            Install-Module Pester -RequiredVersion 4.10.1 -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
           }
-          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru -Quiet
+          Import-Module Pester -RequiredVersion 4.10.1 -ErrorAction SilentlyContinue
+          $r = Invoke-Pester -Path 'tests/unit/AdminDependencyChecker.Tests.ps1' -PassThru -Quiet
           Write-Host "::endgroup::"
           Write-Host "测试结果: $($r.PassedCount) 通过 / $($r.FailedCount) 失败 / $($r.TotalCount) 总计"
           if ($r.FailedCount -gt 0) {
@@ -241,6 +244,50 @@ jobs:
           Write-Host "::group::自测回归 (注入 4 种违规做端到端断言)"
           .\scripts\simulate-ci-admin-check.ps1 -SelfTest -AsTest -CI
           Write-Host "::endgroup::"
+
+      # 敏感信息泄露扫描 (扩展模式): 通过 Patterns 参数注入 10 种敏感信息检测
+      # 设计理念 (三义原则):
+      #   [不易] 不修改 $DefaultAdminPatterns (11 种 admin-only 模式不可变)
+      #   [变易] 通过 -Patterns 参数扩展机制注入新检测能力
+      #   [简易] 调用方一行: $patterns = $DefaultAdminPatterns + $SensitiveInfoPatterns
+      # 检测 10 种敏感信息泄露:
+      #   云服务: AWS Access Key, AWS Secret Key, Google API Key
+      #   代码托管: GitHub PAT
+      #   身份令牌: JWT, OAuth Bearer
+      #   协作工具: Slack Token
+      #   支付: Stripe Key
+      #   通用: API Key 赋值, PEM 私钥头
+      # 结果处理: 装饰线误报排除 (={10,}) + 同行多模式去重 (按模式长度降序取最具体)
+      # CI 日志输出 (3 通道冗余):
+      #   1. stdout: ::error file=,line= workflow command (GitHub UI 红色高亮 + 文件跳转)
+      #   2. $GITHUB_STEP_SUMMARY: Markdown 表格 (PR 检查页面底部汇总)
+      #   3. 文件视图: GitHub 自动在指定行号标注红色波浪线
+      - name: 敏感信息泄露扫描 (10 种扩展模式)
+        shell: pwsh
+        run: |
+          Write-Host "::group::敏感信息泄露扫描 (10 种扩展模式)"
+          # 扫描 scripts 目录下所有 .ps1 文件
+          # 排除项 (避免模式字符串自匹配 / 测试用泄露文件污染常规扫描):
+          #   - _* 前缀: 临时测试文件 (如 _test_sensitive_leaks.ps1 故意含泄露)
+          #   - AdminDependencyChecker.psm1: 模块自身 (含 11 种模式字符串)
+          #   - demo-sensitive-info-scan.ps1: 演示脚本自身 (含 10 种敏感模式字符串)
+          $targets = Get-ChildItem -Path 'scripts/*.ps1' |
+              Where-Object {
+                  $_.Name -notlike '_*' -and
+                  $_.Name -ne 'AdminDependencyChecker.psm1' -and
+                  $_.Name -ne 'demo-sensitive-info-scan.ps1'
+              } |
+              Select-Object -ExpandProperty FullName
+          if ($targets.Count -eq 0) {
+            Write-Host "::notice::无 .ps1 文件可扫描, 跳过"
+            exit 0
+          }
+          Write-Host "扫描 $($targets.Count) 个文件..."
+          .\scripts\demo-sensitive-info-scan.ps1 -CI -TargetScripts $targets
+          Write-Host "::endgroup::"
+        # 允许 step 写入 $GITHUB_STEP_SUMMARY (Markdown 表格汇总)
+        env:
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
 
       # 参数组合行为测试: 验证 -Confirm / -WhatIf / -Force 优先级规则不被破坏
       - name: 参数组合行为测试
