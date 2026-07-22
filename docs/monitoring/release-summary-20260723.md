@@ -97,8 +97,10 @@ _metrics = get_business_metrics_collector()
 | [`55926ced`](https://gitee.com/nzt47/security-tools/commit/55926ced) | fix(observability) | observability.py 单例化 + 激增模板脚本 + 测试模板文档 | 3 files, 656+/2- |
 | [`c3286be0`](https://gitee.com/nzt47/security-tools/commit/c3286be0) | fix(monitoring) | business_metrics.py 公共方法恢复 + test_categories_valid 修复 | 2 files, 30+/2- |
 | [`5f30e823`](https://gitee.com/nzt47/security-tools/commit/5f30e823) | docs(monitoring) | 告警验证报告归档 + 发布说明 | 2 files, 480+ |
+| [`b8215957`](https://gitee.com/nzt47/security-tools/commit/b8215957) | docs(monitoring) | 稳定性测试完整日志 + 生产峰值参数 + 发布说明摘要 | 3 files, 186+/3- |
+| [`942b0fab`](https://gitee.com/nzt47/security-tools/commit/942b0fab) | docs(monitoring) | release-notes 追加生产峰值验证 + 最终验收报告 | 2 files, 59+/2- |
 
-> **注**: commit 链接指向 gitee 远程仓库。若尚未推送，链接可能暂时不可用，可用 `git show <hash>` 本地查看。
+> **注**: commit 链接指向 gitee 远程仓库，全部 5 个 commit 已推送至 `feature/tlm-step3-vectorstore-sqlite-vec` 分支。
 
 ## 数据流（修复后）
 
