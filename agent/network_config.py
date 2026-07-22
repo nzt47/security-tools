@@ -2,7 +2,7 @@
 
 负责管理以下配置项：
 - API 端点 URL
-- 访问令牌（敏感信息使用 AES-GCM 加密存储）
+- 访问令牌（敏感信息通过 .env 文件存储，单一数据源）
 - 网络超时设置
 - 外部服务开关状态
 - 数据同步频率
@@ -12,7 +12,8 @@
 - MCP（Management Control Plane）配置
 
 安全特性：
-- 敏感信息（API Key、Token）通过 SecureConfigManager 加密存储
+- 敏感信息（API Key、Token）统一存储在 .env 文件，通过 EnvConfigManager 管理
+- UI 修改直接写入 .env，热重载到 os.environ，立即对所有模块生效
 - 配置导入/导出时自动脱敏
 - 配置变更即时生效机制
 """
@@ -26,6 +27,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from agent.logging_utils import log_dict
+from agent.env_config_manager import get_env_config_manager
 
 logger = logging.getLogger(__name__)
 
@@ -171,15 +173,49 @@ def _trace_id():
 class NetworkConfigManager:
     """网络配置管理器"""
 
-    def __init__(self, config_file: str = None, secure_manager=None):
+    def __init__(self, config_file: str = None):
         """
         Args:
             config_file: 配置文件路径
-            secure_manager: SecureConfigManager 实例，用于加密存储敏感信息
+
+        【P2 已清理】secure_manager 参数已移除，敏感数据统一由 .env 单一数据源管理。
+        详见 agent/env_config_manager.py:EnvConfigManager。
         """
         self._config_file = Path(config_file) if config_file else _NETWORK_CONFIG_FILE
-        self._secure_manager = secure_manager
+        self._env_config = get_env_config_manager()  # .env 单一数据源
         self._cache = None
+
+    def _key_to_env_var(self, key: str) -> str:
+        """将配置键名映射为环境变量名
+
+        映射规则:
+            llm_api_key                    → LLM_API_KEY
+            error_reporting_webhook        → ERROR_REPORTING_WEBHOOK_URL
+            llm_{instance_id}_api_key      → LLM_{INSTANCE_ID}_API_KEY
+                                            （default 或空 → LLM_API_KEY）
+            search_{engine_name}_key       → SEARCH_{ENGINE_NAME}_API_KEY
+            search_{inst_id}_api_key       → SEARCH_{INST_ID}_API_KEY
+            其他                            → KEY.UPPER()
+        """
+        special_map = {
+            'llm_api_key': 'LLM_API_KEY',
+            'error_reporting_webhook': 'ERROR_REPORTING_WEBHOOK_URL',
+        }
+        if key in special_map:
+            return special_map[key]
+        if key.startswith('llm_') and key.endswith('_api_key'):
+            instance_id = key[4:-8]  # 'llm_'(4) + '_api_key'(8)
+            if not instance_id or instance_id == 'default':
+                return 'LLM_API_KEY'
+            return f'LLM_{instance_id.upper()}_API_KEY'
+        if key.startswith('search_'):
+            if key.endswith('_api_key'):
+                inst_id = key[7:-8]  # 'search_'(7) + '_api_key'(8)
+                return f'SEARCH_{inst_id.upper()}_API_KEY'
+            if key.endswith('_key'):
+                engine_name = key[7:-4]  # 'search_'(7) + '_key'(4)
+                return f'SEARCH_{engine_name.upper()}_API_KEY'
+        return key.upper()
 
     def _load(self) -> dict:
         """加载网络配置（带缓存）"""
@@ -254,18 +290,30 @@ class NetworkConfigManager:
     def _save(self, data: dict):
         """保存网络配置到文件并更新缓存
 
-        当 secure_manager 可用时，自动移除 search_instances 中的 api_key 字段，
-        避免明文写入 JSON 文件（api_key 已通过 _save_secure 加密存储）。
-        当 secure_manager 不可用时，保留 api_key 明文（兼容旧版行为）。
+        【纯 .env 架构】所有 api_key 均通过 _save_secure 写入 .env 文件，
+        network_config.json 中不应保留任何明文 api_key。
+        因此无条件移除以下位置的 api_key 字段：
+        - config["llm"]["api_key"]
+        - config["external_services"]["error_reporting"]["webhook_url"]
+        - config["llm_instances"][*]["api_key"]
+        - config["search_instances"][*]["api_key"]
 
         重要：同时更新 self._cache，保证后续 _load() 返回最新配置，
         避免 app_server.py 中 _save 后 apply_search_instances 读取旧缓存覆盖文件。
         """
-        save_data = data
-        if self._secure_manager:
-            save_data = deepcopy(data)
-            for inst in save_data.get('search_instances', []):
-                inst.pop('api_key', None)
+        save_data = deepcopy(data)
+        # 移除 llm.api_key（单实例）
+        if save_data.get('llm'):
+            save_data['llm'].pop('api_key', None)
+        # 移除 error_reporting.webhook_url
+        if save_data.get('external_services', {}).get('error_reporting'):
+            save_data['external_services']['error_reporting'].pop('webhook_url', None)
+        # 移除 llm_instances 中所有 api_key
+        for inst in save_data.get('llm_instances', []):
+            inst.pop('api_key', None)
+        # 移除 search_instances 中所有 api_key
+        for inst in save_data.get('search_instances', []):
+            inst.pop('api_key', None)
         self._config_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self._config_file, 'w', encoding='utf-8') as f:
             json.dump(save_data, f, ensure_ascii=False, indent=2)
@@ -274,25 +322,33 @@ class NetworkConfigManager:
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save.self', 'message': f'[网络配置] 已保存到文件: {self._config_file}'}))
 
     def _save_secure(self, key: str, value: str):
-        """保存敏感配置到加密文件"""
-        if self._secure_manager:
-            try:
-                self._secure_manager.set_secure_value(key, value)
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 已加密保存: {key}'}))
-            except Exception as e:
-                logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 加密保存失败 {key}: {e}'}))
-        else:
-            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.securemanager', 'message': '[网络配置] SecureManager 未初始化，敏感信息将明文存储'}))
+        """保存敏感配置到 .env 文件（热重载到 os.environ）
 
-    def _load_secure(self, key: str, default: str = None) -> str:
-        """从加密文件加载敏感配置"""
-        if self._secure_manager:
-            try:
-                return self._secure_manager.get_secure_value(key, default)
-            except Exception as e:
-                logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._load_secure.key', 'message': f'[网络配置] 加密加载失败 {key}: {e}'}))
-                return default
-        return default
+        【纯 .env 架构】所有敏感配置直接写入 .env 文件，不再使用加密存储。
+        写入后自动同步到 os.environ，立即对所有模块生效（热重载）。
+        """
+        env_var = self._key_to_env_var(key)
+        try:
+            self._env_config.set(env_var, value)
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 已写入 .env: {env_var}'}))
+        except Exception as e:
+            logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 写入 .env 失败 {env_var}: {e}'}))
+
+    def _load_secure(self, key: str, default: str = None, env_var: str = None) -> str:
+        """从环境变量加载敏感配置（.env 文件单一数据源）
+
+        【纯 .env 架构】所有敏感配置统一从环境变量读取。
+        env_var 为空时，自动通过 _key_to_env_var 推导。
+
+        Args:
+            key: 配置键名（用于自动推导 env_var）
+            default: 默认值（环境变量为空时返回）
+            env_var: 显式指定环境变量名（优先于自动推导）
+        """
+        if env_var is None:
+            env_var = self._key_to_env_var(key)
+        value = os.getenv(env_var, "")
+        return value if value else (default or "")
 
     def _add_change_log(self, action: str, section: str, details: dict = None):
         """添加配置变更日志"""
@@ -316,19 +372,27 @@ class NetworkConfigManager:
         """
         config = deepcopy(self._load())
 
-        # 加载加密的敏感信息（修改的是副本，不影响缓存）
-        config["llm"]["api_key"] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
+        # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
+        config["llm"]["api_key"] = self._load_secure(
+            'llm_api_key',
+            config.get('llm', {}).get('api_key', ''),
+            env_var='LLM_API_KEY'  # .env 文件中的 LLM_API_KEY
+        )
         config["external_services"]["error_reporting"]["webhook_url"] = self._load_secure(
             'error_reporting_webhook',
-            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
+            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', ''),
+            env_var='ERROR_REPORTING_WEBHOOK_URL'  # .env 文件中的 webhook URL
         )
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
             instance_id = instance.get('id', instance.get('name', 'default'))
+            # 环境变量名规则: default 实例用 LLM_API_KEY，其他用 LLM_{INSTANCE_ID}_API_KEY
+            env_name = 'LLM_API_KEY' if instance_id == 'default' else f'LLM_{instance_id.upper()}_API_KEY'
             instance["api_key"] = self._load_secure(
                 f'llm_{instance_id}_api_key',
-                instance.get('api_key', '')
+                instance.get('api_key', ''),
+                env_var=env_name
             )
 
         # 加载搜索实例的敏感信息
@@ -337,7 +401,8 @@ class NetworkConfigManager:
             if inst_id:
                 inst["api_key"] = self._load_secure(
                     f'search_{inst_id}_api_key',
-                    inst.get('api_key', '')
+                    inst.get('api_key', ''),
+                    env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
                 )
 
         # 脱敏处理
@@ -374,19 +439,27 @@ class NetworkConfigManager:
         """
         config = deepcopy(self._load())
 
-        # 加载加密的敏感信息（修改的是副本，不影响缓存）
-        config["llm"]["api_key"] = self._load_secure('llm_api_key', config.get('llm', {}).get('api_key', ''))
+        # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
+        config["llm"]["api_key"] = self._load_secure(
+            'llm_api_key',
+            config.get('llm', {}).get('api_key', ''),
+            env_var='LLM_API_KEY'  # .env 文件中的 LLM_API_KEY
+        )
         config["external_services"]["error_reporting"]["webhook_url"] = self._load_secure(
             'error_reporting_webhook',
-            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', '')
+            config.get('external_services', {}).get('error_reporting', {}).get('webhook_url', ''),
+            env_var='ERROR_REPORTING_WEBHOOK_URL'  # .env 文件中的 webhook URL
         )
 
         # 加载 LLM 实例的敏感信息
         for instance in config.get('llm_instances', []):
             instance_id = instance.get('id', instance.get('name', 'default'))
+            # 环境变量名规则: default 实例用 LLM_API_KEY，其他用 LLM_{INSTANCE_ID}_API_KEY
+            env_name = 'LLM_API_KEY' if instance_id == 'default' else f'LLM_{instance_id.upper()}_API_KEY'
             instance["api_key"] = self._load_secure(
                 f'llm_{instance_id}_api_key',
-                instance.get('api_key', '')
+                instance.get('api_key', ''),
+                env_var=env_name
             )
 
         # 加载搜索实例的敏感信息
@@ -395,7 +468,8 @@ class NetworkConfigManager:
             if inst_id:
                 inst["api_key"] = self._load_secure(
                     f'search_{inst_id}_api_key',
-                    inst.get('api_key', '')
+                    inst.get('api_key', ''),
+                    env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
                 )
 
         return config
@@ -469,42 +543,48 @@ class NetworkConfigManager:
         return self.get_all()
 
     def _update_llm_instances(self, instances: list):
-        """更新 LLM 实例配置"""
+        """更新 LLM 实例配置（upsert 语义）
+
+        【纯 .env 架构】api_key 通过 _save_secure 写入 .env 文件，不保留在 JSON 中。
+        当传入的 instance_id 不存在时，按新增实例处理（避免 api_key 丢失）。
+        """
         config = self._load()
-        
+
         for instance in instances:
             instance_id = instance.get('id')
-            if not instance_id:
-                # 新增实例
-                instance["id"] = str(uuid.uuid4())
+            existing = None
+            if instance_id:
+                existing = next((i for i in config["llm_instances"] if i["id"] == instance_id), None)
+
+            if existing:
+                # 更新现有实例
+                api_key = instance.get('api_key', '')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    self._save_secure(f'llm_{instance_id}_api_key', api_key)
+
+                existing.update(instance)
+                existing["updated_at"] = datetime.datetime.now().isoformat()
+                self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
+            else:
+                # 新增实例（含传入 ID 但不存在的情况）
+                instance["id"] = instance_id or str(uuid.uuid4())
                 instance["created_at"] = instance.get('created_at') or datetime.datetime.now().isoformat()
                 instance["updated_at"] = instance["created_at"]
-                
-                # 加密保存 API Key
+
+                # 保存 API Key 到 .env
                 api_key = instance.get('api_key', '')
                 if api_key and api_key != '***' and not api_key.startswith('***'):
                     self._save_secure(f'llm_{instance["id"]}_api_key', api_key)
-                
+
                 config["llm_instances"].append(instance)
                 self._add_change_log('add', 'llm_instance', {'id': instance["id"], 'name': instance.get('name')})
-            else:
-                # 更新现有实例
-                existing = next((i for i in config["llm_instances"] if i["id"] == instance_id), None)
-                if existing:
-                    # 处理 API Key 更新
-                    api_key = instance.get('api_key', '')
-                    if api_key and api_key != '***' and not api_key.startswith('***'):
-                        self._save_secure(f'llm_{instance_id}_api_key', api_key)
-                    
-                    existing.update(instance)
-                    existing["updated_at"] = datetime.datetime.now().isoformat()
-                    self._add_change_log('update', 'llm_instance', {'id': instance_id, 'name': instance.get('name')})
 
     def _update_search_instances(self, instances: list):
-        """更新搜索实例配置
+        """更新搜索实例配置（upsert 语义）
 
-        重要：api_key 通过 _save_secure 加密存储，配置文件/缓存中不保留明文或脱敏值。
+        【纯 .env 架构】api_key 通过 _save_secure 写入 .env 文件，不保留在 JSON 中。
         前端传入的 api_key 若为脱敏值（***xxxx）会被忽略，避免覆盖真实 key。
+        当传入的 inst_id 不存在时，按新增实例处理（避免 api_key 丢失）。
         """
         config = self._load()
         for inst in instances:
@@ -513,23 +593,26 @@ class NetworkConfigManager:
             has_new_key = bool(api_key) and api_key != '***' and not api_key.startswith('***')
             # 移除 api_key 字段，避免脱敏值或明文写入缓存/文件
             inst_clean = {k: v for k, v in inst.items() if k != 'api_key'}
-            if not inst_id:
-                # 新增
-                inst_clean["id"] = str(uuid.uuid4())
+
+            existing = None
+            if inst_id:
+                existing = next((i for i in config["search_instances"] if i["id"] == inst_id), None)
+
+            if existing:
+                if has_new_key:
+                    self._save_secure(f'search_{inst_id}_api_key', api_key)
+                existing.update(inst_clean)
+                existing["updated_at"] = datetime.datetime.now().isoformat()
+                self._add_change_log('update', 'search_instance', {'id': inst_id, 'name': inst.get('name')})
+            else:
+                # 新增实例（含传入 ID 但不存在的情况）
+                inst_clean["id"] = inst_id or str(uuid.uuid4())
                 inst_clean["created_at"] = datetime.datetime.now().isoformat()
                 inst_clean["updated_at"] = inst_clean["created_at"]
                 if has_new_key:
                     self._save_secure(f'search_{inst_clean["id"]}_api_key', api_key)
                 config["search_instances"].append(inst_clean)
                 self._add_change_log('add', 'search_instance', {'id': inst_clean["id"], 'name': inst_clean.get('name')})
-            else:
-                existing = next((i for i in config["search_instances"] if i["id"] == inst_id), None)
-                if existing:
-                    if has_new_key:
-                        self._save_secure(f'search_{inst_id}_api_key', api_key)
-                    existing.update(inst_clean)
-                    existing["updated_at"] = datetime.datetime.now().isoformat()
-                    self._add_change_log('update', 'search_instance', {'id': inst_id, 'name': inst.get('name')})
 
     def _update_mcp_config(self, mcp_config: dict):
         """更新 MCP 配置"""
@@ -548,6 +631,126 @@ class NetworkConfigManager:
                         service["created_at"] = datetime.datetime.now().isoformat()
                         service["updated_at"] = service["created_at"]
                         self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 通用集合 upsert 方法（迁移自 agent/network/config_manager.py 兼容层）
+    #
+    # 用途：
+    # - 提供 O(1) 字典索引的批量 upsert 能力，供性能基准测试验证优化效果
+    # - 业务逻辑（_update_llm_instances / _update_search_instances）保持专用实现
+    #   不强制重构，避免破坏现有 upsert 语义
+    #
+    # 迁移原因：P3 任务删除 60KB 兼容层，但性能测试 tests/perf/test_config_manager_perf.py
+    # 依赖这两个方法验证字典索引 vs 线性查找的性能差异
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _upsert_collection_item(
+        self,
+        collection: list,
+        item: dict,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> Optional[str]:
+        """通用集合项新增/更新（单个，O(n) 线性查找）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            item: 要新增或更新的项（有 id → 更新，无 id → 新增）
+            section: 变更日志的 section 名
+            secure_key_prefix: .env 存储 key 前缀（None 表示不存储 api_key）
+
+        Returns:
+            项的 id（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        item_id = item.get('id')
+
+        if not item_id:
+            item["id"] = str(uuid.uuid4())
+            item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+            item["updated_at"] = item["created_at"]
+
+            if secure_key_prefix:
+                api_key = item.get('api_key', '')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+            collection.append(item)
+            self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+            return item["id"]
+        else:
+            existing = next((i for i in collection if i.get("id") == item_id), None)
+            if existing:
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                existing.update(item)
+                existing["updated_at"] = datetime.datetime.now().isoformat()
+                self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                return item_id
+        return None
+
+    def _upsert_collection_batch(
+        self,
+        collection: list,
+        items: list,
+        section: str,
+        secure_key_prefix: Optional[str] = None,
+    ) -> list:
+        """批量集合项新增/更新（字典索引优化，O(1) 查重替代 O(n) 线性查找）
+
+        性能优势：构建一次 id_index（O(n)），后续每次查找 O(1)
+        适用场景：批量更新大量实例（如 100+ LLM/Search 实例）
+
+        Args:
+            collection: 目标集合（新增时 append 到此列表）
+            items: 要新增或更新的项列表
+            section: 变更日志的 section 名
+            secure_key_prefix: .env 存储 key 前缀（None 表示不存储 api_key）
+
+        Returns:
+            每个项的 id 列表（新增返回生成的 id，更新返回原 id，无操作返回 None）
+        """
+        # 构建索引：O(n) 一次，后续每次查找 O(1)
+        id_index = {item.get("id"): item for item in collection if item.get("id")}
+
+        result_ids = []
+        for item in items:
+            item_id = item.get('id')
+
+            if not item_id:
+                # 新增
+                item["id"] = str(uuid.uuid4())
+                item["created_at"] = item.get('created_at') or datetime.datetime.now().isoformat()
+                item["updated_at"] = item["created_at"]
+
+                if secure_key_prefix:
+                    api_key = item.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'{secure_key_prefix}{item["id"]}_api_key', api_key)
+
+                collection.append(item)
+                id_index[item["id"]] = item  # 新增项也加入索引，防止后续重复
+                self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
+                result_ids.append(item["id"])
+            else:
+                # 更新：O(1) 字典查找
+                existing = id_index.get(item_id)
+                if existing:
+                    if secure_key_prefix:
+                        api_key = item.get('api_key', '')
+                        if api_key and api_key != '***' and not api_key.startswith('***'):
+                            self._save_secure(f'{secure_key_prefix}{item_id}_api_key', api_key)
+
+                    existing.update(item)
+                    existing["updated_at"] = datetime.datetime.now().isoformat()
+                    self._add_change_log('update', section, {'id': item_id, 'name': item.get('name')})
+                    result_ids.append(item_id)
+                else:
+                    result_ids.append(None)
+
+        return result_ids
 
     def _register_search_instance(self, instance: dict, search_engine):
         """注册单个搜索实例到 SearchEngine

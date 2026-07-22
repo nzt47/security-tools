@@ -338,39 +338,28 @@ BUSINESS_METRICS_DEFINITIONS = {
         aggregation="sum",
         retention_days=30,
     ),
-    # ── 4.6 技能质量指标（可观测性扩展层，供 observability.emit_eval_score_metric 等使用）──
+    # 【不易】技能质量与幻觉指标（与 observability.emit_eval_score_metric 对齐）
     "yunshu_skill_eval_score": BusinessMetricDefinition(
         name="yunshu_skill_eval_score",
-        description="技能端到端评估得分分布",
+        description="技能端到端评估分数分布（0-1）",
         metric_type="histogram",
         labels=["skill_id", "task_success"],
         unit="分",
-        category="skill_quality",
-        business_value="衡量技能执行质量，识别低分技能",
+        category="extension",
+        business_value="衡量技能输出质量，识别低分技能",
         aggregation="avg",
         retention_days=30,
     ),
     "yunshu_skill_hallucination_total": BusinessMetricDefinition(
         name="yunshu_skill_hallucination_total",
-        description="技能幻觉总次数（hallucination_detected=True）",
+        description="技能幻觉检测总次数",
         metric_type="counter",
         labels=["skill_id"],
         unit="次",
-        category="skill_quality",
-        business_value="衡量技能幻觉频率，识别高幻觉技能",
+        category="extension",
+        business_value="衡量技能幻觉率，识别不可靠技能",
         aggregation="sum",
         retention_days=30,
-    ),
-    "yunshu_skill_retrieval_precision_at_k": BusinessMetricDefinition(
-        name="yunshu_skill_retrieval_precision_at_k",
-        description="技能检索 Precision@K 分布",
-        metric_type="histogram",
-        labels=["k"],
-        unit="%",
-        category="skill_quality",
-        business_value="衡量技能检索召回质量",
-        aggregation="avg",
-        retention_days=7,
     ),
     "yunshu_market_search_total": BusinessMetricDefinition(
         name="yunshu_market_search_total",
@@ -1100,31 +1089,6 @@ class BusinessMetricsCollector:
         }
         self._increment_counter("yunshu_backup_total", labels)
     
-    # ── 通用对外 API（供 observability.emit_metric 等通用埋点入口调用）──
-
-    def inc_counter(self, metric_name: str,
-                    labels: Optional[Dict[str, str]] = None,
-                    value: float = 1.0) -> None:
-        """[TLM-L1] 通用计数器埋点 — 内部循环 _increment_counter 以支持 value>1"""
-        if value <= 0:
-            return
-        labels = labels or {}
-        n = int(value)
-        for _ in range(n):
-            self._increment_counter(metric_name, labels)
-
-    def observe_histogram(self, metric_name: str,
-                          value: float,
-                          labels: Optional[Dict[str, str]] = None) -> None:
-        """[TLM-L1] 通用直方图埋点 — 委托 _observe_histogram"""
-        self._observe_histogram(metric_name, labels or {}, float(value))
-
-    def set_gauge(self, metric_name: str,
-                  value: float,
-                  labels: Optional[Dict[str, str]] = None) -> None:
-        """[TLM-L1] 通用仪表盘埋点 — 委托 _set_gauge"""
-        self._set_gauge(metric_name, labels or {}, float(value))
-
     # ── 内部方法 ──
     
     def _increment_counter(self, metric_name: str, labels: Dict[str, str]) -> None:

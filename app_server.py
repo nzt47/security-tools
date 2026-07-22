@@ -416,14 +416,10 @@ print("[启动] 开始加载网络配置...")
 try:
     from agent.network_config import NetworkConfigManager as _NCM
     print("[启动] 成功导入 NetworkConfigManager")
-    try:
-        from config import _get_secure_manager as _gsm
-        _ncm = _NCM(secure_manager=_gsm())
-        print("[启动] 使用安全管理器创建配置管理器")
-    except Exception as _ex:
-        print(f"[启动] 安全管理器不可用: {_ex}，使用默认配置管理器")
-        _ncm = _NCM()
-    
+    # 【P2 已清理】SecureConfigManager 已移除，敏感数据统一由 .env 单一数据源管理
+    _ncm = _NCM()
+    print("[启动] 已创建配置管理器（纯 .env 架构）")
+
     print("[启动] 调用 apply_to_app...")
     _ncm.apply_to_app(_Yunshu)
     print("[启动] 网络配置应用完成")
@@ -958,8 +954,13 @@ def api_chat():
     })
 
 
-_DS_KEY = "***REMOVED_API_KEY***"
-_DS_URL = "https://api.deepseek.com/chat/completions"
+# [security] DeepSeek API key 改为从环境变量读取，避免硬编码泄露
+# 本地配置：在 .env 文件中设置 DEEPSEEK_API_KEY=sk-xxx
+# 缺省时 _DS_KEY 为空字符串，/api/news 的 DeepSeek 翻译功能将不可用
+_DS_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+_DS_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/chat/completions")
+if not _DS_KEY:
+    logger.warning("DEEPSEEK_API_KEY 未设置，/api/news 接口的 DeepSeek 翻译功能不可用")
 
 
 @app.route("/api/news", methods=["GET"])
@@ -1996,12 +1997,8 @@ def api_skills_delete():
 # ── 网络配置管理器 ──
 from agent.network_config import NetworkConfigManager, _DEFAULT_SEARCH_INSTANCE
 
-# 传入 secure_manager 以确保 API Key 加密存储和正确恢复
-try:
-    from config import _get_secure_manager
-    _network_config_mgr = NetworkConfigManager(secure_manager=_get_secure_manager())
-except Exception:
-    _network_config_mgr = NetworkConfigManager()
+# 【P2 已清理】SecureConfigManager 已移除，敏感数据统一由 .env 单一数据源管理
+_network_config_mgr = NetworkConfigManager()
 
 # ── 启动时自动将搜索实例注册到全局搜索引擎 ──
 try:
@@ -4635,8 +4632,10 @@ def api_task_cancel(task_id):
 
 @app.route("/")
 def index():
-    from flask import redirect
-    return redirect("/static/chat")
+    """[简易] 新首页：系统健康度仪表盘（综合监控中心）"""
+    from flask import Response
+    response = render_template("health_dashboard.html")
+    return Response(response, mimetype='text/html; charset=utf-8')
 
 @app.route("/chat")
 def chat_page():
@@ -4652,12 +4651,13 @@ def legacy_ui():
 
 @app.route("/static/<path:subpath>")
 def spa_fallback(subpath):
-    from flask import make_response, send_from_directory
+    from flask import make_response, send_from_directory, abort
     full_path = os.path.join(app.static_folder, subpath)
+    # [不易] spa.html 已删除，静态资源未命中时返回 404，不再回退到已删除的模板
     if os.path.isfile(full_path):
         resp = make_response(send_from_directory(app.static_folder, subpath))
     else:
-        resp = make_response(send_from_directory(app.template_folder, 'spa.html'))
+        abort(404)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
@@ -4690,6 +4690,14 @@ def search_status_page():
 def network_config_debug():
     """网络配置调试面板"""
     response = render_template("network_config_debug.html")
+    from flask import Response
+    return Response(response, mimetype='text/html; charset=utf-8')
+
+
+@app.route("/replay-viewer")
+def replay_viewer():
+    """[简易] 用户行为回放页面"""
+    response = render_template("replay_viewer.html")
     from flask import Response
     return Response(response, mimetype='text/html; charset=utf-8')
 

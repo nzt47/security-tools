@@ -1,12 +1,14 @@
-"""Dockerfile for Integration Testing
-
-Usage:
-  docker build -f Dockerfile.test -t yunshu-integration-test .
-  docker run --rm yunshu-integration-test
-
-Or with custom test selection:
-  docker run --rm yunshu-integration-test pytest tests/integration/test_circuit_breaker_degrade_flow.py -v
-"""
+# Dockerfile for Integration Testing
+#
+# Usage:
+#   docker build -f Dockerfile.test -t yunshu-integration-test .
+#   docker run --rm yunshu-integration-test
+#
+# Or with custom test selection:
+#   docker run --rm yunshu-integration-test pytest tests/integration/test_circuit_breaker_degrade_flow.py -v
+#
+# Or run observability verify script (override entrypoint):
+#   docker run --rm --entrypoint python yunshu-integration-test scripts/verify_observability_fields.py
 
 FROM python:3.12-slim
 

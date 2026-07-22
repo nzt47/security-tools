@@ -46,3 +46,16 @@ repos:
           （必填字段、semver、JSON-Schema 子集、文件名与 name 一致、
           无重复工具名）。校验失败时阻断提交，确保 YAML 变更与
           data/tool_index.json 保持同步。--check 模式不写索引文件。
+
+      - id: scan-sensitive-data
+        name: 敏感信息检测 (API key / 私钥 / 密码)
+        entry: python scripts/scan_sensitive_data.py
+        language: system
+        pass_filenames: true
+        always_run: true
+        stages: [commit]
+        description: >
+          扫描暂存文件中的敏感信息（API key / 私钥 / 硬编码密码 /
+          数据库连接串 / 敏感文件名）。检测到敏感信息时阻断提交，
+          防止敏感数据误进入 Git 历史。支持白名单（测试 mock /
+          文档示例 / 部署配置），详见 scripts/scan_sensitive_data.py。

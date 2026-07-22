@@ -48,7 +48,7 @@ def main():
     log("start", 0, "success")
 
     # ── 1. 确保超级管理员账号存在 ─────────────────────
-    # 【P7】密码与邮箱均从环境变量读取，缺失即终止（不使用硬编码占位符）
+    # 【P1】密码与邮箱均从环境变量读取，缺失即终止（不使用硬编码占位符）
     # email 非敏感，保留默认值兜底；password 无默认值，强约束
     email = os.environ.get('GLITCHTIP_ADMIN_EMAIL', 'admin@local.test')
     password = os.environ.get('GLITCHTIP_ADMIN_PASSWORD')

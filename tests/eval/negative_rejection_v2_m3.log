@@ -1,0 +1,230 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  负样本拒绝能力评估  (top_k=3, threshold=0.001)
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+>>> [1/4] 正样本黄金集评估 (RRF 基线, 无 reranker)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 24377.51it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "e30bbdbc781e4113", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "e277aff4c3a94321", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "df941efaba044e33", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "a155152b09d24508", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+  P@3=0.4222 R@3=1.0000 MRR=0.9667
+
+>>> [2/4] 正样本黄金集评估 (RRF + Reranker, threshold=0.001)...
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 5773.33it/s]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 17850.63it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "b9b0c5adb1f04a43", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "b9b0c5adb1f04a43", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气真好", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "52b4b9a49cf043ec", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "52b4b9a49cf043ec", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "971ffc4c17694c28", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "971ffc4c17694c28", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "bc36c2e329f14604", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "bc36c2e329f14604", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+'[WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。' thrown while requesting HEAD https://hf-mirror.com/BAAI/bge-m3/resolve/main/adapter_config.json
+Retrying in 1s [Retry 1/5].
+  P@3=0.4444 R@3=1.0000 MRR=0.9889
+
+>>> [3/4] 负样本拒绝评估 (RRF 基线, 无 reranker)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 19440.17it/s]
+'[WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。' thrown while requesting HEAD https://hf-mirror.com/BAAI/bge-m3/resolve/main/processor_config.json
+Retrying in 1s [Retry 1/5].
+{"module_name": "vector_adapter", "action": "sentence_transformers.init.failed", "model": "BAAI/bge-m3", "error": "Unrecognized processing class in BAAI/bge-m3. Can't instantiate a processor, a tokenizer, an image processor, a video processor or a feature extractor for this model. Make sure the repository contains the files of at least one of those processing classes."}
+{"trace_id": "7d6151f0cc1a4cc4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气怎么样", "fallback": "tfidf"}
+{"trace_id": "eb140fc830ab4207", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "78cce7eeb16a49a0", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "81c32c1f43a442ab", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "how to implement quick sort", "fallback": "tfidf"}
+{"trace_id": "8cd9e88e4f034603", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "8ab126a3e5a24432", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "asdfghjkl", "fallback": "tfidf"}
+{"trace_id": "5b68a6f6ccf24677", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天股票涨了吗", "fallback": "tfidf"}
+{"trace_id": "015996b34f6841c4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "重启服务器", "fallback": "tfidf"}
+{"trace_id": "375de283f9a2442e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "你好，你是谁", "fallback": "tfidf"}
+  ✓ case_101   [negative_weather      ] rejected    今天天气怎么样
+  ✗ case_102   [negative_weather      ] RECALLED    明天会下雨吗
+      proactive_suggestion   rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.954 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+  ✗ case_103   [negative_booking      ] RECALLED    帮我订一张机票
+      self_reflection        rrf=0.992 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+      memory_summary         rrf=0.484 rerank=+0.0000
+  ✗ case_104   [negative_booking      ] RECALLED    我想订酒店
+      self_reflection        rrf=0.984 rerank=+0.0000
+      proactive_suggestion   rrf=0.962 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+  ✗ case_105   [negative_booking      ] RECALLED    帮我点外卖
+      self_reflection        rrf=0.992 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+      voice_interaction      rrf=0.484 rerank=+0.0000
+  ✓ case_106   [negative_programming  ] rejected    def print_hello_world function
+  ✓ case_107   [negative_programming  ] rejected    java python c++ programming
+  ✓ case_108   [negative_programming  ] rejected    how to implement quick sort
+  ✓ case_109   [negative_noise        ] rejected    12345
+  ✓ case_110   [negative_noise        ] rejected    asdfghjkl
+  ✗ case_111   [negative_creative     ] RECALLED    帮我写一首诗
+      self_reflection        rrf=0.992 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+      memory_summary         rrf=0.484 rerank=+0.0000
+  ✗ case_112   [negative_entertainment] RECALLED    推荐一首好听的歌
+      self_reflection        rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.954 rerank=+0.0000
+      proactive_suggestion   rrf=0.946 rerank=+0.0000
+  ✓ case_113   [negative_finance      ] rejected    今天股票涨了吗
+  ✗ case_114   [negative_finance      ] RECALLED    比特币现在多少钱
+      emotion_expression     rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.984 rerank=+0.0000
+      proactive_suggestion   rrf=0.939 rerank=+0.0000
+  ✗ case_115   [negative_cooking      ] RECALLED    教我怎么做红烧肉
+      self_reflection        rrf=0.984 rerank=+0.0000
+      memory_summary         rrf=0.969 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+  ✗ case_116   [negative_sports       ] RECALLED    跑步前要做什么热身
+      safety_guard           rrf=0.984 rerank=+0.0000
+      self_reflection        rrf=0.961 rerank=+0.0000
+      memory_summary         rrf=0.955 rerank=+0.0000
+  ✗ case_117   [negative_medical      ] RECALLED    感冒了吃什么药
+      emotion_expression     rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.955 rerank=+0.0000
+      safety_guard           rrf=0.946 rerank=+0.0000
+  ✗ case_118   [negative_similar      ] RECALLED    帮我删除文件
+      context_aware          rrf=0.969 rerank=+0.0000
+      voice_interaction      rrf=0.953 rerank=+0.0000
+      proactive_suggestion   rrf=0.947 rerank=+0.0000
+  ✓ case_119   [negative_similar      ] rejected    重启服务器
+  ✗ case_120   [negative_keyword_trap ] RECALLED    safety 是什么意思
+      self_reflection        rrf=0.984 rerank=+0.0000
+      context_aware          rrf=0.955 rerank=+0.0000
+      emotion_expression     rrf=0.500 rerank=+0.0000
+  ✗ case_121   [negative_keyword_trap ] RECALLED    memory 概念解释
+      memory_summary         rrf=1.000 rerank=+0.0000
+      emotion_expression     rrf=0.492 rerank=+0.0000
+      self_reflection        rrf=0.484 rerank=+0.0000
+  ✗ case_122   [negative_translation  ] RECALLED    请帮我翻译这段话
+      emotion_expression     rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.962 rerank=+0.0000
+      self_reflection        rrf=0.954 rerank=+0.0000
+  ✗ case_123   [negative_daily        ] RECALLED    现在几点了
+      emotion_expression     rrf=0.992 rerank=+0.0000
+      context_aware          rrf=0.955 rerank=+0.0000
+      proactive_suggestion   rrf=0.953 rerank=+0.0000
+  ✗ case_124   [negative_math         ] RECALLED    帮我算一下 1+1 等于几
+      self_reflection        rrf=0.992 rerank=+0.0000
+      proactive_suggestion   rrf=0.953 rerank=+0.0000
+      voice_interaction      rrf=0.953 rerank=+0.0000
+  ✓ case_125   [negative_greeting     ] rejected    你好，你是谁
+
+  RRF 拒绝率: 36.00% (9/25)
+  误召回: 16 个用例
+
+>>> [4/4] 负样本拒绝评估 (RRF + Reranker, threshold=0.001)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 23128.18it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "87cfeccc9c394527", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气怎么样", "fallback": "tfidf"}
+{"trace_id": "87cfeccc9c394527", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气怎么样", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  ✓ case_101   [negative_weather      ] rejected    今天天气怎么样
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 5188.44it/s]
+{"trace_id": "cb0409c292484a49", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "cb0409c292484a49", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "8d3dbdf2401a4d15", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "8d3dbdf2401a4d15", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "df29c708eaa440c6", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "how to implement quick sort", "fallback": "tfidf"}
+{"trace_id": "df29c708eaa440c6", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "how to implement quick sort", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "ad8dcf7ee9ef4197", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "ad8dcf7ee9ef4197", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "790d2536dc6044ae", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "asdfghjkl", "fallback": "tfidf"}
+{"trace_id": "790d2536dc6044ae", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "asdfghjkl", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "256333d958634353", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天股票涨了吗", "fallback": "tfidf"}
+{"trace_id": "256333d958634353", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天股票涨了吗", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "ea953246b9374b11", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "你好，你是谁", "fallback": "tfidf"}
+{"trace_id": "ea953246b9374b11", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "你好，你是谁", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  ✓ case_102   [negative_weather      ] rejected    明天会下雨吗
+  ✓ case_103   [negative_booking      ] rejected    帮我订一张机票
+  ✓ case_104   [negative_booking      ] rejected    我想订酒店
+  ✗ case_105   [negative_booking      ] RECALLED    帮我点外卖
+      voice_interaction      rrf=0.007 rerank=+0.0071
+  ✓ case_106   [negative_programming  ] rejected    def print_hello_world function
+  ✓ case_107   [negative_programming  ] rejected    java python c++ programming
+  ✓ case_108   [negative_programming  ] rejected    how to implement quick sort
+  ✓ case_109   [negative_noise        ] rejected    12345
+  ✓ case_110   [negative_noise        ] rejected    asdfghjkl
+  ✗ case_111   [negative_creative     ] RECALLED    帮我写一首诗
+      emotion_expression     rrf=0.002 rerank=+0.0024
+  ✓ case_112   [negative_entertainment] rejected    推荐一首好听的歌
+  ✓ case_113   [negative_finance      ] rejected    今天股票涨了吗
+  ✓ case_114   [negative_finance      ] rejected    比特币现在多少钱
+  ✓ case_115   [negative_cooking      ] rejected    教我怎么做红烧肉
+  ✓ case_116   [negative_sports       ] rejected    跑步前要做什么热身
+  ✓ case_117   [negative_medical      ] rejected    感冒了吃什么药
+  ✗ case_118   [negative_similar      ] RECALLED    帮我删除文件
+      voice_interaction      rrf=0.003 rerank=+0.0032
+      safety_guard           rrf=0.002 rerank=+0.0017
+  ✗ case_119   [negative_similar      ] RECALLED    重启服务器
+      safety_guard           rrf=0.005 rerank=+0.0051
+      voice_interaction      rrf=0.003 rerank=+0.0025
+  ✗ case_120   [negative_keyword_trap ] RECALLED    safety 是什么意思
+      safety_guard           rrf=0.009 rerank=+0.0085
+  ✗ case_121   [negative_keyword_trap ] RECALLED    memory 概念解释
+      memory_summary         rrf=0.019 rerank=+0.0190
+      context_aware          rrf=0.002 rerank=+0.0021
+      proactive_suggestion   rrf=0.001 rerank=+0.0010
+  ✗ case_122   [negative_translation  ] RECALLED    请帮我翻译这段话
+      safety_guard           rrf=0.018 rerank=+0.0177
+      emotion_expression     rrf=0.011 rerank=+0.0114
+      proactive_suggestion   rrf=0.007 rerank=+0.0068
+  ✓ case_123   [negative_daily        ] rejected    现在几点了
+  ✗ case_124   [negative_math         ] RECALLED    帮我算一下 1+1 等于几
+      memory_summary         rrf=0.010 rerank=+0.0099
+      self_reflection        rrf=0.007 rerank=+0.0068
+      voice_interaction      rrf=0.006 rerank=+0.0062
+  ✓ case_125   [negative_greeting     ] rejected    你好，你是谁
+
+  RRF+Reranker 拒绝率: 68.00% (17/25)
+  误召回: 8 个用例
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  综合对比
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  方法                         正样本P@3       正样本R@3       正样本MRR         负样本拒绝率
+  --------------------------------------------------------------------------------
+  RRF                        0.4222       1.0000       0.9667         36.00%
+  RRF+Reranker               0.4444       1.0000       0.9889         68.00%
+
+  Reranker 增益: P@3 +0.0222, 拒绝率 +32.00%
+
+  按类别分组拒绝率（RRF+Reranker）
+  ------------------------------------------------------------
+  negative_booking             2/3  66.67%
+  negative_cooking             1/1  100.00%
+  negative_creative            0/1  0.00%
+  negative_daily               1/1  100.00%
+  negative_entertainment       1/1  100.00%
+  negative_finance             2/2  100.00%
+  negative_greeting            1/1  100.00%
+  negative_keyword_trap        0/2  0.00%
+  negative_math                0/1  0.00%
+  negative_medical             1/1  100.00%
+  negative_noise               2/2  100.00%
+  negative_programming         3/3  100.00%
+  negative_similar             0/2  0.00%
+  negative_sports              1/1  100.00%
+  negative_translation         0/1  0.00%
+  negative_weather             2/2  100.00%
+
+报告已保存: tests\eval\negative_rejection_v2_m3_threshold_001.json

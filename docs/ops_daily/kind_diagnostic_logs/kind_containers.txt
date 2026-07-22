@@ -1,0 +1,3 @@
+=== Kind 节点 Docker 容器 ===
+NAMES                         STATUS         PORTS
+tlm-prod-test-control-plane   Up 6 minutes   127.0.0.1:53098->6443/tcp

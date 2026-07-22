@@ -1,0 +1,2 @@
+﻿trace_id,tool_name,input_hash,success,permission_decision,call_time
+25c36783525c4edd,op,44136fa355b3678a,0,denied:操作已被列入黑名单，禁止执行。匹配规则: rm\s+-rf\s+/,2026-07-15 01:02:10
