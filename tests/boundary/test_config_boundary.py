@@ -76,6 +76,9 @@ def valid_config():
             "key_file": ".encryption_key",
             "secure_config_file": ".secure_config.json",
         },
+        # circuit_breaker 节（来自 c19f0cf7 三级熔断器）
+        # 传空 dict 让 Pydantic CircuitBreakerConfigSection 填充默认值（参考 config.py:450）
+        "circuit_breaker": {},
     }
 
 
@@ -95,6 +98,7 @@ def minimal_config():
         "behavior": {},
         "permission": {},
         "security": {},
+        "circuit_breaker": {},
     }
 
 

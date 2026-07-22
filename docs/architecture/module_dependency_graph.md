@@ -42,6 +42,7 @@ flowchart LR
         agent_digital_life_persona["agent.digital_life_persona"]
         agent_digital_life_state["agent.digital_life_state"]
         agent_disaster_recovery["agent.disaster_recovery"]:::crosslayer
+        agent_env_config_manager["agent.env_config_manager"]
         agent_error_handler["agent.error_handler"]:::crosslayer
         agent_error_reporting_config["agent.error_reporting_config"]:::crosslayer
         agent_feedback["agent.feedback"]:::crosslayer
@@ -78,6 +79,7 @@ flowchart LR
         agent_text_tools["agent.text_tools"]:::crosslayer
         agent_tool_calling["agent.tool_calling"]:::crosslayer
         agent_tool_router["agent.tool_router"]:::crosslayer
+        agent_tool_router_hybrid["agent.tool_router_hybrid"]:::crosslayer
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]
     end
@@ -186,7 +188,6 @@ flowchart LR
     end
     subgraph network [network]
         agent_network["agent.network"]
-        agent_network_config_manager["agent.network.config_manager"]
         agent_network_config_validator["agent.network.config_validator"]
         agent_network_observability["agent.network.observability"]
     end
@@ -332,6 +333,8 @@ flowchart LR
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_skills_mgmt
     agent_state_manager -.-> agent_workflow_learning
+    agent_tool_router_hybrid -.-> agent_observability_tool_trace
+    agent_tool_router_hybrid --> agent_tool_router
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_software_backends --> agent_logging_utils
@@ -357,6 +360,7 @@ flowchart LR
     agent_lazy_loader_async -.-> agent_lazy_loader
     agent_lazy_loader_async -.-> agent_lazy_loader__core
     agent_lazy_loader_async --> agent_logging_utils
+    agent_env_config_manager --> agent_logging_utils
     agent_compression_tools --> agent_logging_utils
     agent_compression_tools --> agent_system_tools
     agent_compression_tools --> agent_system_tools
@@ -409,6 +413,7 @@ flowchart LR
     agent_feedback -.-> agent_cognitive_failure_analysis
     agent_logging_utils -.-> agent_utils
     agent_network_config --> agent_logging_utils
+    agent_network_config --> agent_env_config_manager
     agent_network_config -.-> agent_tools
     agent_security_utils --> agent_logging_utils
     agent_llm_monitor -.-> agent_monitoring_observability_config
@@ -426,6 +431,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_logging_utils
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
+    agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
     agent_orchestrator_orchestrator -.-> agent_response_workflows
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_observability -.-> agent_monitoring_business_metrics
@@ -464,6 +470,7 @@ flowchart LR
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_tool_router
+    agent_orchestrator_task_dispatcher -.-> agent_tool_router_hybrid
     agent_orchestrator_status_reporter --> agent
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
@@ -475,11 +482,8 @@ flowchart LR
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_network_config_manager --> agent_network_config_validator
-    agent_network_config_manager -.-> agent_logging_utils
-    agent_network_config_manager -.-> agent_tools
     agent_network_observability -.-> agent_monitoring_business_metrics
-    agent_network --> agent_network_config_manager
+    agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
     agent_tools_software_tools --> agent
     agent_tools_software_tools -.-> agent_software_manager
@@ -894,10 +898,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 325
-- 模块节点数: 258
-- 依赖边数: 558
-- 跨层调用数: 355
+- 扫描文件数: 329
+- 模块节点数: 259
+- 依赖边数: 561
+- 跨层调用数: 357
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1166.45 ms
+- 构建耗时: 1196.92 ms

@@ -1,0 +1,1 @@
+tlm-ops-reporter-output   Bound     pvc-c637d9d0-97cd-40a8-bd17-e94a56ac2958   500Mi      RWO            standard       4m14s

@@ -46,7 +46,8 @@ class TaskDispatcher:
         if self._is_smart_tool_selection_enabled():
             try:
                 from agent.tool_router import get_tools_for_input
-                _smart = get_tools_for_input(user_input, whitelist)
+                from agent.tool_router_hybrid import hybrid_select_tools
+                _smart = hybrid_select_tools(user_input, whitelist) or get_tools_for_input(user_input, whitelist)
                 if _smart:
                     whitelist = _smart
                     logger.info("[任务分发] 智能工具选择: %d/%d 个工具",

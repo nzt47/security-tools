@@ -437,6 +437,49 @@ class ToolTraceRecorder:
             "tools_preview": tools[:10],
         }, ensure_ascii=False))
 
+    def record_tool_retrieval(
+        self,
+        query: str,
+        top_k: int,
+        latency_ms: float,
+        bm25_candidates: int,
+        embed_candidates: int,
+        fused_candidates: int,
+        alpha: float,
+        degraded: bool,
+        tools_preview: list,
+    ) -> None:
+        """记录工具检索决策(结构化日志,不持久化到 SQLite)
+
+        Why: 检索事件是轻量决策事件,频率高(每次 LLM 调用 1 次),
+             SQLite 仅持久化工具执行 trace(ToolTraceRecord),保持单一职责。
+             与 record_tool_selection / record_circuit_event 一致。
+
+        Args:
+            query: 用户原始输入(脱敏哈希后记录)
+            top_k: 检索候选数
+            latency_ms: 检索耗时(毫秒)
+            bm25_candidates: BM25 召回数(融合前)
+            embed_candidates: Embedding 召回数(融合前,降级时为 0)
+            fused_candidates: 融合后候选数(去重前)
+            alpha: BM25/Embedding 融合权重
+            degraded: 是否降级到纯 BM25
+            tools_preview: 选中工具预览(前 10 个)
+        """
+        logger.info(json.dumps({
+            "module_name": "tool_trace",
+            "action": "tool_retrieval",
+            "user_input_hash": self.hash_content(query),
+            "top_k": top_k,
+            "latency_ms": round(latency_ms, 2),
+            "bm25_candidates": int(bm25_candidates),
+            "embed_candidates": int(embed_candidates),
+            "fused_candidates": int(fused_candidates),
+            "alpha": alpha,
+            "degraded": bool(degraded),
+            "tools_preview": list(tools_preview),
+        }, ensure_ascii=False))
+
     def record_circuit_event(
         self,
         scope: Any,

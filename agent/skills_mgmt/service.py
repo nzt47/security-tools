@@ -208,6 +208,15 @@ class SkillsMgmtService:
         if eval_score is not None:
             from .observability import emit_eval_score_metric
             emit_eval_score_metric(skill_id, eval_score, trace_id=trace_id)
+            # [Observability] INFO 级别：eval_score 详情，正式环境可观测
+            logger.info(
+                "[Observability] service.record_execution eval_score | skill_id=%s | "
+                "trace_id=%s | task_success=%s | hallucination=%s | score=%s",
+                skill_id, trace_id or "(none)",
+                eval_score.get("task_success"),
+                eval_score.get("hallucination_detected"),
+                eval_score.get("score"),
+            )
 
     # ─── 反馈绑定 ───
 

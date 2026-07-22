@@ -27,34 +27,39 @@ from agent.network_config import (
 
 
 class TestNetworkConfigEncryption:
-    """测试加密存储逻辑"""
+    """测试 .env 单一数据源存储逻辑（原加密存储测试，适配纯 .env 架构）"""
+
+    # 测试期间需要清理的环境变量
+    _TEST_ENV_KEYS = ['LLM_API_KEY', 'ERROR_REPORTING_WEBHOOK_URL',
+                      'SEARCH_TAVILY_API_KEY', 'SEARCH_BING_API_KEY',
+                      'SEARCH_GOOGLE_API_KEY']
 
     def setup_method(self):
-        """每个测试方法前设置临时配置文件"""
+        """每个测试方法前设置临时配置文件 + 保存环境变量状态"""
         self.temp_file = tempfile.NamedTemporaryFile(
             mode='w', suffix='.json', delete=False
         )
         self.temp_file.close()
         self.config_path = self.temp_file.name
+        # 保存环境变量状态，测试后恢复
+        self._saved_env = {k: os.environ.get(k) for k in self._TEST_ENV_KEYS}
+        for k in self._TEST_ENV_KEYS:
+            os.environ.pop(k, None)
 
     def teardown_method(self):
-        """每个测试方法后清理临时文件"""
+        """每个测试方法后清理临时文件 + 恢复环境变量"""
         if os.path.exists(self.config_path):
             os.unlink(self.config_path)
+        for k, v in self._saved_env.items():
+            if v is not None:
+                os.environ[k] = v
+            else:
+                os.environ.pop(k, None)
 
     def test_sensitive_api_key_encrypted_on_save(self):
-        """测试 LLM API Key 在保存时被加密"""
-        # 创建 Mock SecureManager
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
+        """测试 LLM API Key 在保存时写入 .env（纯 .env 架构）"""
+        manager = NetworkConfigManager(config_file=self.config_path)
 
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
-
-        # 更新配置，包含真实 API Key
         updates = {
             'llm': {
                 'enabled': True,
@@ -65,43 +70,26 @@ class TestNetworkConfigEncryption:
         }
         manager.update(updates)
 
-        # 验证加密存储被调用
-        mock_secure.set_secure_value.assert_called_with(
-            'llm_api_key', 'sk-real-api-key-12345'
-        )
+        # 验证 API Key 已写入 os.environ（热重载）
+        assert os.getenv('LLM_API_KEY') == 'sk-real-api-key-12345'
+        # 验证 network_config.json 不含明文
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            saved = json.load(f)
+        assert saved.get('llm', {}).get('api_key', '') == ''
 
     def test_masked_api_key_not_saved(self):
-        """测试脱敏后的 API Key 不被保存"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
+        """测试脱敏后的 API Key 不被保存（行为不变）"""
+        manager = NetworkConfigManager(config_file=self.config_path)
 
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
-
-        # 更新配置，包含脱敏 API Key
-        updates = {
-            'llm': {
-                'api_key': '***1234',  # 脱敏值
-            }
-        }
+        updates = {'llm': {'api_key': '***1234'}}  # 脱敏值
         manager.update(updates)
 
-        # 验证加密存储未被调用（因为是脱敏值）
-        mock_secure.set_secure_value.assert_not_called()
+        # 脱敏值不应写入环境变量
+        assert os.getenv('LLM_API_KEY') is None
 
     def test_search_api_key_encrypted(self):
-        """测试搜索引擎 API Key 加密存储"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        """测试搜索引擎 API Key 写入 .env"""
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         updates = {
             'search_api_keys': {
@@ -112,27 +100,14 @@ class TestNetworkConfigEncryption:
         }
         manager.update(updates)
 
-        # 验证各搜索引擎 Key 都被加密保存
-        mock_secure.set_secure_value.assert_any_call(
-            'search_tavily_key', 'tvly-real-key-123'
-        )
-        mock_secure.set_secure_value.assert_any_call(
-            'search_bing_key', 'bing-real-key-456'
-        )
-        mock_secure.set_secure_value.assert_any_call(
-            'search_google_key', 'google-real-key-789'
-        )
+        # 验证各搜索引擎 Key 都写入 os.environ
+        assert os.getenv('SEARCH_TAVILY_API_KEY') == 'tvly-real-key-123'
+        assert os.getenv('SEARCH_BING_API_KEY') == 'bing-real-key-456'
+        assert os.getenv('SEARCH_GOOGLE_API_KEY') == 'google-real-key-789'
 
     def test_webhook_url_encrypted(self):
-        """测试 Webhook URL 加密存储"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        """测试 Webhook URL 写入 .env"""
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         updates = {
             'external_services': {
@@ -143,20 +118,12 @@ class TestNetworkConfigEncryption:
         }
         manager.update(updates)
 
-        mock_secure.set_secure_value.assert_called_with(
-            'error_reporting_webhook',
-            'https://hooks.example.com/real-webhook'
-        )
+        assert os.getenv('ERROR_REPORTING_WEBHOOK_URL') == 'https://hooks.example.com/real-webhook'
 
     def test_get_all_returns_masked_values(self):
         """测试 get_all() 返回脱敏后的配置"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='sk-real-key-12345')
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        os.environ['LLM_API_KEY'] = 'sk-real-key-12345'
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         config = manager.get_all()
 
@@ -165,13 +132,8 @@ class TestNetworkConfigEncryption:
 
     def test_get_raw_config_returns_unmasked(self):
         """测试 get_raw_config() 返回原始配置"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='sk-real-key-12345')
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        os.environ['LLM_API_KEY'] = 'sk-real-key-12345'
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         config = manager.get_raw_config()
 
@@ -179,27 +141,24 @@ class TestNetworkConfigEncryption:
         assert config['llm']['api_key'] == 'sk-real-key-12345'
 
     def test_no_secure_manager_warning(self):
-        """测试无 SecureManager 时敏感信息明文存储"""
+        """测试无 SecureManager 时敏感信息写入 .env（新架构下 secure_manager 已废弃）"""
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=None
+            config_file=self.config_path
         )
 
-        # 更新配置
         updates = {'llm': {'api_key': 'sk-test-key'}}
         manager.update(updates)
 
-        # 读取文件，验证 API Key 明文存储（无加密）
+        # 新架构下，无论 secure_manager 是否为 None，都写入 .env
+        assert os.getenv('LLM_API_KEY') == 'sk-test-key'
+        # network_config.json 不含明文
         with open(self.config_path, 'r', encoding='utf-8') as f:
             saved_config = json.load(f)
-
-        # 注意：update() 方法会将敏感信息存储到 secure_manager，
-        # 但如果没有 secure_manager，会跳过加密，配置文件中不会有 api_key
-        # 因为 update() 只保存非敏感信息到文件
+        assert saved_config.get('llm', {}).get('api_key', '') == ''
 
 
 class TestNetworkConfigMasking:
-    """测试配置脱敏逻辑"""
+    """测试配置脱敏逻辑（适配纯 .env 架构）"""
 
     def setup_method(self):
         self.temp_file = tempfile.NamedTemporaryFile(
@@ -207,20 +166,21 @@ class TestNetworkConfigMasking:
         )
         self.temp_file.close()
         self.config_path = self.temp_file.name
+        self._saved_llm_key = os.environ.get('LLM_API_KEY')
+        os.environ.pop('LLM_API_KEY', None)
 
     def teardown_method(self):
         if os.path.exists(self.config_path):
             os.unlink(self.config_path)
+        if self._saved_llm_key is not None:
+            os.environ['LLM_API_KEY'] = self._saved_llm_key
+        else:
+            os.environ.pop('LLM_API_KEY', None)
 
     def test_short_api_key_masking(self):
         """测试短 API Key 脱敏（少于 4 字符）"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='abc')
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        os.environ['LLM_API_KEY'] = 'abc'
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         config = manager.get_all()
 
@@ -229,13 +189,8 @@ class TestNetworkConfigMasking:
 
     def test_empty_api_key_no_masking(self):
         """测试空 API Key 不脱敏"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        os.environ.pop('LLM_API_KEY', None)  # 确保为空
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         config = manager.get_all()
 
@@ -244,19 +199,7 @@ class TestNetworkConfigMasking:
 
     def test_llm_instance_api_key_masking(self):
         """测试 LLM 实例 API Key 脱敏"""
-        mock_secure = Mock()
-        # 为不同 key 返回不同值
-        def get_secure_side_effect(key, default):
-            if 'llm_' in key and 'api_key' in key:
-                return 'sk-instance-key-12345'
-            return default or ''
-        mock_secure.get_secure_value = Mock(side_effect=get_secure_side_effect)
-        mock_secure.set_secure_value = Mock()
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         # 添加 LLM 实例
         manager.add_llm_instance({
@@ -270,8 +213,8 @@ class TestNetworkConfigMasking:
 
         # 实例 API Key 应被脱敏为 *** + 后4位
         instances = config.get('llm_instances', [])
-        if instances:
-            assert instances[0]['api_key'] == '***2345'
+        assert len(instances) > 0
+        assert instances[0]['api_key'] == '***2345'
 
 
 class TestNetworkConfigTimeout:
@@ -387,10 +330,16 @@ class TestNetworkConfigImportExport:
         )
         self.temp_file.close()
         self.config_path = self.temp_file.name
+        self._saved_llm_key = os.environ.get('LLM_API_KEY')
+        os.environ.pop('LLM_API_KEY', None)
 
     def teardown_method(self):
         if os.path.exists(self.config_path):
             os.unlink(self.config_path)
+        if self._saved_llm_key is not None:
+            os.environ['LLM_API_KEY'] = self._saved_llm_key
+        else:
+            os.environ.pop('LLM_API_KEY', None)
 
     def test_export_returns_json_string(self):
         """测试导出返回 JSON 字符串"""
@@ -404,14 +353,9 @@ class TestNetworkConfigImportExport:
         assert 'network' in parsed
 
     def test_export_masks_sensitive_data(self):
-        """测试导出时脱敏敏感数据"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='sk-real-key-12345')
-
-        manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
-        )
+        """测试导出时脱敏敏感数据（纯 .env 架构：从 os.environ 读取）"""
+        os.environ['LLM_API_KEY'] = 'sk-real-key-12345'
+        manager = NetworkConfigManager(config_file=self.config_path)
 
         exported = manager.export_config()
         parsed = json.loads(exported)
@@ -421,12 +365,9 @@ class TestNetworkConfigImportExport:
 
     def test_import_valid_json(self):
         """测试导入有效 JSON"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         import_json = json.dumps({
@@ -450,12 +391,9 @@ class TestNetworkConfigImportExport:
 
     def test_import_conflict_strategies(self):
         """测试导入冲突处理策略"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         # 初始配置
@@ -510,13 +448,9 @@ class TestLLMConfigIntegration:
 
     def test_set_default_llm_instance_updates_config(self):
         """测试设置默认实例同时更新 default_llm_instance 字段"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance1 = manager.add_llm_instance({
@@ -532,13 +466,9 @@ class TestLLMConfigIntegration:
 
     def test_set_default_updates_is_default_flag(self):
         """测试设置默认实例时更新 is_default 标记"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance1 = manager.add_llm_instance({
@@ -561,13 +491,9 @@ class TestLLMConfigIntegration:
 
     def test_default_llm_instance_persists_on_reload(self):
         """测试默认实例配置在重新加载后保持不变"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance = manager.add_llm_instance({
@@ -580,8 +506,7 @@ class TestLLMConfigIntegration:
 
         # 创建新实例模拟重新加载
         manager2 = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         config = manager2.get_all()
@@ -609,12 +534,8 @@ class TestLLMConfigIntegration:
         with open(self.config_path, 'w') as f:
             json.dump(complete_config, f)
 
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')
-
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         config = manager.get_all()
@@ -637,13 +558,9 @@ class TestLLMInstanceManagement:
 
     def test_add_llm_instance(self):
         """测试添加 LLM 实例"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance = manager.add_llm_instance({
@@ -661,13 +578,9 @@ class TestLLMInstanceManagement:
 
     def test_add_instance_with_duplicate_name_fails(self):
         """测试添加重名实例失败"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         manager.add_llm_instance({
@@ -687,13 +600,9 @@ class TestLLMInstanceManagement:
 
     def test_update_llm_instance(self):
         """测试更新 LLM 实例"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance = manager.add_llm_instance({
@@ -712,13 +621,9 @@ class TestLLMInstanceManagement:
 
     def test_delete_llm_instance(self):
         """测试删除 LLM 实例"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance = manager.add_llm_instance({
@@ -736,13 +641,9 @@ class TestLLMInstanceManagement:
 
     def test_set_default_llm_instance(self):
         """测试设置默认 LLM 实例"""
-        mock_secure = Mock()
-        mock_secure.set_secure_value = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         instance1 = manager.add_llm_instance({
@@ -780,12 +681,9 @@ class TestMCPServiceManagement:
 
     def test_add_mcp_service(self):
         """测试添加 MCP 服务"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         service = manager.add_mcp_service({
@@ -801,12 +699,9 @@ class TestMCPServiceManagement:
 
     def test_add_mcp_with_duplicate_name_fails(self):
         """测试添加重名 MCP 服务失败"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         manager.add_mcp_service({
@@ -824,12 +719,9 @@ class TestMCPServiceManagement:
 
     def test_update_mcp_service(self):
         """测试更新 MCP 服务"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         service = manager.add_mcp_service({
@@ -847,12 +739,9 @@ class TestMCPServiceManagement:
 
     def test_delete_mcp_service(self):
         """测试删除 MCP 服务"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         service = manager.add_mcp_service({
@@ -986,12 +875,9 @@ class TestConfigReset:
 
     def test_reset_returns_default_config(self):
         """测试重置返回默认配置"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         # 先修改配置
@@ -1036,12 +922,9 @@ class TestChangeLog:
 
     def test_update_adds_change_log(self):
         """测试更新添加变更日志"""
-        mock_secure = Mock()
-        mock_secure.get_secure_value = Mock(return_value='')  # 返回空字符串
 
         manager = NetworkConfigManager(
-            config_file=self.config_path,
-            secure_manager=mock_secure
+            config_file=self.config_path
         )
 
         manager.update({'llm': {'timeout': 60}})

@@ -1,0 +1,1 @@
+tlm-ops-reporter-85d57c7f5c-dcs6z   1/1     Running   0          4m14s   10.244.0.6   tlm-prod-test-control-plane   <none>           <none>

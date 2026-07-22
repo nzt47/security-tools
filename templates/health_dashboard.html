@@ -38,6 +38,14 @@
     .header-actions { display: flex; gap: 10px; align-items: center; }
     .back-link { color: var(--blue); text-decoration: none; font-size: 14px; }
     .back-link:hover { text-decoration: underline; }
+    /* [简易] 功能导航下拉 - 与 .btn 风格一致 */
+    .nav-select {
+      background: #21262d; border: 1px solid var(--border-color); padding: 6px 12px;
+      border-radius: 6px; color: var(--text-primary); cursor: pointer; font-size: 12px;
+    }
+    .nav-select:hover { background: #30363d; }
+    .nav-select:focus { outline: none; border-color: var(--blue); }
+    .nav-select option { background: var(--bg-secondary); color: var(--text-primary); }
     .main-container { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
     
     /* 健康度概览区 */
@@ -233,7 +241,18 @@
     <div class="header-actions">
       <button class="btn" onclick="refreshAll()">🔄 刷新</button>
       <button class="btn" onclick="exportReport()">📥 导出报告</button>
-      <a href="/" class="back-link">← 返回主界面</a>
+      <select class="nav-select" onchange="if(this.value) window.location.href=this.value" title="切换到其他功能页面">
+        <option value="">🧰 功能导航...</option>
+        <option value="/legacy">🏠 主页 · 云枢数字生命体</option>
+        <option value="/chat">💬 对话窗口</option>
+        <option value="/dashboard">📊 可观测性仪表盘</option>
+        <option value="/logs/dashboard">📋 日志系统</option>
+        <option value="/search-status">🔍 搜索引擎状态</option>
+        <option value="/replay-viewer">🎬 用户行为回放</option>
+        <option value="/mascot-test">🎭 Mascot 测试</option>
+        <option value="/network-test">🌐 网络测试</option>
+        <option value="/network-config-debug">⚙️ 网络配置调试</option>
+      </select>
     </div>
   </div>
   

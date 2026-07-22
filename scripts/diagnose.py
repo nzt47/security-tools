@@ -130,24 +130,35 @@ def test_sanitize_filter() -> Tuple[bool, str]:
     except Exception as e:
         return False, f"❌ 加载脱敏过滤器失败: {type(e).__name__}: {e}"
 
-def test_encryption() -> Tuple[bool, str]:
-    """测试加密解密功能"""
+def test_env_config() -> Tuple[bool, str]:
+    """测试 .env 单一数据源配置加载（替代旧版 test_encryption）
+
+    【P2 已清理】SecureConfigManager 加密层已移除，改为测试 EnvConfigManager。
+    """
     try:
-        from config_secure import SecureConfigManager
-        
-        manager = SecureConfigManager()
-        test_data = "test_secret_data"
-        
-        encrypted = manager.encrypt(test_data)
-        decrypted = manager.decrypt(encrypted)
-        
-        if decrypted == test_data:
-            return True, f"✅ 加密解密测试通过\n  加密: {encrypted[:20]}...\n  解密: {decrypted}"
+        from agent.env_config_manager import get_env_config_manager
+
+        env_mgr = get_env_config_manager()
+        # 验证 .env 文件存在且可读
+        env_file = env_mgr._env_file
+        if not env_file.exists():
+            return False, f"❌ .env 文件不存在: {env_file}"
+
+        # 验证设置/读取闭环
+        test_key = "DIAGNOSE_TEST_KEY"
+        test_value = "test_env_value_12345"
+        env_mgr.set(test_key, test_value)
+        read_value = env_mgr.get(test_key, "")
+        # 清理测试痕迹
+        env_mgr.delete(test_key)
+
+        if read_value == test_value:
+            return True, f"✅ .env 配置加载测试通过\n  文件: {env_file}\n  写入: {test_key}={test_value}\n  读取: {read_value}"
         else:
-            return False, f"❌ 解密结果不匹配\n  加密: {encrypted[:20]}...\n  解密: {decrypted} (期望: {test_data})"
-    
+            return False, f"❌ .env 读写不一致\n  写入: {test_value}\n  读取: {read_value}"
+
     except Exception as e:
-        return False, f"❌ 加密解密测试失败: {type(e).__name__}: {e}"
+        return False, f"❌ .env 配置加载测试失败: {type(e).__name__}: {e}"
 
 def test_audit_logger() -> Tuple[bool, str]:
     """测试审计日志功能"""
@@ -260,7 +271,7 @@ def main():
     sanitize_ok, sanitize_msg = test_sanitize_filter()
     print(sanitize_msg)
     
-    encrypt_ok, encrypt_msg = test_encryption()
+    encrypt_ok, encrypt_msg = test_env_config()
     print(encrypt_msg)
     
     audit_ok, audit_msg = test_audit_logger()

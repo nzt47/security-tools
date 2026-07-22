@@ -4,7 +4,6 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
-venv/
 
 # 环境变量配置（含 Token，禁止提交）
 scripts/setup_env_vars.ps1
@@ -68,6 +67,7 @@ data/audit/
 # 运行时数据产物（日志/数据库/多租户状态，不入库）
 agent/data/api_access.log
 agent/data/api_keys.json
+agent/data/network_config.json
 agent/data/extensions.json
 agent/data/role_assignments.json
 agent/data/tenants.json
@@ -82,13 +82,6 @@ data/task_history.jsonl
 data/auto_tuning/
 data/resource_monitor_history.jsonl
 data/schedules.json
-data/memory/
-data/backups/
-data/sessions/
-data/assets/
-data/permission_policies.json
-data/test_workflows.json
-agent/data/tool_trace.db
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage
@@ -96,9 +89,6 @@ agent/data/tool_trace.db
 .coverage_*.json
 test_cost_log.jsonl
 test_reports/
-coverage.json
-yunshu-ui/coverage/
-yunshu-ui/coverage_output.txt
 
 # CI 调试产物
 _ci_logs.zip
@@ -112,10 +102,63 @@ cache/
 # 自动生成的文档报告
 docs/observability/boundary_coverage_report.md
 
-# 前端构建产物（npm run build 生成，不入库）
-static/assets/
-yunshu-ui/dist/
+# ────────────────────────────────────────────────────────────
+# v2.0.0 清理（2026-07-19）：运行时数据库 + 临时调试文件
+# ────────────────────────────────────────────────────────────
 
-# 部署包（临时打包产物，不入库）
-deploy_package/
-linux_deploy_package.zip
+# 运行时数据库（SQLite/向量索引，不入库）
+*.db
+agent/data/tool_trace.db
+data/memory/long_term.db
+data/skill_vectors/
+
+# 运行时日志/状态产物（不入库）
+data/blackbox/
+data/heartbeat_history.json
+data/permission_policies.json
+data/skills_mgmt.json
+# Embedding 子进程探测缓存(机器特定,不入库)
+data/.embedding_probe
+
+# 临时调试日志/压缩包（不入库）
+ci_full_logs.zip
+ci_logs.zip
+ci_logs/
+job_log_full.txt
+mock_coverage.xml
+mock_git_states.json
+pytest_local_output.txt
+pytest_trace_cfg.xml
+pytest_xfail_output.xml
+router_fix.patch
+router_fix_v2.patch
+
+# === 本次安全清理（2026-07-19）===
+# BFG 替换规则文件（含敏感信息，禁止提交）
+bfg-replacements.txt
+# BFG 备份路径记录文件
+.bfg_last_backup
+# 加密密钥文件（从 git 跟踪移除，仅本地保留）
+.encryption_key
+
+# === 临时测试产物（2026-07-20）===
+
+# 测试输出文件（不入库）
+boundary_stdout.txt
+boundary_junit.xml
+pytest_xfail_output.txt
+verify_production_report.md
+
+# 测试数据目录（不入库）
+data/test_chroma_db/
+data/test_chroma_db3/
+data/test_chroma_native/
+data/test_kb/
+data/test_pytest/
+data/test_vectors/
+
+# 测试结果目录（不入库）
+test_results/
+
+# SQLite3 数据库文件（运行时,不入库）
+*.sqlite3

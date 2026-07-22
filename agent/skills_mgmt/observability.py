@@ -18,10 +18,8 @@ from typing import Any, Dict, Iterator, List, Optional
 logger = logging.getLogger("agent.skills_mgmt")
 
 # 尝试引入业务指标收集器（按硬约束要求）；失败则降级为 no-op
-# [不易] 必须用 get_business_metrics_collector() 单例，而非 BusinessMetricsCollector() 直接实例化。
-# 直接实例化会创建独立实例，其 _counters dict 与 /metrics 端点导出的单例不共享，
-# 导致 emit_metric() 发射的指标在 export_prometheus() 中不可见（实例隔离 bug）。
-# 此修复对齐 commit 1a7009a3 的单例化约束。
+# 【不易】改用全局单例 get_business_metrics_collector()，与 app_server.py /metrics 端点
+# 共享同一实例，避免实例隔离导致 emit_metric 触发的指标不出现在 /metrics 端点。
 try:
     from agent.monitoring.business_metrics import get_business_metrics_collector
     _metrics = get_business_metrics_collector()
@@ -48,6 +46,12 @@ def _sanitize_observability_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         return payload
     chunks = payload.get("retrieved_chunks")
     if isinstance(chunks, list) and len(chunks) > _MAX_RETRIEVED_CHUNKS:
+        # [Observability:fill] 截断触发：记录原始数量与上限，便于排查"是否打标"
+        logger.info(
+            "[Observability:fill] stage=sanitize.truncate | original_count=%d | "
+            "max=%d | truncated=true",
+            len(chunks), _MAX_RETRIEVED_CHUNKS,
+        )
         return {
             **payload,
             "retrieved_chunks": chunks[:_MAX_RETRIEVED_CHUNKS],
@@ -94,6 +98,16 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
     try:
         _emit_structured_log(f"{action}.start", trace_id=tid, duration_ms=0.0,
                              **safe)
+        # [Observability:fill] traced_action 入口：retrieved_chunks 填充时机
+        _rc = safe.get("retrieved_chunks")
+        _rc_brief = (f"count={len(_rc)}" if isinstance(_rc, list)
+                     else f"type={type(_rc).__name__}" if _rc is not None
+                     else "absent")
+        logger.info(
+            "[Observability:fill] stage=traced_action.start | trace_id=%s | "
+            "action=%s | payload_keys=%s | retrieved_chunks=%s",
+            tid, action, list(safe.keys()), _rc_brief,
+        )
         yield ctx
         elapsed = (time.time() - t0) * 1000
         # 合并 payload 与 ctx，过滤保留键（safe_merged 命名标记已过滤）
@@ -104,6 +118,16 @@ def traced_action(action: str, *, trace_id: Optional[str] = None,
             safe_merged[k] = v
         # [变易] end 日志同样清洗：ctx 中可能新设置 retrieved_chunks
         safe_merged = _sanitize_observability_payload(safe_merged)
+        # [Observability:fill] traced_action 出口：retrieved_chunks 填充时机
+        _rc_end = safe_merged.get("retrieved_chunks")
+        _rc_end_brief = (f"count={len(_rc_end)}" if isinstance(_rc_end, list)
+                         else f"type={type(_rc_end).__name__}" if _rc_end is not None
+                         else "absent")
+        logger.info(
+            "[Observability:fill] stage=traced_action.end | trace_id=%s | "
+            "action=%s | merged_keys=%s | retrieved_chunks=%s",
+            tid, action, list(safe_merged.keys()), _rc_end_brief,
+        )
         _emit_structured_log(f"{action}.end", trace_id=tid, duration_ms=elapsed,
                              status="ok", **safe_merged)
     except Exception as e:
@@ -168,6 +192,18 @@ def persist_observability_span(*, trace_id: Optional[str] = None,
     try:
         from agent.monitoring.tracing import record_span_attributes
         record_span_attributes(trace_id=trace_id, **fields)
+        # [Observability] INFO 级别：span 持久化成功，打印字段概要（不含 chunks 全量，避免噪音）
+        chunks_val = fields.get("retrieved_chunks")
+        chunks_brief = (
+            f"count={len(chunks_val)}" if isinstance(chunks_val, list)
+            else f"type={type(chunks_val).__name__}" if chunks_val is not None
+            else "absent"
+        )
+        logger.info(
+            "[Observability] span persisted | trace_id=%s | fields=%s | "
+            "retrieved_chunks=%s",
+            trace_id, list(fields.keys()), chunks_brief,
+        )
     except Exception:  # noqa: BLE001
         try:
             _emit_structured_log(
@@ -218,6 +254,16 @@ def emit_eval_score_metric(skill_id: str, eval_score: Dict[str, Any],
     if not isinstance(eval_score, dict):
         return
     try:
+        # [Observability:fill] emit_eval_score_metric 入口：eval_score 填充时机
+        logger.info(
+            "[Observability:fill] stage=emit_eval_score_metric.enter | "
+            "skill_id=%s | trace_id=%s | eval_score_keys=%s | task_success=%s | "
+            "hallucination_detected=%s | score=%s",
+            skill_id, trace_id, list(eval_score.keys()),
+            eval_score.get("task_success"),
+            eval_score.get("hallucination_detected"),
+            eval_score.get("score"),
+        )
         task_success = bool(eval_score.get("task_success", False))
         hallucination_detected = bool(eval_score.get("hallucination_detected", False))
         score = float(eval_score.get("score", 0.0))
@@ -263,6 +309,13 @@ def report_retrieval_observability(
         precision_at_k: 可选 {k, hits, precision}
     """
     try:
+        # [Observability:fill] report_retrieval_observability 入口：retrieved_chunks 填充时机
+        _rc_in_count = len(retrieved_chunks) if isinstance(retrieved_chunks, list) else -1
+        logger.info(
+            "[Observability:fill] stage=report_retrieval_observability.enter | "
+            "trace_id=%s | retrieved_chunks_count=%d | has_precision_at_k=%s",
+            trace_id, _rc_in_count, precision_at_k is not None,
+        )
         # [变易] 防御性清洗：截断过大的 retrieved_chunks，避免 span 日志膨胀
         # 与 traced_action 上下文走同一 _sanitize_observability_payload 路径（守不易：统一截断契约）
         sanitized = _sanitize_observability_payload({

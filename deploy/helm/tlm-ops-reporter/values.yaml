@@ -9,7 +9,7 @@ fullnameOverride: ""
 # ─── 镜像配置（日报容器） ───
 image:
   repository: tlm-ops-reporter
-  tag: "v1.1"
+  tag: "v1.2"
   pullPolicy: IfNotPresent
 
 # ─── 日报生成器配置 ───

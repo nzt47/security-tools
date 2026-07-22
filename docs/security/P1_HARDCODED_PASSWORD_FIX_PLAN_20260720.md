@@ -1,167 +1,383 @@
 # P1 硬编码密码修复执行计划
 
-> **文档状态**：已执行 ✅  
-> **计划日期**：2026-07-20  
-> **执行日期**：2026-07-20  
-> **Commit**：`9d51c406`  
-> **分支**：`feature/tlm-step3-vectorstore-sqlite-vec`  
-> **重建日期**：2026-07-22（原文件丢失，基于设计说明恢复）
+> **报告日期**：2026-07-20
+> **优先级**：P1（高，安全合规要求）
+> **预估总耗时**：72 分钟
+> **关联文档**：
+> - [BFG_CLEANUP_REPORT_20260719.md](../BFG_CLEANUP_REPORT_20260719.md)
+> - [GH_ACTIONS_CLEANUP_REPORT_20260720.md](./GH_ACTIONS_CLEANUP_REPORT_20260720.md)
+> - [SECURITY_AUDIT_FINAL_SUMMARY_P1_P3_20260720.md](./SECURITY_AUDIT_FINAL_SUMMARY_P1_P3_20260720.md)
 
 ---
 
-## 1. 背景
+## 一、背景与目标
 
-安全审计发现监控组件存在硬编码密码（hardcoded password），违反【不易】安全边界约束：
-- `scripts/_import_dashboards.py` L7-8：`admin` / `admin123`
-- `docker-compose.monitoring.yml` L28：`admin123`
-- `docker-compose.monitoring.aliyun.yml` L40：`admin123`
+### 1.1 背景
 
-**风险等级**：P1（高危）—— 凭证泄露可导致 Grafana 未授权访问。
+BFG 清理已将 git 历史中的明文密码替换为占位符（如 `***REMOVED_GLITCHTIP_PWD***`），但**工作区当前已跟踪文件**仍存在以下硬编码密码问题：
 
----
+- GlitchTip 超级管理员密码以 BFG 占位符形式残留（运行时会失败）
+- Grafana 默认密码 `admin123` 直接硬编码在脚本与 compose 文件中
+- `.env` 缺失必要的密码变量定义
 
-## 2. 修复范围
+### 1.2 修复目标（【不易】不变量）
 
-| 文件 | 行号 | 原值 | 修复方式 | 状态 |
-|------|------|------|---------|------|
-| `docker/glitchtip/orm_setup_inline.py` | L52 | `***REMOVED_GLITCHTIP_PWD***` | `os.environ.get('GLITCHTIP_ADMIN_PASSWORD')` + `sys.exit(1)` | ✅ 已在 HEAD |
-| `scripts/_import_dashboards.py` | L9-15 | `admin`/`admin123` | `os.environ.get()` + `sys.exit(1)` | ✅ 已 commit |
-| `docker-compose.monitoring.yml` | L27-28 | `admin123` | `${GRAFANA_ADMIN_PASSWORD:-admin}` | ✅ 已 commit |
-| `docker-compose.monitoring.aliyun.yml` | L39-40 | `admin123` | 同上 | ✅ 已 commit |
-| `.env` | 新增 | 无 | 临时密码 `Yunshu@P1Verify2026!` | ✅ 已设置（本地） |
-| `.env.example` | 新增 | 无 | 占位符值 | ✅ 已在 HEAD |
+- **安全不变量**：所有密码必须从环境变量读取，禁止硬编码到任何已跟踪文件
+- **兼容不变量**：现有 GlitchTip/Grafana 部署流程不破坏，可正常启动
+- **可测不变量**：每个修复点需可通过 DryRun/启动验证确认无回归
 
 ---
 
-## 3. 九步执行计划
+## 二、修复范围一览
 
-### Step 1：`.env` 添加密码变量 ✅
-- 新增 `GLITCHTIP_ADMIN_EMAIL` / `GLITCHTIP_ADMIN_PASSWORD`
-- 新增 `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`
-- 新增 `POSTGRES_PASSWORD`
-- 当前为临时密码 `Yunshu@P1Verify2026!`（部署前需替换）
+| 序号 | 文件 | 行号 | 当前值 | 修复方式 | 耗时 |
+|------|------|------|--------|---------|------|
+| 1 | `.env` | 新增 | 无 | 添加 `GRAFANA_ADMIN_PASSWORD=` + `GLITCHTIP_ADMIN_PASSWORD=` | 5 min |
+| 2 | `.env.example` | 新增 | 无 | 添加示例变量（占位符值） | 2 min |
+| 3 | `docker/glitchtip/orm_setup_inline.py` | L52 | `***REMOVED_GLITCHTIP_PWD***` | `os.environ.get('GLITCHTIP_ADMIN_PASSWORD')` + 缺失即 sys.exit(1) | 10 min |
+| 4 | `scripts/_import_dashboards.py` | L6-8 | `admin`/`admin123` | `os.environ.get('GRAFANA_ADMIN_USER', 'admin')` + `os.environ.get('GRAFANA_ADMIN_PASSWORD')` | 5 min |
+| 5 | `docker-compose.monitoring.yml` | L28 | `GF_SECURITY_ADMIN_PASSWORD=admin123` | `GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}` | 5 min |
+| 6 | `docker-compose.monitoring.aliyun.yml` | L40 | `admin123` | 同上 | 5 min |
+| 7 | 功能验证 | - | - | DryRun + 容器启动验证 | 20 min |
+| 8 | 回归测试 | - | - | 跑相关 pytest + lint | 15 min |
+| 9 | 提交变更 | - | - | git commit + push | 5 min |
 
-### Step 2：`.env.example` 添加示例 ✅
-- 添加占位符 + 注释说明
-- 已在 HEAD（P7 提交）
+---
 
-### Step 3：修复 `orm_setup_inline.py` ✅
-- 密码与邮箱均从环境变量读取
-- password 无默认值，缺失即 `sys.exit(1)`（强约束）
-- email 保留默认值 `admin@local.test` 兜底（非敏感）
-- 已在 HEAD（P7 提交）
+## 三、详细修复方案
 
-### Step 4：修复 `_import_dashboards.py` ✅
+### 3.1 Step 1：在 .env 中添加密码变量（5 min）
+
+**位置**：`c:\Users\Administrator\agent\.env`
+
+**修改**：在文件末尾追加以下内容（不展示已有内容）：
+
+```bash
+# ============================================================================
+# 监控/可观测性组件管理员密码（P1 安全修复 2026-07-20 新增）
+# ============================================================================
+# GlitchTip 超级管理员密码（用于 orm_setup_inline.py 初始化）
+# 长度 >= 12，包含大小写字母+数字+符号
+GLITCHTIP_ADMIN_EMAIL=admin@local.test
+GLITCHTIP_ADMIN_PASSWORD=
+
+# Grafana 管理员密码（用于 _import_dashboards.py 与 docker-compose）
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=
+
+# GlitchTip PostgreSQL 密码（如未单独配置）
+POSTGRES_PASSWORD=
+```
+
+**验证**：
+
+```powershell
+Get-Content c:\Users\Administrator\agent\.env | Select-String "GLITCHTIP_ADMIN_PASSWORD|GRAFANA_ADMIN_PASSWORD"
+```
+
+### 3.2 Step 2：在 .env.example 中添加示例（2 min）
+
+**位置**：`c:\Users\Administrator\agent\.env.example`
+
+**修改**：追加以下内容（使用占位符，不暴露真实密码）：
+
+```bash
+# ============================================================================
+# 监控/可观测性组件管理员密码（示例占位符，请替换为真实值）
+# ============================================================================
+GLITCHTIP_ADMIN_EMAIL=admin@local.test
+GLITCHTIP_ADMIN_PASSWORD=your-glitchtip-password-here
+
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=your-grafana-password-here
+
+POSTGRES_PASSWORD=your-postgres-password-here
+```
+
+### 3.3 Step 3：修复 docker/glitchtip/orm_setup_inline.py（10 min）
+
+**位置**：`c:\Users\Administrator\agent\docker\glitchtip\orm_setup_inline.py` L50-57
+
+**修改前**：
+
 ```python
+    # ── 1. 确保超级管理员账号存在 ─────────────────────
+    email = "admin@local.test"
+    password = "***REMOVED_GLITCHTIP_PWD***"
+    user = User.objects.filter(email=email).first()
+    if not user:
+        user = User.objects.create_superuser(email=email, password=password)
+        log("user_created", 0, "success", user_id=user.id)
+    else:
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        log("user_existing", 0, "success", user_id=user.id)
+```
+
+**修改后**：
+
+```python
+    # ── 1. 确保超级管理员账号存在 ─────────────────────
+    # 【P1 修复 2026-07-20】密码从环境变量读取，避免硬编码（BFG 清理后占位符已失效）
+    email = os.environ.get("GLITCHTIP_ADMIN_EMAIL", "admin@local.test")
+    password = os.environ.get("GLITCHTIP_ADMIN_PASSWORD")
+    if not password:
+        log("error", 0, "failure",
+            error_type="ConfigError",
+            error_message="GLITCHTIP_ADMIN_PASSWORD 环境变量未设置，无法初始化超级管理员")
+        sys.exit(1)
+    user = User.objects.filter(email=email).first()
+    if not user:
+        user = User.objects.create_superuser(email=email, password=password)
+        log("user_created", 0, "success", user_id=user.id)
+    else:
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        log("user_existing", 0, "success", user_id=user.id)
+```
+
+**关键说明**：
+- `os` 与 `sys` 模块在文件 L14/L17 已 import，无需新增
+- 缺失环境变量时调用 `sys.exit(1)` 而非抛异常，符合 GlitchTip 容器初始化失败语义
+- 日志通过现有 `log()` 函数输出，保持可观测性
+
+### 3.4 Step 4：修复 scripts/_import_dashboards.py（5 min）
+
+**位置**：`c:\Users\Administrator\agent\scripts\_import_dashboards.py` L1-8
+
+**修改前**：
+
+```python
+#!/usr/bin/env python3
+"""导入全链路监控仪表盘到 Grafana"""
+import json
+import requests
+
+GRAFANA_URL = "http://localhost:3000"
+GRAFANA_USER = "admin"
+GRAFANA_PASSWORD = "admin123"
+```
+
+**修改后**：
+
+```python
+#!/usr/bin/env python3
+"""导入全链路监控仪表盘到 Grafana"""
+import json
+import os
+import sys
+
+import requests
+
 GRAFANA_URL = os.environ.get("GRAFANA_URL", "http://localhost:3000")
 GRAFANA_USER = os.environ.get("GRAFANA_ADMIN_USER", "admin")
+# 【P1 修复 2026-07-20】密码从环境变量读取，避免硬编码 admin123
 GRAFANA_PASSWORD = os.environ.get("GRAFANA_ADMIN_PASSWORD")
 if not GRAFANA_PASSWORD:
     print("ERROR: GRAFANA_ADMIN_PASSWORD 环境变量未设置，无法导入仪表盘")
     sys.exit(1)
 ```
 
-### Step 5：修复 `docker-compose.monitoring.yml` ✅
+**关键说明**：
+- `os.environ.get("GRAFANA_ADMIN_USER", "admin")` 保留默认值 `admin`（用户名非敏感）
+- `GRAFANA_PASSWORD` 无默认值，缺失即退出，避免误用空密码
+
+### 3.5 Step 5：修复 docker-compose.monitoring.yml（5 min）
+
+**位置**：`c:\Users\Administrator\agent\docker-compose.monitoring.yml` L28
+
+**修改前**：
+
 ```yaml
-- GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-- GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
 ```
 
-### Step 6：修复 `docker-compose.monitoring.aliyun.yml` ✅
-同 Step 5，使用相同的 `${VAR:-default}` 变量插值。
+**修改后**：
 
-### Step 7：生成验证脚本 ✅
-- 创建 `scripts/verify_monitoring_setup.ps1`（198 行）
-- 6 阶段流水线验证：
-  - Stage 0：预检查（.env 变量 + Docker/Python 可用性）
-  - Stage 0.5：硬编码密码扫描（4 个文件）
-  - Stage 1：Compose 配置验证（变量插值检查）
-  - Stage 2：容器启动（docker compose up -d）
-  - Stage 3：健康检查（Grafana + Prometheus 就绪等待）
-  - Stage 4：功能验证（密码读取 + Grafana API 调用）
-  - Stage 5：汇总报告
+```yaml
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+```
 
-### Step 8：功能验证 ⚠️ 部分通过
-- ✅ 14/17 项通过（代码修复全部验证）
-- ❌ 3/17 项失败（Docker Desktop 未运行的连带失败）
-  - Stage 2：容器启动
-  - Stage 3：Grafana 健康检查
-  - Stage 3：Prometheus 健康检查
-- **诊断**：环境问题，非代码问题。启动 Docker Desktop 后重跑即可。
+**关键说明**：
+- 使用 docker-compose 变量插值 `${VAR:-default}` 语法
+- 兜底值 `admin` 仅用于本地开发，生产部署必须在 `.env` 中配置真实密码
+- 如果 `.env` 中未设置 `GRAFANA_ADMIN_PASSWORD`，启动时会警告（在 Step 1 已要求设置）
 
-### Step 9：提交变更 ✅
-- Commit：`9d51c406`
-- Message：`fix(security): P1 移除监控组件硬编码密码 + 启动验证脚本`
-- 4 files changed, 211 insertions(+), 7 deletions(-)
-- Push origin (GitHub)：`4dfaafae..9d51c406` ✅
-- Push gitee (Gitee)：`511713dd..9d51c406` ✅
+### 3.6 Step 6：修复 docker-compose.monitoring.aliyun.yml（5 min）
+
+**位置**：`c:\Users\Administrator\agent\docker-compose.monitoring.aliyun.yml` L40
+
+**修改**：与 Step 5 完全相同：
+
+```yaml
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+```
 
 ---
 
-## 4. 风险评估
+## 四、功能验证（Step 7，20 min）
 
-### 4.1 修复风险
-| 风险项 | 评估 | 缓解措施 |
+### 4.1 GlitchTip 修复验证
+
+```powershell
+# 1. 验证环境变量已注入容器
+docker compose -f docker-compose.glitchtip.yml exec -T web env | Select-String "GLITCHTIP_ADMIN"
+
+# 2. 重新执行 orm_setup_inline.py（应在容器内）
+docker compose -f docker-compose.glitchtip.yml exec -T web python manage.py shell < docker/glitchtip/orm_setup_inline.py
+
+# 3. 预期输出（成功）
+# {"trace_id": "setup-...", "module_name": "orm_setup_inline", "action": "complete", "result": "success", ...}
+
+# 4. 预期输出（失败 - 环境变量未设置）
+# {"trace_id": "setup-...", "module_name": "orm_setup_inline", "action": "error", "result": "failure", "error_type": "ConfigError", ...}
+```
+
+### 4.2 Grafana 修复验证
+
+```powershell
+# 1. 验证 _import_dashboards.py 在缺失密码时正确退出
+$env:GRAFANA_ADMIN_PASSWORD = ""
+python scripts\_import_dashboards.py
+# 预期: ERROR: GRAFANA_ADMIN_PASSWORD 环境变量未设置，无法导入仪表盘
+
+# 2. 验证设置密码后能正常调用
+$env:GRAFANA_ADMIN_PASSWORD = "your-real-password"
+python scripts\_import_dashboards.py
+# 预期: 正常导入仪表盘或返回 Grafana API 响应
+```
+
+### 4.3 docker-compose 配置验证
+
+```powershell
+# 1. 验证 compose 配置语法
+docker compose -f docker-compose.monitoring.yml config
+
+# 2. 验证变量插值结果
+docker compose -f docker-compose.monitoring.yml config | Select-String "GF_SECURITY_ADMIN_PASSWORD"
+# 预期: GF_SECURITY_ADMIN_PASSWORD=<.env 中的真实值>
+```
+
+---
+
+## 五、回归测试（Step 8，15 min）
+
+### 5.1 静态检查
+
+```powershell
+# 1. Python 语法检查
+python -m py_compile docker/glitchtip/orm_setup_inline.py
+python -m py_compile scripts/_import_dashboards.py
+
+# 2. 全局硬编码密码扫描（应为 0）
+git grep -n "admin123" -- '*.py' '*.yml' '*.yaml'
+git grep -n "REMOVED_GLITCHTIP_PWD" -- '*.py' '*.yml' '*.yaml'
+git grep -nE "password\s*=\s*['\"]" -- '*.py'
+```
+
+### 5.2 单元测试
+
+```powershell
+# 跑相关测试套件
+python -m pytest tests/test_glitchtip_setup.py -v 2>$null
+python -m pytest tests/test_monitoring.py -v 2>$null
+
+# 若无专项测试，至少跑全量 smoke
+python -m pytest tests/ -x --timeout=60
+```
+
+### 5.3 安全扫描
+
+```powershell
+# 1. 使用 detect-secrets 或 trufflehog 扫描
+detect-secrets scan docker/glitchtip/orm_setup_inline.py
+detect-secrets scan scripts/_import_dashboards.py
+
+# 2. 预期：无 HIGH/CRITICAL 级别硬编码密码告警
+```
+
+---
+
+## 六、提交变更（Step 9，5 min）
+
+```powershell
+# 1. 暂存修改
+git add docker/glitchtip/orm_setup_inline.py
+git add scripts/_import_dashboards.py
+git add docker-compose.monitoring.yml
+git add docker-compose.monitoring.aliyun.yml
+git add .env.example
+# 注意：.env 不提交（已在 .gitignore）
+
+# 2. 提交
+git commit -m "fix(security): P1 移除工作区硬编码密码，改用环境变量注入
+
+- docker/glitchtip/orm_setup_inline.py: 密码改用 GLITCHTIP_ADMIN_PASSWORD 环境变量，缺失即 sys.exit(1)
+- scripts/_import_dashboards.py: 密码改用 GRAFANA_ADMIN_PASSWORD 环境变量
+- docker-compose.monitoring.yml: GF_SECURITY_ADMIN_PASSWORD 改用变量插值
+- docker-compose.monitoring.aliyun.yml: 同上
+- .env.example: 新增 GLITCHTIP_ADMIN_PASSWORD / GRAFANA_ADMIN_PASSWORD 示例
+
+关联文档：docs/security/P1_HARDCODED_PASSWORD_FIX_PLAN_20260720.md"
+
+# 3. 推送
+git push origin master
+git push gitee master
+```
+
+---
+
+## 七、风险评估
+
+| 风险点 | 等级 | 缓解措施 |
 |--------|------|---------|
-| 环境变量未设置导致启动失败 | 低 | `sys.exit(1)` + 明确错误信息 |
-| Compose 变量插值失败 | 低 | `${VAR:-admin}` 兜底默认值 |
-| `.env` 未进版本库 | 无 | `.gitignore` 已排除，`git check-ignore` 验证通过 |
-| 密码在日志中泄露 | 中 | 验证脚本不打印密码值，仅校验非空 |
-
-### 4.2 残留风险
-- `.env` 中为临时密码 `Yunshu@P1Verify2026!`，**部署前必须替换**
-- Docker Desktop 未运行，容器层验证未完成
-- Git 历史中仍可能存在旧密码（需 BFG 清理，不在 P1 范围）
+| `.env` 中密码为空导致容器启动失败 | 中 | Step 1 已要求部署前填写；缺失时 `sys.exit(1)` 主动报错 |
+| 已部署 GlitchTip 实例密码变更后无法登录旧数据 | 中 | 部署前需在 GlitchTip Web 修改原密码与新 `.env` 一致 |
+| docker-compose 变量插值在旧版 docker 不支持 | 低 | docker-compose v1.27+ 已支持 `${VAR:-default}`，要求文档已说明 |
+| `.env` 误提交到 git | 高 | 已在 `.gitignore` 中排除 `.env`，仅提交 `.env.example` |
+| 团队成员未拉取新代码导致密码失效 | 中 | 需通知协作者重新 clone 并配置本地 `.env` |
 
 ---
 
-## 5. 验证清单
+## 八、验证清单（执行后勾选）
 
-### 5.1 代码层验证（✅ 全部通过）
-- [x] `_import_dashboards.py` 无硬编码 `admin123`
-- [x] `docker-compose.monitoring.yml` 使用 `${GRAFANA_ADMIN_PASSWORD:-admin}`
-- [x] `docker-compose.monitoring.aliyun.yml` 使用 `${GRAFANA_ADMIN_PASSWORD:-admin}`
-- [x] `orm_setup_inline.py` 读取 `GLITCHTIP_ADMIN_PASSWORD` 环境变量
-- [x] `.env.example` 包含所有密码变量占位符
-- [x] `.env` 中密码变量非空
-- [x] Python 脚本缺失密码时 `sys.exit(1)`
-- [x] Compose 变量插值正确
-- [x] 硬编码扫描无残留
-- [x] Grafana API 鉴权使用环境变量
-- [x] `.env` 已被 `.gitignore` 排除
-- [x] Commit 不含 `.env` 文件
-- [x] 推送 origin 成功
-- [x] 推送 gitee 成功
-
-### 5.2 容器层验证（⚠️ 待 Docker Desktop 启动）
-- [ ] `docker compose up -d` 成功
-- [ ] Grafana 容器健康检查通过
-- [ ] Prometheus 容器健康检查通过
-- [ ] Grafana API 使用新密码可访问
-- [ ] 仪表盘导入脚本成功执行
+- [ ] `.env` 中 `GLITCHTIP_ADMIN_PASSWORD` 已设置（非空，长度 >= 12）
+- [ ] `.env` 中 `GRAFANA_ADMIN_PASSWORD` 已设置（非空，长度 >= 12）
+- [ ] `docker/glitchtip/orm_setup_inline.py` L52 不再含 `***REMOVED_GLITCHTIP_PWD***`
+- [ ] `scripts/_import_dashboards.py` L8 不再含 `admin123`
+- [ ] `docker-compose.monitoring.yml` L28 不再含 `admin123` 硬编码
+- [ ] `docker-compose.monitoring.aliyun.yml` L40 不再含 `admin123` 硬编码
+- [ ] `git grep -n "admin123"` 在已跟踪文件中返回 0 行
+- [ ] `git grep -n "REMOVED_GLITCHTIP_PWD"` 返回 0 行
+- [ ] GlitchTip 容器能正常启动并完成 ORM 初始化
+- [ ] Grafana 仪表盘导入脚本能正常调用 API
+- [ ] `detect-secrets scan` 无 HIGH/CRITICAL 级别告警
+- [ ] 变更已 commit 并 push 到 origin + gitee
 
 ---
 
-## 6. 后续行动
+## 九、三义校验
 
-| 优先级 | 行动项 | 负责方 |
-|--------|--------|--------|
-| P0 | 部署前将 `.env` 中 `Yunshu@P1Verify2026!` 替换为生产强密码 | 用户 |
-| P0 | 启动 Docker Desktop 后重跑 `verify_monitoring_setup.ps1` | 用户 |
-| P1 | 评估是否需要 BFG 清理 Git 历史中的旧密码 | 后续任务 |
-| P2 | 将密码管理迁移到 Secrets Manager（如 Vault） | 长期规划 |
+- **【不易】** 安全不变量锁定：所有密码必须从环境变量读取，禁止硬编码；`.env` 不进 git；`.env.example` 仅含占位符。修复范围 6 个文件全部按此约束设计
+- **【变易】** 按需兜底：`GRAFANA_ADMIN_USER` 保留 `admin` 默认值（非敏感）；`${VAR:-admin}` 在本地开发场景兜底；`GLITCHTIP_ADMIN_PASSWORD` 无默认值（强约束）
+- **【简易】** 9 步线性流程，每步明确耗时与验证命令；初中级工程师 30s 可读；表格化呈现修复范围
 
 ---
 
-## 7. 相关文件
+## 十、时间表
 
-- 验证脚本：[scripts/verify_monitoring_setup.ps1](file:///c:/Users/Administrator/agent/scripts/verify_monitoring_setup.ps1)
-- 修复文件：[scripts/_import_dashboards.py](file:///c:/Users/Administrator/agent/scripts/_import_dashboards.py)
-- Compose 配置：[docker-compose.monitoring.yml](file:///c:/Users/Administrator/agent/docker-compose.monitoring.yml)
-- Compose 配置（阿里云）：[docker-compose.monitoring.aliyun.yml](file:///c:/Users/Administrator/agent/docker-compose.monitoring.aliyun.yml)
-- ORM 初始化：[docker/glitchtip/orm_setup_inline.py](file:///c:/Users/Administrator/agent/docker/glitchtip/orm_setup_inline.py)
-- 环境变量示例：[.env.example](file:///c:/Users/Administrator/agent/.env.example)
+| 阶段 | 步骤 | 累计耗时 |
+|------|------|---------|
+| 准备 | Step 1-2 | 7 min |
+| 代码修复 | Step 3-6 | 25 min |
+| 验证 | Step 7-8 | 35 min |
+| 提交 | Step 9 | 40 min |
+| 缓冲 | 异常处理 | 72 min |
 
 ---
 
-**结论**：P1 修复已执行并推送，代码层验证全部通过。容器层验证待 Docker Desktop 启动后完成。
+> **执行人**：Yi-Jing Coding Agent
+> **审核状态**：待用户审核与执行
+> **下一步**：用户确认后按 Step 1-9 顺序执行

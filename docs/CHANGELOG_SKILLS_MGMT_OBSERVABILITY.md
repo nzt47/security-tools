@@ -6,6 +6,7 @@
 > - `c3515451` feat(skills_mgmt): 全链路可观测性字段补全（retrieved_chunks / eval_score）
 > - `07f38db2` test(skills_mgmt): 新增检索可观测性模拟脚本，支持回归测试
 > - `69506839` fix(skills_mgmt): 修复 report_retrieval_observability 截断路径缺口
+> - `（待提交）` test(skills_mgmt): 适配向量检索已实现的测试用例 + Changelog 补充 Prometheus 缺口说明
 
 ---
 
@@ -167,6 +168,29 @@ def emit_retrieval_precision_metric(*, k, hits, precision, trace_id=None) -> Non
 - 缺省时行为与旧调用方完全一致（守不易）
 - 测试验证：`test_record_execution_without_eval_score_backward_compat`
 
+### 4.4 ⚠️ Prometheus 集成缺口（已知问题，待修复）
+
+**问题**：新增的 3 个 Prometheus 指标（`yunshu_skill_retrieval_precision_at_k` / `yunshu_skill_eval_score` / `yunshu_skill_hallucination_total`）**未出现在 `/metrics` 端点**。
+
+**根因**：
+```
+emit_metric(name, kind="histogram")
+  → _metrics = BusinessMetricsCollector()
+  → hasattr(_metrics, "observe_histogram")  # False（只有 _observe_histogram 私有方法）
+  → hasattr 检查失败 → 指标被静默丢弃
+```
+
+- `BusinessMetricsCollector` 不含 `inc_counter` / `observe_histogram` / `set_gauge` 公开方法
+- `emit_metric` 的 `hasattr` 检查全部返回 False，新指标被静默丢弃
+- `/metrics` 端点由 `prometheus_flask_exporter` 提供，仅服务 `prometheus_client.REGISTRY` 中的指标
+
+**当前状态**：
+- ❌ Prometheus `/metrics` 端点：新指标未出现
+- ✅ 结构化日志（`span_attributes` / `eval_score.recorded` / `retrieval_precision_at_k`）：正常工作
+- `health` 接口中 `span_persistence: "structured_log"` 准确反映了当前持久化方式
+
+**修复方向**（P1，待实施）：在 `emit_metric` 中增加 `prometheus_client` 直接注册路径，绕过 `BusinessMetricsCollector` 的 `hasattr` 检查失败问题
+
 ---
 
 ## 五、Health 接口扩展
@@ -218,7 +242,18 @@ def emit_retrieval_precision_metric(*, k, hits, precision, trace_id=None) -> Non
 
 **测试结果**：57 passed, 1 xfailed（预存在 TF-IDF 基线测试，与本次改造无关）
 
-### 6.2 回归测试脚本
+### 6.2 TestRetrievalExtension 测试适配（向量检索已实现）
+
+向量检索通过 JSON fallback 实现后，2 个原假设"未实现"的测试用例需要更新断言：
+
+| 测试方法 | 原断言（假设未实现） | 更新后断言（已实现） |
+|---|---|---|
+| `test_match_accepts_extension_params` | `use_vector=True` 记录 `extension_not_implemented` warning | `use_vector=True` 不报错；`use_bm25/use_reranker` 仍记录 warning |
+| `test_match_fallback_flag_when_vector_requested` | `fallback_used=True`, `retrieval_method="tfidf"` | `fallback_used=False`, `retrieval_method="vector"` |
+
+**根因**：`loader.match()` line 302 `return vector_results` 提前返回，导致 `use_bm25`/`use_reranker` 的 warning 检查被跳过。修复后分两步验证：先测 `use_vector=True`（无 warning），再单独测 `use_bm25/use_reranker`（有 warning）。
+
+### 6.3 回归测试脚本
 
 **`scripts/simulate_retrieval_observability.py`**：
 

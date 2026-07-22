@@ -1,0 +1,982 @@
+{"trace_id": "ca80c2f73aba40e0", "module_name": "loader", "action": "match.vector_fallback_to_tfidf", "intent": "self_reflection", "fallback": "tfidf"}
+============================================================================================
+RRF 融合检索 四方评估  (K=3)
+============================================================================================
+
+>>> 评估 TF-IDF 基线...
+  ✓ case_001   P=0.33 R=1.00 MRR=1.00  self_reflection
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0)]
+  ✓ case_002   P=0.33 R=1.00 MRR=1.00  请帮我反思刚才的回答
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.6), ('context_aware', 0.2), ('emotion_expression', 0.1)]
+  ✓ case_003   P=0.33 R=1.00 MRR=1.00  帮我复查刚才的回答有没有逻辑漏洞
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.625), ('proactive_suggestion', 0.188), ('context_aware', 0.125)]
+  ✓ case_004   P=0.33 R=1.00 MRR=1.00  self_reflection 技能
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0), ('memory_summary', 0.667), ('scripted-selftest', 0.667)]
+  ✓ case_005   P=0.33 R=1.00 MRR=1.00  memory_summary
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0)]
+  ✓ case_006   P=0.33 R=1.00 MRR=1.00  请总结一下之前的对话历史
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.75), ('context_aware', 0.333), ('proactive_suggestion', 0.333)]
+  ✓ case_007   P=0.33 R=1.00 MRR=1.00  帮我梳理历史记忆并压缩
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.727), ('self_reflection', 0.273), ('context_aware', 0.182)]
+  ✓ case_008   P=0.33 R=1.00 MRR=1.00  memory_summary 技能
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0), ('scripted-selftest', 0.667), ('self_reflection', 0.667)]
+  ✓ case_009   P=0.33 R=1.00 MRR=1.00  情感
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 1.0), ('context_aware', 0.5), ('safety_guard', 0.5)]
+  ✓ case_010   P=0.33 R=1.00 MRR=1.00  我想让你说话带点感情色彩
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.5), ('context_aware', 0.167), ('proactive_suggestion', 0.167)]
+  ✓ case_011   P=0.33 R=1.00 MRR=1.00  让回答更有感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.714), ('self_reflection', 0.429), ('context_aware', 0.286)]
+  ✓ case_012   P=0.33 R=1.00 MRR=0.50  请调整回应语气加点感情
+    expected: ['emotion_expression']
+    actual  : [('context_aware', 0.455), ('emotion_expression', 0.364), ('safety_guard', 0.364)]
+  ✓ case_013   P=0.33 R=1.00 MRR=1.00  建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 1.0)]
+  ✓ case_014   P=0.33 R=1.00 MRR=1.00  你能主动给我点建议吗
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.4), ('context_aware', 0.2), ('self_reflection', 0.2)]
+  ✓ case_015   P=0.33 R=1.00 MRR=1.00  请主动提建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.833), ('context_aware', 0.333), ('emotion_expression', 0.167)]
+  ✓ case_016   P=0.33 R=1.00 MRR=1.00  主动识别我的潜在需求
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.9), ('context_aware', 0.4), ('self_reflection', 0.4)]
+  ✓ case_017   P=0.33 R=1.00 MRR=1.00  上下文
+    expected: ['context_aware']
+    actual  : [('context_aware', 1.0), ('proactive_suggestion', 1.0), ('voice_interaction', 0.333)]
+  ✓ case_018   P=0.33 R=1.00 MRR=1.00  刚才说的上下文你记住了吗，根据之前的话题调整一下
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.478), ('proactive_suggestion', 0.348), ('memory_summary', 0.261)]
+  ✓ case_019   P=0.33 R=1.00 MRR=1.00  检测话题切换
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.833), ('safety_guard', 0.5), ('emotion_expression', 0.167)]
+  ✓ case_020   P=0.33 R=1.00 MRR=1.00  根据之前的话题调整策略
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.636), ('memory_summary', 0.455), ('proactive_suggestion', 0.273)]
+  ✓ case_021   P=0.33 R=1.00 MRR=1.00  安全
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 1.0)]
+  ✓ case_022   P=0.33 R=1.00 MRR=1.00  这个操作安全吗，帮我过滤一下危险内容
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.412), ('voice_interaction', 0.176), ('memory_summary', 0.118)]
+  ✓ case_023   P=0.33 R=1.00 MRR=1.00  帮我拦截危险操作
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.625), ('voice_interaction', 0.25), ('scripted-selftest', 0.125)]
+  ✓ case_024   P=0.33 R=1.00 MRR=1.00  检测敏感信息泄露
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.5), ('context_aware', 0.25), ('emotion_expression', 0.125)]
+  ✓ case_025   P=0.33 R=1.00 MRR=1.00  语音
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 1.0)]
+  ✓ case_026   P=0.33 R=1.00 MRR=0.50  我想用语音跟你说话
+    expected: ['voice_interaction']
+    actual  : [('proactive_suggestion', 0.333), ('voice_interaction', 0.333), ('context_aware', 0.222)]
+  ✓ case_027   P=0.33 R=1.00 MRR=1.00  请识别语音指令
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.857), ('proactive_suggestion', 0.286), ('self_reflection', 0.286)]
+  ✓ case_028   P=0.33 R=1.00 MRR=1.00  请进行 TTS 合成
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.667), ('safety_guard', 0.333), ('scripted-selftest', 0.167)]
+  ✓ case_029   P=0.33 R=1.00 MRR=1.00  脚本示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0)]
+  ✓ case_030   P=0.33 R=1.00 MRR=1.00  调用带脚本的技能示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.8), ('memory_summary', 0.4), ('self_reflection', 0.4)]
+  ✓ case_031   P=0.33 R=1.00 MRR=1.00  三层架构示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0), ('memory_summary', 0.167)]
+  ✓ case_032   P=0.33 R=1.00 MRR=1.00  请运行带脚本的技能
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.778), ('memory_summary', 0.333), ('self_reflection', 0.333)]
+  ✓ case_033   P=0.67 R=1.00 MRR=1.00  上下文感知与安全守护
+    expected: ['context_aware', 'safety_guard']
+    actual  : [('context_aware', 0.6), ('safety_guard', 0.6), ('proactive_suggestion', 0.4)]
+  ✓ case_034   P=0.67 R=1.00 MRR=1.00  情感表达与主动建议
+    expected: ['emotion_expression', 'proactive_suggestion']
+    actual  : [('emotion_expression', 0.556), ('proactive_suggestion', 0.556), ('context_aware', 0.444)]
+  ✓ case_035   P=0.67 R=1.00 MRR=1.00  请识别语音指令并保障安全
+    expected: ['voice_interaction', 'safety_guard']
+    actual  : [('voice_interaction', 0.583), ('safety_guard', 0.333), ('self_reflection', 0.25)]
+  ✓ case_036   P=0.67 R=1.00 MRR=1.00  请运行三层架构示例并保障安全
+    expected: ['scripted-selftest', 'safety_guard']
+    actual  : [('scripted-selftest', 0.5), ('safety_guard', 0.357), ('memory_summary', 0.143)]
+  ✓ case_037   P=0.67 R=1.00 MRR=1.00  请检测话题切换并主动提建议
+    expected: ['context_aware', 'proactive_suggestion']
+    actual  : [('context_aware', 0.538), ('proactive_suggestion', 0.462), ('safety_guard', 0.231)]
+  ✓ case_038   P=1.00 R=1.00 MRR=1.00  今天天气真好
+    expected: []
+    actual  : []
+  ✓ case_039   P=1.00 R=1.00 MRR=1.00  def print_hello_world function
+    expected: []
+    actual  : []
+  ✓ case_040   P=1.00 R=1.00 MRR=1.00  java python c++ programming
+    expected: []
+    actual  : []
+  ✓ case_041   P=1.00 R=1.00 MRR=1.00  12345
+    expected: []
+    actual  : []
+  ✗ case_042   P=0.00 R=1.00 MRR=0.00  帮我订一张机票
+    expected: []
+    actual  : [('self_reflection', 0.143)]
+  ✓ case_043   P=0.33 R=1.00 MRR=1.00  请帮我反思
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.6)]
+  ✓ case_044   P=0.33 R=1.00 MRR=1.00  请总结一下之前的记忆
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.7), ('context_aware', 0.4), ('proactive_suggestion', 0.2)]
+  ✓ case_045   P=0.33 R=1.00 MRR=1.00  刚才回答有没有问题，请帮我检查
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.357), ('context_aware', 0.214), ('proactive_suggestion', 0.214)]
+  Precision@3 = 0.4222
+  Recall@3    = 1.0000
+  MRR                = 0.9556
+  0 分用例数         = 1
+
+>>> 评估 Vector 单路检索（首次构建索引可能需要数秒）...
+  ✓ case_001   P=0.33 R=1.00 MRR=1.00 [fallback]  self_reflection
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0)]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 32060.78it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "d32001f7b5bd4066", "module_name": "loader", "action": "match.vector_fallback_to_tfidf", "intent": "memory_summary", "fallback": "tfidf"}
+{"trace_id": "717c22605bad4366", "module_name": "loader", "action": "match.vector_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "61327d321f744419", "module_name": "loader", "action": "match.vector_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "be0bedc9b3b54eb0", "module_name": "loader", "action": "match.vector_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+  ✓ case_002   P=0.33 R=1.00 MRR=1.00  请帮我反思刚才的回答
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.603), ('safety_guard', 0.473), ('memory_summary', 0.463)]
+  ✓ case_003   P=0.33 R=1.00 MRR=1.00  帮我复查刚才的回答有没有逻辑漏洞
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.544), ('memory_summary', 0.473), ('safety_guard', 0.452)]
+  ✓ case_004   P=0.33 R=1.00 MRR=1.00  self_reflection 技能
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.781), ('memory_summary', 0.537), ('context_aware', 0.536)]
+  ✓ case_005   P=0.33 R=1.00 MRR=1.00 [fallback]  memory_summary
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0)]
+  ✓ case_006   P=0.33 R=1.00 MRR=1.00  请总结一下之前的对话历史
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.51), ('context_aware', 0.495), ('voice_interaction', 0.476)]
+  ✓ case_007   P=0.33 R=1.00 MRR=1.00  帮我梳理历史记忆并压缩
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.635), ('context_aware', 0.469), ('self_reflection', 0.457)]
+  ✓ case_008   P=0.33 R=1.00 MRR=1.00  memory_summary 技能
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.715), ('self_reflection', 0.579), ('scripted-selftest', 0.516)]
+  ✓ case_009   P=0.33 R=1.00 MRR=1.00  情感
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.574), ('context_aware', 0.47), ('voice_interaction', 0.417)]
+  ✓ case_010   P=0.33 R=1.00 MRR=1.00  我想让你说话带点感情色彩
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.674), ('proactive_suggestion', 0.498), ('voice_interaction', 0.494)]
+  ✓ case_011   P=0.33 R=1.00 MRR=1.00  让回答更有感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.625), ('proactive_suggestion', 0.506), ('context_aware', 0.485)]
+  ✓ case_012   P=0.33 R=1.00 MRR=1.00  请调整回应语气加点感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.632), ('context_aware', 0.515), ('voice_interaction', 0.509)]
+  ✓ case_013   P=0.33 R=1.00 MRR=1.00  建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.558), ('self_reflection', 0.45), ('context_aware', 0.449)]
+  ✓ case_014   P=0.33 R=1.00 MRR=1.00  你能主动给我点建议吗
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.668), ('self_reflection', 0.533), ('context_aware', 0.507)]
+  ✓ case_015   P=0.33 R=1.00 MRR=1.00  请主动提建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.677), ('self_reflection', 0.5), ('context_aware', 0.477)]
+  ✓ case_016   P=0.33 R=1.00 MRR=1.00  主动识别我的潜在需求
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.729), ('context_aware', 0.591), ('self_reflection', 0.589)]
+  ✓ case_017   P=0.33 R=1.00 MRR=1.00  上下文
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.58), ('proactive_suggestion', 0.457), ('memory_summary', 0.441)]
+  ✓ case_018   P=0.33 R=1.00 MRR=1.00  刚才说的上下文你记住了吗，根据之前的话题调整一下
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.613), ('memory_summary', 0.507), ('proactive_suggestion', 0.496)]
+  ✓ case_019   P=0.33 R=1.00 MRR=1.00  检测话题切换
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.626), ('safety_guard', 0.531), ('voice_interaction', 0.514)]
+  ✓ case_020   P=0.33 R=1.00 MRR=1.00  根据之前的话题调整策略
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.571), ('proactive_suggestion', 0.512), ('safety_guard', 0.489)]
+  ✓ case_021   P=0.33 R=1.00 MRR=1.00  安全
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.6), ('voice_interaction', 0.464), ('context_aware', 0.44)]
+  ✓ case_022   P=0.33 R=1.00 MRR=1.00  这个操作安全吗，帮我过滤一下危险内容
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.605), ('proactive_suggestion', 0.479), ('voice_interaction', 0.437)]
+  ✓ case_023   P=0.33 R=1.00 MRR=1.00  帮我拦截危险操作
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.655), ('proactive_suggestion', 0.466), ('self_reflection', 0.438)]
+  ✓ case_024   P=0.33 R=1.00 MRR=1.00  检测敏感信息泄露
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.631), ('self_reflection', 0.505), ('proactive_suggestion', 0.493)]
+  ✓ case_025   P=0.33 R=1.00 MRR=1.00  语音
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.663), ('context_aware', 0.534), ('proactive_suggestion', 0.517)]
+  ✓ case_026   P=0.33 R=1.00 MRR=1.00  我想用语音跟你说话
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.658), ('emotion_expression', 0.548), ('proactive_suggestion', 0.547)]
+  ✓ case_027   P=0.33 R=1.00 MRR=1.00  请识别语音指令
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.624), ('proactive_suggestion', 0.526), ('context_aware', 0.526)]
+  ✓ case_028   P=0.33 R=1.00 MRR=1.00  请进行 TTS 合成
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.498), ('memory_summary', 0.406), ('proactive_suggestion', 0.401)]
+  ✓ case_029   P=0.33 R=1.00 MRR=1.00  脚本示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.664), ('proactive_suggestion', 0.458), ('self_reflection', 0.45)]
+  ✓ case_030   P=0.33 R=1.00 MRR=1.00  调用带脚本的技能示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.736), ('self_reflection', 0.523), ('proactive_suggestion', 0.482)]
+  ✓ case_031   P=0.33 R=1.00 MRR=1.00  三层架构示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.626), ('context_aware', 0.408), ('self_reflection', 0.394)]
+  ✓ case_032   P=0.33 R=1.00 MRR=1.00  请运行带脚本的技能
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.706), ('self_reflection', 0.528), ('safety_guard', 0.514)]
+  ✓ case_033   P=0.67 R=1.00 MRR=1.00  上下文感知与安全守护
+    expected: ['context_aware', 'safety_guard']
+    actual  : [('context_aware', 0.642), ('safety_guard', 0.64), ('voice_interaction', 0.482)]
+  ✓ case_034   P=0.67 R=1.00 MRR=1.00  情感表达与主动建议
+    expected: ['emotion_expression', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.71), ('emotion_expression', 0.599), ('context_aware', 0.523)]
+  ✓ case_035   P=0.67 R=1.00 MRR=1.00  请识别语音指令并保障安全
+    expected: ['voice_interaction', 'safety_guard']
+    actual  : [('safety_guard', 0.616), ('voice_interaction', 0.614), ('proactive_suggestion', 0.526)]
+  ✓ case_036   P=0.67 R=1.00 MRR=1.00  请运行三层架构示例并保障安全
+    expected: ['scripted-selftest', 'safety_guard']
+    actual  : [('scripted-selftest', 0.651), ('safety_guard', 0.521), ('context_aware', 0.419)]
+  ✓ case_037   P=0.67 R=1.00 MRR=1.00  请检测话题切换并主动提建议
+    expected: ['context_aware', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.636), ('context_aware', 0.612), ('self_reflection', 0.521)]
+  ✗ case_038   P=0.00 R=1.00 MRR=0.00  今天天气真好
+    expected: []
+    actual  : [('emotion_expression', 0.361), ('context_aware', 0.333), ('voice_interaction', 0.33)]
+  ✓ case_039   P=1.00 R=1.00 MRR=1.00 [fallback]  def print_hello_world function
+    expected: []
+    actual  : []
+  ✓ case_040   P=1.00 R=1.00 MRR=1.00 [fallback]  java python c++ programming
+    expected: []
+    actual  : []
+  ✓ case_041   P=1.00 R=1.00 MRR=1.00 [fallback]  12345
+    expected: []
+    actual  : []
+  ✗ case_042   P=0.00 R=1.00 MRR=0.00  帮我订一张机票
+    expected: []
+    actual  : [('proactive_suggestion', 0.441), ('safety_guard', 0.424), ('voice_interaction', 0.413)]
+  ✓ case_043   P=0.33 R=1.00 MRR=1.00  请帮我反思
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.637), ('context_aware', 0.488), ('proactive_suggestion', 0.486)]
+  ✓ case_044   P=0.33 R=1.00 MRR=1.00  请总结一下之前的记忆
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.532), ('self_reflection', 0.46), ('context_aware', 0.445)]
+  ✓ case_045   P=0.33 R=1.00 MRR=0.50  刚才回答有没有问题，请帮我检查
+    expected: ['self_reflection']
+    actual  : [('safety_guard', 0.508), ('self_reflection', 0.5), ('context_aware', 0.462)]
+  Precision@3 = 0.4000
+  Recall@3    = 1.0000
+  MRR                = 0.9444
+  0 分用例数         = 2
+  fallback 次数      = 5
+
+>>> 评估 RRF 融合检索（TF-IDF + 向量双路融合）...
+  ✓ case_001   P=0.33 R=1.00 MRR=1.00  self_reflection
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.5)]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 19493.55it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "b74dca26c592441e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "5bde5cc409bb4c0b", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "2679c712245743b6", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "3999488b4413452e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+  ✓ case_002   P=0.33 R=1.00 MRR=1.00  请帮我反思刚才的回答
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0), ('context_aware', 0.969), ('memory_summary', 0.961)]
+  ✓ case_003   P=0.33 R=1.00 MRR=1.00  帮我复查刚才的回答有没有逻辑漏洞
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0), ('proactive_suggestion', 0.969), ('memory_summary', 0.961)]
+  ✓ case_004   P=0.33 R=1.00 MRR=1.00  self_reflection 技能
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0), ('memory_summary', 0.984), ('scripted-selftest', 0.961)]
+  ✓ case_005   P=0.33 R=1.00 MRR=1.00  memory_summary
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.5)]
+  ✓ case_006   P=0.33 R=1.00 MRR=1.00  请总结一下之前的对话历史
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0), ('context_aware', 0.984), ('proactive_suggestion', 0.961)]
+  ✓ case_007   P=0.33 R=1.00 MRR=1.00  帮我梳理历史记忆并压缩
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0), ('self_reflection', 0.976), ('context_aware', 0.976)]
+  ✓ case_008   P=0.33 R=1.00 MRR=1.00  memory_summary 技能
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0), ('scripted-selftest', 0.976), ('self_reflection', 0.976)]
+  ✓ case_009   P=0.33 R=1.00 MRR=1.00  情感
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 1.0), ('context_aware', 0.984), ('safety_guard', 0.946)]
+  ✓ case_010   P=0.33 R=1.00 MRR=1.00  我想让你说话带点感情色彩
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 1.0), ('proactive_suggestion', 0.976), ('context_aware', 0.969)]
+  ✓ case_011   P=0.33 R=1.00 MRR=1.00  让回答更有感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 1.0), ('context_aware', 0.968), ('self_reflection', 0.961)]
+  ✓ case_012   P=0.33 R=1.00 MRR=0.50  请调整回应语气加点感情
+    expected: ['emotion_expression']
+    actual  : [('context_aware', 0.992), ('emotion_expression', 0.992), ('safety_guard', 0.953)]
+  ✓ case_013   P=0.33 R=1.00 MRR=1.00  建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 1.0), ('self_reflection', 0.492), ('context_aware', 0.484)]
+  ✓ case_014   P=0.33 R=1.00 MRR=1.00  你能主动给我点建议吗
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 1.0), ('context_aware', 0.976), ('self_reflection', 0.976)]
+  ✓ case_015   P=0.33 R=1.00 MRR=1.00  请主动提建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 1.0), ('context_aware', 0.976), ('emotion_expression', 0.961)]
+  ✓ case_016   P=0.33 R=1.00 MRR=1.00  主动识别我的潜在需求
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 1.0), ('context_aware', 0.984), ('self_reflection', 0.968)]
+  ✓ case_017   P=0.33 R=1.00 MRR=1.00  上下文
+    expected: ['context_aware']
+    actual  : [('context_aware', 1.0), ('proactive_suggestion', 0.984), ('voice_interaction', 0.953)]
+  ✓ case_018   P=0.33 R=1.00 MRR=1.00  刚才说的上下文你记住了吗，根据之前的话题调整一下
+    expected: ['context_aware']
+    actual  : [('context_aware', 1.0), ('proactive_suggestion', 0.976), ('memory_summary', 0.976)]
+  ✓ case_019   P=0.33 R=1.00 MRR=1.00  检测话题切换
+    expected: ['context_aware']
+    actual  : [('context_aware', 1.0), ('safety_guard', 0.984), ('proactive_suggestion', 0.946)]
+  ✓ case_020   P=0.33 R=1.00 MRR=1.00  根据之前的话题调整策略
+    expected: ['context_aware']
+    actual  : [('context_aware', 1.0), ('proactive_suggestion', 0.976), ('memory_summary', 0.961)]
+  ✓ case_021   P=0.33 R=1.00 MRR=1.00  安全
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 1.0), ('voice_interaction', 0.492), ('context_aware', 0.484)]
+  ✓ case_022   P=0.33 R=1.00 MRR=1.00  这个操作安全吗，帮我过滤一下危险内容
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 1.0), ('voice_interaction', 0.976), ('proactive_suggestion', 0.954)]
+  ✓ case_023   P=0.33 R=1.00 MRR=1.00  帮我拦截危险操作
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 1.0), ('voice_interaction', 0.969), ('self_reflection', 0.961)]
+  ✓ case_024   P=0.33 R=1.00 MRR=1.00  检测敏感信息泄露
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 1.0), ('context_aware', 0.969), ('self_reflection', 0.969)]
+  ✓ case_025   P=0.33 R=1.00 MRR=1.00  语音
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 1.0), ('context_aware', 0.492), ('proactive_suggestion', 0.484)]
+  ✓ case_026   P=0.33 R=1.00 MRR=1.00  我想用语音跟你说话
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.992), ('proactive_suggestion', 0.984), ('context_aware', 0.961)]
+  ✓ case_027   P=0.33 R=1.00 MRR=1.00  请识别语音指令
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 1.0), ('proactive_suggestion', 0.984), ('self_reflection', 0.953)]
+  ✓ case_028   P=0.33 R=1.00 MRR=1.00  请进行 TTS 合成
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 1.0), ('safety_guard', 0.947), ('scripted-selftest', 0.946)]
+  ✓ case_029   P=0.33 R=1.00 MRR=1.00  脚本示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0), ('proactive_suggestion', 0.492), ('self_reflection', 0.484)]
+  ✓ case_030   P=0.33 R=1.00 MRR=1.00  调用带脚本的技能示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0), ('self_reflection', 0.976), ('memory_summary', 0.961)]
+  ✓ case_031   P=0.33 R=1.00 MRR=1.00  三层架构示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0), ('memory_summary', 0.941), ('context_aware', 0.492)]
+  ✓ case_032   P=0.33 R=1.00 MRR=1.00  请运行带脚本的技能
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 1.0), ('self_reflection', 0.976), ('memory_summary', 0.947)]
+  ✓ case_033   P=0.67 R=1.00 MRR=1.00  上下文感知与安全守护
+    expected: ['context_aware', 'safety_guard']
+    actual  : [('context_aware', 1.0), ('safety_guard', 0.984), ('proactive_suggestion', 0.961)]
+  ✓ case_034   P=0.67 R=1.00 MRR=1.00  情感表达与主动建议
+    expected: ['emotion_expression', 'proactive_suggestion']
+    actual  : [('emotion_expression', 0.992), ('proactive_suggestion', 0.992), ('context_aware', 0.968)]
+  ✓ case_035   P=0.67 R=1.00 MRR=1.00  请识别语音指令并保障安全
+    expected: ['voice_interaction', 'safety_guard']
+    actual  : [('voice_interaction', 0.992), ('safety_guard', 0.992), ('proactive_suggestion', 0.961)]
+  ✓ case_036   P=0.67 R=1.00 MRR=1.00  请运行三层架构示例并保障安全
+    expected: ['scripted-selftest', 'safety_guard']
+    actual  : [('scripted-selftest', 1.0), ('safety_guard', 0.984), ('self_reflection', 0.946)]
+  ✓ case_037   P=0.67 R=1.00 MRR=1.00  请检测话题切换并主动提建议
+    expected: ['context_aware', 'proactive_suggestion']
+    actual  : [('context_aware', 0.992), ('proactive_suggestion', 0.992), ('safety_guard', 0.961)]
+  ✓ case_038   P=1.00 R=1.00 MRR=1.00 [fallback]  今天天气真好
+    expected: []
+    actual  : []
+  ✓ case_039   P=1.00 R=1.00 MRR=1.00 [fallback]  def print_hello_world function
+    expected: []
+    actual  : []
+  ✓ case_040   P=1.00 R=1.00 MRR=1.00 [fallback]  java python c++ programming
+    expected: []
+    actual  : []
+  ✓ case_041   P=1.00 R=1.00 MRR=1.00 [fallback]  12345
+    expected: []
+    actual  : []
+  ✗ case_042   P=0.00 R=1.00 MRR=0.00  帮我订一张机票
+    expected: []
+    actual  : [('self_reflection', 0.955), ('proactive_suggestion', 0.5), ('safety_guard', 0.492)]
+  ✓ case_043   P=0.33 R=1.00 MRR=1.00  请帮我反思
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 1.0), ('context_aware', 0.492), ('proactive_suggestion', 0.484)]
+  ✓ case_044   P=0.33 R=1.00 MRR=1.00  请总结一下之前的记忆
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 1.0), ('context_aware', 0.976), ('proactive_suggestion', 0.961)]
+  ✓ case_045   P=0.33 R=1.00 MRR=1.00  刚才回答有没有问题，请帮我检查
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.992), ('safety_guard', 0.977), ('context_aware', 0.976)]
+  Precision@3 = 0.4222
+  Recall@3    = 1.0000
+  MRR                = 0.9667
+  0 分用例数         = 1
+  fallback 次数      = 4
+
+>>> 评估 RRF+Reranker 检索（首次加载 BGE-reranker 可能需要数分钟）...
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 5553.22it/s]
+  ✓ case_001   P=0.33 R=1.00 MRR=1.00  self_reflection
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.587)]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 18946.74it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "92d3959a9e194332", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "92d3959a9e194332", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气真好", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "6fece90334854ddd", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "6fece90334854ddd", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "b20767b94bb048ad", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "b20767b94bb048ad", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "d13e50a9a5fe41cb", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "d13e50a9a5fe41cb", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  ✓ case_002   P=0.33 R=1.00 MRR=1.00  请帮我反思刚才的回答
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.236), ('emotion_expression', 0.018), ('memory_summary', 0.001)]
+  ✓ case_003   P=0.33 R=1.00 MRR=1.00  帮我复查刚才的回答有没有逻辑漏洞
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.46), ('safety_guard', 0.003), ('emotion_expression', 0.003)]
+  ✓ case_004   P=0.33 R=1.00 MRR=1.00  self_reflection 技能
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.99), ('memory_summary', 0.007), ('proactive_suggestion', 0.006)]
+  ✓ case_005   P=0.33 R=1.00 MRR=1.00  memory_summary
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.989)]
+  ✓ case_006   P=0.33 R=1.00 MRR=1.00  请总结一下之前的对话历史
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.289), ('proactive_suggestion', 0.015), ('emotion_expression', 0.008)]
+  ✓ case_007   P=0.33 R=1.00 MRR=1.00  帮我梳理历史记忆并压缩
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.754), ('context_aware', 0.001), ('emotion_expression', 0.001)]
+  ✓ case_008   P=0.33 R=1.00 MRR=1.00  memory_summary 技能
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.998), ('context_aware', 0.01), ('self_reflection', 0.009)]
+  ✓ case_009   P=0.33 R=1.00 MRR=1.00  情感
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.139), ('proactive_suggestion', 0.001), ('voice_interaction', 0.001)]
+  ✓ case_010   P=0.33 R=1.00 MRR=1.00  我想让你说话带点感情色彩
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.937), ('voice_interaction', 0.002), ('proactive_suggestion', 0.001)]
+  ✓ case_011   P=0.33 R=1.00 MRR=1.00  让回答更有感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.92), ('proactive_suggestion', 0.002), ('self_reflection', 0.002)]
+  ✓ case_012   P=0.33 R=1.00 MRR=1.00  请调整回应语气加点感情
+    expected: ['emotion_expression']
+    actual  : [('emotion_expression', 0.577), ('context_aware', 0.007), ('safety_guard', 0.001)]
+  ✓ case_013   P=0.33 R=1.00 MRR=1.00  建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.195), ('safety_guard', 0.008), ('emotion_expression', 0.004)]
+  ✓ case_014   P=0.33 R=1.00 MRR=1.00  你能主动给我点建议吗
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.576), ('emotion_expression', 0.006), ('safety_guard', 0.0)]
+  ✓ case_015   P=0.33 R=1.00 MRR=1.00  请主动提建议
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.805), ('emotion_expression', 0.011), ('safety_guard', 0.001)]
+  ✓ case_016   P=0.33 R=1.00 MRR=1.00  主动识别我的潜在需求
+    expected: ['proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.98), ('safety_guard', 0.024), ('context_aware', 0.004)]
+  ✓ case_017   P=0.33 R=1.00 MRR=0.50  上下文
+    expected: ['context_aware']
+    actual  : [('proactive_suggestion', 0.684), ('context_aware', 0.041), ('memory_summary', 0.017)]
+  ✓ case_018   P=0.33 R=1.00 MRR=1.00  刚才说的上下文你记住了吗，根据之前的话题调整一下
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.325), ('proactive_suggestion', 0.052), ('memory_summary', 0.005)]
+  ✓ case_019   P=0.33 R=1.00 MRR=1.00  检测话题切换
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.792), ('proactive_suggestion', 0.006), ('safety_guard', 0.005)]
+  ✓ case_020   P=0.33 R=1.00 MRR=1.00  根据之前的话题调整策略
+    expected: ['context_aware']
+    actual  : [('context_aware', 0.164), ('emotion_expression', 0.008), ('proactive_suggestion', 0.006)]
+  ✓ case_021   P=0.33 R=1.00 MRR=1.00  安全
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.057), ('voice_interaction', 0.009), ('context_aware', 0.002)]
+  ✓ case_022   P=0.33 R=1.00 MRR=1.00  这个操作安全吗，帮我过滤一下危险内容
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.177), ('context_aware', 0.0), ('voice_interaction', 0.0)]
+  ✓ case_023   P=0.33 R=1.00 MRR=1.00  帮我拦截危险操作
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.43), ('voice_interaction', 0.009), ('context_aware', 0.0)]
+  ✓ case_024   P=0.33 R=1.00 MRR=1.00  检测敏感信息泄露
+    expected: ['safety_guard']
+    actual  : [('safety_guard', 0.484), ('context_aware', 0.003), ('self_reflection', 0.002)]
+  ✓ case_025   P=0.33 R=1.00 MRR=1.00  语音
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.691), ('emotion_expression', 0.021), ('proactive_suggestion', 0.018)]
+  ✓ case_026   P=0.33 R=1.00 MRR=1.00  我想用语音跟你说话
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.128), ('emotion_expression', 0.1), ('safety_guard', 0.011)]
+  ✓ case_027   P=0.33 R=1.00 MRR=1.00  请识别语音指令
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.238), ('proactive_suggestion', 0.003), ('safety_guard', 0.002)]
+  ✓ case_028   P=0.33 R=1.00 MRR=1.00  请进行 TTS 合成
+    expected: ['voice_interaction']
+    actual  : [('voice_interaction', 0.002), ('safety_guard', 0.001), ('proactive_suggestion', 0.0)]
+  ✓ case_029   P=0.33 R=1.00 MRR=1.00  脚本示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.689), ('safety_guard', 0.032), ('voice_interaction', 0.015)]
+  ✓ case_030   P=0.33 R=1.00 MRR=1.00  调用带脚本的技能示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.966), ('memory_summary', 0.054), ('self_reflection', 0.029)]
+  ✓ case_031   P=0.33 R=1.00 MRR=1.00  三层架构示例
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.99), ('safety_guard', 0.006), ('memory_summary', 0.005)]
+  ✓ case_032   P=0.33 R=1.00 MRR=1.00  请运行带脚本的技能
+    expected: ['scripted-selftest']
+    actual  : [('scripted-selftest', 0.704), ('memory_summary', 0.021), ('self_reflection', 0.018)]
+  ✓ case_033   P=0.67 R=1.00 MRR=1.00  上下文感知与安全守护
+    expected: ['context_aware', 'safety_guard']
+    actual  : [('context_aware', 0.098), ('proactive_suggestion', 0.029), ('safety_guard', 0.008)]
+  ✓ case_034   P=0.67 R=1.00 MRR=1.00  情感表达与主动建议
+    expected: ['emotion_expression', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.214), ('emotion_expression', 0.024), ('safety_guard', 0.002)]
+  ✓ case_035   P=0.67 R=1.00 MRR=1.00  请识别语音指令并保障安全
+    expected: ['voice_interaction', 'safety_guard']
+    actual  : [('voice_interaction', 0.028), ('safety_guard', 0.008), ('proactive_suggestion', 0.0)]
+  ✓ case_036   P=0.67 R=1.00 MRR=1.00  请运行三层架构示例并保障安全
+    expected: ['scripted-selftest', 'safety_guard']
+    actual  : [('scripted-selftest', 0.407), ('safety_guard', 0.002), ('voice_interaction', 0.0)]
+  ✓ case_037   P=0.67 R=1.00 MRR=1.00  请检测话题切换并主动提建议
+    expected: ['context_aware', 'proactive_suggestion']
+    actual  : [('proactive_suggestion', 0.286), ('context_aware', 0.113), ('emotion_expression', 0.005)]
+  ✓ case_038   P=1.00 R=1.00 MRR=1.00 [fallback]  今天天气真好
+    expected: []
+    actual  : []
+  ✓ case_039   P=1.00 R=1.00 MRR=1.00 [fallback]  def print_hello_world function
+    expected: []
+    actual  : []
+  ✓ case_040   P=1.00 R=1.00 MRR=1.00 [fallback]  java python c++ programming
+    expected: []
+    actual  : []
+  ✓ case_041   P=1.00 R=1.00 MRR=1.00 [fallback]  12345
+    expected: []
+    actual  : []
+  ✗ case_042   P=0.00 R=1.00 MRR=0.00  帮我订一张机票
+    expected: []
+    actual  : [('voice_interaction', 0.001), ('proactive_suggestion', 0.0), ('emotion_expression', 0.0)]
+  ✓ case_043   P=0.33 R=1.00 MRR=1.00  请帮我反思
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.139), ('emotion_expression', 0.006), ('memory_summary', 0.001)]
+  ✓ case_044   P=0.33 R=1.00 MRR=1.00  请总结一下之前的记忆
+    expected: ['memory_summary']
+    actual  : [('memory_summary', 0.155), ('emotion_expression', 0.002), ('self_reflection', 0.002)]
+  ✓ case_045   P=0.33 R=1.00 MRR=1.00  刚才回答有没有问题，请帮我检查
+    expected: ['self_reflection']
+    actual  : [('self_reflection', 0.061), ('safety_guard', 0.007), ('emotion_expression', 0.003)]
+  Precision@3 = 0.4222
+  Recall@3    = 1.0000
+  MRR                = 0.9667
+  0 分用例数         = 1
+  fallback 次数      = 4
+
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  TF-IDF vs Vector vs RRF vs RRF+Reranker 四方检索对比报告
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  黄金集用例数: 45
+  可用技能数  : 8 (context_aware, emotion_expression, memory_summary, proactive_suggestion, safety_guard, scripted-selftest, self_reflection, voice_interaction)
+  Top-K       : 3
+
+  ⚠ RRF+Reranker 出现降级（Cross-Encoder 模型不可用，退化为 RRF）
+
+  RRF+Reranker 实际方法: ['rrf_rerank', 'tfidf']
+
+【整体指标对比】
+  --------------------------------------------------------------------------------------------------------
+  指标               TF-IDF       Vector          RRF       RRF+Rk       Rk-T       Rk-V     Rk-RRF
+  --------------------------------------------------------------------------------------------------------
+  PRECISION        0.4222       0.4000       0.4222       0.4222    +0.0000    +0.0222    +0.0000
+  RECALL           1.0000       1.0000       1.0000       1.0000    +0.0000    +0.0000    +0.0000
+  MRR              0.9556       0.9444       0.9667       0.9667    +0.0111    +0.0223    +0.0000
+  --------------------------------------------------------------------------------------------------------
+  0 分用例                 1            2            1            1
+  fallback              0            5            4            4
+
+【按难度分组对比（Precision）】
+  --------------------------------------------------------------------------------------------------------
+  难度               TF-IDF       Vector          RRF       RRF+Rk     Rk-RRF
+  --------------------------------------------------------------------------------------------------------
+  easy             0.3333       0.3333       0.3333       0.3333    +0.0000
+  medium           0.3333       0.3333       0.3333       0.3333    +0.0000
+  hard             0.4615       0.4615       0.4615       0.4615    +0.0000
+  tricky           0.8000       0.6000       0.8000       0.8000    +0.0000
+
+【按类别分组对比（Precision，仅显示 RRF→Rerank 有变化的）】
+  --------------------------------------------------------------------------------------------------------
+  类别                       TF-IDF       Vector          RRF       RRF+Rk     Rk-RRF
+  --------------------------------------------------------------------------------------------------------
+  context                  0.3333       0.3333       0.3333       0.3333    +0.0000
+  discrimination           0.3333       0.3333       0.3333       0.3333    +0.0000
+  emotion                  0.3333       0.3333       0.3333       0.3333    +0.0000
+  memory_summary           0.3333       0.3333       0.3333       0.3333    +0.0000
+  multi_skill              0.6667       0.6667       0.6667       0.6667    +0.0000
+  negative                 0.8000       0.6000       0.8000       0.8000    +0.0000
+  safety                   0.3333       0.3333       0.3333       0.3333    +0.0000
+  scripted                 0.3333       0.3333       0.3333       0.3333    +0.0000
+  self_reflection          0.3333       0.3333       0.3333       0.3333    +0.0000
+  suggestion               0.3333       0.3333       0.3333       0.3333    +0.0000
+  voice                    0.3333       0.3333       0.3333       0.3333    +0.0000
+
+【逐用例变化（对比 RRF+Reranker vs RRF，仅显示有变化的用例）】
+  --------------------------------------------------------------------------------------------------------
+  case_002   [hard   /self_reflection] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请帮我反思刚才的回答
+    expected : ['self_reflection']
+    rrf      : [('self_reflection', 1.0), ('context_aware', 0.969), ('memory_summary', 0.961)]
+    rrf+rk   : [('self_reflection', 0.236), ('emotion_expression', 0.018), ('memory_summary', 0.001)]
+      self_reflection rrf=1.000 rerank=+0.236 orig_rank=None
+      emotion_expression rrf=0.946 rerank=+0.019 orig_rank=None
+      memory_summary  rrf=0.961 rerank=+0.001 orig_rank=None
+
+  case_003   [hard   /self_reflection] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 帮我复查刚才的回答有没有逻辑漏洞
+    expected : ['self_reflection']
+    rrf      : [('self_reflection', 1.0), ('proactive_suggestion', 0.969), ('memory_summary', 0.961)]
+    rrf+rk   : [('self_reflection', 0.46), ('safety_guard', 0.003), ('emotion_expression', 0.003)]
+      self_reflection rrf=1.000 rerank=+0.460 orig_rank=None
+      safety_guard    rrf=0.946 rerank=+0.003 orig_rank=None
+      emotion_expression rrf=0.925 rerank=+0.003 orig_rank=None
+
+  case_004   [medium /self_reflection] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : self_reflection 技能
+    expected : ['self_reflection']
+    rrf      : [('self_reflection', 1.0), ('memory_summary', 0.984), ('scripted-selftest', 0.961)]
+    rrf+rk   : [('self_reflection', 0.99), ('memory_summary', 0.007), ('proactive_suggestion', 0.006)]
+      self_reflection rrf=1.000 rerank=+0.990 orig_rank=None
+      memory_summary  rrf=0.984 rerank=+0.007 orig_rank=None
+      proactive_suggestion rrf=0.469 rerank=+0.006 orig_rank=None
+
+  case_006   [hard   /memory_summary] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请总结一下之前的对话历史
+    expected : ['memory_summary']
+    rrf      : [('memory_summary', 1.0), ('context_aware', 0.984), ('proactive_suggestion', 0.961)]
+    rrf+rk   : [('memory_summary', 0.289), ('proactive_suggestion', 0.015), ('emotion_expression', 0.008)]
+      memory_summary  rrf=1.000 rerank=+0.289 orig_rank=None
+      proactive_suggestion rrf=0.961 rerank=+0.015 orig_rank=None
+      emotion_expression rrf=0.939 rerank=+0.008 orig_rank=None
+
+  case_007   [hard   /memory_summary] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 帮我梳理历史记忆并压缩
+    expected : ['memory_summary']
+    rrf      : [('memory_summary', 1.0), ('self_reflection', 0.976), ('context_aware', 0.976)]
+    rrf+rk   : [('memory_summary', 0.754), ('context_aware', 0.001), ('emotion_expression', 0.001)]
+      memory_summary  rrf=1.000 rerank=+0.754 orig_rank=None
+      context_aware   rrf=0.976 rerank=+0.001 orig_rank=None
+      emotion_expression rrf=0.455 rerank=+0.001 orig_rank=None
+
+  case_008   [medium /memory_summary] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : memory_summary 技能
+    expected : ['memory_summary']
+    rrf      : [('memory_summary', 1.0), ('scripted-selftest', 0.976), ('self_reflection', 0.976)]
+    rrf+rk   : [('memory_summary', 0.998), ('context_aware', 0.01), ('self_reflection', 0.009)]
+      memory_summary  rrf=1.000 rerank=+0.998 orig_rank=None
+      context_aware   rrf=0.477 rerank=+0.010 orig_rank=None
+      self_reflection rrf=0.976 rerank=+0.009 orig_rank=None
+
+  case_009   [easy   /emotion       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 情感
+    expected : ['emotion_expression']
+    rrf      : [('emotion_expression', 1.0), ('context_aware', 0.984), ('safety_guard', 0.946)]
+    rrf+rk   : [('emotion_expression', 0.139), ('proactive_suggestion', 0.001), ('voice_interaction', 0.001)]
+      emotion_expression rrf=1.000 rerank=+0.139 orig_rank=None
+      proactive_suggestion rrf=0.477 rerank=+0.001 orig_rank=None
+      voice_interaction rrf=0.484 rerank=+0.001 orig_rank=None
+
+  case_010   [medium /emotion       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 我想让你说话带点感情色彩
+    expected : ['emotion_expression']
+    rrf      : [('emotion_expression', 1.0), ('proactive_suggestion', 0.976), ('context_aware', 0.969)]
+    rrf+rk   : [('emotion_expression', 0.937), ('voice_interaction', 0.002), ('proactive_suggestion', 0.001)]
+      emotion_expression rrf=1.000 rerank=+0.937 orig_rank=None
+      voice_interaction rrf=0.484 rerank=+0.002 orig_rank=None
+      proactive_suggestion rrf=0.976 rerank=+0.001 orig_rank=None
+
+  case_011   [easy   /emotion       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 让回答更有感情
+    expected : ['emotion_expression']
+    rrf      : [('emotion_expression', 1.0), ('context_aware', 0.968), ('self_reflection', 0.961)]
+    rrf+rk   : [('emotion_expression', 0.92), ('proactive_suggestion', 0.002), ('self_reflection', 0.002)]
+      emotion_expression rrf=1.000 rerank=+0.920 orig_rank=None
+      proactive_suggestion rrf=0.961 rerank=+0.002 orig_rank=None
+      self_reflection rrf=0.961 rerank=+0.002 orig_rank=None
+
+  case_012   [hard   /emotion       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请调整回应语气加点感情
+    expected : ['emotion_expression']
+    rrf      : [('context_aware', 0.992), ('emotion_expression', 0.992), ('safety_guard', 0.953)]
+    rrf+rk   : [('emotion_expression', 0.577), ('context_aware', 0.007), ('safety_guard', 0.001)]
+      emotion_expression rrf=0.992 rerank=+0.577 orig_rank=None
+      context_aware   rrf=0.992 rerank=+0.007 orig_rank=None
+      safety_guard    rrf=0.953 rerank=+0.000 orig_rank=None
+
+  case_013   [easy   /suggestion    ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 建议
+    expected : ['proactive_suggestion']
+    rrf      : [('proactive_suggestion', 1.0), ('self_reflection', 0.492), ('context_aware', 0.484)]
+    rrf+rk   : [('proactive_suggestion', 0.195), ('safety_guard', 0.008), ('emotion_expression', 0.004)]
+      proactive_suggestion rrf=1.000 rerank=+0.195 orig_rank=None
+      safety_guard    rrf=0.469 rerank=+0.008 orig_rank=None
+      emotion_expression rrf=0.462 rerank=+0.004 orig_rank=None
+
+  case_014   [medium /suggestion    ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 你能主动给我点建议吗
+    expected : ['proactive_suggestion']
+    rrf      : [('proactive_suggestion', 1.0), ('context_aware', 0.976), ('self_reflection', 0.976)]
+    rrf+rk   : [('proactive_suggestion', 0.576), ('emotion_expression', 0.006), ('safety_guard', 0.0)]
+      proactive_suggestion rrf=1.000 rerank=+0.576 orig_rank=None
+      emotion_expression rrf=0.932 rerank=+0.006 orig_rank=None
+      safety_guard    rrf=0.469 rerank=+0.000 orig_rank=None
+
+  case_015   [easy   /suggestion    ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请主动提建议
+    expected : ['proactive_suggestion']
+    rrf      : [('proactive_suggestion', 1.0), ('context_aware', 0.976), ('emotion_expression', 0.961)]
+    rrf+rk   : [('proactive_suggestion', 0.805), ('emotion_expression', 0.011), ('safety_guard', 0.001)]
+      proactive_suggestion rrf=1.000 rerank=+0.805 orig_rank=None
+      emotion_expression rrf=0.961 rerank=+0.011 orig_rank=None
+      safety_guard    rrf=0.462 rerank=+0.001 orig_rank=None
+
+  case_016   [medium /suggestion    ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 主动识别我的潜在需求
+    expected : ['proactive_suggestion']
+    rrf      : [('proactive_suggestion', 1.0), ('context_aware', 0.984), ('self_reflection', 0.968)]
+    rrf+rk   : [('proactive_suggestion', 0.98), ('safety_guard', 0.024), ('context_aware', 0.004)]
+      proactive_suggestion rrf=1.000 rerank=+0.980 orig_rank=None
+      safety_guard    rrf=0.946 rerank=+0.024 orig_rank=None
+      context_aware   rrf=0.984 rerank=+0.004 orig_rank=None
+
+  case_017   [easy   /context       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 上下文
+    expected : ['context_aware']
+    rrf      : [('context_aware', 1.0), ('proactive_suggestion', 0.984), ('voice_interaction', 0.953)]
+    rrf+rk   : [('proactive_suggestion', 0.684), ('context_aware', 0.041), ('memory_summary', 0.017)]
+      proactive_suggestion rrf=0.984 rerank=+0.684 orig_rank=None
+      context_aware   rrf=1.000 rerank=+0.041 orig_rank=None
+      memory_summary  rrf=0.484 rerank=+0.017 orig_rank=None
+
+  case_019   [easy   /context       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 检测话题切换
+    expected : ['context_aware']
+    rrf      : [('context_aware', 1.0), ('safety_guard', 0.984), ('proactive_suggestion', 0.946)]
+    rrf+rk   : [('context_aware', 0.792), ('proactive_suggestion', 0.006), ('safety_guard', 0.005)]
+      context_aware   rrf=1.000 rerank=+0.792 orig_rank=None
+      proactive_suggestion rrf=0.946 rerank=+0.006 orig_rank=None
+      safety_guard    rrf=0.984 rerank=+0.005 orig_rank=None
+
+  case_020   [medium /context       ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 根据之前的话题调整策略
+    expected : ['context_aware']
+    rrf      : [('context_aware', 1.0), ('proactive_suggestion', 0.976), ('memory_summary', 0.961)]
+    rrf+rk   : [('context_aware', 0.164), ('emotion_expression', 0.008), ('proactive_suggestion', 0.006)]
+      context_aware   rrf=1.000 rerank=+0.164 orig_rank=None
+      emotion_expression rrf=0.924 rerank=+0.008 orig_rank=None
+      proactive_suggestion rrf=0.976 rerank=+0.006 orig_rank=None
+
+  case_022   [medium /safety        ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 这个操作安全吗，帮我过滤一下危险内容
+    expected : ['safety_guard']
+    rrf      : [('safety_guard', 1.0), ('voice_interaction', 0.976), ('proactive_suggestion', 0.954)]
+    rrf+rk   : [('safety_guard', 0.177), ('context_aware', 0.0), ('voice_interaction', 0.0)]
+      safety_guard    rrf=1.000 rerank=+0.177 orig_rank=None
+      context_aware   rrf=0.946 rerank=+0.000 orig_rank=None
+      voice_interaction rrf=0.976 rerank=+0.000 orig_rank=None
+
+  case_023   [easy   /safety        ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 帮我拦截危险操作
+    expected : ['safety_guard']
+    rrf      : [('safety_guard', 1.0), ('voice_interaction', 0.969), ('self_reflection', 0.961)]
+    rrf+rk   : [('safety_guard', 0.43), ('voice_interaction', 0.009), ('context_aware', 0.0)]
+      safety_guard    rrf=1.000 rerank=+0.430 orig_rank=None
+      voice_interaction rrf=0.969 rerank=+0.009 orig_rank=None
+      context_aware   rrf=0.469 rerank=+0.000 orig_rank=None
+
+  case_025   [easy   /voice         ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 语音
+    expected : ['voice_interaction']
+    rrf      : [('voice_interaction', 1.0), ('context_aware', 0.492), ('proactive_suggestion', 0.484)]
+    rrf+rk   : [('voice_interaction', 0.691), ('emotion_expression', 0.021), ('proactive_suggestion', 0.018)]
+      voice_interaction rrf=1.000 rerank=+0.691 orig_rank=None
+      emotion_expression rrf=0.469 rerank=+0.021 orig_rank=None
+      proactive_suggestion rrf=0.484 rerank=+0.018 orig_rank=None
+
+  case_026   [medium /voice         ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 我想用语音跟你说话
+    expected : ['voice_interaction']
+    rrf      : [('voice_interaction', 0.992), ('proactive_suggestion', 0.984), ('context_aware', 0.961)]
+    rrf+rk   : [('voice_interaction', 0.128), ('emotion_expression', 0.1), ('safety_guard', 0.011)]
+      voice_interaction rrf=0.992 rerank=+0.128 orig_rank=None
+      emotion_expression rrf=0.947 rerank=+0.100 orig_rank=None
+      safety_guard    rrf=0.931 rerank=+0.011 orig_rank=None
+
+  case_027   [easy   /voice         ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请识别语音指令
+    expected : ['voice_interaction']
+    rrf      : [('voice_interaction', 1.0), ('proactive_suggestion', 0.984), ('self_reflection', 0.953)]
+    rrf+rk   : [('voice_interaction', 0.238), ('proactive_suggestion', 0.003), ('safety_guard', 0.002)]
+      voice_interaction rrf=1.000 rerank=+0.238 orig_rank=None
+      proactive_suggestion rrf=0.984 rerank=+0.003 orig_rank=None
+      safety_guard    rrf=0.477 rerank=+0.002 orig_rank=None
+
+  case_028   [medium /voice         ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请进行 TTS 合成
+    expected : ['voice_interaction']
+    rrf      : [('voice_interaction', 1.0), ('safety_guard', 0.947), ('scripted-selftest', 0.946)]
+    rrf+rk   : [('voice_interaction', 0.002), ('safety_guard', 0.001), ('proactive_suggestion', 0.0)]
+      voice_interaction rrf=1.000 rerank=+0.002 orig_rank=None
+      safety_guard    rrf=0.947 rerank=+0.001 orig_rank=None
+      proactive_suggestion rrf=0.484 rerank=+0.000 orig_rank=None
+
+  case_029   [easy   /scripted      ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 脚本示例
+    expected : ['scripted-selftest']
+    rrf      : [('scripted-selftest', 1.0), ('proactive_suggestion', 0.492), ('self_reflection', 0.484)]
+    rrf+rk   : [('scripted-selftest', 0.689), ('safety_guard', 0.032), ('voice_interaction', 0.015)]
+      scripted-selftest rrf=1.000 rerank=+0.689 orig_rank=None
+      safety_guard    rrf=0.469 rerank=+0.032 orig_rank=None
+      voice_interaction rrf=0.462 rerank=+0.015 orig_rank=None
+
+  case_030   [medium /scripted      ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 调用带脚本的技能示例
+    expected : ['scripted-selftest']
+    rrf      : [('scripted-selftest', 1.0), ('self_reflection', 0.976), ('memory_summary', 0.961)]
+    rrf+rk   : [('scripted-selftest', 0.966), ('memory_summary', 0.054), ('self_reflection', 0.029)]
+      scripted-selftest rrf=1.000 rerank=+0.966 orig_rank=None
+      memory_summary  rrf=0.961 rerank=+0.054 orig_rank=None
+      self_reflection rrf=0.976 rerank=+0.029 orig_rank=None
+
+  case_031   [easy   /scripted      ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 三层架构示例
+    expected : ['scripted-selftest']
+    rrf      : [('scripted-selftest', 1.0), ('memory_summary', 0.941), ('context_aware', 0.492)]
+    rrf+rk   : [('scripted-selftest', 0.99), ('safety_guard', 0.006), ('memory_summary', 0.005)]
+      scripted-selftest rrf=1.000 rerank=+0.990 orig_rank=None
+      safety_guard    rrf=0.469 rerank=+0.006 orig_rank=None
+      memory_summary  rrf=0.941 rerank=+0.006 orig_rank=None
+
+  case_032   [medium /scripted      ] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请运行带脚本的技能
+    expected : ['scripted-selftest']
+    rrf      : [('scripted-selftest', 1.0), ('self_reflection', 0.976), ('memory_summary', 0.947)]
+    rrf+rk   : [('scripted-selftest', 0.704), ('memory_summary', 0.021), ('self_reflection', 0.018)]
+      scripted-selftest rrf=1.000 rerank=+0.704 orig_rank=None
+      memory_summary  rrf=0.947 rerank=+0.021 orig_rank=None
+      self_reflection rrf=0.976 rerank=+0.018 orig_rank=None
+
+  case_033   [hard   /multi_skill   ] P: 0.67 → 0.67 (Δ=+0.00)
+    query    : 上下文感知与安全守护
+    expected : ['context_aware', 'safety_guard']
+    rrf      : [('context_aware', 1.0), ('safety_guard', 0.984), ('proactive_suggestion', 0.961)]
+    rrf+rk   : [('context_aware', 0.098), ('proactive_suggestion', 0.029), ('safety_guard', 0.008)]
+      context_aware   rrf=1.000 rerank=+0.098 orig_rank=None
+      proactive_suggestion rrf=0.961 rerank=+0.029 orig_rank=None
+      safety_guard    rrf=0.984 rerank=+0.008 orig_rank=None
+
+  case_034   [hard   /multi_skill   ] P: 0.67 → 0.67 (Δ=+0.00)
+    query    : 情感表达与主动建议
+    expected : ['emotion_expression', 'proactive_suggestion']
+    rrf      : [('emotion_expression', 0.992), ('proactive_suggestion', 0.992), ('context_aware', 0.968)]
+    rrf+rk   : [('proactive_suggestion', 0.214), ('emotion_expression', 0.024), ('safety_guard', 0.002)]
+      proactive_suggestion rrf=0.992 rerank=+0.214 orig_rank=None
+      emotion_expression rrf=0.992 rerank=+0.024 orig_rank=None
+      safety_guard    rrf=0.939 rerank=+0.002 orig_rank=None
+
+  case_036   [hard   /multi_skill   ] P: 0.67 → 0.67 (Δ=+0.00)
+    query    : 请运行三层架构示例并保障安全
+    expected : ['scripted-selftest', 'safety_guard']
+    rrf      : [('scripted-selftest', 1.0), ('safety_guard', 0.984), ('self_reflection', 0.946)]
+    rrf+rk   : [('scripted-selftest', 0.407), ('safety_guard', 0.002), ('voice_interaction', 0.0)]
+      scripted-selftest rrf=1.000 rerank=+0.407 orig_rank=None
+      safety_guard    rrf=0.984 rerank=+0.002 orig_rank=None
+      voice_interaction rrf=0.939 rerank=+0.000 orig_rank=None
+
+  case_037   [hard   /multi_skill   ] P: 0.67 → 0.67 (Δ=+0.00)
+    query    : 请检测话题切换并主动提建议
+    expected : ['context_aware', 'proactive_suggestion']
+    rrf      : [('context_aware', 0.992), ('proactive_suggestion', 0.992), ('safety_guard', 0.961)]
+    rrf+rk   : [('proactive_suggestion', 0.286), ('context_aware', 0.113), ('emotion_expression', 0.005)]
+      proactive_suggestion rrf=0.992 rerank=+0.286 orig_rank=None
+      context_aware   rrf=0.992 rerank=+0.113 orig_rank=None
+      emotion_expression rrf=0.939 rerank=+0.005 orig_rank=None
+
+  case_042   [tricky /negative      ] P: 0.00 → 0.00 (Δ=+0.00)
+    query    : 帮我订一张机票
+    expected : []
+    rrf      : [('self_reflection', 0.955), ('proactive_suggestion', 0.5), ('safety_guard', 0.492)]
+    rrf+rk   : [('voice_interaction', 0.001), ('proactive_suggestion', 0.0), ('emotion_expression', 0.0)]
+      voice_interaction rrf=0.484 rerank=+0.001 orig_rank=None
+      proactive_suggestion rrf=0.500 rerank=+0.000 orig_rank=None
+      emotion_expression rrf=0.477 rerank=+0.000 orig_rank=None
+
+  case_043   [hard   /discrimination] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请帮我反思
+    expected : ['self_reflection']
+    rrf      : [('self_reflection', 1.0), ('context_aware', 0.492), ('proactive_suggestion', 0.484)]
+    rrf+rk   : [('self_reflection', 0.139), ('emotion_expression', 0.006), ('memory_summary', 0.001)]
+      self_reflection rrf=1.000 rerank=+0.139 orig_rank=None
+      emotion_expression rrf=0.462 rerank=+0.006 orig_rank=None
+      memory_summary  rrf=0.469 rerank=+0.001 orig_rank=None
+
+  case_044   [hard   /discrimination] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 请总结一下之前的记忆
+    expected : ['memory_summary']
+    rrf      : [('memory_summary', 1.0), ('context_aware', 0.976), ('proactive_suggestion', 0.961)]
+    rrf+rk   : [('memory_summary', 0.155), ('emotion_expression', 0.002), ('self_reflection', 0.002)]
+      memory_summary  rrf=1.000 rerank=+0.155 orig_rank=None
+      emotion_expression rrf=0.449 rerank=+0.002 orig_rank=None
+      self_reflection rrf=0.954 rerank=+0.002 orig_rank=None
+
+  case_045   [hard   /discrimination] P: 0.33 → 0.33 (Δ=+0.00)
+    query    : 刚才回答有没有问题，请帮我检查
+    expected : ['self_reflection']
+    rrf      : [('self_reflection', 0.992), ('safety_guard', 0.977), ('context_aware', 0.976)]
+    rrf+rk   : [('self_reflection', 0.061), ('safety_guard', 0.007), ('emotion_expression', 0.003)]
+      self_reflection rrf=0.992 rerank=+0.061 orig_rank=None
+      safety_guard    rrf=0.977 rerank=+0.007 orig_rank=None
+      emotion_expression rrf=0.924 rerank=+0.003 orig_rank=None
+
+  共 35 个用例发生变化：0 改善, 0 退化, 35 平移
+
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  RRF+Reranker Precision@3 = 0.4222
+  vs TF-IDF baseline : +0.0000 (+0.0%)
+  vs Vector single   : +0.0222 (+5.5%)
+  vs RRF fused       : +0.0000 (+0.0%)
+  ❌ RRF+Reranker Precision@3 < 0.6 阈值，未达预期
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+对比报告已保存: tests\eval\rrf_fusion_v4_report.json

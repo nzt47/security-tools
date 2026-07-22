@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<#
+﻿<#
 .SYNOPSIS
   verify_production_deployment.ps1 单元测试 — 模拟失败场景验证容错逻辑
 

@@ -1,0 +1,413 @@
+{
+  "version": "1.0",
+  "created_at": "2026-07-13",
+  "description": "技能检索黄金测试集 — 用于评估 SkillLoader.match 的召回质量。expected_skill_ids 填写人类语义判断的'应命中'技能（理想值），评估脚本对比实际召回结果计算 Precision@K/Recall@K/MRR。当前 TF-IDF 对 description 为空的技能（self_reflection、memory_summary）召回能力为 0，这是基线评估要暴露的核心问题，为升级向量检索提供数据依据。",
+  "notes": "构建基线：基于 data/skills_repo/ 实际技能定义（SkillFileStore 从 skill.md front matter 读取，非 data/skills.json）。8 个技能：self_reflection、memory_summary（description 空）、emotion_expression、proactive_suggestion、context_aware、safety_guard、voice_interaction、scripted-selftest（description 丰富）。所有 8 个技能当前 enabled=true，包括 voice_interaction（与早期文档假设不同，以 skill.md front matter 为准）。",
+  "test_cases": [
+    {
+      "case_id": "case_001",
+      "query": "self_reflection",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "self_reflection",
+      "notes": "直接 ID 查询，meta_text 含 name 字段，TF-IDF 必命中"
+    },
+    {
+      "case_id": "case_002",
+      "query": "请帮我反思刚才的回答",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "self_reflection",
+      "notes": "语义应命中 self_reflection，但 description 为空、name 是英文 ID，TF-IDF 无法命中（基线暴露问题，预期 Precision=0）"
+    },
+    {
+      "case_id": "case_003",
+      "query": "帮我复查刚才的回答有没有逻辑漏洞",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "self_reflection",
+      "notes": "'复查'是 self_reflection body 中的关键词，但第一层只读 front matter 不读 body，TF-IDF 无法命中"
+    },
+    {
+      "case_id": "case_004",
+      "query": "self_reflection 技能",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "self_reflection",
+      "notes": "含 ID 字面量，应命中。但 scripted-selftest 的 description 含'技能'关键字会干扰打分"
+    },
+    {
+      "case_id": "case_005",
+      "query": "memory_summary",
+      "expected_skill_ids": ["memory_summary"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "memory_summary",
+      "notes": "直接 ID 查询命中"
+    },
+    {
+      "case_id": "case_006",
+      "query": "请总结一下之前的对话历史",
+      "expected_skill_ids": ["memory_summary"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "memory_summary",
+      "notes": "语义应命中 memory_summary，但 description 为空，TF-IDF 无法命中。实际算法召回 context_aware（top1），暴露语义检索缺陷"
+    },
+    {
+      "case_id": "case_007",
+      "query": "帮我梳理历史记忆并压缩",
+      "expected_skill_ids": ["memory_summary"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "memory_summary",
+      "notes": "'记忆'+'压缩'应命中 memory_summary，但 description 空。实际算法召回 context_aware（'记忆'命中其 description）"
+    },
+    {
+      "case_id": "case_008",
+      "query": "memory_summary 技能",
+      "expected_skill_ids": ["memory_summary"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "memory_summary",
+      "notes": "含 ID 字面量应命中，但 scripted-selftest 干扰"
+    },
+    {
+      "case_id": "case_009",
+      "query": "情感",
+      "expected_skill_ids": ["emotion_expression"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "emotion",
+      "notes": "单关键词命中 emotion_expression 的 name 和 description"
+    },
+    {
+      "case_id": "case_010",
+      "query": "我想让你说话带点感情色彩",
+      "expected_skill_ids": ["emotion_expression"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "emotion",
+      "notes": "'感情'是核心线索，但'说话'可能干扰"
+    },
+    {
+      "case_id": "case_011",
+      "query": "让回答更有感情",
+      "expected_skill_ids": ["emotion_expression"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "emotion",
+      "notes": "'感情'+'回应'+'生动' 直接命中 description"
+    },
+    {
+      "case_id": "case_012",
+      "query": "请调整回应语气加点感情",
+      "expected_skill_ids": ["emotion_expression"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "emotion",
+      "notes": "'回应'同时出现在 context_aware 和 safety_guard 的 description 中，会干扰排序（实际 top1 是 context_aware）"
+    },
+    {
+      "case_id": "case_013",
+      "query": "建议",
+      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "suggestion",
+      "notes": "单关键词命中 proactive_suggestion 的 description"
+    },
+    {
+      "case_id": "case_014",
+      "query": "你能主动给我点建议吗",
+      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "suggestion",
+      "notes": "'主动'+'建议' 双关键词命中"
+    },
+    {
+      "case_id": "case_015",
+      "query": "请主动提建议",
+      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "suggestion",
+      "notes": "高命中率（0.8333）"
+    },
+    {
+      "case_id": "case_016",
+      "query": "主动识别我的潜在需求",
+      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "suggestion",
+      "notes": "'主动'+'识别'+'潜在'+'需求' 高密度命中（0.9）"
+    },
+    {
+      "case_id": "case_017",
+      "query": "上下文",
+      "expected_skill_ids": ["context_aware"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "context",
+      "notes": "单关键词命中 context_aware 的 name 和 description"
+    },
+    {
+      "case_id": "case_018",
+      "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+      "expected_skill_ids": ["context_aware"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "context",
+      "notes": "'上下文'+'话题'+'调整' 多关键词命中"
+    },
+    {
+      "case_id": "case_019",
+      "query": "检测话题切换",
+      "expected_skill_ids": ["context_aware"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "context",
+      "notes": "'话题'+'切换' 命中 description（0.8333）"
+    },
+    {
+      "case_id": "case_020",
+      "query": "根据之前的话题调整策略",
+      "expected_skill_ids": ["context_aware"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "context",
+      "notes": "'话题'+'调整'+'策略' 命中 description（0.6364）"
+    },
+    {
+      "case_id": "case_021",
+      "query": "安全",
+      "expected_skill_ids": ["safety_guard"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "safety",
+      "notes": "单关键词命中 safety_guard 的 name 和 description"
+    },
+    {
+      "case_id": "case_022",
+      "query": "这个操作安全吗，帮我过滤一下危险内容",
+      "expected_skill_ids": ["safety_guard"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "safety",
+      "notes": "'安全'+'危险'+'内容' 多关键词命中（0.4118）"
+    },
+    {
+      "case_id": "case_023",
+      "query": "帮我拦截危险操作",
+      "expected_skill_ids": ["safety_guard"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "safety",
+      "notes": "'拦截'+'危险'+'操作' 命中 description（0.625）"
+    },
+    {
+      "case_id": "case_024",
+      "query": "检测敏感信息泄露",
+      "expected_skill_ids": ["safety_guard"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "safety",
+      "notes": "'检测'+'敏感'+'信息' 命中 description（0.5）"
+    },
+    {
+      "case_id": "case_025",
+      "query": "语音",
+      "expected_skill_ids": ["voice_interaction"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "voice",
+      "notes": "单关键词命中 voice_interaction 的 name 和 description。注意：voice_interaction 当前 enabled=true（以 skill.md front matter 为准），会被召回"
+    },
+    {
+      "case_id": "case_026",
+      "query": "我想用语音跟你说话",
+      "expected_skill_ids": ["voice_interaction"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "voice",
+      "notes": "voice_interaction enabled=true，应被召回。实际 top2（0.3333），proactive_suggestion 误排第一（0.3333 同分），TF-IDF 排序缺陷"
+    },
+    {
+      "case_id": "case_027",
+      "query": "请识别语音指令",
+      "expected_skill_ids": ["voice_interaction"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "voice",
+      "notes": "'识别'+'语音'+'指令' 高密度命中（0.8571）"
+    },
+    {
+      "case_id": "case_028",
+      "query": "请进行 TTS 合成",
+      "expected_skill_ids": ["voice_interaction"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "voice",
+      "notes": "'TTS'+'合成' 命中 description（0.6667）。'合成'也命中 safety_guard 的'二次确认'（误命中）"
+    },
+    {
+      "case_id": "case_029",
+      "query": "脚本示例",
+      "expected_skill_ids": ["scripted-selftest"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "scripted",
+      "notes": "'脚本'+'示例' 双关键词命中 name 和 description（1.0）"
+    },
+    {
+      "case_id": "case_030",
+      "query": "调用带脚本的技能示例",
+      "expected_skill_ids": ["scripted-selftest"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "scripted",
+      "notes": "'脚本'+'技能'+'示例' 命中（0.8）"
+    },
+    {
+      "case_id": "case_031",
+      "query": "三层架构示例",
+      "expected_skill_ids": ["scripted-selftest"],
+      "expected_top_k": 1,
+      "difficulty": "easy",
+      "category": "scripted",
+      "notes": "'三层'+'架构'+'示例' 命中 description（1.0）"
+    },
+    {
+      "case_id": "case_032",
+      "query": "请运行带脚本的技能",
+      "expected_skill_ids": ["scripted-selftest"],
+      "expected_top_k": 1,
+      "difficulty": "medium",
+      "category": "scripted",
+      "notes": "'运行'+'脚本'+'技能' 命中（0.7778）"
+    },
+    {
+      "case_id": "case_033",
+      "query": "上下文感知与安全守护",
+      "expected_skill_ids": ["context_aware", "safety_guard"],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "多技能召回：'上下文'+'感知'+'安全'+'守护' 同时命中两个技能（同分 0.6）"
+    },
+    {
+      "case_id": "case_034",
+      "query": "情感表达与主动建议",
+      "expected_skill_ids": ["emotion_expression", "proactive_suggestion"],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "多技能召回：'情感'+'表达'+'主动'+'建议' 同时命中两个技能（同分 0.5556）"
+    },
+    {
+      "case_id": "case_035",
+      "query": "请识别语音指令并保障安全",
+      "expected_skill_ids": ["voice_interaction", "safety_guard"],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "多技能召回：'识别'+'语音'+'指令'+'保障'+'安全' 同时命中（0.5833 / 0.3333）"
+    },
+    {
+      "case_id": "case_036",
+      "query": "请运行三层架构示例并保障安全",
+      "expected_skill_ids": ["scripted-selftest", "safety_guard"],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "多技能召回：'运行'+'三层'+'架构'+'示例'+'保障'+'安全' 同时命中（0.5 / 0.3571）"
+    },
+    {
+      "case_id": "case_037",
+      "query": "请检测话题切换并主动提建议",
+      "expected_skill_ids": ["context_aware", "proactive_suggestion"],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "多技能召回：'检测'+'话题'+'切换'+'主动'+'提'+'建议' 同时命中（0.5385 / 0.4615）"
+    },
+    {
+      "case_id": "case_038",
+      "query": "今天天气真好",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：与任何技能语义无关，应召回空"
+    },
+    {
+      "case_id": "case_039",
+      "query": "def print_hello_world function",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：纯编程代码片段，无技能关键词命中"
+    },
+    {
+      "case_id": "case_040",
+      "query": "java python c++ programming",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：纯英文编程语言列表，无技能命中"
+    },
+    {
+      "case_id": "case_041",
+      "query": "12345",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：纯数字，无语义"
+    },
+    {
+      "case_id": "case_042",
+      "query": "帮我订一张机票",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：订票场景，无对应技能"
+    },
+    {
+      "case_id": "case_043",
+      "query": "请帮我反思",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近似区分用例：'反思'应命中 self_reflection，但 description 空、TF-IDF 召回为 0。区分于 case_001（直接 ID 命中），暴露字面匹配与语义理解的鸿沟"
+    },
+    {
+      "case_id": "case_044",
+      "query": "请总结一下之前的记忆",
+      "expected_skill_ids": ["memory_summary"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近似区分用例：'总结'+'记忆' 应命中 memory_summary，但 description 空。实际算法召回 context_aware（'记忆'命中其 description），暴露 TF-IDF 误召回"
+    },
+    {
+      "case_id": "case_045",
+      "query": "刚才回答有没有问题，请帮我检查",
+      "expected_skill_ids": ["self_reflection"],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近似区分用例：'检查'+'回答'+'问题' 语义指向 self_reflection，但 description 空、'检查'不在 meta_text。实际召回 context_aware（'回答'/'问题'误命中）"
+    }
+  ]
+}
