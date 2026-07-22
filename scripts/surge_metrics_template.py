@@ -27,8 +27,8 @@
 
 定制化参数（通过环境变量或直接修改）:
     MOCK_METRICS_PORT: /metrics 端点端口（默认 5678）
-    SURGE_BURST_COUNT: burst 数量（默认 25，需超过 critical 阈值 20）
-    SURGE_SUSTAIN_INTERVAL: 维持间隔秒数（默认 5，与 Prometheus scrape interval 对齐）
+    SURGE_BURST_COUNT: burst 数量（默认 50，生产峰值场景，需超过 critical 阈值 20）
+    SURGE_SUSTAIN_INTERVAL: 维持间隔秒数（默认 3，模拟高峰期密集调用）
     SURGE_SKILL_ID: 激增模拟的 skill_id（默认 surge-template-test）
 """
 from __future__ import annotations
