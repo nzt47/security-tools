@@ -32,6 +32,8 @@ services:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      # [变易] 挂载 unified alerting 规则目录（Grafana 8+ 自动加载 *.yml）
+      - ./monitoring/grafana/alerting:/etc/grafana/provisioning/alerting
     restart: unless-stopped
     depends_on:
       - prometheus
