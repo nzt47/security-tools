@@ -98,6 +98,11 @@ jobs:
           safety check --json --output test_reports/safety_report.json || true
 
       - name: 敏感数据正则静态扫描
+        # [CI 日志增强] 多通道输出 (与 skills-check.yml / p0-security.yml 保持一致):
+        #   1. stdout: ::error file=,line= workflow command (GitHub UI 红色高亮)
+        #   2. $GITHUB_STEP_SUMMARY: Markdown 表格 (PR 检查页面底部汇总)
+        env:
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
         run: |
           echo "=== 敏感数据正则静态扫描 ==="
           python scripts/scan_sensitive_regex.py --fix-hint

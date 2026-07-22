@@ -19,8 +19,8 @@ logger = logging.getLogger("agent.skills_mgmt")
 
 # 尝试引入业务指标收集器（按硬约束要求）；失败则降级为 no-op
 try:
-    from agent.monitoring.business_metrics import get_business_metrics_collector
-    _metrics = get_business_metrics_collector()
+    from agent.monitoring.business_metrics import BusinessMetricsCollector
+    _metrics = BusinessMetricsCollector()
     _METRICS_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _metrics = None

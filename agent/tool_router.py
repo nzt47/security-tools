@@ -475,6 +475,44 @@ def get_tools_for_input(
     return result
 
 
+def _apply_alias_merge_and_priority_sort(
+    selected: set,
+    categories: set,
+    max_tools: int,
+) -> list[str]:
+    """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
+
+    Why: tool_router_hybrid.py 复用此 helper,确保别名/优先级/截断逻辑单一来源。
+    约束: 行为与 get_tools_for_input L440-466 完全一致(包括 TOOL_ALIASES 顺序、
+         tool_to_priority 取最小值、max_tools<=0 不限制)。
+    """
+    # 【功能 2】别名合并:主工具被选中时,移除其别名工具
+    if TOOL_ALIASES:
+        aliases_to_remove: set[str] = set()
+        for main_tool, alias_list in TOOL_ALIASES.items():
+            if main_tool in selected:
+                aliases_to_remove.update(alias_list)
+        selected -= aliases_to_remove
+
+    # 【功能 1】优先级排序:工具 → 其所属类别中最小的 priority
+    tool_to_priority: dict[str, int] = {}
+    for cat in categories:
+        cat_info = TOOL_CATEGORIES.get(cat)
+        if not cat_info:
+            continue
+        pri = cat_info.get("priority", 99)
+        for tool in cat_info["tools"]:
+            if tool in selected:
+                if tool not in tool_to_priority or pri < tool_to_priority[tool]:
+                    tool_to_priority[tool] = pri
+    result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
+
+    # 【功能 3】数量限制:按 priority 排序后截断
+    if max_tools is not None and max_tools > 0 and len(result) > max_tools:
+        result = result[:max_tools]
+    return result
+
+
 def get_categorized_tools() -> list[dict]:
     """获取按类别分组的工具列表（供前端渲染）"""
     result = []

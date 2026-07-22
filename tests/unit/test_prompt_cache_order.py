@@ -291,3 +291,108 @@ class TestOrchestratorV1MessagesOrder:
         assert api_messages[0]["role"] == "system"  # system_prompt
         assert api_messages[1]["content"] == "BUDGET_MARKER_1"  # 直接是 budget_context
         assert api_messages[-1]["role"] == "user"
+
+
+# ============================================================================
+#  测试 4: Few-shot 注入(动态区,user_input 之前)
+# ============================================================================
+
+class TestPromptBuilderFewshotInjection:
+    """验证 build_context_messages 的 Few-shot 注入位置与兜底"""
+
+    def _build(self):
+        builder = PromptBuilder()
+        memory = FakeMemory()
+        return builder, memory
+
+    def test_fewshot_inserted_before_user_input(self):
+        """传 fewshot_samples 时:tool_urge → budget_context → fewshot → user_input"""
+        builder, memory = self._build()
+        samples = {"web_search": [{"input": {"q": "x"}, "output": {"ok": True}}]}
+
+        messages = builder.build_context_messages(
+            memory=memory,
+            tool_calling_service=MagicMock(),
+            user_input="USER_INPUT_MARKER",
+            last_tool_steps=[],
+            fewshot_samples=samples,
+        )
+
+        # tool_urge(0) → budget1(1) → budget2(2) → fewshot(3) → user_input(4)
+        assert len(messages) == 5
+        assert "立即检查" in messages[0]["content"]
+        assert messages[1]["content"] == "BUDGET_MARKER_1"
+        assert messages[2]["content"] == "BUDGET_MARKER_2"
+        # fewshot 是 system 消息
+        assert messages[3]["role"] == "system"
+        assert "脱敏示例" in messages[3]["content"]
+        # user_input 始终在末尾(守 [不易])
+        assert messages[-1]["role"] == "user"
+        assert messages[-1]["content"] == "USER_INPUT_MARKER"
+
+    def test_fewshot_absent_when_no_samples(self):
+        """fewshot_samples=None:行为与原版一致,user_input 在末尾"""
+        builder, memory = self._build()
+        messages = builder.build_context_messages(
+            memory=memory,
+            tool_calling_service=MagicMock(),
+            user_input="USER",
+            last_tool_steps=[],
+            fewshot_samples=None,
+        )
+        assert len(messages) == 4  # tool_urge + 2 budget + user
+        assert messages[-1]["role"] == "user"
+
+    def test_fewshot_absent_when_empty_dict(self):
+        """fewshot_samples={} 不注入"""
+        builder, memory = self._build()
+        messages = builder.build_context_messages(
+            memory=memory,
+            tool_calling_service=MagicMock(),
+            user_input="USER",
+            last_tool_steps=[],
+            fewshot_samples={},
+        )
+        assert len(messages) == 4
+        assert messages[-1]["role"] == "user"
+
+    def test_fewshot_absent_when_build_returns_none(self):
+        """build_fewshot_message 返回 None 时不注入"""
+        builder, memory = self._build()
+        with patch("agent.orchestrator.prompt_builder.build_fewshot_message",
+                   return_value=None):
+            messages = builder.build_context_messages(
+                memory=memory,
+                tool_calling_service=MagicMock(),
+                user_input="USER",
+                last_tool_steps=[],
+                fewshot_samples={"tool": [{"input": {}, "output": {}}]},
+            )
+        assert len(messages) == 4
+        assert messages[-1]["role"] == "user"
+
+    def test_build_fewshot_message_format(self):
+        """build_fewshot_message 返回合法 JSON,含 extracted_params/missing_params"""
+        from agent.orchestrator.prompt_builder import build_fewshot_message
+        samples = {"web_search": [{"input": {"query": "q"}, "output": {"ok": True}}]}
+        msg = build_fewshot_message(samples)
+        assert msg is not None
+        assert msg["role"] == "system"
+        # content 含可解析 JSON
+        import json as _json
+        # 提取 JSON 部分(跳过前导文案)
+        content = msg["content"]
+        json_start = content.find("{")
+        payload = _json.loads(content[json_start:])
+        assert "examples" in payload
+        ex = payload["examples"][0]
+        assert ex["tool"] == "web_search"
+        assert ex["input"] == {"query": "q"}
+        assert ex["extracted_params"] == ["query"]
+        assert ex["missing_params"] == []
+
+    def test_build_fewshot_message_none_for_empty(self):
+        from agent.orchestrator.prompt_builder import build_fewshot_message
+        assert build_fewshot_message(None) is None
+        assert build_fewshot_message({}) is None
+        assert build_fewshot_message({"t": []}) is None

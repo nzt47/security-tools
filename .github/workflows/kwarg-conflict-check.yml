@@ -50,6 +50,11 @@ jobs:
           echo "✓ 扫描器脚本存在"
 
       - name: 运行 HIGH 风险扫描
+        # [CI 日志增强] 多通道输出 (与 skills-check.yml / p0-security.yml / ci.yml 保持一致):
+        #   1. stdout: ::error file=,line= workflow command (GitHub UI 红色高亮)
+        #   2. $GITHUB_STEP_SUMMARY: Markdown 表格 (PR 检查页面底部汇总)
+        env:
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
         run: |
           echo "=== 关键字参数冲突扫描 (HIGH) ==="
           python scripts/scan_kwarg_conflicts.py \
@@ -93,6 +98,9 @@ jobs:
           cache: 'pip'
 
       - name: 运行 MEDIUM 风险扫描
+        # [CI 日志增强] 多通道输出 (与 HIGH 扫描 step 保持一致)
+        env:
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
         run: |
           echo "=== 关键字参数冲突扫描 (MEDIUM) ==="
           python scripts/scan_kwarg_conflicts.py \
