@@ -198,7 +198,10 @@ class RegressionTestRunner:
 
     def test_06_vectorstore_integration(self):
         """6. VectorStore 集成（后端选择）"""
-        # [TLM-L1] VectorStore 集成 — 验证降级后使用 chromadb 后端（非 json fallback）
+        # [TLM-L1] VectorStore 集成 — 验证降级后使用向量后端（chromadb/sqlite_vec，非 json fallback）
+        # Why: VectorStore 优先级 sqlite_vec > chromadb > json。
+        #   降级验证目标是确保不是 json fallback（即向量搜索可用），
+        #   sqlite_vec 和 chromadb 都是有效的向量后端。
         from memory.vector_store import VectorStore
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -207,8 +210,8 @@ class RegressionTestRunner:
                 collection_name="vs_integration",
                 cache_size=100,
             )
-            assert store._backend == "chromadb", (
-                f"期望 chromadb 后端，实际 {store._backend}（降级未生效）"
+            assert store._backend in ("chromadb", "sqlite_vec"), (
+                f"期望 chromadb 或 sqlite_vec 后端，实际 {store._backend}（降级到 json fallback）"
             )
 
             store.add("测试记忆内容", metadata={"type": "verify"})
@@ -217,7 +220,7 @@ class RegressionTestRunner:
             results = store.search("测试", top_k=5)
             assert len(results) > 0, "搜索无结果"
 
-        return f"backend=chromadb, 搜索返回 {len(results)} 条结果"
+        return f"backend={store._backend}, 搜索返回 {len(results)} 条结果"
 
     def test_07_p2_warmup_cache(self):
         """7. P2 预热缓存（LRU 命中率）"""
@@ -259,7 +262,8 @@ class RegressionTestRunner:
     def test_08_p4_heapq_sort(self):
         """8. P4 heapq 排序（BM25 排序）"""
         # [TLM-L1] P4 heapq — heapq.nlargest 替代 sorted[:top_k]
-        from memory.vector_store import InvertedIndex
+        # Why: InvertedIndex 在 vector_store.vector_store 模块中，__init__.py 未导出
+        from memory.vector_store.vector_store import InvertedIndex
 
         index = InvertedIndex()
         for i in range(500):
