@@ -314,7 +314,61 @@ docker logs yunshu-grafana --since 5m 2>&1 | grep "rule_uid=yunshu-skill-halluci
 
 【简易】修复后全链路 `emit_eval_score_metric → inc_counter → 单例 collector → /metrics → Prometheus → Grafana Firing` 无需任何 workaround，直接通畅。
 
-### 10.5 更新总结摘要
+### 10.5 稳定性测试完整日志与结论
+
+#### 10.5.1 stability-test-002 完整时间线
+
+| 阶段 | 时间 (UTC) | 时间 (本地) | 证据 |
+|------|-----------|------------|------|
+| Burst 25 发射 | 16:29:20 | 00:29:20 | `[surge] burst 25 @ 00:29:20` |
+| HTTP server 启动 | 16:29:20 | 00:29:20 | `[surge] HTTP :5678 @ 00:29:20` |
+| counter 值 (burst 后) | 16:29:28 | 00:29:28 | `yunshu_skill_hallucination_total{skill_id="stability-test-002"} 28` |
+| Prometheus target | 16:29:28 | 00:29:28 | `health=up` |
+| increase[5m] (T+90s) | 16:30:53 | 00:30:53 | `11.25`（部分 burst 已抓取）|
+| increase[5m] (T+142s) | 16:31:42 | 00:31:42 | `28.13`（超 critical 阈值 20）|
+| increase[5m] (T+193s) | 16:32:33 | 00:32:33 | `42.79`（持续增长）|
+| **critical Firing** | **16:32:00** | **00:32:00** | `Sending alerts to local notifier count=1` |
+| **warning Firing** | **16:32:04** | **00:32:04** | `Sending alerts to local notifier count=1` |
+| critical 持续 Firing | 16:32:30 | 00:32:30 | `Sending alerts count=1` |
+| warning 持续 Firing | 16:32:35 | 00:32:35 | `Sending alerts count=1` |
+| critical 持续 Firing | 16:33:00 | 00:33:00 | `Sending alerts count=1` |
+| warning 持续 Firing | 16:33:05 | 00:33:05 | `Sending alerts count=1` |
+
+#### 10.5.2 Grafana 状态转换日志（原始）
+
+```
+# 之前激增 (surge-template-test) 恢复 Normal
+16:29:00  ngalert.state.manager  critical  stale state, state=Normal
+16:29:05  ngalert.state.manager  warning   stale state, state=Alerting→Normal
+
+# stability-test-002 burst (16:29:20) → Firing
+16:32:00  ngalert.sender.router  critical  Sending alerts count=1  ← 首次 Firing
+16:32:04  ngalert.sender.router  warning   Sending alerts count=1  ← 首次 Firing
+16:32:30  ngalert.sender.router  critical  Sending alerts count=1  (持续)
+16:32:35  ngalert.sender.router  warning   Sending alerts count=1  (持续)
+16:33:00  ngalert.sender.router  critical  Sending alerts count=1  (持续)
+16:33:05  ngalert.sender.router  warning   Sending alerts count=1  (持续)
+16:33:30  ngalert.sender.router  critical  Sending alerts count=1  (持续)
+16:33:35  ngalert.sender.router  warning   Sending alerts count=1  (持续)
+```
+
+#### 10.5.3 稳定性结论
+
+【不易】**告警规则契约稳定生效**: 两次独立激增验证（surge-template-test + stability-test-002，不同 skill_id、不同时间）均成功触发 critical + warning Firing。critical `for=30s` 与 warning `for=2m` 的 Firing 时序一致（critical 先 ~4s，warning 后），与配置精确匹配。
+
+【变易】**Grafana 状态机正确转换**: stability-test-002 验证中观察到完整的状态转换链——之前激增恢复 Normal (16:29:00) → 新激增 burst (16:29:20) → increase 超 20 (16:31:42) → critical Firing (16:32:00) → 持续 Firing (16:32:30/16:33:00/16:33:30)。状态转换无遗漏、无误报。
+
+【简易】**全链路无需 workaround**: 修复后 `emit_eval_score_metric → inc_counter → 单例 collector → /metrics → Prometheus → Grafana Firing` 直接通畅，`surge_metrics_template.py` 可入库模板脚本复用两次，仅改 `SURGE_SKILL_ID` 环境变量。
+
+**稳定性指标**:
+- counter 写入单例: 2/2 次成功（值=28）
+- Prometheus 抓取: 2/2 次成功（target=up）
+- critical Firing: 2/2 次成功
+- warning Firing: 2/2 次成功
+- 误报: 0 次
+- 漏报: 0 次
+
+#### 10.5.4 总结摘要
 
 本次验证完成了技能幻觉告警全链路的完整修复与稳定性复验闭环：
 

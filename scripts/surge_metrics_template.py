@@ -45,9 +45,12 @@ from agent.skills_mgmt.observability import emit_eval_score_metric
 from agent.monitoring.business_metrics import get_business_metrics_collector
 
 # ── 可配置参数（环境变量覆盖）──
+# [变易] 默认值配置为生产环境常见峰值场景：
+#   - BURST_COUNT=50: 高峰期连续幻觉 50 条（critical 阈值 20 的 2.5 倍）
+#   - SUSTAIN_INTERVAL=3s: 密集维持（模拟高峰期技能调用频率）
 PORT = int(os.environ.get("MOCK_METRICS_PORT", "5678"))
-BURST_COUNT = int(os.environ.get("SURGE_BURST_COUNT", "25"))
-SUSTAIN_INTERVAL = int(os.environ.get("SURGE_SUSTAIN_INTERVAL", "5"))
+BURST_COUNT = int(os.environ.get("SURGE_BURST_COUNT", "50"))
+SUSTAIN_INTERVAL = int(os.environ.get("SURGE_SUSTAIN_INTERVAL", "3"))
 SKILL_ID = os.environ.get("SURGE_SKILL_ID", "surge-template-test")
 
 
