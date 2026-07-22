@@ -18,9 +18,13 @@ from typing import Any, Dict, Iterator, List, Optional
 logger = logging.getLogger("agent.skills_mgmt")
 
 # 尝试引入业务指标收集器（按硬约束要求）；失败则降级为 no-op
+# [不易] 必须用 get_business_metrics_collector() 单例，而非 BusinessMetricsCollector() 直接实例化。
+# 直接实例化会创建独立实例，其 _counters dict 与 /metrics 端点导出的单例不共享，
+# 导致 emit_metric() 发射的指标在 export_prometheus() 中不可见（实例隔离 bug）。
+# 此修复对齐 commit 1a7009a3 的单例化约束。
 try:
-    from agent.monitoring.business_metrics import BusinessMetricsCollector
-    _metrics = BusinessMetricsCollector()
+    from agent.monitoring.business_metrics import get_business_metrics_collector
+    _metrics = get_business_metrics_collector()
     _METRICS_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _metrics = None
