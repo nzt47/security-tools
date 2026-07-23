@@ -74,6 +74,14 @@ _QUERY_PATTERNS: List[Tuple["re.Pattern", str, str]] = [
     # 风险: 中（用精确匹配，避免误伤"删除脚本"等真匹配）
     (re.compile(r"(删除|移动|复制|重命名)\s*(文件|目录|文件夹)"), "similar", "file_operation"),
     (re.compile(r"(重启|关闭|启动)\s*(服务器|服务|进程|系统)"), "similar", "system_operation"),
+
+    # ── 6. booking: 预订/下单类（v6.1 新增） ──
+    # 根因: v6 评估中 case_105 "帮我点外卖" 误召 voice_interaction
+    # 方案: 精确宾语白名单（方案 A），已通过 verify_v61_booking_rule.py 验证
+    # 验证: 3 负样本全部命中 + 5 voice 正样本不误伤 + 40 黄金集正样本 0 冲突
+    # 风险: 低（白名单宾语都是明确的购物对象，"帮我点歌"不匹配）
+    (re.compile(r"(帮我|请|我想).{0,2}(点|订|买|叫|购).{0,3}(外卖|机票|酒店|火车票|电影票|商品|礼物)"),
+     "booking", "order_request"),
 ]
 
 
