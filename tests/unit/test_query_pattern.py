@@ -37,13 +37,19 @@ _NEGATIVE_SET = Path(__file__).parent.parent / "eval" / "negative_samples_extend
 
 
 def _load_golden_queries() -> List[Tuple[str, str, List[str]]]:
-    """加载正样本黄金集: [(case_id, query, expected_skill_ids), ...]"""
+    """加载正样本黄金集: [(case_id, query, expected_skill_ids), ...]
+
+    【不易】仅返回 expected_skill_ids 非空的正样本（真技能意图）。
+    黄金集中的 expected=[] 用例是负样本（应被拒绝），不参与"不误伤"断言。
+    """
     if not _GOLDEN_SET.exists():
         pytest.skip(f"黄金集不存在: {_GOLDEN_SET}")
     with open(_GOLDEN_SET, "r", encoding="utf-8") as f:
         data = json.load(f)
+    # 仅保留 expected_skill_ids 非空的正样本
     return [(c["case_id"], c["query"], c.get("expected_skill_ids", []))
-            for c in data["test_cases"]]
+            for c in data["test_cases"]
+            if c.get("expected_skill_ids")]
 
 
 def _load_negative_queries() -> List[Tuple[str, str, str]]:
