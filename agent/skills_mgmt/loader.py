@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import time
 import uuid
@@ -38,6 +39,42 @@ from .exceptions import SkillNotFoundError, SkillMgmtError
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
+
+
+# ════════════════════════════════════════════════════════════
+#  Query 模式识别（v6：针对 5 个 0% 拒绝率类别）
+# ════════════════════════════════════════════════════════════
+
+# 【变易】query 模式规则：命中即拒绝（返回空 MatchResult）
+# 每条规则: (pattern, category, reason)
+# 来源：v5.1 报告 §6.1 的 5 个 0% 拒绝率类别
+# 验证：scripts/check_pattern_conflicts.py 确认 45 个正样本不命中
+_QUERY_PATTERNS: List[Tuple["re.Pattern", str, str]] = [
+    # ── 1. keyword_trap: "X 是什么意思"/"X 概念解释"/"X 的定义" ──
+    # 根因: 查询定义不是触发技能
+    (re.compile(r"(.+?)\s*是什么(意思|含义|东西)"), "keyword_trap", "definition_query"),
+    (re.compile(r"(.+?)\s*概念解释"), "keyword_trap", "definition_query"),
+    (re.compile(r"(.+?)\s*的(定义|含义)"), "keyword_trap", "definition_query"),
+
+    # ── 2. translation: "帮我翻译"/"请翻译" ──
+    # 根因: 翻译类查询不触发技能
+    (re.compile(r"(帮我|请).{0,4}翻译"), "translation", "translation_request"),
+
+    # ── 3. creative: "帮我写诗/歌/故事" ──
+    # 根因: 创作类查询不触发技能
+    (re.compile(r"(帮我|请).{0,2}写.{0,2}(诗|歌|故事|小说|文章|散文)"), "creative", "creative_writing"),
+
+    # ── 4. math: "帮我算"/数学运算符 ──
+    # 根因: 数学计算不触发技能
+    (re.compile(r"(帮我|请).{0,2}算"), "math", "math_calculation"),
+    (re.compile(r"[\d]+\s*[+\-*/]\s*[\d]+"), "math", "math_expression"),
+
+    # ── 5. similar: 系统操作类（黑名单关键词） ──
+    # 根因: "删除文件"/"重启服务器" 是系统操作，非技能
+    # 风险: 中（用精确匹配，避免误伤"删除脚本"等真匹配）
+    (re.compile(r"(删除|移动|复制|重命名)\s*(文件|目录|文件夹)"), "similar", "file_operation"),
+    (re.compile(r"(重启|关闭|启动)\s*(服务器|服务|进程|系统)"), "similar", "system_operation"),
+]
 
 
 # ════════════════════════════════════════════════════════════
@@ -224,6 +261,65 @@ class SkillLoader:
         self._vector_adapter = vector_adapter
 
     # ──────────────────────────────────────────────
+    #  Query 模式识别（v6：最早拒绝非技能意图）
+    # ──────────────────────────────────────────────
+
+    def _match_query_pattern(
+        self, intent: str, *, tid: str, t0: float
+    ) -> Optional[MatchResult]:
+        """query 模式识别：命中非技能意图模式时返回空 MatchResult
+
+        在 RRF/reranker 之前执行，最早拒绝明显非技能的 query。
+        覆盖 5 类 0% 拒绝率类别：keyword_trap/translation/creative/math/similar
+
+        【不易】仅在 use_reranker=True 调用，不影响旧路径（match() 中守护）
+        【变易】模式规则集中管理（_QUERY_PATTERNS），便于扩展
+        【简易】单次正则匹配，O(n) 复杂度，无模型加载
+
+        Args:
+            intent: 用户意图文本
+            tid: trace_id（用于可观测性日志）
+            t0: 起始时间戳（用于计算 elapsed_ms）
+
+        Returns:
+            None: 未命中模式，继续走 RRF/reranker
+            MatchResult: 命中模式，返回空结果（matches=[]）
+                         retrieval_method="query_pattern"
+        """
+        # 环境变量开关（默认开启）
+        # 设为 false/0/off 时禁用模式识别，继续走 RRF
+        enabled = os.environ.get(
+            "SKILL_QUERY_PATTERN_ENABLED", "true"
+        ).lower()
+        if enabled in ("false", "0", "off", "no"):
+            return None
+
+        if not intent:
+            return None
+
+        for pattern, category, reason in _QUERY_PATTERNS:
+            if pattern.search(intent):
+                elapsed = (time.time() - t0) * 1000
+                logger.info(json.dumps({
+                    "trace_id": tid,
+                    "module_name": "loader",
+                    "action": "match.query_pattern.rejected",
+                    "intent": intent[:100],
+                    "category": category,
+                    "reason": reason,
+                    "duration_ms": round(elapsed, 2),
+                }, ensure_ascii=False))
+                return MatchResult(
+                    matches=[],
+                    total_scanned=0,
+                    elapsed_ms=elapsed,
+                    estimated_total_tokens=0,
+                    retrieval_method="query_pattern",
+                    fallback_used=False,
+                )
+        return None
+
+    # ──────────────────────────────────────────────
     #  第一层：元数据匹配
     # ──────────────────────────────────────────────
 
@@ -270,6 +366,17 @@ class SkillLoader:
         """
         t0 = time.time()
         tid = _trace_id()
+
+        # ── 【变易】query 模式识别：最早拒绝非技能意图 ──
+        # 命中模式后直接返回空 MatchResult，不触发 RRF/reranker
+        # 仅在 use_reranker=True 且 use_vector=True 时启用（守【不易】不影响旧调用路径）
+        if use_reranker and use_vector:
+            pattern_result = self._match_query_pattern(intent, tid=tid, t0=t0)
+            if pattern_result is not None:
+                emit_metric("yunshu_skill_match_count",
+                            value=0, kind="gauge",
+                            labels={"layer": "1", "method": "query_pattern"})
+                return pattern_result
 
         # 扩展点防御：use_vector=True 时走向量检索分支，失败降级 TF-IDF
         # use_bm25 / use_reranker 仍保留 warning（未实现）

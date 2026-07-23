@@ -1,0 +1,39 @@
+============================================================================================
+RRF 融合检索 四方评估  (K=3)
+============================================================================================
+
+>>> 评估 RRF+Reranker 检索（首次加载 BGE-reranker 可能需要数分钟）...
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights:  74%|███████▍  | 292/393 [00:00<00:00, 2869.50it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 3097.46it/s]
+'[WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。' thrown while requesting HEAD https://hf-mirror.com/BAAI/bge-m3/resolve/main/adapter_config.json
+Retrying in 1s [Retry 1/5].
+'[WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。' thrown while requesting HEAD https://hf-mirror.com/BAAI/bge-m3/resolve/main/adapter_config.json
+Retrying in 2s [Retry 2/5].
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 23940.86it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "a3959dfec39f45c4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "a3959dfec39f45c4", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气真好", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "3678d8a0f2ee4281", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "3678d8a0f2ee4281", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "50fd5c88d9464f1f", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "50fd5c88d9464f1f", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "a7f70956fab84b0b", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "a7f70956fab84b0b", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  Precision@3 = 0.4444
+  Recall@3    = 1.0000
+  MRR                = 0.9889
+  0 分用例数         = 0
+  fallback 次数      = 4
+
+对比报告已保存: tests\eval\rrf_fusion_v6_verify.json
+Exception ignored in: <function ResourceTracker.__del__ at 0x0000028210464E00>
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 80, in __del__
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 89, in _stop
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 102, in _stop_locked
+AttributeError: '_thread.RLock' object has no attribute '_recursion_count'
