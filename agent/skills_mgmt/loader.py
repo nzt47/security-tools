@@ -733,16 +733,22 @@ class SkillLoader:
         if adapter is None:
             return None
 
-        # [Bug2 修复] 检测向量引擎是否真正可用 (非 keyword/BM25 降级)
-        # 降级时返回 None, 让 match() 走 TF-IDF 主流程并标记 fallback_used=True
-        vector_engine_active = getattr(adapter, "is_vector_engine_active", True)
-        if not vector_engine_active:
+        # 【v6.4 修复】预热向量引擎：触发 _vector_store 创建 + BGE-m3 索引构建
+        # 根因：_get_vector_adapter 只创建 adapter 实例，_vector_store=None、_index_built=False
+        #       未预热时 adapter.search 返回空或失败 → RRF 退化为 tfidf 单路 → P@3 下降
+        # 守【不易】：预热失败时返回 None，降级 TF-IDF，不影响 match() 主流程
+        # 注：移除 is_vector_engine_active 检查 — 该检查要求 ChromaDB，
+        #     Windows 上 ChromaDB 不兼容（project_memory 已记录）会误阻断
+        #     SentenceTransformers 后端的有效向量检索
+        try:
+            adapter.ensure_indexed()
+        except Exception as e:  # noqa: BLE001
             logger.warning(json.dumps({
                 "trace_id": tid,
                 "module_name": "loader",
-                "action": "vector.engine_degraded_to_tfidf",
+                "action": "vector.warmup_failed",
                 "intent": intent[:100],
-                "fallback": "tfidf",
+                "error": str(e)[:300],
             }, ensure_ascii=False))
             return None
 
