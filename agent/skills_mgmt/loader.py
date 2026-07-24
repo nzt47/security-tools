@@ -328,6 +328,106 @@ class SkillLoader:
         return None
 
     # ──────────────────────────────────────────────
+    #  v6.2 语义意图识别（NegativeIntentDetector 懒加载与调用）
+    # ──────────────────────────────────────────────
+
+    def _get_negative_intent_detector(self):
+        """懒加载 NegativeIntentDetector 单例
+
+        延迟创建避免 import 时拉起 BGE-m3 模型。
+        复用 SkillLoader 已注入的 vector_adapter（共享 BGE-m3 实例）。
+
+        【不易】失败时返回 None（不影响 match 主流程）
+        【变易】首次调用预热 BGE-m3（ensure_indexed），后续复用缓存
+        【简易】单例缓存，避免重复创建
+        """
+        if getattr(self, "_negative_intent_detector", None) is not None:
+            return self._negative_intent_detector
+        try:
+            from .negative_intent_detector import NegativeIntentDetector
+            # 【变易】用 _get_vector_adapter() 而非 self._vector_adapter
+            # 确保在 _match_intent_by_embedding 早期调用时 adapter 已创建
+            # 守【不易】：adapter 创建失败时返回 None，降级到 RRF
+            adapter = self._get_vector_adapter()
+            if adapter is None:
+                return None
+            # 预热 BGE-m3：触发 _st_backend 初始化，否则 encode_query 返回 None
+            # 守【不易】：预热失败时降级返回 None，不影响 match 主流程
+            try:
+                adapter.ensure_indexed()
+            except Exception as e:  # noqa: BLE001
+                logger.warning(json.dumps({
+                    "module_name": "loader",
+                    "action": "negative_intent_detector.warmup_failed",
+                    "error": str(e)[:300],
+                }, ensure_ascii=False))
+                return None
+            self._negative_intent_detector = NegativeIntentDetector(
+                vector_adapter=adapter,
+            )
+            return self._negative_intent_detector
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "loader",
+                "action": "negative_intent_detector.init_failed",
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            return None
+
+    def _match_intent_by_embedding(
+        self, intent: str, *, tid: str, t0: float
+    ) -> Optional[MatchResult]:
+        """v6.2 语义拒绝层：规则未命中后的 embedding 相似度判定
+
+        在 _match_query_pattern 未命中后执行，用 BGE-m3 embedding
+        与非技能意图 prototype 计算余弦相似度，命中则返回空 MatchResult。
+
+        覆盖 v6.1 正则无法泛化的句式（如"明天会下雨吗"无需写新规则）。
+
+        【不易】仅在 use_reranker=True 调用（match() 中守护）
+        【变易】prototype 数据外部化，阈值可通过环境变量调整
+        【简易】委托 NegativeIntentDetector.detect，单次点积
+
+        Args:
+            intent: 用户意图文本
+            tid: trace_id（用于可观测性日志）
+            t0: 起始时间戳（用于计算 elapsed_ms）
+
+        Returns:
+            None: 未命中或检测器降级，继续走 RRF/reranker
+            MatchResult: 命中，返回空结果（matches=[]）
+                         retrieval_method="negative_intent"
+        """
+        detector = self._get_negative_intent_detector()
+        if detector is None:
+            return None  # 检测器不可用，降级到 RRF
+
+        result = detector.detect(intent, tid=tid, t0=t0)
+        if result is None:
+            return None  # 未命中
+
+        # 命中：返回空 MatchResult
+        category, similarity, _ = result
+        elapsed = (time.time() - t0) * 1000
+        logger.info(json.dumps({
+            "trace_id": tid,
+            "module_name": "loader",
+            "action": "match.negative_intent.rejected",
+            "intent": intent[:100],
+            "category": category,
+            "similarity": round(similarity, 4),
+            "duration_ms": round(elapsed, 2),
+        }, ensure_ascii=False))
+        return MatchResult(
+            matches=[],
+            total_scanned=0,
+            elapsed_ms=elapsed,
+            estimated_total_tokens=0,
+            retrieval_method="negative_intent",
+            fallback_used=False,
+        )
+
+    # ──────────────────────────────────────────────
     #  第一层：元数据匹配
     # ──────────────────────────────────────────────
 
@@ -375,6 +475,20 @@ class SkillLoader:
         t0 = time.time()
         tid = _trace_id()
 
+        # [Bug1 修复] use_bm25/use_reranker 未实现的 warning 移到方法开头,
+        # 确保所有返回路径 (RRF 成功 / vector 成功 / TF-IDF 降级) 都能触发记录
+        if use_bm25 or use_reranker:
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "match.extension_not_implemented",
+                "intent": intent[:100],
+                "use_bm25": use_bm25,
+                "use_reranker": use_reranker,
+                "retrieval_weights": retrieval_weights,
+                "fallback": "tfidf",
+            }, ensure_ascii=False))
+
         # ── 【变易】query 模式识别：最早拒绝非技能意图 ──
         # 命中模式后直接返回空 MatchResult，不触发 RRF/reranker
         # 仅在 use_reranker=True 且 use_vector=True 时启用（守【不易】不影响旧调用路径）
@@ -385,6 +499,19 @@ class SkillLoader:
                             value=0, kind="gauge",
                             labels={"layer": "1", "method": "query_pattern"})
                 return pattern_result
+
+            # ── 【变易】v6.2 语义拒绝层：规则未命中后的语义兜底 ──
+            # 用 BGE-m3 embedding 与非技能意图 prototype 计算余弦相似度
+            # 命中则返回空 MatchResult，避免走昂贵的 RRF+Reranker
+            # 失败降级返回 None（放行到 RRF，守【不易】）
+            intent_result = self._match_intent_by_embedding(
+                intent, tid=tid, t0=t0,
+            )
+            if intent_result is not None:
+                emit_metric("yunshu_skill_match_count",
+                            value=0, kind="gauge",
+                            labels={"layer": "1", "method": "negative_intent"})
+                return intent_result
 
         # 扩展点防御：use_vector=True 时走向量检索分支，失败降级 TF-IDF
         # use_bm25 / use_reranker 仍保留 warning（未实现）
@@ -472,18 +599,9 @@ class SkillLoader:
                 "fallback": "tfidf",
             }, ensure_ascii=False))
 
-        # use_bm25 / use_reranker 仍未实现，记录 warning
+        # use_bm25 / use_reranker 未实现, warning 已在方法开头记录 (Bug1 修复)
+        # 此处仅设置 fallback_used 标记 (RRF/vector 成功路径已提前 return)
         if use_bm25 or use_reranker:
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "match.extension_not_implemented",
-                "intent": intent[:100],
-                "use_bm25": use_bm25,
-                "use_reranker": use_reranker,
-                "retrieval_weights": retrieval_weights,
-                "fallback": "tfidf",
-            }, ensure_ascii=False))
             fallback_used = True
 
         # 加载元数据索引（第一层，只读 front matter）
@@ -615,6 +733,19 @@ class SkillLoader:
         if adapter is None:
             return None
 
+        # [Bug2 修复] 检测向量引擎是否真正可用 (非 keyword/BM25 降级)
+        # 降级时返回 None, 让 match() 走 TF-IDF 主流程并标记 fallback_used=True
+        vector_engine_active = getattr(adapter, "is_vector_engine_active", True)
+        if not vector_engine_active:
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "vector.engine_degraded_to_tfidf",
+                "intent": intent[:100],
+                "fallback": "tfidf",
+            }, ensure_ascii=False))
+            return None
+
         try:
             results = adapter.search(
                 intent, top_k=top_k, enabled_only=enabled_only,
@@ -665,7 +796,7 @@ class SkillLoader:
             total_scanned=len(index),
             elapsed_ms=0.0,  # 外层会重新计算并覆盖
             estimated_total_tokens=total_tokens,
-            retrieval_method="vector",
+            retrieval_method="vector",  # 走到这里说明 vector_engine_active=True
             fallback_used=False,
         )
 

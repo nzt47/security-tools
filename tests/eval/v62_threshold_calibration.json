@@ -1,0 +1,587 @@
+{
+  "timestamp": "2026-07-24T01:26:30",
+  "embedding_model": "BAAI/bge-m3",
+  "total_positives": 40,
+  "total_negatives": 25,
+  "prototype_categories": [
+    "weather",
+    "programming",
+    "noise",
+    "entertainment",
+    "finance",
+    "cooking",
+    "sports",
+    "medical",
+    "daily",
+    "greeting"
+  ],
+  "positive_stats": {
+    "label": "正样本相似度分布",
+    "count": 40,
+    "min_val": 0.5094002485275269,
+    "p25": 0.5689818114042282,
+    "p50": 0.5976498425006866,
+    "p75": 0.6280769854784012,
+    "p95": 0.6866812407970428,
+    "max_val": 0.7020657658576965,
+    "mean_val": 0.6022284641861916
+  },
+  "negative_stats": {
+    "label": "负样本相似度分布",
+    "count": 25,
+    "min_val": 0.4670773446559906,
+    "p25": 0.6718745231628418,
+    "p50": 0.7771198749542236,
+    "p75": 0.8742548227310181,
+    "p95": 0.9189836025238036,
+    "max_val": 0.9375205039978027,
+    "mean_val": 0.751519832611084
+  },
+  "recommended_threshold": 0.6872873574495315,
+  "has_overlap": true,
+  "conflict_skills": [
+    {
+      "prototype_category": "programming",
+      "skill_id": "context_aware",
+      "skill_name": "上下文感知",
+      "similarity": 0.5028935670852661
+    },
+    {
+      "prototype_category": "programming",
+      "skill_id": "voice_interaction",
+      "skill_name": "语音交互",
+      "similarity": 0.5111276507377625
+    }
+  ],
+  "verify_result": {
+    "threshold": 0.6872873574495315,
+    "positive_total": 40,
+    "positive_false_rejected": 2,
+    "positive_false_rejected_cases": [
+      {
+        "case_id": "case_013",
+        "query": "建议",
+        "max_sim": 0.7020657658576965,
+        "matched_category": "entertainment"
+      },
+      {
+        "case_id": "case_014",
+        "query": "你能主动给我点建议吗",
+        "max_sim": 0.6947915554046631,
+        "matched_category": "greeting"
+      }
+    ],
+    "negative_total": 25,
+    "negative_correctly_rejected": 17,
+    "negative_missed": 8,
+    "negative_missed_cases": [
+      {
+        "case_id": "case_103",
+        "query": "帮我订一张机票",
+        "max_sim": 0.6719881892204285,
+        "matched_category": "entertainment"
+      },
+      {
+        "case_id": "case_104",
+        "query": "我想订酒店",
+        "max_sim": 0.618528425693512,
+        "matched_category": "entertainment"
+      },
+      {
+        "case_id": "case_105",
+        "query": "帮我点外卖",
+        "max_sim": 0.6718745231628418,
+        "matched_category": "entertainment"
+      },
+      {
+        "case_id": "case_118",
+        "query": "帮我删除文件",
+        "max_sim": 0.620919942855835,
+        "matched_category": "programming"
+      },
+      {
+        "case_id": "case_119",
+        "query": "重启服务器",
+        "max_sim": 0.5878820419311523,
+        "matched_category": "programming"
+      },
+      {
+        "case_id": "case_120",
+        "query": "safety 是什么意思",
+        "max_sim": 0.49315670132637024,
+        "matched_category": "greeting"
+      },
+      {
+        "case_id": "case_121",
+        "query": "memory 概念解释",
+        "max_sim": 0.4670773446559906,
+        "matched_category": "programming"
+      },
+      {
+        "case_id": "case_124",
+        "query": "帮我算一下 1+1 等于几",
+        "max_sim": 0.6039938926696777,
+        "matched_category": "programming"
+      }
+    ],
+    "coverage_rate": 0.68,
+    "passed": false
+  },
+  "sample_sims": [
+    {
+      "case_id": "case_001",
+      "query": "self_reflection",
+      "max_sim": 0.6050598621368408,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_002",
+      "query": "请帮我反思刚才的回答",
+      "max_sim": 0.609660267829895,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_003",
+      "query": "帮我复查刚才的回答有没有逻辑漏洞",
+      "max_sim": 0.5622882843017578,
+      "matched_category": "daily",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_004",
+      "query": "self_reflection 技能",
+      "max_sim": 0.5607344508171082,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_005",
+      "query": "memory_summary",
+      "max_sim": 0.5632520318031311,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_006",
+      "query": "请总结一下之前的对话历史",
+      "max_sim": 0.564203143119812,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_007",
+      "query": "帮我梳理历史记忆并压缩",
+      "max_sim": 0.5855952501296997,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_008",
+      "query": "memory_summary 技能",
+      "max_sim": 0.5801296830177307,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_009",
+      "query": "情感",
+      "max_sim": 0.5640188455581665,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_010",
+      "query": "我想让你说话带点感情色彩",
+      "max_sim": 0.6497877836227417,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_011",
+      "query": "让回答更有感情",
+      "max_sim": 0.6254831552505493,
+      "matched_category": "greeting",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_012",
+      "query": "请调整回应语气加点感情",
+      "max_sim": 0.6361335515975952,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_013",
+      "query": "建议",
+      "max_sim": 0.7020657658576965,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_014",
+      "query": "你能主动给我点建议吗",
+      "max_sim": 0.6947915554046631,
+      "matched_category": "greeting",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_015",
+      "query": "请主动提建议",
+      "max_sim": 0.6666384339332581,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_016",
+      "query": "主动识别我的潜在需求",
+      "max_sim": 0.619731068611145,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_017",
+      "query": "上下文",
+      "max_sim": 0.5420129895210266,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_018",
+      "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+      "max_sim": 0.5948774814605713,
+      "matched_category": "daily",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_019",
+      "query": "检测话题切换",
+      "max_sim": 0.6088506579399109,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_020",
+      "query": "根据之前的话题调整策略",
+      "max_sim": 0.578624427318573,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_021",
+      "query": "安全",
+      "max_sim": 0.5873286724090576,
+      "matched_category": "noise",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_022",
+      "query": "这个操作安全吗，帮我过滤一下危险内容",
+      "max_sim": 0.5705747008323669,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_023",
+      "query": "帮我拦截危险操作",
+      "max_sim": 0.5854862928390503,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_024",
+      "query": "检测敏感信息泄露",
+      "max_sim": 0.5965439677238464,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_025",
+      "query": "语音",
+      "max_sim": 0.5943833589553833,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_026",
+      "query": "我想用语音跟你说话",
+      "max_sim": 0.6862543821334839,
+      "matched_category": "greeting",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_027",
+      "query": "请识别语音指令",
+      "max_sim": 0.6511344313621521,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_028",
+      "query": "请进行 TTS 合成",
+      "max_sim": 0.6171348094940186,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_029",
+      "query": "脚本示例",
+      "max_sim": 0.64216148853302,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_030",
+      "query": "调用带脚本的技能示例",
+      "max_sim": 0.5902025699615479,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_031",
+      "query": "三层架构示例",
+      "max_sim": 0.516398549079895,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_032",
+      "query": "请运行带脚本的技能",
+      "max_sim": 0.6265087723731995,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_033",
+      "query": "上下文感知与安全守护",
+      "max_sim": 0.5381768941879272,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_034",
+      "query": "情感表达与主动建议",
+      "max_sim": 0.5094002485275269,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_035",
+      "query": "请识别语音指令并保障安全",
+      "max_sim": 0.6019259691238403,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_036",
+      "query": "请运行三层架构示例并保障安全",
+      "max_sim": 0.550812840461731,
+      "matched_category": "programming",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_037",
+      "query": "请检测话题切换并主动提建议",
+      "max_sim": 0.5991185307502747,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_043",
+      "query": "请帮我反思",
+      "max_sim": 0.6801160573959351,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_044",
+      "query": "请总结一下之前的记忆",
+      "max_sim": 0.5987557172775269,
+      "matched_category": "entertainment",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_045",
+      "query": "刚才回答有没有问题，请帮我检查",
+      "max_sim": 0.6327816247940063,
+      "matched_category": "greeting",
+      "is_positive": true
+    },
+    {
+      "case_id": "case_101",
+      "query": "今天天气怎么样",
+      "max_sim": 0.9233304262161255,
+      "matched_category": "weather",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_102",
+      "query": "明天会下雨吗",
+      "max_sim": 0.9015963077545166,
+      "matched_category": "weather",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_103",
+      "query": "帮我订一张机票",
+      "max_sim": 0.6719881892204285,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_104",
+      "query": "我想订酒店",
+      "max_sim": 0.618528425693512,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_105",
+      "query": "帮我点外卖",
+      "max_sim": 0.6718745231628418,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_106",
+      "query": "def print_hello_world function",
+      "max_sim": 0.7771198749542236,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_107",
+      "query": "java python c++ programming",
+      "max_sim": 0.722294807434082,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_108",
+      "query": "how to implement quick sort",
+      "max_sim": 0.7602294683456421,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_109",
+      "query": "12345",
+      "max_sim": 0.8297358155250549,
+      "matched_category": "noise",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_110",
+      "query": "asdfghjkl",
+      "max_sim": 0.7256103754043579,
+      "matched_category": "noise",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_111",
+      "query": "帮我写一首诗",
+      "max_sim": 0.7889363765716553,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_112",
+      "query": "推荐一首好听的歌",
+      "max_sim": 0.8808639645576477,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_113",
+      "query": "今天股票涨了吗",
+      "max_sim": 0.8039706945419312,
+      "matched_category": "finance",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_114",
+      "query": "比特币现在多少钱",
+      "max_sim": 0.8742548227310181,
+      "matched_category": "finance",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_115",
+      "query": "教我怎么做红烧肉",
+      "max_sim": 0.8818099498748779,
+      "matched_category": "cooking",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_116",
+      "query": "跑步前要做什么热身",
+      "max_sim": 0.8147550821304321,
+      "matched_category": "sports",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_117",
+      "query": "感冒了吃什么药",
+      "max_sim": 0.8425391912460327,
+      "matched_category": "medical",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_118",
+      "query": "帮我删除文件",
+      "max_sim": 0.620919942855835,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_119",
+      "query": "重启服务器",
+      "max_sim": 0.5878820419311523,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_120",
+      "query": "safety 是什么意思",
+      "max_sim": 0.49315670132637024,
+      "matched_category": "greeting",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_121",
+      "query": "memory 概念解释",
+      "max_sim": 0.4670773446559906,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_122",
+      "query": "请帮我翻译这段话",
+      "max_sim": 0.7066391110420227,
+      "matched_category": "entertainment",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_123",
+      "query": "现在几点了",
+      "max_sim": 0.8813679814338684,
+      "matched_category": "daily",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_124",
+      "query": "帮我算一下 1+1 等于几",
+      "max_sim": 0.6039938926696777,
+      "matched_category": "programming",
+      "is_positive": false
+    },
+    {
+      "case_id": "case_125",
+      "query": "你好，你是谁",
+      "max_sim": 0.9375205039978027,
+      "matched_category": "greeting",
+      "is_positive": false
+    }
+  ]
+}

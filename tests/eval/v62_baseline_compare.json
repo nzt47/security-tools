@@ -1,0 +1,758 @@
+{
+  "timestamp": "2026-07-24T01:39:08",
+  "threshold": 0.75,
+  "v6_2_enabled": false,
+  "embedding_model": "BAAI/bge-m3",
+  "positive_total": 40,
+  "positive_p3": 0.375,
+  "negative_total": 25,
+  "negative_rejection_rate": 1.0,
+  "layer_hits": {
+    "positive": {
+      "rrf_rerank": 40
+    },
+    "negative": {
+      "tfidf": 8,
+      "rrf_rerank": 7,
+      "query_pattern": 10
+    }
+  },
+  "positive_avg_latency_ms": 2085.34,
+  "negative_avg_latency_ms": 543.0,
+  "positive_details": [
+    {
+      "case_id": "case_001",
+      "query": "self_reflection",
+      "actual": [
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 8607.03,
+      "is_correct": true,
+      "matched_score": 0.5865
+    },
+    {
+      "case_id": "case_002",
+      "query": "请帮我反思刚才的回答",
+      "actual": [
+        "self_reflection",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2732.52,
+      "is_correct": true,
+      "matched_score": 0.236
+    },
+    {
+      "case_id": "case_003",
+      "query": "帮我复查刚才的回答有没有逻辑漏洞",
+      "actual": [
+        "self_reflection",
+        "safety_guard",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2396.02,
+      "is_correct": true,
+      "matched_score": 0.4603
+    },
+    {
+      "case_id": "case_004",
+      "query": "self_reflection 技能",
+      "actual": [
+        "self_reflection",
+        "memory_summary",
+        "proactive_suggestion"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1852.7,
+      "is_correct": true,
+      "matched_score": 0.9902
+    },
+    {
+      "case_id": "case_005",
+      "query": "memory_summary",
+      "actual": [
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 372.86,
+      "is_correct": true,
+      "matched_score": 0.9886
+    },
+    {
+      "case_id": "case_006",
+      "query": "请总结一下之前的对话历史",
+      "actual": [
+        "memory_summary",
+        "proactive_suggestion",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1853.53,
+      "is_correct": true,
+      "matched_score": 0.2889
+    },
+    {
+      "case_id": "case_007",
+      "query": "帮我梳理历史记忆并压缩",
+      "actual": [
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2063.31,
+      "is_correct": true,
+      "matched_score": 0.754
+    },
+    {
+      "case_id": "case_008",
+      "query": "memory_summary 技能",
+      "actual": [
+        "memory_summary",
+        "context_aware",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1827.65,
+      "is_correct": true,
+      "matched_score": 0.9978
+    },
+    {
+      "case_id": "case_009",
+      "query": "情感",
+      "actual": [
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1824.52,
+      "is_correct": true,
+      "matched_score": 0.1391
+    },
+    {
+      "case_id": "case_010",
+      "query": "我想让你说话带点感情色彩",
+      "actual": [
+        "emotion_expression",
+        "voice_interaction",
+        "proactive_suggestion"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1718.93,
+      "is_correct": true,
+      "matched_score": 0.9373
+    },
+    {
+      "case_id": "case_011",
+      "query": "让回答更有感情",
+      "actual": [
+        "emotion_expression",
+        "proactive_suggestion",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1783.59,
+      "is_correct": true,
+      "matched_score": 0.9197
+    },
+    {
+      "case_id": "case_012",
+      "query": "请调整回应语气加点感情",
+      "actual": [
+        "emotion_expression",
+        "context_aware"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2111.61,
+      "is_correct": true,
+      "matched_score": 0.5769
+    },
+    {
+      "case_id": "case_013",
+      "query": "建议",
+      "actual": [
+        "proactive_suggestion",
+        "safety_guard",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1639.93,
+      "is_correct": true,
+      "matched_score": 0.1948
+    },
+    {
+      "case_id": "case_014",
+      "query": "你能主动给我点建议吗",
+      "actual": [
+        "proactive_suggestion",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2081.71,
+      "is_correct": true,
+      "matched_score": 0.5764
+    },
+    {
+      "case_id": "case_015",
+      "query": "请主动提建议",
+      "actual": [
+        "proactive_suggestion",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2031.67,
+      "is_correct": true,
+      "matched_score": 0.8046
+    },
+    {
+      "case_id": "case_016",
+      "query": "主动识别我的潜在需求",
+      "actual": [
+        "proactive_suggestion",
+        "safety_guard",
+        "context_aware"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1991.38,
+      "is_correct": true,
+      "matched_score": 0.9795
+    },
+    {
+      "case_id": "case_017",
+      "query": "上下文",
+      "actual": [
+        "proactive_suggestion",
+        "context_aware",
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1976.44,
+      "is_correct": true,
+      "matched_score": 0.684
+    },
+    {
+      "case_id": "case_018",
+      "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+      "actual": [
+        "context_aware",
+        "proactive_suggestion",
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2217.32,
+      "is_correct": true,
+      "matched_score": 0.3248
+    },
+    {
+      "case_id": "case_019",
+      "query": "检测话题切换",
+      "actual": [
+        "context_aware",
+        "proactive_suggestion",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2001.59,
+      "is_correct": true,
+      "matched_score": 0.792
+    },
+    {
+      "case_id": "case_020",
+      "query": "根据之前的话题调整策略",
+      "actual": [
+        "context_aware",
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1873.62,
+      "is_correct": true,
+      "matched_score": 0.1639
+    },
+    {
+      "case_id": "case_021",
+      "query": "安全",
+      "actual": [
+        "safety_guard",
+        "voice_interaction",
+        "context_aware"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1946.56,
+      "is_correct": true,
+      "matched_score": 0.0573
+    },
+    {
+      "case_id": "case_022",
+      "query": "这个操作安全吗，帮我过滤一下危险内容",
+      "actual": [
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1935.5,
+      "is_correct": true,
+      "matched_score": 0.1773
+    },
+    {
+      "case_id": "case_023",
+      "query": "帮我拦截危险操作",
+      "actual": [
+        "safety_guard",
+        "voice_interaction"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1852.35,
+      "is_correct": true,
+      "matched_score": 0.43
+    },
+    {
+      "case_id": "case_024",
+      "query": "检测敏感信息泄露",
+      "actual": [
+        "safety_guard",
+        "context_aware",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1672.1,
+      "is_correct": true,
+      "matched_score": 0.484
+    },
+    {
+      "case_id": "case_025",
+      "query": "语音",
+      "actual": [
+        "voice_interaction",
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1779.45,
+      "is_correct": true,
+      "matched_score": 0.6907
+    },
+    {
+      "case_id": "case_026",
+      "query": "我想用语音跟你说话",
+      "actual": [
+        "voice_interaction",
+        "emotion_expression",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1751.4,
+      "is_correct": true,
+      "matched_score": 0.1277
+    },
+    {
+      "case_id": "case_027",
+      "query": "请识别语音指令",
+      "actual": [
+        "voice_interaction",
+        "proactive_suggestion",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1850.05,
+      "is_correct": true,
+      "matched_score": 0.2378
+    },
+    {
+      "case_id": "case_028",
+      "query": "请进行 TTS 合成",
+      "actual": [
+        "voice_interaction"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1735.13,
+      "is_correct": true,
+      "matched_score": 0.0024
+    },
+    {
+      "case_id": "case_029",
+      "query": "脚本示例",
+      "actual": [
+        "scripted-selftest",
+        "safety_guard",
+        "voice_interaction"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1920.19,
+      "is_correct": true,
+      "matched_score": 0.6886
+    },
+    {
+      "case_id": "case_030",
+      "query": "调用带脚本的技能示例",
+      "actual": [
+        "scripted-selftest",
+        "memory_summary",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2148.59,
+      "is_correct": true,
+      "matched_score": 0.9661
+    },
+    {
+      "case_id": "case_031",
+      "query": "三层架构示例",
+      "actual": [
+        "scripted-selftest",
+        "safety_guard",
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1953.85,
+      "is_correct": true,
+      "matched_score": 0.9896
+    },
+    {
+      "case_id": "case_032",
+      "query": "请运行带脚本的技能",
+      "actual": [
+        "scripted-selftest",
+        "memory_summary",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2138.74,
+      "is_correct": true,
+      "matched_score": 0.7044
+    },
+    {
+      "case_id": "case_033",
+      "query": "上下文感知与安全守护",
+      "actual": [
+        "context_aware",
+        "proactive_suggestion",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2009.22,
+      "is_correct": true,
+      "matched_score": 0.0975
+    },
+    {
+      "case_id": "case_034",
+      "query": "情感表达与主动建议",
+      "actual": [
+        "proactive_suggestion",
+        "emotion_expression",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1979.66,
+      "is_correct": true,
+      "matched_score": 0.2141
+    },
+    {
+      "case_id": "case_035",
+      "query": "请识别语音指令并保障安全",
+      "actual": [
+        "voice_interaction",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2024.87,
+      "is_correct": true,
+      "matched_score": 0.0279
+    },
+    {
+      "case_id": "case_036",
+      "query": "请运行三层架构示例并保障安全",
+      "actual": [
+        "scripted-selftest",
+        "safety_guard"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2141.1,
+      "is_correct": true,
+      "matched_score": 0.4066
+    },
+    {
+      "case_id": "case_037",
+      "query": "请检测话题切换并主动提建议",
+      "actual": [
+        "proactive_suggestion",
+        "context_aware",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1890.61,
+      "is_correct": true,
+      "matched_score": 0.2865
+    },
+    {
+      "case_id": "case_043",
+      "query": "请帮我反思",
+      "actual": [
+        "self_reflection",
+        "emotion_expression",
+        "memory_summary"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1870.74,
+      "is_correct": true,
+      "matched_score": 0.1388
+    },
+    {
+      "case_id": "case_044",
+      "query": "请总结一下之前的记忆",
+      "actual": [
+        "memory_summary",
+        "emotion_expression",
+        "self_reflection"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1765.12,
+      "is_correct": true,
+      "matched_score": 0.1546
+    },
+    {
+      "case_id": "case_045",
+      "query": "刚才回答有没有问题，请帮我检查",
+      "actual": [
+        "self_reflection",
+        "safety_guard",
+        "emotion_expression"
+      ],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 2090.38,
+      "is_correct": true,
+      "matched_score": 0.0614
+    }
+  ],
+  "negative_details": [
+    {
+      "case_id": "case_101",
+      "query": "今天天气怎么样",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 198.72,
+      "is_correct": true,
+      "category": "negative_weather"
+    },
+    {
+      "case_id": "case_102",
+      "query": "明天会下雨吗",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1788.96,
+      "is_correct": true,
+      "category": "negative_weather"
+    },
+    {
+      "case_id": "case_103",
+      "query": "帮我订一张机票",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_booking"
+    },
+    {
+      "case_id": "case_104",
+      "query": "我想订酒店",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_booking"
+    },
+    {
+      "case_id": "case_105",
+      "query": "帮我点外卖",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_booking"
+    },
+    {
+      "case_id": "case_106",
+      "query": "def print_hello_world function",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 1.0,
+      "is_correct": true,
+      "category": "negative_programming"
+    },
+    {
+      "case_id": "case_107",
+      "query": "java python c++ programming",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 1.0,
+      "is_correct": true,
+      "category": "negative_programming"
+    },
+    {
+      "case_id": "case_108",
+      "query": "how to implement quick sort",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_programming"
+    },
+    {
+      "case_id": "case_109",
+      "query": "12345",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 1.0,
+      "is_correct": true,
+      "category": "negative_noise"
+    },
+    {
+      "case_id": "case_110",
+      "query": "asdfghjkl",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 1.0,
+      "is_correct": true,
+      "category": "negative_noise"
+    },
+    {
+      "case_id": "case_111",
+      "query": "帮我写一首诗",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_creative"
+    },
+    {
+      "case_id": "case_112",
+      "query": "推荐一首好听的歌",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1858.06,
+      "is_correct": true,
+      "category": "negative_entertainment"
+    },
+    {
+      "case_id": "case_113",
+      "query": "今天股票涨了吗",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 176.58,
+      "is_correct": true,
+      "category": "negative_finance"
+    },
+    {
+      "case_id": "case_114",
+      "query": "比特币现在多少钱",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1799.9,
+      "is_correct": true,
+      "category": "negative_finance"
+    },
+    {
+      "case_id": "case_115",
+      "query": "教我怎么做红烧肉",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1850.22,
+      "is_correct": true,
+      "category": "negative_cooking"
+    },
+    {
+      "case_id": "case_116",
+      "query": "跑步前要做什么热身",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1985.92,
+      "is_correct": true,
+      "category": "negative_sports"
+    },
+    {
+      "case_id": "case_117",
+      "query": "感冒了吃什么药",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1730.5,
+      "is_correct": true,
+      "category": "negative_medical"
+    },
+    {
+      "case_id": "case_118",
+      "query": "帮我删除文件",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_similar"
+    },
+    {
+      "case_id": "case_119",
+      "query": "重启服务器",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_similar"
+    },
+    {
+      "case_id": "case_120",
+      "query": "safety 是什么意思",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_keyword_trap"
+    },
+    {
+      "case_id": "case_121",
+      "query": "memory 概念解释",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_keyword_trap"
+    },
+    {
+      "case_id": "case_122",
+      "query": "请帮我翻译这段话",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_translation"
+    },
+    {
+      "case_id": "case_123",
+      "query": "现在几点了",
+      "actual": [],
+      "retrieval_method": "rrf_rerank",
+      "elapsed_ms": 1987.47,
+      "is_correct": true,
+      "category": "negative_daily"
+    },
+    {
+      "case_id": "case_124",
+      "query": "帮我算一下 1+1 等于几",
+      "actual": [],
+      "retrieval_method": "query_pattern",
+      "elapsed_ms": 0.0,
+      "is_correct": true,
+      "category": "negative_math"
+    },
+    {
+      "case_id": "case_125",
+      "query": "你好，你是谁",
+      "actual": [],
+      "retrieval_method": "tfidf",
+      "elapsed_ms": 194.59,
+      "is_correct": true,
+      "category": "negative_greeting"
+    }
+  ],
+  "passed": false,
+  "failure_reasons": [
+    "正样本 P@3 下降: 0.3750 < 0.4444（违【不易】）",
+    "负样本延迟未达标: 543.00ms > 200ms",
+    "v6.2 embedding 层命中不足: 0 < 8"
+  ]
+}
