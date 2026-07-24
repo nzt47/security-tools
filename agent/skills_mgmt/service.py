@@ -34,6 +34,7 @@ from .file_store import SkillFileStore
 from .loader import SkillLoader, MatchResult
 from .executor import SkillExecutor, ExecutionResult
 from .context_injector import ContextInjector
+from .output_guard import SkillOutputGuard
 
 
 class SkillsMgmtService:
@@ -581,6 +582,47 @@ class SkillsMgmtService:
             # [变易] 可观测性扩展：透传 retrieved_chunks 到 traced_action
             ctx["retrieved_chunks"] = result.get("retrieved_chunks", [])
             return result
+
+    def validate_llm_output(self, llm_output: str, *,
+                            loaded_skills: List[str],
+                            intent: str) -> Dict[str, Any]:
+        """校验 LLM 输出 (供 orchestrator 在收到 LLM 回复后调用)
+
+        [变易] 不阻塞主流程: 返回的 GuardResult.passed 始终 True,
+        severity=critical 时由调用方决策重试或降级。
+
+        检测项:
+            - 幻觉检测: LLM 是否声称调用了未加载的技能
+            - 格式校验: 期望 JSON 时是否合法
+            - 合规校验: PII / 密钥 / Prompt Injection
+            - 越界检测: 危险动作关键词
+
+        Args:
+            llm_output: LLM 回复文本
+            loaded_skills: 已加载的技能 ID 列表 (来自 build_skill_context)
+            intent: 用户原始意图
+
+        Returns:
+            dict — {passed, severity, findings, sanitized_output}
+            findings: [{category, severity, message, location}, ...]
+        """
+        with traced_action("svc_validate_llm_output",
+                           intent=intent[:80]) as ctx:
+            guard = SkillOutputGuard()
+            result = guard.validate_llm_output(
+                llm_output, loaded_skills, intent,
+            )
+            ctx["severity"] = result.severity
+            ctx["findings_count"] = len(result.findings)
+            ctx["passed"] = result.passed
+            logger.info(
+                "[Service] validate_llm_output severity=%s findings=%d",
+                result.severity, len(result.findings),
+            )
+            emit_metric("yunshu_skill_llm_guard_total",
+                        value=1, kind="counter",
+                        labels={"severity": result.severity})
+            return result.to_dict()
 
     def get_layer_summary(self) -> Dict[str, Any]:
         """三层架构统计摘要 — 供前端可视化与 /health 使用"""
