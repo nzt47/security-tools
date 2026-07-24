@@ -21,6 +21,7 @@ alerting:
 rule_files:
   - "alert_rules.yml"
   - "recording_rules.yml"
+  - "embedding_cache_alerts.yml"
 
 scrape_configs:
   # 1. 四层可见性指标导出器（visibility_report.py --serve-metrics）
@@ -59,3 +60,14 @@ scrape_configs:
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+
+  # 6. Pushgateway — 用于 verify_alerts_trigger.py 注入测试指标
+  #    【变易】告警触发验证专用,生产环境可移除
+  #    使用 host.docker.internal 访问宿主机暴露的 9092 端口
+  #    (pushgateway-test 容器在默认 bridge 网络,不在 monitoring 网络)
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['host.docker.internal:9092']
+    metrics_path: /metrics
+    scrape_interval: 15s
