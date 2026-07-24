@@ -3,18 +3,27 @@
 #
 # 【不易】不修改测试代码,仅编排执行顺序和失败通知
 # 【变易】支持手动触发(workflow_dispatch) + 每日定时(cron) + PR 触发
+#         + nightly 构建完成后自动触发(workflow_run)
 # 【简易】三阶段:依赖安装 → 单元测试 → 端到端恢复测试
 #
 # 触发条件:
-#   - 每日 UTC 02:00(北京时间 10:00)定时执行
+#   - nightly 构建完成后自动触发(ci.yml 完成且 conclusion=success)
+#   - 每日 UTC 02:00(北京时间 10:00)定时兜底执行
 #   - PR 到 master 分支时执行
 #   - 手动触发(workflow_dispatch)
 # =====================================================================
 name: Daily Regression Tests
 
 on:
+  # 【变易】nightly 构建完成后自动触发回归测试
+  # 仅当 ci.yml(云枢系统测试流程) 成功完成时触发,避免在失败构建上跑回归
+  workflow_run:
+    workflows: ["云枢系统测试流程"]
+    types: [completed]
+    branches: [master, main]
   schedule:
     # UTC 02:00 = 北京时间 10:00(每日)
+    # 兜底机制:即使 nightly 构建未触发,回归测试仍定时执行
     - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
@@ -44,12 +53,38 @@ env:
 
 jobs:
   # =====================================================================
+  # Job 0: nightly 构建成功守卫(workflow_run 触发时检查上游 conclusion)
+  # 【不易】非 workflow_run 触发时直接放行,不影响 schedule/PR/dispatch 路径
+  # 【简易】单一职责:仅做条件判断,无 step,通过 needs 串联到所有测试 job
+  # =====================================================================
+  nightly-build-guard:
+    name: Nightly Build Guard
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check upstream conclusion
+        run: |
+          EVENT="${{ github.event_name }}"
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          echo "event_name=${EVENT}"
+          echo "workflow_run.conclusion=${CONCLUSION}"
+          # workflow_run 触发时,仅当上游成功才继续;其他事件直接放行
+          if [[ "${EVENT}" == "workflow_run" && "${CONCLUSION}" != "success" ]]; then
+            echo "❌ nightly 构建未成功(conclusion=${CONCLUSION}),跳过回归测试"
+            exit 1
+          fi
+          echo "✅ 守卫通过,继续执行回归测试"
+
+  # =====================================================================
   # Job 1: 单元测试(LoRA checkpoint 保存/加载)
   # =====================================================================
   unit-tests:
     name: Unit Tests (LoRA Checkpoint)
     runs-on: ubuntu-latest
-    if: github.event.inputs.test_suite != 'e2e'
+    needs: [nightly-build-guard]
+    if: |
+      always() && needs.nightly-build-guard.result == 'success'
+      && github.event.inputs.test_suite != 'e2e'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -97,7 +132,10 @@ jobs:
   e2e-recovery-tests:
     name: E2E Recovery Tests
     runs-on: ubuntu-latest
-    if: github.event.inputs.test_suite != 'unit'
+    needs: [nightly-build-guard]
+    if: |
+      always() && needs.nightly-build-guard.result == 'success'
+      && github.event.inputs.test_suite != 'unit'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
