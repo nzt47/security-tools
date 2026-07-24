@@ -715,6 +715,46 @@ def test_integration_check_detects_commented_call():
         "注释掉的调用不应被 ast 识别为真实调用 (guard_calls=%d)" % guard_calls
 
 
+def test_call_llm_v2_integrates_guard_fails_when_call_commented(monkeypatch):
+    """元测试: 注释掉 _guard_llm_output 调用后, test_call_llm_v2_integrates_guard 必须失败
+
+    与 test_integration_check_detects_commented_call 互补:
+    - 前者证明 ast 识别注释后 guard_calls==0 (逻辑推导)
+    - 本测试实际运行被测函数, 验证它抛 AssertionError (端到端验证)
+
+    通过 monkeypatch inspect.getsource 返回篡改源码 (调用被注释),
+    模拟生产环境调用语句丢失的场景。若被测测试函数未抛 AssertionError,
+    说明集成校验失效 (无法检测回归)。
+    """
+    import inspect
+    import textwrap
+    from agent.orchestrator.orchestrator import Orchestrator
+
+    # 获取原始源码并篡改: 注释掉 _guard_llm_output 调用语句
+    original_src = textwrap.dedent(inspect.getsource(Orchestrator._call_llm_v2))
+    tampered_src = original_src.replace(
+        "response = self._guard_llm_output(response, user_input)",
+        "# response = self._guard_llm_output(response, user_input)  # 故意注释",
+    )
+    # 前提: 篡改生效 (注释中仍含字符串, 但非真实调用)
+    assert "_guard_llm_output" in tampered_src, "测试前提失败: 篡改未生效"
+
+    # monkeypatch inspect.getsource: 仅对 _call_llm_v2 返回篡改源码, 其他对象保持原样
+    real_getsource = inspect.getsource
+
+    def _fake_getsource(obj):
+        if obj is Orchestrator._call_llm_v2:
+            return tampered_src
+        return real_getsource(obj)
+
+    monkeypatch.setattr(inspect, "getsource", _fake_getsource)
+
+    # 实际运行被测测试函数, 验证它抛 AssertionError (防回归校验生效)
+    # 匹配 assert 错误信息中的 "_guard_llm_output" 关键词
+    with pytest.raises(AssertionError, match="_guard_llm_output"):
+        test_call_llm_v2_integrates_guard()
+
+
 def test_guard_matches_example_data(
     guard_result_example_data,
     llm_output_hallucination_pii_injection, loaded_skills_for_guard,
